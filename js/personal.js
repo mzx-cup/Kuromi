@@ -577,6 +577,10 @@ function updateEcoPlantDisplay() {
     const waterBar = document.getElementById('eco-water-bar');
     const nutrientValue = document.getElementById('eco-nutrient-value');
     const nutrientBar = document.getElementById('eco-nutrient-bar');
+    const lightValue = document.getElementById('eco-light-value');
+    const lightBar = document.getElementById('eco-light-bar');
+    const growthValue = document.getElementById('eco-growth-value');
+    const growthBar = document.getElementById('eco-growth-bar');
     const harvestCount = document.getElementById('eco-harvest-count');
 
     const plantData = {
@@ -586,7 +590,9 @@ function updateEcoPlantDisplay() {
         stage: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').stage || 0,
         remainingTime: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').remainingTime || 0,
         water: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').water || 0,
-        nutrient: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').nutrient || 0
+        nutrient: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').nutrient || 0,
+        light: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').light || 50,
+        growth: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').growth || 0
     };
 
     const PLANT_DATA = [
@@ -631,6 +637,10 @@ function updateEcoPlantDisplay() {
     if (waterBar) waterBar.style.width = plantData.water + '%';
     if (nutrientValue) nutrientValue.textContent = Math.round(plantData.nutrient) + '%';
     if (nutrientBar) nutrientBar.style.width = plantData.nutrient + '%';
+    if (lightValue) lightValue.textContent = Math.round(plantData.light) + '%';
+    if (lightBar) lightBar.style.width = plantData.light + '%';
+    if (growthValue) growthValue.textContent = Math.round(plantData.growth) + '%';
+    if (growthBar) growthBar.style.width = plantData.growth + '%';
     if (harvestCount) harvestCount.textContent = plantData.ownedPlants.length;
 }
 
@@ -647,13 +657,16 @@ function ecoPlantAction(action) {
     let tipText = '';
     if (action === 'water') {
         plantStateData.water = Math.min(100, Math.max(0, (plantStateData.water || 0) + 20));
+        plantStateData.growth = Math.min(100, Math.max(0, (plantStateData.growth || 0) + 5));
         plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - WATER_TIME_REDUCTION);
-        tipText = '+20 水分';
+        tipText = '+20💧 +5🌡️';
         showToast('💧 浇水成功！生长时间缩短10分钟~');
     } else if (action === 'nutrient') {
         plantStateData.nutrient = Math.min(100, Math.max(0, (plantStateData.nutrient || 0) + 15));
+        plantStateData.growth = Math.min(100, Math.max(0, (plantStateData.growth || 0) + 8));
+        plantStateData.light = Math.min(100, Math.max(0, (plantStateData.light || 50) + 3));
         plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - NUTRIENT_TIME_REDUCTION);
-        tipText = '+15 营养';
+        tipText = '+15🧪 +8🌡️ +3☀️';
         showToast('🧪 施肥成功！生长时间缩短30分钟~');
     }
 
@@ -663,6 +676,8 @@ function ecoPlantAction(action) {
     const ecoData = {
         lastWater: plantStateData.water,
         lastNutrient: plantStateData.nutrient,
+        lastLight: plantStateData.light,
+        lastGrowth: plantStateData.growth,
         lastUpdate: Date.now()
     };
     localStorage.setItem('eco_data', JSON.stringify(ecoData));

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星云陈列室 - 星识 Star-Learn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/stellar-showcase.css">
+</head>
+<body class="stellar-body">
+    <!-- 星空背景 -->
+    <div class="stellar-bg" id="stellar-bg"></div>
+    
+    <!-- 顶部导航 -->
+    <nav class="stellar-nav">
+        <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
+            <a href="/hub.html" class="flex items-center gap-3 text-white/80 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span class="text-sm">返回中枢</span>
+            </a>
+            <div class="flex items-center gap-2">
+                <span class="text-amber-400 text-lg">✦</span>
+                <h1 class="text-white font-semibold tracking-wide">星云陈列室</h1>
+            </div>
+            <div class="text-right">
+                <span class="text-xs text-white/50">已解锁</span>
+                <span class="text-amber-400 font-bold ml-1" id="badge-count">12</span>
+                <span class="text-xs text-white/50">/ 24</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <main class="stellar-main">
+        <!-- 分类标签 -->
+        <div class="category-tabs">
+            <button class="category-tab active" data-category="all">
+                <span class="text-lg">✧</span>
+                <span>全部</span>
+            </button>
+            <button class="category-tab" data-category="skill">
+                <span class="text-lg">⚔</span>
+                <span>技能徽章</span>
+            </button>
+            <button class="category-tab" data-category="course">
+                <span class="text-lg">📜</span>
+                <span>课程证书</span>
+            </button>
+            <button class="category-tab" data-category="master">
+                <span class="text-lg">🌟</span>
+                <span>大师成就</span>
+            </button>
+        </div>
+
+        <!-- 徽章展示网格 -->
+        <div class="badge-showcase">
+            <!-- 技能徽章卡片 -->
+            <div class="badge-card" data-category="skill" data-tier="legendary" style="--neon-color: 251, 191, 36;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path d="M32 4L38 20H54L41 30L47 46L32 36L17 46L23 30L10 20H26L32 4Z" fill="url(#gold-gradient)" stroke="#fbbf24" stroke-width="2"/>
+                            <defs>
+                                <linearGradient id="gold-gradient" x1="10" y1="4" x2="54" y2="46">
+                                    <stop offset="0%" stop-color="#fef3c7"/>
+                                    <stop offset="50%" stop-color="#fbbf24"/>
+                                    <stop offset="100%" stop-color="#d97706"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">算法大师</h3>
+                    <p class="badge-desc">完成100道算法挑战</p>
+                    <span class="badge-tier legendary">传奇</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="skill" data-tier="epic" style="--neon-color: 168, 85, 247;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="24" stroke="url(#purple-gradient)" stroke-width="3" fill="rgba(168,85,247,0.1)"/>
+                            <path d="M32 16V32L42 42" stroke="#c084fc" stroke-width="3" stroke-linecap="round"/>
+                            <defs>
+                                <linearGradient id="purple-gradient" x1="8" y1="8" x2="56" y2="56">
+                                    <stop offset="0%" stop-color="#e879f9"/>
+                                    <stop offset="100%" stop-color="#7c3aed"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">时间领主</h3>
+                    <p class="badge-desc">累计学习1000小时</p>
+                    <span class="badge-tier epic">史诗</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="course" data-tier="rare" style="--neon-color: 59, 130, 246;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <rect x="12" y="8" width="40" height="48" rx="4" stroke="#3b82f6" stroke-width="3" fill="rgba(59,130,246,0.1)"/>
+                            <path d="M20 20H44M20 32H44M20 44H36" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="44" cy="44" r="8" fill="#3b82f6"/>
+                            <path d="M41 44L43.5 46.5L47 42" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">Python入门</h3>
+                    <p class="badge-desc">完成Python基础课程</p>
+                    <span class="badge-tier rare">稀有</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="master" data-tier="legendary" style="--neon-color: 236, 72, 153;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path d="M32 4C32 4 48 16 48 32C48 48 32 60 32 60C32 60 16 48 16 32C16 16 32 4 32 4Z" fill="url(#pink-gradient)"/>
+                            <circle cx="32" cy="28" r="8" fill="white" opacity="0.9"/>
+                            <path d="M24 40C24 40 28 48 32 48C36 48 40 40 40 40" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+                            <defs>
+                                <linearGradient id="pink-gradient" x1="16" y1="4" x2="48" y2="60">
+                                    <stop offset="0%" stop-color="#f472b6"/>
+                                    <stop offset="100%" stop-color="#ec4899"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">星际探索者</h3>
+                    <p class="badge-desc">探索全部学习模块</p>
+                    <span class="badge-tier legendary">传奇</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="skill" data-tier="epic" style="--neon-color: 16, 185, 129;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path d="M32 8L12 24V40L32 56L52 40V24L32 8Z" stroke="#10b981" stroke-width="3" fill="rgba(16,185,129,0.1)"/>
+                            <path d="M32 20L20 28V36L32 44L44 36V28L32 20Z" fill="#10b981" opacity="0.5"/>
+                            <circle cx="32" cy="32" r="6" fill="#34d399"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">连续7日</h3>
+                    <p class="badge-desc">连续学习一周不断签</p>
+                    <span class="badge-tier epic">史诗</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="course" data-tier="rare" style="--neon-color: 6, 182, 212;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="24" stroke="#06b6d4" stroke-width="3" fill="rgba(6,182,212,0.1)"/>
+                            <path d="M26 32L30 36L38 28" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">高数通关</h3>
+                    <p class="badge-desc">高等数学全部掌握</p>
+                    <span class="badge-tier rare">稀有</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="skill" data-tier="common" style="--neon-color: 148, 163, 184;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="20" stroke="#94a3b8" stroke-width="2" fill="rgba(148,163,184,0.1)"/>
+                            <path d="M32 20V32L40 40" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">初次启航</h3>
+                    <p class="badge-desc">完成第一次学习</p>
+                    <span class="badge-tier common">普通</span>
+                </div>
+            </div>
+
+            <div class="badge-card" data-category="master" data-tier="epic" style="--neon-color: 245, 158, 11;">
+                <div class="badge-base">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path d="M32 4L8 20L8 44L32 60L56 44L56 20L32 4Z" stroke="url(#orange-gradient)" stroke-width="3" fill="rgba(245,158,11,0.1)"/>
+                            <path d="M32 16L20 26V38L32 48L44 38V26L32 16Z" fill="#f59e0b" opacity="0.6"/>
+                            <circle cx="32" cy="32" r="8" fill="#fbbf24"/>
+                            <defs>
+                                <linearGradient id="orange-gradient" x1="8" y1="4" x2="56" y2="60">
+                                    <stop offset="0%" stop-color="#fbbf24"/>
+                                    <stop offset="100%" stop-color="#ea580c"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">知识大师</h3>
+                    <p class="badge-desc">掌握5大学科知识</p>
+                    <span class="badge-tier epic">史诗</span>
+                </div>
+            </div>
+
+            <div class="badge-card locked" data-category="skill" data-tier="legendary" style="--neon-color: 139, 92, 246;">
+                <div class="badge-base">
+                    <div class="badge-icon locked-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <rect x="20" y="28" width="24" height="20" rx="4" stroke="#6b7280" stroke-width="2" fill="rgba(107,114,128,0.2)"/>
+                            <path d="M24 28V22C24 17.5817 27.5817 14 32 14C36.4183 14 40 17.5817 40 22V28" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="32" cy="38" r="3" fill="#6b7280"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">代码诗人</h3>
+                    <p class="badge-desc">编写优雅代码1000行</p>
+                    <span class="badge-tier legendary">传奇</span>
+                </div>
+                <div class="locked-overlay">
+                    <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>继续努力解锁</span>
+                </div>
+            </div>
+
+            <div class="badge-card locked" data-category="course" data-tier="epic" style="--neon-color: 14, 165, 233;">
+                <div class="badge-base">
+                    <div class="badge-icon locked-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="24" stroke="#6b7280" stroke-width="2" fill="rgba(107,114,128,0.2)"/>
+                            <path d="M32 16V32M32 32L40 40" stroke="#6b7280" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">全科通才</h3>
+                    <p class="badge-desc">完成全部课程学习</p>
+                    <span class="badge-tier epic">史诗</span>
+                </div>
+                <div class="locked-overlay">
+                    <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>继续努力解锁</span>
+                </div>
+            </div>
+
+            <div class="badge-card locked" data-category="master" data-tier="legendary" style="--neon-color: 79, 70, 229;">
+                <div class="badge-base">
+                    <div class="badge-icon locked-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <path d="M32 8L4 24V40L32 56L60 40V24L32 8Z" stroke="#6b7280" stroke-width="2" fill="rgba(107,114,128,0.2)"/>
+                            <path d="M32 20L12 32L32 44L52 32L32 20Z" stroke="#6b7280" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">星辰之子</h3>
+                    <p class="badge-desc">收集全部传奇徽章</p>
+                    <span class="badge-tier legendary">传奇</span>
+                </div>
+                <div class="locked-overlay">
+                    <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>继续努力解锁</span>
+                </div>
+            </div>
+
+            <div class="badge-card locked" data-category="skill" data-tier="epic" style="--neon-color: 234, 179, 8;">
+                <div class="badge-base">
+                    <div class="badge-icon locked-icon">
+                        <svg viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="24" stroke="#6b7280" stroke-width="2" fill="rgba(107,114,128,0.2)"/>
+                            <path d="M32 16L38 28H50L40 36L44 48L32 40L20 48L24 36L14 28H26L32 16Z" stroke="#6b7280" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+                <div class="badge-info">
+                    <h3 class="badge-name">连胜之星</h3>
+                    <p class="badge-desc">连续30日学习</p>
+                    <span class="badge-tier epic">史诗</span>
+                </div>
+                <div class="locked-overlay">
+                    <svg class="w-6 h-6 text-white/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>继续努力解锁</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 徽章详情模态框 -->
+    <div class="badge-modal" id="badge-modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="modal-badge">
+                <div class="badge-base large">
+                    <div class="badge-icon">
+                        <svg viewBox="0 0 64 64" fill="none" id="modal-icon">
+                            <path d="M32 4L38 20H54L41 30L47 46L32 36L17 46L23 30L10 20H26L32 4Z" fill="url(#gold-gradient)" stroke="#fbbf24" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <div class="badge-glare"></div>
+                    <div class="badge-glow"></div>
+                </div>
+            </div>
+            <div class="modal-info">
+                <h2 class="modal-title" id="modal-title">算法大师</h2>
+                <p class="modal-desc" id="modal-desc">完成100道算法挑战</p>
+                <div class="modal-meta">
+                    <span class="modal-tier" id="modal-tier">传奇</span>
+                    <span class="modal-date">获得于 2026-03-15</span>
+                </div>
+                <div class="modal-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">156</span>
+                        <span class="stat-label">挑战完成</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">89%</span>
+                        <span class="stat-label">正确率</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">TOP 5%</span>
+                        <span class="stat-label">全球排名</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/stellar-showcase.js"></script>
+</body>
+</html>

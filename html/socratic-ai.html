@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 智脑苏格拉底</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/socratic-ai.css">
+</head>
+<body class="socratic-body">
+    <div class="socratic-bg">
+        <div class="grid-overlay"></div>
+        <div class="ambient-glow"></div>
+    </div>
+
+    <nav class="socratic-nav">
+        <a href="/hub.html" class="nav-back">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            <span>返回</span>
+        </a>
+        <div class="nav-title">
+            <span class="nav-icon">🧠</span>
+            <span>智脑苏格拉底</span>
+        </div>
+        <div class="nav-status">
+            <span class="status-dot"></span>
+            <span class="status-text">AI 对话模式</span>
+        </div>
+    </nav>
+
+    <main class="socratic-main">
+        <div class="dialogue-chamber">
+            <!-- Central AI Energy Orb -->
+            <div class="energy-orb-container" id="energy-orb">
+                <div class="energy-orb">
+                    <div class="orb-core"></div>
+                    <div class="orb-ring ring-1"></div>
+                    <div class="orb-ring ring-2"></div>
+                    <div class="orb-ring ring-3"></div>
+                    <div class="orb-particles"></div>
+                </div>
+                <div class="orb-glow"></div>
+                <div class="orb-status" id="orb-status">倾听中</div>
+            </div>
+
+            <!-- Floating Transcript -->
+            <div class="transcript-container" id="transcript-container">
+                <div class="transcript-content" id="transcript">
+                    <div class="question-number">Q1</div>
+                    <p class="transcript-text" id="transcript-text">
+                        请解释一下 Apache Flink 中 Checkpoint 的对齐机制，当发生故障恢复时，系统如何确保状态一致性？
+                    </p>
+                </div>
+                <div class="transcript-hint" id="transcript-hint">
+                    按住麦克风按钮回答
+                </div>
+            </div>
+
+            <!-- Audio Visualizer (shown when AI is speaking) -->
+            <div class="audio-visualizer hidden" id="audio-visualizer">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+            </div>
+
+            <!-- Response Indicator -->
+            <div class="response-indicator hidden" id="response-indicator">
+                <div class="response-dot"></div>
+                <span class="response-text">AI 正在分析你的回答...</span>
+            </div>
+
+            <!-- Hint Text -->
+            <div class="hint-text" id="hint-text">
+                <p>💡 提示：建议从 Checkpoint 的必要性、Chandy-Lamport 算法、对齐过程三个角度回答</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mic Console -->
+    <div class="mic-console" id="mic-console">
+        <div class="mic-rings" id="mic-rings">
+            <div class="mic-ring ring-1"></div>
+            <div class="mic-ring ring-2"></div>
+            <div class="mic-ring ring-3"></div>
+        </div>
+        <button class="mic-btn" id="mic-btn" aria-label="按住说话">
+            <div class="mic-inner">
+                <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+                <div class="mic-waves" id="mic-waves">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+            </div>
+        </button>
+        <div class="mic-label" id="mic-label">
+            <span class="label-text">长按说话</span>
+        </div>
+    </div>
+
+    <!-- Transcript History -->
+    <div class="history-panel hidden" id="history-panel">
+        <div class="history-header">
+            <h3>对话历史</h3>
+            <button class="close-btn" id="close-history">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="history-list" id="history-list">
+            <div class="history-item">
+                <span class="history-q">Q1</span>
+                <p class="history-question">请解释一下 Apache Flink 中 Checkpoint 的对齐机制...</p>
+                <div class="history-score">
+                    <span class="score-label">得分</span>
+                    <span class="score-value">85</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Toggle Button -->
+    <button class="history-toggle" id="history-toggle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+        </svg>
+    </button>
+
+    <script src="/js/socratic-ai.js"></script>
+</body>
+</html>

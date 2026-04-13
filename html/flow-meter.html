@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心流共振仪 - 星识 Star-Learn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/flow-meter.css">
+</head>
+<body class="flow-body">
+    <div class="flow-bg"></div>
+    
+    <nav class="flow-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <div class="nav-title-group">
+                <span class="nav-icon">⌁</span>
+                <h1 class="nav-title">心流共振仪</h1>
+            </div>
+            <div class="nav-status">
+                <span class="status-dot"></span>
+                <span class="status-text">实时监测中</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flow-main">
+        <div class="flow-grid">
+            <div class="flow-card main-waveform">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">〰</span>
+                        实时心流波形
+                    </h2>
+                    <div class="wave-legend">
+                        <span class="legend-item deep">
+                            <span class="legend-dot"></span>
+                            深度专注
+                        </span>
+                        <span class="legend-item shallow">
+                            <span class="legend-dot"></span>
+                            轻度专注
+                        </span>
+                        <span class="legend-item distracted">
+                            <span class="legend-dot"></span>
+                            走神/切屏
+                        </span>
+                    </div>
+                </div>
+                <div class="waveform-container" id="waveform-container">
+                    <canvas id="waveform-canvas"></canvas>
+                    <div class="waveform-overlay">
+                        <div class="grid-line vertical" style="left: 20%;"></div>
+                        <div class="grid-line vertical" style="left: 40%;"></div>
+                        <div class="grid-line vertical" style="left: 60%;"></div>
+                        <div class="grid-line vertical" style="left: 80%;"></div>
+                        <div class="grid-line horizontal" style="top: 25%;"></div>
+                        <div class="grid-line horizontal" style="top: 50%;"></div>
+                        <div class="grid-line horizontal" style="top: 75%;"></div>
+                    </div>
+                    <div class="time-markers">
+                        <span>-60s</span>
+                        <span>-45s</span>
+                        <span>-30s</span>
+                        <span>-15s</span>
+                        <span>现在</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card stats-panel">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">◈</span>
+                        专注数据
+                    </h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item deep-state">
+                        <div class="stat-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle class="ring-bg" cx="50" cy="50" r="42"/>
+                                <circle class="ring-fill" cx="50" cy="50" r="42" id="deep-ring"/>
+                            </svg>
+                            <span class="ring-value" id="deep-value">82</span>
+                        </div>
+                        <span class="stat-label">深度专注率</span>
+                    </div>
+                    <div class="stat-item focus-time">
+                        <div class="stat-value" id="focus-time">45:30</div>
+                        <span class="stat-label">累计专注</span>
+                    </div>
+                    <div class="stat-item switch-count">
+                        <div class="stat-value" id="switch-count">3</div>
+                        <span class="stat-label">切屏次数</span>
+                    </div>
+                    <div class="stat-item flow-score">
+                        <div class="stat-value" id="flow-score">78</div>
+                        <span class="stat-label">心流指数</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card session-panel">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">◇</span>
+                        本次会话
+                    </h2>
+                </div>
+                <div class="session-info">
+                    <div class="session-item">
+                        <span class="session-label">开始时间</span>
+                        <span class="session-value" id="session-start">14:00:00</span>
+                    </div>
+                    <div class="session-item">
+                        <span class="session-label">学习内容</span>
+                        <span class="session-value">Python 数据结构</span>
+                    </div>
+                    <div class="session-item">
+                        <span class="session-label">目标时长</span>
+                        <span class="session-value">60 分钟</span>
+                    </div>
+                    <div class="session-item">
+                        <span class="session-label">剩余时间</span>
+                        <span class="session-value highlight" id="remaining-time">14:30</span>
+                    </div>
+                </div>
+                <div class="session-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="session-progress" style="width: 75%;"></div>
+                    </div>
+                    <span class="progress-text">75% 完成</span>
+                </div>
+            </div>
+
+            <div class="flow-card waveform-history">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">▤</span>
+                        历史波形
+                    </h2>
+                    <div class="time-filter">
+                        <button class="filter-btn active" data-range="day">今日</button>
+                        <button class="filter-btn" data-range="week">本周</button>
+                        <button class="filter-btn" data-range="month">本月</button>
+                    </div>
+                </div>
+                <div class="history-waves">
+                    <div class="history-item">
+                        <div class="history-time">14:00 - 14:30</div>
+                        <div class="history-bar deep" style="height: 85%;"></div>
+                        <div class="history-bar deep" style="height: 72%;"></div>
+                        <div class="history-bar shallow" style="height: 35%;"></div>
+                        <div class="history-bar deep" style="height: 90%;"></div>
+                        <div class="history-bar deep" style="height: 78%;"></div>
+                        <div class="history-score">82分</div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-time">13:00 - 13:30</div>
+                        <div class="history-bar deep" style="height: 65%;"></div>
+                        <div class="history-bar deep" style="height: 70%;"></div>
+                        <div class="history-bar distracted" style="height: 20%;"></div>
+                        <div class="history-bar shallow" style="height: 40%;"></div>
+                        <div class="history-bar deep" style="height: 75%;"></div>
+                        <div class="history-score">68分</div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-time">11:00 - 11:30</div>
+                        <div class="history-bar deep" style="height: 88%;"></div>
+                        <div class="history-bar deep" style="height: 92%;"></div>
+                        <div class="history-bar deep" style="height: 80%;"></div>
+                        <div class="history-bar deep" style="height: 85%;"></div>
+                        <div class="history-bar deep" style="height: 90%;"></div>
+                        <div class="history-score">91分</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-card state-indicator">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">◉</span>
+                        状态指示
+                    </h2>
+                </div>
+                <div class="state-display" id="state-display">
+                    <div class="state-orb" id="state-orb">
+                        <div class="orb-inner"></div>
+                        <div class="orb-ring"></div>
+                        <div class="orb-ring ring-2"></div>
+                        <div class="orb-ring ring-3"></div>
+                    </div>
+                    <div class="state-text" id="state-text">深度专注中</div>
+                    <div class="state-desc" id="state-desc">继续保持，学习效率很高</div>
+                </div>
+                <div class="state-bar">
+                    <div class="state-fill" id="state-fill" style="width: 82%;"></div>
+                </div>
+                <div class="state-labels">
+                    <span>分散</span>
+                    <span>专注</span>
+                    <span>心流</span>
+                </div>
+            </div>
+
+            <div class="flow-card tips-panel">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">💡</span>
+                        专注建议
+                    </h2>
+                </div>
+                <div class="tips-list">
+                    <div class="tip-item">
+                        <span class="tip-icon good">✓</span>
+                        <span class="tip-text">保持当前节奏，您的专注力表现优秀</span>
+                    </div>
+                    <div class="tip-item">
+                        <span class="tip-icon info">◐</span>
+                        <span class="tip-text">建议每45分钟进行5分钟眼部休息</span>
+                    </div>
+                    <div class="tip-item">
+                        <span class="tip-icon warn">!</span>
+                        <span class="tip-text">检测到3次轻微分心，建议减少手机通知</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/flow-meter.js"></script>
+</body>
+</html>

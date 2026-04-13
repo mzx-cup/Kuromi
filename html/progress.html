@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 学习进度</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/progress.css">
+</head>
+<body class="progress-body">
+    <div class="progress-bg"></div>
+
+    <nav class="progress-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">学习进度</h1>
+            <div class="nav-actions">
+                <select class="time-select" id="time-range">
+                    <option value="week">本周</option>
+                    <option value="month" selected>本月</option>
+                    <option value="year">本年</option>
+                    <option value="all">全部</option>
+                </select>
+            </div>
+        </div>
+    </nav>
+
+    <main class="progress-main">
+        <!-- Overview Stats -->
+        <div class="overview-stats">
+            <div class="stat-card">
+                <div class="stat-icon purple">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="total-hours">156</span>
+                    <span class="stat-unit">小时</span>
+                </div>
+                <span class="stat-label">总学习时长</span>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon blue">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="completed-courses">12</span>
+                    <span class="stat-unit">门</span>
+                </div>
+                <span class="stat-label">已完成课程</span>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon green">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="current-streak">15</span>
+                    <span class="stat-unit">天</span>
+                </div>
+                <span class="stat-label">连续学习</span>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="avg-daily">2.5</span>
+                    <span class="stat-unit">小时</span>
+                </div>
+                <span class="stat-label">日均学习</span>
+            </div>
+        </div>
+
+        <!-- Progress Charts Section -->
+        <div class="charts-grid">
+            <!-- Weekly Activity Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">本周学习活动</h3>
+                    <span class="chart-subtitle">每日学习时长分布</span>
+                </div>
+                <div class="weekly-chart" id="weekly-chart">
+                    <div class="bar-chart">
+                        <div class="chart-bar" data-day="周一" data-hours="2.5">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">2.5h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周二" data-hours="3.2">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">3.2h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周三" data-hours="1.8">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">1.8h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周四" data-hours="4.0">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">4.0h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周五" data-hours="2.8">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">2.8h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周六" data-hours="3.5">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">3.5h</span>
+                        </div>
+                        <div class="chart-bar" data-day="周日" data-hours="2.0">
+                            <div class="bar-fill" style="height: 0%"></div>
+                            <span class="bar-value">2.0h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Course Progress Chart -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">课程进度概览</h3>
+                    <span class="chart-subtitle">各分类学习完成率</span>
+                </div>
+                <div class="course-progress-list" id="course-progress-list">
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <span class="progress-icon">🐍</span>
+                            <span class="progress-name">Python</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill python" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-percent">75%</span>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <span class="progress-icon">🧮</span>
+                            <span class="progress-name">算法</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill algorithm" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-percent">50%</span>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <span class="progress-icon">☕</span>
+                            <span class="progress-name">Java</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill java" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-percent">30%</span>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <span class="progress-icon">🗄️</span>
+                            <span class="progress-name">数据库</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill database" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-percent">45%</span>
+                        </div>
+                    </div>
+                    <div class="progress-item">
+                        <div class="progress-info">
+                            <span class="progress-icon">🌐</span>
+                            <span class="progress-name">Web开发</span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill web" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-percent">60%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Radar & Timeline -->
+        <div class="detail-grid">
+            <!-- Skill Radar -->
+            <div class="chart-card radar-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">能力雷达图</h3>
+                    <span class="chart-subtitle">综合能力评估</span>
+                </div>
+                <div class="radar-chart-container">
+                    <svg class="radar-chart" viewBox="0 0 300 260">
+                        <defs>
+                            <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#a855f7" stop-opacity="0.6"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.3"/>
+                            </linearGradient>
+                        </defs>
+                        <g class="radar-grid">
+                            <polygon points="150,30 255,90 220,210 80,210 45,90" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <polygon points="150,60 225,100 200,190 100,190 75,100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <polygon points="150,90 195,110 180,170 120,170 105,110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                            <polygon points="150,120 165,120 160,150 140,150 135,120" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                        </g>
+                        <g class="radar-axis">
+                            <line x1="150" y1="150" x2="150" y2="30" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="255" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="220" y2="210" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="80" y2="210" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                            <line x1="150" y1="150" x2="45" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+                        </g>
+                        <g class="radar-labels">
+                            <text x="150" y="18" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">编程能力</text>
+                            <text x="268" y="90" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="start">算法思维</text>
+                            <text x="225" y="225" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">系统设计</text>
+                            <text x="75" y="225" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">工程实践</text>
+                            <text x="32" y="90" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="end">理论知识</text>
+                        </g>
+                        <polygon class="radar-data" points="150,55 220,105 195,175 110,165 85,100" fill="url(#radarGradient)" stroke="#a855f7" stroke-width="2"/>
+                        <circle class="radar-point" cx="150" cy="55" r="4" fill="#a855f7"/>
+                        <circle class="radar-point" cx="220" cy="105" r="4" fill="#a855f7"/>
+                        <circle class="radar-point" cx="195" cy="175" r="4" fill="#a855f7"/>
+                        <circle class="radar-point" cx="110" cy="165" r="4" fill="#a855f7"/>
+                        <circle class="radar-point" cx="85" cy="100" r="4" fill="#a855f7"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Recent Activity Timeline -->
+            <div class="chart-card timeline-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">最近学习记录</h3>
+                    <span class="chart-subtitle">近期学习动态</span>
+                </div>
+                <div class="timeline" id="learning-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-dot completed"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-title">完成章节「排序算法」</span>
+                                <span class="timeline-time">今天 14:30</span>
+                            </div>
+                            <p class="timeline-desc">数据结构与算法 - 第8章</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot completed"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-title">完成课程「MySQL 进阶」</span>
+                                <span class="timeline-time">昨天 21:15</span>
+                            </div>
+                            <p class="timeline-desc">数据库 - 索引优化与事务处理</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot completed"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-title">完成章节「装饰器」</span>
+                                <span class="timeline-time">昨天 18:40</span>
+                            </div>
+                            <p class="timeline-desc">Python 进阶 - 高级特性</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot in-progress"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-title">开始学习「Spring Boot」</span>
+                                <span class="timeline-time">4月11日</span>
+                            </div>
+                            <p class="timeline-desc">Java 企业级开发</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot pending"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-header">
+                                <span class="timeline-title">计划学习「微服务架构」</span>
+                                <span class="timeline-time">4月15日</span>
+                            </div>
+                            <p class="timeline-desc">系统设计 - 服务拆分与治理</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievement Badges -->
+        <div class="achievements-section">
+            <div class="section-header">
+                <h3 class="section-title">学习成就</h3>
+                <span class="section-subtitle">已解锁的里程碑</span>
+            </div>
+            <div class="achievements-grid">
+                <div class="badge-item unlocked">
+                    <div class="badge-icon">🏆</div>
+                    <span class="badge-name">初露锋芒</span>
+                    <span class="badge-desc">完成第一门课程</span>
+                </div>
+                <div class="badge-item unlocked">
+                    <div class="badge-icon">🔥</div>
+                    <span class="badge-name">连续7天</span>
+                    <span class="badge-desc">坚持学习一周</span>
+                </div>
+                <div class="badge-item unlocked">
+                    <div class="badge-icon">📚</div>
+                    <span class="badge-name">学富五车</span>
+                    <span class="badge-desc">完成10门课程</span>
+                </div>
+                <div class="badge-item unlocked">
+                    <div class="badge-icon">⚡</div>
+                    <span class="badge-name">刷题达人</span>
+                    <span class="badge-desc">完成100道算法题</span>
+                </div>
+                <div class="badge-item locked">
+                    <div class="badge-icon">🌟</div>
+                    <span class="badge-name">学习之星</span>
+                    <span class="badge-desc">累计学习100小时</span>
+                </div>
+                <div class="badge-item locked">
+                    <div class="badge-icon">🎯</div>
+                    <span class="badge-name">年度目标</span>
+                    <span class="badge-desc">完成年度学习计划</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/progress.js"></script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 全息视界</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/video-player.css">
+</head>
+<body class="video-player-body">
+    <div class="video-bg"></div>
+
+    <nav class="video-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">全息视界</h1>
+            <div class="nav-info">
+                <span class="course-tag">Python 全栈工程师</span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="video-main">
+        <div class="theater-container">
+            <!-- Left: Video Player Area -->
+            <div class="player-section">
+                <div class="video-player-wrapper">
+                    <!-- Video Player -->
+                    <div class="video-player" id="video-player">
+                        <div class="video-placeholder">
+                            <div class="placeholder-content">
+                                <div class="play-circle">
+                                    <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                                <p class="placeholder-text">点击播放课程视频</p>
+                                <p class="placeholder-subtext">Python 数据结构与算法实战</p>
+                            </div>
+                            <div class="video-overlay-info">
+                                <div class="ai-badge">
+                                    <span class="ai-icon">🤖</span>
+                                    <span class="ai-text">AI 精讲</span>
+                                </div>
+                                <span class="duration-badge">时长 45:30</span>
+                            </div>
+                        </div>
+
+                        <!-- Floating Controls -->
+                        <div class="player-controls" id="player-controls">
+                            <!-- Progress Bar -->
+                            <div class="progress-container">
+                                <div class="progress-track">
+                                    <div class="progress-fill" id="progress-fill" style="width: 35%;">
+                                        <div class="progress-glow"></div>
+                                    </div>
+                                    <!-- AI Knowledge Points -->
+                                    <div class="knowledge-markers">
+                                        <div class="marker" data-position="15" data-title="数组基础" data-time="06:45">
+                                            <div class="marker-dot"></div>
+                                            <div class="marker-tooltip">📍 数组基础 06:45</div>
+                                        </div>
+                                        <div class="marker" data-position="35" data-title="时间复杂度" data-time="15:45">
+                                            <div class="marker-dot"></div>
+                                            <div class="marker-tooltip">📍 时间复杂度 15:45</div>
+                                        </div>
+                                        <div class="marker active" data-position="58" data-title="空间复杂度" data-time="26:15">
+                                            <div class="marker-dot"></div>
+                                            <div class="marker-tooltip">📍 空间复杂度 26:15</div>
+                                        </div>
+                                        <div class="marker" data-position="82" data-title="LeetCode 实战" data-time="37:00">
+                                            <div class="marker-dot"></div>
+                                            <div class="marker-tooltip">📍 LeetCode 实战 37:00</div>
+                                        </div>
+                                    </div>
+                                    <div class="progress-thumb" id="progress-thumb" style="left: 35%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Control Bar -->
+                            <div class="control-bar">
+                                <div class="control-left">
+                                    <button class="control-btn play-btn" id="play-btn">
+                                        <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn volume-btn" id="volume-btn">
+                                        <svg class="icon-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                                        </svg>
+                                    </button>
+                                    <div class="time-display">
+                                        <span class="current-time">15:45</span>
+                                        <span class="time-separator">/</span>
+                                        <span class="total-time">45:30</span>
+                                    </div>
+                                </div>
+                                <div class="control-right">
+                                    <button class="control-btn speed-btn" id="speed-btn">
+                                        <span class="speed-text">1.5x</span>
+                                    </button>
+                                    <button class="control-btn quality-btn" id="quality-btn">
+                                        <span>1080P</span>
+                                    </button>
+                                    <button class="control-btn fullscreen-btn" id="fullscreen-btn">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Info -->
+                    <div class="video-info">
+                        <div class="info-header">
+                            <div class="info-left">
+                                <h2 class="video-title">Python 数据结构与算法 - 第三课：算法复杂度分析</h2>
+                                <div class="video-meta">
+                                    <span class="meta-item">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                        </svg>
+                                        45:30
+                                    </span>
+                                    <span class="meta-item">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        核心课程
+                                    </span>
+                                    <span class="meta-item">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                                        </svg>
+                                        12,450 次学习
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="info-right">
+                                <button class="action-btn-outline">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                    </svg>
+                                    收藏
+                                </button>
+                                <button class="action-btn-outline">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                    </svg>
+                                    分享
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Instructor -->
+                        <div class="instructor-card">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=instructor" alt="讲师头像" class="instructor-avatar">
+                            <div class="instructor-info">
+                                <span class="instructor-name">李明轩</span>
+                                <span class="instructor-title">Python 全栈架构师 · 10年经验</span>
+                            </div>
+                            <button class="follow-btn">+ 关注</button>
+                        </div>
+
+                        <!-- AI Summary -->
+                        <div class="ai-summary-card">
+                            <div class="ai-summary-header">
+                                <span class="ai-icon">🤖</span>
+                                <span class="ai-title">AI 课程摘要</span>
+                                <span class="ai-badge-small">自动生成</span>
+                            </div>
+                            <p class="ai-summary-text">
+                                本节课深入讲解算法复杂度分析，涵盖时间复杂度和空间复杂度的概念、计算方法及实际应用。通过 Python 代码演示，帮助理解如何评估算法效率，掌握 O(n)、O(log n) 等常见复杂度的分析方法。
+                            </p>
+                            <div class="ai-keypoints">
+                                <span class="keypoint">📍 时间复杂度 O(1) ~ O(n²)</span>
+                                <span class="keypoint">📍 主定理与递归复杂度</span>
+                                <span class="keypoint">📍 LeetCode 实战应用</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Curriculum Panel -->
+            <div class="curriculum-section">
+                <div class="curriculum-card">
+                    <div class="curriculum-header">
+                        <h3 class="curriculum-title">课程大纲</h3>
+                        <span class="curriculum-progress">3/12 章节</span>
+                    </div>
+
+                    <div class="chapter-list" id="chapter-list">
+                        <!-- Chapter 1 -->
+                        <div class="chapter-item completed" data-chapter="1">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot"></div>
+                                <div class="indicator-line"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第一章</span>
+                                    <span class="chapter-duration">32:15</span>
+                                </div>
+                                <h4 class="chapter-name">Python 基础回顾</h4>
+                                <p class="chapter-desc">语法、数据类型、函数基础</p>
+                            </div>
+                        </div>
+
+                        <!-- Chapter 2 -->
+                        <div class="chapter-item completed" data-chapter="2">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot"></div>
+                                <div class="indicator-line"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第二章</span>
+                                    <span class="chapter-duration">45:30</span>
+                                </div>
+                                <h4 class="chapter-name">数据结构基础</h4>
+                                <p class="chapter-desc">列表、栈、队列、链表实现</p>
+                            </div>
+                        </div>
+
+                        <!-- Chapter 3 - Current -->
+                        <div class="chapter-item active" data-chapter="3">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot pulse"></div>
+                                <div class="indicator-line"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第三章</span>
+                                    <span class="chapter-duration current">15:45 / 45:30</span>
+                                </div>
+                                <h4 class="chapter-name">算法复杂度分析</h4>
+                                <p class="chapter-desc">时间/空间复杂度、主定理</p>
+                                <div class="current-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 35%;"></div>
+                                    </div>
+                                    <span class="progress-text">35%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chapter 4 -->
+                        <div class="chapter-item" data-chapter="4">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot"></div>
+                                <div class="indicator-line"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第四章</span>
+                                    <span class="chapter-duration">38:20</span>
+                                </div>
+                                <h4 class="chapter-name">排序算法详解</h4>
+                                <p class="chapter-desc">冒泡、选择、快速、归并排序</p>
+                            </div>
+                        </div>
+
+                        <!-- Chapter 5 -->
+                        <div class="chapter-item" data-chapter="5">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot"></div>
+                                <div class="indicator-line"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第五章</span>
+                                    <span class="chapter-duration">42:10</span>
+                                </div>
+                                <h4 class="chapter-name">查找算法</h4>
+                                <p class="chapter-desc">二分查找、哈希表、树形查找</p>
+                            </div>
+                        </div>
+
+                        <!-- Chapter 6 -->
+                        <div class="chapter-item locked" data-chapter="6">
+                            <div class="chapter-indicator">
+                                <div class="indicator-dot locked"></div>
+                            </div>
+                            <div class="chapter-content">
+                                <div class="chapter-header">
+                                    <span class="chapter-number">第六章</span>
+                                    <span class="chapter-duration">55:00</span>
+                                </div>
+                                <h4 class="chapter-name">高级数据结构</h4>
+                                <p class="chapter-desc">红黑树、B+树、跳表</p>
+                                <span class="locked-badge">🔒 完成后解锁</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Companion Panel -->
+                <div class="ai-companion-card">
+                    <div class="companion-header">
+                        <div class="companion-avatar">
+                            <span>🌟</span>
+                        </div>
+                        <div class="companion-info">
+                            <span class="companion-name">AI 星宝伴学</span>
+                            <span class="companion-status">在线</span>
+                        </div>
+                    </div>
+                    <div class="companion-messages">
+                        <div class="message bot">
+                            <span class="message-icon">🤖</span>
+                            <p class="message-text">本节课的核心知识点是复杂度分析，已为你标记4个关键打卡点，继续加油！</p>
+                        </div>
+                    </div>
+                    <div class="companion-input">
+                        <input type="text" placeholder="向 AI 伴学提问..." class="input-field">
+                        <button class="send-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/video-player.js"></script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 学习日历</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/calendar.css">
+</head>
+<body class="calendar-body">
+    <div class="calendar-bg"></div>
+
+    <nav class="calendar-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">学习日历</h1>
+            <div class="nav-actions">
+                <button class="nav-btn" id="add-event-btn">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="calendar-main">
+        <div class="calendar-layout">
+            <!-- Left: Calendar View -->
+            <div class="calendar-section">
+                <!-- Month Navigation -->
+                <div class="month-header">
+                    <button class="month-nav-btn" id="prev-month">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h2 class="month-title" id="month-title">2026年4月</h2>
+                    <button class="month-nav-btn" id="next-month">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="calendar-grid" id="calendar-grid">
+                    <div class="calendar-weekday">日</div>
+                    <div class="calendar-weekday">一</div>
+                    <div class="calendar-weekday">二</div>
+                    <div class="calendar-weekday">三</div>
+                    <div class="calendar-weekday">四</div>
+                    <div class="calendar-weekday">五</div>
+                    <div class="calendar-weekday">六</div>
+                </div>
+
+                <!-- Legend -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <div class="legend-dot completed"></div>
+                        <span>已完成</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot partial"></div>
+                        <span>部分完成</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot today"></div>
+                        <span>今日</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot future"></div>
+                        <span>已计划</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Events & Schedule -->
+            <div class="schedule-section">
+                <!-- Stats Summary -->
+                <div class="stats-summary">
+                    <div class="summary-card">
+                        <span class="summary-value" id="study-days">18</span>
+                        <span class="summary-label">本月学习天数</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="total-hours-month">45</span>
+                        <span class="summary-label">本月学习时长(h)</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="completed-tasks">12</span>
+                        <span class="summary-label">完成任务数</span>
+                    </div>
+                </div>
+
+                <!-- Day Detail -->
+                <div class="day-detail-card" id="day-detail">
+                    <div class="detail-header">
+                        <h3 class="detail-title" id="detail-date">选择日期</h3>
+                        <span class="detail-subtitle" id="detail-day">查看当日学习计划</span>
+                    </div>
+                    <div class="detail-content" id="detail-content">
+                        <div class="empty-state">
+                            <svg class="w-12 h-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p>点击日历中的日期<br>查看当日学习详情</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Events -->
+                <div class="upcoming-section">
+                    <h3 class="section-title">近期学习计划</h3>
+                    <div class="events-list" id="events-list">
+                        <div class="event-item">
+                            <div class="event-date">
+                                <span class="event-day">15</span>
+                                <span class="event-month">4月</span>
+                            </div>
+                            <div class="event-content">
+                                <h4 class="event-title">算法专项训练</h4>
+                                <p class="event-desc">完成10道中等难度算法题</p>
+                                <div class="event-meta">
+                                    <span class="event-tag python">🐍 Python</span>
+                                    <span class="event-duration">⏱️ 3小时</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event-item">
+                            <div class="event-date">
+                                <span class="event-day">18</span>
+                                <span class="event-month">4月</span>
+                            </div>
+                            <div class="event-content">
+                                <h4 class="event-title">数据库实战项目</h4>
+                                <p class="event-desc">完成电商数据库设计</p>
+                                <div class="event-meta">
+                                    <span class="event-tag database">🗄️ MySQL</span>
+                                    <span class="event-duration">⏱️ 4小时</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event-item">
+                            <div class="event-date">
+                                <span class="event-day">20</span>
+                                <span class="event-month">4月</span>
+                            </div>
+                            <div class="event-content">
+                                <h4 class="event-title">前端项目评审</h4>
+                                <p class="event-desc">完成个人博客项目开发</p>
+                                <div class="event-meta">
+                                    <span class="event-tag web">🌐 Web开发</span>
+                                    <span class="event-duration">⏱️ 2小时</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event-item">
+                            <div class="event-date">
+                                <span class="event-day">25</span>
+                                <span class="event-month">4月</span>
+                            </div>
+                            <div class="event-content">
+                                <h4 class="event-title">机器学习实战</h4>
+                                <p class="event-desc">完成鸢尾花分类项目</p>
+                                <div class="event-meta">
+                                    <span class="event-tag ai">🤖 ML</span>
+                                    <span class="event-duration">⏱️ 5小时</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Event Modal -->
+    <div class="modal-overlay hidden" id="event-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加学习计划</h3>
+                <button class="modal-close" id="close-modal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form class="event-form" id="event-form">
+                <div class="form-group">
+                    <label class="form-label">学习内容</label>
+                    <input type="text" class="form-input" placeholder="输入学习主题" id="event-title" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">日期</label>
+                        <input type="date" class="form-input" id="event-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">时长</label>
+                        <select class="form-input" id="event-duration">
+                            <option value="1">1小时</option>
+                            <option value="2">2小时</option>
+                            <option value="3" selected>3小时</option>
+                            <option value="4">4小时</option>
+                            <option value="5">5小时</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">分类</label>
+                    <div class="category-options">
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="python" checked>
+                            <span class="category-tag python">🐍 Python</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="algorithm">
+                            <span class="category-tag algorithm">🧮 算法</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="database">
+                            <span class="category-tag database">🗄️ 数据库</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="web">
+                            <span class="category-tag web">🌐 Web开发</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="ai">
+                            <span class="category-tag ai">🤖 AI</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">备注</label>
+                    <textarea class="form-textarea" placeholder="添加备注信息..." id="event-desc" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="cancel-btn">取消</button>
+                    <button type="submit" class="btn-submit">添加计划</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/calendar.js"></script>
+</body>
+</html>

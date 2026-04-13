@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 代码练习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/code.css">
+</head>
+<body class="code-body">
+    <!-- Background -->
+    <div class="code-bg"></div>
+
+    <!-- Top Navigation -->
+    <nav class="code-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">代码练习</h1>
+            <div class="nav-actions">
+                <select class="language-select" id="language-select">
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="javascript">JavaScript</option>
+                </select>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="code-main">
+        <!-- Problem List Sidebar -->
+        <aside class="problem-sidebar">
+            <div class="sidebar-header">
+                <h2>题目列表</h2>
+                <span class="problem-count">共 48 题</span>
+            </div>
+            <div class="problem-filter">
+                <button class="filter-btn active" data-filter="all">全部</button>
+                <button class="filter-btn" data-filter="easy">简单</button>
+                <button class="filter-btn" data-filter="medium">中等</button>
+                <button class="filter-btn" data-filter="hard">困难</button>
+            </div>
+            <div class="problem-list" id="problem-list">
+                <!-- Problem Items -->
+                <div class="problem-item active" data-id="1">
+                    <div class="problem-status solved"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#001</span>
+                        <span class="problem-title">两数之和</span>
+                    </div>
+                    <span class="problem-difficulty easy">简单</span>
+                </div>
+                <div class="problem-item" data-id="2">
+                    <div class="problem-status solved"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#002</span>
+                        <span class="problem-title">回文数判定</span>
+                    </div>
+                    <span class="problem-difficulty easy">简单</span>
+                </div>
+                <div class="problem-item" data-id="3">
+                    <div class="problem-status attempted"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#003</span>
+                        <span class="problem-title">合并两个有序链表</span>
+                    </div>
+                    <span class="problem-difficulty medium">中等</span>
+                </div>
+                <div class="problem-item" data-id="4">
+                    <div class="problem-status"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#004</span>
+                        <span class="problem-title">无重复字符的最长子串</span>
+                    </div>
+                    <span class="problem-difficulty medium">中等</span>
+                </div>
+                <div class="problem-item" data-id="5">
+                    <div class="problem-status"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#005</span>
+                        <span class="problem-title">寻找两个有序数组的中位数</span>
+                    </div>
+                    <span class="problem-difficulty hard">困难</span>
+                </div>
+                <div class="problem-item" data-id="6">
+                    <div class="problem-status"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#006</span>
+                        <span class="problem-title">盛水最多的容器</span>
+                    </div>
+                    <span class="problem-difficulty medium">中等</span>
+                </div>
+                <div class="problem-item" data-id="7">
+                    <div class="problem-status"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#007</span>
+                        <span class="problem-title">三数之和</span>
+                    </div>
+                    <span class="problem-difficulty medium">中等</span>
+                </div>
+                <div class="problem-item" data-id="8">
+                    <div class="problem-status"></div>
+                    <div class="problem-info">
+                        <span class="problem-id">#008</span>
+                        <span class="problem-title">括号生成</span>
+                    </div>
+                    <span class="problem-difficulty hard">困难</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Code Editor Area -->
+        <section class="editor-section">
+            <!-- Problem Description -->
+            <div class="problem-description">
+                <div class="problem-header">
+                    <h2 class="problem-name">#001 两数之和</h2>
+                    <div class="problem-tags">
+                        <span class="tag easy">简单</span>
+                        <span class="tag">数组</span>
+                        <span class="tag">哈希表</span>
+                    </div>
+                </div>
+                <div class="problem-content">
+                    <h3>题目描述</h3>
+                    <p>给定一个整数数组 nums 和一个整数目标值 target，请你在该数组中找出和为目标值 target 的那两个整数，并返回它们的数组下标。</p>
+                    <p>你可以假设每种输入只会对应一个答案，且同样的元素不能被重复利用。</p>
+
+                    <h3>示例</h3>
+                    <pre><code>输入: nums = [2,7,11,15], target = 9
+输出: [0,1]
+解释: 因为 nums[0] + nums[1] == 9 ，返回 [0, 1] 。</code></pre>
+
+                    <h3>提示</h3>
+                    <ul>
+                        <li>2 <= nums.length <= 10<sup>4</sup></li>
+                        <li>-10<sup>9</sup> <= nums[i] <= 10<sup>9</sup></li>
+                        <li>-10<sup>9</sup> <= target <= 10<sup>9</sup></li>
+                        <li>只会存在一个有效答案</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Code Editor -->
+            <div class="code-editor-container">
+                <div class="editor-header">
+                    <span class="editor-title">Python 3</span>
+                    <div class="editor-actions">
+                        <button class="action-btn" id="reset-btn">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            重置
+                        </button>
+                        <button class="action-btn primary" id="run-btn">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            运行代码
+                        </button>
+                        <button class="action-btn submit" id="submit-btn">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            提交答案
+                        </button>
+                    </div>
+                </div>
+                <div class="code-editor" id="code-editor">
+                    <textarea class="code-textarea" id="code-input" spellcheck="false">def two_sum(nums, target):
+    """
+    :type nums: List[int]
+    :type target: int
+    :rtype: List[int]
+    """
+    # 在此编写你的代码
+    pass
+
+# 测试用例
+print(two_sum([2, 7, 11, 15], 9))  # 输出: [0, 1]</textarea>
+                </div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="output-panel" id="output-panel">
+                <div class="output-header">
+                    <span>运行结果</span>
+                    <button class="clear-btn" id="clear-output">清空</button>
+                </div>
+                <pre class="output-content" id="output-content">// 点击"运行代码"查看输出结果</pre>
+            </div>
+        </section>
+    </main>
+
+    <script src="/js/code.js"></script>
+</body>
+</html>

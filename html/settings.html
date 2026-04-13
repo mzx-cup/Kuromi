@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 系统设置</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/settings.css">
+</head>
+<body class="settings-body">
+    <div class="settings-bg"></div>
+
+    <nav class="settings-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">系统设置</h1>
+            <div class="nav-actions">
+                <button class="nav-btn" id="save-all-btn" title="保存设置">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="settings-main">
+        <div class="settings-layout">
+            <!-- Settings Sidebar -->
+            <aside class="settings-sidebar">
+                <nav class="settings-nav-list">
+                    <button class="settings-nav-item active" data-section="appearance">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                        <span>外观</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="notifications">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <span>通知</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="privacy">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        <span>隐私</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="display">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        <span>显示</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="sound">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                        </svg>
+                        <span>声音</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="language">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                        </svg>
+                        <span>语言</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="account">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>账户</span>
+                    </button>
+                    <button class="settings-nav-item" data-section="data">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                        </svg>
+                        <span>数据</span>
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- Settings Content -->
+            <div class="settings-content">
+                <!-- Appearance Section -->
+                <section class="settings-section active" id="section-appearance">
+                    <div class="section-header">
+                        <h2 class="section-title">外观设置</h2>
+                        <p class="section-desc">自定义界面外观和颜色主题</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">深色模式</span>
+                                <span class="setting-desc">开启深色背景，减少眼睛疲劳</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dark-mode" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">主题颜色</span>
+                                <span class="setting-desc">选择系统主色调</span>
+                            </div>
+                            <div class="theme-colors">
+                                <button class="theme-color active" data-color="purple" style="background: linear-gradient(135deg, #a855f7, #3b82f6);"></button>
+                                <button class="theme-color" data-color="blue" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></button>
+                                <button class="theme-color" data-color="green" style="background: linear-gradient(135deg, #10b981, #34d399);"></button>
+                                <button class="theme-color" data-color="orange" style="background: linear-gradient(135deg, #f97316, #fbbf24);"></button>
+                                <button class="theme-color" data-color="pink" style="background: linear-gradient(135deg, #ec4899, #f472b6);"></button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">毛玻璃效果</span>
+                                <span class="setting-desc">启用卡片毛玻璃模糊效果</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="glass-effect" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">动画效果</span>
+                                <span class="setting-desc">启用页面过渡动画</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="animations" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Notifications Section -->
+                <section class="settings-section" id="section-notifications">
+                    <div class="section-header">
+                        <h2 class="section-title">通知设置</h2>
+                        <p class="section-desc">管理学习提醒和系统通知</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">推送通知</span>
+                                <span class="setting-desc">接收系统推送消息</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="push-notifications" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">学习提醒</span>
+                                <span class="setting-desc">定时提醒学习时间</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="study-reminder" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">提醒时间</span>
+                                <span class="setting-desc">每日学习提醒时间</span>
+                            </div>
+                            <input type="time" class="time-input" id="reminder-time" value="20:00">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">成就通知</span>
+                                <span class="setting-desc">学习成就解锁时通知</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="achievement-notify" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">邮件通知</span>
+                                <span class="setting-desc">接收学习报告邮件</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="email-notifications">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Privacy Section -->
+                <section class="settings-section" id="section-privacy">
+                    <div class="section-header">
+                        <h2 class="section-title">隐私设置</h2>
+                        <p class="section-desc">控制数据共享和隐私选项</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">学习数据同步</span>
+                                <span class="setting-desc">同步学习记录到云端</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="data-sync" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">匿名使用统计</span>
+                                <span class="setting-desc">帮助改进产品，共享匿名数据</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="analytics">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">活动历史记录</span>
+                                <span class="setting-desc">记录页面访问和操作历史</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="activity-history" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">公开个人资料</span>
+                                <span class="setting-desc">允许其他用户查看您的资料</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="public-profile">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Display Section -->
+                <section class="settings-section" id="section-display">
+                    <div class="section-header">
+                        <h2 class="section-title">显示设置</h2>
+                        <p class="section-desc">调整界面显示偏好</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">侧边栏默认展开</span>
+                                <span class="setting-desc">启动时自动展开侧边栏</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sidebar-expanded">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">紧凑模式</span>
+                                <span class="setting-desc">减少界面元素间距</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="compact-mode">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">卡片布局</span>
+                                <span class="setting-desc">选择首页卡片显示方式</span>
+                            </div>
+                            <select class="select-input" id="card-layout">
+                                <option value="grid">网格布局</option>
+                                <option value="list">列表布局</option>
+                                <option value="compact">紧凑网格</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">每页显示课程数</span>
+                                <span class="setting-desc">课程列表每页显示数量</span>
+                            </div>
+                            <select class="select-input" id="courses-per-page">
+                                <option value="12">12 个</option>
+                                <option value="24" selected>24 个</option>
+                                <option value="36">36 个</option>
+                                <option value="48">48 个</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Sound Section -->
+                <section class="settings-section" id="section-sound">
+                    <div class="section-header">
+                        <h2 class="section-title">声音设置</h2>
+                        <p class="section-desc">配置界面音效和提示音</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">界面音效</span>
+                                <span class="setting-desc">启用按钮点击等界面音效</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="ui-sounds">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">通知提示音</span>
+                                <span class="setting-desc">新消息和提醒的声音</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="notification-sounds" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">音效音量</span>
+                                <span class="setting-desc">界面音效音量大小</span>
+                            </div>
+                            <input type="range" class="range-input" id="sound-volume" min="0" max="100" value="70">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">语音播报</span>
+                                <span class="setting-desc">AI回答支持语音朗读</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="voice-readout">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Language Section -->
+                <section class="settings-section" id="section-language">
+                    <div class="section-header">
+                        <h2 class="section-title">语言设置</h2>
+                        <p class="section-desc">选择界面显示语言</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">界面语言</span>
+                                <span class="setting-desc">选择系统界面显示语言</span>
+                            </div>
+                            <select class="select-input" id="interface-language">
+                                <option value="zh-CN" selected>简体中文</option>
+                                <option value="zh-TW">繁體中文</option>
+                                <option value="en-US">English</option>
+                                <option value="ja-JP">日本語</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">学习内容语言</span>
+                                <span class="setting-desc">课程和资料优先显示语言</span>
+                            </div>
+                            <select class="select-input" id="content-language">
+                                <option value="zh" selected>中文</option>
+                                <option value="en">English</option>
+                                <option value="both">中英双语</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Account Section -->
+                <section class="settings-section" id="section-account">
+                    <div class="section-header">
+                        <h2 class="section-title">账户设置</h2>
+                        <p class="section-desc">管理账户信息和安全设置</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">修改密码</span>
+                                <span class="setting-desc">更改账户登录密码</span>
+                            </div>
+                            <button class="action-btn" id="change-password-btn">修改密码</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">绑定邮箱</span>
+                                <span class="setting-desc">绑定或更改关联邮箱</span>
+                            </div>
+                            <button class="action-btn" id="bind-email-btn">绑定邮箱</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">双因素认证</span>
+                                <span class="setting-desc">启用双重身份验证</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="two-factor">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">账户注销</span>
+                                <span class="setting-desc">永久删除您的账户和数据</span>
+                            </div>
+                            <button class="danger-btn" id="delete-account-btn">注销账户</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Data Section -->
+                <section class="settings-section" id="section-data">
+                    <div class="section-header">
+                        <h2 class="section-title">数据管理</h2>
+                        <p class="section-desc">导入导出和清理数据</p>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">导出学习数据</span>
+                                <span class="setting-desc">下载您的所有学习记录</span>
+                            </div>
+                            <button class="action-btn" id="export-data-btn">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                </svg>
+                                导出
+                            </button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">导入学习数据</span>
+                                <span class="setting-desc">从备份文件恢复学习进度</span>
+                            </div>
+                            <button class="action-btn" id="import-data-btn">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                                导入
+                            </button>
+                            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">清除缓存</span>
+                                <span class="setting-desc">清理本地存储的临时数据</span>
+                            </div>
+                            <button class="action-btn" id="clear-cache-btn">清除缓存</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">存储使用</span>
+                                <span class="setting-desc">当前本地数据占用空间</span>
+                            </div>
+                            <span class="storage-info" id="storage-usage">计算中...</span>
+                        </div>
+                    </div>
+                    <div class="settings-danger">
+                        <h3 class="danger-title">危险区域</h3>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">重置学习进度</span>
+                                <span class="setting-desc">清除所有学习记录，重新开始</span>
+                            </div>
+                            <button class="danger-btn" id="reset-progress-btn">重置进度</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay hidden" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">提示</h3>
+                <button class="modal-close" id="modal-close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <script src="/js/settings.js"></script>
+</body>
+</html>

@@ -668,6 +668,22 @@ def get_user_preferences(user_id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取偏好失败: {str(e)}")
 
+class DeleteAccountRequest(BaseModel):
+    userId: int
+
+@app.delete("/api/user/delete")
+def delete_user_account(request: DeleteAccountRequest):
+    try:
+        user_id = request.userId
+        result = database.delete_user(user_id)
+        if result:
+            return {"success": True, "message": "账户已注销"}
+        raise HTTPException(status_code=404, detail="用户不存在")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"账户注销失败: {str(e)}")
+
 class SaveProgressRequest(BaseModel):
     userId: int
     evaluation: dict = {}
@@ -727,6 +743,69 @@ def serve_hub():
     if os.path.exists(hub_path):
         return FileResponse(hub_path)
     raise HTTPException(status_code=404, detail="中枢主页未找到")
+
+@app.get("/courses.html")
+def serve_courses():
+    courses_path = os.path.join(HTML_DIR, "courses.html")
+    if os.path.exists(courses_path):
+        return FileResponse(courses_path)
+    raise HTTPException(status_code=404, detail="课程中心页面未找到")
+
+@app.get("/code.html")
+def serve_code():
+    code_path = os.path.join(HTML_DIR, "code.html")
+    if os.path.exists(code_path):
+        return FileResponse(code_path)
+    raise HTTPException(status_code=404, detail="代码练习页面未找到")
+
+@app.get("/progress.html")
+def serve_progress():
+    progress_path = os.path.join(HTML_DIR, "progress.html")
+    if os.path.exists(progress_path):
+        return FileResponse(progress_path)
+    raise HTTPException(status_code=404, detail="学习进度页面未找到")
+
+@app.get("/calendar.html")
+def serve_calendar():
+    calendar_path = os.path.join(HTML_DIR, "calendar.html")
+    if os.path.exists(calendar_path):
+        return FileResponse(calendar_path)
+    raise HTTPException(status_code=404, detail="学习日历页面未找到")
+
+@app.get("/settings.html")
+def serve_settings():
+    settings_path = os.path.join(HTML_DIR, "settings.html")
+    if os.path.exists(settings_path):
+        return FileResponse(settings_path)
+    raise HTTPException(status_code=404, detail="设置页面未找到")
+
+@app.get("/video-player.html")
+def serve_video_player():
+    video_player_path = os.path.join(HTML_DIR, "video-player.html")
+    if os.path.exists(video_player_path):
+        return FileResponse(video_player_path)
+    raise HTTPException(status_code=404, detail="视频播放器页面未找到")
+
+@app.get("/socratic-ai.html")
+def serve_socratic_ai():
+    socratic_ai_path = os.path.join(HTML_DIR, "socratic-ai.html")
+    if os.path.exists(socratic_ai_path):
+        return FileResponse(socratic_ai_path)
+    raise HTTPException(status_code=404, detail="智脑苏格拉底页面未找到")
+
+@app.get("/stellar-showcase.html")
+def serve_stellar_showcase():
+    stellar_showcase_path = os.path.join(HTML_DIR, "stellar-showcase.html")
+    if os.path.exists(stellar_showcase_path):
+        return FileResponse(stellar_showcase_path)
+    raise HTTPException(status_code=404, detail="星云陈列室页面未找到")
+
+@app.get("/flow-meter.html")
+def serve_flow_meter():
+    flow_meter_path = os.path.join(HTML_DIR, "flow-meter.html")
+    if os.path.exists(flow_meter_path):
+        return FileResponse(flow_meter_path)
+    raise HTTPException(status_code=404, detail="心流共振仪页面未找到")
 
 @app.post("/api/assessment/submit")
 def submit_assessment(request: AssessmentRequest):

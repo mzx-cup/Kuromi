@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 课程中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/courses.css">
+</head>
+<body class="courses-body">
+    <!-- Background -->
+    <div class="courses-bg"></div>
+
+    <!-- Top Navigation -->
+    <nav class="courses-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <h1 class="nav-title">课程中心</h1>
+            <div class="nav-actions">
+                <button class="nav-btn" id="search-toggle">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="courses-main">
+        <!-- Search Bar (Hidden by default) -->
+        <div class="search-container hidden" id="search-container">
+            <input type="text" class="search-input" placeholder="搜索课程、知识点..." id="course-search">
+        </div>
+
+        <!-- Category Tabs -->
+        <div class="category-tabs">
+            <button class="tab-btn active" data-category="all">全部课程</button>
+            <button class="tab-btn" data-category="python">Python</button>
+            <button class="tab-btn" data-category="java">Java</button>
+            <button class="tab-btn" data-category="cpp">C/C++</button>
+            <button class="tab-btn" data-category="algorithm">算法</button>
+            <button class="tab-btn" data-category="database">数据库</button>
+            <button class="tab-btn" data-category="web">Web开发</button>
+            <button class="tab-btn" data-category="ai">人工智能</button>
+        </div>
+
+        <!-- Course Stats -->
+        <div class="course-stats">
+            <div class="stat-card">
+                <span class="stat-value" id="total-courses">24</span>
+                <span class="stat-label">课程总数</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="learning-courses">6</span>
+                <span class="stat-label">正在学习</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="completed-courses">12</span>
+                <span class="stat-label">已完成</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value" id="total-hours">156</span>
+                <span class="stat-label">学习时长(h)</span>
+            </div>
+        </div>
+
+        <!-- Course Grid -->
+        <div class="course-grid" id="course-grid">
+            <!-- Course Card 1 -->
+            <div class="course-card" data-category="python">
+                <div class="course-cover python-bg">
+                    <div class="course-icon">🐍</div>
+                    <div class="course-progress-ring">
+                        <svg width="60" height="60" viewBox="0 0 60 60">
+                            <circle class="progress-bg" cx="30" cy="30" r="26"/>
+                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 41"/>
+                        </svg>
+                        <span class="progress-text">75%</span>
+                    </div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">Python</div>
+                    <h3 class="course-title">Python 基础入门</h3>
+                    <p class="course-desc">从零开始学习 Python 编程，掌握基本语法和常用库</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 32 课时</span>
+                        <span class="meta-item">⏱️ 18 小时</span>
+                    </div>
+                    <button class="course-btn continue">继续学习</button>
+                </div>
+            </div>
+
+            <!-- Course Card 2 -->
+            <div class="course-card" data-category="algorithm">
+                <div class="course-cover algorithm-bg">
+                    <div class="course-icon">🧮</div>
+                    <div class="course-progress-ring">
+                        <svg width="60" height="60" viewBox="0 0 60 60">
+                            <circle class="progress-bg" cx="30" cy="30" r="26"/>
+                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 65"/>
+                        </svg>
+                        <span class="progress-text">50%</span>
+                    </div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">算法</div>
+                    <h3 class="course-title">数据结构与算法</h3>
+                    <p class="course-desc">深入理解常用数据结构，提升算法思维和编码能力</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 48 课时</span>
+                        <span class="meta-item">⏱️ 28 小时</span>
+                    </div>
+                    <button class="course-btn continue">继续学习</button>
+                </div>
+            </div>
+
+            <!-- Course Card 3 -->
+            <div class="course-card" data-category="java">
+                <div class="course-cover java-bg">
+                    <div class="course-icon">☕</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">Java</div>
+                    <h3 class="course-title">Java 面向对象编程</h3>
+                    <p class="course-desc">掌握 Java 核心概念，面向对象设计模式实践</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 36 课时</span>
+                        <span class="meta-item">⏱️ 22 小时</span>
+                    </div>
+                    <button class="course-btn start">开始学习</button>
+                </div>
+            </div>
+
+            <!-- Course Card 4 -->
+            <div class="course-card" data-category="database">
+                <div class="course-cover database-bg">
+                    <div class="course-icon">🗄️</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">数据库</div>
+                    <h3 class="course-title">MySQL 数据库实战</h3>
+                    <p class="course-desc">从安装配置到高级优化，全面掌握 MySQL</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 28 课时</span>
+                        <span class="meta-item">⏱️ 16 小时</span>
+                    </div>
+                    <button class="course-btn start">开始学习</button>
+                </div>
+            </div>
+
+            <!-- Course Card 5 -->
+            <div class="course-card" data-category="web">
+                <div class="course-cover web-bg">
+                    <div class="course-icon">🌐</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">Web开发</div>
+                    <h3 class="course-title">前端开发三件套</h3>
+                    <p class="course-desc">HTML5 + CSS3 + JavaScript 完整前端技术栈</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 45 课时</span>
+                        <span class="meta-item">⏱️ 30 小时</span>
+                    </div>
+                    <button class="course-btn completed">复习巩固</button>
+                </div>
+            </div>
+
+            <!-- Course Card 6 -->
+            <div class="course-card" data-category="ai">
+                <div class="course-cover ai-bg">
+                    <div class="course-icon">🤖</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">人工智能</div>
+                    <h3 class="course-title">机器学习基础</h3>
+                    <p class="course-desc">理解机器学习核心算法，使用 Python 实现</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 40 课时</span>
+                        <span class="meta-item">⏱️ 25 小时</span>
+                    </div>
+                    <button class="course-btn start">开始学习</button>
+                </div>
+            </div>
+
+            <!-- Course Card 7 -->
+            <div class="course-card" data-category="cpp">
+                <div class="course-cover cpp-bg">
+                    <div class="course-icon">⚡</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">C/C++</div>
+                    <h3 class="course-title">C语言程序设计</h3>
+                    <p class="course-desc">系统学习 C 语言，掌握底层编程思想</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 35 课时</span>
+                        <span class="meta-item">⏱️ 20 小时</span>
+                    </div>
+                    <button class="course-btn completed">已完成</button>
+                </div>
+            </div>
+
+            <!-- Course Card 8 -->
+            <div class="course-card" data-category="python">
+                <div class="course-cover python-bg">
+                    <div class="course-icon">📊</div>
+                </div>
+                <div class="course-content">
+                    <div class="course-category">Python</div>
+                    <h3 class="course-title">数据分析与可视化</h3>
+                    <p class="course-desc">Pandas + Matplotlib 数据处理与图表展示</p>
+                    <div class="course-meta">
+                        <span class="meta-item">📚 24 课时</span>
+                        <span class="meta-item">⏱️ 15 小时</span>
+                    </div>
+                    <button class="course-btn start">开始学习</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <button class="page-btn prev" disabled>上一页</button>
+            <div class="page-numbers">
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+            </div>
+            <button class="page-btn next">下一页</button>
+        </div>
+    </main>
+
+    <script src="/js/courses.js"></script>
+</body>
+</html>

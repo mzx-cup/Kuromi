@@ -349,3 +349,25 @@ def get_user_profile(user_id):
             if profile.get('user_id') == user_id:
                 return profile
         return None
+
+def delete_user(user_id):
+    with get_db() as conn:
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM user WHERE id = %s", (user_id,))
+                conn.commit()
+                affected = cursor.rowcount
+                cursor.close()
+                return affected > 0
+            except Exception as e:
+                print(f"数据库删除失败: {e}")
+                return False
+        storage = load_local_storage()
+        original_length = len(storage.get('users', []))
+        storage['users'] = [u for u in storage.get('users', []) if u.get('id') != user_id]
+        storage['learning_records'] = [r for r in storage.get('learning_records', []) if r.get('user_id') != user_id]
+        storage['learning_paths'] = [p for p in storage.get('learning_paths', []) if p.get('user_id') != user_id]
+        storage['user_profiles'] = [p for p in storage.get('user_profiles', []) if p.get('user_id') != user_id]
+        save_local_storage(storage)
+        return len(storage.get('users', [])) < original_length
