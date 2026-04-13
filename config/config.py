@@ -13,7 +13,7 @@ _dotenv_path = Path(__file__).resolve().parent / ".env"
 
 class Settings(BaseSettings):
     xunfei_api_url: str = "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2/chat/completions"
-    xunfei_api_key: str
+    xunfei_api_key: str = "590f183a4564ff3c628ad0d6b692768f:YjdkMDdlODI3ODBiMGYxYzI4NDFmODc0"
     model_name: str = "astron-code-latest"
 
     debug: bool = False
