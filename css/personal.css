@@ -1532,13 +1532,41 @@ body {
 }
 
 .floating-alarm-trigger:hover {
-    transform: scale(1.1) rotate(10deg);
-    box-shadow: 0 12px 40px var(--primary-glow);
+    transform: scale(1.1) rotate(12deg);
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 12px 40px var(--primary-glow);
+}
+
+.floating-alarm-trigger:active {
+    transform: scale(0.95) rotate(0deg);
 }
 
 .floating-alarm-trigger i {
     width: 24px;
     height: 24px;
+    transition: transform 0.3s var(--ease-out-expo);
+}
+
+.floating-alarm-trigger:hover i {
+    transform: rotate(15deg);
+}
+
+.floating-alarm-trigger.pulse {
+    animation: fabPulse 2s ease-in-out infinite;
+}
+
+@keyframes fabPulse {
+    0%, 100% { box-shadow: 0 8px 32px var(--primary-glow); }
+    50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.6), 0 8px 40px var(--primary-glow); }
+}
+
+.floating-alarm-trigger.bounce {
+    animation: fabBounce 0.6s var(--ease-out-back);
+}
+
+@keyframes fabBounce {
+    0% { transform: scale(0.8) translateY(20px); }
+    50% { transform: scale(1.15) translateY(-5px); }
+    100% { transform: scale(1) translateY(0); }
 }
 
 /* ============================================
@@ -1656,6 +1684,132 @@ body {
 .notification-toast-close:hover {
     background: var(--bg-secondary);
     color: var(--text-primary);
+}
+
+/* ============================================
+   Time Tags - Interactive Time Selector
+   ============================================ */
+
+.time-tags-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.time-tags-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.time-tags-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.time-tag {
+    position: relative;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.3s var(--ease-out-expo);
+    opacity: 0;
+    transform: translateY(10px);
+    animation: timeTagIn 0.4s var(--ease-out-expo) forwards;
+}
+
+.time-tag:nth-child(1) { animation-delay: 0.05s; }
+.time-tag:nth-child(2) { animation-delay: 0.1s; }
+.time-tag:nth-child(3) { animation-delay: 0.15s; }
+.time-tag:nth-child(4) { animation-delay: 0.2s; }
+.time-tag:nth-child(5) { animation-delay: 0.25s; }
+.time-tag:nth-child(6) { animation-delay: 0.3s; }
+.time-tag:nth-child(7) { animation-delay: 0.35s; }
+.time-tag:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes timeTagIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.time-tag:hover {
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+}
+
+.time-tag:active {
+    transform: translateY(-1px);
+}
+
+.time-tag.active {
+    color: white;
+    background: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.time-tag.active:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+    color: white;
+}
+
+.time-tag-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.time-tag-icon i {
+    width: 14px;
+    height: 14px;
+}
+
+.time-tag.active .time-tag-icon i {
+    animation: bellShake 0.5s ease-in-out;
+}
+
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(15deg); }
+    50% { transform: rotate(-15deg); }
+    75% { transform: rotate(10deg); }
+}
+
+/* Time Tag Hover Ripple Effect */
+.time-tag::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.time-tag:hover::before {
+    width: 100%;
+    height: 100%;
 }
 
 /* ============================================

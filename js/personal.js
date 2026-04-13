@@ -163,9 +163,18 @@ function loadPreferences() {
         reminderSettings.classList.toggle('hidden', !userPreferences.reminderEnabled);
     }
 
-    document.querySelectorAll('.time-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === userPreferences.reminderTime);
+    document.querySelectorAll('.time-tag').forEach(tag => {
+        const timeText = tag.textContent.trim();
+        if (timeText.includes(userPreferences.reminderTime)) {
+            tag.classList.add('active');
+        } else {
+            tag.classList.remove('active');
+        }
     });
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 
     updateFloatingAlarmTrigger();
 }
@@ -217,7 +226,7 @@ function setReminderTime(btn, time) {
     if (!btn) return;
 
     userPreferences.reminderTime = time;
-    document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.time-tag').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     savePreferences();
     scheduleReminder();
@@ -285,11 +294,175 @@ function triggerReminder() {
 function showFloatingAlarmNotification() {
     const trigger = document.getElementById('floating-alarm-trigger');
     if (trigger) {
-        trigger.classList.add('visible');
+        trigger.classList.add('visible', 'bounce');
         setTimeout(() => {
-            trigger.classList.remove('visible');
+            trigger.classList.remove('visible', 'bounce');
         }, 5000);
     }
+}
+
+function toggleAlarmPopup() {
+    const trigger = document.getElementById('floating-alarm-trigger');
+    const modal = document.getElementById('time-picker-modal');
+
+    if (!trigger || !modal) return;
+
+    trigger.classList.add('bounce');
+    setTimeout(() => trigger.classList.remove('bounce'), 600);
+
+    if (modal.classList.contains('visible')) {
+        closeTimePicker();
+    } else {
+        openTimePicker();
+    }
+}
+
+function openTimePicker() {
+    const modal = document.getElementById('time-picker-modal');
+    if (!modal) return;
+
+    const hourInput = document.getElementById('picker-hour');
+    const minuteInput = document.getElementById('picker-minute');
+    const amBtn = document.getElementById('picker-am-btn');
+    const pmBtn = document.getElementById('picker-pm-btn');
+
+    if (hourInput && minuteInput) {
+        const [hours, minutes] = userPreferences.reminderTime.split(':').map(Number);
+        const isPm = hours >= 12;
+        const hours12 = hours % 12 || 12;
+        hourInput.value = hours12;
+        minuteInput.value = minutes.toString().padStart(2, '0');
+
+        if (amBtn && pmBtn) {
+            amBtn.classList.toggle('active', !isPm);
+            pmBtn.classList.toggle('active', isPm);
+        }
+    }
+
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            modal.classList.add('visible');
+        });
+    });
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function closeTimePicker() {
+    const modal = document.getElementById('time-picker-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            const m = document.getElementById('time-picker-modal');
+            if (m) m.classList.add('hidden');
+        }, 300);
+    }
+}
+
+function updatePickerDisplay() {
+    const hourInput = document.getElementById('picker-hour');
+    const minuteInput = document.getElementById('picker-minute');
+
+    if (hourInput && minuteInput) {
+        let hour = parseInt(hourInput.value) || 14;
+        let minute = parseInt(minuteInput.value) || 0;
+
+        hour = Math.max(1, Math.min(12, hour));
+        minute = Math.max(0, Math.min(59, minute));
+
+        hourInput.value = hour;
+        minuteInput.value = minute.toString().padStart(2, '0');
+    }
+}
+
+function setPickerAmPm(ampm) {
+    const amBtn = document.getElementById('picker-am-btn');
+    const pmBtn = document.getElementById('picker-pm-btn');
+
+    if (ampm === 'AM') {
+        amBtn.classList.add('active');
+        pmBtn.classList.remove('active');
+    } else {
+        pmBtn.classList.add('active');
+        amBtn.classList.remove('active');
+    }
+}
+
+function setPickerQuickTime(minutes) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+
+    let hours = now.getHours();
+    let mins = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+
+    const hourInput = document.getElementById('picker-hour');
+    const minuteInput = document.getElementById('picker-minute');
+    const amBtn = document.getElementById('picker-am-btn');
+    const pmBtn = document.getElementById('picker-pm-btn');
+
+    if (hourInput) hourInput.value = hours12;
+    if (minuteInput) minuteInput.value = mins.toString().padStart(2, '0');
+
+    if (amBtn && pmBtn) {
+        if (ampm === 'AM') {
+            amBtn.classList.add('active');
+            pmBtn.classList.remove('active');
+        } else {
+            pmBtn.classList.add('active');
+            amBtn.classList.remove('active');
+        }
+    }
+}
+
+function saveTimePicker() {
+    const hourInput = document.getElementById('picker-hour');
+    const minuteInput = document.getElementById('picker-minute');
+    const pmBtn = document.getElementById('picker-pm-btn');
+
+    if (hourInput && minuteInput) {
+        let hour = parseInt(hourInput.value) || 14;
+        let minute = parseInt(minuteInput.value) || 0;
+
+        hour = Math.max(1, Math.min(12, hour));
+        minute = Math.max(0, Math.min(59, minute));
+
+        const isPm = pmBtn && pmBtn.classList.contains('active');
+        let hours24 = hour;
+        if (isPm && hour !== 12) hours24 += 12;
+        if (!isPm && hour === 12) hours24 = 0;
+
+        const timeStr = hours24.toString().padStart(2, '0') + ':' + minute.toString().padStart(2, '0');
+        userPreferences.reminderTime = timeStr;
+
+        document.querySelectorAll('.time-tag').forEach(tag => {
+            tag.classList.remove('active');
+        });
+
+        userPreferences.reminderEnabled = true;
+        savePreferences();
+        scheduleReminder();
+        updateFloatingAlarmTrigger();
+        updateTimeTagActiveState();
+
+        closeTimePicker();
+        showToast(`提醒已设置为 ${timeStr}`);
+    }
+}
+
+function updateTimeTagActiveState() {
+    document.querySelectorAll('.time-tag').forEach(tag => {
+        const time = tag.getAttribute('data-time') || tag.textContent.trim();
+        if (time.includes(userPreferences.reminderTime)) {
+            tag.classList.add('active');
+        } else {
+            tag.classList.remove('active');
+        }
+    });
 }
 
 function showNotificationToast(title, message) {

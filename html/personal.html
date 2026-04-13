@@ -178,14 +178,29 @@
 
                 <div id="reminder-settings" class="hidden mt-6">
                     <div style="border-top: 1px solid var(--glass-border); padding-top: 20px; margin-top: 20px;">
-                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                            <span style="font-size: 13px; font-weight: 600; color: var(--text-tertiary);">提醒时间</span>
-                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <button class="time-btn" onclick="setReminderTime(this, '08:00')">08:00</button>
-                                <button class="time-btn" onclick="setReminderTime(this, '10:00')">10:00</button>
-                                <button class="time-btn active" onclick="setReminderTime(this, '14:00')">14:00</button>
-                                <button class="time-btn" onclick="setReminderTime(this, '19:00')">19:00</button>
-                                <button class="time-btn" onclick="setReminderTime(this, '21:00')">21:00</button>
+                        <div class="time-tags-container">
+                            <span class="time-tags-label">提醒时间</span>
+                            <div class="time-tags-grid">
+                                <button class="time-tag" onclick="setReminderTime(this, '08:00')">
+                                    <span class="time-tag-icon"><i data-lucide="sunrise"></i></span>
+                                    08:00
+                                </button>
+                                <button class="time-tag" onclick="setReminderTime(this, '10:00')">
+                                    <span class="time-tag-icon"><i data-lucide="sun"></i></span>
+                                    10:00
+                                </button>
+                                <button class="time-tag active" onclick="setReminderTime(this, '14:00')">
+                                    <span class="time-tag-icon"><i data-lucide="sun-medium"></i></span>
+                                    14:00
+                                </button>
+                                <button class="time-tag" onclick="setReminderTime(this, '19:00')">
+                                    <span class="time-tag-icon"><i data-lucide="sunset"></i></span>
+                                    19:00
+                                </button>
+                                <button class="time-tag" onclick="setReminderTime(this, '21:00')">
+                                    <span class="time-tag-icon"><i data-lucide="moon"></i></span>
+                                    21:00
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -339,9 +354,44 @@
         </div>
     </div>
 
-    <button id="floating-alarm-trigger" class="floating-alarm-trigger" onclick="openFloatingAlarm()">
+    <button id="floating-alarm-trigger" class="floating-alarm-trigger" onclick="toggleAlarmPopup()">
         <i data-lucide="alarm-clock"></i>
     </button>
+
+    <!-- Time Picker Popup Modal -->
+    <div id="time-picker-modal" class="crop-modal">
+        <div class="crop-modal-backdrop" onclick="closeTimePicker()"></div>
+        <div class="crop-modal-content" style="max-width: 380px;">
+            <div class="crop-modal-header">
+                <div class="crop-modal-title">
+                    <i data-lucide="clock"></i>
+                    设置提醒时间
+                </div>
+                <button class="crop-modal-close" onclick="closeTimePicker()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="floating-alarm-time" style="margin-bottom: 20px;">
+                <input type="number" id="picker-hour" class="floating-alarm-time-input" min="1" max="12" value="14" onchange="updatePickerDisplay()">
+                <span class="floating-alarm-time-separator">:</span>
+                <input type="number" id="picker-minute" class="floating-alarm-time-input" min="0" max="59" value="00" onchange="updatePickerDisplay()">
+                <div class="floating-alarm-time-ampm">
+                    <button class="floating-alarm-ampm-btn" id="picker-am-btn" onclick="setPickerAmPm('AM')">AM</button>
+                    <button class="floating-alarm-ampm-btn active" id="picker-pm-btn" onclick="setPickerAmPm('PM')">PM</button>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;">
+                <button class="floating-alarm-quick-btn" onclick="setPickerQuickTime(15)">15分钟后</button>
+                <button class="floating-alarm-quick-btn" onclick="setPickerQuickTime(30)">30分钟后</button>
+                <button class="floating-alarm-quick-btn" onclick="setPickerQuickTime(60)">1小时后</button>
+                <button class="floating-alarm-quick-btn" onclick="setPickerQuickTime(120)">2小时后</button>
+            </div>
+            <div class="floating-alarm-actions">
+                <button class="floating-alarm-action cancel" onclick="closeTimePicker()">取消</button>
+                <button class="floating-alarm-action save" onclick="saveTimePicker()">确认</button>
+            </div>
+        </div>
+    </div>
 
     <div id="crop-modal" class="crop-modal">
         <div class="crop-modal-backdrop" onclick="cancelCrop()"></div>
