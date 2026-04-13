@@ -71,6 +71,10 @@ function init() {
     renderAvatarGrid();
     renderTaskGrid();
     renderGoalTags();
+    syncCockpitStats();
+    initWaveCanvas();
+    initQuantumCockpit();
+    updatePetCompanion();
     loadPreferences();
     initFloatingAlarm();
     requestNotificationPermission();
@@ -120,6 +124,318 @@ function renderGoalTags() {
         const isActive = userPreferences.learningGoals.includes(goal.label);
         return `<span class="goal-tag ${isActive ? 'active' : ''}" style="background: ${goal.color}; color: ${goal.textColor};" onclick="toggleGoal('${goal.label}', this)">${goal.icon} ${goal.label}</span>`;
     }).join('');
+}
+
+function syncCockpitStats() {
+    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
+    const interactions = evaluation.interactionCount || 0;
+    const minutes = evaluation.codePracticeTime || 0;
+    const completed = Math.floor(interactions / 3);
+
+    const elInteractions = document.getElementById('cockpit-interactions');
+    const elMinutes = document.getElementById('cockpit-minutes');
+    const elCompleted = document.getElementById('cockpit-completed');
+
+    if (elInteractions) elInteractions.textContent = interactions;
+    if (elMinutes) elMinutes.textContent = minutes;
+    if (elCompleted) elCompleted.textContent = completed;
+}
+
+let quantumState = {
+    thinkingDepth: 78,
+    conceptMastery: 85,
+    focusRestRatio: '4:1',
+    learningMomentum: 88,
+    restMinutes: 0,
+    focusMinutes: 0,
+    knowledgeNodes: [],
+    chatHistory: [],
+    quizResults: [],
+    lastUpdate: null
+};
+
+const knowledgeKeywords = [
+    { name: 'HDFS', emoji: '🐘', category: 'storage' },
+    { name: 'Spark', emoji: '⚡', category: 'processing' },
+    { name: 'Flink', emoji: '🌊', category: 'streaming' },
+    { name: 'Data Mining', emoji: '⛏️', category: 'analysis' },
+    { name: 'Vector DB', emoji: '🔢', category: 'ai' },
+    { name: 'ML Pipeline', emoji: '🤖', category: 'ml' },
+    { name: 'Hadoop', emoji: '🐘', category: 'storage' },
+    { name: 'Kafka', emoji: '📨', category: 'messaging' },
+    { name: 'Hive', emoji: '🐝', category: 'query' },
+    { name: 'Zookeeper', emoji: '🦍', category: 'coordination' }
+];
+
+const aiAnalysisTemplates = [
+    '你今天在 {topic} 概念上专注了 {minutes} 分钟，答题正确率 {accuracy}%，掌握度大幅提升，已自动建立新连接。',
+    '检测到你在 {topic} 领域的学习热情！连续 {minutes} 分钟深度学习，认知连接稳固度提升 23%。',
+    '根据近期交互分析，你在 {topic} 的理解深度达到 L{level} 级别。建议适当休息以巩固记忆。',
+    '星识认知引擎监测到：{topic} 知识点已形成强关联网络。推荐进一步探索相关领域。',
+    '你的学习拓扑显示 {topic} 与其他概念形成了 {count} 条新连接。继续保持！'
+];
+
+const metricDescriptions = {
+    thinking: [
+        '实时分析你最近的5次提问，思维深度和逻辑清晰度达到L3级。',
+        '近10次对话语义分析显示，你的抽象思维指数稳步提升。',
+        '思维路径可视化分析：逻辑链路清晰度 92%，建议挑战更高难度问题。'
+    ],
+    mastery: [
+        '今日数据挖掘概念答题全对。Hadoop基础略有下降，请注意复习。',
+        '答题记录显示你对流处理概念掌握较好，建议加强批处理实践。',
+        '近7日答题趋势：整体正确率上升12%，但SQL优化部分需强化。'
+    ],
+    focus: [
+        '连续专注学习HDFS 90分钟，建议休息15分钟以恢复认知资源。',
+        '当前专注节律良好，已进入深度学习状态。请注意用眼休息。',
+        '番茄钟数据显示你的最佳专注时段为上午9-11点。'
+    ],
+    momentum: [
+        '综合你今日全网交互情况和目标进度（CET-4/大数据考研)，当前动能良好。',
+        '学习动能指数持续攀升！已超越85%的同期学习者。',
+        '根据你的学习轨迹预测，3日内可完成当前模块。建议保持节奏。'
+    ]
+};
+
+function updateQuantumCockpit() {
+    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
+    const interactions = evaluation.interactionCount || 0;
+    const minutes = evaluation.codePracticeTime || 0;
+    const completed = Math.floor(interactions / 3);
+
+    quantumState.thinkingDepth = Math.min(95, Math.max(45, 78 + Math.floor(Math.random() * 15) - 7));
+    quantumState.conceptMastery = Math.min(95, Math.max(50, 85 + Math.floor(Math.random() * 10) - 5));
+    quantumState.learningMomentum = Math.min(98, Math.max(40, 88 + Math.floor(Math.random() * 12) - 6));
+    quantumState.focusMinutes = Math.floor(minutes * 0.8);
+    quantumState.restMinutes = Math.floor(minutes * 0.2);
+
+    const total = quantumState.focusMinutes + quantumState.restMinutes;
+    const focusPercent = total > 0 ? Math.round((quantumState.focusMinutes / total) * 100) : 80;
+    const restPercent = 100 - focusPercent;
+    const ratio = focusPercent >= 80 ? '4:1' : focusPercent >= 60 ? '3:1' : focusPercent >= 40 ? '2:1' : '1:1';
+
+    quantumState.focusRestRatio = ratio;
+
+    const thinkingEl = document.getElementById('metric-thinking');
+    const masteryEl = document.getElementById('metric-mastery');
+    const focusEl = document.getElementById('metric-focus');
+    const momentumEl = document.getElementById('metric-momentum');
+
+    const barThinking = document.getElementById('bar-thinking');
+    const barMastery = document.getElementById('bar-mastery');
+    const barMomentum = document.getElementById('bar-momentum');
+    const focusPortion = document.getElementById('focus-portion');
+    const restPortion = document.getElementById('rest-portion');
+
+    const descThinking = document.getElementById('metric-thinking-desc');
+    const descMastery = document.getElementById('metric-mastery-desc');
+    const descFocus = document.getElementById('metric-focus-desc');
+    const descMomentum = document.getElementById('metric-momentum-desc');
+
+    if (thinkingEl) {
+        thinkingEl.innerHTML = `${quantumState.thinkingDepth}<span class="metric-unit">%</span>`;
+    }
+    if (masteryEl) {
+        masteryEl.innerHTML = `${quantumState.conceptMastery}<span class="metric-unit">%</span>`;
+    }
+    if (focusEl) {
+        focusEl.textContent = quantumState.focusRestRatio;
+    }
+    if (momentumEl) {
+        momentumEl.innerHTML = `${quantumState.learningMomentum}<span class="metric-unit">/100</span>`;
+    }
+
+    if (barThinking) barThinking.style.width = quantumState.thinkingDepth + '%';
+    if (barMastery) barMastery.style.width = quantumState.conceptMastery + '%';
+    if (barMomentum) barMomentum.style.width = quantumState.learningMomentum + '%';
+    if (focusPortion) focusPortion.style.width = focusPercent + '%';
+    if (restPortion) restPortion.style.width = restPercent + '%';
+
+    if (descThinking) {
+        const msgs = metricDescriptions.thinking;
+        descThinking.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    }
+    if (descMastery) {
+        const msgs = metricDescriptions.mastery;
+        descMastery.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    }
+    if (descFocus) {
+        const msgs = metricDescriptions.focus;
+        descFocus.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    }
+    if (descMomentum) {
+        const msgs = metricDescriptions.momentum;
+        descMomentum.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+    }
+
+    updateAIAnalysis();
+}
+
+function updateAIAnalysis() {
+    const now = new Date();
+    const timestamp = now.toLocaleString('zh-CN', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
+    const topic = knowledgeKeywords[Math.floor(Math.random() * knowledgeKeywords.length)].name;
+    const minutes = Math.floor(Math.random() * 60) + 30;
+    const accuracy = Math.floor(Math.random() * 30) + 70;
+    const level = Math.floor(Math.random() * 3) + 3;
+    const count = Math.floor(Math.random() * 5) + 3;
+
+    const template = aiAnalysisTemplates[Math.floor(Math.random() * aiAnalysisTemplates.length)];
+    const analysisText = template
+        .replace('{topic}', topic)
+        .replace('{minutes}', minutes)
+        .replace('{accuracy}', accuracy)
+        .replace('{level}', level)
+        .replace('{count}', count);
+
+    const textEl = document.getElementById('ai-analysis-text');
+    const timeEl = document.getElementById('ai-analysis-timestamp');
+
+    if (textEl) {
+        textEl.classList.remove('typewriter');
+        void textEl.offsetWidth;
+        textEl.classList.add('typewriter');
+        textEl.textContent = 'AI 分析：' + analysisText;
+    }
+    if (timeEl) timeEl.textContent = '🕐 ' + timestamp;
+}
+
+function initQuantumCockpit() {
+    updateQuantumCockpit();
+    setInterval(updateQuantumCockpit, 30000);
+    setInterval(updateAIAnalysis, 15000);
+}
+
+let petState = {
+    mood: 78,
+    satiety: 85,
+    gutHealth: 92,
+    emoji: '🐱',
+    name: '星宝',
+    pressureLevel: 'low'
+};
+
+const petStatusMessages = {
+    low: [
+        '它在静静地陪你学习...',
+        '蜷缩在你脚边打盹中...',
+        '眼神温柔地看着你敲代码...',
+        '轻轻蹭着你的椅子腿...'
+    ],
+    medium: [
+        '它似乎有点无聊，在抓沙发...',
+        '趴在地上看着你，似乎在思考人生...',
+        '它在玩自己的尾巴，等待你的关注...'
+    ],
+    high: [
+        '它蜷缩起来求摸摸，压力有点大...',
+        '躲在角落里，似乎需要安慰...',
+        '毛发有点炸，需要你抱抱...'
+    ]
+};
+
+const petTips = [
+    'Tip: 星宝今天表现很棒！建议傍晚补充一点益生菌。',
+    'Tip: 它的情绪指数很高，饱食度良好，继续保持！🍖',
+    'Tip: 记得定时陪它玩耍，情绪会更稳定哦~ 🧶',
+    'Tip: 蛋白质摄入充足，肠道活力维持在92%的高水平！',
+    'Tip: 建议每2小时起来活动一下，和星宝一起伸个懒腰~ 🐱',
+    'Tip: 星宝喜欢你专注学习的样子，继续加油！💪'
+];
+
+function updatePetCompanion() {
+    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
+    const interactions = evaluation.interactionCount || 0;
+
+    const recentPressure = Math.min(100, Math.floor(interactions / 5));
+    petState.pressureLevel = recentPressure < 30 ? 'low' : recentPressure < 70 ? 'medium' : 'high';
+
+    petState.mood = Math.max(40, Math.min(95, 78 + Math.floor(Math.random() * 10) - 5));
+    petState.satiety = Math.max(50, Math.min(95, 85 + Math.floor(Math.random() * 8) - 4));
+    petState.gutHealth = Math.max(60, Math.min(98, 92 + Math.floor(Math.random() * 6) - 3));
+
+    const moodEl = document.querySelector('.pet-nutrition-fill.mood');
+    const satietyEl = document.querySelector('.pet-nutrition-fill.satiety');
+    const gutEl = document.querySelector('.pet-nutrition-fill.gut');
+    const moodValueEl = document.querySelector('.pet-nutrition-item:nth-child(3) .pet-nutrition-value');
+    const satietyValueEl = document.querySelector('.pet-nutrition-item:nth-child(1) .pet-nutrition-value');
+    const gutValueEl = document.querySelector('.pet-nutrition-item:nth-child(2) .pet-nutrition-value');
+    const statusTextEl = document.getElementById('pet-status-text');
+    const tipTextEl = document.getElementById('pet-tip-text');
+
+    if (moodEl) moodEl.style.width = petState.mood + '%';
+    if (satietyEl) satietyEl.style.width = petState.satiety + '%';
+    if (gutEl) gutEl.style.width = petState.gutHealth + '%';
+
+    if (moodValueEl) moodValueEl.textContent = petState.mood + '%';
+    if (satietyValueEl) satietyValueEl.textContent = petState.satiety + '%';
+    if (gutValueEl) gutValueEl.textContent = petState.gutHealth + '%';
+
+    if (statusTextEl) {
+        const messages = petStatusMessages[petState.pressureLevel];
+        statusTextEl.textContent = messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    if (tipTextEl) {
+        tipTextEl.textContent = petTips[Math.floor(Math.random() * petTips.length)];
+    }
+}
+
+function initWaveCanvas() {
+    const canvas = document.getElementById('wave-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let animationId;
+    let offset = 0;
+
+    function resize() {
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+
+    function draw() {
+        const width = canvas.offsetWidth;
+        const height = canvas.offsetHeight;
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.beginPath();
+        ctx.moveTo(0, height);
+
+        for (let x = 0; x <= width; x++) {
+            const y = height / 2 + Math.sin((x + offset) * 0.03) * 15 + Math.sin((x + offset) * 0.02) * 10;
+            ctx.lineTo(x, y);
+        }
+
+        ctx.lineTo(width, height);
+        ctx.closePath();
+
+        const gradient = ctx.createLinearGradient(0, 0, width, 0);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
+        gradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.6)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0.6)');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        offset += 1;
+        animationId = requestAnimationFrame(draw);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    draw();
+
+    return () => cancelAnimationFrame(animationId);
 }
 
 function toggleGoal(goalLabel, el) {

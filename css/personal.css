@@ -298,6 +298,614 @@ body {
 }
 
 /* ============================================
+   Cockpit Container - 学习驾驶舱
+   ============================================ */
+
+.cockpit-container {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 32px;
+    padding: 28px;
+    margin-bottom: 24px;
+    transition: all 0.5s var(--ease-out-expo);
+    animation: cockpitIn 1s var(--ease-out-expo) 0.2s both;
+    position: relative;
+    overflow: hidden;
+}
+
+.cockpit-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%, rgba(59, 130, 246, 0.05) 100%);
+    pointer-events: none;
+}
+
+.cockpit-container::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 32px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), transparent, rgba(59, 130, 246, 0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+@keyframes cockpitIn {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.cockpit-container:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 60px rgba(168, 85, 247, 0.25), 0 20px 60px rgba(0, 0, 0, 0.15);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.cockpit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+.cockpit-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.cockpit-title-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 14px;
+    color: white;
+    box-shadow: 0 8px 24px var(--primary-glow);
+}
+
+.cockpit-title-icon i {
+    width: 24px;
+    height: 24px;
+}
+
+.cockpit-title-text h2 {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.cockpit-title-text p {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+.cockpit-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 9999px;
+}
+
+.cockpit-status-dot {
+    width: 10px;
+    height: 10px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: cockpitPulse 2s ease-in-out infinite;
+}
+
+@keyframes cockpitPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+.cockpit-status-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #10b981;
+}
+
+.cockpit-body {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================
+   Knowledge Topology - 知识图谱沙盘
+   ============================================ */
+
+.knowledge-topology {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.knowledge-topology::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+.knowledge-topology-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.knowledge-topology-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.knowledge-topology-title i {
+    color: var(--primary);
+}
+
+.knowledge-topology-badge {
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 9999px;
+}
+
+.knowledge-topology-canvas {
+    min-height: 200px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.topology-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(40px, 40px); }
+}
+
+.topology-nodes-fallback {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.topology-ai-analysis {
+    pointer-events: auto;
+}
+
+.ai-analysis-icon {
+    flex-shrink: 0;
+}
+
+.ai-analysis-text {
+    transition: opacity 0.3s ease;
+}
+
+.ai-analysis-text.typewriter {
+    animation: typewriterFade 0.5s ease forwards;
+}
+
+@keyframes typewriterFade {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.8; }
+}
+
+.ai-analysis-timestamp {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.topology-node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    animation: nodeFloat 4s ease-in-out infinite;
+}
+
+.topology-node:nth-child(1) { top: 20%; left: 15%; animation-delay: 0s; }
+.topology-node:nth-child(2) { top: 10%; left: 50%; animation-delay: 0.5s; }
+.topology-node:nth-child(3) { top: 25%; left: 80%; animation-delay: 1s; }
+.topology-node:nth-child(4) { top: 55%; left: 30%; animation-delay: 1.5s; }
+.topology-node:nth-child(5) { top: 70%; left: 60%; animation-delay: 2s; }
+.topology-node:nth-child(6) { top: 45%; left: 50%; animation-delay: 2.5s; }
+
+@keyframes nodeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+.topology-node-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.topology-node:hover .topology-node-circle {
+    transform: scale(1.15);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.topology-node-circle.hadoop { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+.topology-node-circle.spark { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.topology-node-circle.flink { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+.topology-node-circle.mining { background: linear-gradient(135deg, #3498db, #2980b9); }
+.topology-node-circle.vector { background: linear-gradient(135deg, #1abc9c, #16a085); }
+.topology-node-circle.ml { background: linear-gradient(135deg, #f39c12, #e67e22); }
+
+.topology-node-label {
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+}
+
+.topology-connections {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.topology-connection {
+    position: absolute;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.6), rgba(139, 92, 246, 0.6));
+    transform-origin: left center;
+    animation: connectionPulse 3s ease-in-out infinite;
+}
+
+@keyframes connectionPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+}
+
+/* ============================================
+   Ascend NPU Monitor - 昇腾监控面板
+   ============================================ */
+
+.quantum-monitor {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.quantum-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+}
+
+.quantum-status {
+    width: 12px;
+    height: 12px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: quantumPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes quantumPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+}
+
+.quantum-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.quantum-subtitle {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: auto;
+}
+
+.quantum-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.quantum-metric {
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.quantum-metric:hover {
+    background: rgba(0, 0, 0, 0.25);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.quantum-metric-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.quantum-metric-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.metric-icon {
+    font-size: 14px;
+}
+
+.quantum-metric-value {
+    font-size: 16px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--accent);
+}
+
+.metric-unit {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+.quantum-metric-desc {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.quantum-metric-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+}
+
+.quantum-metric-bar.ratio-bar {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.quantum-metric-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s var(--ease-out-expo);
+    animation: barLoad 1.5s var(--ease-out-expo);
+}
+
+@keyframes barLoad {
+    from { width: 0 !important; }
+}
+
+.quantum-metric-fill.thinking {
+    width: 78%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.quantum-metric-fill.mastery {
+    width: 85%;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.quantum-metric-fill.momentum {
+    width: 88%;
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.focus-portion {
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    transition: width 1s var(--ease-out-expo);
+}
+
+.rest-portion {
+    width: 20%;
+    height: 100%;
+    background: rgba(16, 185, 129, 0.5);
+    transition: width 1s var(--ease-out-expo);
+}
+
+.quantum-wave {
+    height: 60px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.quantum-wave canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* ============================================
+   Cockpit Stats - 驾驶舱底部统计
+   ============================================ */
+
+.cockpit-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.cockpit-stat-card {
+    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s var(--ease-out-expo);
+}
+
+.cockpit-stat-card:hover {
+    background: rgba(255, 255, 255, 0.7);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.cockpit-stat-icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+.cockpit-stat-icon i {
+    width: 26px;
+    height: 26px;
+}
+
+.cockpit-stat-card:nth-child(1) .cockpit-stat-icon {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+
+.cockpit-stat-card:nth-child(2) .cockpit-stat-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.cockpit-stat-card:nth-child(3) .cockpit-stat-icon {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.cockpit-stat-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.cockpit-stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.cockpit-stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .cockpit-body {
+        grid-template-columns: 1fr;
+    }
+
+    .knowledge-topology-canvas {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 640px) {
+    .cockpit-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .cockpit-stat-card {
+        padding: 14px 16px;
+    }
+
+    .cockpit-stat-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .cockpit-stat-value {
+        font-size: 22px;
+    }
+}
+
+/* ============================================
    5. Section Styles
    ============================================ */
 
@@ -711,6 +1319,237 @@ body {
 
 .pref-select option {
     padding: 12px;
+}
+
+/* ============================================
+   Pet Companion Module - 星友萌宠陪伴
+   ============================================ */
+
+.pet-card {
+    position: relative;
+    padding: 24px;
+    background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(139, 92, 246, 0.05));
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: var(--radius-md);
+    transition: all 0.4s var(--ease-out-expo);
+    overflow: hidden;
+}
+
+.pet-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.1) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.pet-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Pet Avatar */
+.pet-avatar-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.pet-avatar-wrapper {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+}
+
+.pet-avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a78bfa, #c4b5fd, #a78bfa);
+    animation: petRingPulse 3s ease-in-out infinite;
+}
+
+@keyframes petRingPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 0 20px 4px rgba(168, 85, 247, 0.3);
+    }
+}
+
+.pet-avatar {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.pet-info {
+    flex: 1;
+}
+
+.pet-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+
+.pet-status-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+/* Pet Nutrition Dashboard */
+.pet-nutrition {
+    position: relative;
+    z-index: 1;
+}
+
+.pet-nutrition-item {
+    margin-bottom: 14px;
+}
+
+.pet-nutrition-item:last-child {
+    margin-bottom: 0;
+}
+
+.pet-nutrition-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.pet-nutrition-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.pet-nutrition-label .emoji {
+    font-size: 14px;
+}
+
+.pet-nutrition-value {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--accent);
+}
+
+.pet-nutrition-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.pet-nutrition-fill {
+    height: 100%;
+    border-radius: 4px;
+    position: relative;
+    animation: nutritionFillIn 1.2s var(--ease-out-expo) forwards;
+    transform-origin: left;
+}
+
+@keyframes nutritionFillIn {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
+
+.pet-nutrition-fill.satiety {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    width: 85%;
+    animation-delay: 0.2s;
+}
+
+.pet-nutrition-fill.gut {
+    background: linear-gradient(90deg, #10b981, #34d399);
+    width: 92%;
+    animation-delay: 0.4s;
+}
+
+.pet-nutrition-fill.mood {
+    background: linear-gradient(90deg, #ec4899, #f472b6);
+    width: 78%;
+    animation-delay: 0.6s;
+}
+
+.pet-nutrition-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: nutritionShine 2s ease-in-out infinite;
+}
+
+@keyframes nutritionShine {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Pet Tip Box */
+.pet-tip {
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: var(--radius-sm);
+    position: relative;
+    z-index: 1;
+}
+
+.pet-tip::before {
+    content: '💡';
+    position: absolute;
+    top: -8px;
+    left: 12px;
+    font-size: 14px;
+    background: var(--bg-secondary);
+    padding: 0 4px;
+}
+
+.pet-tip-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-style: italic;
 }
 
 /* Toggle Switch */

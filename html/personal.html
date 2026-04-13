@@ -77,6 +77,186 @@
                 </div>
             </section>
 
+            <!-- 全息"智理"学习驾驶舱 -->
+            <section class="cockpit-container">
+                <div class="cockpit-header">
+                    <div class="cockpit-title">
+                        <div class="cockpit-title-icon">
+                            <i data-lucide="radar"></i>
+                        </div>
+                        <div class="cockpit-title-text">
+                            <h2>全息"智理"学习驾驶舱</h2>
+                            <p>Holographic Intelligent Learning Cockpit</p>
+                        </div>
+                    </div>
+                    <div class="cockpit-status">
+                        <div class="cockpit-status-dot"></div>
+                        <span class="cockpit-status-text">系统在线</span>
+                    </div>
+                </div>
+
+                <div class="cockpit-body">
+                    <!-- 左侧：星识·全息知识拓扑沙盘 -->
+                    <div class="knowledge-topology flex flex-col">
+                        <div class="knowledge-topology-header">
+                            <div class="knowledge-topology-title">
+                                <i data-lucide="atom"></i>
+                                <span>星识·全息知识拓扑沙盘</span>
+                                <span class="knowledge-topology-badge">AI 分析实时生成</span>
+                            </div>
+                        </div>
+                        <div class="knowledge-topology-canvas flex-1 pb-12 relative" id="knowledge-topology-container">
+                            <div class="topology-grid-bg"></div>
+                            <div id="echarts-topology" style="width:100%;height:100%;position:absolute;top:0;left:0;"></div>
+                            <div class="topology-nodes-fallback" id="topology-fallback">
+                                <div class="topology-node">
+                                    <div class="topology-node-circle hadoop">🐘</div>
+                                    <div class="topology-node-label">HDFS</div>
+                                </div>
+                                <div class="topology-node">
+                                    <div class="topology-node-circle spark">⚡</div>
+                                    <div class="topology-node-label">Spark</div>
+                                </div>
+                                <div class="topology-node">
+                                    <div class="topology-node-circle flink">🌊</div>
+                                    <div class="topology-node-label">Flink</div>
+                                </div>
+                                <div class="topology-node">
+                                    <div class="topology-node-circle mining">⛏️</div>
+                                    <div class="topology-node-label">Data Mining</div>
+                                </div>
+                                <div class="topology-node">
+                                    <div class="topology-node-circle vector">🔢</div>
+                                    <div class="topology-node-label">Vector DB</div>
+                                </div>
+                                <div class="topology-node">
+                                    <div class="topology-node-circle ml">🤖</div>
+                                    <div class="topology-node-label">ML Pipeline</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="topology-ai-analysis relative mx-4 mb-4 px-4 py-2 rounded-lg bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/10 shadow-[0_0_12px_rgba(168,85,247,0.15)] flex items-center gap-3 z-20 pointer-events-auto" id="topology-ai-analysis">
+                            <span class="ai-analysis-icon animate-pulse text-sm flex-shrink-0">🧙‍♂️</span>
+                            <div class="ai-analysis-text text-xs opacity-80 flex-1 truncate" style="color: var(--text-main);" id="ai-analysis-text">
+                                AI 分析：正在连接星识认知引擎，分析你的学习拓扑结构...
+                            </div>
+                            <div class="ai-analysis-timestamp text-[10px] shrink-0 bg-gradient-to-r from-emerald-400/60 to-purple-400/60 bg-clip-text text-transparent [text-shadow:0_0_8px_rgba(16,185,129,0.5)]" id="ai-analysis-timestamp"></div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：星识·量子驾驶舱 -->
+                    <div class="quantum-monitor">
+                        <div class="quantum-header">
+                            <div class="quantum-status"></div>
+                            <span class="quantum-title">星识·量子驾驶舱</span>
+                            <span class="quantum-subtitle">学生状态实时监测器</span>
+                        </div>
+
+                        <div class="quantum-metrics">
+                            <div class="quantum-metric">
+                                <div class="quantum-metric-header">
+                                    <span class="quantum-metric-label">
+                                        <span class="metric-icon">🧠</span>
+                                        思维深度指数
+                                    </span>
+                                    <span class="quantum-metric-value" id="metric-thinking">78<span class="metric-unit">%</span></span>
+                                </div>
+                                <div class="quantum-metric-desc" id="metric-thinking-desc">
+                                    实时分析你最近的5次提问，思维深度和逻辑清晰度达到L3级。
+                                </div>
+                                <div class="quantum-metric-bar">
+                                    <div class="quantum-metric-fill thinking" id="bar-thinking"></div>
+                                </div>
+                            </div>
+
+                            <div class="quantum-metric">
+                                <div class="quantum-metric-header">
+                                    <span class="quantum-metric-label">
+                                        <span class="metric-icon">📚</span>
+                                        概念掌握率
+                                    </span>
+                                    <span class="quantum-metric-value" id="metric-mastery">85<span class="metric-unit">%</span></span>
+                                </div>
+                                <div class="quantum-metric-desc" id="metric-mastery-desc">
+                                    今日数据挖掘概念答题全对。Hadoop基础略有下降，请注意复习。
+                                </div>
+                                <div class="quantum-metric-bar">
+                                    <div class="quantum-metric-fill mastery" id="bar-mastery"></div>
+                                </div>
+                            </div>
+
+                            <div class="quantum-metric">
+                                <div class="quantum-metric-header">
+                                    <span class="quantum-metric-label">
+                                        <span class="metric-icon">⏱️</span>
+                                        专注/休息比
+                                    </span>
+                                    <span class="quantum-metric-value" id="metric-focus">4:1</span>
+                                </div>
+                                <div class="quantum-metric-desc" id="metric-focus-desc">
+                                    连续专注学习HDFS 90分钟，建议休息15分钟以恢复认知资源。
+                                </div>
+                                <div class="quantum-metric-bar ratio-bar">
+                                    <div class="focus-portion" id="focus-portion"></div>
+                                    <div class="rest-portion" id="rest-portion"></div>
+                                </div>
+                            </div>
+
+                            <div class="quantum-metric">
+                                <div class="quantum-metric-header">
+                                    <span class="quantum-metric-label">
+                                        <span class="metric-icon">🚀</span>
+                                        学习动能指数
+                                    </span>
+                                    <span class="quantum-metric-value" id="metric-momentum">88<span class="metric-unit">/100</span></span>
+                                </div>
+                                <div class="quantum-metric-desc" id="metric-momentum-desc">
+                                    综合你今日全网交互情况和目标进度（CET-4/大数据考研），当前动能良好。
+                                </div>
+                                <div class="quantum-metric-bar">
+                                    <div class="quantum-metric-fill momentum" id="bar-momentum"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="quantum-wave">
+                            <canvas id="wave-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部：数据摘要卡片 -->
+                <div class="cockpit-stats">
+                    <div class="cockpit-stat-card">
+                        <div class="cockpit-stat-icon">
+                            <i data-lucide="message-square"></i>
+                        </div>
+                        <div class="cockpit-stat-content">
+                            <div class="cockpit-stat-value" id="cockpit-interactions">0</div>
+                            <div class="cockpit-stat-label">交互次数</div>
+                        </div>
+                    </div>
+                    <div class="cockpit-stat-card">
+                        <div class="cockpit-stat-icon">
+                            <i data-lucide="timer"></i>
+                        </div>
+                        <div class="cockpit-stat-content">
+                            <div class="cockpit-stat-value" id="cockpit-minutes">0</div>
+                            <div class="cockpit-stat-label">学习分钟</div>
+                        </div>
+                    </div>
+                    <div class="cockpit-stat-card">
+                        <div class="cockpit-stat-icon">
+                            <i data-lucide="check-square"></i>
+                        </div>
+                        <div class="cockpit-stat-content">
+                            <div class="cockpit-stat-value" id="cockpit-completed">0</div>
+                            <div class="cockpit-stat-label">完成任务</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section class="personal-section">
                 <div class="section-header">
                     <div class="section-header-icon">
@@ -173,6 +353,63 @@
                             </div>
                         </div>
                         <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
+                    </div>
+
+                    <!-- 星友萌宠陪伴状态 -->
+                    <div class="pet-card">
+                        <div class="pet-avatar-section">
+                            <div class="pet-avatar-wrapper">
+                                <div class="pet-avatar-ring"></div>
+                                <div class="pet-avatar">🐱</div>
+                            </div>
+                            <div class="pet-info">
+                                <div class="pet-name">星宝</div>
+                                <div class="pet-status-text" id="pet-status-text">它在静静地陪你学习...</div>
+                            </div>
+                        </div>
+
+                        <div class="pet-nutrition">
+                            <div class="pet-nutrition-item">
+                                <div class="pet-nutrition-header">
+                                    <span class="pet-nutrition-label">
+                                        <span class="emoji">🍖</span>
+                                        饱食度 <small style="opacity:0.7">(含42%粗蛋白)</small>
+                                    </span>
+                                    <span class="pet-nutrition-value">85%</span>
+                                </div>
+                                <div class="pet-nutrition-bar">
+                                    <div class="pet-nutrition-fill satiety"></div>
+                                </div>
+                            </div>
+                            <div class="pet-nutrition-item">
+                                <div class="pet-nutrition-header">
+                                    <span class="pet-nutrition-label">
+                                        <span class="emoji">🧪</span>
+                                        肠道活力 <small style="opacity:0.7">(益生菌supplement)</small>
+                                    </span>
+                                    <span class="pet-nutrition-value">92%</span>
+                                </div>
+                                <div class="pet-nutrition-bar">
+                                    <div class="pet-nutrition-fill gut"></div>
+                                </div>
+                            </div>
+                            <div class="pet-nutrition-item">
+                                <div class="pet-nutrition-header">
+                                    <span class="pet-nutrition-label">
+                                        <span class="emoji">❤️</span>
+                                        情绪指数
+                                    </span>
+                                    <span class="pet-nutrition-value">78%</span>
+                                </div>
+                                <div class="pet-nutrition-bar">
+                                    <div class="pet-nutrition-fill mood"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pet-tip">
+                            <div class="pet-tip-text" id="pet-tip-text">Tip: 星宝今天表现很棒！建议傍晚补充一点益生菌。</div>
+                        </div>
                     </div>
                 </div>
 
