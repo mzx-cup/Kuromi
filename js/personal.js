@@ -74,7 +74,7 @@ function init() {
     syncCockpitStats();
     initWaveCanvas();
     initQuantumCockpit();
-    updatePetCompanion();
+    initPetSystem();
     loadPreferences();
     initFloatingAlarm();
     requestNotificationPermission();
@@ -315,11 +315,12 @@ function initQuantumCockpit() {
 }
 
 let petState = {
-    mood: 78,
-    satiety: 85,
-    gutHealth: 92,
     emoji: '🐱',
     name: '星宝',
+    satiety: 80,
+    mood: 70,
+    intimacy: 50,
+    lastInteraction: Date.now(),
     pressureLevel: 'low'
 };
 
@@ -342,51 +343,336 @@ const petStatusMessages = {
     ]
 };
 
-const petTips = [
-    'Tip: 星宝今天表现很棒！建议傍晚补充一点益生菌。',
-    'Tip: 它的情绪指数很高，饱食度良好，继续保持！🍖',
-    'Tip: 记得定时陪它玩耍，情绪会更稳定哦~ 🧶',
-    'Tip: 蛋白质摄入充足，肠道活力维持在92%的高水平！',
-    'Tip: 建议每2小时起来活动一下，和星宝一起伸个懒腰~ 🐱',
-    'Tip: 星宝喜欢你专注学习的样子，继续加油！💪'
-];
+const petTips = {
+    normal: [
+        'Tip: 星宝今天表现很棒！继续保持这份专注~',
+        'Tip: 它的情绪指数很高，饱食度良好，继续保持！🍖',
+        'Tip: 记得定时陪它玩耍，情绪会更稳定哦~ 🧶',
+        'Tip: 建议每2小时起来活动一下，和星宝一起伸个懒腰~ 🐱',
+        'Tip: 星宝喜欢你专注学习的样子，继续加油！💪'
+    ],
+    hungry: [
+        'Tip: It seems your Star-Friend is getting a bit hungry. Consider a quick snack!',
+        'Tip: 星宝的饱食度有点低啦，该给它喂食了~ 🍖',
+        'Tip: 长时间学习后，记得也关心一下星宝的饱腹感哦~'
+    ],
+    stressed: [
+        'Tip: 检测到学习压力较大，星宝也有点低落，陪它玩耍一下吧~ 🎾',
+        'Tip: 休息一下吧，星宝看到你累了，它也会担心的~ 💖'
+    ]
+};
 
-function updatePetCompanion() {
+let selectedPetEmoji = null;
+
+function initPetSystem() {
+    const savedPet = localStorage.getItem('starlearn_pet');
+    if (savedPet) {
+        petState = JSON.parse(savedPet);
+        applyPetDecay();
+        updatePetUI();
+        startPetDecayTimer();
+    } else {
+        showPetSelectionModal();
+    }
+}
+
+function showPetSelectionModal() {
+    const modal = document.getElementById('pet-selection-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                modal.classList.add('visible');
+            });
+        });
+    }
+}
+
+function hidePetSelectionModal() {
+    const modal = document.getElementById('pet-selection-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+}
+
+function selectPetOption(el) {
+    document.querySelectorAll('.pet-option').forEach(opt => opt.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedPetEmoji = el.dataset.pet;
+}
+
+function confirmPetSelection() {
+    if (!selectedPetEmoji) {
+        showToast('请先选择一只星友~');
+        return;
+    }
+    petState.emoji = selectedPetEmoji;
+    petState.lastInteraction = Date.now();
+    savePetState();
+    hidePetSelectionModal();
+    updatePetUI();
+    startPetDecayTimer();
+    showToast(`恭喜！你的星友 ${selectedPetEmoji} 已加入！`);
+}
+
+function savePetState() {
+    localStorage.setItem('starlearn_pet', JSON.stringify(petState));
+}
+
+function applyPetDecay() {
+    const now = Date.now();
+    const elapsed = now - petState.lastInteraction;
+    const hoursPassed = elapsed / (1000 * 60 * 60);
+
+    if (hoursPassed >= 1) {
+        const decayUnits = Math.floor(hoursPassed);
+        petState.satiety = Math.max(0, petState.satiety - (decayUnits * 5));
+
+        if (petState.satiety < 20) {
+            petState.mood = Math.max(0, petState.mood - (decayUnits * 10));
+            petState.intimacy = Math.max(0, petState.intimacy - (decayUnits * 5));
+        }
+
+        petState.lastInteraction = now;
+        savePetState();
+    }
+}
+
+function startPetDecayTimer() {
+    setInterval(() => {
+        applyPetDecay();
+        updatePetUI();
+    }, 60000);
+}
+
+function petAction(action) {
+    const avatar = document.getElementById('eco-pet-avatar');
+    const avatarWrapper = document.getElementById('eco-pet-avatar-wrapper');
+    if (!avatar) return;
+
+    avatar.classList.remove('feed-animation', 'play-animation', 'heartbeat-animation');
+    void avatar.offsetWidth;
+
+    let tipText = '';
+    switch (action) {
+        case 'feed':
+            petState.satiety = Math.min(100, Math.max(0, petState.satiety + 10));
+            avatar.classList.add('feed-animation');
+            tipText = '+10 饱食度';
+            break;
+        case 'play':
+            petState.mood = Math.min(100, Math.max(0, petState.mood + 15));
+            avatar.classList.add('play-animation');
+            tipText = '+15 情绪';
+            break;
+        case 'pet':
+            petState.intimacy = Math.min(100, Math.max(0, petState.intimacy + 10));
+            avatar.classList.add('heartbeat-animation');
+            tipText = '+10 亲密度';
+            break;
+    }
+
+    petState.lastInteraction = Date.now();
+    savePetState();
+    updatePetUI();
+    showFloatTip('eco-pet-tip', tipText);
+
+    setTimeout(() => {
+        avatar.classList.remove('feed-animation', 'play-animation', 'heartbeat-animation');
+    }, 1000);
+}
+
+function showFloatTip(tipId, text) {
+    const tip = document.getElementById(tipId);
+    if (!tip) return;
+    tip.textContent = text;
+    tip.classList.remove('show');
+    void tip.offsetWidth;
+    tip.classList.add('show');
+    setTimeout(() => {
+        tip.classList.remove('show');
+    }, 2000);
+}
+
+function updatePetUI() {
+    const avatar = document.getElementById('pet-avatar-display');
+    const nameEl = document.getElementById('pet-name-display');
+    const satietyValue = document.getElementById('pet-satiety-value');
+    const satietyBar = document.getElementById('pet-satiety-bar');
+    const moodValue = document.getElementById('pet-mood-value');
+    const moodBar = document.getElementById('pet-mood-bar');
+    const intimacyValue = document.getElementById('pet-intimacy-value');
+    const intimacyBar = document.getElementById('pet-intimacy-bar');
+    const statusText = document.getElementById('pet-status-text');
+    const tipText = document.getElementById('pet-tip-text');
+
+    if (avatar) avatar.textContent = petState.emoji;
+    if (nameEl) nameEl.textContent = petState.name;
+
+    if (satietyValue) satietyValue.textContent = petState.satiety + '%';
+    if (satietyBar) satietyBar.style.width = petState.satiety + '%';
+    if (moodValue) moodValue.textContent = petState.mood + '%';
+    if (moodBar) moodBar.style.width = petState.mood + '%';
+    if (intimacyValue) intimacyValue.textContent = petState.intimacy + '%';
+    if (intimacyBar) intimacyBar.style.width = petState.intimacy + '%';
+
+    const ecoAvatar = document.getElementById('eco-pet-avatar');
+    const ecoName = document.getElementById('eco-pet-name');
+    const ecoStatus = document.getElementById('eco-pet-status');
+    const ecoSatietyValue = document.getElementById('eco-satiety-value');
+    const ecoSatietyBar = document.getElementById('eco-satiety-bar');
+    const ecoMoodValue = document.getElementById('eco-mood-value');
+    const ecoMoodBar = document.getElementById('eco-mood-bar');
+    const ecoIntimacyValue = document.getElementById('eco-intimacy-value');
+    const ecoIntimacyBar = document.getElementById('eco-intimacy-bar');
+
+    if (ecoAvatar) ecoAvatar.textContent = petState.emoji;
+    if (ecoName) ecoName.textContent = petState.name;
+    if (ecoSatietyValue) ecoSatietyValue.textContent = petState.satiety + '%';
+    if (ecoSatietyBar) ecoSatietyBar.style.width = petState.satiety + '%';
+    if (ecoMoodValue) ecoMoodValue.textContent = petState.mood + '%';
+    if (ecoMoodBar) ecoMoodBar.style.width = petState.mood + '%';
+    if (ecoIntimacyValue) ecoIntimacyValue.textContent = petState.intimacy + '%';
+    if (ecoIntimacyBar) ecoIntimacyBar.style.width = petState.intimacy + '%';
+    if (ecoStatus) ecoStatus.textContent = statusText ? statusText.textContent : '';
+
     const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
     const interactions = evaluation.interactionCount || 0;
-
     const recentPressure = Math.min(100, Math.floor(interactions / 5));
     petState.pressureLevel = recentPressure < 30 ? 'low' : recentPressure < 70 ? 'medium' : 'high';
 
-    petState.mood = Math.max(40, Math.min(95, 78 + Math.floor(Math.random() * 10) - 5));
-    petState.satiety = Math.max(50, Math.min(95, 85 + Math.floor(Math.random() * 8) - 4));
-    petState.gutHealth = Math.max(60, Math.min(98, 92 + Math.floor(Math.random() * 6) - 3));
-
-    const moodEl = document.querySelector('.pet-nutrition-fill.mood');
-    const satietyEl = document.querySelector('.pet-nutrition-fill.satiety');
-    const gutEl = document.querySelector('.pet-nutrition-fill.gut');
-    const moodValueEl = document.querySelector('.pet-nutrition-item:nth-child(3) .pet-nutrition-value');
-    const satietyValueEl = document.querySelector('.pet-nutrition-item:nth-child(1) .pet-nutrition-value');
-    const gutValueEl = document.querySelector('.pet-nutrition-item:nth-child(2) .pet-nutrition-value');
-    const statusTextEl = document.getElementById('pet-status-text');
-    const tipTextEl = document.getElementById('pet-tip-text');
-
-    if (moodEl) moodEl.style.width = petState.mood + '%';
-    if (satietyEl) satietyEl.style.width = petState.satiety + '%';
-    if (gutEl) gutEl.style.width = petState.gutHealth + '%';
-
-    if (moodValueEl) moodValueEl.textContent = petState.mood + '%';
-    if (satietyValueEl) satietyValueEl.textContent = petState.satiety + '%';
-    if (gutValueEl) gutValueEl.textContent = petState.gutHealth + '%';
-
-    if (statusTextEl) {
+    if (statusText) {
         const messages = petStatusMessages[petState.pressureLevel];
-        statusTextEl.textContent = messages[Math.floor(Math.random() * messages.length)];
+        statusText.textContent = messages[Math.floor(Math.random() * messages.length)];
     }
 
-    if (tipTextEl) {
-        tipTextEl.textContent = petTips[Math.floor(Math.random() * petTips.length)];
+    if (tipText) {
+        let tips;
+        if (petState.satiety < 20) {
+            tips = petTips.hungry;
+        } else if (petState.pressureLevel === 'high') {
+            tips = petTips.stressed;
+        } else {
+            tips = petTips.normal;
+        }
+        tipText.textContent = tips[Math.floor(Math.random() * tips.length)];
     }
+
+    updateEcoPlantDisplay();
+}
+
+function updatePetCompanion() {
+    updatePetUI();
+}
+
+function updateEcoPlantDisplay() {
+    const plantEmoji = document.getElementById('eco-plant-emoji');
+    const plantName = document.getElementById('eco-plant-name');
+    const plantStage = document.getElementById('eco-plant-stage');
+    const timerValue = document.getElementById('eco-timer-value');
+    const waterValue = document.getElementById('eco-water-value');
+    const waterBar = document.getElementById('eco-water-bar');
+    const nutrientValue = document.getElementById('eco-nutrient-value');
+    const nutrientBar = document.getElementById('eco-nutrient-bar');
+    const harvestCount = document.getElementById('eco-harvest-count');
+
+    const plantData = {
+        seeds: parseInt(localStorage.getItem('starlearn_seeds') || '0'),
+        ownedPlants: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').ownedPlants || [],
+        currentPlant: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').currentPlant || null,
+        stage: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').stage || 0,
+        remainingTime: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').remainingTime || 0,
+        water: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').water || 0,
+        nutrient: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').nutrient || 0
+    };
+
+    const PLANT_DATA = [
+        { id: 'bamboo', name: '逻辑之竹', emoji: '🎋', stages: ['🌰', '🌱', '🎋', '🎍'] },
+        { id: 'vine', name: '算法之藤', emoji: '🌿', stages: ['🌰', '🌱', '🌿', '🍃'] },
+        { id: 'sunflower', name: '数据向日葵', emoji: '🌻', stages: ['🌰', '🌱', '🌻', '🌻'] },
+        { id: 'cactus', name: '极客仙人掌', emoji: '🌵', stages: ['🌰', '🌱', '🌵', '🏜️'] },
+        { id: 'rose', name: '星空玫瑰', emoji: '🌹', stages: ['🌹', '🌷', '🌹', '💐'] },
+        { id: 'tree', name: '智慧之树', emoji: '🌳', stages: ['🌱', '🌿', '🌳', '🌲'] },
+        { id: 'lotus', name: '架构莲花', emoji: '🪷', stages: ['🪷', '🪷', '🪷', '✨'] },
+        { id: 'mushroom', name: '敏捷蘑菇', emoji: '🍄', stages: ['🍄', '🍄', '🍄', '🌟'] },
+        { id: 'flower', name: '创新之花', emoji: '🌸', stages: ['🌸', '🌺', '🌸', '💮'] },
+        { id: 'palm', name: '运维棕榈', emoji: '🌴', stages: ['🌴', '🌴', '🌴', '🏝️'] }
+    ];
+    const STAGE_NAMES = ['种子 Seed', '萌芽 Sprout', '成长期 Growth', '成熟 Harvest'];
+
+    if (!plantData.currentPlant) {
+        if (plantEmoji) plantEmoji.textContent = '🌱';
+        if (plantName) plantName.textContent = '选择你的植物';
+        if (plantStage) plantStage.textContent = '待种植';
+        if (timerValue) timerValue.textContent = '--:--:--';
+    } else {
+        const plant = PLANT_DATA.find(p => p.id === plantData.currentPlant);
+        if (plant) {
+            if (plantEmoji) plantEmoji.textContent = plant.stages[plantData.stage];
+            if (plantName) plantName.textContent = plant.name;
+            if (plantStage) plantStage.textContent = STAGE_NAMES[plantData.stage];
+        }
+
+        if (plantData.stage >= 3) {
+            if (timerValue) { timerValue.textContent = '可收获!'; timerValue.style.color = '#34d399'; }
+        } else {
+            const hours = Math.floor(plantData.remainingTime / 3600);
+            const mins = Math.floor((plantData.remainingTime % 3600) / 60);
+            const secs = Math.floor(plantData.remainingTime % 60);
+            if (timerValue) timerValue.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            if (timerValue) timerValue.style.color = '#10b981';
+        }
+    }
+
+    if (waterValue) waterValue.textContent = Math.round(plantData.water) + '%';
+    if (waterBar) waterBar.style.width = plantData.water + '%';
+    if (nutrientValue) nutrientValue.textContent = Math.round(plantData.nutrient) + '%';
+    if (nutrientBar) nutrientBar.style.width = plantData.nutrient + '%';
+    if (harvestCount) harvestCount.textContent = plantData.ownedPlants.length;
+}
+
+function ecoPlantAction(action) {
+    const plantStateData = JSON.parse(localStorage.getItem('starlearn_plants') || '{}');
+    if (!plantStateData.currentPlant) {
+        showToast('请先在林场种植一株植物~');
+        return;
+    }
+
+    const WATER_TIME_REDUCTION = 10 * 60;
+    const NUTRIENT_TIME_REDUCTION = 30 * 60;
+
+    let tipText = '';
+    if (action === 'water') {
+        plantStateData.water = Math.min(100, Math.max(0, (plantStateData.water || 0) + 20));
+        plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - WATER_TIME_REDUCTION);
+        tipText = '+20 水分';
+        showToast('💧 浇水成功！生长时间缩短10分钟~');
+    } else if (action === 'nutrient') {
+        plantStateData.nutrient = Math.min(100, Math.max(0, (plantStateData.nutrient || 0) + 15));
+        plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - NUTRIENT_TIME_REDUCTION);
+        tipText = '+15 营养';
+        showToast('🧪 施肥成功！生长时间缩短30分钟~');
+    }
+
+    plantStateData.lastUpdate = Date.now();
+    localStorage.setItem('starlearn_plants', JSON.stringify(plantStateData));
+
+    const ecoData = {
+        lastWater: plantStateData.water,
+        lastNutrient: plantStateData.nutrient,
+        lastUpdate: Date.now()
+    };
+    localStorage.setItem('eco_data', JSON.stringify(ecoData));
+
+    updateEcoPlantDisplay();
+    showFloatTip('eco-plant-tip', tipText);
+}
+
+function goToPlantFarm() {
+    window.location.href = '/plant.html';
 }
 
 function initWaveCanvas() {

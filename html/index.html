@@ -131,7 +131,12 @@
 
     <div class="main-glass-surface flex-1 flex flex-col h-full relative min-w-0" style="position: relative; z-index: 1; background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
         <div class="top-bar-glass h-14 flex items-center px-6 justify-between z-10 shrink-0 border-b" style="border-color: var(--border-glass);">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center gap-3">
+                <a href="/hub.html" id="home-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border); text-decoration: none;" title="返回首页">
+                    <i data-lucide="home" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">首页</span>
+                </a>
+                <div class="w-px h-5" style="background: var(--border-glass);"></div>
                 <button class="tab-btn active px-4 py-4 text-sm font-semibold rounded-t" data-tab="chat" onclick="switchTab('chat')">
                     <span class="flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> 智能对话</span>
                 </button>
@@ -167,7 +172,7 @@
                         </div>
                         <div class="dropdown-item" onclick="toggleThemePanel()"><i data-lucide="palette"></i> <span style="color: var(--text-main);">更换主题</span></div>
                         <div class="dropdown-item" onclick="goToPersonal()"><i data-lucide="user-circle"></i> <span style="color: var(--text-main);">个人中心</span></div>
-                        <div class="dropdown-item" onclick="showNicknameInput()"><i data-lucide="edit-3"></i> <span style="color: var(--text-main);">修改昵称</span></div>
+                        <div class="dropdown-item" onclick="goToPlantFarm()"><i data-lucide="sprout"></i> <span style="color: var(--text-main);">星识·云端林场</span></div>
                         <div class="dropdown-divider"></div>
                         <div class="dropdown-item" onclick="logout()"><i data-lucide="log-out" style="color: var(--danger);"></i> <span style="color: var(--danger);">退出登录</span></div>
                     </div>
@@ -508,7 +513,7 @@
 
     <div id="flow-overlay" class="flow-overlay">
         <div class="flow-immersive-layout">
-            <div class="flow-sidebar flow-sidebar-left" id="flow-sidebar-left">
+            <div class="flow-sidebar flow-sidebar-left collapsed" id="flow-sidebar-left">
                 <div class="flow-sidebar-header">
                     <span class="flow-sidebar-title">时长选择</span>
                     <button class="flow-sidebar-collapse-btn" onclick="window.flowMode.toggleLeftSidebar()" title="收起侧边栏">
@@ -608,7 +613,7 @@
                 </div>
             </div>
 
-            <button class="flow-sidebar-expand flow-sidebar-expand-left" id="flow-expand-left" onclick="window.flowMode.toggleLeftSidebar()" title="展开时长选择">
+            <button class="flow-sidebar-expand flow-sidebar-expand-left visible" id="flow-expand-left" onclick="window.flowMode.toggleLeftSidebar()" title="展开时长选择">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </button>
             <button class="flow-sidebar-expand flow-sidebar-expand-right" id="flow-expand-right" onclick="window.flowMode.toggleRightSidebar()" title="展开音乐列表">
@@ -635,6 +640,24 @@
     <button id="left-expand-btn" class="sidebar-expand-btn sidebar-expand-left" onclick="window.sidebarManager.toggleLeft()" aria-label="展开左侧面板" title="展开教研沙盘">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
+
+    <!-- Plant Reward Modal -->
+    <div id="plant-reward-modal" class="crop-modal hidden">
+        <div class="crop-modal-backdrop"></div>
+        <div class="crop-modal-content plant-reward-content">
+            <div class="plant-reward-glow"></div>
+            <div class="plant-reward-icon">🎁</div>
+            <h2 class="plant-reward-title">恭喜你！</h2>
+            <p class="plant-reward-text">通过深度专注，你获得了一株神秘植物种子 🎁</p>
+            <div class="plant-reward-seed-count">
+                <span>当前种子数：</span>
+                <span id="plant-reward-seed-count" class="plant-reward-seeds">1</span>
+            </div>
+            <button class="plant-reward-btn" onclick="goToPlantFarm()">
+                🌱 前往林场种植
+            </button>
+        </div>
+    </div>
 
 </body>
 </html>

@@ -1,0 +1,632 @@
+:root {
+    --primary: #8b5cf6;
+    --accent: #a78bfa;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --bg-secondary: #1e293b;
+    --bg-elevated: #0f172a;
+    --glass-border: rgba(148, 163, 184, 0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-xl: 20px;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.plant-bg {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    overflow: hidden;
+}
+
+.plant-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    animation: floatParticle 15s infinite ease-in-out;
+}
+
+@keyframes floatParticle {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+    25% { transform: translateY(-30px) translateX(15px); opacity: 0.6; }
+    50% { transform: translateY(-15px) translateX(-10px); opacity: 0.4; }
+    75% { transform: translateY(-40px) translateX(20px); opacity: 0.7; }
+}
+
+.plant-container {
+    position: relative;
+    z-index: 10;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.plant-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.plant-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #a78bfa, #c4b5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+.plant-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.plant-main-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 32px;
+    padding: 32px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.plant-main-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.2) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.seed-counter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 16px 24px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+}
+
+.seed-counter-icon {
+    font-size: 32px;
+}
+
+.seed-counter-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.seed-counter-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #a78bfa;
+}
+
+.plant-pot {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 24px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(30, 27, 75, 0.3) 70%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 0 60px rgba(139, 92, 246, 0.2), inset 0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+.plant-display {
+    font-size: 80px;
+    transition: all 0.5s ease;
+    filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
+}
+
+.plant-display.seed { font-size: 60px; filter: grayscale(0.3); }
+.plant-display.sprout { font-size: 70px; filter: hue-rotate(20deg) drop-shadow(0 0 15px rgba(34, 197, 94, 0.4)); }
+.plant-display.growth { font-size: 90px; filter: hue-rotate(40deg) drop-shadow(0 0 25px rgba(34, 197, 94, 0.6)); }
+.plant-display.harvest { font-size: 100px; filter: hue-rotate(60deg) brightness(1.2) drop-shadow(0 0 30px rgba(251, 191, 36, 0.8)); }
+
+.plant-info {
+    text-align: center;
+    margin-bottom: 20px;
+    min-height: 80px;
+}
+
+.plant-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.plant-stage {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 20px;
+    font-size: 12px;
+    color: #a78bfa;
+    margin-bottom: 12px;
+}
+
+.plant-timer {
+    font-size: 32px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #a78bfa;
+    text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    line-height: 1.2;
+}
+
+.plant-timer-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.plant-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.plant-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    text-align: center;
+    min-height: 90px;
+}
+
+.plant-stat-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.plant-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.plant-stat-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.plant-stat-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.plant-stat-fill.water {
+    background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+    box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+}
+
+.plant-stat-fill.nutrient {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+}
+
+.plant-stat-value.water { color: #38bdf8; }
+.plant-stat-value.nutrient { color: #fbbf24; }
+
+.plant-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.plant-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 20px;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 88px;
+    min-height: 70px;
+}
+
+.plant-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.15);
+}
+
+.plant-action-btn:active {
+    transform: scale(0.95);
+}
+
+.plant-action-btn.water:hover {
+    border-color: rgba(56, 189, 248, 0.5);
+    box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+}
+
+.plant-action-btn.nutrient:hover {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 8px 20px rgba(251, 191, 36, 0.3);
+}
+
+.plant-action-btn.harvest-btn {
+    background: rgba(34, 197, 94, 0.15);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+.plant-action-btn.harvest-btn:hover {
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.plant-action-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.plant-action-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.plant-tip-box {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.plant-collection {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.plant-collection-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plant-collection-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.plant-collection-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    background: rgba(139, 92, 246, 0.05);
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 70px;
+}
+
+.plant-collection-item:hover {
+    background: rgba(139, 92, 246, 0.1);
+    transform: translateY(-2px);
+}
+
+.plant-collection-item.owned {
+    border-color: rgba(34, 197, 94, 0.3);
+    background: rgba(34, 197, 94, 0.05);
+}
+
+.plant-collection-item .emoji {
+    font-size: 28px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.plant-collection-item .name {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+@keyframes waterDrop {
+    0% { transform: translateY(-40px) scale(0.5); opacity: 0; }
+    30% { transform: translateY(0) scale(1.2); opacity: 1; }
+    50% { transform: translateY(10px) scale(1); opacity: 1; }
+    100% { transform: translateY(30px) scale(0.8); opacity: 0; }
+}
+
+@keyframes plantPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+@keyframes harvestSparkle {
+    0% { transform: scale(0) rotate(0deg); opacity: 0; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+@keyframes goldRain {
+    0% { transform: translateY(-100px) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.water-drop-animation::after {
+    content: '💧';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    animation: waterDrop 0.8s ease-out forwards;
+}
+
+.plant-pulse-animation {
+    animation: plantPulse 0.6s ease-in-out;
+}
+
+.harvest-sparkle {
+    position: absolute;
+    font-size: 24px;
+    animation: harvestSparkle 1s ease-out forwards;
+}
+
+.gold-rain-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.gold-particle {
+    position: absolute;
+    font-size: 20px;
+    animation: goldRain 2s ease-out forwards;
+}
+
+.plant-reward-content {
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.plant-reward-glow {
+    position: absolute;
+    top: -50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+    animation: rewardGlow 2s ease-in-out infinite;
+}
+
+@keyframes rewardGlow {
+    0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.5; }
+    50% { transform: translateX(-50%) scale(1.2); opacity: 0.8; }
+}
+
+.plant-reward-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: rewardBounce 1s ease-in-out infinite;
+}
+
+@keyframes rewardBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.plant-reward-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.plant-reward-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.plant-reward-seed-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.plant-reward-seeds {
+    font-size: 24px;
+    font-weight: 800;
+    color: #a78bfa;
+}
+
+.plant-reward-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.plant-reward-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5);
+}
+
+@media (max-width: 640px) {
+    .plant-container {
+        padding: 16px;
+    }
+
+    .plant-main-card {
+        padding: 20px;
+        border-radius: 24px;
+    }
+
+    .plant-pot {
+        width: 160px;
+        height: 160px;
+    }
+
+    .plant-display {
+        font-size: 60px;
+    }
+
+    .plant-display.seed { font-size: 48px; }
+    .plant-display.sprout { font-size: 56px; }
+    .plant-display.growth { font-size: 64px; }
+    .plant-display.harvest { font-size: 72px; }
+
+    .plant-name {
+        font-size: 16px;
+    }
+
+    .plant-timer {
+        font-size: 26px;
+    }
+
+    .plant-stats {
+        gap: 10px;
+    }
+
+    .plant-stat {
+        padding: 12px 10px;
+        min-height: 80px;
+    }
+
+    .plant-stat-label {
+        font-size: 11px;
+    }
+
+    .plant-stat-value {
+        font-size: 18px;
+    }
+
+    .plant-actions {
+        gap: 10px;
+    }
+
+    .plant-action-btn {
+        padding: 12px 16px;
+        min-width: 80px;
+        min-height: 64px;
+    }
+
+    .plant-action-icon {
+        font-size: 22px;
+    }
+
+    .plant-action-label {
+        font-size: 11px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+
+    .plant-collection-item {
+        padding: 10px 4px;
+        min-height: 64px;
+    }
+
+    .plant-collection-item .emoji {
+        font-size: 24px;
+    }
+
+    .plant-collection-item .name {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 400px) {
+    .plant-actions {
+        flex-wrap: wrap;
+    }
+
+    .plant-action-btn {
+        flex: 1 1 calc(50% - 6px);
+    }
+}

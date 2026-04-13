@@ -714,6 +714,20 @@ def serve_assessment():
         return FileResponse(assessment_path)
     raise HTTPException(status_code=404, detail="评估页面未找到")
 
+@app.get("/plant.html")
+def serve_plant():
+    plant_path = os.path.join(HTML_DIR, "plant.html")
+    if os.path.exists(plant_path):
+        return FileResponse(plant_path)
+    raise HTTPException(status_code=404, detail="林场页面未找到")
+
+@app.get("/hub.html")
+def serve_hub():
+    hub_path = os.path.join(HTML_DIR, "hub.html")
+    if os.path.exists(hub_path):
+        return FileResponse(hub_path)
+    raise HTTPException(status_code=404, detail="中枢主页未找到")
+
 @app.post("/api/assessment/submit")
 def submit_assessment(request: AssessmentRequest):
     """根据9维评估数据生成个性化学习计划"""

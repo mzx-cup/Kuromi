@@ -1685,12 +1685,13 @@ body.light-theme .path-tree-empty {
 .sidebar-expand-btn {
     position: fixed;
     top: 50%;
-    width: 28px;
-    height: 56px;
+    width: 36px;
+    height: 64px;
     background: var(--surface-glass);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-glass);
+    border-left: none;
     color: var(--text-secondary);
     cursor: pointer;
     display: flex;
@@ -1708,6 +1709,10 @@ body.light-theme .path-tree-empty {
     color: var(--text-primary);
     border-color: var(--border-glass-hover);
     box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    width: 44px;
+}
+.sidebar-expand-btn:active {
+    transform: translateY(-50%) scale(0.95);
 }
 .sidebar-expand-btn svg { width: 16px; height: 16px; }
 

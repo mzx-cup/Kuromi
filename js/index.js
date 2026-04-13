@@ -750,6 +750,108 @@ function initProfileFromAssessment(assessment) {
     return profile;
 }
 
+// ============================================
+// 学习上下文接收与应用逻辑
+// ============================================
+function applyLearningContext() {
+    try {
+        const contextJson = localStorage.getItem('currentLearningContext');
+
+        if (!contextJson) {
+            console.log('[Context] 无学习上下文，继续使用默认设置');
+            return;
+        }
+
+        const context = JSON.parse(contextJson);
+
+        // 验证数据完整性和有效性
+        const requiredFields = ['courseId', 'courseName', 'aiSystemPrompt', 'tutorPersona', 'timestamp'];
+        const isValid = requiredFields.every(field => context[field] !== undefined && context[field] !== null);
+
+        if (!isValid) {
+            console.warn('[Context] 学习上下文数据不完整:', context);
+            localStorage.removeItem('currentLearningContext');
+            return;
+        }
+
+        // 检查是否过期
+        if (context.expiresAt && Date.now() > context.expiresAt) {
+            console.warn('[Context] 学习上下文已过期');
+            localStorage.removeItem('currentLearningContext');
+            return;
+        }
+
+        console.log('[Context] 应用学习上下文:', context.courseName);
+
+        // A. 将 aiSystemPrompt 设置为当前 Agent 的系统提示词
+        const contextPrompt = `[课程模式] ${context.aiSystemPrompt}`;
+        if (typeof setAgentSystemPrompt === 'function') {
+            setAgentSystemPrompt(contextPrompt);
+        } else if (typeof updateAgentPrompt === 'function') {
+            updateAgentPrompt(contextPrompt);
+        } else {
+            // 尝试直接修改 currentAgent
+            if (window.currentAgent) {
+                window.currentAgent.systemPrompt = contextPrompt;
+                console.log('[Context] 已更新 Agent 系统提示词');
+            }
+        }
+
+        // B. 根据 tutorPersona 更新导师头像及名称
+        const tutor = context.tutorPersona;
+        if (tutor && typeof tutor === 'object') {
+            const tutorNameEl = document.getElementById('tutor-name');
+            const tutorTitleEl = document.getElementById('tutor-title');
+
+            if (tutorNameEl) {
+                tutorNameEl.textContent = tutor.name || '导师';
+                tutorNameEl.style.display = 'block';
+            }
+            if (tutorTitleEl) {
+                tutorTitleEl.textContent = tutor.title || '';
+                tutorTitleEl.style.display = 'block';
+            }
+
+            console.log('[Context] 已更新导师信息:', tutor.name, tutor.title);
+        }
+
+        // C. 加载关联的课程知识库
+        if (context.knowledgeBase && Array.isArray(context.knowledgeBase)) {
+            console.log('[Context] 加载知识库:', context.knowledgeBase);
+            // 知识库加载逻辑由具体业务实现
+            if (typeof loadCourseKnowledgeBase === 'function') {
+                loadCourseKnowledgeBase(context.knowledgeBase);
+            }
+        }
+
+        // D. 显示上下文应用提示
+        showContextAppliedToast(context.courseName);
+
+        // E. 清理 localStorage（可选，保留以便刷新时恢复）
+        // localStorage.removeItem('currentLearningContext');
+
+    } catch (error) {
+        console.error('[Context] 应用学习上下文失败:', error);
+        localStorage.removeItem('currentLearningContext');
+    }
+}
+
+function showContextAppliedToast(courseName) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-[9999] px-6 py-3 rounded-xl shadow-2xl backdrop-blur-xl bg-gradient-to-r from-purple-500/90 to-indigo-500/90 text-white font-medium transform -translate-y-4 opacity-0 transition-all duration-300';
+    toast.innerHTML = `<span class="mr-2">📚</span>已切换到课程: <strong>${courseName}</strong>`;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.remove('-translate-y-4', 'opacity-0');
+    });
+
+    setTimeout(() => {
+        toast.classList.add('-translate-y-4', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
 // 根据评估数据生成个性化欢迎消息
 function generateWelcomeMessage(assessment, profile) {
     if (!assessment) {
@@ -3553,6 +3655,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     ensureCurrentPathValid();
 
+    // ============================================
+    // 学习上下文接收与应用逻辑
+    // ============================================
+    applyLearningContext();
+
     // 生成个性化欢迎消息
     const welcomeMsg = generateWelcomeMessage(savedUser?.assessment, profile);
     messages = [{ role: 'assistant', content: welcomeMsg }];
@@ -3796,7 +3903,7 @@ class FlowModeManager {
         this.state.subscribe('island-ui', (changed) => this._onStateChanged(changed));
         this.currentMode = 'focus';
         this.selectedMinutes = 25;
-        this.leftSidebarOpen = true;
+        this.leftSidebarOpen = false;
         this.rightSidebarOpen = false;
         this.flowPresets = {
             focus: [
@@ -4044,6 +4151,22 @@ class FlowModeManager {
         this.state.update({ is_timer_running: false, is_complete: true });
         if (lucide) lucide.createIcons();
         this.playCompletionSound();
+        this._showPlantReward();
+    }
+
+    _showPlantReward() {
+        if (this.currentMode === 'rest') return;
+        const seeds = parseInt(localStorage.getItem('starlearn_seeds') || '0');
+        localStorage.setItem('starlearn_seeds', String(seeds + 1));
+        const modal = document.getElementById('plant-reward-modal');
+        const countEl = document.getElementById('plant-reward-seed-count');
+        if (countEl) countEl.textContent = seeds + 1;
+        if (modal) {
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => modal.classList.add('visible'));
+            });
+        }
     }
 
     _updateIslandPlayIcon(isPaused) {
@@ -4708,6 +4831,15 @@ function toggleSection(sectionId, btnEl) {
 window.flowMode = new FlowModeManager();
 window.flashcardUI = new FlashcardUI();
 
+function goToPlantFarm() {
+    const modal = document.getElementById('plant-reward-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+    window.location.href = '/plant.html';
+}
+
 class SidebarManager {
     constructor() {
         this.prefs = JSON.parse(localStorage.getItem('starlearn_sidebar_prefs') || '{}');
@@ -4715,6 +4847,12 @@ class SidebarManager {
     }
 
     init() {
+        if (this.prefs.leftCollapsed === undefined) {
+            this.prefs.leftCollapsed = true;
+        }
+        if (this.prefs.rightCollapsed === undefined) {
+            this.prefs.rightCollapsed = false;
+        }
         if (this.prefs.leftCollapsed) {
             document.getElementById('left-col')?.classList.add('collapsed');
         }

@@ -11,6 +11,49 @@
 </head>
 <body>
 
+    <!-- Star-Friend Pet Selection Modal -->
+    <div id="pet-selection-modal" class="crop-modal hidden">
+        <div class="crop-modal-backdrop"></div>
+        <div class="crop-modal-content" style="max-width: 520px;">
+            <div class="crop-modal-header">
+                <div class="crop-modal-title">
+                    <i data-lucide="sparkles"></i>
+                    <span>欢迎来到'星识'，选择你专属的'星友' 🕵️‍♂️</span>
+                </div>
+            </div>
+            <div class="pet-selection-grid">
+                <div class="pet-option" data-pet="🐱" data-name="星宝" onclick="selectPetOption(this)">
+                    <div class="pet-option-emoji">🐱</div>
+                    <div class="pet-option-name">Elegant Cat</div>
+                    <div class="pet-option-desc">专注 Hadoop 底层原理</div>
+                </div>
+                <div class="pet-option" data-pet="🐶" data-name="星宝" onclick="selectPetOption(this)">
+                    <div class="pet-option-emoji">🐶</div>
+                    <div class="pet-option-name">Loyal Dog</div>
+                    <div class="pet-option-desc">缓解心理压力</div>
+                </div>
+                <div class="pet-option" data-pet="🐰" data-name="星宝" onclick="selectPetOption(this)">
+                    <div class="pet-option-emoji">🐰</div>
+                    <div class="pet-option-name">Gentle Rabbit</div>
+                    <div class="pet-option-desc">大厂测试拷问</div>
+                </div>
+                <div class="pet-option" data-pet="🐹" data-name="星宝" onclick="selectPetOption(this)">
+                    <div class="pet-option-emoji">🐹</div>
+                    <div class="pet-option-name">Hamster</div>
+                    <div class="pet-option-desc">GitHub 级 Bug 诊断</div>
+                </div>
+                <div class="pet-option" data-pet="🐻" data-name="星宝" onclick="selectPetOption(this)">
+                    <div class="pet-option-emoji">🐻</div>
+                    <div class="pet-option-name">Guardian Bear</div>
+                    <div class="pet-option-desc">教育学方法论</div>
+                </div>
+            </div>
+            <div class="pet-selection-confirm">
+                <button class="floating-alarm-action save" onclick="confirmPetSelection()">Confirm Choice</button>
+            </div>
+        </div>
+    </div>
+
     <div class="personal-bg">
         <div class="mesh-orb mesh-orb-1"></div>
         <div class="mesh-orb mesh-orb-2"></div>
@@ -257,6 +300,162 @@
                 </div>
             </section>
 
+            <!-- 星识·生态空间 -->
+            <section class="eco-space-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="leaf"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">星识·生态空间</div>
+                        <div class="section-subtitle">🌿✨ 你的专属学习生态圈</div>
+                    </div>
+                </div>
+
+                <div class="eco-space-grid">
+                    <!-- 左侧：星友陪伴卡片 -->
+                    <div class="eco-card eco-pet-card bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-5 relative shadow-sm flex flex-col" onclick="event.stopPropagation()">
+                        <div class="eco-card-header mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="eco-card-icon text-xl">🐾</div>
+                                <div class="eco-card-title text-base font-bold text-purple-600 dark:text-purple-400">星友陪伴</div>
+                                <div class="eco-card-badge ml-auto px-2 py-0.5 text-[10px] font-semibold text-white rounded-full bg-emerald-500" id="pet-online-badge">在线</div>
+                            </div>
+                        </div>
+                        <div class="eco-pet-display flex items-center gap-3 mb-3">
+                            <div class="eco-pet-avatar-wrapper relative" id="eco-pet-avatar-wrapper">
+                                <div class="eco-pet-avatar-ring w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 p-0.5">
+                                    <div class="w-full h-full rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-2xl" id="eco-pet-avatar">🐱</div>
+                                </div>
+                                <div class="eco-float-tip" id="eco-pet-tip"></div>
+                            </div>
+                            <div class="eco-pet-info flex-1 min-w-0">
+                                <div class="eco-pet-name text-base font-bold text-slate-800 dark:text-white truncate" id="eco-pet-name">星宝</div>
+                                <div class="eco-pet-status text-xs text-slate-500 dark:text-slate-400 italic truncate" id="eco-pet-status">它在静静地陪你学习...</div>
+                            </div>
+                        </div>
+                        <div class="eco-pet-actions flex justify-center gap-2 mb-3">
+                            <button class="eco-action-btn feed flex-1 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-xl py-2 px-3 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();petAction('feed')" title="喂食">
+                                <span class="eco-action-icon text-lg block">🍖</span>
+                                <span class="eco-action-label text-[10px] font-semibold text-slate-600 dark:text-slate-300">喂食</span>
+                            </button>
+                            <button class="eco-action-btn play flex-1 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-xl py-2 px-3 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();petAction('play')" title="玩耍">
+                                <span class="eco-action-icon text-lg block">🎾</span>
+                                <span class="eco-action-label text-[10px] font-semibold text-slate-600 dark:text-slate-300">玩耍</span>
+                            </button>
+                            <button class="eco-action-btn bond flex-1 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-xl py-2 px-3 hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();petAction('pet')" title="抚摸">
+                                <span class="eco-action-icon text-lg block">💖</span>
+                                <span class="eco-action-label text-[10px] font-semibold text-slate-600 dark:text-slate-300">抚摸</span>
+                            </button>
+                        </div>
+                        <div class="eco-pet-stats flex-1 space-y-3 pr-4">
+                            <div class="eco-stat-item">
+                                <div class="eco-stat-header flex justify-between items-center mb-1.5">
+                                    <span class="eco-stat-label text-xs font-semibold text-slate-600 dark:text-slate-300">🍖 饱食度</span>
+                                    <span class="eco-stat-value font-mono text-sm font-bold text-orange-500" id="eco-satiety-value">80%</span>
+                                </div>
+                                <div class="eco-stat-bar relative bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="eco-stat-fill satiety h-full rounded-full bg-gradient-to-r from-orange-400 to-rose-400 transition-all duration-500" id="eco-satiety-bar" style="width:80%"></div>
+                                </div>
+                            </div>
+                            <div class="eco-stat-item">
+                                <div class="eco-stat-header flex justify-between items-center mb-1.5">
+                                    <span class="eco-stat-label text-xs font-semibold text-slate-600 dark:text-slate-300">❤️ 情绪指数</span>
+                                    <span class="eco-stat-value font-mono text-sm font-bold text-pink-500" id="eco-mood-value">70%</span>
+                                </div>
+                                <div class="eco-stat-bar relative bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="eco-stat-fill mood h-full rounded-full bg-gradient-to-r from-pink-400 to-rose-400 transition-all duration-500" id="eco-mood-bar" style="width:70%"></div>
+                                </div>
+                            </div>
+                            <div class="eco-stat-item">
+                                <div class="eco-stat-header flex justify-between items-center mb-1.5">
+                                    <span class="eco-stat-label text-xs font-semibold text-slate-600 dark:text-slate-300">🤝 亲密度</span>
+                                    <span class="eco-stat-value font-mono text-sm font-bold text-purple-500" id="eco-intimacy-value">50%</span>
+                                </div>
+                                <div class="eco-stat-bar relative bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="eco-stat-fill intimacy h-full rounded-full bg-gradient-to-r from-purple-400 to-indigo-400 transition-all duration-500" id="eco-intimacy-bar" style="width:50%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：云端林场卡片 -->
+                    <div class="eco-card eco-plant-card bg-white dark:bg-slate-800/90 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-5 relative shadow-sm flex flex-col" onclick="event.stopPropagation()">
+                        <div class="eco-card-header mb-3">
+                            <div class="flex items-center gap-2">
+                                <div class="eco-card-icon text-xl">🌱</div>
+                                <div class="eco-card-title text-base font-bold text-emerald-600 dark:text-emerald-400">云端林场</div>
+                                <div class="eco-card-link ml-auto w-7 h-7 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();goToPlantFarm()">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="eco-plant-display flex items-center gap-3 mb-3" id="eco-plant-display">
+                            <div class="eco-plant-pot relative w-12 h-12" id="eco-plant-pot-wrapper">
+                                <div class="w-full h-full rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 p-0.5">
+                                    <div class="w-full h-full rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl" id="eco-plant-emoji">🌱</div>
+                                </div>
+                                <div class="eco-float-tip" id="eco-plant-tip"></div>
+                            </div>
+                            <div class="eco-plant-info flex-1 min-w-0">
+                                <div class="eco-plant-name text-base font-bold text-slate-800 dark:text-white truncate" id="eco-plant-name">选择你的植物</div>
+                                <div class="eco-plant-stage text-xs text-slate-500 dark:text-slate-400 truncate" id="eco-plant-stage">等待种植</div>
+                            </div>
+                        </div>
+                        <div class="eco-plant-timer flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 mb-3">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">预计收获</span>
+                            <span class="font-mono text-base font-bold text-emerald-500" id="eco-timer-value">--:--:--</span>
+                        </div>
+                        <div class="eco-plant-stats flex-1 space-y-3 pr-4">
+                            <div class="eco-stat-item">
+                                <div class="eco-stat-header flex justify-between items-center mb-1.5">
+                                    <span class="eco-stat-label text-xs font-semibold text-slate-600 dark:text-slate-300">💧 水分</span>
+                                    <span class="eco-stat-value font-mono text-sm font-bold text-cyan-500" id="eco-water-value">0%</span>
+                                </div>
+                                <div class="eco-stat-bar relative bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="eco-stat-fill water h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all duration-500" id="eco-water-bar" style="width:0%"></div>
+                                </div>
+                            </div>
+                            <div class="eco-stat-item">
+                                <div class="eco-stat-header flex justify-between items-center mb-1.5">
+                                    <span class="eco-stat-label text-xs font-semibold text-slate-600 dark:text-slate-300">🧪 营养</span>
+                                    <span class="eco-stat-value font-mono text-sm font-bold text-amber-500" id="eco-nutrient-value">0%</span>
+                                </div>
+                                <div class="eco-stat-bar relative bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                                    <div class="eco-stat-fill nutrient h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500" id="eco-nutrient-bar" style="width:0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="eco-plant-actions flex gap-3 mt-3">
+                            <button class="eco-plant-btn water flex-1 flex items-center justify-center gap-2 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-xl hover:bg-cyan-50 dark:hover:bg-cyan-900/30 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();ecoPlantAction('water')">
+                                <span class="text-xs font-semibold text-cyan-600 dark:text-cyan-400">💧 浇水</span>
+                            </button>
+                            <button class="eco-plant-btn nutrient flex-1 flex items-center justify-center gap-2 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-900/30 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();ecoPlantAction('nutrient')">
+                                <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">🧪 施肥</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 生态总览标签 -->
+                <div class="eco-overview">
+                    <div class="eco-overview-item">
+                        <i data-lucide="sprout"></i>
+                        <span>累计收获植物: <strong id="eco-harvest-count">0</strong></span>
+                    </div>
+                    <div class="eco-overview-divider"></div>
+                    <div class="eco-overview-item">
+                        <i data-lucide="heart"></i>
+                        <span>陪伴时长: <strong id="eco-companion-hours">0h</strong></span>
+                    </div>
+                    <div class="eco-overview-divider"></div>
+                    <div class="eco-overview-item">
+                        <i data-lucide="star"></i>
+                        <span>星友等级: <strong id="eco-pet-level">Lv.1</strong></span>
+                    </div>
+                </div>
+            </section>
+
             <section class="personal-section">
                 <div class="section-header">
                     <div class="section-header-icon">
@@ -353,63 +552,6 @@
                             </div>
                         </div>
                         <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
-                    </div>
-
-                    <!-- 星友萌宠陪伴状态 -->
-                    <div class="pet-card">
-                        <div class="pet-avatar-section">
-                            <div class="pet-avatar-wrapper">
-                                <div class="pet-avatar-ring"></div>
-                                <div class="pet-avatar">🐱</div>
-                            </div>
-                            <div class="pet-info">
-                                <div class="pet-name">星宝</div>
-                                <div class="pet-status-text" id="pet-status-text">它在静静地陪你学习...</div>
-                            </div>
-                        </div>
-
-                        <div class="pet-nutrition">
-                            <div class="pet-nutrition-item">
-                                <div class="pet-nutrition-header">
-                                    <span class="pet-nutrition-label">
-                                        <span class="emoji">🍖</span>
-                                        饱食度 <small style="opacity:0.7">(含42%粗蛋白)</small>
-                                    </span>
-                                    <span class="pet-nutrition-value">85%</span>
-                                </div>
-                                <div class="pet-nutrition-bar">
-                                    <div class="pet-nutrition-fill satiety"></div>
-                                </div>
-                            </div>
-                            <div class="pet-nutrition-item">
-                                <div class="pet-nutrition-header">
-                                    <span class="pet-nutrition-label">
-                                        <span class="emoji">🧪</span>
-                                        肠道活力 <small style="opacity:0.7">(益生菌supplement)</small>
-                                    </span>
-                                    <span class="pet-nutrition-value">92%</span>
-                                </div>
-                                <div class="pet-nutrition-bar">
-                                    <div class="pet-nutrition-fill gut"></div>
-                                </div>
-                            </div>
-                            <div class="pet-nutrition-item">
-                                <div class="pet-nutrition-header">
-                                    <span class="pet-nutrition-label">
-                                        <span class="emoji">❤️</span>
-                                        情绪指数
-                                    </span>
-                                    <span class="pet-nutrition-value">78%</span>
-                                </div>
-                                <div class="pet-nutrition-bar">
-                                    <div class="pet-nutrition-fill mood"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="pet-tip">
-                            <div class="pet-tip-text" id="pet-tip-text">Tip: 星宝今天表现很棒！建议傍晚补充一点益生菌。</div>
-                        </div>
                     </div>
                 </div>
 
