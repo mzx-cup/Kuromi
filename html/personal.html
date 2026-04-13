@@ -9,233 +9,365 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/theme.js"></script>
 </head>
-<body class="min-h-screen antialiased">
+<body>
 
-    <div class="mesh-gradient-bg"></div>
-    <div class="mesh-orb mesh-orb-1"></div>
-    <div class="mesh-orb mesh-orb-2"></div>
-    <div class="mesh-orb mesh-orb-3"></div>
+    <div class="personal-bg">
+        <div class="mesh-orb mesh-orb-1"></div>
+        <div class="mesh-orb mesh-orb-2"></div>
+        <div class="mesh-orb mesh-orb-3"></div>
+    </div>
 
-    <!-- 顶部导航 -->
-    <nav class="personal-nav">
-        <a href="/" class="nav-back">
-            <i data-lucide="arrow-left" class="w-4 h-4"></i>
-            <span>返回首页</span>
-        </a>
-        <h1 class="nav-title">个人中心</h1>
-        <div class="w-16"></div>
-    </nav>
+    <div class="personal-container">
 
-    <!-- 主容器 -->
-    <main class="personal-container">
+        <nav class="personal-nav">
+            <a href="/" class="nav-back">
+                <i data-lucide="arrow-left"></i>
+                <span>返回首页</span>
+            </a>
+            <h1 class="nav-title">个人中心</h1>
+            <div style="width: 64px;"></div>
+        </nav>
 
-        <!-- 第一行：身份卡片 + 操作按钮 -->
-        <section class="identity-section">
-            <div class="identity-card">
-                <div class="avatar-wrapper">
-                    <img id="current-avatar" src="" alt="头像" class="avatar-img">
-                    <button class="avatar-edit-btn" onclick="document.getElementById('avatar-upload').click()">
-                        <i data-lucide="camera" class="w-3 h-3"></i>
-                    </button>
-                    <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)">
-                </div>
-                <div class="identity-info">
-                    <div class="identity-name-row">
-                        <span class="identity-name" id="display-name">同学</span>
-                        <span class="identity-status">
-                            <span class="status-dot"></span>在线
-                        </span>
+        <main class="personal-main">
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="user-circle"></i>
                     </div>
-                    <div class="identity-edit-row">
-                        <input type="text" id="edit-name" placeholder="修改昵称" class="name-input">
-                        <button onclick="saveName()" class="save-btn">
-                            <i data-lucide="check" class="w-3 h-3"></i>
+                    <div>
+                        <div class="section-title">个人信息</div>
+                        <div class="section-subtitle">管理你的账号和头像</div>
+                    </div>
+                </div>
+
+                <div class="identity-card">
+                    <div class="avatar-wrapper">
+                        <img id="current-avatar" src="" alt="头像" class="avatar">
+                        <button class="avatar-edit" onclick="document.getElementById('avatar-upload').click()">
+                            <i data-lucide="camera"></i>
+                        </button>
+                        <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)">
+                    </div>
+
+                    <div class="identity-info">
+                        <div class="identity-name-row">
+                            <span class="identity-name" id="display-name">同学</span>
+                            <span class="identity-badge">在线</span>
+                        </div>
+                        <div class="identity-edit">
+                            <input type="text" id="edit-name" placeholder="修改昵称" class="identity-input">
+                            <button onclick="saveName()" class="identity-btn">
+                                <i data-lucide="check"></i>
+                                保存
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="identity-actions">
+                        <button onclick="goBack()" class="identity-action primary">
+                            <i data-lucide="home"></i>
+                            主页
+                        </button>
+                        <button onclick="clearData()" class="identity-action danger">
+                            <i data-lucide="trash-2"></i>
+                            清除
                         </button>
                     </div>
                 </div>
+            </section>
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="settings"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">偏好设置</div>
+                        <div class="section-subtitle">自定义你的学习体验</div>
+                    </div>
+                </div>
+
+                <div class="prefs-grid">
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon blue">
+                                <i data-lucide="brain"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">认知风格</div>
+                                <div class="pref-subtitle">选择学习方式</div>
+                            </div>
+                        </div>
+                        <select id="cognitive-style" class="pref-select" onchange="savePreferences()">
+                            <option value="pragmatic">实践型</option>
+                            <option value="visual">视觉型</option>
+                            <option value="textual">文字型</option>
+                        </select>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon amber">
+                                <i data-lucide="gauge"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">难度偏好</div>
+                                <div class="pref-subtitle">挑战级别</div>
+                            </div>
+                        </div>
+                        <select id="difficulty-pref" class="pref-select" onchange="savePreferences()">
+                            <option value="basic">基础</option>
+                            <option value="medium">中等</option>
+                            <option value="advanced">高级</option>
+                        </select>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon green">
+                                <i data-lucide="message-circle"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">苏格拉底模式</div>
+                                <div class="pref-subtitle">引导式问答</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" id="socratic-toggle" onclick="toggleSwitch(this, 'socratic')"></div>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon violet">
+                                <i data-lucide="bell"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">学习提醒</div>
+                                <div class="pref-subtitle">定时通知</div>
+                            </div>
+                        </div>
+                        <div class="toggle" id="reminder-toggle" onclick="toggleSwitch(this, 'reminder')"></div>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon blue">
+                                <i data-lucide="bell-ring"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">系统通知</div>
+                                <div class="pref-subtitle">消息推送</div>
+                            </div>
+                        </div>
+                        <div class="toggle active" id="notification-toggle" onclick="toggleSwitch(this, 'notification')"></div>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon violet">
+                                <i data-lucide="shield"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">隐私保护</div>
+                                <div class="pref-subtitle">数据安全</div>
+                            </div>
+                        </div>
+                        <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
+                    </div>
+                </div>
+
+                <div id="reminder-settings" class="hidden mt-6">
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 20px; margin-top: 20px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                            <span style="font-size: 13px; font-weight: 600; color: var(--text-tertiary);">提醒时间</span>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button class="time-btn" onclick="setReminderTime(this, '08:00')">08:00</button>
+                                <button class="time-btn" onclick="setReminderTime(this, '10:00')">10:00</button>
+                                <button class="time-btn active" onclick="setReminderTime(this, '14:00')">14:00</button>
+                                <button class="time-btn" onclick="setReminderTime(this, '19:00')">19:00</button>
+                                <button class="time-btn" onclick="setReminderTime(this, '21:00')">21:00</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="smile"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">头像风格</div>
+                        <div class="section-subtitle">选择你喜欢的头像样式</div>
+                    </div>
+                </div>
+
+                <div class="avatar-grid" id="avatar-grid"></div>
+            </section>
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="bar-chart-3"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">学习统计</div>
+                        <div class="section-subtitle">追踪你的学习进度</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="flame"></i>
+                        </div>
+                        <div class="stat-value" id="stat-interactions">0</div>
+                        <div class="stat-label">交互次数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="clock"></i>
+                        </div>
+                        <div class="stat-value" id="stat-time">0</div>
+                        <div class="stat-label">学习分钟</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i data-lucide="check-circle"></i>
+                        </div>
+                        <div class="stat-value" id="stat-tasks">0</div>
+                        <div class="stat-label">完成任务</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="target"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">学习目标</div>
+                        <div class="section-subtitle">设定每日的学习计划</div>
+                    </div>
+                </div>
+
+                <div class="goal-tags" id="goal-tags"></div>
+
+                <div class="goal-slider-row">
+                    <span class="goal-label">每日目标</span>
+                    <input type="range" id="daily-goal-slider" min="15" max="180" value="60" class="goal-slider" oninput="updateDailyGoal(this.value)">
+                    <span class="goal-value" id="daily-goal-display">60分钟</span>
+                </div>
+            </section>
+
+            <section class="personal-section">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="book-open"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">学习任务</div>
+                        <div class="section-subtitle">选择想要练习的技能</div>
+                    </div>
+                </div>
+
+                <div class="task-grid" id="task-grid"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <div id="floating-alarm" class="floating-alarm">
+        <div class="floating-alarm-header" id="floating-alarm-header">
+            <div class="floating-alarm-title">
+                <i data-lucide="alarm-clock"></i>
+                学习提醒
             </div>
-            <div class="action-buttons">
-                <button onclick="goBack()" class="action-btn primary">
-                    <i data-lucide="home" class="w-4 h-4"></i>
-                    <span>主页</span>
+            <div class="floating-alarm-time-mini">
+                <i data-lucide="clock"></i>
+                <span id="floating-alarm-time-mini-display">14:00</span>
+            </div>
+            <div class="floating-alarm-controls">
+                <button class="floating-alarm-btn minimize" onclick="toggleMinimizeAlarm()">
+                    <i data-lucide="minus"></i>
                 </button>
-                <button onclick="clearData()" class="action-btn danger">
-                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    <span>清除</span>
+                <button class="floating-alarm-btn maximize hidden" onclick="toggleMinimizeAlarm()">
+                    <i data-lucide="maximize-2"></i>
+                </button>
+                <button class="floating-alarm-btn" onclick="closeFloatingAlarm()">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
-        </section>
+        </div>
+        <div class="floating-alarm-content">
+            <div class="floating-alarm-time">
+                <input type="number" id="alarm-hour" class="floating-alarm-time-input" min="1" max="12" value="14" onchange="updateAlarmDisplay()">
+                <span class="floating-alarm-time-separator">:</span>
+                <input type="number" id="alarm-minute" class="floating-alarm-time-input" min="0" max="59" value="00" onchange="updateAlarmDisplay()">
+                <div class="floating-alarm-time-ampm">
+                    <button class="floating-alarm-ampm-btn" id="alarm-am-btn" onclick="setAlarmAmPm('AM')">AM</button>
+                    <button class="floating-alarm-ampm-btn active" id="alarm-pm-btn" onclick="setAlarmAmPm('PM')">PM</button>
+                </div>
+            </div>
 
-        <!-- 第二行：偏好设置 -->
-        <section class="prefs-section">
-            <div class="section-header">
-                <i data-lucide="settings" class="w-3 h-3"></i>
-                <span>偏好设置</span>
+            <div class="floating-alarm-quick-set">
+                <button class="floating-alarm-quick-btn" onclick="setQuickTime(30)">30分钟后</button>
+                <button class="floating-alarm-quick-btn" onclick="setQuickTime(60)">1小时后</button>
+                <button class="floating-alarm-quick-btn" onclick="setQuickTime(120)">2小时后</button>
+                <button class="floating-alarm-quick-btn" onclick="setQuickTime(180)">3小时后</button>
             </div>
-            <div class="prefs-grid">
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(59,130,246,0.15);">
-                        <i data-lucide="brain" class="w-4 h-4 text-blue-400"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">认知风格</span>
-                    </div>
-                    <select id="cognitive-style" class="pref-select" onchange="savePreferences()">
-                        <option value="pragmatic">实践型</option>
-                        <option value="visual">视觉型</option>
-                        <option value="textual">文字型</option>
-                    </select>
-                </div>
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(245,158,11,0.15);">
-                        <i data-lucide="gauge" class="w-4 h-4 text-amber-400"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">难度</span>
-                    </div>
-                    <select id="difficulty-pref" class="pref-select" onchange="savePreferences()">
-                        <option value="basic">基础</option>
-                        <option value="medium">中等</option>
-                        <option value="advanced">高级</option>
-                    </select>
-                </div>
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(16,185,129,0.15);">
-                        <i data-lucide="message-circle" class="w-4 h-4 text-emerald-400"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">苏格拉底</span>
-                    </div>
-                    <div class="toggle-switch active" id="socratic-toggle" onclick="toggleSwitch(this, 'socratic')"></div>
-                </div>
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(139,92,246,0.15);">
-                        <i data-lucide="bell" class="w-4 h-4 text-violet-400"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">学习提醒</span>
-                    </div>
-                    <div class="toggle-switch" id="reminder-toggle" onclick="toggleSwitch(this, 'reminder')"></div>
-                </div>
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(59,130,246,0.15);">
-                        <i data-lucide="bell-ring" class="w-4 h-4 text-blue-400"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">通知</span>
-                    </div>
-                    <div class="toggle-switch active" id="notification-toggle" onclick="toggleSwitch(this, 'notification')"></div>
-                </div>
-                <div class="pref-item">
-                    <div class="pref-icon" style="background: rgba(255,255,255,0.08);">
-                        <i data-lucide="shield" class="w-4 h-4" style="color: var(--text-secondary);"></i>
-                    </div>
-                    <div class="pref-content">
-                        <span class="pref-label">隐私</span>
-                    </div>
-                    <div class="toggle-switch" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
-                </div>
-            </div>
-            <!-- 提醒时间 -->
-            <div id="reminder-settings" class="reminder-time hidden">
-                <span class="time-label">提醒时间</span>
-                <div class="time-buttons">
-                    <button class="time-btn" onclick="setReminderTime(this, '08:00')">08:00</button>
-                    <button class="time-btn" onclick="setReminderTime(this, '10:00')">10:00</button>
-                    <button class="time-btn active" onclick="setReminderTime(this, '14:00')">14:00</button>
-                    <button class="time-btn" onclick="setReminderTime(this, '19:00')">19:00</button>
-                    <button class="time-btn" onclick="setReminderTime(this, '21:00')">21:00</button>
-                </div>
-            </div>
-        </section>
 
-        <!-- 第三行：头像风格 -->
-        <section class="avatar-section">
-            <div class="section-header">
-                <i data-lucide="smile" class="w-3 h-3"></i>
-                <span>头像风格</span>
+            <div class="floating-alarm-repeat">
+                <div class="floating-alarm-repeat-label">重复</div>
+                <div class="floating-alarm-repeat-options">
+                    <button class="floating-alarm-repeat-btn active" data-day="0" onclick="toggleDay(this, 0)">日</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="1" onclick="toggleDay(this, 1)">一</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="2" onclick="toggleDay(this, 2)">二</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="3" onclick="toggleDay(this, 3)">三</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="4" onclick="toggleDay(this, 4)">四</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="5" onclick="toggleDay(this, 5)">五</button>
+                    <button class="floating-alarm-repeat-btn active" data-day="6" onclick="toggleDay(this, 6)">六</button>
+                </div>
             </div>
-            <div class="avatar-grid" id="avatar-grid"></div>
-        </section>
 
-        <!-- 第四行：数据统计 -->
-        <section class="stats-section">
-            <div class="mini-stat-card">
-                <div class="mini-stat-icon" style="background: rgba(245,158,11,0.15);">
-                    <i data-lucide="flame" class="w-4 h-4 text-amber-400"></i>
-                </div>
-                <div class="mini-stat-content">
-                    <span class="mini-stat-value" id="stat-interactions">0</span>
-                    <span class="mini-stat-label">交互</span>
-                </div>
+            <div class="floating-alarm-actions">
+                <button class="floating-alarm-action cancel" onclick="closeFloatingAlarm()">取消</button>
+                <button class="floating-alarm-action save" onclick="saveFloatingAlarm()">保存提醒</button>
             </div>
-            <div class="mini-stat-card">
-                <div class="mini-stat-icon" style="background: rgba(59,130,246,0.15);">
-                    <i data-lucide="clock" class="w-4 h-4 text-blue-400"></i>
-                </div>
-                <div class="mini-stat-content">
-                    <span class="mini-stat-value" id="stat-time">0</span>
-                    <span class="mini-stat-label">分钟</span>
-                </div>
-            </div>
-            <div class="mini-stat-card">
-                <div class="mini-stat-icon" style="background: rgba(16,185,129,0.15);">
-                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
-                </div>
-                <div class="mini-stat-content">
-                    <span class="mini-stat-value" id="stat-tasks">0</span>
-                    <span class="mini-stat-label">完成</span>
-                </div>
-            </div>
-        </section>
+        </div>
+    </div>
 
-        <!-- 第五行：学习目标 -->
-        <section class="goals-section">
-            <div class="section-header">
-                <i data-lucide="target" class="w-3 h-3"></i>
-                <span>学习目标</span>
-            </div>
-            <div class="goal-tags" id="goal-tags"></div>
-            <div class="daily-goal-row">
-                <span class="goal-label">每日</span>
-                <input type="range" id="daily-goal-slider" min="15" max="180" value="60" class="goal-slider" oninput="updateDailyGoal(this.value)">
-                <span class="goal-value" id="daily-goal-display">60分钟</span>
-            </div>
-        </section>
+    <button id="floating-alarm-trigger" class="floating-alarm-trigger" onclick="openFloatingAlarm()">
+        <i data-lucide="alarm-clock"></i>
+    </button>
 
-        <!-- 第六行：学习任务 -->
-        <section class="tasks-section">
-            <div class="section-header">
-                <i data-lucide="book-open" class="w-3 h-3"></i>
-                <span>学习任务</span>
-            </div>
-            <div class="task-grid" id="task-grid"></div>
-        </section>
-
-    </main>
-
-    <!-- 头像裁剪弹窗 -->
-    <div id="crop-modal" class="crop-modal hidden">
-        <div class="crop-modal-overlay" onclick="cancelCrop()"></div>
+    <div id="crop-modal" class="crop-modal">
+        <div class="crop-modal-backdrop" onclick="cancelCrop()"></div>
         <div class="crop-modal-content">
             <div class="crop-modal-header">
-                <h3>
-                    <i data-lucide="crop" class="w-4 h-4"></i> 裁剪头像
-                </h3>
-                <button onclick="cancelCrop()" aria-label="关闭">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <div class="crop-modal-title">
+                    <i data-lucide="crop"></i>
+                    裁剪头像
+                </div>
+                <button class="crop-modal-close" onclick="cancelCrop()">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
             <div class="crop-area">
                 <img id="crop-preview-img" src="" alt="预览">
             </div>
             <div class="crop-actions">
-                <button onclick="cancelCrop()" class="btn-ghost">取消</button>
-                <button onclick="confirmCrop()" class="btn-primary">确认</button>
+                <button class="crop-btn ghost" onclick="cancelCrop()">取消</button>
+                <button class="crop-btn primary" onclick="confirmCrop()">确认</button>
             </div>
         </div>
     </div>
 
     <script src="/js/personal.js"></script>
+    <script>
+        if (window.lucide) lucide.createIcons();
+    </script>
 </body>
 </html>

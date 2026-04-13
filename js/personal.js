@@ -14,11 +14,23 @@ let userPreferences = JSON.parse(localStorage.getItem('starlearn_preferences') |
     privacyMode: false,
     reminderEnabled: false,
     reminderTime: '14:00',
+    reminderRepeat: [0, 1, 2, 3, 4, 5, 6],
+    reminderAmPm: 'PM',
     learningGoals: ['应对考试'],
     dailyGoalMinutes: 60
 };
 
 let pendingAvatarData = null;
+
+let floatingAlarmState = {
+    isOpen: false,
+    isMinimized: false,
+    isDragging: false,
+    dragOffset: { x: 0, y: 0 },
+    position: { x: window.innerWidth - 400, y: 100 }
+};
+
+let activeReminderTimeouts = [];
 
 const tasks = [
     { id: 'bigdata', name: '大数据技术', icon: 'database', color: 'blue' },
@@ -60,6 +72,8 @@ function init() {
     renderTaskGrid();
     renderGoalTags();
     loadPreferences();
+    initFloatingAlarm();
+    requestNotificationPermission();
 
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -152,6 +166,8 @@ function loadPreferences() {
     document.querySelectorAll('.time-btn').forEach(btn => {
         btn.classList.toggle('active', btn.textContent === userPreferences.reminderTime);
     });
+
+    updateFloatingAlarmTrigger();
 }
 
 function toggleSwitch(el, key) {
@@ -166,6 +182,7 @@ function toggleSwitch(el, key) {
             break;
         case 'notification':
             userPreferences.notificationEnabled = isActive;
+            if (isActive) requestNotificationPermission();
             break;
         case 'privacy':
             userPreferences.privacyMode = isActive;
@@ -176,7 +193,13 @@ function toggleSwitch(el, key) {
             if (reminderSettings) {
                 reminderSettings.classList.toggle('hidden', !isActive);
             }
-            if (isActive) requestNotificationPermission();
+            if (isActive) {
+                requestNotificationPermission();
+                scheduleReminder();
+            } else {
+                cancelAllReminders();
+            }
+            updateFloatingAlarmTrigger();
             break;
     }
 
@@ -197,11 +220,404 @@ function setReminderTime(btn, time) {
     document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     savePreferences();
+    scheduleReminder();
+    showToast(`提醒时间已设置为 ${time}`);
 }
 
 function requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+                showToast('已开启通知提醒');
+            }
+        });
+    }
+}
+
+function scheduleReminder() {
+    cancelAllReminders();
+
+    if (!userPreferences.reminderEnabled) return;
+
+    const now = new Date();
+    const [hours, minutes] = userPreferences.reminderTime.split(':').map(Number);
+    let targetTime = new Date();
+    targetTime.setHours(hours, minutes, 0, 0);
+
+    if (targetTime <= now) {
+        targetTime.setDate(targetTime.getDate() + 1);
+    }
+
+    const delay = targetTime.getTime() - now.getTime();
+
+    const timeoutId = setTimeout(() => {
+        triggerReminder();
+        scheduleReminder();
+    }, delay);
+
+    activeReminderTimeouts.push(timeoutId);
+}
+
+function cancelAllReminders() {
+    activeReminderTimeouts.forEach(id => clearTimeout(id));
+    activeReminderTimeouts = [];
+}
+
+function triggerReminder() {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('📚 星识 Star-Learn 学习提醒', {
+            body: `该学习啦！今日目标：${userPreferences.dailyGoalMinutes}分钟\n加油！坚持就是胜利！`,
+            icon: currentUser.avatar,
+            badge: currentUser.avatar,
+            tag: 'starlearn-reminder',
+            requireInteraction: true,
+            silent: false
+        });
+    }
+
+    if (userPreferences.notificationEnabled) {
+        showNotificationToast('学习提醒', `该学习啦！今日目标：${userPreferences.dailyGoalMinutes}分钟`);
+    }
+
+    showFloatingAlarmNotification();
+}
+
+function showFloatingAlarmNotification() {
+    const trigger = document.getElementById('floating-alarm-trigger');
+    if (trigger) {
+        trigger.classList.add('visible');
+        setTimeout(() => {
+            trigger.classList.remove('visible');
+        }, 5000);
+    }
+}
+
+function showNotificationToast(title, message) {
+    const existing = document.querySelector('.notification-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast';
+    toast.innerHTML = `
+        <div class="notification-toast-icon">
+            <i data-lucide="bell-ring"></i>
+        </div>
+        <div class="notification-toast-content">
+            <div class="notification-toast-title">${title}</div>
+            <div class="notification-toast-message">${message}</div>
+        </div>
+        <button class="notification-toast-close" onclick="this.parentElement.remove()">
+            <i data-lucide="x"></i>
+        </button>
+    `;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            toast.classList.add('visible');
+        });
+    });
+
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 400);
+    }, 5000);
+}
+
+function initFloatingAlarm() {
+    const header = document.getElementById('floating-alarm-header');
+    if (!header) return;
+
+    header.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+
+    header.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', stopDrag);
+
+    loadFloatingAlarmPosition();
+    updateFloatingAlarmDisplay();
+    updateFloatingAlarmTrigger();
+}
+
+function startDrag(e) {
+    if (e.target.closest('.floating-alarm-controls')) return;
+
+    floatingAlarmState.isDragging = true;
+    const alarm = document.getElementById('floating-alarm');
+    const rect = alarm.getBoundingClientRect();
+    floatingAlarmState.dragOffset = {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+    };
+    alarm.classList.add('dragging');
+}
+
+function drag(e) {
+    if (!floatingAlarmState.isDragging) return;
+
+    const alarm = document.getElementById('floating-alarm');
+    const x = e.clientX - floatingAlarmState.dragOffset.x;
+    const y = e.clientY - floatingAlarmState.dragOffset.y;
+
+    alarm.style.left = Math.max(0, Math.min(x, window.innerWidth - alarm.offsetWidth)) + 'px';
+    alarm.style.top = Math.max(0, Math.min(y, window.innerHeight - alarm.offsetHeight)) + 'px';
+    alarm.style.right = 'auto';
+    alarm.style.bottom = 'auto';
+}
+
+function stopDrag() {
+    if (!floatingAlarmState.isDragging) return;
+
+    floatingAlarmState.isDragging = false;
+    const alarm = document.getElementById('floating-alarm');
+    if (alarm) {
+        alarm.classList.remove('dragging');
+        saveFloatingAlarmPosition();
+    }
+}
+
+function handleTouchStart(e) {
+    if (e.target.closest('.floating-alarm-controls')) return;
+
+    e.preventDefault();
+    const touch = e.touches[0];
+    floatingAlarmState.isDragging = true;
+    const alarm = document.getElementById('floating-alarm');
+    const rect = alarm.getBoundingClientRect();
+    floatingAlarmState.dragOffset = {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top
+    };
+    alarm.classList.add('dragging');
+}
+
+function handleTouchMove(e) {
+    if (!floatingAlarmState.isDragging) return;
+
+    e.preventDefault();
+    const touch = e.touches[0];
+    const alarm = document.getElementById('floating-alarm');
+    const x = touch.clientX - floatingAlarmState.dragOffset.x;
+    const y = touch.clientY - floatingAlarmState.dragOffset.y;
+
+    alarm.style.left = Math.max(0, Math.min(x, window.innerWidth - alarm.offsetWidth)) + 'px';
+    alarm.style.top = Math.max(0, Math.min(y, window.innerHeight - alarm.offsetHeight)) + 'px';
+    alarm.style.right = 'auto';
+    alarm.style.bottom = 'auto';
+}
+
+function loadFloatingAlarmPosition() {
+    const saved = localStorage.getItem('floatingAlarmPosition');
+    if (saved) {
+        const pos = JSON.parse(saved);
+        floatingAlarmState.position = pos;
+        const alarm = document.getElementById('floating-alarm');
+        if (alarm) {
+            alarm.style.left = pos.x + 'px';
+            alarm.style.top = pos.y + 'px';
+            alarm.style.right = 'auto';
+            alarm.style.bottom = 'auto';
+        }
+    }
+}
+
+function saveFloatingAlarmPosition() {
+    const alarm = document.getElementById('floating-alarm');
+    if (alarm) {
+        floatingAlarmState.position = {
+            x: alarm.offsetLeft,
+            y: alarm.offsetTop
+        };
+        localStorage.setItem('floatingAlarmPosition', JSON.stringify(floatingAlarmState.position));
+    }
+}
+
+function openFloatingAlarm() {
+    const alarm = document.getElementById('floating-alarm');
+    if (!alarm) return;
+
+    updateFloatingAlarmDisplay();
+    alarm.classList.add('visible');
+    alarm.classList.remove('minimized');
+    floatingAlarmState.isOpen = true;
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function closeFloatingAlarm() {
+    const alarm = document.getElementById('floating-alarm');
+    if (alarm) {
+        alarm.classList.remove('visible');
+        floatingAlarmState.isOpen = false;
+    }
+}
+
+function toggleMinimizeAlarm() {
+    const alarm = document.getElementById('floating-alarm');
+    if (!alarm) return;
+
+    floatingAlarmState.isMinimized = !floatingAlarmState.isMinimized;
+    alarm.classList.toggle('minimized', floatingAlarmState.isMinimized);
+
+    const minimizeBtn = alarm.querySelector('.floating-alarm-btn.minimize');
+    const maximizeBtn = alarm.querySelector('.floating-alarm-btn.maximize');
+    if (minimizeBtn) minimizeBtn.classList.toggle('hidden', floatingAlarmState.isMinimized);
+    if (maximizeBtn) maximizeBtn.classList.toggle('hidden', !floatingAlarmState.isMinimized);
+}
+
+function updateFloatingAlarmDisplay() {
+    const hourInput = document.getElementById('alarm-hour');
+    const minuteInput = document.getElementById('alarm-minute');
+    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
+
+    if (hourInput && minuteInput) {
+        hourInput.value = userPreferences.reminderTime.split(':')[0];
+        minuteInput.value = userPreferences.reminderTime.split(':')[1];
+    }
+
+    if (miniDisplay) {
+        miniDisplay.textContent = userPreferences.reminderTime;
+    }
+
+    const amBtn = document.getElementById('alarm-am-btn');
+    const pmBtn = document.getElementById('alarm-pm-btn');
+    if (amBtn && pmBtn) {
+        const isPm = userPreferences.reminderAmPm === 'PM';
+        amBtn.classList.toggle('active', !isPm);
+        pmBtn.classList.toggle('active', isPm);
+    }
+
+    document.querySelectorAll('.floating-alarm-repeat-btn').forEach(btn => {
+        const day = parseInt(btn.dataset.day);
+        btn.classList.toggle('active', userPreferences.reminderRepeat.includes(day));
+    });
+}
+
+function updateAlarmDisplay() {
+    const hourInput = document.getElementById('alarm-hour');
+    const minuteInput = document.getElementById('alarm-minute');
+    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
+
+    if (hourInput && minuteInput) {
+        let hour = parseInt(hourInput.value) || 14;
+        let minute = parseInt(minuteInput.value) || 0;
+
+        hour = Math.max(1, Math.min(12, hour));
+        minute = Math.max(0, Math.min(59, minute));
+
+        hourInput.value = hour;
+        minuteInput.value = minute.toString().padStart(2, '0');
+
+        const isPm = document.getElementById('alarm-pm-btn').classList.contains('active');
+        let hours24 = hour;
+        if (isPm && hour !== 12) hours24 += 12;
+        if (!isPm && hour === 12) hours24 = 0;
+
+        const timeStr = hours24.toString().padStart(2, '0') + ':' + minute.toString().padStart(2, '0');
+        userPreferences.reminderTime = timeStr;
+
+        if (miniDisplay) {
+            miniDisplay.textContent = timeStr;
+        }
+    }
+}
+
+function setAlarmAmPm(ampm) {
+    const amBtn = document.getElementById('alarm-am-btn');
+    const pmBtn = document.getElementById('alarm-pm-btn');
+
+    if (ampm === 'AM') {
+        amBtn.classList.add('active');
+        pmBtn.classList.remove('active');
+    } else {
+        pmBtn.classList.add('active');
+        amBtn.classList.remove('active');
+    }
+
+    userPreferences.reminderAmPm = ampm;
+    updateAlarmDisplay();
+}
+
+function setQuickTime(minutes) {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+
+    let hours = now.getHours();
+    let mins = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hours12 = hours % 12 || 12;
+
+    const hourInput = document.getElementById('alarm-hour');
+    const minuteInput = document.getElementById('alarm-minute');
+    const amBtn = document.getElementById('alarm-am-btn');
+    const pmBtn = document.getElementById('alarm-pm-btn');
+
+    if (hourInput) hourInput.value = hours12;
+    if (minuteInput) minuteInput.value = mins.toString().padStart(2, '0');
+
+    if (ampm === 'AM') {
+        amBtn.classList.add('active');
+        pmBtn.classList.remove('active');
+    } else {
+        pmBtn.classList.add('active');
+        amBtn.classList.remove('active');
+    }
+
+    userPreferences.reminderAmPm = ampm;
+
+    let hours24 = hours;
+    if (ampm === 'PM' && hours12 !== 12) hours24 += 12;
+    if (ampm === 'AM' && hours12 === 12) hours24 = 0;
+
+    userPreferences.reminderTime = hours24.toString().padStart(2, '0') + ':' + mins.toString().padStart(2, '0');
+
+    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
+    if (miniDisplay) {
+        miniDisplay.textContent = userPreferences.reminderTime;
+    }
+}
+
+function toggleDay(btn, day) {
+    btn.classList.toggle('active');
+
+    if (userPreferences.reminderRepeat.includes(day)) {
+        userPreferences.reminderRepeat = userPreferences.reminderRepeat.filter(d => d !== day);
+    } else {
+        userPreferences.reminderRepeat.push(day);
+        userPreferences.reminderRepeat.sort((a, b) => a - b);
+    }
+}
+
+function saveFloatingAlarm() {
+    updateAlarmDisplay();
+    userPreferences.reminderEnabled = true;
+    userPreferences.reminderRepeat = userPreferences.reminderRepeat.length > 0 ? userPreferences.reminderRepeat : [0, 1, 2, 3, 4, 5, 6];
+
+    savePreferences();
+    scheduleReminder();
+    updateFloatingAlarmTrigger();
+
+    const reminderToggle = document.getElementById('reminder-toggle');
+    if (reminderToggle) {
+        reminderToggle.classList.add('active');
+    }
+
+    closeFloatingAlarm();
+    showToast(`提醒已设置为 ${userPreferences.reminderTime}`);
+}
+
+function updateFloatingAlarmTrigger() {
+    const trigger = document.getElementById('floating-alarm-trigger');
+    if (!trigger) return;
+
+    if (userPreferences.reminderEnabled) {
+        trigger.classList.add('visible');
+    } else {
+        trigger.classList.remove('visible');
     }
 }
 
@@ -411,35 +827,26 @@ function showToast(msg) {
     }, 2200);
 }
 
-function startReminderCheck() {
-    setInterval(() => {
-        if (!userPreferences.reminderEnabled) return;
-
-        const now = new Date();
-        const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-        if (currentTime === userPreferences.reminderTime && now.getSeconds() < 2) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('星识 Star-Learn 学习提醒', {
-                    body: `该学习啦！今日目标：${userPreferences.dailyGoalMinutes}分钟`,
-                    icon: currentUser.avatar
-                });
-            }
-            showToast('📚 学习提醒：该学习啦！');
-        }
-    }, 1000);
-}
-
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         const modal = document.getElementById('crop-modal');
         if (modal && !modal.classList.contains('hidden')) {
             cancelCrop();
         }
+        if (floatingAlarmState.isOpen) {
+            closeFloatingAlarm();
+        }
     }
 });
 
 document.addEventListener('DOMContentLoaded', function() {
     init();
-    startReminderCheck();
+});
+
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') {
+        if (userPreferences.reminderEnabled) {
+            scheduleReminder();
+        }
+    }
 });
