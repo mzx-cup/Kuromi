@@ -1111,7 +1111,7 @@ body.light-theme .glass-input:focus {
     position: relative;
     overflow-wrap: break-word;
     word-break: break-word;
-    overflow: hidden;
+    overflow: visible;
 }
 .msg-bubble-bot:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); background: var(--surface-glass-hover); }
 .msg-bubble-user {
@@ -1126,14 +1126,14 @@ body.light-theme .glass-input:focus {
     position: relative;
     overflow-wrap: break-word;
     word-break: break-word;
-    overflow: hidden;
+    overflow: visible;
     margin-left: auto;
 }
 .msg-bubble-user:hover { box-shadow: 0 12px 36px var(--accent-bg); transform: translateY(-1px); }
 .msg-bubble .prose { max-width: 100%; overflow-wrap: break-word; word-break: break-word; }
-.msg-bubble pre { overflow-x: auto; max-width: 100%; white-space: pre; word-break: normal; overflow-wrap: normal; }
-.msg-bubble code { word-break: break-word; overflow-wrap: break-word; }
-.msg-bubble pre code { white-space: pre; word-break: normal; overflow-wrap: normal; }
+.msg-bubble pre { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; overflow-x: visible !important; max-width: 100%; }
+.msg-bubble code { word-break: break-word !important; overflow-wrap: break-word !important; white-space: pre-wrap !important; }
+.msg-bubble pre code { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; }
 .msg-bubble-user::before, .msg-bubble-bot::before {
     content: '';
     position: absolute; top: 0; left: -100%;
