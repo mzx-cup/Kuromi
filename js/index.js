@@ -184,6 +184,12 @@ function initAgentMenu() {
     agentMenuState.panel = document.getElementById('agent-fab-panel');
     agentMenuState.button = document.getElementById('agent-fab-btn');
     agentMenuState.fabList = document.getElementById('agent-fab-list');
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && agentMenuState.isOpen) {
+            closeMenu();
+        }
+    });
 }
 
 function isMenuLocked() {
@@ -199,14 +205,13 @@ function openMenu() {
 
     agentMenuState.isAnimating = true;
     agentMenuState.isOpen = true;
-    agentMenuState.panel.classList.remove('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
-    agentMenuState.panel.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+    agentMenuState.panel.classList.add('open');
     renderAgentFab();
 
-    lockMenu(200);
+    lockMenu(350);
     setTimeout(() => {
         agentMenuState.isAnimating = false;
-    }, 200);
+    }, 350);
 }
 
 function closeMenu() {
@@ -214,9 +219,7 @@ function closeMenu() {
         agentMenuState.isAnimating = false;
     }
 
-    agentMenuState.panel.classList.add('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
-    agentMenuState.panel.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
-
+    agentMenuState.panel.classList.remove('open');
     agentMenuState.isOpen = false;
     agentMenuState.isAnimating = false;
 }
@@ -237,17 +240,17 @@ function handleMenuButtonClick(event) {
 function handleGlobalClick(event) {
     if (!agentMenuState.isOpen) return;
 
-    const path = event.composedPath();
-    const isClickInsidePanel = agentMenuState.panel && path.includes(agentMenuState.panel);
-    const isClickOnButton = agentMenuState.button && path.includes(agentMenuState.button);
-    const isClickInsideWrapper = agentMenuState.wrapper && path.includes(agentMenuState.wrapper);
+    const path = event.composedPath ? event.composedPath() : [];
+    const isClickInsidePanel = agentMenuState.panel && (path.includes(agentMenuState.panel) || (event.target && agentMenuState.panel.contains(event.target)));
+    const isClickOnButton = agentMenuState.button && (path.includes(agentMenuState.button) || (event.target && agentMenuState.button.contains(event.target)));
+    const isClickInsideWrapper = agentMenuState.wrapper && (path.includes(agentMenuState.wrapper) || (event.target && agentMenuState.wrapper.contains(event.target)));
 
     if (!isClickInsideWrapper) {
         closeMenu();
         return;
     }
 
-    if (isClickOnButton) {
+    if (isClickInsidePanel && !isClickOnButton) {
         return;
     }
 }

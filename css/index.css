@@ -1,4 +1,4 @@
-﻿:root, [data-theme="ocean"] {
+:root, [data-theme="ocean"] {
     --primary: #2563eb; --primary-light: #3b82f6; --primary-dark: #1d4ed8;
     --primary-50: #eff6ff; --primary-100: #dbeafe; --primary-200: #bfdbfe; --primary-300: #93c5fd;
     --sidebar-bg: linear-gradient(180deg, #1e40af, #1e3a8a); --sidebar-header: #1e3a8a;
@@ -898,16 +898,35 @@ body.light-theme .glass-input:focus {
 }
 
 .agent-fab-panel {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    right: 0;
+    min-width: 200px;
+    max-width: 280px;
+    max-height: 70vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 8px;
+    padding: 10px;
     background: var(--glass-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-glass);
+    box-shadow: var(--shadow-glass), 0 -4px 24px rgba(0,0,0,0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px) scale(0.96);
+    transform-origin: bottom right;
+    transition: opacity 350ms ease, transform 350ms ease, visibility 350ms ease;
+    z-index: 51;
+}
+
+.agent-fab-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
 }
 
 .agent-fab-list {
