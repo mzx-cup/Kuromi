@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="ocean">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 全息智控学习舱 V5.0</title>
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        .mermaid { visibility: hidden; height: 0; overflow: hidden; }
+        .mermaid-error { display: none !important; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/go/go.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/rust/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="/js/learning-monitor.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/index.js"></script>
+</head>
+<body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
+    <div id="dynamic-bg-layer" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 1;"></div>
+
+    <div class="mesh-gradient-bg"></div>
+    <div class="mesh-orb mesh-orb-1"></div>
+    <div class="mesh-orb mesh-orb-2"></div>
+    <div class="mesh-orb mesh-orb-3"></div>
+
+    <div id="left-col" class="left-col" style="position: relative; z-index: 1; background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <div class="left-col-inner">
+            <button class="sidebar-toggle-btn" onclick="window.sidebarManager.toggleLeft()" aria-label="收起左侧面板" title="收起面板">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+        <div class="p-4 border-b shrink-0 sidebar-header-bar" style="border-color: var(--border-glass);">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="brain-circuit" class="w-5 h-5" style="color: var(--primary-light);"></i>
+                <h1 class="text-base font-bold tracking-wider sidebar-title-text">星识 Star-Learn</h1>
+            </div>
+            <p class="text-[10px]" style="color: var(--text-tertiary);">V5.0: 全息智控学习舱</p>
+        </div>
+
+        <div class="p-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="radar" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">6维知识雷达</h2>
+                <button class="sidebar-section-toggle" onclick="toggleSection('radar-section', this)" aria-label="收起/展开知识雷达" title="收起/展开">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+            </div>
+            <div class="sidebar-section-content" id="radar-section">
+                <div class="glass-radar-wrap rounded-2xl p-2 shadow-sm flex items-center justify-center">
+                    <div class="radar-loading" id="radar-loading">加载中...</div>
+                    <canvas id="radar-chart" style="display:none; max-width: 100%; max-height: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-3 pb-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="cpu" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">智能体状态监控</h2>
+                <button class="sidebar-section-toggle" onclick="toggleSection('agent-section', this)" aria-label="收起/展开智能体状态" title="收起/展开">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+            </div>
+            <div class="sidebar-section-content space-y-2" id="agent-section">
+                <div class="agent-status-item" data-agent="profiler">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">画像分析</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="planner">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">路径规划</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="master_controller">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">主控中枢</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="rag_retriever">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">RAG检索</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="generator">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">内容生成</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="echo">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">记忆回响</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+                <div class="agent-status-item" data-agent="evaluator">
+                    <div class="agent-status-dot agent-dot-idle"></div>
+                    <span class="agent-status-name">学情评估</span>
+                    <span class="agent-status-label">待命</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-3 pb-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
+                <button class="sidebar-section-toggle" onclick="toggleSection('profile-section', this)" aria-label="收起/展开学情画像" title="收起/展开">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+            </div>
+            <div class="sidebar-section-content space-y-2" id="profile-section">
+                <div class="space-y-2" id="profile-container"></div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <div class="main-glass-surface flex-1 flex flex-col h-full relative min-w-0" style="position: relative; z-index: 1; background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <div class="top-bar-glass h-14 flex items-center px-6 justify-between z-10 shrink-0 border-b" style="border-color: var(--border-glass);">
+            <div class="flex items-center gap-1">
+                <button class="tab-btn active px-4 py-4 text-sm font-semibold rounded-t" data-tab="chat" onclick="switchTab('chat')">
+                    <span class="flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> 智能对话</span>
+                </button>
+                <button class="tab-btn px-4 py-4 text-sm font-semibold rounded-t" data-tab="code" onclick="switchTab('code')">
+                    <span class="flex items-center gap-1.5"><i data-lucide="terminal" class="w-4 h-4"></i> 代码控制台</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="flow-enter-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border);" onclick="window.flowMode.enter()" aria-label="进入心流模式">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i> 心流
+                </button>
+                <button id="flashcard-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border);" onclick="window.flashcardUI.open()" aria-label="知识胶囊">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> 胶囊
+                </button>
+                <div id="dispatch-badge" class="text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1" style="background: var(--primary-50); color: var(--primary); border-color: var(--primary-200);">
+                    <i data-lucide="sparkles" class="w-3 h-3"></i> <span id="dispatch-label">等待调度</span>
+                </div>
+                <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleLeftCol()" aria-label="切换左栏">
+                    <i data-lucide="panel-left" class="w-4 h-4"></i>
+                </button>
+                <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleRightCol()" aria-label="切换右栏">
+                    <i data-lucide="panel-right" class="w-4 h-4"></i>
+                </button>
+                <div class="relative" id="avatar-wrapper">
+                    <img id="user-avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="用户头像" class="user-avatar" onclick="toggleDropdown()"/>
+                    <div class="avatar-dropdown border shadow-2xl" id="avatar-dropdown" style="background: var(--dropdown-bg); border-color: var(--glass-border); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);">
+                        <div class="p-3 border-b flex items-center gap-3" style="border-color: var(--border-glass);">
+                            <img id="dropdown-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="" class="w-10 h-10 rounded-full border-2" style="border-color: var(--primary-200);"/>
+                            <div>
+                                <div class="text-sm font-bold" style="color: var(--text-primary);" id="dropdown-username">同学</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">在线学习中</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-item" onclick="toggleThemePanel()"><i data-lucide="palette"></i> <span style="color: var(--text-main);">更换主题</span></div>
+                        <div class="dropdown-item" onclick="goToPersonal()"><i data-lucide="user-circle"></i> <span style="color: var(--text-main);">个人中心</span></div>
+                        <div class="dropdown-item" onclick="showNicknameInput()"><i data-lucide="edit-3"></i> <span style="color: var(--text-main);">修改昵称</span></div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="logout()"><i data-lucide="log-out" style="color: var(--danger);"></i> <span style="color: var(--danger);">退出登录</span></div>
+                    </div>
+                    <div id="nickname-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);">
+                        <div class="rounded-xl p-6 w-80 shadow-xl border" style="background: var(--surface-glass); border-color: var(--border-glass); backdrop-filter: blur(24px);">
+                            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">修改昵称</h3>
+                            <input type="text" id="nickname-input" class="w-full border rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary); --tw-ring-color: var(--primary);" placeholder="请输入新昵称" maxlength="20">
+                            <div class="flex gap-3">
+                                <button onclick="hideNicknameInput()" class="flex-1 px-4 py-2 rounded-lg transition-colors" style="background: var(--surface-glass); color: var(--text-secondary); border: 1px solid var(--border-glass);">取消</button>
+                                <button onclick="confirmNicknameChange()" class="flex-1 px-4 py-2 rounded-lg transition-colors" style="background: var(--accent); color: var(--text-on-accent);">确认</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="theme-panel border shadow-2xl" id="theme-panel" style="background: var(--dropdown-bg); border-color: var(--glass-border); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);">
+                        <div class="text-sm font-bold mb-3 flex items-center gap-2" style="color: var(--text-primary);"><i data-lucide="palette" class="w-4 h-4" style="color: var(--primary);"></i> 选择主题</div>
+                        <div class="space-y-2">
+                            <div class="theme-option active" data-theme="ocean" onclick="setTheme('ocean')"><div class="theme-dot" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">星海蓝</div><div class="text-xs" style="color: var(--text-tertiary);">沉稳专注，适合深度学习</div></div></div>
+                            <div class="theme-option" data-theme="forest" onclick="setTheme('forest')"><div class="theme-dot" style="background: linear-gradient(135deg, #059669, #047857);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">翠林绿</div><div class="text-xs" style="color: var(--text-tertiary);">清新自然，缓解视觉疲劳</div></div></div>
+                            <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')"><div class="theme-dot" style="background: linear-gradient(135deg, #d97706, #b45309);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">暮光橙</div><div class="text-xs" style="color: var(--text-tertiary);">温暖活力，激发创造力</div></div></div>
+                            <div class="theme-divider"><span>✨ 动态特效</span></div>
+                            <div class="theme-option" data-theme="starry-night" onclick="setTheme('starry-night')"><div class="theme-dot" style="background: linear-gradient(135deg, #1e293b, #3b82f6);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌌 浩瀚星空</div><div class="text-xs" style="color: var(--text-tertiary);">深邃宇宙，星光闪烁</div></div></div>
+                            <div class="theme-option" data-theme="sakura-falling" onclick="setTheme('sakura-falling')"><div class="theme-dot" style="background: linear-gradient(135deg, #f9a8d4, #fdf2f8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌸 烂漫樱花</div><div class="text-xs" style="color: var(--text-tertiary);">花瓣飘落，温柔浪漫</div></div></div>
+                            <div class="theme-option" data-theme="lunar-halo" onclick="setTheme('lunar-halo')"><div class="theme-dot" style="background: linear-gradient(135deg, #0c1222, #94a3b8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌕 皎月流光</div><div class="text-xs" style="color: var(--text-tertiary);">月晕呼吸，静谧安详</div></div></div>
+                            <div class="theme-option" data-theme="flowing-aurora" onclick="setTheme('flowing-aurora')"><div class="theme-dot" style="background: linear-gradient(135deg, #030712, #2dd4bf);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">✨ 极光之影</div><div class="text-xs" style="color: var(--text-tertiary);">青紫交织，极光流动</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-view" class="flex-1 flex h-full min-h-0">
+            <div class="flex flex-col md:flex-row w-full h-full min-h-0">
+
+                <div id="track-a" class="track-sandbox w-full md:w-[35%] md:min-w-[280px] md:max-w-[380px] flex flex-col h-[35vh] md:h-full shrink-0">
+                    <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="activity" class="w-4 h-4" style="color: var(--accent);"></i>
+                            <span class="text-sm font-bold" style="color: var(--text-primary);">教研沙盘</span>
+                            <span id="sandbox-status" class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background: var(--surface-glass); color: var(--text-tertiary);">待命</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button id="sandbox-search-toggle" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="搜索日志"><i data-lucide="search" class="w-3.5 h-3.5"></i></button>
+                            <button id="sandbox-filter-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="过滤智能体"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
+                            <button id="sandbox-collapse-btn" class="p-1.5 rounded-lg transition-colors md:hidden" style="color: var(--text-tertiary);" title="收起沙盘"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                        <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
+                    </div>
+                    <div id="sandbox-filter-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                        <div class="flex flex-wrap gap-1" id="sandbox-filter-chips"></div>
+                    </div>
+                    <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                        <div class="flex items-center gap-1 min-w-max" id="flow-node-container"></div>
+                    </div>
+                    <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll"></div>
+                </div>
+
+                <div id="track-b" class="track-chat flex-1 flex flex-col h-[65vh] md:h-full min-h-0 min-w-0">
+                    <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
+
+                    <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
+                        <div class="flex items-center gap-2 mb-2 px-1">
+                            <i data-lucide="layout-grid" class="w-3.5 h-3.5" style="color: var(--primary-light);"></i>
+                            <span class="text-xs font-bold" style="color: var(--text-primary);">资源生成看板</span>
+                            <span id="dashboard-overall-status" class="text-[9px] px-2 py-0.5 rounded-full font-semibold ml-auto" style="background: var(--surface-glass); color: var(--text-tertiary);">等待中</span>
+                            <button id="dashboard-cancel-btn" class="hidden text-[9px] px-2 py-0.5 rounded-full font-semibold transition-colors" style="background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border);" aria-label="取消资源生成" onclick="cancelResourceGeneration()"><i data-lucide="x" class="w-2.5 h-2.5 inline -mt-0.5"></i> 取消</button>
+                        </div>
+                        <div class="accordion-row" id="resource-cards-container">
+                            <div class="resource-accordion" data-resource="document_generator" tabindex="0" role="article" aria-label="文档资源">
+                                <div class="accordion-header" onclick="toggleAccordion('document_generator')">
+                                    <div class="accordion-header-left"><i data-lucide="file-text" class="w-3.5 h-3.5" style="color: var(--accent);"></i><span class="accordion-title">文档</span></div>
+                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                </div>
+                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
+                            </div>
+                            <div class="resource-accordion" data-resource="mindmap_generator" tabindex="0" role="article" aria-label="导图资源">
+                                <div class="accordion-header" onclick="toggleAccordion('mindmap_generator')">
+                                    <div class="accordion-header-left"><i data-lucide="git-branch" class="w-3.5 h-3.5" style="color: var(--primary-light);"></i><span class="accordion-title">导图</span></div>
+                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                </div>
+                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
+                            </div>
+                            <div class="resource-accordion" data-resource="video_content" tabindex="0" role="article" aria-label="视频资源">
+                                <div class="accordion-header" onclick="toggleAccordion('video_content')">
+                                    <div class="accordion-header-left"><i data-lucide="video" class="w-3.5 h-3.5" style="color: var(--warning);"></i><span class="accordion-title">视频</span></div>
+                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                </div>
+                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
+                            </div>
+                            <div class="resource-accordion" data-resource="exercise_generator" tabindex="0" role="article" aria-label="实操代码资源">
+                                <div class="accordion-header" onclick="toggleAccordion('exercise_generator')">
+                                    <div class="accordion-header-left"><i data-lucide="code-2" class="w-3.5 h-3.5" style="color: var(--success);"></i><span class="accordion-title">习题</span></div>
+                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
+                                </div>
+                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="source-panel" class="source-glass-panel hidden mx-6 mb-4 rounded-2xl p-3 shadow-sm border shrink-0">
+                        <div class="flex items-center gap-2 mb-2" style="color: var(--warning);"><i data-lucide="book-open" class="w-4 h-4"></i><span class="text-xs font-bold">引用溯源 (Reference Tracing)</span></div>
+                        <div id="source-list" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="composer-glass-bar p-4 border-t shrink-0">
+                        <div class="max-w-4xl mx-auto">
+                            <div id="notion-input" class="notion-input" contenteditable="true" role="textbox" aria-label="输入消息" aria-multiline="true" data-placeholder="试试问我 HDFS 的工作原理，或说'我不太懂MapReduce'触发苏格拉底诊断..."></div>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex items-center gap-2 text-[10px]" style="color: var(--text-tertiary);"><span>Enter 发送 · Shift+Enter 换行</span></div>
+                                <button id="send-btn" class="send-fab p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg" style="background: var(--accent); color: var(--text-on-accent);" onmouseover="this.style.background='var(--accent-hover)'" onmouseout="this.style.background='var(--accent)'" aria-label="发送消息"><i data-lucide="send" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="code-view" class="flex-1 flex flex-col h-full min-h-0 hidden">
+            <div class="flex-1 flex overflow-hidden min-h-0">
+                <div class="flex-1 flex flex-col min-h-0" style="border-right: 1px solid var(--border-glass);">
+                    <div class="code-editor-toolbar shrink-0">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-code-2" class="w-4 h-4" style="color: var(--accent);"></i>
+                            <span class="text-sm font-semibold" style="color: var(--text-primary);">代码编辑器</span>
+                            <select id="lang-select" class="text-xs" onchange="changeLanguage()">
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="c">C</option>
+                                <option value="cpp">C++</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="go">Go</option>
+                                <option value="sql">SQL</option>
+                                <option value="scala">Scala</option>
+                                <option value="rust">Rust</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="runCode()" class="run-btn flex items-center gap-1.5"><i data-lucide="play" class="w-3.5 h-3.5"></i> 运行</button>
+                            <button onclick="submitGrade()" class="grade-btn flex items-center gap-1.5"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 提交批阅</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 relative overflow-hidden min-h-0"><textarea id="code-editor"></textarea></div>
+                </div>
+                <div class="w-[480px] flex flex-col shrink-0 min-h-0" style="background: var(--surface-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+                    <div class="code-editor-toolbar shrink-0"><div class="flex items-center gap-3"><i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i><span class="text-sm font-semibold" style="color: var(--text-primary);">编程题目</span></div></div>
+                    <div class="p-4 border-b shrink-0 max-h-48 overflow-y-auto" style="border-color: var(--border-glass);"><textarea id="task-input" rows="4" placeholder="在此输入或粘贴编程题目要求...&#10;例如：编写一个函数，实现快速排序算法" class="w-full text-sm rounded-lg p-3 focus:outline-none resize-none" style="background: var(--surface-glass); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea></div>
+                    <div class="flex border-b shrink-0" style="border-color: var(--border-glass);"><button class="flex-1 py-3 text-xs font-semibold text-center transition-colors output-tab active" data-output-tab="run" onclick="switchOutputTab('run')"><span class="flex items-center justify-center gap-1" style="color: var(--text-secondary);"><i data-lucide="terminal" class="w-3 h-3"></i> 运行输出</span></button><button class="flex-1 py-3 text-xs font-semibold text-center transition-colors output-tab" data-output-tab="grade" onclick="switchOutputTab('grade')"><span class="flex items-center justify-center gap-1" style="color: var(--text-secondary);"><i data-lucide="award" class="w-3 h-3"></i> AI 批阅</span></button></div>
+                    <div id="run-output-panel" class="code-output-panel flex-1 overflow-y-auto p-4 text-sm min-h-0"><div style="color: var(--text-tertiary); font-size: 12px;">点击「运行」查看输出结果...</div></div>
+                    <div id="grade-output-panel" class="flex-1 overflow-y-auto p-5 hidden min-h-0"><div style="color: var(--text-tertiary); font-size: 13px; text-align: center; margin-top: 32px;">点击「提交批阅」获取 AI 评分与反馈</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="right-col" class="right-col">
+        <button class="sidebar-toggle-btn right-toggle-btn" onclick="window.sidebarManager.toggleRight()" aria-label="收起右侧面板" title="收起面板">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        <div class="right-col-inner" style="background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+            <div class="p-4 border-b shrink-0 sidebar-header-bar" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2" style="padding-right: 4px;">
+                    <i data-lucide="map" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学习路径</h2>
+                    <button class="sidebar-section-toggle" onclick="toggleSection('path-section', this)" aria-label="收起/展开学习路径" title="收起/展开">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 sidebar-path-section"><div class="sidebar-section-content" id="path-section"><div class="path-tree" id="path-tree-container"></div></div></div>
+            <div class="p-4 border-t sidebar-eval-section" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">评估指标</h2>
+                    <button class="sidebar-section-toggle" onclick="toggleSection('eval-section', this)" aria-label="收起/展开评估指标" title="收起/展开">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                </div>
+                <div class="sidebar-section-content space-y-3" id="eval-section"><div class="space-y-3" id="eval-container"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="agent-fab" class="agent-fab-container" style="position: fixed; bottom: 24px; right: 96px; z-index: 50;">
+        <div id="agent-backdrop" class="hidden" onclick="hideAgentPanel()" style="position: fixed; inset: 0; z-index: 49; background: transparent; pointer-events: auto;"></div>
+        <button id="agent-fab-btn" class="agent-fab-main" onclick="toggleAgentPanel()" aria-label="切换智能体">
+            <span id="agent-fab-icon" class="agent-fab-icon"></span>
+            <span id="agent-fab-name" class="agent-fab-name"></span>
+        </button>
+        <div id="agent-fab-panel" class="agent-fab-panel transition-all duration-200 ease-out origin-bottom-right opacity-0 translate-y-2 scale-95 pointer-events-none" style="position: absolute; bottom: calc(100% + 8px); right: 0;">
+            <div id="agent-fab-list" class="agent-fab-list"></div>
+        </div>
+    </div>
+
+    <div id="music-panel" class="music-panel">
+        <div class="music-panel-header shrink-0">
+            <div class="music-panel-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>专注音乐</span>
+            </div>
+            <button class="music-panel-close" onclick="window.musicPanel.toggle()" aria-label="关闭音乐面板">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="music-panel-genres shrink-0 flex overflow-x-auto scrollbar-hide" id="music-genres"></div>
+        <div class="music-panel-list flex-1 overflow-y-auto pb-4" id="music-list"></div>
+        <div class="music-panel-player shrink-0" id="music-player">
+            <div class="music-player-top-row">
+                <div class="music-player-cover" id="music-player-cover"></div>
+                <div class="music-player-info">
+                    <div class="music-player-title" id="music-player-title">未选择音乐</div>
+                    <div class="music-player-artist" id="music-player-artist">--</div>
+                </div>
+                <div class="music-panel-visualizer" id="music-panel-visualizer">
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                </div>
+            </div>
+            <div class="music-player-bottom-row">
+                <div class="music-player-controls">
+                    <button class="music-ctrl-btn" id="music-prev-btn" onclick="window.musicPanel.prev()" aria-label="上一首">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                    </button>
+                    <button class="music-ctrl-btn music-ctrl-play" id="music-play-btn" onclick="window.musicPanel.togglePlay()" aria-label="播放/暂停">
+                        <svg id="music-play-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <button class="music-ctrl-btn" id="music-next-btn" onclick="window.musicPanel.next()" aria-label="下一首">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                    </button>
+                </div>
+                <div class="music-volume-ctrl flex-1 items-center gap-2 px-2">
+                    <button class="music-volume-btn" id="music-volume-btn" onclick="window.musicPanel.toggleMute()" aria-label="静音/取消静音">
+                        <svg id="music-volume-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                    </button>
+                    <input type="range" id="music-volume-slider" class="music-volume-slider w-full" min="0" max="100" value="60" oninput="window.musicPanel.setVolume(this.value)" aria-label="音量调节">
+                    <span class="music-volume-label" id="music-volume-label">60</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="music-toggle-btn" class="music-toggle-btn" onclick="window.musicPanel.toggle()" aria-label="打开音乐面板" title="专注音乐">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <div class="mini-visualizer" id="mini-visualizer">
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+        </div>
+    </button>
+
+    <div id="focus-duration-panel" class="focus-duration-panel">
+        <div class="focus-duration-header">
+            <div class="focus-duration-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>专注时长</span>
+            </div>
+            <button class="focus-duration-close" onclick="window.focusDurationPanel.toggle()" aria-label="关闭时长面板">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="focus-mode-switch" id="focus-mode-switch">
+            <button class="focus-mode-tab active" data-mode="focus" onclick="window.focusDurationPanel.switchMode('focus')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                专注
+            </button>
+            <button class="focus-mode-tab" data-mode="rest" onclick="window.focusDurationPanel.switchMode('rest')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                休息
+            </button>
+        </div>
+        <div class="focus-duration-presets" id="focus-presets"></div>
+        <div class="focus-duration-recent" id="focus-recent"></div>
+        <div class="focus-duration-custom">
+            <div class="focus-custom-input-wrap">
+                <input type="text" id="focus-custom-input" class="focus-custom-input" placeholder="自定义" inputmode="numeric" maxlength="3" aria-label="自定义时长（分钟）">
+                <span class="focus-custom-unit">分钟</span>
+            </div>
+            <button class="focus-custom-confirm" id="focus-custom-confirm" onclick="window.focusDurationPanel.confirmCustom()" aria-label="确认自定义时长">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+        </div>
+        <div class="focus-duration-error" id="focus-duration-error"></div>
+        <button class="focus-duration-start" id="focus-start-btn" onclick="window.focusDurationPanel.startFocus()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>开始专注</span>
+        </button>
+    </div>
+    <button id="focus-duration-toggle-btn" class="focus-duration-toggle-btn" onclick="window.focusDurationPanel.toggle()" aria-label="打开时长选择" title="专注时长">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    </button>
+
+    <div id="mini-player" class="mini-player">
+        <div class="mini-player-info" id="mini-player-info">
+            <div class="mini-player-title" id="mini-player-title">未在播放</div>
+        </div>
+        <div class="mini-player-controls">
+            <button class="mini-ctrl-btn" onclick="window.musicPanel.prev()" aria-label="上一首">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+            </button>
+            <button class="mini-ctrl-btn mini-ctrl-play" id="mini-play-btn" onclick="window.musicPanel.togglePlay()" aria-label="播放/暂停">
+                <svg id="mini-play-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            <button class="mini-ctrl-btn" onclick="window.musicPanel.next()" aria-label="下一首">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="flow-dynamic-island" class="flow-dynamic-island">
+        <div class="flow-island-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="flow-island-content">
+            <div>
+                <div class="flow-island-time" id="island-timer-display">25:00</div>
+                <div class="flow-island-label" id="island-timer-label">专注模式</div>
+            </div>
+        </div>
+        <div class="flow-island-controls">
+            <button class="flow-island-btn" id="island-play-btn" onclick="window.flowMode.toggleTimer()" title="暂停/继续">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="island-play-icon"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+            <button class="flow-island-btn" onclick="window.flowMode.resetTimer()" title="重置计时器">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            </button>
+            <button class="flow-island-btn" onclick="window.flowMode.exit()" title="退出心流">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="flow-island-progress">
+            <div class="flow-island-progress-bar" id="island-progress-bar" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <div id="flow-overlay" class="flow-overlay">
+        <div class="flow-immersive-layout">
+            <div class="flow-sidebar flow-sidebar-left" id="flow-sidebar-left">
+                <div class="flow-sidebar-header">
+                    <span class="flow-sidebar-title">时长选择</span>
+                    <button class="flow-sidebar-collapse-btn" onclick="window.flowMode.toggleLeftSidebar()" title="收起侧边栏">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                </div>
+                <div class="flow-sidebar-body">
+                    <div class="flow-mode-switch" id="flow-mode-switch">
+                        <button class="flow-mode-tab active" data-mode="focus" onclick="window.flowMode.switchFlowMode('focus')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            专注
+                        </button>
+                        <button class="flow-mode-tab" data-mode="rest" onclick="window.flowMode.switchFlowMode('rest')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                            休息
+                        </button>
+                    </div>
+                    <div class="flow-presets-grid" id="flow-presets-grid"></div>
+                    <div class="flow-custom-duration">
+                        <div class="flow-custom-input-wrap">
+                            <input type="number" class="flow-custom-field" id="flow-custom-field" placeholder="自定义" min="1" max="180">
+                            <span class="flow-custom-unit">分钟</span>
+                        </div>
+                        <button class="flow-custom-ok" onclick="window.flowMode.confirmCustomDuration()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-center-area">
+                <div class="flow-timer-container">
+                    <div class="flow-timer-ring">
+                        <svg viewBox="0 0 280 280">
+                            <circle class="ring-bg" cx="140" cy="140" r="130"/>
+                            <circle class="ring-progress" id="flow-ring-progress" cx="140" cy="140" r="130" stroke-dasharray="816.8 816.8" stroke-dashoffset="0"/>
+                        </svg>
+                        <div class="flow-timer-display">
+                            <div class="flow-timer-time" id="flow-timer-display">25:00</div>
+                            <div class="flow-timer-label" id="flow-timer-label">专注模式</div>
+                        </div>
+                    </div>
+                    <div class="flow-timer-controls">
+                        <button class="flow-btn flow-btn-primary" id="flow-start-btn" onclick="window.flowMode.toggleTimer()">
+                            <i data-lucide="play" class="w-4 h-4"></i> 开始专注
+                        </button>
+                        <button class="flow-btn flow-btn-ghost" onclick="window.flowMode.exit()">
+                            <i data-lucide="x" class="w-4 h-4"></i> 退出心流
+                        </button>
+                    </div>
+                    <div class="flow-audio-controls">
+                        <button class="flow-audio-btn" id="flow-audio-toggle" onclick="window.flowMode.toggleAudio()">
+                            <i data-lucide="music" class="w-4 h-4"></i>
+                        </button>
+                        <input type="range" class="flow-volume-slider" id="flow-volume" min="0" max="100" value="40" oninput="window.flowMode.setVolume(this.value)">
+                        <span class="text-xs" style="color: var(--text-tertiary);" id="flow-volume-label">40%</span>
+                        <div class="flow-visualizer" id="flow-visualizer">
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                        </div>
+                    </div>
+                    <div class="flow-exit-hint">按 Esc 退出心流模式</div>
+                </div>
+            </div>
+
+            <div class="flow-sidebar flow-sidebar-right collapsed" id="flow-sidebar-right">
+                <div class="flow-sidebar-header">
+                    <span class="flow-sidebar-title">音乐播放</span>
+                    <button class="flow-sidebar-collapse-btn" onclick="window.flowMode.toggleRightSidebar()" title="收起侧边栏">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+                <div class="flow-sidebar-body">
+                    <div class="flow-music-genres" id="flow-music-genres"></div>
+                    <div class="flow-music-list" id="flow-music-list"></div>
+                    <div class="flow-music-player" id="flow-music-player">
+                        <div class="flow-music-cover" id="flow-music-cover"></div>
+                        <div class="flow-music-info">
+                            <div class="flow-music-title" id="flow-music-title">未在播放</div>
+                            <div class="flow-music-artist" id="flow-music-artist"></div>
+                        </div>
+                        <div class="flow-music-controls">
+                            <button class="flow-music-ctrl" onclick="window.musicPanel.prev()" title="上一首">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                            </button>
+                            <button class="flow-music-ctrl flow-music-ctrl-play" id="flow-music-play-btn" onclick="window.musicPanel.togglePlay()" title="播放/暂停">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;" id="flow-music-play-icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </button>
+                            <button class="flow-music-ctrl" onclick="window.musicPanel.next()" title="下一首">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="flow-sidebar-expand flow-sidebar-expand-left" id="flow-expand-left" onclick="window.flowMode.toggleLeftSidebar()" title="展开时长选择">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <button class="flow-sidebar-expand flow-sidebar-expand-right" id="flow-expand-right" onclick="window.flowMode.toggleRightSidebar()" title="展开音乐列表">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+        </div>
+    </div>
+
+    <audio id="flow-audio" loop preload="none">
+        <source src="https://cdn.pixabay.com/audio/2022/02/22/audio_d1718ab41b.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="lightbox-overlay" class="lightbox-overlay" role="dialog" aria-label="图片预览">
+        <div class="lightbox-backdrop"></div>
+        <div class="lightbox-content">
+            <img id="lightbox-img" class="lightbox-img" src="" alt="放大预览" draggable="false">
+        </div>
+        <button class="lightbox-close" id="lightbox-close-btn" aria-label="关闭预览">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="lightbox-hint">拖动移动 · 点击空白或 ESC 关闭</div>
+    </div>
+
+    <button id="left-expand-btn" class="sidebar-expand-btn sidebar-expand-left" onclick="window.sidebarManager.toggleLeft()" aria-label="展开左侧面板" title="展开教研沙盘">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+
+</body>
+</html>

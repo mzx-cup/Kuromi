@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 注册</title>
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="h-screen flex overflow-hidden gradient-bg">
+    <div class="hidden lg:flex lg:w-1/2 flex-col justify-center items-center text-white p-12 relative">
+        <div class="particle w-32 h-32 top-20 left-20 float-anim" style="animation-delay: 0s;"></div>
+        <div class="particle w-20 h-20 top-40 right-32 float-anim" style="animation-delay: 2s;"></div>
+        <div class="particle w-24 h-24 bottom-32 left-40 float-anim" style="animation-delay: 4s;"></div>
+        <div class="particle w-16 h-16 bottom-20 right-20 float-anim" style="animation-delay: 1s;"></div>
+
+        <div class="fade-in text-center relative z-10">
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <i data-lucide="brain-circuit" class="w-10 h-10"></i>
+                </div>
+            </div>
+            <h1 class="text-5xl font-bold mb-4 tracking-wide">星识 Star-Learn</h1>
+            <p class="text-xl text-blue-200 mb-8">加入我们，开启智能学习之旅</p>
+            <div class="max-w-sm mx-auto text-left space-y-4">
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-6 h-6 text-emerald-300 shrink-0"></i>
+                    <span class="text-sm">AI智能导师，7x24小时在线辅导</span>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-6 h-6 text-emerald-300 shrink-0"></i>
+                    <span class="text-sm">6维动态画像，精准定位知识短板</span>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 flex items-center gap-3">
+                    <i data-lucide="check-circle" class="w-6 h-6 text-emerald-300 shrink-0"></i>
+                    <span class="text-sm">苏格拉底诊断，引导自主思考</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
+        <div class="w-full max-w-md fade-in">
+            <div class="lg:hidden flex items-center gap-2 mb-8 justify-center">
+                <i data-lucide="brain-circuit" class="w-8 h-8 text-blue-600"></i>
+                <h1 class="text-2xl font-bold text-blue-600">星识 Star-Learn</h1>
+            </div>
+
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">创建账户</h2>
+            <p class="text-gray-500 mb-8">注册后即可体验AI智能伴学服务</p>
+
+            <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+            <div id="success-msg" class="hidden mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-600 text-sm"></div>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">用户名</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="reg-username" placeholder="2-20个字符" class="auth-input w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-sm"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">密码</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <input type="password" id="reg-password" placeholder="至少4个字符" class="auth-input w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-sm"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">确认密码</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <input type="password" id="reg-confirm" placeholder="再次输入密码" class="auth-input w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-sm"/>
+                    </div>
+                </div>
+
+                <button onclick="handleRegister()" id="reg-btn" class="w-full py-3.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 active:scale-[0.98]">
+                    注 册
+                </button>
+            </div>
+
+            <p class="text-center text-sm text-gray-400 mt-8">
+                已有账户？<a href="/login.html" class="text-blue-600 font-semibold hover:text-blue-700">立即登录</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/register.js"></script>
+</body>
+</html>

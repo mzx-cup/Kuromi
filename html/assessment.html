@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 学习状态评估</title>
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+        .float-anim { animation: float 6s ease-in-out infinite; }
+        .gradient-bg { background: linear-gradient(-45deg, #1e3a8a, #2563eb, #7c3aed, #3b82f6); background-size: 400% 400%; animation: gradientShift 15s ease infinite; }
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        .slide-in { animation: slideIn 0.4s ease-out; }
+        .pulse-anim { animation: pulse 2s ease-in-out infinite; }
+        .particle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); pointer-events: none; }
+
+        .dimension-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .dimension-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0,0,0,0.15);
+        }
+        .dimension-card.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: scale(1.02);
+        }
+        .option-btn.selected {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-color: transparent;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        .step-indicator.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .step-indicator.completed {
+            background: #10b981;
+            color: white;
+        }
+        .multi-select-card {
+            transition: all 0.2s ease;
+        }
+        .multi-select-card.selected {
+            border-color: #3b82f6;
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        }
+        .multi-select-card.selected .check-icon {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg overflow-x-hidden">
+    <div class="particle w-32 h-32 top-20 left-20 float-anim" style="animation-delay: 0s;"></div>
+    <div class="particle w-20 h-20 top-40 right-32 float-anim" style="animation-delay: 2s;"></div>
+    <div class="particle w-24 h-24 bottom-32 left-40 float-anim" style="animation-delay: 4s;"></div>
+    <div class="particle w-16 h-16 bottom-20 right-20 float-anim" style="animation-delay: 1s;"></div>
+
+    <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
+        <div class="w-full max-w-4xl fade-in">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="flex items-center justify-center gap-3 mb-4">
+                    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <i data-lucide="brain-circuit" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-bold text-white tracking-wide">星识 Star-Learn</h1>
+                </div>
+                <p class="text-blue-200 text-lg">让我们了解你的学习状态，为你定制专属学习计划</p>
+            </div>
+
+            <!-- Progress Steps -->
+            <div class="flex items-center justify-center gap-1 mb-6 flex-wrap">
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-1">1</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-1"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-2">2</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-2"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-3">3</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-3"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-4">4</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-4"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-5">5</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-5"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-6">6</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-6"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-7">7</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-7"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-8">8</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-8"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-9">9</div>
+            </div>
+
+            <!-- Main Card -->
+            <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
+                <!-- Progress Bar -->
+                <div class="h-2 bg-gray-100">
+                    <div class="progress-bar h-full bg-gradient-to-r from-blue-500 to-purple-500" id="progress-bar" style="width: 11.11%;"></div>
+                </div>
+
+                <!-- Content Area -->
+                <div class="p-6 md:p-8" id="assessment-content">
+                    <!-- Step 1: 学习方向 -->
+                    <div class="assessment-step" id="step-content-1">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="compass" class="w-6 h-6 text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">学习方向</h2>
+                                <p class="text-gray-500 text-sm">选择你想要深入学习的技术方向</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="bigdata">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="database" class="w-6 h-6 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">大数据技术</div>
+                                        <div class="text-sm text-gray-500">Hadoop、Spark、Flink等</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="ai">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="brain" class="w-6 h-6 text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">人工智能</div>
+                                        <div class="text-sm text-gray-500">机器学习、深度学习、NLP</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="frontend">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="layout" class="w-6 h-6 text-cyan-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">前端开发</div>
+                                        <div class="text-sm text-gray-500">React、Vue、小程序开发</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="backend">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="server" class="w-6 h-6 text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">后端开发</div>
+                                        <div class="text-sm text-gray-500">Java、Spring、微服务架构</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="algorithm">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="git-branch" class="w-6 h-6 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">算法与数据结构</div>
+                                        <div class="text-sm text-gray-500">算法设计、刷题、竞赛</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="database">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                                        <i data-lucide="hard-drive" class="w-6 h-6 text-red-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">数据库技术</div>
+                                        <div class="text-sm text-gray-500">MySQL、Redis、MongoDB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: 编程语言 -->
+                    <div class="assessment-step hidden" id="step-content-2">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="code-2" class="w-6 h-6 text-emerald-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">编程语言</h2>
+                                <p class="text-gray-500 text-sm">选择你主要学习/使用的编程语言（可多选）</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="python">
+                                <div class="text-3xl mb-2">🐍</div>
+                                <div class="font-semibold text-gray-800">Python</div>
+                                <div class="check-icon hidden w-5 h-5 bg-blue-500 rounded-full items-center justify-center absolute top-2 right-2">
+                                    <i data-lucide="check" class="w-3 h-3 text-white"></i>
+                                </div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="java">
+                                <div class="text-3xl mb-2">☕</div>
+                                <div class="font-semibold text-gray-800">Java</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="c">
+                                <div class="text-3xl mb-2">⚙️</div>
+                                <div class="font-semibold text-gray-800">C语言</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="cpp">
+                                <div class="text-3xl mb-2">🔷</div>
+                                <div class="font-semibold text-gray-800">C++</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="javascript">
+                                <div class="text-3xl mb-2">📜</div>
+                                <div class="font-semibold text-gray-800">JavaScript</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="go">
+                                <div class="text-3xl mb-2">🐹</div>
+                                <div class="font-semibold text-gray-800">Go</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="sql">
+                                <div class="text-3xl mb-2">🗃️</div>
+                                <div class="font-semibold text-gray-800">SQL</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="scala">
+                                <div class="text-3xl mb-2">🔴</div>
+                                <div class="font-semibold text-gray-800">Scala</div>
+                            </div>
+                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="rust">
+                                <div class="text-3xl mb-2">🦀</div>
+                                <div class="font-semibold text-gray-800">Rust</div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-3 text-center">提示：可多选，选择你想要学习的语言</p>
+                    </div>
+
+                    <!-- Step 3: 知识基础 -->
+                    <div class="assessment-step hidden" id="step-content-3">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="book-open" class="w-6 h-6 text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">知识基础</h2>
+                                <p class="text-gray-500 text-sm">评估你对所选方向的基础认知</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="zero">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="sprout" class="w-5 h-5 text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">零基础入门</div>
+                                        <div class="text-sm text-gray-500">从未接触过，想从零开始学习</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="basic">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="book" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">有一定了解</div>
+                                        <div class="text-sm text-gray-500">看过相关书籍或视频，了解基本概念</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="intermediate">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="laptop" class="w-5 h-5 text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">有实践经验</div>
+                                        <div class="text-sm text-gray-500">做过一些项目，熟悉部分技术栈</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="advanced">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="rocket" class="w-5 h-5 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">深入掌握</div>
+                                        <div class="text-sm text-gray-500">系统学习过，有丰富的实战经验</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: 编程能力 -->
+                    <div class="assessment-step hidden" id="step-content-4">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="terminal" class="w-6 h-6 text-violet-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">编程能力</h2>
+                                <p class="text-gray-500 text-sm">了解你的编程技能水平</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="beginner">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="help-circle" class="w-5 h-5 text-gray-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">编程新手</div>
+                                        <div class="text-sm text-gray-500">刚开始学习编程，需要详细讲解</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="basic">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="file-code" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">基础掌握</div>
+                                        <div class="text-sm text-gray-500">能看懂简单代码，会基本语法</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="intermediate">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="code" class="w-5 h-5 text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">熟练编程</div>
+                                        <div class="text-sm text-gray-500">能独立完成中等难度项目</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="advanced">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="git-branch" class="w-5 h-5 text-emerald-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">编程高手</div>
+                                        <div class="text-sm text-gray-500">精通多种语言，有大型项目经验</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 5: 学习目标 -->
+                    <div class="assessment-step hidden" id="step-content-5">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="target" class="w-6 h-6 text-amber-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">学习目标</h2>
+                                <p class="text-gray-500 text-sm">明确你的学习方向和期望</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="exam">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="graduation-cap" class="w-5 h-5 text-red-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">应对考试</div>
+                                        <div class="text-sm text-gray-500">通过课程考试、考证或面试</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="career">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="briefcase" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">职业发展</div>
+                                        <div class="text-sm text-gray-500">转行或提升职业技能</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="project">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="folder-kanban" class="w-5 h-5 text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">项目实战</div>
+                                        <div class="text-sm text-gray-500">完成特定项目或解决实际问题</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="interest">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">兴趣探索</div>
+                                        <div class="text-sm text-gray-500">出于兴趣，想了解新技术</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="competition">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="trophy" class="w-5 h-5 text-purple-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">竞赛备战</div>
+                                        <div class="text-sm text-gray-500">ACM、蓝桥杯、数学建模等</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="research">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="flask-conical" class="w-5 h-5 text-indigo-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">科研学术</div>
+                                        <div class="text-sm text-gray-500">论文研究、学术探索</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 6: 认知风格 -->
+                    <div class="assessment-step hidden" id="step-content-6">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-pink-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="palette" class="w-6 h-6 text-pink-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">认知风格</h2>
+                                <p class="text-gray-500 text-sm">了解你偏好的学习方式</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="visual">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="eye" class="w-7 h-7 text-blue-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">视觉型</div>
+                                    <div class="text-sm text-gray-500 mt-1">喜欢图表、流程图、可视化演示</div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="textual">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="file-text" class="w-7 h-7 text-purple-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">文字型</div>
+                                    <div class="text-sm text-gray-500 mt-1">喜欢详细文字解释、理论推导</div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="pragmatic">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="hammer" class="w-7 h-7 text-green-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">实践型</div>
+                                    <div class="text-sm text-gray-500 mt-1">喜欢动手实操、代码练习</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 7: 学习时间 -->
+                    <div class="assessment-step hidden" id="step-content-7">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="clock" class="w-6 h-6 text-cyan-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">学习时间</h2>
+                                <p class="text-gray-500 text-sm">规划你的学习节奏</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="light">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="feather" class="w-5 h-5 text-gray-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">轻松模式</div>
+                                        <div class="text-sm text-gray-500">每周 1-3 小时，循序渐进</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="moderate">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="watch" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">均衡模式</div>
+                                        <div class="text-sm text-gray-500">每周 3-8 小时，稳步提升</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="intensive">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="flame" class="w-5 h-5 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">强化模式</div>
+                                        <div class="text-sm text-gray-500">每周 8-15 小时，快速进阶</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="immersive">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="zap" class="w-5 h-5 text-red-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">沉浸模式</div>
+                                        <div class="text-sm text-gray-500">每周 15+ 小时，深度学习</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 8: 学习节奏 -->
+                    <div class="assessment-step hidden" id="step-content-8">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="gauge" class="w-6 h-6 text-teal-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">学习节奏</h2>
+                                <p class="text-gray-500 text-sm">选择适合你的学习方式</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="slow">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="turtle" class="w-5 h-5 text-blue-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">稳扎稳打</div>
+                                        <div class="text-sm text-gray-500">每个知识点都要彻底理解再继续</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="normal">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="activity" class="w-5 h-5 text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">适中节奏</div>
+                                        <div class="text-sm text-gray-500">先理解核心概念，细节后续补充</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="fast">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                        <i data-lucide="rabbit" class="w-5 h-5 text-orange-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-semibold text-gray-800">快速迭代</div>
+                                        <div class="text-sm text-gray-500">快速过一遍，遇到问题再回头</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 9: 专注度 -->
+                    <div class="assessment-step hidden" id="step-content-9">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="focus" class="w-6 h-6 text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">学习专注度</h2>
+                                <p class="text-gray-500 text-sm">了解你的学习习惯</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="high">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="gem" class="w-7 h-7 text-green-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">高专注</div>
+                                    <div class="text-sm text-gray-500 mt-1">能长时间专注，不易分心</div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="medium">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-yellow-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="battery-medium" class="w-7 h-7 text-yellow-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">中等专注</div>
+                                    <div class="text-sm text-gray-500 mt-1">有时会分心，需要提醒</div>
+                                </div>
+                            </div>
+                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="low">
+                                <div class="flex flex-col items-center text-center">
+                                    <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-3">
+                                        <i data-lucide="wind" class="w-7 h-7 text-red-600"></i>
+                                    </div>
+                                    <div class="font-semibold text-gray-800">需要引导</div>
+                                    <div class="text-sm text-gray-500 mt-1">容易分心，需要互动刺激</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="assessment-step hidden" id="step-loading">
+                        <div class="flex flex-col items-center justify-center py-16">
+                            <div class="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-6 pulse-anim">
+                                <i data-lucide="sparkles" class="w-10 h-10 text-white"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800 mb-2">AI 正在为你规划学习路径...</h2>
+                            <p class="text-gray-500 mb-6">基于你的9维数据，智能生成专属学习计划</p>
+                            <div class="flex items-center gap-2 text-blue-600">
+                                <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0s;"></div>
+                                <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s;"></div>
+                                <div class="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result State -->
+                    <div class="assessment-step hidden" id="step-result">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-green-600"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">你的专属学习计划</h2>
+                                <p class="text-gray-500 text-sm">AI 已根据你的情况生成个性化方案</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i data-lucide="user" class="w-5 h-5 text-blue-600"></i>
+                                <span class="font-semibold text-gray-800">你的学习画像</span>
+                            </div>
+                            <div id="profile-summary" class="grid grid-cols-2 md:grid-cols-3 gap-2"></div>
+                        </div>
+
+                        <div class="mb-5">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i data-lucide="map" class="w-5 h-5 text-purple-600"></i>
+                                <span class="font-semibold text-gray-800">推荐学习路径</span>
+                            </div>
+                            <div id="learning-path" class="space-y-2"></div>
+                        </div>
+
+                        <div class="bg-amber-50 rounded-xl p-4 mb-5">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i data-lucide="lightbulb" class="w-5 h-5 text-amber-600"></i>
+                                <span class="font-semibold text-gray-800">AI 学习建议</span>
+                            </div>
+                            <p id="ai-suggestion" class="text-gray-600 text-sm"></p>
+                        </div>
+
+                        <!-- 开始学习之旅按钮 -->
+                        <div class="flex justify-center mt-6">
+                            <button id="start-btn" onclick="startLearning()" class="px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg font-bold rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-3">
+                                <i data-lucide="rocket" class="w-6 h-6"></i>
+                                开启学习之旅
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="px-6 md:px-8 pb-6 md:pb-8 flex items-center justify-between" id="nav-buttons">
+                    <button id="prev-btn" class="px-5 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center gap-2 invisible" onclick="prevStep()">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        上一步
+                    </button>
+                    <button id="next-btn" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2 ml-auto disabled:opacity-50 disabled:cursor-not-allowed" onclick="nextStep()" disabled>
+                        下一步
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/assessment.js"></script>
+</body>
+</html>

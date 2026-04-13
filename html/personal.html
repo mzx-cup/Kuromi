@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="ocean">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 个人中心</title>
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/css/index.css">
+    <script src="/js/theme.js"></script>
+    <style>
+        body {
+            background: var(--mesh-1);
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+        body > * { position: relative; z-index: 1; }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <div class="mesh-gradient-bg"></div>
+    <div class="mesh-orb mesh-orb-1"></div>
+    <div class="mesh-orb mesh-orb-2"></div>
+    <div class="mesh-orb mesh-orb-3"></div>
+
+    <nav class="glass-panel-static flex items-center justify-between px-6 py-4 m-4 mb-0" style="border-radius: 20px;">
+        <a href="/" class="flex items-center gap-2" style="color: var(--text-primary); text-decoration: none;">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            <span class="font-semibold text-sm">返回首页</span>
+        </a>
+        <h1 class="text-lg font-bold" style="color: var(--text-primary);">个人中心</h1>
+        <div class="w-20"></div>
+    </nav>
+
+    <div class="bento-grid mt-4" id="profile-bento">
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-profile">
+            <div class="flex items-center gap-5">
+                <div class="relative group" id="avatar-container">
+                    <img id="current-avatar" src="" alt="头像" class="w-20 h-20 rounded-full object-cover" style="border: 3px solid var(--border-glass); box-shadow: var(--shadow-md);">
+                    <div class="avatar-upload-overlay" onclick="document.getElementById('avatar-upload').click()">
+                        <i data-lucide="camera" class="w-5 h-5" style="color: var(--text-primary);"></i>
+                    </div>
+                    <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)"/>
+                </div>
+                <div>
+                    <div class="bento-label">昵称</div>
+                    <div class="bento-value text-xl" id="display-name">同学</div>
+                    <div class="bento-sub flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse"></span> 在线学习中
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bento-card fade-in-up" id="bento-streak">
+            <div class="bento-icon" style="background: rgba(245,158,11,0.15);"><i data-lucide="flame" class="w-5 h-5 text-amber-400"></i></div>
+            <div class="bento-label">交互次数</div>
+            <div class="bento-value" id="stat-interactions">0</div>
+            <div class="bento-sub">次对话</div>
+        </div>
+
+        <div class="bento-card fade-in-up" id="bento-total-time">
+            <div class="bento-icon" style="background: rgba(59,130,246,0.15);"><i data-lucide="clock" class="w-5 h-5 text-blue-400"></i></div>
+            <div class="bento-label">学习时长</div>
+            <div class="bento-value" id="stat-time">0</div>
+            <div class="bento-sub">分钟</div>
+        </div>
+
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-goals">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="target" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <span class="font-semibold text-xs" style="color: var(--text-primary);">学习目标</span>
+            </div>
+            <div id="goal-tags" class="flex flex-wrap gap-2"></div>
+            <div class="mt-4">
+                <div class="flex items-center gap-3">
+                    <input type="range" id="daily-goal-slider" min="15" max="180" value="60" class="flex-1 accent-blue-500" oninput="updateDailyGoal(this.value)"/>
+                    <span id="daily-goal-display" class="text-sm font-bold min-w-[60px] text-right" style="color: var(--primary-light);">60分钟</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-tasks">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="book-open" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <span class="font-semibold text-xs" style="color: var(--text-primary);">学习任务</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3" id="task-grid"></div>
+        </div>
+
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-name-edit">
+            <div class="bento-label">修改昵称</div>
+            <div class="flex gap-2 mt-2">
+                <input type="text" id="edit-name" placeholder="输入新昵称" class="glass-input flex-1"/>
+                <button onclick="saveName()" class="glass-btn-primary flex items-center gap-2">
+                    <i data-lucide="check" class="w-4 h-4"></i> 保存
+                </button>
+            </div>
+        </div>
+
+        <div class="bento-card fade-in-up" id="bento-completed">
+            <div class="bento-icon" style="background: rgba(16,185,129,0.15);"><i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i></div>
+            <div class="bento-label">完成任务</div>
+            <div class="bento-value" id="stat-tasks">0</div>
+            <div class="bento-sub">项</div>
+        </div>
+    </div>
+
+    <div class="bento-grid" id="settings-bento">
+        <div class="bento-card bento-span-4 fade-in-up" id="bento-settings">
+            <div class="flex items-center gap-2 mb-4">
+                <i data-lucide="settings" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <span class="font-semibold text-xs" style="color: var(--text-primary);">偏好设置</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="setting-row">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.15);"><i data-lucide="brain" class="w-5 h-5 text-blue-400"></i></div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold" style="color: var(--text-primary);">认知风格</div>
+                            <div class="text-xs" style="color: var(--text-tertiary);">选择你偏好的学习方式</div>
+                        </div>
+                        <select id="cognitive-style" class="glass-input py-2 px-3 text-sm" onchange="savePreferences()">
+                            <option value="pragmatic">实践型</option>
+                            <option value="visual">视觉型</option>
+                            <option value="textual">文字型</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.15);"><i data-lucide="gauge" class="w-5 h-5 text-amber-400"></i></div>
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold" style="color: var(--text-primary);">难度偏好</div>
+                            <div class="text-xs" style="color: var(--text-tertiary);">AI推荐题目难度</div>
+                        </div>
+                        <select id="difficulty-pref" class="glass-input py-2 px-3 text-sm" onchange="savePreferences()">
+                            <option value="basic">基础入门</option>
+                            <option value="medium">中等进阶</option>
+                            <option value="advanced">高级挑战</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(16,185,129,0.15);"><i data-lucide="message-circle" class="w-5 h-5 text-emerald-400"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">苏格拉底模式</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">困惑时启用启发式引导</div>
+                            </div>
+                        </div>
+                        <div class="toggle-switch active" id="socratic-toggle" onclick="toggleSwitch(this, 'socratic')"></div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(139,92,246,0.15);"><i data-lucide="bell" class="w-5 h-5 text-violet-400"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">学习提醒</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">定时推送复习通知</div>
+                            </div>
+                        </div>
+                        <div class="toggle-switch" id="reminder-toggle" onclick="toggleSwitch(this, 'reminder')"></div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(59,130,246,0.15);"><i data-lucide="bell" class="w-5 h-5 text-blue-400"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">消息通知</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">接收系统通知</div>
+                            </div>
+                        </div>
+                        <div class="toggle-switch active" id="notification-toggle" onclick="toggleSwitch(this, 'notification')"></div>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(255,255,255,0.08);"><i data-lucide="shield" class="w-5 h-5" style="color: var(--text-secondary);"></i></div>
+                            <div>
+                                <div class="text-sm font-semibold" style="color: var(--text-primary);">隐私模式</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">隐藏学习数据统计</div>
+                            </div>
+                        </div>
+                        <div class="toggle-switch" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="reminder-settings" class="hidden mt-4">
+                <div class="setting-row">
+                    <div class="text-sm font-semibold mb-3" style="color: var(--text-primary);">提醒时间</div>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="reminder-time-btn" onclick="setReminderTime(this, '08:00')">08:00</button>
+                        <button class="reminder-time-btn" onclick="setReminderTime(this, '10:00')">10:00</button>
+                        <button class="reminder-time-btn active" onclick="setReminderTime(this, '14:00')">14:00</button>
+                        <button class="reminder-time-btn" onclick="setReminderTime(this, '19:00')">19:00</button>
+                        <button class="reminder-time-btn" onclick="setReminderTime(this, '21:00')">21:00</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-avatars">
+            <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="smile" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <span class="font-semibold text-xs" style="color: var(--text-primary);">头像风格</span>
+            </div>
+            <div class="flex flex-wrap gap-3" id="avatar-grid"></div>
+        </div>
+
+        <div class="bento-card bento-span-2 fade-in-up" id="bento-logout">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="bento-label">账户操作</div>
+                    <div class="bento-sub">退出登录或清除数据</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="clearData()" class="glass-btn-ghost text-sm" style="color: #f87171; border-color: rgba(239,68,68,0.2);">清除数据</button>
+                    <button onclick="goBack()" class="glass-btn-primary text-sm">返回主页</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="crop-modal" class="crop-modal hidden">
+        <div class="crop-modal-overlay" onclick="cancelCrop()"></div>
+        <div class="crop-modal-content">
+            <div class="crop-modal-header">
+                <h3 class="text-lg font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                    <i data-lucide="crop" class="w-5 h-5" style="color: var(--primary-light);"></i> 裁剪头像
+                </h3>
+                <button class="crop-modal-close-btn" onclick="cancelCrop()" aria-label="关闭">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="crop-area" id="crop-area">
+                <img id="crop-preview-img" src="" alt="预览"/>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="cancelCrop()" class="glass-btn-ghost flex-1">取消</button>
+                <button onclick="confirmCrop()" class="glass-btn-primary flex-1">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = JSON.parse(localStorage.getItem('starlearn_user') || 'null') || {
+            name: '同学',
+            avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4',
+            currentTask: '大数据导论'
+        };
+
+        let userPreferences = JSON.parse(localStorage.getItem('starlearn_preferences') || 'null') || {
+            cognitiveStyle: 'pragmatic',
+            difficultyPref: 'basic',
+            socraticEnabled: true,
+            notificationEnabled: true,
+            privacyMode: false,
+            reminderEnabled: false,
+            reminderTime: '14:00',
+            learningGoals: ['应对考试'],
+            dailyGoalMinutes: 60
+        };
+
+        let pendingAvatarData = null;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('crop-modal');
+                if (modal && modal.classList.contains('visible')) {
+                    cancelCrop();
+                }
+            }
+        });
+
+        const tasks = [
+            { id: 'bigdata', name: '大数据技术', icon: 'database', desc: 'Hadoop/Spark/Flink', color: 'blue' },
+            { id: 'clang', name: 'C语言程序设计', icon: 'file-code', desc: '指针/内存/数据结构', color: 'emerald' },
+            { id: 'cpp', name: 'C++面向对象', icon: 'code-2', desc: '类与对象/模板/STL', color: 'purple' },
+            { id: 'python', name: 'Python编程', icon: 'terminal', desc: '语法/数据分析/AI', color: 'amber' },
+            { id: 'algorithm', name: '算法与数据结构', icon: 'git-branch', desc: '排序/图论/DP', color: 'red' },
+            { id: 'os', name: '操作系统', icon: 'cpu', desc: '进程/内存/文件系统', color: 'cyan' }
+        ];
+
+        const avatarStyles = [
+            'adventurer', 'avataaars', 'bottts', 'fun-emoji', 'lorelei', 'micah',
+            'miniavs', 'notionists', 'open-peeps', 'personas', 'pixel-art', 'thumbs'
+        ];
+
+        const learningGoals = [
+            { id: 'exam', label: '应对考试', icon: '📝', color: 'rgba(59,130,246,0.15)', textColor: '#60a5fa' },
+            { id: 'career', label: '职业发展', icon: '💼', color: 'rgba(16,185,129,0.15)', textColor: '#34d399' },
+            { id: 'project', label: '项目实战', icon: '🚀', color: 'rgba(245,158,11,0.15)', textColor: '#fbbf24' },
+            { id: 'interest', label: '兴趣探索', icon: '🎯', color: 'rgba(139,92,246,0.15)', textColor: '#a78bfa' },
+            { id: 'competition', label: '竞赛备战', icon: '🏆', color: 'rgba(239,68,68,0.15)', textColor: '#f87171' },
+            { id: 'research', label: '科研学术', icon: '🔬', color: 'rgba(6,182,212,0.15)', textColor: '#22d3ee' }
+        ];
+
+        function init() {
+            const savedTheme = localStorage.getItem('starlearn_theme') || 'ocean';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+
+            document.getElementById('current-avatar').src = currentUser.avatar;
+            document.getElementById('display-name').textContent = currentUser.name;
+            document.getElementById('edit-name').value = currentUser.name;
+
+            const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
+            document.getElementById('stat-interactions').textContent = evaluation.interactionCount || 0;
+            document.getElementById('stat-tasks').textContent = Math.floor((evaluation.interactionCount || 0) / 3);
+            document.getElementById('stat-time').textContent = evaluation.codePracticeTime || 0;
+
+            renderAvatarGrid();
+            renderTaskGrid();
+            renderGoalTags();
+            loadPreferences();
+            lucide.createIcons();
+        }
+
+        function renderAvatarGrid() {
+            const grid = document.getElementById('avatar-grid');
+            grid.innerHTML = avatarStyles.map(style => {
+                const url = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(currentUser.name)}&backgroundColor=b6e3f4`;
+                const isSelected = currentUser.avatar.includes(style);
+                return `<img src="${url}" alt="${style}" class="avatar-option w-12 h-12 ${isSelected ? 'selected' : ''}" onclick="selectAvatar('${style}', this)"/>`;
+            }).join('');
+        }
+
+        function renderTaskGrid() {
+            const grid = document.getElementById('task-grid');
+            grid.innerHTML = tasks.map(task => {
+                const isActive = currentUser.currentTask === task.name || (currentUser.currentTask === '大数据导论' && task.id === 'bigdata');
+                return `
+                <div class="task-card p-3 border ${isActive ? 'active' : ''} cursor-pointer" style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);" onclick="switchTask('${task.name}', '${task.id}')">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="${task.icon}" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                        <div>
+                            <div class="text-xs font-bold" style="color: var(--text-primary);">${task.name}</div>
+                            <div class="text-[10px]" style="color: var(--text-tertiary);">${task.desc}</div>
+                        </div>
+                        ${isActive ? '<span class="ml-auto px-2 py-0.5 text-[9px] rounded-full font-semibold" style="background: var(--accent); color: #fff;">当前</span>' : ''}
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function renderGoalTags() {
+            const container = document.getElementById('goal-tags');
+            container.innerHTML = learningGoals.map(goal => {
+                const isActive = userPreferences.learningGoals.includes(goal.label);
+                return `<span class="goal-tag ${isActive ? 'active border-current' : 'border-transparent'}" style="background: ${goal.color}; color: ${goal.textColor}; border: 1px solid ${isActive ? goal.textColor : 'transparent'};" onclick="toggleGoal('${goal.label}', this)">${goal.icon} ${goal.label}</span>`;
+            }).join('');
+        }
+
+        function toggleGoal(goalLabel, el) {
+            const idx = userPreferences.learningGoals.indexOf(goalLabel);
+            if (idx >= 0) {
+                userPreferences.learningGoals.splice(idx, 1);
+            } else {
+                userPreferences.learningGoals.push(goalLabel);
+            }
+            renderGoalTags();
+            savePreferences();
+        }
+
+        function updateDailyGoal(val) {
+            document.getElementById('daily-goal-display').textContent = val + '分钟';
+            userPreferences.dailyGoalMinutes = parseInt(val);
+            savePreferences();
+        }
+
+        function loadPreferences() {
+            document.getElementById('cognitive-style').value = userPreferences.cognitiveStyle;
+            document.getElementById('difficulty-pref').value = userPreferences.difficultyPref;
+            document.getElementById('daily-goal-slider').value = userPreferences.dailyGoalMinutes;
+            document.getElementById('daily-goal-display').textContent = userPreferences.dailyGoalMinutes + '分钟';
+
+            setToggleState('socratic-toggle', userPreferences.socraticEnabled);
+            setToggleState('notification-toggle', userPreferences.notificationEnabled);
+            setToggleState('privacy-toggle', userPreferences.privacyMode);
+            setToggleState('reminder-toggle', userPreferences.reminderEnabled);
+
+            if (userPreferences.reminderEnabled) {
+                document.getElementById('reminder-settings').classList.remove('hidden');
+            }
+            document.querySelectorAll('.reminder-time-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.includes(userPreferences.reminderTime));
+            });
+        }
+
+        function toggleSwitch(el, key) {
+            el.classList.toggle('active');
+            const isActive = el.classList.contains('active');
+            if (key === 'socratic') userPreferences.socraticEnabled = isActive;
+            else if (key === 'notification') userPreferences.notificationEnabled = isActive;
+            else if (key === 'privacy') userPreferences.privacyMode = isActive;
+            else if (key === 'reminder') {
+                userPreferences.reminderEnabled = isActive;
+                document.getElementById('reminder-settings').classList.toggle('hidden', !isActive);
+                if (isActive) requestNotificationPermission();
+            }
+            savePreferences();
+        }
+
+        function setToggleState(id, active) {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('active', active);
+        }
+
+        function setReminderTime(btn, time) {
+            userPreferences.reminderTime = time;
+            document.querySelectorAll('.reminder-time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            savePreferences();
+        }
+
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function selectAvatar(style, el) {
+            const url = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(currentUser.name)}&backgroundColor=b6e3f4`;
+            currentUser.avatar = url;
+            document.getElementById('current-avatar').src = url;
+            document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
+            saveUser();
+            showToast('头像已更新');
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) { showToast('请选择图片文件'); return; }
+            if (file.size > 5 * 1024 * 1024) { showToast('图片大小不能超过5MB'); return; }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingAvatarData = e.target.result;
+                document.getElementById('crop-preview-img').src = pendingAvatarData;
+                const modal = document.getElementById('crop-modal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            modal.classList.add('visible');
+                        });
+                    });
+                }
+                lucide.createIcons();
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function cancelCrop() {
+            const modal = document.getElementById('crop-modal');
+            if (modal) modal.classList.remove('visible');
+            setTimeout(() => {
+                const m = document.getElementById('crop-modal');
+                if (m) m.classList.add('hidden');
+            }, 300);
+            pendingAvatarData = null;
+        }
+
+        function confirmCrop() {
+            if (!pendingAvatarData) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = 200; canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            const img = document.getElementById('crop-preview-img');
+            const size = Math.min(img.naturalWidth, img.naturalHeight);
+            const sx = (img.naturalWidth - size) / 2;
+            const sy = (img.naturalHeight - size) / 2;
+            ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
+            const croppedData = canvas.toDataURL('image/png');
+            currentUser.avatar = croppedData;
+            document.getElementById('current-avatar').src = croppedData;
+            saveUser();
+            const modal = document.getElementById('crop-modal');
+            if (modal) modal.classList.remove('visible');
+            setTimeout(() => {
+                const m = document.getElementById('crop-modal');
+                if (m) m.classList.add('hidden');
+            }, 300);
+            pendingAvatarData = null;
+            document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+            showToast('头像已更新');
+        }
+
+        function saveName() {
+            const name = document.getElementById('edit-name').value.trim();
+            if (!name) return;
+            currentUser.name = name;
+            document.getElementById('display-name').textContent = name;
+            saveUser();
+            showToast('昵称已保存');
+        }
+
+        function switchTask(taskName, taskId) {
+            currentUser.currentTask = taskName;
+            saveUser();
+            renderTaskGrid();
+            showToast(`已切换到「${taskName}」`);
+        }
+
+        function savePreferences() {
+            userPreferences.cognitiveStyle = document.getElementById('cognitive-style').value;
+            userPreferences.difficultyPref = document.getElementById('difficulty-pref').value;
+            localStorage.setItem('starlearn_preferences', JSON.stringify(userPreferences));
+        }
+
+        function saveUser() {
+            localStorage.setItem('starlearn_user', JSON.stringify(currentUser));
+        }
+
+        function goBack() {
+            window.close();
+            if (!window.closed) window.location.href = '/index.html';
+        }
+
+        function clearData() {
+            if (confirm('确定要清除所有学习数据吗？此操作不可恢复。')) {
+                localStorage.removeItem('starlearn_evaluation');
+                document.getElementById('stat-interactions').textContent = '0';
+                document.getElementById('stat-tasks').textContent = '0';
+                document.getElementById('stat-time').textContent = '0';
+                showToast('学习数据已清除');
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-2xl shadow-xl text-sm font-semibold z-[9999] animate-scale-in';
+            toast.style.cssText = 'background: rgba(30,41,59,0.9); color: white; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translate(-50%, -12px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2200);
+        }
+
+        function startReminderCheck() {
+            setInterval(() => {
+                if (!userPreferences.reminderEnabled) return;
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                if (currentTime === userPreferences.reminderTime && now.getSeconds() < 2) {
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('星识 Star-Learn 学习提醒', {
+                            body: `该学习啦！今日目标：${userPreferences.dailyGoalMinutes}分钟`,
+                            icon: currentUser.avatar
+                        });
+                    }
+                    showToast('📚 学习提醒：该学习啦！');
+                }
+            }, 1000);
+        }
+
+        init();
+        startReminderCheck();
+    </script>
+</body>
+</html>

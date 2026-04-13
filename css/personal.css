@@ -1,0 +1,8 @@
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn 0.4s ease-out; }
+.avatar-option { cursor: pointer; transition: all 0.2s; border: 3px solid transparent; border-radius: 50%; }
+.avatar-option:hover { transform: scale(1.1); }
+.avatar-option.selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
+.task-card { transition: all 0.2s; }
+.task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+.task-card.active { border-color: #2563eb; background: #eff6ff; }

@@ -1,0 +1,13 @@
+{
+  "name": "starlearn",
+  "version": "5.0.0",
+  "private": true,
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./css/tailwind-input.css -o ./css/tailwind.css --minify",
+    "watch:css": "npx @tailwindcss/cli -i ./css/tailwind-input.css -o ./css/tailwind.css --watch"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}

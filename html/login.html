@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - 登录</title>
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .float-anim { animation: float 6s ease-in-out infinite; }
+        .gradient-bg { background: linear-gradient(-45deg, #1e3a8a, #2563eb, #7c3aed, #3b82f6); background-size: 400% 400%; animation: gradientShift 15s ease infinite; }
+        .fade-in { animation: fadeIn 0.6s ease-out; }
+        .login-input { transition: all 0.3s; }
+        .login-input:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
+        .particle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); pointer-events: none; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden gradient-bg">
+    <div class="hidden lg:flex lg:w-1/2 flex-col justify-center items-center text-white p-12 relative">
+        <div class="particle w-32 h-32 top-20 left-20 float-anim" style="animation-delay: 0s;"></div>
+        <div class="particle w-20 h-20 top-40 right-32 float-anim" style="animation-delay: 2s;"></div>
+        <div class="particle w-24 h-24 bottom-32 left-40 float-anim" style="animation-delay: 4s;"></div>
+        <div class="particle w-16 h-16 bottom-20 right-20 float-anim" style="animation-delay: 1s;"></div>
+
+        <div class="fade-in text-center relative z-10">
+            <div class="flex items-center justify-center gap-3 mb-6">
+                <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                    <i data-lucide="brain-circuit" class="w-10 h-10"></i>
+                </div>
+            </div>
+            <h1 class="text-5xl font-bold mb-4 tracking-wide">星识 Star-Learn</h1>
+            <p class="text-xl text-blue-200 mb-8">多智能体协同伴学系统 V4.0</p>
+            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto text-left">
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                    <i data-lucide="brain-circuit" class="w-6 h-6 mb-2 text-blue-200"></i>
+                    <div class="text-sm font-semibold mb-1">6维动态画像</div>
+                    <div class="text-xs text-blue-200">实时追踪学情状态</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                    <i data-lucide="route" class="w-6 h-6 mb-2 text-purple-200"></i>
+                    <div class="text-sm font-semibold mb-1">认知风格路由</div>
+                    <div class="text-xs text-blue-200">千人千面个性化教学</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                    <i data-lucide="help-circle" class="w-6 h-6 mb-2 text-amber-200"></i>
+                    <div class="text-sm font-semibold mb-1">苏格拉底诊断</div>
+                    <div class="text-xs text-blue-200">启发式引导自主思考</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                    <i data-lucide="sparkles" class="w-6 h-6 mb-2 text-emerald-200"></i>
+                    <div class="text-sm font-semibold mb-1">十大智能体协同</div>
+                    <div class="text-xs text-blue-200">多Agent协作教学</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="w-full lg:w-1/2 flex items-center justify-center bg-white p-8">
+        <div class="w-full max-w-md fade-in">
+            <div class="lg:hidden flex items-center gap-2 mb-8 justify-center">
+                <i data-lucide="brain-circuit" class="w-8 h-8 text-blue-600"></i>
+                <h1 class="text-2xl font-bold text-blue-600">星识 Star-Learn</h1>
+            </div>
+
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">欢迎回来</h2>
+            <p class="text-gray-500 mb-8">登录你的学习账户，继续探索知识的星辰大海</p>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">用户名</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="login-username" placeholder="请输入用户名" class="login-input w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-sm"/>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">密码</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-5 h-5 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <input type="password" id="login-password" placeholder="请输入密码" class="login-input w-full pl-12 pr-12 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:bg-white text-sm"/>
+                        <button onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <i data-lucide="eye" class="w-5 h-5" id="eye-icon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="remember-me" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
+                        <span class="text-sm text-gray-600">记住我</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-700 font-medium">忘记密码？</a>
+                </div>
+
+                <button onclick="handleLogin()" class="w-full py-3.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 active:scale-[0.98]">
+                    登 录
+                </button>
+
+                <div class="relative my-6">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                    <div class="relative flex justify-center"><span class="bg-white px-4 text-sm text-gray-400">或使用以下方式登录</span></div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="quickLogin('微信用户')" class="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-green-500" viewBox="0 0 24 24" fill="currentColor"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 01.213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 00.167-.054l1.903-1.114a.864.864 0 01.717-.098 10.16 10.16 0 002.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178A1.17 1.17 0 014.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 01-1.162 1.178 1.17 1.17 0 01-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 01.598.082l1.584.926a.272.272 0 00.14.045c.133 0 .241-.11.241-.245 0-.06-.023-.118-.039-.177l-.326-1.233a.49.49 0 01.177-.554C23.028 18.553 24 16.803 24 14.861c0-3.252-2.83-5.94-7.062-6.003zm-2.744 2.501c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982zm4.842 0c.535 0 .969.44.969.982a.976.976 0 01-.969.983.976.976 0 01-.969-.983c0-.542.434-.982.97-.982z"/></svg>
+                        <span class="text-xs text-gray-600">微信</span>
+                    </button>
+                    <button onclick="quickLogin('QQ用户')" class="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                        <svg class="w-5 h-5 text-cyan-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 13.24c-.18.53-.5 1.08-.94 1.5.23.28.36.62.36 1 0 .86-.7 1.56-1.56 1.56-.56 0-1.05-.3-1.32-.74-.36.08-.74.12-1.12.12s-.76-.04-1.12-.12c-.27.44-.76.74-1.32.74-.86 0-1.56-.7-1.56-1.56 0-.38.13-.72.36-1-.44-.42-.76-.97-.94-1.5-.3-.9-.14-1.64.36-1.92.22-.12.48-.16.76-.12-.06-.32-.08-.66-.06-1 .04-.72.3-1.38.7-1.92-.3-.36-.48-.82-.48-1.32 0-1.14.92-2.06 2.06-2.06.56 0 1.06.22 1.44.58.5-.2 1.04-.32 1.62-.32s1.12.12 1.62.32c.38-.36.88-.58 1.44-.58 1.14 0 2.06.92 2.06 2.06 0 .5-.18.96-.48 1.32.4.54.66 1.2.7 1.92.02.34 0 .68-.06 1 .28-.04.54 0 .76.12.5.28.66 1.02.36 1.92z"/></svg>
+                        <span class="text-xs text-gray-600">QQ</span>
+                    </button>
+                    <button onclick="quickLogin('访客')" class="flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+                        <i data-lucide="user-circle" class="w-5 h-5 text-gray-400"></i>
+                        <span class="text-xs text-gray-600">访客</span>
+                    </button>
+                </div>
+            </div>
+
+            <p class="text-center text-sm text-gray-400 mt-8">
+                还没有账户？<a href="/register.html" class="text-blue-600 font-semibold hover:text-blue-700">立即注册</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/login.js"></script>
+</body>
+</html>

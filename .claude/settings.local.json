@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python main.py)",
+      "Bash(curl -s http://127.0.0.1:8000/assessment.html)",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/assessment/submit -H \"Content-Type: application/json\" -d '{\"assessment\":{\"knowledgeBase\":\"beginner\",\"codeSkill\":\"basic\",\"learningGoal\":\"exam\",\"cognitiveStyle\":\"visual\",\"studyTime\":\"moderate\",\"focusLevel\":\"medium\"}}')",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/register -H \"Content-Type: application/json\" -d '{\"username\":\"testuser123\",\"password\":\"test1234\"}')",
+      "Bash(curl -s -X POST http://127.0.0.1:8000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"testuser123\",\"password\":\"test1234\"}')"
+    ]
+  }
+}
