@@ -1,8 +1,835 @@
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.fade-in { animation: fadeIn 0.4s ease-out; }
-.avatar-option { cursor: pointer; transition: all 0.2s; border: 3px solid transparent; border-radius: 50%; }
-.avatar-option:hover { transform: scale(1.1); }
-.avatar-option.selected { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.2); }
-.task-card { transition: all 0.2s; }
-.task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-.task-card.active { border-color: #2563eb; background: #eff6ff; }
+/* ============================================
+   personal.css - 极致紧凑的个性化页面样式
+   ============================================ */
+
+/* CSS Variables Override */
+:root {
+    --personal-card-padding: 16px;
+    --personal-gap: 12px;
+    --personal-radius: 16px;
+    --personal-border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ============================================
+   Layout Containers
+   ============================================ */
+
+.personal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    margin: 16px;
+    margin-bottom: 0;
+    background: var(--surface-glass);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: var(--personal-border);
+    border-radius: var(--personal-radius);
+    position: relative;
+    z-index: 10;
+}
+
+.personal-container {
+    padding: var(--personal-gap);
+    display: flex;
+    flex-direction: column;
+    gap: var(--personal-gap);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ============================================
+   Section Common Styles
+   ============================================ */
+
+.identity-section,
+.prefs-section,
+.avatar-section,
+.stats-section,
+.goals-section,
+.tasks-section {
+    background: var(--surface-glass);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: var(--personal-border);
+    border-radius: var(--personal-radius);
+    padding: var(--personal-card-padding);
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.section-header i {
+    color: var(--primary-light);
+}
+
+/* ============================================
+   Identity Section - 核心身份区
+   ============================================ */
+
+.identity-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.identity-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 280px;
+}
+
+.avatar-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.avatar-img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-glass);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 2px solid var(--surface-glass);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.avatar-edit-btn:hover {
+    transform: scale(1.1);
+    background: var(--primary-light);
+}
+
+.identity-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.identity-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.identity-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.identity-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #34d399;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.identity-edit-row {
+    display: flex;
+    gap: 8px;
+}
+
+.name-input {
+    flex: 1;
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 13px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.2s;
+}
+
+.name-input:focus {
+    border-color: var(--primary);
+    background: rgba(255,255,255,0.08);
+}
+
+.name-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.save-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.save-btn:hover {
+    background: var(--primary-light);
+    transform: translateY(-1px);
+}
+
+/* ============================================
+   Action Buttons - 操作按钮组
+   ============================================ */
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.action-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.action-btn.primary:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+}
+
+.action-btn.danger {
+    background: transparent;
+    border-color: rgba(239,68,68,0.3);
+    color: #f87171;
+}
+
+.action-btn.danger:hover {
+    background: rgba(239,68,68,0.1);
+    border-color: #f87171;
+}
+
+/* ============================================
+   Preferences Section - 偏好设置
+   ============================================ */
+
+.prefs-section {
+    padding-bottom: 12px;
+}
+
+.prefs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .prefs-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .prefs-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pref-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.pref-item:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.1);
+}
+
+.pref-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pref-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.pref-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.pref-select {
+    padding: 6px 8px;
+    font-size: 11px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    min-width: 70px;
+}
+
+.pref-select:focus {
+    border-color: var(--primary);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    width: 40px;
+    height: 22px;
+    border-radius: 11px;
+    background: rgba(255,255,255,0.1);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch.active {
+    background: var(--primary);
+}
+
+.toggle-switch.active::after {
+    left: 20px;
+}
+
+/* Reminder Time */
+.reminder-time {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.reminder-time.hidden {
+    display: none;
+}
+
+.time-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.time-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.time-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--primary);
+}
+
+.time-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+/* ============================================
+   Avatar Section - 头像风格
+   ============================================ */
+
+.avatar-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.avatar-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.avatar-option:hover {
+    transform: scale(1.15);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.avatar-option.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.3);
+}
+
+/* ============================================
+   Stats Section - 数据统计
+   ============================================ */
+
+.stats-section {
+    display: flex;
+    gap: var(--personal-gap);
+    padding: 14px var(--personal-card-padding);
+}
+
+.mini-stat-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+}
+
+.mini-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mini-stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.mini-stat-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+/* ============================================
+   Goals Section - 学习目标
+   ============================================ */
+
+.goal-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.goal-tag {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.goal-tag:hover {
+    transform: scale(1.05);
+}
+
+.goal-tag.active {
+    border-color: currentColor;
+}
+
+.daily-goal-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.goal-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+
+.goal-slider {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    outline: none;
+}
+
+.goal-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.goal-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-light);
+    min-width: 50px;
+    text-align: right;
+}
+
+/* ============================================
+   Tasks Section - 学习任务
+   ============================================ */
+
+.task-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 900px) {
+    .task-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.task-card {
+    padding: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.task-card:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+}
+
+.task-card.active {
+    border-color: var(--primary);
+    background: rgba(37,99,235,0.1);
+}
+
+.task-card-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-card-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.task-card-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: var(--primary);
+    color: white;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* ============================================
+   Crop Modal
+   ============================================ */
+
+.crop-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.crop-modal.hidden {
+    display: none;
+}
+
+.crop-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+}
+
+.crop-modal-content {
+    position: relative;
+    background: var(--surface-glass);
+    border: var(--personal-border);
+    border-radius: var(--personal-radius);
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.crop-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.crop-modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.crop-modal-header button {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.crop-modal-header button:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-primary);
+}
+
+.crop-area {
+    background: rgba(0,0,0,0.3);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+}
+
+.crop-area img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.crop-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.crop-actions button {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+}
+
+.btn-ghost {
+    background: transparent;
+    border-color: rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+    .personal-container {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .identity-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .identity-card {
+        min-width: unset;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+    }
+
+    .action-btn {
+        flex: 1;
+    }
+
+    .stats-section {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .personal-nav {
+        margin: 10px;
+        padding: 10px 14px;
+    }
+
+    .avatar-img {
+        width: 52px;
+        height: 52px;
+    }
+
+    .identity-name {
+        font-size: 16px;
+    }
+
+    .mini-stat-card {
+        padding: 10px;
+    }
+
+    .mini-stat-value {
+        font-size: 16px;
+    }
+}

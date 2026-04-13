@@ -169,6 +169,91 @@ const projects = [
 
 let currentAgent = AGENTS_CONFIG[0];
 
+let agentMenuState = {
+    isOpen: false,
+    isAnimating: false,
+    lockUntil: 0,
+    wrapper: null,
+    panel: null,
+    button: null,
+    fabList: null
+};
+
+function initAgentMenu() {
+    agentMenuState.wrapper = document.getElementById('agent-menu-wrapper');
+    agentMenuState.panel = document.getElementById('agent-fab-panel');
+    agentMenuState.button = document.getElementById('agent-fab-btn');
+    agentMenuState.fabList = document.getElementById('agent-fab-list');
+}
+
+function isMenuLocked() {
+    return Date.now() < agentMenuState.lockUntil;
+}
+
+function lockMenu(durationMs) {
+    agentMenuState.lockUntil = Date.now() + durationMs;
+}
+
+function openMenu() {
+    if (agentMenuState.isAnimating) return;
+
+    agentMenuState.isAnimating = true;
+    agentMenuState.isOpen = true;
+    agentMenuState.panel.classList.remove('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
+    agentMenuState.panel.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+    renderAgentFab();
+
+    lockMenu(200);
+    setTimeout(() => {
+        agentMenuState.isAnimating = false;
+    }, 200);
+}
+
+function closeMenu() {
+    if (agentMenuState.isAnimating) {
+        agentMenuState.isAnimating = false;
+    }
+
+    agentMenuState.panel.classList.add('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
+    agentMenuState.panel.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+
+    agentMenuState.isOpen = false;
+    agentMenuState.isAnimating = false;
+}
+
+function handleMenuButtonClick(event) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (isMenuLocked()) return;
+
+    if (agentMenuState.isOpen) {
+        closeMenu();
+    } else {
+        openMenu();
+    }
+}
+
+function handleGlobalClick(event) {
+    if (!agentMenuState.isOpen) return;
+
+    const path = event.composedPath();
+    const isClickInsidePanel = agentMenuState.panel && path.includes(agentMenuState.panel);
+    const isClickOnButton = agentMenuState.button && path.includes(agentMenuState.button);
+    const isClickInsideWrapper = agentMenuState.wrapper && path.includes(agentMenuState.wrapper);
+
+    if (!isClickInsideWrapper) {
+        closeMenu();
+        return;
+    }
+
+    if (isClickOnButton) {
+        return;
+    }
+}
+
+document.addEventListener('click', handleGlobalClick);
+
 function switchAgent(agentId) {
     const agent = AGENTS_CONFIG.find(a => a.id === agentId);
     if (!agent) return;
@@ -180,7 +265,7 @@ function switchAgent(agentId) {
     messages = [{ role: 'assistant', content: greetingText }];
     renderMessages();
     renderAgentFab();
-    hideAgentPanel();
+    closeMenu();
     localStorage.setItem('starlearn_agent', agentId);
 }
 
@@ -198,7 +283,7 @@ function renderAgentFab() {
     if (listEl) {
         listEl.innerHTML = AGENTS_CONFIG.map(agent => `
             <button class="agent-fab-item ${agent.id === currentAgent.id ? 'active' : ''}"
-                    onclick="event.stopPropagation(); switchAgent('${agent.id}')"
+                    onclick="switchAgent('${agent.id}')"
                     style="${agent.id === currentAgent.id ? `background: ${agent.themeColor}20; border-color: ${agent.themeColor};` : ''}">
                 <span class="agent-fab-item-icon">${agent.icon}</span>
                 <span class="agent-fab-item-name">${agent.name}</span>
@@ -208,35 +293,14 @@ function renderAgentFab() {
 }
 
 function toggleAgentPanel() {
-    const panel = document.getElementById('agent-fab-panel');
-    const backdrop = document.getElementById('agent-backdrop');
-    if (!panel) return;
-    
-    const isOpen = !panel.classList.contains('opacity-0');
-    
-    if (isOpen) {
-        panel.classList.add('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
-        panel.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
-        if (backdrop) backdrop.classList.add('hidden');
+    if (agentMenuState.isOpen) {
+        closeMenu();
     } else {
-        panel.classList.remove('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
-        panel.classList.add('opacity-100', 'translate-y-0', 'scale-100');
-        renderAgentFab();
-        if (backdrop) backdrop.classList.remove('hidden');
+        openMenu();
     }
 }
 
-function hideAgentPanel() {
-    const panel = document.getElementById('agent-fab-panel');
-    const backdrop = document.getElementById('agent-backdrop');
-    if (panel) {
-        panel.classList.add('opacity-0', 'translate-y-2', 'scale-95', 'pointer-events-none');
-        panel.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
-    }
-    if (backdrop) {
-        backdrop.classList.add('hidden');
-    }
-}
+document.addEventListener('DOMContentLoaded', initAgentMenu);
 
 function getAgentSystemPrompt() {
     return currentAgent.systemPrompt;

@@ -21,6 +21,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/go/go.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/simple.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/rust/rust.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
@@ -351,16 +352,15 @@
         </div>
     </div>
 
-    <div id="agent-fab" class="agent-fab-container" style="position: fixed; bottom: 24px; right: 96px; z-index: 50;">
-        <div id="agent-fab-panel" class="agent-fab-panel transition-all duration-200 ease-out origin-bottom-right opacity-0 translate-y-2 scale-95 pointer-events-none" style="position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 51;">
-            <div id="agent-fab-list" class="agent-fab-list"></div>
+    <div id="agent-menu-wrapper" data-ref="agent-menu-wrapper" style="position: fixed; bottom: 24px; right: 96px; z-index: 50;">
+        <div id="agent-fab-panel" data-ref="agent-fab-panel" class="agent-fab-panel transition-all duration-200 ease-out origin-bottom-right opacity-0 translate-y-2 scale-95 pointer-events-none" style="position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 51;">
+            <div id="agent-fab-list" data-ref="agent-fab-list" class="agent-fab-list"></div>
         </div>
-        <button id="agent-fab-btn" class="agent-fab-main" onclick="event.stopPropagation(); toggleAgentPanel()" aria-label="切换智能体">
+        <button id="agent-fab-btn" data-ref="agent-fab-btn" class="agent-fab-main" onclick="handleMenuButtonClick(event)" aria-label="切换智能体">
             <span id="agent-fab-icon" class="agent-fab-icon"></span>
             <span id="agent-fab-name" class="agent-fab-name"></span>
         </button>
     </div>
-    <div id="agent-backdrop" class="hidden" onclick="event.stopPropagation(); hideAgentPanel()" style="position: fixed; inset: 0; z-index: 40; background: transparent; cursor: default;"></div>
 
     <div id="music-panel" class="music-panel">
         <div class="music-panel-header shrink-0">
