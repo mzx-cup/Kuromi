@@ -4,6 +4,8 @@
     --neon-purple: #a855f7;
     --neon-blue: #3b82f6;
     --neon-green: #10b981;
+    --neon-orange: #f97316;
+    --neon-cyan: #06b6d4;
 }
 
 * {
@@ -17,6 +19,389 @@
     background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
     min-height: 100vh;
     color: #fff;
+}
+
+/* ========== 1. Continue Learning Button ========== */
+.course-btn.continue {
+    position: relative;
+    background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+    color: #fff;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.course-btn.continue::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.course-btn.continue:hover::before {
+    opacity: 1;
+}
+
+.course-btn.continue:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.5);
+}
+
+/* Breathing Glow Animation for 90%+ progress */
+.course-btn.continue.breathe-glow {
+    animation: breatheGlow 2s ease-in-out infinite;
+}
+
+@keyframes breatheGlow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(168, 85, 247, 0.4), 0 0 40px rgba(168, 85, 247, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(168, 85, 247, 0.6), 0 0 60px rgba(168, 85, 247, 0.3);
+    }
+}
+
+/* Tooltip */
+.course-btn.continue .tooltip {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: rgba(10, 10, 26, 0.95);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    white-space: nowrap;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s ease;
+    z-index: 100;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.course-btn.continue .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(168, 85, 247, 0.3);
+}
+
+.course-btn.continue:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Dynamic Island Transition */
+.course-btn.continue .island-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.course-btn.continue .mini-progress {
+    height: 4px;
+    width: 0;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+}
+
+.course-btn.continue.expanding {
+    animation: islandExpand 0.5s ease forwards;
+}
+
+@keyframes islandExpand {
+    0% { width: 100%; }
+    50% { width: 60%; border-radius: 20px; }
+    100% { width: 100%; border-radius: 10px; }
+}
+
+.course-btn.continue.expanding .mini-progress {
+    width: 100%;
+}
+
+/* ========== 2. Start Learning Button ========== */
+.course-btn.start {
+    position: relative;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.course-btn.start::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+    transform: translateX(-101%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: -1;
+}
+
+.course-btn.start:hover::before {
+    transform: translateX(0);
+}
+
+.course-btn.start:hover {
+    transform: scale(1.05);
+    border-color: transparent;
+    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);
+}
+
+/* Mini Course Outline Popup */
+.course-btn.start .outline-popup {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(8px) scale(0.95);
+    background: rgba(10, 10, 26, 0.98);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    pointer-events: none;
+}
+
+.course-btn.start .outline-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: rgba(168, 85, 247, 0.3);
+}
+
+.course-btn.start:hover .outline-popup,
+.course-btn.start:focus .outline-popup {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.course-btn.start .outline-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.course-btn.start .outline-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.course-btn.start .outline-item:last-child {
+    border-bottom: none;
+}
+
+.course-btn.start .outline-item .lesson-num {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--neon-purple);
+    background: rgba(168, 85, 247, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* ========== 3. Review & Consolidate Button ========== */
+.course-btn.review {
+    position: relative;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--neon-green);
+}
+
+.course-btn.review:hover {
+    background: rgba(16, 185, 129, 0.25);
+    transform: scale(1.02);
+}
+
+/* Drawer Menu */
+.course-btn.review .drawer-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 26, 0.98);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 8px 0;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px) scale(0.95);
+    transform-origin: bottom center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    overflow: hidden;
+}
+
+.course-btn.review.active .drawer-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.course-btn.review .drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.course-btn.review .drawer-item:hover {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--neon-green);
+}
+
+.course-btn.review .drawer-item svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.course-btn.review .drawer-item:hover svg {
+    opacity: 1;
+}
+
+/* Dynamic Stats */
+.course-btn.review .stat-switch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.course-btn.review:hover .stat-switch {
+    opacity: 0;
+}
+
+.course-btn.review .review-suggestion {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--neon-cyan);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.course-btn.review:hover .review-suggestion {
+    display: flex;
+    opacity: 1;
+}
+
+/* ========== 4. Completed Button ========== */
+.course-btn.completed {
+    position: relative;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: default;
+}
+
+.course-btn.completed:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Text Flip on Hover */
+.course-btn.completed .btn-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.3s;
+}
+
+.course-btn.completed:hover .btn-text-default {
+    opacity: 0;
+    transform: translateY(-10px);
+    position: absolute;
+}
+
+.course-btn.completed .btn-text-hover {
+    opacity: 0;
+    transform: translateY(10px);
+    position: absolute;
+}
+
+.course-btn.completed:hover .btn-text-hover {
+    opacity: 1;
+    transform: translateY(0);
+    position: relative;
+}
+
+/* Confetti Animation */
+.course-btn.completed .confetti-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.course-btn.completed .confetti {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+}
+
+.course-btn.completed.celebrating .confetti {
+    animation: confettiBurst 0.8s ease-out forwards;
+}
+
+.course-btn.completed .confetti:nth-child(1) { left: 20%; background: var(--neon-purple); animation-delay: 0s; }
+.course-btn.completed .confetti:nth-child(2) { left: 40%; background: var(--neon-blue); animation-delay: 0.1s; }
+.course-btn.completed .confetti:nth-child(3) { left: 60%; background: var(--neon-green); animation-delay: 0.15s; }
+.course-btn.completed .confetti:nth-child(4) { left: 80%; background: var(--neon-orange); animation-delay: 0.2s; }
+.course-btn.completed .confetti:nth-child(5) { left: 30%; background: var(--neon-cyan); animation-delay: 0.05s; }
+.course-btn.completed .confetti:nth-child(6) { left: 70%; background: #f472b6; animation-delay: 0.12s; }
+
+@keyframes confettiBurst {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-40px) scale(0);
+    }
 }
 
 .courses-bg {

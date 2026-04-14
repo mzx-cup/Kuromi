@@ -1972,47 +1972,210 @@ body {
     to { stroke-dashoffset: -24; }
 }
 
-.holo-nodes {
-    position: absolute;
+/* ============================================
+   全息知识生态 - 树状金字塔布局
+   ============================================ */
+
+.holo-tree-container {
+    position: relative;
     width: 100%;
-    height: 100%;
+    min-height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px 60px;
+    box-sizing: border-box;
 }
 
+.holo-nodes {
+    position: relative;
+    width: 100%;
+    max-width: 700px;
+    height: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* SVG 连线层 */
+.holo-connections {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.connection-line {
+    fill: none;
+    stroke-width: 2;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.connection-line.healthy {
+    stroke: url(#lineGradientHealthy);
+}
+
+.connection-line.warning {
+    stroke: url(#lineGradientWarning);
+}
+
+.connection-line.danger {
+    stroke: url(#lineGradientDanger);
+}
+
+/* 节点基础样式 - 树状布局 */
 .holo-node {
     position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     animation: nodeAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     opacity: 0;
-}
-
-.holo-node.center {
-    z-index: 10;
+    z-index: 5;
 }
 
 @keyframes nodeAppear {
     from {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.3);
+        transform: scale(0.5) translateY(20px);
     }
     to {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
+        transform: scale(1) translateY(0);
     }
 }
 
-.holo-node:nth-child(1) { animation-delay: 0.1s; }
-.holo-node:nth-child(2) { animation-delay: 0.2s; }
-.holo-node:nth-child(3) { animation-delay: 0.3s; }
-.holo-node:nth-child(4) { animation-delay: 0.4s; }
-.holo-node:nth-child(5) { animation-delay: 0.5s; }
-.holo-node:nth-child(6) { animation-delay: 0.6s; }
-.holo-node:nth-child(7) { animation-delay: 0.7s; }
+/* 根节点 - 塔尖 */
+.holo-node.node-root {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+}
 
+.holo-node.node-root:hover {
+    transform: translateX(-50%) scale(1.1);
+}
+
+/* 分支节点 - 第一层塔身 */
+.holo-node.node-branch {
+    top: 130px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0;
+    opacity: 1;
+    animation: branchAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.holo-node.node-branch:nth-child(2) { left: 0; animation-delay: 0.1s; }
+.holo-node.node-branch:nth-child(3) { left: 25%; margin-left: -35px; animation-delay: 0.2s; }
+.holo-node.node-branch:nth-child(4) { left: 50%; margin-left: -35px; animation-delay: 0.3s; }
+.holo-node.node-branch:nth-child(5) { left: 75%; margin-left: -35px; animation-delay: 0.4s; }
+
+@keyframes branchAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.holo-node.node-branch:hover {
+    transform: scale(1.08);
+}
+
+.holo-node.node-branch:nth-child(2):hover { transform: translateX(5px) scale(1.08); }
+.holo-node.node-branch:nth-child(3):hover { transform: translateX(-5px) scale(1.08); }
+.holo-node.node-branch:nth-child(4):hover { transform: translateX(-5px) scale(1.08); }
+.holo-node.node-branch:nth-child(5):hover { transform: translateX(-5px) scale(1.08); }
+
+/* 分支连接器 - 左/右 */
+.branch-connector {
+    position: absolute;
+    top: -15px;
+    width: 50%;
+    height: 15px;
+    pointer-events: none;
+}
+
+.branch-connector.left {
+    right: 50%;
+    background: linear-gradient(to right, transparent, var(--connector-color, rgba(52, 211, 153, 0.4)));
+}
+
+.branch-connector.right {
+    left: 50%;
+    background: linear-gradient(to left, transparent, var(--connector-color, rgba(52, 211, 153, 0.4)));
+}
+
+/* 叶子节点 - 第二层塔身 */
+.holo-node.node-leaf {
+    top: 280px;
+    width: 25%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    opacity: 1;
+    animation: leafAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.holo-node.node-leaf:nth-child(6) { left: 0; animation-delay: 0.5s; }
+.holo-node.node-leaf:nth-child(7) { left: 25%; margin-left: -35px; animation-delay: 0.6s; }
+.holo-node.node-leaf:nth-child(8) { left: 50%; margin-left: -35px; animation-delay: 0.7s; }
+.holo-node.node-leaf:nth-child(9) { left: 75%; margin-left: -35px; animation-delay: 0.8s; }
+
+@keyframes leafAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.holo-node.node-leaf:hover {
+    transform: scale(1.08);
+}
+
+.holo-node.node-leaf:nth-child(6):hover { transform: translateX(8px) scale(1.08); }
+.holo-node.node-leaf:nth-child(7):hover { transform: translateX(-8px) scale(1.08); }
+.holo-node.node-leaf:nth-child(8):hover { transform: translateX(-8px) scale(1.08); }
+.holo-node.node-leaf:nth-child(9):hover { transform: translateX(-8px) scale(1.08); }
+
+/* 叶子连接器 */
+.leaf-connector {
+    position: absolute;
+    top: -15px;
+    width: 50%;
+    height: 15px;
+    pointer-events: none;
+}
+
+.leaf-connector.left {
+    right: 50%;
+    background: linear-gradient(to right, transparent, var(--leaf-connector-color, rgba(52, 211, 153, 0.3)));
+}
+
+.leaf-connector.right {
+    left: 50%;
+    background: linear-gradient(to left, transparent, var(--leaf-connector-color, rgba(52, 211, 153, 0.3)));
+}
+
+/* 节点球体 */
 .node-sphere {
     position: relative;
     width: 70px;
@@ -2028,10 +2191,15 @@ body {
     transition: all 0.3s ease;
 }
 
-.holo-node.center .node-sphere {
-    width: 90px;
-    height: 90px;
+.holo-node.node-root .node-sphere {
+    width: 85px;
+    height: 85px;
     border-width: 3px;
+}
+
+.holo-node.node-leaf .node-sphere {
+    width: 60px;
+    height: 60px;
 }
 
 .node-inner {
@@ -2044,11 +2212,19 @@ body {
 
 .node-icon {
     font-size: 28px;
+    line-height: 1;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.holo-node.center .node-icon {
+.holo-node.node-root .node-icon {
     font-size: 36px;
+}
+
+.holo-node.node-leaf .node-icon {
+    font-size: 24px;
 }
 
 .node-glow {
@@ -2073,6 +2249,10 @@ body {
     font-weight: 600;
     color: rgba(255, 255, 255, 0.9);
     transition: all 0.3s ease;
+}
+
+.holo-node.node-leaf .node-name {
+    font-size: 12px;
 }
 
 .node-status {
@@ -2102,7 +2282,13 @@ body {
     color: #6ee7b7;
 }
 
-/* 警告状态 - Warning (需复习) */
+.holo-node.healthy .branch-connector,
+.holo-node.healthy .leaf-connector {
+    --connector-color: rgba(52, 211, 153, 0.4);
+    --leaf-connector-color: rgba(52, 211, 153, 0.3);
+}
+
+/* 警告状态 - Warning */
 .holo-node.warning .node-sphere {
     border-color: rgba(251, 191, 36, 0.7);
     box-shadow:
@@ -2125,6 +2311,12 @@ body {
     color: #fcd34d;
 }
 
+.holo-node.warning .branch-connector,
+.holo-node.warning .leaf-connector {
+    --connector-color: rgba(251, 191, 36, 0.4);
+    --leaf-connector-color: rgba(251, 191, 36, 0.3);
+}
+
 @keyframes warningPulse {
     0%, 100% {
         transform: scale(1);
@@ -2145,7 +2337,7 @@ body {
     50% { opacity: 1; transform: scale(1.1); }
 }
 
-/* 危险状态 - Danger (濒临遗忘) */
+/* 危险状态 - Danger */
 .holo-node.danger .node-sphere {
     border-color: rgba(248, 113, 113, 0.8);
     box-shadow:
@@ -2167,6 +2359,12 @@ body {
 .holo-node.danger .node-name {
     color: #fca5a5;
     animation: textShake 1.5s ease-in-out infinite;
+}
+
+.holo-node.danger .branch-connector,
+.holo-node.danger .leaf-connector {
+    --connector-color: rgba(248, 113, 113, 0.4);
+    --leaf-connector-color: rgba(248, 113, 113, 0.3);
 }
 
 @keyframes dangerShake {
@@ -2200,15 +2398,6 @@ body {
 }
 
 /* 悬停效果 */
-.holo-node:hover {
-    transform: translate(-50%, -50%) scale(1.1) !important;
-    z-index: 20;
-}
-
-.holo-node.center:hover {
-    transform: scale(1.1) !important;
-}
-
 .holo-node:hover .node-sphere {
     box-shadow:
         0 0 40px var(--glow-color, rgba(52, 211, 153, 0.6)),
@@ -2225,17 +2414,23 @@ body {
 
 .holo-node.danger:hover {
     --glow-color: rgba(248, 113, 113, 0.9);
-    animation: none;
 }
 
 .holo-node.danger:hover .node-sphere {
-    animation: none;
+    animation: dangerPulseHover 2s ease-in-out infinite;
 }
 
-/* 悬停时增强连接线发光 */
-.holo-node:hover ~ .holo-connections .connection-line {
-    stroke-width: 2;
-    filter: url(#glow) brightness(1.3);
+@keyframes dangerPulseHover {
+    0%, 100% {
+        box-shadow:
+            0 0 25px rgba(248, 113, 113, 0.6),
+            inset 0 0 25px rgba(248, 113, 113, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 0 35px rgba(248, 113, 113, 0.8),
+            inset 0 0 30px rgba(248, 113, 113, 0.3);
+    }
 }
 
 /* 底部统计栏 */
@@ -2285,25 +2480,13 @@ body {
     );
 }
 
-/* 触摸设备适配 */
-@media (hover: none) and (pointer: coarse) {
-    .holo-node:active {
-        transform: translate(-50%, -50%) scale(1.1) !important;
-    }
-
-    .holo-node:active .node-sphere {
-        box-shadow:
-            0 0 40px var(--glow-color, rgba(52, 211, 153, 0.8)),
-            inset 0 0 30px rgba(255, 255, 255, 0.1);
-    }
-}
-
-/* 响应式布局 */
+/* 响应式布局 - 平板 */
 @media (max-width: 768px) {
     .holo-incubator {
         min-width: 100%;
         height: auto;
-        min-height: 600px;
+        min-height: auto;
+        padding: 20px;
     }
 
     .holo-header {
@@ -2318,71 +2501,150 @@ body {
     }
 
     .holo-tree-container {
-        height: calc(100% - 120px);
+        min-height: 450px;
+        padding: 20px 10px 60px;
     }
 
     .holo-nodes {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: space-around;
-        padding: 20px 0;
+        height: 420px;
     }
 
-    .holo-node {
-        position: relative !important;
-        left: auto !important;
-        right: auto !important;
-        top: auto !important;
-        bottom: auto !important;
-        transform: none !important;
-        flex-direction: row;
-        gap: 16px;
+    .holo-node.node-branch {
+        top: 100px;
     }
 
-    .holo-node:hover {
-        transform: none !important;
+    .holo-node.node-leaf {
+        top: 240px;
     }
 
-    .holo-node.center {
-        order: -1;
-    }
+    .holo-node.node-branch:nth-child(3) { left: 30%; }
+    .holo-node.node-branch:nth-child(4) { left: 55%; }
+    .holo-node.node-branch:nth-child(5) { left: 80%; }
+
+    .holo-node.node-leaf:nth-child(7) { left: 30%; }
+    .holo-node.node-leaf:nth-child(8) { left: 55%; }
+    .holo-node.node-leaf:nth-child(9) { left: 80%; }
 
     .node-sphere {
-        width: 56px;
-        height: 56px;
+        width: 55px;
+        height: 55px;
     }
 
-    .holo-node.center .node-sphere {
+    .holo-node.node-root .node-sphere {
         width: 70px;
         height: 70px;
     }
 
-    .node-icon {
-        font-size: 24px;
+    .holo-node.node-leaf .node-sphere {
+        width: 50px;
+        height: 50px;
     }
 
-    .holo-node.center .node-icon {
+    .node-icon {
+        font-size: 22px;
+    }
+
+    .holo-node.node-root .node-icon {
         font-size: 28px;
     }
 
-    .node-info {
-        align-items: flex-start;
-        text-align: left;
+    .holo-node.node-leaf .node-icon {
+        font-size: 20px;
     }
 
-    .holo-connections {
-        display: none;
+    .node-name {
+        font-size: 11px;
+    }
+
+    .holo-node.node-leaf .node-name {
+        font-size: 10px;
+    }
+
+    .node-status {
+        font-size: 9px;
     }
 
     .holo-stats-bar {
-        gap: 20px;
+        gap: 16px;
         flex-wrap: wrap;
-        padding: 12px 16px;
+        padding: 12px;
     }
 
     .stat-value {
         font-size: 16px;
+    }
+}
+
+/* 响应式布局 - 手机 */
+@media (max-width: 480px) {
+    .holo-tree-container {
+        min-height: 400px;
+        padding: 15px 5px 50px;
+    }
+
+    .holo-nodes {
+        height: 380px;
+    }
+
+    .holo-node.node-root {
+        top: 0;
+    }
+
+    .holo-node.node-branch {
+        top: 85px;
+    }
+
+    .holo-node.node-leaf {
+        top: 210px;
+    }
+
+    .holo-node.node-branch:nth-child(2) { left: 5%; }
+    .holo-node.node-branch:nth-child(3) { left: 35%; margin-left: -30px; }
+    .holo-node.node-branch:nth-child(4) { left: 60%; margin-left: -30px; }
+    .holo-node.node-branch:nth-child(5) { left: 85%; margin-left: -30px; }
+
+    .holo-node.node-leaf:nth-child(6) { left: 5%; }
+    .holo-node.node-leaf:nth-child(7) { left: 35%; margin-left: -25px; }
+    .holo-node.node-leaf:nth-child(8) { left: 60%; margin-left: -25px; }
+    .holo-node.node-leaf:nth-child(9) { left: 85%; margin-left: -25px; }
+
+    .node-sphere {
+        width: 45px;
+        height: 45px;
+    }
+
+    .holo-node.node-root .node-sphere {
+        width: 60px;
+        height: 60px;
+    }
+
+    .holo-node.node-leaf .node-sphere {
+        width: 42px;
+        height: 42px;
+    }
+
+    .node-icon {
+        font-size: 18px;
+    }
+
+    .holo-node.node-root .node-icon {
+        font-size: 24px;
+    }
+
+    .holo-node.node-leaf .node-icon {
+        font-size: 16px;
+    }
+
+    .node-name {
+        font-size: 10px;
+    }
+
+    .holo-node.node-leaf .node-name {
+        font-size: 9px;
+    }
+
+    .node-status {
+        font-size: 8px;
     }
 }
 

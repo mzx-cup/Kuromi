@@ -72,8 +72,8 @@
 
         <!-- Course Grid -->
         <div class="course-grid" id="course-grid">
-            <!-- Course Card 1 -->
-            <div class="course-card" data-category="python">
+            <!-- Course Card 1 - Continue Learning (75%) -->
+            <div class="course-card" data-category="python" data-progress="75" data-last-chapter="第5章 5.3 节 函数的递归调用">
                 <div class="course-cover python-bg">
                     <div class="course-icon">🐍</div>
                     <div class="course-progress-ring">
@@ -92,20 +92,26 @@
                         <span class="meta-item">📚 32 课时</span>
                         <span class="meta-item">⏱️ 18 小时</span>
                     </div>
-                    <button class="course-btn continue">继续学习</button>
+                    <button class="course-btn continue" data-progress="75" data-last-chapter="第5章 5.3 节 函数的递归调用">
+                        <span class="btn-text">继续学习</span>
+                        <span class="tooltip">上次学至：第5章 5.3 节 函数的递归调用</span>
+                        <div class="island-container">
+                            <div class="mini-progress"></div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 2 -->
-            <div class="course-card" data-category="algorithm">
+            <!-- Course Card 2 - Continue Learning (90%+) with Breathe Glow -->
+            <div class="course-card" data-category="algorithm" data-progress="92" data-last-chapter="第8章 8.5 节 动态规划优化技巧">
                 <div class="course-cover algorithm-bg">
                     <div class="course-icon">🧮</div>
                     <div class="course-progress-ring">
                         <svg width="60" height="60" viewBox="0 0 60 60">
                             <circle class="progress-bg" cx="30" cy="30" r="26"/>
-                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 65"/>
+                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 13"/>
                         </svg>
-                        <span class="progress-text">50%</span>
+                        <span class="progress-text">92%</span>
                     </div>
                 </div>
                 <div class="course-content">
@@ -116,11 +122,17 @@
                         <span class="meta-item">📚 48 课时</span>
                         <span class="meta-item">⏱️ 28 小时</span>
                     </div>
-                    <button class="course-btn continue">继续学习</button>
+                    <button class="course-btn continue breathe-glow" data-progress="92" data-last-chapter="第8章 8.5 节 动态规划优化技巧">
+                        <span class="btn-text">继续学习</span>
+                        <span class="tooltip">上次学至：第8章 8.5 节 动态规划优化技巧</span>
+                        <div class="island-container">
+                            <div class="mini-progress"></div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 3 -->
+            <!-- Course Card 3 - Start Learning with Outline Preview -->
             <div class="course-card" data-category="java">
                 <div class="course-cover java-bg">
                     <div class="course-icon">☕</div>
@@ -133,11 +145,28 @@
                         <span class="meta-item">📚 36 课时</span>
                         <span class="meta-item">⏱️ 22 小时</span>
                     </div>
-                    <button class="course-btn start">开始学习</button>
+                    <button class="course-btn start">
+                        <span class="btn-text">开始学习</span>
+                        <div class="outline-popup">
+                            <div class="outline-title">课程大纲预览</div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L1</span>
+                                <span>Java 环境搭建与第一个程序</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L2</span>
+                                <span>变量、数据类型与运算符</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L3</span>
+                                <span>控制流程与数组</span>
+                            </div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 4 -->
+            <!-- Course Card 4 - Start Learning -->
             <div class="course-card" data-category="database">
                 <div class="course-cover database-bg">
                     <div class="course-icon">🗄️</div>
@@ -150,11 +179,28 @@
                         <span class="meta-item">📚 28 课时</span>
                         <span class="meta-item">⏱️ 16 小时</span>
                     </div>
-                    <button class="course-btn start">开始学习</button>
+                    <button class="course-btn start">
+                        <span class="btn-text">开始学习</span>
+                        <div class="outline-popup">
+                            <div class="outline-title">课程大纲预览</div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L1</span>
+                                <span>MySQL 安装与配置</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L2</span>
+                                <span>数据库与表的创建</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L3</span>
+                                <span>SQL 查询基础</span>
+                            </div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 5 -->
+            <!-- Course Card 5 - Review & Consolidate with Drawer Menu -->
             <div class="course-card" data-category="web">
                 <div class="course-cover web-bg">
                     <div class="course-icon">🌐</div>
@@ -164,14 +210,30 @@
                     <h3 class="course-title">前端开发三件套</h3>
                     <p class="course-desc">HTML5 + CSS3 + JavaScript 完整前端技术栈</p>
                     <div class="course-meta">
-                        <span class="meta-item">📚 45 课时</span>
-                        <span class="meta-item">⏱️ 30 小时</span>
+                        <span class="meta-item review-stats">📚 45 课时 / ⏱️ 22 小时</span>
+                        <span class="meta-item review-suggest" style="display:none;">💡 建议复习 3 小时</span>
                     </div>
-                    <button class="course-btn completed">复习巩固</button>
+                    <button class="course-btn review">
+                        <span class="btn-text">复习巩固</span>
+                        <div class="drawer-menu">
+                            <div class="drawer-item" data-action="mistake-book">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                <span>查看错题本</span>
+                            </div>
+                            <div class="drawer-item" data-action="review-core">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673m-5.418 5.11a8.9 8.9 0 010-12.576M12 3v1m6 11h1m-11 0h1m4-11l-4-4m0 0l4-4m-4 4h4"></path></svg>
+                                <span>重温核心知识点</span>
+                            </div>
+                            <div class="drawer-item" data-action="final-exam">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                <span>进行期末测验</span>
+                            </div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 6 -->
+            <!-- Course Card 6 - Start Learning -->
             <div class="course-card" data-category="ai">
                 <div class="course-cover ai-bg">
                     <div class="course-icon">🤖</div>
@@ -184,11 +246,28 @@
                         <span class="meta-item">📚 40 课时</span>
                         <span class="meta-item">⏱️ 25 小时</span>
                     </div>
-                    <button class="course-btn start">开始学习</button>
+                    <button class="course-btn start">
+                        <span class="btn-text">开始学习</span>
+                        <div class="outline-popup">
+                            <div class="outline-title">课程大纲预览</div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L1</span>
+                                <span>机器学习概述与数学基础</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L2</span>
+                                <span>监督学习：线性回归</span>
+                            </div>
+                            <div class="outline-item">
+                                <span class="lesson-num">L3</span>
+                                <span>分类算法：逻辑回归</span>
+                            </div>
+                        </div>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 7 -->
+            <!-- Course Card 7 - Completed with Text Flip -->
             <div class="course-card" data-category="cpp">
                 <div class="course-cover cpp-bg">
                     <div class="course-icon">⚡</div>
@@ -201,11 +280,24 @@
                         <span class="meta-item">📚 35 课时</span>
                         <span class="meta-item">⏱️ 20 小时</span>
                     </div>
-                    <button class="course-btn completed">已完成</button>
+                    <button class="course-btn completed">
+                        <div class="confetti-container">
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                        </div>
+                        <span class="btn-text">
+                            <span class="btn-text-default">✓ 已完成</span>
+                            <span class="btn-text-hover">查看证书 →</span>
+                        </span>
+                    </button>
                 </div>
             </div>
 
-            <!-- Course Card 8 -->
+            <!-- Course Card 8 - Completed -->
             <div class="course-card" data-category="python">
                 <div class="course-cover python-bg">
                     <div class="course-icon">📊</div>
@@ -218,7 +310,20 @@
                         <span class="meta-item">📚 24 课时</span>
                         <span class="meta-item">⏱️ 15 小时</span>
                     </div>
-                    <button class="course-btn start">开始学习</button>
+                    <button class="course-btn completed">
+                        <div class="confetti-container">
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                            <div class="confetti"></div>
+                        </div>
+                        <span class="btn-text">
+                            <span class="btn-text-default">✓ 已完成</span>
+                            <span class="btn-text-hover">生成报告 →</span>
+                        </span>
+                    </button>
                 </div>
             </div>
         </div>

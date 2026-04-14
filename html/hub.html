@@ -390,11 +390,10 @@
                         </div>
                     </div>
 
-                    <!-- 拓扑节点树容器 -->
-                    <div class="holo-tree-container">
-                        <!-- 连线层 -->
-                        <svg class="holo-connections" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
-                            <!-- 中心到子节点的连线 -->
+                    <!-- 拓扑节点树容器 - 树状金字塔布局 -->
+                    <div class="holo-tree-container" id="holoTree">
+                        <!-- 动态连线层 - SVG 路径由 JavaScript 计算 -->
+                        <svg class="holo-connections" id="holoConnections" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
                             <defs>
                                 <linearGradient id="lineGradientHealthy" x1="0%" y1="0%" x2="100%" y2="0%">
                                     <stop offset="0%" stop-color="rgba(52, 211, 153, 0.6)"/>
@@ -416,24 +415,13 @@
                                     </feMerge>
                                 </filter>
                             </defs>
-                            <!-- 中心节点到右上节点 -->
-                            <path class="connection-line healthy" d="M400 200 Q500 150 580 100" filter="url(#glow)"/>
-                            <!-- 中心节点到右下节点 -->
-                            <path class="connection-line healthy" d="M400 200 Q500 250 580 300" filter="url(#glow)"/>
-                            <!-- 中心节点到左上节点 -->
-                            <path class="connection-line warning" d="M400 200 Q300 150 220 100" filter="url(#glow)"/>
-                            <!-- 中心节点到左下节点 -->
-                            <path class="connection-line danger" d="M400 200 Q300 250 220 300" filter="url(#glow)"/>
-                            <!-- 中心节点到正上节点 -->
-                            <path class="connection-line warning" d="M400 200 Q400 120 400 60" filter="url(#glow)"/>
-                            <!-- 中心节点到正下节点 -->
-                            <path class="connection-line healthy" d="M400 200 Q400 280 400 340" filter="url(#glow)"/>
+                            <!-- 连线将由 JavaScript 动态生成 -->
                         </svg>
 
-                        <!-- 节点层 -->
-                        <div class="holo-nodes">
-                            <!-- 中心节点 - Python核心 -->
-                            <div class="holo-node center healthy" data-status="healthy" data-id="python-core" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+                        <!-- 节点层 - 使用 CSS Grid 树状金字塔布局 -->
+                        <div class="holo-nodes" id="holoNodes">
+                            <!-- 第一层：根节点 (塔尖) - Python核心 -->
+                            <div class="holo-node node-root healthy" data-status="healthy" data-id="python-core">
                                 <div class="node-sphere">
                                     <div class="node-inner">
                                         <span class="node-icon">🐍</span>
@@ -446,8 +434,25 @@
                                 </div>
                             </div>
 
-                            <!-- 右上节点 - Web开发 -->
-                            <div class="holo-node healthy" data-status="healthy" data-id="web-dev" style="right: 60px; top: 60px;">
+                            <!-- 第二层：分支节点 (第一层塔身) -->
+                            <!-- 左分支 -->
+                            <div class="holo-node node-branch healthy" data-status="healthy" data-id="math" data-parent="python-core">
+                                <div class="branch-connector left"></div>
+                                <div class="node-sphere">
+                                    <div class="node-inner">
+                                        <span class="node-icon">📐</span>
+                                    </div>
+                                    <div class="node-glow"></div>
+                                </div>
+                                <div class="node-info">
+                                    <span class="node-name">数学基础</span>
+                                    <span class="node-status">掌握良好</span>
+                                </div>
+                            </div>
+
+                            <!-- 中左分支 -->
+                            <div class="holo-node node-branch warning" data-status="warning" data-id="web-dev" data-parent="python-core">
+                                <div class="branch-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
                                         <span class="node-icon">🌐</span>
@@ -456,12 +461,13 @@
                                 </div>
                                 <div class="node-info">
                                     <span class="node-name">Web开发</span>
-                                    <span class="node-status">掌握良好</span>
+                                    <span class="node-status">需复习</span>
                                 </div>
                             </div>
 
-                            <!-- 右下节点 - 数据库 -->
-                            <div class="holo-node healthy" data-status="healthy" data-id="database" style="right: 60px; bottom: 60px;">
+                            <!-- 中右分支 -->
+                            <div class="holo-node node-branch healthy" data-status="healthy" data-id="database" data-parent="python-core">
+                                <div class="branch-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
                                         <span class="node-icon">🗄️</span>
@@ -474,22 +480,25 @@
                                 </div>
                             </div>
 
-                            <!-- 左上节点 - 算法 -->
-                            <div class="holo-node warning" data-status="warning" data-id="algorithm" style="left: 60px; top: 60px;">
+                            <!-- 右分支 -->
+                            <div class="holo-node node-branch healthy" data-status="healthy" data-id="english" data-parent="python-core">
+                                <div class="branch-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🧮</span>
+                                        <span class="node-icon">📚</span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
                                 <div class="node-info">
-                                    <span class="node-name">算法设计</span>
-                                    <span class="node-status">需复习</span>
+                                    <span class="node-name">专业英语</span>
+                                    <span class="node-status">掌握良好</span>
                                 </div>
                             </div>
 
-                            <!-- 左下节点 - 机器学习 -->
-                            <div class="holo-node danger" data-status="danger" data-id="ml" style="left: 60px; bottom: 60px;">
+                            <!-- 第三层：叶子节点 (第二层塔身) -->
+                            <!-- 左叶子 -->
+                            <div class="holo-node node-leaf danger" data-status="danger" data-id="ml" data-parent="math">
+                                <div class="leaf-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
                                         <span class="node-icon">🤖</span>
@@ -502,30 +511,47 @@
                                 </div>
                             </div>
 
-                            <!-- 正上节点 - 数学基础 -->
-                            <div class="holo-node warning" data-status="warning" data-id="math" style="left: 50%; top: 20px; transform: translateX(-50%);">
+                            <!-- 中左叶子 -->
+                            <div class="holo-node node-leaf warning" data-status="warning" data-id="algorithm" data-parent="web-dev">
+                                <div class="leaf-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">📐</span>
+                                        <span class="node-icon">🧮</span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
                                 <div class="node-info">
-                                    <span class="node-name">数学基础</span>
+                                    <span class="node-name">算法设计</span>
                                     <span class="node-status">需复习</span>
                                 </div>
                             </div>
 
-                            <!-- 正下节点 - 英语 -->
-                            <div class="holo-node healthy" data-status="healthy" data-id="english" style="left: 50%; bottom: 20px; transform: translateX(-50%);">
+                            <!-- 中右叶子 -->
+                            <div class="holo-node node-leaf healthy" data-status="healthy" data-id="se" data-parent="database">
+                                <div class="leaf-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">📚</span>
+                                        <span class="node-icon">⚙️</span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
                                 <div class="node-info">
-                                    <span class="node-name">专业英语</span>
+                                    <span class="node-name">软件工程</span>
+                                    <span class="node-status">掌握良好</span>
+                                </div>
+                            </div>
+
+                            <!-- 右叶子 -->
+                            <div class="holo-node node-leaf healthy" data-status="healthy" data-id="english-adv" data-parent="english">
+                                <div class="leaf-connector right"></div>
+                                <div class="node-sphere">
+                                    <div class="node-inner">
+                                        <span class="node-icon">🔤</span>
+                                    </div>
+                                    <div class="node-glow"></div>
+                                </div>
+                                <div class="node-info">
+                                    <span class="node-name">学术英语</span>
                                     <span class="node-status">掌握良好</span>
                                 </div>
                             </div>

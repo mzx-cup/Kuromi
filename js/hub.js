@@ -204,6 +204,47 @@ function showToast(message, type = 'info') {
 }
 
 // ============================================
+// URL Parameter Parser (课程中心跳转参数解析)
+// ============================================
+function parseCourseParams() {
+    const params = new URLSearchParams(window.location.search);
+    const courseId = params.get('course_id');
+    const action = params.get('action');
+    const courseName = params.get('course_name');
+    const lastChapter = params.get('last_chapter');
+    const progress = params.get('progress');
+    const outline = params.get('outline');
+
+    if (courseId) {
+        console.log(`[Hub] 接收到课程参数: course_id=${courseId}, action=${action}`);
+        console.log(`[Hub] 课程名称: ${courseName || '未知'}`);
+
+        const header = document.querySelector('.hub-header');
+        if (header && courseName) {
+            const titleEl = header.querySelector('h1') || header.querySelector('.title');
+            if (titleEl) {
+                titleEl.textContent = `${courseName} - 学习中心`;
+            }
+        }
+
+        if (action === 'continue' && lastChapter) {
+            const decodedChapter = decodeURIComponent(lastChapter);
+            console.log(`[Hub] 继续学习，上次章节: ${decodedChapter}`);
+            showToast(`📚 继续学习: ${decodedChapter}`, 'info');
+        }
+
+        if (action === 'start' && outline) {
+            try {
+                const outlineItems = JSON.parse(decodeURIComponent(outline));
+                console.log(`[Hub] 课程大纲:`, outlineItems);
+            } catch (e) {
+                console.warn('[Hub] 无法解析课程大纲参数');
+            }
+        }
+    }
+}
+
+// ============================================
 // Radial Progress Animation
 // ============================================
 function animateRadialProgress() {
@@ -269,6 +310,138 @@ function animateLineChart() {
 }
 
 // ============================================
+// 全息知识生态 - 树状金字塔布局
+// ============================================
+function initHoloEcosystem() {
+    const container = document.getElementById('holoTree');
+    const nodesContainer = document.getElementById('holoNodes');
+
+    if (!container || !nodesContainer) return;
+
+    const nodes = nodesContainer.querySelectorAll('.holo-node');
+    nodes.forEach((node, index) => {
+        node.style.animationDelay = (0.1 + index * 0.1) + 's';
+    });
+
+    drawTreeConnections();
+
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(drawTreeConnections, 100);
+    });
+}
+
+// 绘制树状金字塔的 SVG 连线
+function drawTreeConnections() {
+    const svgContainer = document.getElementById('holoConnections');
+    const nodesContainer = document.getElementById('holoNodes');
+
+    if (!svgContainer || !nodesContainer) return;
+
+    const rootNode = nodesContainer.querySelector('.node-root');
+    const branchNodes = nodesContainer.querySelectorAll('.node-branch');
+    const leafNodes = nodesContainer.querySelectorAll('.node-leaf');
+
+    if (!rootNode) return;
+
+    svgContainer.innerHTML = `
+        <defs>
+            <linearGradient id="lineGradientHealthy" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(52, 211, 153, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(52, 211, 153, 0.3)"/>
+            </linearGradient>
+            <linearGradient id="lineGradientWarning" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(251, 191, 36, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(251, 191, 36, 0.3)"/>
+            </linearGradient>
+            <linearGradient id="lineGradientDanger" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(248, 113, 113, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(248, 113, 113, 0.3)"/>
+            </linearGradient>
+            <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+
+    svgContainer.setAttribute('viewBox', '0 0 100 100');
+    svgContainer.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+    const containerRect = nodesContainer.getBoundingClientRect();
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+
+    function getNodeCenter(node) {
+        const rect = node.getBoundingClientRect();
+        const containerRect = nodesContainer.getBoundingClientRect();
+        const x = ((rect.left + rect.width / 2) - containerRect.left) / containerWidth * 100;
+        const y = ((rect.top + rect.height / 2) - containerRect.top) / containerHeight * 100;
+        return { x, y };
+    }
+
+    function getNodeStatus(node) {
+        return node.dataset.status || 'healthy';
+    }
+
+    branchNodes.forEach((branchNode) => {
+        const rootCenter = getNodeCenter(rootNode);
+        const branchCenter = getNodeCenter(branchNode);
+        const status = getNodeStatus(branchNode);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midY = (rootCenter.y + branchCenter.y) / 2;
+        const d = `M${rootCenter.x} ${rootCenter.y} Q${rootCenter.x} ${midY} ${branchCenter.x} ${branchCenter.y - 10}`;
+
+        path.setAttribute('d', d);
+        path.setAttribute('class', `connection-line ${status}`);
+        path.setAttribute('filter', 'url(#glow)');
+        path.style.opacity = '0';
+        path.style.strokeWidth = '1';
+        path.style.fill = 'none';
+
+        svgContainer.appendChild(path);
+
+        setTimeout(() => {
+            path.style.transition = 'opacity 0.5s ease';
+            path.style.opacity = '0.6';
+        }, 300 + Math.random() * 300);
+    });
+
+    leafNodes.forEach((leafNode) => {
+        const parentId = leafNode.dataset.parent;
+        const parentNode = nodesContainer.querySelector(`[data-id="${parentId}"]`);
+        if (!parentNode) return;
+
+        const parentCenter = getNodeCenter(parentNode);
+        const leafCenter = getNodeCenter(leafNode);
+        const status = getNodeStatus(leafNode);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midY = (parentCenter.y + leafCenter.y) / 2;
+        const d = `M${parentCenter.x} ${parentCenter.y} Q${parentCenter.x} ${midY} ${leafCenter.x} ${leafCenter.y - 10}`;
+
+        path.setAttribute('d', d);
+        path.setAttribute('class', `connection-line ${status}`);
+        path.setAttribute('filter', 'url(#glow)');
+        path.style.opacity = '0';
+        path.style.strokeWidth = '0.8';
+        path.style.fill = 'none';
+
+        svgContainer.appendChild(path);
+
+        setTimeout(() => {
+            path.style.transition = 'opacity 0.5s ease';
+            path.style.opacity = '0.5';
+        }, 400 + Math.random() * 300);
+    });
+}
+
+// ============================================
 // Initialize
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -278,6 +451,8 @@ document.addEventListener('DOMContentLoaded', function() {
     animateRadialProgress();
     animateBarCharts();
     animateLineChart();
+    parseCourseParams();
+    initHoloEcosystem();
 });
 
 // Smooth scroll for navigation

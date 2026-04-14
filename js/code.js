@@ -7,7 +7,35 @@ document.addEventListener('DOMContentLoaded', function() {
     initFilters();
     initEditor();
     initLanguageSelect();
+    parseCourseParams();
 });
+
+// ============================================
+// URL Parameter Parser (课程中心跳转参数解析)
+// ============================================
+function parseCourseParams() {
+    const params = new URLSearchParams(window.location.search);
+    const courseId = params.get('course_id');
+    const action = params.get('action');
+    const courseName = params.get('course_name');
+
+    if (courseId) {
+        console.log(`[Code] 接收到课程参数: course_id=${courseId}, action=${action}`);
+        console.log(`[Code] 课程名称: ${courseName || '未知'}`);
+
+        const header = document.querySelector('.code-header');
+        if (header && courseName) {
+            const titleEl = header.querySelector('h1') || header.querySelector('.title');
+            if (titleEl) {
+                titleEl.textContent = `${courseName} - 代码练习`;
+            }
+        }
+
+        if (action === 'review') {
+            showToast(`📝 开始复习: ${courseName || '课程'}`, 'info');
+        }
+    }
+}
 
 // ============================================
 // Problem List
@@ -197,4 +225,55 @@ function initLanguageSelect() {
         // Reset code template based on language
         resetCode();
     });
+}
+
+// ============================================
+// Toast Notification System
+// ============================================
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        `;
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        padding: 14px 20px;
+        background: rgba(20, 20, 40, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        color: #fff;
+        font-size: 14px;
+        animation: slideIn 0.3s ease;
+        backdrop-filter: blur(20px);
+    `;
+
+    const colors = {
+        success: 'rgba(16, 185, 129, 0.4)',
+        error: 'rgba(239, 68, 68, 0.4)',
+        warning: 'rgba(249, 115, 22, 0.4)',
+        info: 'rgba(59, 130, 246, 0.4)'
+    };
+    toast.style.borderColor = colors[type] || colors.info;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
