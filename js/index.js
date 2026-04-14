@@ -1,4 +1,4 @@
-﻿﻿const API_BASE = window.location.origin;
+﻿const API_BASE = window.location.origin;
 const API_URL = `${API_BASE}/api/chat`;
 const RUN_CODE_URL = `${API_BASE}/api/run-code`;
 const GRADE_CODE_URL = `${API_BASE}/api/grade-code`;
