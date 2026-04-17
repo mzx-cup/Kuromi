@@ -1130,6 +1130,34 @@ body.light-theme .glass-input:focus {
 .path-glass-node { transition: all var(--transition-base); }
 .path-glass-node:hover { transform: translateX(4px); }
 
+/* 路径节点文字颜色 - 支持主题切换动画 */
+.path-node-current-text {
+    color: var(--accent);
+    transition: color 500ms ease-in-out;
+}
+
+.path-node-completed-text {
+    color: var(--success);
+    transition: color 500ms ease-in-out;
+}
+
+.path-node-locked-text {
+    color: var(--text-tertiary);
+    transition: color 500ms ease-in-out;
+}
+
+/* 路径节点圆点样式 */
+.path-dot-completed {
+    background: var(--success);
+    border-color: var(--surface-glass);
+    box-shadow: 0 0 8px var(--success-bg);
+}
+
+.path-dot-locked {
+    background: var(--surface-glass-hover);
+    border-color: var(--border-glass);
+}
+
 @media (max-width: 768px) {
     .main-glass-surface { margin: 8px; border-radius: var(--radius-lg); }
     .chat-glass-scroll { padding: 16px; flex: 1; min-height: 0; height: auto; }
@@ -1144,7 +1172,8 @@ body.light-theme .glass-input:focus {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--border-glass);
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, width, min-width, opacity;
 }
 
 /* Hidden class base definition */
@@ -1177,7 +1206,7 @@ body.light-theme .glass-input:focus {
     display: none !important;
 }
 
-/* Track-b layout */
+/* Track-b layout - 支持教研沙盘展开/隐藏时的平滑过渡 */
 #track-b,
 html body #track-b {
     display: flex !important;
@@ -1193,11 +1222,79 @@ html body #track-b {
     position: relative !important;
     z-index: 1 !important;
     width: auto !important;
-    transition: opacity 0.3s ease;
+    min-width: 0 !important;
+    margin: 0 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #track-b.hidden {
     display: none !important;
+}
+
+/* Track-a-container 平滑过渡样式 */
+#track-a-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, min-width, max-width, opacity;
+    overflow: hidden;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+/* 教研沙盘展开状态 - 使用与学习路径相同的 collapsed 类模式 */
+#track-a-container.collapsed {
+    width: 0 !important;
+    max-width: 0 !important;
+    min-width: 0 !important;
+    flex: 0 0 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 桌面端展开时的宽度限制 */
+@media (min-width: 768px) {
+    #track-a-container:not(.collapsed) {
+        width: 35%;
+        min-width: 280px;
+        max-width: 380px;
+    }
+}
+
+/* 移动端展开时的宽度 */
+@media (max-width: 767px) {
+    #track-a-container:not(.collapsed) {
+        width: 100%;
+    }
+}
+
+#track-a-container.collapsed #track-a {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+#track-a-container:not(.collapsed) #track-a {
+    transform: translateX(0);
+    opacity: 1;
+    width: 100%;
+    height: 100%;
+}
+
+/* track-a 填满容器 */
+#track-a {
+    width: 100%;
+    height: 100%;
+}
+
+/* 教研沙盘展开按钮样式 */
+.sandbox-expand-btn-styled {
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sandbox-expand-btn-styled.visible {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* Chat container layout */
@@ -1303,7 +1400,7 @@ html body .msg-bubble,
     max-width: 100% !important;
     height: auto !important;
     max-height: none !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     position: relative !important;
     z-index: 1 !important;
     background: var(--surface-glass) !important;
@@ -1320,15 +1417,6 @@ html body .msg-bubble,
     word-break: break-word !important;
     flex: none !important;
     align-self: flex-start !important;
-}
-
-.msg-bubble.hidden {
-    display: none !important;
-}
-    transition: all var(--transition-base);
-    position: relative;
-    overflow-wrap: break-word;
-    word-break: break-word;
 }
 
 .msg-bubble.hidden {
@@ -1371,23 +1459,6 @@ html body .msg-bubble,
     min-height: 0;
     display: flex;
     flex-direction: column;
-}
-#track-a-container.sandbox-expanded #track-a {
-    transform: translateX(-100%);
-}
-
-#track-a-container.sandbox-expanded {
-    width: 0 !important;
-    max-width: 0 !important;
-    min-width: 0 !important;
-    flex: 0 0 0 !important;
-    overflow: hidden;
-    visibility: hidden;
-    display: none !important;
-}
-
-#track-a-container:not(.sandbox-expanded) #track-a {
-    transform: translateX(0);
 }
 
 .sandbox-log-scroll {
@@ -1805,6 +1876,57 @@ html body .msg-bubble,
 .path-tree-badge { font-size: 8px; padding: 1px 5px; border-radius: 4px; font-weight: 700; margin-left: auto; letter-spacing: 0.04em; }
 .path-tree-badge.important { background: var(--warning-bg); color: var(--warning); box-shadow: 0 0 6px var(--warning-bg); }
 .path-tree-time { font-size: 9px; color: var(--text-tertiary); transition: color 500ms ease-in-out; }
+
+/* 学习路径文字颜色 - 支持主题切换动画 */
+.path-tree-node-text {
+    color: var(--text-secondary);
+    transition: color 500ms ease-in-out;
+}
+
+.path-tree-child-text {
+    color: var(--text-tertiary);
+    transition: color 500ms ease-in-out;
+}
+
+/* 评估指标文字颜色 - 支持主题切换动画 */
+.eval-label-text {
+    color: var(--text-tertiary);
+    transition: color 500ms ease-in-out;
+}
+
+.eval-value-text {
+    color: var(--text-primary);
+    transition: color 500ms ease-in-out;
+}
+
+.eval-value-purple {
+    color: var(--primary-light);
+    transition: color 500ms ease-in-out;
+}
+
+.eval-value-green {
+    color: var(--success);
+    transition: color 500ms ease-in-out;
+}
+
+/* 评估指标难度标签 */
+.eval-diff-basic {
+    background: var(--success-bg);
+    color: var(--success);
+    transition: background 500ms ease-in-out, color 500ms ease-in-out;
+}
+
+.eval-diff-medium {
+    background: var(--warning-bg);
+    color: var(--warning);
+    transition: background 500ms ease-in-out, color 500ms ease-in-out;
+}
+
+.eval-diff-advanced {
+    background: var(--danger-bg);
+    color: var(--danger);
+    transition: background 500ms ease-in-out, color 500ms ease-in-out;
+}
 
 .sidebar-title-text {
     color: var(--text-primary);

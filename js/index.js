@@ -1438,28 +1438,28 @@ function mapProfileToScore(val, invert) {
 function renderEvaluation() {
     const evalContainer = document.getElementById('eval-container');
     if (!evalContainer) return;
-    const diffColors = { basic: 'text-green-700 bg-green-100', medium: 'text-amber-700 bg-amber-100', advanced: 'text-red-700 bg-red-100' };
+    const diffColors = { basic: 'eval-diff-basic', medium: 'eval-diff-medium', advanced: 'eval-diff-advanced' };
     const diffLabels = { basic: '基础', medium: '中等', advanced: '进阶' };
     evalContainer.innerHTML = `
         <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
             <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0" style="color: var(--accent);"></i>
-            <span class="text-xs text-gray-500">交互次数</span>
-            <span class="text-xs font-bold ml-auto" style="color: var(--primary);">${evaluation.interactionCount}</span>
+            <span class="text-xs eval-label-text">交互次数</span>
+            <span class="text-xs font-bold ml-auto eval-value-text">${evaluation.interactionCount}</span>
         </div>
         <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
-            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-purple-500 shrink-0"></i>
-            <span class="text-xs text-gray-500">启发通关率</span>
-            <span class="text-xs font-bold text-purple-700 ml-auto">${(evaluation.socraticPassRate * 100).toFixed(0)}%</span>
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 shrink-0" style="color: var(--primary-light);"></i>
+            <span class="text-xs eval-label-text">启发通关率</span>
+            <span class="text-xs font-bold ml-auto eval-value-text eval-value-purple">${(evaluation.socraticPassRate * 100).toFixed(0)}%</span>
         </div>
         <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
-            <i data-lucide="code" class="w-3.5 h-3.5 text-emerald-500 shrink-0"></i>
-            <span class="text-xs text-gray-500">代码实操</span>
-            <span class="text-xs font-bold text-emerald-700 ml-auto">${evaluation.codePracticeTime}min</span>
+            <i data-lucide="code" class="w-3.5 h-3.5 shrink-0" style="color: var(--success);"></i>
+            <span class="text-xs eval-label-text">代码实操</span>
+            <span class="text-xs font-bold ml-auto eval-value-text eval-value-green">${evaluation.codePracticeTime}min</span>
         </div>
         <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
-            <i data-lucide="gauge" class="w-3.5 h-3.5 text-orange-500 shrink-0"></i>
-            <span class="text-xs text-gray-500">下一阶段难度</span>
-            <span class="text-xs font-bold px-1.5 rounded ${diffColors[evaluation.difficultyLevel] || diffColors.medium} ml-auto">${diffLabels[evaluation.difficultyLevel] || '中等'}</span>
+            <i data-lucide="gauge" class="w-3.5 h-3.5 shrink-0" style="color: var(--warning);"></i>
+            <span class="text-xs eval-label-text">下一阶段难度</span>
+            <span class="text-xs font-bold px-1.5 rounded ml-auto ${diffColors[evaluation.difficultyLevel] || diffColors.medium}">${diffLabels[evaluation.difficultyLevel] || '中等'}</span>
         </div>
     `;
     if (window.lucide) lucide.createIcons();
@@ -1470,22 +1470,23 @@ function renderPath() {
     if (container) {
         container.innerHTML = currentPath.map((node) => {
             if(node.status === 'current') {
-                const style = `background: var(--primary-50); border-color: var(--primary-200); color: var(--primary);`;
+                const style = `background: var(--accent-bg); border-color: var(--accent-border);`;
                 return `
                 <div class="path-glass-node relative pl-6 mb-2 p-2.5 rounded-xl -ml-2 border transition-transform duration-300" style="${style}">
-                    <div class="absolute left-[-1px] top-3 w-4 h-4 rounded-full border-2 border-white z-10 animate-pulse" style="background: var(--accent);"></div>
-                    <p class="text-sm transition-colors duration-300" style="color: var(--primary);">${node.topic}</p>
+                    <div class="absolute left-[-1px] top-3 w-4 h-4 rounded-full border-2 z-10 animate-pulse" style="background: var(--accent); border-color: var(--surface-glass);"></div>
+                    <p class="text-sm path-node-current-text">${node.topic}</p>
                 </div>`;
             }
-            let dotColor = 'bg-gray-300';
-            let textColor = 'text-gray-500';
+            let dotClass = 'path-dot-locked';
+            let textClass = 'path-node-locked-text';
             if(node.status === 'completed') {
-                dotColor = 'bg-green-500'; textColor = 'text-green-700';
+                dotClass = 'path-dot-completed';
+                textClass = 'path-node-completed-text';
             }
             return `
             <div class="path-glass-node relative pl-6 mb-2 transition-opacity duration-300">
-                <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white ${dotColor} z-10 shadow-sm"></div>
-                <p class="text-sm ${textColor} transition-colors duration-300">${node.topic}</p>
+                <div class="absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 z-10 shadow-sm ${dotClass}"></div>
+                <p class="text-sm ${textClass}">${node.topic}</p>
             </div>`;
         }).join('');
     }
@@ -3018,7 +3019,7 @@ function renderPathTree() {
     if (!container) return;
 
     if (!currentPath || currentPath.length === 0) {
-        container.innerHTML = '<div class="text-xs text-gray-400 py-4 text-center">暂无学习路径</div>';
+        container.innerHTML = '<div class="text-xs py-4 text-center" style="color: var(--text-tertiary);">暂无学习路径</div>';
         return;
     }
 
@@ -3033,7 +3034,7 @@ function renderPathTree() {
         let html = `<div class="path-tree-node" data-idx="${idx}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}">
             ${hasChildren ? '<i data-lucide="chevron-right" class="w-3 h-3 path-tree-toggle"></i>' : '<span class="w-3"></span>'}
             <div class="path-tree-node-dot ${dotClass}"></div>
-            <span class="text-gray-700">${escapeHtml(displayName)}</span>
+            <span class="path-tree-node-text">${escapeHtml(displayName)}</span>
             ${isImportant ? '<span class="path-tree-badge important">核心</span>' : ''}
             ${time ? `<span class="path-tree-time">${time}min</span>` : ''}
         </div>`;
@@ -3047,7 +3048,7 @@ function renderPathTree() {
                 html += `<div class="path-tree-node" tabindex="0" role="treeitem" aria-label="${escapeHtml(childName)}">
                     <span class="w-3"></span>
                     <div class="path-tree-node-dot ${cDotClass}"></div>
-                    <span class="text-gray-600">${escapeHtml(childName)}</span>
+                    <span class="path-tree-node-text path-tree-child-text">${escapeHtml(childName)}</span>
                 </div>`;
             }
             html += '</div>';
@@ -3820,63 +3821,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const trackB = document.getElementById('track-b');
     const collapseIcon = document.getElementById('sandbox-collapse-icon');
 
-    function updateTrackBWidth(isCollapsed) {
-        if (window.innerWidth >= 768) {
-            if (isCollapsed) {
-                trackB.style.width = '100%';
-                trackB.style.flex = '1';
-            } else {
-                trackB.style.width = '';
-                trackB.style.flex = '';
-            }
-        } else {
-            trackB.style.width = '';
-            trackB.style.flex = '';
+    // 教研沙盘展开/隐藏状态管理 - 使用与学习路径相同的 collapsed 类模式
+    function updateSandboxState(isCollapsed) {
+        // 更新展开按钮可见性
+        if (sandboxExpandBtn) {
+            sandboxExpandBtn.classList.toggle('visible', isCollapsed);
         }
+
+        // 更新收起图标旋转状态
+        if (collapseIcon) {
+            collapseIcon.style.transform = isCollapsed ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
+        // 触发窗口resize事件，确保聊天框和输入框正确调整
+        window.dispatchEvent(new Event('resize'));
+    }
+
+    // 初始化沙盘状态 - 默认展开
+    if (trackAContainer && !trackAContainer.classList.contains('collapsed')) {
+        updateSandboxState(false);
     }
 
     if (sandboxCollapseBtn) {
         sandboxCollapseBtn.addEventListener('click', () => {
-            const isCollapsed = trackAContainer.classList.contains('sandbox-expanded');
+            // 使用 collapsed 类，与学习路径保持一致
+            const isCurrentlyCollapsed = trackAContainer.classList.contains('collapsed');
 
-            if (isCollapsed) {
-                trackAContainer.classList.remove('sandbox-expanded');
-                trackA.style.transform = 'translateX(0)';
-                trackA.classList.remove('hidden');
-                if (collapseIcon) {
-                    collapseIcon.style.transform = 'rotate(0deg)';
-                }
-                if (sandboxExpandBtn) {
-                    sandboxExpandBtn.classList.remove('visible');
-                }
+            if (isCurrentlyCollapsed) {
+                // 展开
+                trackAContainer.classList.remove('collapsed');
             } else {
-                trackAContainer.classList.add('sandbox-expanded');
-                trackA.style.transform = 'translateX(-100%)';
-                if (collapseIcon) {
-                    collapseIcon.style.transform = 'rotate(180deg)';
-                }
-                if (sandboxExpandBtn) {
-                    sandboxExpandBtn.classList.add('visible');
-                }
+                // 收起
+                trackAContainer.classList.add('collapsed');
             }
 
-            updateTrackBWidth(!isCollapsed);
+            updateSandboxState(!isCurrentlyCollapsed);
         });
     }
 
     if (sandboxExpandBtn) {
         sandboxExpandBtn.addEventListener('click', () => {
-            const isCollapsed = trackAContainer.classList.contains('sandbox-expanded');
+            const isCurrentlyCollapsed = trackAContainer.classList.contains('collapsed');
 
-            if (isCollapsed) {
-                trackAContainer.classList.remove('sandbox-expanded');
-                trackA.style.transform = 'translateX(0)';
-                trackA.classList.remove('hidden');
-                if (collapseIcon) {
-                    collapseIcon.style.transform = 'rotate(0deg)';
-                }
-                sandboxExpandBtn.classList.remove('visible');
-                updateTrackBWidth(false);
+            if (isCurrentlyCollapsed) {
+                // 展开
+                trackAContainer.classList.remove('collapsed');
+                updateSandboxState(false);
             }
         });
     }
