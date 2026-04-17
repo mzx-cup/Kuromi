@@ -444,29 +444,41 @@ function drawTreeConnections() {
 // ============================================
 // Theme Toggle System
 // ============================================
+const THEME_STORAGE_KEY = 'hub-theme';
+
 function initThemeToggle() {
     const toggleBtn = document.getElementById('theme-toggle');
-    if (!toggleBtn) return;
+    if (!toggleBtn) {
+        console.warn('Theme toggle button not found');
+        return;
+    }
 
-    const savedTheme = localStorage.getItem('hub-theme') ||
-                      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(savedTheme);
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+
+    setTheme(initialTheme);
 
     toggleBtn.addEventListener('click', () => {
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
         const newTheme = currentTheme === 'light' ? 'dark' : 'light';
         setTheme(newTheme);
-        localStorage.setItem('hub-theme', newTheme);
+        localStorage.setItem(THEME_STORAGE_KEY, newTheme);
     });
 
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (!localStorage.getItem('hub-theme')) {
+        if (!localStorage.getItem(THEME_STORAGE_KEY)) {
             setTheme(e.matches ? 'dark' : 'light');
         }
     });
 }
 
 function setTheme(theme) {
+    if (theme !== 'light' && theme !== 'dark') {
+        console.warn('Invalid theme:', theme, 'Defaulting to light');
+        theme = 'light';
+    }
+
     document.documentElement.setAttribute('data-theme', theme);
 
     const toggleBtn = document.getElementById('theme-toggle');
@@ -477,6 +489,9 @@ function setTheme(theme) {
             toggleBtn.setAttribute('aria-label', '切换到深色模式');
         }
     }
+
+    document.body.classList.remove('theme-light', 'theme-dark');
+    document.body.classList.add(`theme-${theme}`);
 }
 
 // ============================================
