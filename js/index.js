@@ -1,4 +1,4 @@
-﻿const API_BASE = window.location.origin;
+const API_BASE = window.location.origin;
 const API_URL = `${API_BASE}/api/chat`;
 const RUN_CODE_URL = `${API_BASE}/api/run-code`;
 const GRADE_CODE_URL = `${API_BASE}/api/grade-code`;
@@ -1163,25 +1163,34 @@ function updateUserUI() {
 }
 
 function switchTab(tab) {
+    const chatView = document.getElementById('chat-view');
+    const codeView = document.getElementById('code-view');
+
+    if (tab === 'chat') {
+        if (codeView && !codeView.classList.contains('hidden')) {
+            codeView.classList.add('hidden');
+        }
+        if (chatView) {
+            chatView.classList.remove('hidden');
+        }
+    } else if (tab === 'code') {
+        if (chatView && !chatView.classList.contains('hidden')) {
+            chatView.classList.add('hidden');
+        }
+        if (codeView) {
+            codeView.classList.remove('hidden');
+            if (!codeEditor) {
+                setTimeout(initCodeEditor, 50);
+            } else {
+                setTimeout(() => codeEditor.refresh(), 50);
+            }
+        }
+        startCodePracticeTimer();
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tab);
     });
-    const chatView = document.getElementById('chat-view');
-    const codeView = document.getElementById('code-view');
-    if (chatView) chatView.classList.toggle('hidden', tab !== 'chat');
-    if (codeView) codeView.classList.toggle('hidden', tab !== 'code');
-    if (tab === 'code' && !codeEditor) {
-        setTimeout(initCodeEditor, 50);
-    }
-    if (tab === 'code' && codeEditor) {
-        setTimeout(() => codeEditor.refresh(), 50);
-    }
-
-    if (tab === 'code') {
-        startCodePracticeTimer();
-    } else {
-        stopCodePracticeTimer();
-    }
 }
 
 function switchOutputTab(tab) {

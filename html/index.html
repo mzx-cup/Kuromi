@@ -206,7 +206,7 @@
             </div>
         </div>
 
-        <div id="chat-view" class="flex-1 flex h-full min-h-0">
+        <div id="chat-view" class="tab-view flex-1 flex h-full min-h-0">
             <div class="flex flex-col md:flex-row w-full h-full min-h-0">
 
                 <div id="track-a-container" class="relative md:shrink-0 transition-all duration-300 ease-in-out" style="width: 100%;">
@@ -234,14 +234,14 @@
                         </div>
                         <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll"></div>
                     </div>
-
-                    <!-- 展开沙盘按钮 (隐藏时显示) -->
-                    <button id="sandbox-expand-btn" class="sidebar-expand-btn sidebar-expand-left sandbox-expand-btn-styled" aria-label="展开沙盘" title="展开沙盘">
-                        <i data-lucide="chevron-right" class="w-4 h-4" id="sandbox-expand-icon"></i>
-                    </button>
                 </div>
 
-                <div id="track-b" class="track-chat flex-1 flex flex-col h-[65vh] md:h-full min-h-0 min-w-0 transition-all duration-300 ease-in-out" style="">
+                <!-- 展开沙盘按钮 (移到容器外，始终可见) -->
+                <button id="sandbox-expand-btn" class="sidebar-expand-btn sidebar-expand-left sandbox-expand-btn-styled" aria-label="展开沙盘" title="展开沙盘">
+                    <i data-lucide="chevron-right" class="w-4 h-4" id="sandbox-expand-icon"></i>
+                </button>
+
+                <div id="track-b" class="track-chat flex-1 flex flex-col min-h-0 min-w-0 transition-all duration-300 ease-in-out">
                     <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
 
                     <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
@@ -302,7 +302,7 @@
             </div>
         </div>
 
-        <div id="code-view" class="flex-1 flex flex-col h-full min-h-0 hidden">
+        <div id="code-view" class="tab-view flex-1 flex flex-col h-full min-h-0 hidden">
             <div class="flex-1 flex overflow-hidden min-h-0">
                 <div class="flex-1 flex flex-col min-h-0" style="border-right: 1px solid var(--border-glass);">
                     <div class="code-editor-toolbar shrink-0">
@@ -654,7 +654,7 @@
     <button id="left-expand-btn" class="sidebar-expand-btn sidebar-expand-left" onclick="window.sidebarManager.toggleLeft()" aria-label="展开左侧面板" title="展开教研沙盘">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
-    <button id="right-expand-btn" class="sidebar-expand-btn sidebar-expand-right sandbox-expand-btn-styled visible" onclick="window.sidebarManager.toggleRight()" aria-label="展开右侧面板" title="展开学习路径">
+    <button id="right-expand-btn" class="sidebar-expand-btn sidebar-expand-right" onclick="window.sidebarManager.toggleRight()" aria-label="展开右侧面板" title="展开学习路径">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
 
