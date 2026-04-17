@@ -3804,13 +3804,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // sandboxCollapseBtn 已在前面声明，此处直接使用
+    const sandboxExpandBtn = document.getElementById('sandbox-expand-btn');
+    const trackA = document.getElementById('track-a');
+    const trackAContainer = document.getElementById('track-a-container');
+    const trackB = document.getElementById('track-b');
+    const collapseIcon = document.getElementById('sandbox-collapse-icon');
+
+    function updateTrackBWidth(isCollapsed) {
+        if (window.innerWidth >= 768) {
+            if (isCollapsed) {
+                trackB.style.width = '100%';
+                trackB.style.flex = '1';
+            } else {
+                trackB.style.width = '';
+                trackB.style.flex = '';
+            }
+        } else {
+            trackB.style.width = '';
+            trackB.style.flex = '';
+        }
+    }
+
     if (sandboxCollapseBtn) {
         sandboxCollapseBtn.addEventListener('click', () => {
-            const trackA = document.getElementById('track-a');
-            if (trackA) {
-                trackA.classList.toggle('h-[40vh]');
-                trackA.classList.toggle('h-0');
-                trackA.classList.toggle('overflow-hidden');
+            const isCollapsed = trackAContainer.classList.contains('sandbox-expanded');
+
+            if (isCollapsed) {
+                trackAContainer.classList.remove('sandbox-expanded');
+                trackA.style.transform = 'translateX(0)';
+                trackA.classList.remove('hidden');
+                if (collapseIcon) {
+                    collapseIcon.style.transform = 'rotate(0deg)';
+                }
+                if (sandboxExpandBtn) {
+                    sandboxExpandBtn.classList.remove('visible');
+                }
+            } else {
+                trackAContainer.classList.add('sandbox-expanded');
+                trackA.style.transform = 'translateX(-100%)';
+                if (collapseIcon) {
+                    collapseIcon.style.transform = 'rotate(180deg)';
+                }
+                if (sandboxExpandBtn) {
+                    sandboxExpandBtn.classList.add('visible');
+                }
+            }
+
+            updateTrackBWidth(!isCollapsed);
+        });
+    }
+
+    if (sandboxExpandBtn) {
+        sandboxExpandBtn.addEventListener('click', () => {
+            const isCollapsed = trackAContainer.classList.contains('sandbox-expanded');
+
+            if (isCollapsed) {
+                trackAContainer.classList.remove('sandbox-expanded');
+                trackA.style.transform = 'translateX(0)';
+                trackA.classList.remove('hidden');
+                if (collapseIcon) {
+                    collapseIcon.style.transform = 'rotate(0deg)';
+                }
+                sandboxExpandBtn.classList.remove('visible');
+                updateTrackBWidth(false);
             }
         });
     }
@@ -4821,10 +4878,24 @@ function toggleSection(sectionId, btnEl) {
     const isCollapsed = section.classList.contains('collapsed');
     if (isCollapsed) {
         section.classList.remove('collapsed');
-        if (btnEl) btnEl.classList.remove('collapsed');
+        if (btnEl) {
+            btnEl.classList.remove('collapsed');
+            btnEl.setAttribute('aria-expanded', 'true');
+            const icon = btnEl.querySelector('.expand-icon');
+            const text = btnEl.querySelector('.expand-text');
+            if (icon) icon.style.transform = 'rotate(0deg)';
+            if (text) text.textContent = '收起';
+        }
     } else {
         section.classList.add('collapsed');
-        if (btnEl) btnEl.classList.add('collapsed');
+        if (btnEl) {
+            btnEl.classList.add('collapsed');
+            btnEl.setAttribute('aria-expanded', 'false');
+            const icon = btnEl.querySelector('.expand-icon');
+            const text = btnEl.querySelector('.expand-text');
+            if (icon) icon.style.transform = 'rotate(-180deg)';
+            if (text) text.textContent = '展开';
+        }
     }
 }
 
@@ -4894,6 +4965,7 @@ class SidebarManager {
         const rightCol = document.getElementById('right-col');
         const leftBtn = leftCol?.querySelector('.sidebar-toggle-btn svg');
         const rightBtn = rightCol?.querySelector('.sidebar-toggle-btn svg');
+        const rightInlineBtn = document.getElementById('right-toggle-inline')?.querySelector('svg');
         if (leftBtn) {
             leftBtn.innerHTML = leftCol.classList.contains('collapsed')
                 ? '<polyline points="9 18 15 12 9 6"></polyline>'
@@ -4901,6 +4973,11 @@ class SidebarManager {
         }
         if (rightBtn) {
             rightBtn.innerHTML = rightCol.classList.contains('collapsed')
+                ? '<polyline points="15 18 9 12 15 6"></polyline>'
+                : '<polyline points="9 18 15 12 9 6"></polyline>';
+        }
+        if (rightInlineBtn) {
+            rightInlineBtn.innerHTML = rightCol.classList.contains('collapsed')
                 ? '<polyline points="15 18 9 12 15 6"></polyline>'
                 : '<polyline points="9 18 15 12 9 6"></polyline>';
         }

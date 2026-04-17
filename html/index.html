@@ -55,10 +55,11 @@
             <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                 <i data-lucide="radar" class="w-4 h-4" style="color: var(--primary-light);"></i>
                 <h2 class="font-semibold text-xs flex-1 sidebar-title-text">6维知识雷达</h2>
-                <button class="sidebar-section-toggle" onclick="toggleSection('radar-section', this)" aria-label="收起/展开知识雷达" title="收起/展开">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
             </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('radar-section', this)" data-section="radar-section" aria-expanded="true" aria-controls="radar-section" title="展开/收起知识雷达">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
             <div class="sidebar-section-content" id="radar-section">
                 <div class="glass-radar-wrap rounded-2xl p-2 shadow-sm flex items-center justify-center">
                     <div class="radar-loading" id="radar-loading">加载中...</div>
@@ -71,10 +72,11 @@
             <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                 <i data-lucide="cpu" class="w-4 h-4" style="color: var(--primary-light);"></i>
                 <h2 class="font-semibold text-xs flex-1 sidebar-title-text">智能体状态监控</h2>
-                <button class="sidebar-section-toggle" onclick="toggleSection('agent-section', this)" aria-label="收起/展开智能体状态" title="收起/展开">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
             </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('agent-section', this)" data-section="agent-section" aria-expanded="true" aria-controls="agent-section" title="展开/收起智能体状态">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
             <div class="sidebar-section-content space-y-2" id="agent-section">
                 <div class="agent-status-item" data-agent="profiler">
                     <div class="agent-status-dot agent-dot-idle"></div>
@@ -118,10 +120,11 @@
             <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                 <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
                 <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
-                <button class="sidebar-section-toggle" onclick="toggleSection('profile-section', this)" aria-label="收起/展开学情画像" title="收起/展开">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
             </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('profile-section', this)" data-section="profile-section" aria-expanded="true" aria-controls="profile-section" title="展开/收起学情画像">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
             <div class="sidebar-section-content space-y-2" id="profile-section">
                 <div class="space-y-2" id="profile-container"></div>
             </div>
@@ -206,32 +209,39 @@
         <div id="chat-view" class="flex-1 flex h-full min-h-0">
             <div class="flex flex-col md:flex-row w-full h-full min-h-0">
 
-                <div id="track-a" class="track-sandbox w-full md:w-[35%] md:min-w-[280px] md:max-w-[380px] flex flex-col h-[35vh] md:h-full shrink-0">
-                    <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="activity" class="w-4 h-4" style="color: var(--accent);"></i>
-                            <span class="text-sm font-bold" style="color: var(--text-primary);">教研沙盘</span>
-                            <span id="sandbox-status" class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background: var(--surface-glass); color: var(--text-tertiary);">待命</span>
+                <div id="track-a-container" class="relative md:shrink-0 transition-all duration-300 ease-in-out" style="width: 100%;">
+                    <div id="track-a" class="track-sandbox w-full md:w-[35%] md:min-w-[280px] md:max-w-[380px] flex flex-col h-[35vh] md:h-full md:translate-x-0" style="transform: translateX(0);">
+                        <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4" style="color: var(--accent);"></i>
+                                <span class="text-sm font-bold" style="color: var(--text-primary);">教研沙盘</span>
+                                <span id="sandbox-status" class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background: var(--surface-glass); color: var(--text-tertiary);">待命</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <button id="sandbox-search-toggle" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="搜索日志"><i data-lucide="search" class="w-3.5 h-3.5"></i></button>
+                                <button id="sandbox-filter-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="过滤智能体"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
+                                <button id="sandbox-collapse-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="收起沙盘"><i data-lucide="chevron-left" class="w-3.5 h-3.5 transition-transform duration-300" id="sandbox-collapse-icon"></i></button>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <button id="sandbox-search-toggle" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="搜索日志"><i data-lucide="search" class="w-3.5 h-3.5"></i></button>
-                            <button id="sandbox-filter-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="过滤智能体"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
-                            <button id="sandbox-collapse-btn" class="p-1.5 rounded-lg transition-colors md:hidden" style="color: var(--text-tertiary);" title="收起沙盘"><i data-lucide="chevron-up" class="w-3.5 h-3.5"></i></button>
+                        <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                            <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
                         </div>
+                        <div id="sandbox-filter-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                            <div class="flex flex-wrap gap-1" id="sandbox-filter-chips"></div>
+                        </div>
+                        <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                            <div class="flex items-center gap-1 min-w-max" id="flow-node-container"></div>
+                        </div>
+                        <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll"></div>
                     </div>
-                    <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                        <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
-                    </div>
-                    <div id="sandbox-filter-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                        <div class="flex flex-wrap gap-1" id="sandbox-filter-chips"></div>
-                    </div>
-                    <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                        <div class="flex items-center gap-1 min-w-max" id="flow-node-container"></div>
-                    </div>
-                    <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll"></div>
+
+                    <!-- 展开沙盘按钮 (隐藏时显示) -->
+                    <button id="sandbox-expand-btn" class="sidebar-expand-btn sidebar-expand-left sandbox-expand-btn-styled" aria-label="展开沙盘" title="展开沙盘">
+                        <i data-lucide="chevron-right" class="w-4 h-4" id="sandbox-expand-icon"></i>
+                    </button>
                 </div>
 
-                <div id="track-b" class="track-chat flex-1 flex flex-col h-[65vh] md:h-full min-h-0 min-w-0">
+                <div id="track-b" class="track-chat flex-1 flex flex-col h-[65vh] md:h-full min-h-0 min-w-0 transition-all duration-300 ease-in-out" style="">
                     <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
 
                     <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
@@ -330,28 +340,32 @@
     </div>
 
     <div id="right-col" class="right-col">
-        <button class="sidebar-toggle-btn right-toggle-btn" onclick="window.sidebarManager.toggleRight()" aria-label="收起右侧面板" title="收起面板">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </button>
         <div class="right-col-inner" style="background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
-            <div class="p-4 border-b shrink-0 sidebar-header-bar" style="border-color: var(--border-glass);">
-                <div class="flex items-center gap-2" style="padding-right: 4px;">
+            <div class="p-4 border-b shrink-0 sidebar-header-bar flex items-center" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 flex-1" style="padding-right: 4px;">
                     <i data-lucide="map" class="w-4 h-4" style="color: var(--primary-light);"></i>
                     <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学习路径</h2>
-                    <button class="sidebar-section-toggle" onclick="toggleSection('path-section', this)" aria-label="收起/展开学习路径" title="收起/展开">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <button id="right-toggle-inline" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" onclick="window.sidebarManager.toggleRight()" aria-label="收起右侧面板" title="收起面板">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 transition-transform duration-300 right-toggle-icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </button>
                 </div>
             </div>
-            <div class="p-4 sidebar-path-section"><div class="sidebar-section-content" id="path-section"><div class="path-tree" id="path-tree-container"></div></div></div>
+            <div class="p-4 sidebar-path-section">
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('path-section', this)" data-section="path-section" aria-expanded="true" aria-controls="path-section" title="展开/收起学习路径">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content" id="path-section"><div class="path-tree" id="path-tree-container"></div></div>
+            </div>
             <div class="p-4 border-t sidebar-eval-section" style="border-color: var(--border-glass);">
                 <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                     <i data-lucide="bar-chart-3" class="w-4 h-4" style="color: var(--primary-light);"></i>
                     <h2 class="font-semibold text-xs flex-1 sidebar-title-text">评估指标</h2>
-                    <button class="sidebar-section-toggle" onclick="toggleSection('eval-section', this)" aria-label="收起/展开评估指标" title="收起/展开">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    </button>
                 </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('eval-section', this)" data-section="eval-section" aria-expanded="true" aria-controls="eval-section" title="展开/收起评估指标">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
                 <div class="sidebar-section-content space-y-3" id="eval-section"><div class="space-y-3" id="eval-container"></div></div>
             </div>
         </div>
@@ -639,6 +653,9 @@
 
     <button id="left-expand-btn" class="sidebar-expand-btn sidebar-expand-left" onclick="window.sidebarManager.toggleLeft()" aria-label="展开左侧面板" title="展开教研沙盘">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+    <button id="right-expand-btn" class="sidebar-expand-btn sidebar-expand-right" onclick="window.sidebarManager.toggleRight()" aria-label="展开右侧面板" title="展开学习路径">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
 
     <!-- Plant Reward Modal -->

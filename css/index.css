@@ -987,6 +987,8 @@ body.light-theme .glass-input:focus {
     padding: 24px;
     height: calc(100vh - 230px);
     overflow-y: auto;
+    position: relative;
+    z-index: 1;
 }
 .chat-glass-scroll::-webkit-scrollbar { width: 6px; }
 .chat-glass-scroll::-webkit-scrollbar-track { background: var(--surface-glass); border-radius: 3px; }
@@ -1114,6 +1116,8 @@ body.light-theme .glass-input:focus {
     animation: msg-row-in 0.4s cubic-bezier(0.22,1,0.36,1) both;
     margin-bottom: 20px;
     display: flex; gap: 12px;
+    position: relative;
+    z-index: 1;
 }
 .msg-bubble-bot {
     background: var(--surface-glass);
@@ -1130,7 +1134,8 @@ body.light-theme .glass-input:focus {
     position: relative;
     overflow-wrap: break-word;
     word-break: break-word;
-    overflow: visible;
+    overflow: hidden;
+    z-index: 1;
 }
 .msg-bubble-bot:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); background: var(--surface-glass-hover); }
 .msg-bubble-user {
@@ -1145,7 +1150,7 @@ body.light-theme .glass-input:focus {
     position: relative;
     overflow-wrap: break-word;
     word-break: break-word;
-    overflow: visible;
+    overflow: hidden;
     margin-left: auto;
 }
 .msg-bubble-user:hover { box-shadow: 0 12px 36px var(--accent-bg); transform: translateY(-1px); }
@@ -1183,6 +1188,47 @@ body.light-theme .glass-input:focus {
     -webkit-backdrop-filter: blur(12px);
     border-right: 1px solid var(--border-glass);
     transition: all 0.3s ease;
+}
+
+.track-sandbox.hidden {
+    transform: translateX(-100%);
+    opacity: 0;
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0;
+    margin: 0;
+    border: none;
+    overflow: hidden;
+}
+
+#track-a-container {
+    transition: all 0.3s ease-in-out;
+    flex-shrink: 1;
+}
+
+#track-a-container.sandbox-expanded {
+    width: 0 !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+    overflow: visible;
+}
+
+#sandbox-expand-btn {
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1), 
+                background 0.3s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.3s cubic-bezier(0.4,0,0.2,1),
+                opacity 0.3s ease-in-out,
+                transform 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+#track-a-container.sandbox-expanded #sandbox-expand-btn {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateX(0);
+}
+
+#track-b {
+    transition: all 0.3s ease-in-out;
 }
 
 .track-chat {
@@ -1676,10 +1722,43 @@ body.light-theme .path-tree-empty {
     border-left: none;
 }
 .right-toggle-btn {
-    left: -28px;
-    transform: translateY(-50%);
-    border-radius: 10px 0 0 10px;
-    border-right: none;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    border: 1px solid var(--border-glass);
+    background: var(--surface-glass);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.right-toggle-btn svg {
+    width: 14px;
+    height: 14px;
+    transition: transform 0.2s ease;
+}
+
+.right-toggle-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border-color: var(--accent-border);
+}
+
+.right-toggle-btn:hover svg {
+    transform: translateX(-2px);
+}
+
+#right-toggle-inline:hover {
+    background: var(--surface-hover);
+    color: var(--text-secondary);
+}
+
+#right-toggle-inline:hover svg {
+    transform: rotate(-15deg);
 }
 
 .sidebar-expand-btn {
@@ -1715,6 +1794,27 @@ body.light-theme .path-tree-empty {
     transform: translateY(-50%) scale(0.95);
 }
 .sidebar-expand-btn svg { width: 16px; height: 16px; }
+
+.sandbox-expand-btn-styled {
+    color: var(--text-secondary);
+}
+
+.sandbox-expand-btn-styled.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sandbox-expand-btn-styled:hover {
+    color: var(--text-primary);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+}
+
+.sandbox-expand-btn-styled svg,
+.sandbox-expand-btn-styled i {
+    width: 16px;
+    height: 16px;
+    color: inherit;
+}
 
 .sidebar-expand-left {
     left: 0;
@@ -1759,6 +1859,53 @@ body.light-theme .path-tree-empty {
 
 .sidebar-section-toggle svg {
     transition: transform 0.25s ease;
+}
+
+.section-expand-btn {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 8px;
+}
+
+.section-expand-btn:hover {
+    background: var(--surface-hover);
+    border-color: var(--accent-border);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.section-expand-btn:active {
+    transform: scale(0.98);
+}
+
+.section-expand-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent-bg), 0 0 0 4px var(--primary-200);
+}
+
+.section-expand-btn:focus:not(:focus-visible) {
+    box-shadow: none;
+}
+
+.section-expand-btn:focus-visible {
+    box-shadow: 0 0 0 2px var(--accent-bg), 0 0 0 4px var(--primary-200);
+}
+
+.section-expand-btn.collapsed {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--primary);
+}
+
+.section-expand-btn.collapsed .expand-icon {
+    transform: rotate(-180deg);
+}
+
+.section-expand-btn .expand-icon {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-section-content {
