@@ -366,10 +366,17 @@ class ProactiveTutor:
         try:
             with open("local_storage.json", "r", encoding="utf-8") as f:
                 data = _json.load(f)
-            records = data.get("learning_records", {}).get(student_id, [])
+            # local_storage.json 中 learning_records 是 list，每个元素含 user_id
+            records = data.get("learning_records", [])
+            if not isinstance(records, list):
+                records = []
             now = datetime.now()
             stale = []
             for rec in records:
+                if not isinstance(rec, dict):
+                    continue
+                if str(rec.get("user_id", "")) != str(student_id):
+                    continue
                 lr = rec.get("last_reviewed_at", "")
                 if lr:
                     try:

@@ -1,0 +1,2987 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0f0f23;
+    --bg-secondary: #1a1a3e;
+    --bg-tertiary: #252560;
+    --accent: #ff6b9d;
+    --accent-light: #ff8fb3;
+    --accent-glow: rgba(255, 107, 157, 0.4);
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --info: #60a5fa;
+    --text-primary: #f0f0ff;
+    --text-secondary: #a0a0c0;
+    --pixel-size: 4px;
+    --card-bg: rgba(30, 30, 60, 0.85);
+    --card-border: rgba(100, 100, 150, 0.4);
+}
+
+* {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+body {
+    font-family: 'Press Start 2P', monospace;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* 游戏容器 */
+.game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ===== 场景背景 ===== */
+.scene-container {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+/* 天空渐变 */
+.sky {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+        #0a0a1a 0%,
+        #1a1a3e 20%,
+        #2a2a5e 40%,
+        #3a3a7e 60%,
+        #4a4a9e 80%,
+        #5a5abe 100%
+    );
+    transition: filter 2s ease;
+}
+
+.sky.night {
+    filter: brightness(0.6);
+}
+
+.sky.sunset {
+    background: linear-gradient(180deg,
+        #1a0a2e 0%,
+        #3a1a4e 20%,
+        #6a2a5e 40%,
+        #9a4a6e 60%,
+        #ca6a5e 80%,
+        #fa8a4e 100%
+    );
+}
+
+/* 星空 */
+.stars-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.star.small {
+    width: 1px;
+    height: 1px;
+    box-shadow: 0 0 2px #fff;
+}
+
+.star.medium {
+    width: 2px;
+    height: 2px;
+    box-shadow: 0 0 4px #fff, 0 0 8px rgba(255,255,255,0.5);
+}
+
+.star.large {
+    width: 3px;
+    height: 3px;
+    box-shadow: 0 0 6px #fff, 0 0 12px rgba(255,255,255,0.5);
+    animation: twinkle 2s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 流星 */
+.shooting-star {
+    position: absolute;
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(90deg, #fff, transparent);
+    transform: rotate(-45deg);
+    animation: shoot 1s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes shoot {
+    0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
+    100% { transform: translateX(300px) translateY(300px) rotate(-45deg); opacity: 0; }
+}
+
+/* 月亮 */
+.moon {
+    position: absolute;
+    top: 60px;
+    right: 100px;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle at 30% 30%, #fffde7, #ffd54f);
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(255, 253, 231, 0.5), 0 0 60px rgba(255, 213, 79, 0.3);
+}
+
+.moon::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    width: 12px;
+    height: 12px;
+    background: rgba(200, 180, 100, 0.3);
+    border-radius: 50%;
+}
+
+.moon::after {
+    content: '';
+    position: absolute;
+    top: 25px;
+    left: 35px;
+    width: 8px;
+    height: 8px;
+    background: rgba(200, 180, 100, 0.2);
+    border-radius: 50%;
+}
+
+/* 云朵 */
+.clouds-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 200px;
+    pointer-events: none;
+}
+
+.cloud {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    animation: float-cloud linear infinite;
+}
+
+.cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: inherit;
+    border-radius: 50%;
+}
+
+@keyframes float-cloud {
+    0% { transform: translateX(-200px); }
+    100% { transform: translateX(calc(100vw + 200px)); }
+}
+
+/* 远山 */
+.mountains {
+    position: absolute;
+    bottom: 150px;
+    left: 0;
+    right: 0;
+    height: 200px;
+    pointer-events: none;
+}
+
+.mountain {
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.mountain-1 {
+    left: -50px;
+    border-width: 0 150px 180px 150px;
+    border-color: transparent transparent #1a1a3e transparent;
+}
+
+.mountain-2 {
+    left: 200px;
+    border-width: 0 200px 220px 200px;
+    border-color: transparent transparent #252550 transparent;
+}
+
+.mountain-3 {
+    right: -100px;
+    border-width: 0 180px 200px 180px;
+    border-color: transparent transparent #1e1e45 transparent;
+}
+
+/* 地面 */
+.ground-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 150px;
+}
+
+.grass-layer {
+    position: absolute;
+    bottom: 130px;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: repeating-linear-gradient(90deg,
+        #2d5a3d 0px, #2d5a3d 4px,
+        #3d6a4d 4px, #3d6a4d 8px,
+        #4d7a5d 8px, #4d7a5d 12px
+    );
+}
+
+.ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 130px;
+    background:
+        linear-gradient(180deg, #2d5a3d 0%, #1a3a2d 50%, #0f2a1d 100%);
+}
+
+.ground::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: repeating-linear-gradient(90deg,
+        #4d7a5d 0px, #4d7a5d 8px,
+        #3d6a4d 8px, #3d6a4d 16px
+    );
+}
+
+/* 像素装饰物 */
+.pixel-decor {
+    position: absolute;
+    bottom: 130px;
+}
+
+/* 像素树 */
+.pixel-tree {
+    position: relative;
+}
+
+.tree-crown {
+    width: 48px;
+    height: 48px;
+    position: relative;
+}
+
+.tree-crown::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    width: 24px;
+    height: 24px;
+    background: #2e7d32;
+    box-shadow:
+        -12px 12px 0 #388e3c,
+        12px 12px 0 #388e3c,
+        0 24px 0 #43a047;
+}
+
+.tree-trunk {
+    width: 12px;
+    height: 24px;
+    background: #5d4037;
+    margin: 0 auto;
+    margin-top: -4px;
+}
+
+/* 像素花 */
+.pixel-flower {
+    width: 16px;
+    height: 16px;
+    position: relative;
+}
+
+.pixel-flower::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 6px;
+    width: 3px;
+    height: 10px;
+    background: #4caf50;
+    border-radius: 1px;
+}
+
+.pixel-flower::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: flower-sway 2s ease-in-out infinite;
+}
+
+.pixel-flower.pink::after {
+    background: radial-gradient(circle at 50% 50%, #ffc1e3 30%, #ff69b4 70%);
+    box-shadow: 0 0 6px rgba(255, 105, 180, 0.5);
+}
+
+.pixel-flower.yellow::after {
+    background: radial-gradient(circle at 50% 50%, #fff59d 30%, #ffeb3b 70%);
+    box-shadow: 0 0 6px rgba(255, 235, 59, 0.5);
+}
+
+.pixel-flower.blue::after {
+    background: radial-gradient(circle at 50% 50%, #b3e5fc 30%, #4fc3f7 70%);
+    box-shadow: 0 0 6px rgba(79, 195, 247, 0.5);
+}
+
+@keyframes flower-sway {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+}
+
+/* 像素蘑菇 */
+.pixel-mushroom {
+    width: 16px;
+    height: 16px;
+    position: relative;
+}
+
+.mushroom-cap {
+    width: 16px;
+    height: 10px;
+    background: linear-gradient(180deg, #f44336 60%, #d32f2f 100%);
+    border-radius: 8px 8px 0 0;
+    position: relative;
+}
+
+.mushroom-cap::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 3px;
+    width: 4px;
+    height: 4px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.mushroom-stem {
+    width: 6px;
+    height: 6px;
+    background: #fff8e1;
+    margin: 0 auto;
+}
+
+/* 像素房子 */
+.pixel-house {
+    position: absolute;
+    bottom: 130px;
+    left: 30px;
+}
+
+.house-roof {
+    width: 0;
+    height: 0;
+    border-left: 50px solid transparent;
+    border-right: 50px solid transparent;
+    border-bottom: 40px solid #c62828;
+    position: relative;
+}
+
+.house-roof::after {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: -8px;
+    width: 16px;
+    height: 20px;
+    background: #5d4037;
+}
+
+.house-body {
+    width: 80px;
+    height: 50px;
+    background: linear-gradient(180deg, #ffcc80 0%, #ffb74d 100%);
+    border: 3px solid #8d6e63;
+    position: relative;
+    margin-top: -3px;
+}
+
+.house-door {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 28px;
+    background: #5d4037;
+    border: 2px solid #3e2723;
+    border-radius: 2px 2px 0 0;
+}
+
+.house-door::after {
+    content: '';
+    position: absolute;
+    top: 12px;
+    right: 4px;
+    width: 4px;
+    height: 4px;
+    background: #ffd54f;
+    border-radius: 50%;
+}
+
+.house-window {
+    position: absolute;
+    top: 10px;
+    width: 16px;
+    height: 16px;
+    background: #fff9c4;
+    border: 2px solid #5d4037;
+}
+
+.house-window.left { left: 8px; }
+.house-window.right { right: 8px; }
+
+.house-window::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #5d4037;
+}
+
+.house-window::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #5d4037;
+}
+
+/* 像素围栏 */
+.pixel-fence {
+    position: absolute;
+    bottom: 130px;
+    display: flex;
+    gap: 8px;
+}
+
+.fence-post {
+    width: 6px;
+    height: 24px;
+    background: #8d6e63;
+    position: relative;
+}
+
+.fence-post::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: -4px;
+    width: 14px;
+    height: 4px;
+    background: #a1887f;
+}
+
+/* ===== UI 界面 ===== */
+.game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.game-ui > * {
+    pointer-events: auto;
+}
+
+/* 顶部信息栏 */
+.top-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.game-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 12px;
+    padding: 8px 16px;
+    backdrop-filter: blur(10px);
+}
+
+.logo-icon {
+    font-size: 20px;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.logo-text {
+    font-size: 12px;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* 资源栏 */
+.resource-bar {
+    display: flex;
+    gap: 8px;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    backdrop-filter: blur(10px);
+}
+
+.resource-icon {
+    font-size: 16px;
+}
+
+.resource-value {
+    font-size: 11px;
+    color: var(--warning);
+}
+
+/* 返回按钮 */
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 20px;
+    padding: 8px 16px;
+    color: var(--text-primary);
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    backdrop-filter: blur(10px);
+}
+
+.back-btn:hover {
+    border-color: var(--accent);
+    background: rgba(255, 107, 157, 0.2);
+}
+
+/* 左侧状态面板 */
+.status-panel {
+    position: absolute;
+    top: 80px;
+    left: 16px;
+    width: 220px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 16px;
+    padding: 16px;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.panel-title {
+    font-size: 10px;
+    color: var(--accent-light);
+}
+
+.pet-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+.pet-avatar {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.pet-details {
+    flex: 1;
+}
+
+.pet-name {
+    font-size: 11px;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.pet-level {
+    font-size: 8px;
+    color: var(--text-secondary);
+}
+
+.pet-mood {
+    font-size: 8px;
+    color: var(--accent);
+    margin-top: 2px;
+}
+
+/* 状态条 */
+.stat-item {
+    margin-bottom: 10px;
+}
+
+.stat-item:last-child {
+    margin-bottom: 0;
+}
+
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.stat-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8px;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-size: 9px;
+    font-weight: bold;
+}
+
+.stat-bar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.stat-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px 4px 0 0;
+}
+
+.stat-fill.hunger {
+    background: linear-gradient(90deg, #ff9800, #ff5722);
+}
+.stat-fill.happiness {
+    background: linear-gradient(90deg, #e91e63, #ff4081);
+}
+.stat-fill.energy {
+    background: linear-gradient(90deg, #4caf50, #8bc34a);
+}
+.stat-fill.intimacy {
+    background: linear-gradient(90deg, #9c27b0, #e91e63);
+}
+
+/* 右侧宠物选择面板 */
+.pet-selector-panel {
+    position: absolute;
+    top: 80px;
+    right: 16px;
+    width: 180px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 16px;
+    padding: 12px;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.pet-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.pet-slot {
+    aspect-ratio: 1;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    position: relative;
+}
+
+.pet-slot:hover {
+    border-color: var(--accent);
+    transform: scale(1.1);
+}
+
+.pet-slot.active {
+    border-color: var(--success);
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+}
+
+.pet-slot.locked {
+    opacity: 0.4;
+}
+
+.pet-slot.locked::after {
+    content: '🔒';
+    position: absolute;
+    font-size: 8px;
+    bottom: 2px;
+    right: 2px;
+}
+
+/* ===== 宠物精灵 ===== */
+.pet-container {
+    position: absolute;
+    bottom: 150px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    cursor: pointer;
+    transition: left 0.8s ease;
+}
+
+.pet-sprite {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    transform-origin: bottom center;
+}
+
+/* 宠物阴影 */
+.pet-shadow {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 12px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+/* 猫咪像素精灵 - 更可爱版本 */
+.pixel-cat {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.pixel-cat .body {
+    position: absolute;
+    bottom: 8px;
+    left: 14px;
+    width: 52px;
+    height: 32px;
+    background: linear-gradient(180deg, #ffcc80 0%, #ffb74d 50%, #ffa726 100%);
+    border-radius: 16px 16px 12px 12px;
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,0.1), inset 0 4px 8px rgba(255,255,255,0.3);
+}
+
+.pixel-cat .body::before {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 10px;
+    width: 32px;
+    height: 16px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 8px;
+}
+
+.pixel-cat .head {
+    position: absolute;
+    bottom: 34px;
+    left: 10px;
+    width: 48px;
+    height: 42px;
+    background: linear-gradient(180deg, #ffcc80 0%, #ffb74d 50%, #ffa726 100%);
+    border-radius: 50% 50% 45% 45%;
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,0.08), inset 0 6px 12px rgba(255,255,255,0.3);
+}
+
+.pixel-cat .ear {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 20px solid #ffb74d;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+.pixel-cat .ear.left { bottom: 70px; left: 8px; transform: rotate(-10deg); }
+.pixel-cat .ear.right { bottom: 70px; left: 38px; transform: rotate(10deg); }
+
+.pixel-cat .ear-inner {
+    position: absolute;
+    bottom: 66px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid #ffcdd2;
+}
+
+.pixel-cat .ear-inner.left { left: 13px; }
+.pixel-cat .ear-inner.right { left: 43px; }
+
+.pixel-cat .eye {
+    position: absolute;
+    width: 10px;
+    height: 12px;
+    background: linear-gradient(180deg, #2d1b4e 0%, #1a1a2e 100%);
+    border-radius: 50%;
+    bottom: 50px;
+    animation: blink 4s ease-in-out infinite;
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+}
+
+.pixel-cat .eye::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, #fff 60%, rgba(255,255,255,0.5) 100%);
+    border-radius: 50%;
+}
+
+.pixel-cat .eye::before {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    right: 1px;
+    width: 3px;
+    height: 3px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+}
+
+.pixel-cat .eye.left { left: 16px; }
+.pixel-cat .eye.right { left: 38px; }
+
+.pixel-cat .nose {
+    position: absolute;
+    bottom: 42px;
+    left: 28px;
+    width: 8px;
+    height: 6px;
+    background: linear-gradient(180deg, #ff8a9b 0%, #e91e63 100%);
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.pixel-cat .mouth {
+    position: absolute;
+    bottom: 36px;
+    left: 24px;
+    width: 16px;
+    height: 6px;
+}
+
+.pixel-cat .mouth::before, .pixel-cat .mouth::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 6px;
+    border-bottom: 2px solid #5d4037;
+    border-radius: 0 0 6px 6px;
+}
+
+.pixel-cat .mouth::before { left: 0; }
+.pixel-cat .mouth::after { left: 8px; }
+
+.pixel-cat .whisker {
+    position: absolute;
+    bottom: 46px;
+    width: 14px;
+    height: 1px;
+    background: #8d6e63;
+    border-radius: 1px;
+}
+
+.pixel-cat .whisker.left-1 { left: 2px; transform: rotate(-15deg); }
+.pixel-cat .whisker.left-2 { left: 0px; bottom: 42px; transform: rotate(5deg); }
+.pixel-cat .whisker.right-1 { left: 52px; transform: rotate(15deg); }
+.pixel-cat .whisker.right-2 { left: 54px; bottom: 42px; transform: rotate(-5deg); }
+
+.pixel-cat .tail {
+    position: absolute;
+    bottom: 16px;
+    left: 62px;
+    width: 24px;
+    height: 12px;
+    background: linear-gradient(90deg, #ffb74d 0%, #ffa726 100%);
+    border-radius: 0 12px 12px 0;
+    transform-origin: left center;
+    animation: tail-wag 0.5s ease-in-out infinite alternate;
+}
+
+.pixel-cat .tail::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #ffb74d 0%, #ffcc80 100%);
+    border-radius: 50%;
+}
+
+.pixel-cat .blush {
+    position: absolute;
+    width: 10px;
+    height: 6px;
+    background: rgba(255, 138, 155, 0.5);
+    border-radius: 50%;
+    bottom: 44px;
+}
+
+.pixel-cat .blush.left { left: 10px; }
+.pixel-cat .blush.right { left: 46px; }
+
+@keyframes blink {
+    0%, 95%, 100% { transform: scaleY(1); }
+    97% { transform: scaleY(0.1); }
+}
+
+@keyframes tail-wag {
+    0% { transform: rotate(-25deg); }
+    100% { transform: rotate(25deg); }
+}
+
+/* 通用腮红样式 */
+.pixel-cat .blush,
+.pixel-dog .blush,
+.pixel-rabbit .blush,
+.pixel-hamster .blush,
+.pixel-bear .blush,
+.pixel-fox .blush,
+.pixel-deer .blush,
+.pixel-koala .blush,
+.pixel-penguin .blush,
+.pixel-panda .blush {
+    position: absolute;
+    width: 10px;
+    height: 6px;
+    background: rgba(255, 138, 155, 0.5);
+    border-radius: 50%;
+}
+
+.pixel-cat .blush.left { bottom: 44px; left: 10px; }
+.pixel-cat .blush.right { bottom: 44px; left: 46px; }
+
+.pixel-dog .blush { bottom: 38px; }
+.pixel-dog .blush.left { left: 8px; }
+.pixel-dog .blush.right { left: 42px; }
+
+.pixel-rabbit .blush { bottom: 40px; }
+.pixel-rabbit .blush.left { left: 10px; }
+.pixel-rabbit .blush.right { left: 42px; }
+
+.pixel-hamster .blush { bottom: 42px; }
+.pixel-hamster .blush.left { left: 12px; }
+.pixel-hamster .blush.right { left: 40px; }
+
+.pixel-bear .blush { bottom: 46px; }
+.pixel-bear .blush.left { left: 12px; }
+.pixel-bear .blush.right { left: 38px; }
+
+.pixel-fox .blush { bottom: 38px; }
+.pixel-fox .blush.left { left: 10px; }
+.pixel-fox .blush.right { left: 36px; }
+
+.pixel-deer .blush { bottom: 40px; }
+.pixel-deer .blush.left { left: 12px; }
+.pixel-deer .blush.right { left: 34px; }
+
+.pixel-koala .blush { bottom: 44px; }
+.pixel-koala .blush.left { left: 12px; }
+.pixel-koala .blush.right { left: 36px; }
+
+.pixel-penguin .blush { bottom: 50px; }
+.pixel-penguin .blush.left { left: 20px; }
+.pixel-penguin .blush.right { left: 42px; }
+
+.pixel-panda .blush { bottom: 46px; }
+.pixel-panda .blush.left { left: 12px; }
+.pixel-panda .blush.right { left: 38px; }
+
+/* 狗狗像素精灵 */
+.pixel-dog .body {
+    position: absolute;
+    bottom: 8px;
+    left: 14px;
+    width: 52px;
+    height: 26px;
+    background: linear-gradient(180deg, #a1887f 0%, #8d6e63 100%);
+    border-radius: 10px;
+}
+
+.pixel-dog .body::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 10px;
+    width: 8px;
+    height: 12px;
+    background: #8d6e63;
+    border-radius: 0 0 4px 4px;
+}
+
+.pixel-dog .body::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 10px;
+    width: 8px;
+    height: 12px;
+    background: #8d6e63;
+    border-radius: 0 0 4px 4px;
+}
+
+.pixel-dog .head {
+    position: absolute;
+    bottom: 28px;
+    left: 10px;
+    width: 36px;
+    height: 32px;
+    background: linear-gradient(180deg, #a1887f 0%, #8d6e63 100%);
+    border-radius: 10px 10px 16px 16px;
+}
+
+.pixel-dog .ear {
+    position: absolute;
+    width: 14px;
+    height: 20px;
+    background: #6d4c41;
+    border-radius: 0 0 8px 8px;
+}
+
+.pixel-dog .ear.left { bottom: 52px; left: 8px; transform: rotate(-10deg); }
+.pixel-dog .ear.right { bottom: 52px; left: 32px; transform: rotate(10deg); }
+
+.pixel-dog .eye {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 46px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-dog .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-dog .eye.left { left: 14px; }
+.pixel-dog .eye.right { left: 30px; }
+
+.pixel-dog .nose {
+    position: absolute;
+    bottom: 36px;
+    left: 20px;
+    width: 10px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+.pixel-dog .tongue {
+    position: absolute;
+    bottom: 30px;
+    left: 24px;
+    width: 6px;
+    height: 8px;
+    background: #ff8a80;
+    border-radius: 0 0 4px 4px;
+    animation: pant 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pant {
+    0% { height: 6px; }
+    100% { height: 10px; }
+}
+
+.pixel-dog .tail {
+    position: absolute;
+    bottom: 20px;
+    left: 62px;
+    width: 16px;
+    height: 8px;
+    background: #a1887f;
+    border-radius: 8px;
+    transform-origin: left center;
+    animation: tail-wag 0.3s ease-in-out infinite alternate;
+}
+
+/* 兔子像素精灵 */
+.pixel-rabbit .body {
+    position: absolute;
+    bottom: 6px;
+    left: 18px;
+    width: 44px;
+    height: 24px;
+    background: linear-gradient(180deg, #fafafa 0%, #e0e0e0 100%);
+    border-radius: 12px;
+}
+
+.pixel-rabbit .head {
+    position: absolute;
+    bottom: 26px;
+    left: 16px;
+    width: 36px;
+    height: 30px;
+    background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+    border-radius: 50%;
+}
+
+.pixel-rabbit .ear {
+    position: absolute;
+    width: 10px;
+    height: 28px;
+    background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+    border-radius: 6px;
+}
+
+.pixel-rabbit .ear.left { bottom: 52px; left: 18px; transform: rotate(-10deg); }
+.pixel-rabbit .ear.right { bottom: 52px; left: 38px; transform: rotate(10deg); }
+
+.pixel-rabbit .ear-inner {
+    position: absolute;
+    width: 6px;
+    height: 18px;
+    background: #ffcdd2;
+    border-radius: 4px;
+    top: 5px;
+    left: 2px;
+}
+
+.pixel-rabbit .eye {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #e91e63;
+    border-radius: 50%;
+    bottom: 42px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-rabbit .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-rabbit .eye.left { left: 20px; }
+.pixel-rabbit .eye.right { left: 34px; }
+
+.pixel-rabbit .nose {
+    position: absolute;
+    bottom: 36px;
+    left: 28px;
+    width: 6px;
+    height: 5px;
+    background: #ffcdd2;
+    border-radius: 50%;
+}
+
+.pixel-rabbit .cheek {
+    position: absolute;
+    width: 10px;
+    height: 6px;
+    background: rgba(255, 205, 210, 0.5);
+    border-radius: 50%;
+    bottom: 38px;
+}
+
+.pixel-rabbit .cheek.left { left: 12px; }
+.pixel-rabbit .cheek.right { left: 40px; }
+
+/* 仓鼠像素精灵 */
+.pixel-hamster .body {
+    position: absolute;
+    bottom: 6px;
+    left: 18px;
+    width: 44px;
+    height: 30px;
+    background: linear-gradient(180deg, #ffe082 0%, #ffd54f 100%);
+    border-radius: 50%;
+}
+
+.pixel-hamster .body::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    width: 28px;
+    height: 14px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+}
+
+.pixel-hamster .head {
+    position: absolute;
+    bottom: 28px;
+    left: 16px;
+    width: 36px;
+    height: 28px;
+    background: linear-gradient(180deg, #ffe082 0%, #ffca28 100%);
+    border-radius: 50%;
+}
+
+.pixel-hamster .ear {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ffca28;
+    border-radius: 50%;
+    bottom: 50px;
+}
+
+.pixel-hamster .ear.left { left: 16px; }
+.pixel-hamster .ear.right { left: 38px; }
+
+.pixel-hamster .cheek {
+    position: absolute;
+    width: 14px;
+    height: 12px;
+    background: #ffd54f;
+    border-radius: 50%;
+    bottom: 30px;
+}
+
+.pixel-hamster .cheek.left { left: 8px; }
+.pixel-hamster .cheek.right { left: 42px; }
+
+.pixel-hamster .eye {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 44px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-hamster .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-hamster .eye.left { left: 22px; }
+.pixel-hamster .eye.right { left: 36px; }
+
+.pixel-hamster .nose {
+    position: absolute;
+    bottom: 38px;
+    left: 28px;
+    width: 5px;
+    height: 4px;
+    background: #e91e63;
+    border-radius: 50%;
+}
+
+/* 熊像素精灵 */
+.pixel-bear .body {
+    position: absolute;
+    bottom: 4px;
+    left: 14px;
+    width: 52px;
+    height: 32px;
+    background: linear-gradient(180deg, #795548 0%, #5d4037 100%);
+    border-radius: 14px;
+}
+
+.pixel-bear .head {
+    position: absolute;
+    bottom: 32px;
+    left: 12px;
+    width: 40px;
+    height: 36px;
+    background: linear-gradient(180deg, #795548 0%, #6d4c41 100%);
+    border-radius: 50%;
+}
+
+.pixel-bear .ear {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #795548;
+    border-radius: 50%;
+    bottom: 60px;
+}
+
+.pixel-bear .ear.left { left: 12px; }
+.pixel-bear .ear.right { left: 38px; }
+
+.pixel-bear .muzzle {
+    position: absolute;
+    bottom: 34px;
+    left: 18px;
+    width: 22px;
+    height: 14px;
+    background: #d7ccc8;
+    border-radius: 50%;
+}
+
+.pixel-bear .eye {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 52px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-bear .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-bear .eye.left { left: 16px; }
+.pixel-bear .eye.right { left: 34px; }
+
+.pixel-bear .nose {
+    position: absolute;
+    bottom: 40px;
+    left: 26px;
+    width: 8px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+/* 狐狸像素精灵 */
+.pixel-fox .body {
+    position: absolute;
+    bottom: 6px;
+    left: 16px;
+    width: 48px;
+    height: 24px;
+    background: linear-gradient(180deg, #ff7043 0%, #f4511e 100%);
+    border-radius: 10px;
+}
+
+.pixel-fox .body::before {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 6px;
+    width: 36px;
+    height: 10px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+}
+
+.pixel-fox .head {
+    position: absolute;
+    bottom: 26px;
+    left: 10px;
+    width: 36px;
+    height: 30px;
+    background: linear-gradient(180deg, #ff7043 0%, #ff5722 100%);
+    border-radius: 10px;
+}
+
+.pixel-fox .ear {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 18px solid #ff7043;
+}
+
+.pixel-fox .ear.left { bottom: 52px; left: 8px; }
+.pixel-fox .ear.right { bottom: 52px; left: 30px; }
+
+.pixel-fox .ear-inner {
+    position: absolute;
+    bottom: 50px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 10px solid #fff;
+}
+
+.pixel-fox .ear-inner.left { left: 13px; }
+.pixel-fox .ear-inner.right { left: 35px; }
+
+.pixel-fox .muzzle {
+    position: absolute;
+    bottom: 28px;
+    left: 12px;
+    width: 18px;
+    height: 12px;
+    background: #fff;
+    border-radius: 6px;
+}
+
+.pixel-fox .eye {
+    position: absolute;
+    width: 6px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 44px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-fox .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-fox .eye.left { left: 14px; }
+.pixel-fox .eye.right { left: 28px; }
+
+.pixel-fox .nose {
+    position: absolute;
+    bottom: 32px;
+    left: 18px;
+    width: 6px;
+    height: 5px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+.pixel-fox .tail {
+    position: absolute;
+    bottom: 12px;
+    left: 58px;
+    width: 22px;
+    height: 16px;
+    background: #ff7043;
+    border-radius: 0 14px 14px 0;
+    transform-origin: left center;
+    animation: tail-wag 0.6s ease-in-out infinite alternate;
+}
+
+.pixel-fox .tail-tip {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 10px;
+    height: 16px;
+    background: #fff;
+    border-radius: 0 10px 10px 0;
+}
+
+/* 鹿像素精灵 */
+.pixel-deer .body {
+    position: absolute;
+    bottom: 6px;
+    left: 18px;
+    width: 44px;
+    height: 26px;
+    background: linear-gradient(180deg, #bcaaa4 0%, #a1887f 100%);
+    border-radius: 10px;
+}
+
+.pixel-deer .head {
+    position: absolute;
+    bottom: 28px;
+    left: 14px;
+    width: 28px;
+    height: 26px;
+    background: linear-gradient(180deg, #bcaaa4 0%, #a1887f 100%);
+    border-radius: 10px;
+}
+
+.pixel-deer .antler {
+    position: absolute;
+    width: 4px;
+    height: 20px;
+    background: #5d4037;
+    bottom: 50px;
+}
+
+.pixel-deer .antler.left { left: 16px; transform: rotate(-15deg); }
+.pixel-deer .antler.right { left: 34px; transform: rotate(15deg); }
+
+.pixel-deer .antler::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    width: 10px;
+    height: 3px;
+    background: #5d4037;
+}
+
+.pixel-deer .antler.left::before { right: 0; }
+.pixel-deer .antler.right::before { left: 0; }
+
+.pixel-deer .ear {
+    position: absolute;
+    width: 8px;
+    height: 12px;
+    background: #bcaaa4;
+    border-radius: 4px;
+    bottom: 48px;
+}
+
+.pixel-deer .ear.left { left: 10px; transform: rotate(-20deg); }
+.pixel-deer .ear.right { left: 36px; transform: rotate(20deg); }
+
+.pixel-deer .eye {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 42px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-deer .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-deer .eye.left { left: 18px; }
+.pixel-deer .eye.right { left: 30px; }
+
+.pixel-deer .nose {
+    position: absolute;
+    bottom: 32px;
+    left: 24px;
+    width: 6px;
+    height: 5px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+/* 考拉像素精灵 */
+.pixel-koala .body {
+    position: absolute;
+    bottom: 6px;
+    left: 14px;
+    width: 52px;
+    height: 30px;
+    background: linear-gradient(180deg, #78909c 0%, #607d8b 100%);
+    border-radius: 14px;
+}
+
+.pixel-koala .head {
+    position: absolute;
+    bottom: 30px;
+    left: 12px;
+    width: 38px;
+    height: 32px;
+    background: linear-gradient(180deg, #78909c 0%, #607d8b 100%);
+    border-radius: 50%;
+}
+
+.pixel-koala .ear {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #78909c;
+    border-radius: 50%;
+    bottom: 56px;
+}
+
+.pixel-koala .ear.left { left: 10px; }
+.pixel-koala .ear.right { left: 36px; }
+
+.pixel-koala .ear-inner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #ffcdd2;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+}
+
+.pixel-koala .eye {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 48px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-koala .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-koala .eye.left { left: 16px; }
+.pixel-koala .eye.right { left: 32px; }
+
+.pixel-koala .nose {
+    position: absolute;
+    bottom: 40px;
+    left: 22px;
+    width: 10px;
+    height: 8px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+/* 企鹅像素精灵 */
+.pixel-penguin .body {
+    position: absolute;
+    bottom: 4px;
+    left: 18px;
+    width: 44px;
+    height: 38px;
+    background: linear-gradient(180deg, #37474f 0%, #263238 100%);
+    border-radius: 50% 50% 45% 45%;
+}
+
+.pixel-penguin .belly {
+    position: absolute;
+    bottom: 8px;
+    left: 22px;
+    width: 36px;
+    height: 30px;
+    background: linear-gradient(180deg, #fff 0%, #f5f5f5 100%);
+    border-radius: 50%;
+}
+
+.pixel-penguin .head {
+    position: absolute;
+    bottom: 38px;
+    left: 20px;
+    width: 36px;
+    height: 30px;
+    background: linear-gradient(180deg, #37474f 0%, #263238 100%);
+    border-radius: 50%;
+}
+
+.pixel-penguin .eye {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 52px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-penguin .eye::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 2px;
+    height: 2px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.pixel-penguin .eye.left { left: 24px; }
+.pixel-penguin .eye.right { left: 38px; }
+
+.pixel-penguin .beak {
+    position: absolute;
+    bottom: 44px;
+    left: 30px;
+    width: 8px;
+    height: 10px;
+    background: #ff9800;
+    border-radius: 0 0 4px 4px;
+}
+
+.pixel-penguin .flipper {
+    position: absolute;
+    width: 10px;
+    height: 24px;
+    background: #37474f;
+    border-radius: 6px;
+    bottom: 12px;
+}
+
+.pixel-penguin .flipper.left { left: 12px; transform: rotate(15deg); }
+.pixel-penguin .flipper.right { left: 58px; transform: rotate(-15deg); }
+
+/* 熊猫像素精灵 */
+.pixel-panda .body {
+    position: absolute;
+    bottom: 4px;
+    left: 14px;
+    width: 52px;
+    height: 32px;
+    background: linear-gradient(180deg, #fff 0%, #f5f5f5 100%);
+    border-radius: 14px;
+    border: 2px solid #e0e0e0;
+}
+
+.pixel-panda .head {
+    position: absolute;
+    bottom: 32px;
+    left: 12px;
+    width: 40px;
+    height: 36px;
+    background: linear-gradient(180deg, #fff 0%, #f5f5f5 100%);
+    border-radius: 50%;
+    border: 2px solid #e0e0e0;
+}
+
+.pixel-panda .ear {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 62px;
+}
+
+.pixel-panda .ear.left { left: 12px; }
+.pixel-panda .ear.right { left: 38px; }
+
+.pixel-panda .eye-patch {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    bottom: 50px;
+}
+
+.pixel-panda .eye-patch.left { left: 14px; transform: rotate(-15deg); }
+.pixel-panda .eye-patch.right { left: 36px; transform: rotate(15deg); }
+
+.pixel-panda .eye {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    bottom: 52px;
+    animation: blink 4s ease-in-out infinite;
+}
+
+.pixel-panda .eye.left { left: 18px; }
+.pixel-panda .eye.right { left: 40px; }
+
+.pixel-panda .nose {
+    position: absolute;
+    bottom: 42px;
+    left: 26px;
+    width: 8px;
+    height: 6px;
+    background: #1a1a2e;
+    border-radius: 50%;
+}
+
+.pixel-panda .mouth {
+    position: absolute;
+    bottom: 38px;
+    left: 24px;
+    width: 12px;
+    height: 4px;
+    border-bottom: 2px solid #1a1a2e;
+    border-radius: 0 0 6px 6px;
+}
+
+/* 宠物动画 */
+.pet-container.idle .pet-sprite {
+    animation: idle-breathe 3s ease-in-out infinite;
+}
+
+@keyframes idle-breathe {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.02); }
+}
+
+.pet-container.walking {
+    animation: walk-bounce 0.4s ease-in-out infinite;
+}
+
+@keyframes walk-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-6px); }
+}
+
+.pet-container.jumping {
+    animation: jump 0.5s ease-out;
+}
+
+@keyframes jump {
+    0% { transform: translateX(-50%) translateY(0); }
+    40% { transform: translateX(-50%) translateY(-40px); }
+    100% { transform: translateX(-50%) translateY(0); }
+}
+
+.pet-container.eating .pet-sprite {
+    animation: eat 0.3s ease-in-out infinite;
+}
+
+@keyframes eat {
+    0%, 100% { transform: scale(1) rotate(0); }
+    50% { transform: scale(1.05) rotate(-3deg); }
+}
+
+.pet-container.happy .pet-sprite {
+    animation: happy-bounce 0.4s ease-in-out infinite;
+}
+
+@keyframes happy-bounce {
+    0%, 100% { transform: translateY(0) rotate(0); }
+    25% { transform: translateY(-10px) rotate(-5deg); }
+    75% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.pet-container.sleeping .pet-sprite {
+    animation: sleep 2s ease-in-out infinite;
+    filter: brightness(0.8);
+}
+
+@keyframes sleep {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(2px); }
+}
+
+/* 表情气泡 */
+.emotion-bubble {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #ffffff, #fffdf8);
+    border: 2px solid rgba(31,41,55,0.12);
+    color: #1f2937; /* 深色文字，提升可读性 */
+    font-weight: 700;
+    border-radius: 14px;
+    padding: 8px 14px;
+    font-size: 18px;
+    white-space: nowrap;
+    animation: bubble-appear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 60;
+    box-shadow: 0 6px 18px rgba(31,41,55,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    backdrop-filter: blur(4px);
+}
+
+.emotion-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #ffffff;
+}
+
+/* 可爱化宠物细节 */
+.pet-sprite {
+    width: 120px;
+    height: 120px;
+    display: block;
+}
+
+.pet-sprite .pet-frame {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    pointer-events: none;
+}
+
+.pet-sprite .pet-frame > * {
+    position: absolute;
+    box-sizing: border-box;
+}
+
+.pet-sprite .blush {
+    width: 16px;
+    height: 8px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #ffb6c1, #ff69b4);
+    opacity: 0.95;
+    transform: translateY(2px);
+    box-shadow: 0 2px 6px rgba(255,105,180,0.12);
+}
+
+.pet-sprite .eye {
+    width: 10px;
+    height: 10px;
+    background: #111;
+    border-radius: 50%;
+    box-shadow: inset -1px -1px 0 rgba(255,255,255,0.08);
+    position: absolute; /* 修复：确保 left/top/bottom 定位生效 */
+}
+
+.pet-sprite .eye::after {
+    content: '';
+    position: absolute;
+    right: 2px;
+    top: 2px;
+    width: 3px;
+    height: 3px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+}
+
+.pet-container .pet-sprite {
+    transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease;
+}
+
+.pet-container .pet-sprite.bounce {
+    animation: pet-bounce 900ms ease-in-out;
+}
+
+@keyframes pet-bounce {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+
+/* 轻微发光效果，让场景更梦幻 */
+.pixel-decor .tree-crown, .pixel-flower, .pixel-mushroom {
+    filter: drop-shadow(0 6px 10px rgba(255,140,180,0.06));
+}
+
+/* 让气泡颜色在夜晚更柔和 */
+.sky.night + .emotion-bubble, .sky.night .emotion-bubble {
+    background: linear-gradient(180deg, #fffdf8, #fffbe6);
+    color: #111827;
+}
+
+.emotion-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid rgba(255, 255, 255, 0.95);
+}
+
+@keyframes bubble-appear {
+    0% { transform: translateX(-50%) scale(0) translateY(10px); }
+    100% { transform: translateX(-50%) scale(1) translateY(0); }
+}
+
+/* Zzz 睡眠效果 */
+.sleep-z {
+    position: absolute;
+    font-size: 14px;
+    color: #60a5fa;
+    animation: float-z 2s ease-in-out infinite;
+    opacity: 0;
+}
+
+.sleep-z:nth-child(1) { right: -10px; top: 0; animation-delay: 0s; }
+.sleep-z:nth-child(2) { right: -20px; top: -10px; animation-delay: 0.5s; font-size: 12px; }
+.sleep-z:nth-child(3) { right: -30px; top: -20px; animation-delay: 1s; font-size: 10px; }
+
+@keyframes float-z {
+    0% { opacity: 0; transform: translateY(0); }
+    50% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* ===== 底部操作栏 ===== */
+.action-bar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 100;
+}
+
+.action-btn {
+    width: 64px;
+    height: 64px;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    backdrop-filter: blur(10px);
+}
+
+.action-btn:hover {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(255, 107, 157, 0.3);
+}
+
+.action-btn:active {
+    transform: translateY(-2px) scale(0.95);
+}
+
+.action-btn .icon {
+    font-size: 24px;
+}
+
+.action-btn .label {
+    font-size: 7px;
+    color: var(--text-secondary);
+}
+
+.action-btn.special {
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    border-color: transparent;
+}
+
+.action-btn.special .label {
+    color: #fff;
+}
+
+/* ===== 粒子效果 ===== */
+.particle {
+    position: absolute;
+    pointer-events: none;
+    font-size: 16px;
+    animation: particle-float 1.5s ease-out forwards;
+    z-index: 55;
+}
+
+@keyframes particle-float {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.5); }
+}
+
+/* ===== 食物掉落 ===== */
+.floating-food {
+    position: absolute;
+    font-size: 28px;
+    animation: food-drop 1s ease-out forwards;
+    z-index: 55;
+}
+
+@keyframes food-drop {
+    0% { opacity: 1; transform: translateY(-50px) scale(1.2); }
+    60% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(20px) scale(0.8); }
+}
+
+/* ===== 成就弹窗 ===== */
+.achievement-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    border: 4px solid #b8860b;
+    border-radius: 20px;
+    padding: 24px 40px;
+    text-align: center;
+    z-index: 200;
+    animation: achievement-show 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes achievement-show {
+    0% { transform: translate(-50%, -50%) scale(0); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.achievement-popup .icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.achievement-popup .title {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.achievement-popup .desc {
+    font-size: 9px;
+    color: #666;
+}
+
+/* ===== 小游戏界面 ===== */
+.mini-game-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3e 50%, #2a2a5e 100%);
+    z-index: 150;
+    display: none;
+    overflow: hidden;
+}
+
+.mini-game-overlay.active {
+    display: block;
+    animation: game-enter 0.5s ease-out;
+}
+
+@keyframes game-enter {
+    0% { opacity: 0; transform: scale(1.1); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* 游戏场景背景 */
+.game-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.game-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(255, 107, 157, 0.1) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(96, 165, 250, 0.1) 0%, transparent 40%);
+}
+
+/* 游戏地面 */
+.game-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(180deg, #2d5a27 0%, #1a3518 100%);
+    border-top: 4px solid #4a8a44;
+}
+
+.game-ground::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: repeating-linear-gradient(90deg,
+        transparent 0px, transparent 20px,
+        #3d7a37 20px, #3d7a37 24px
+    );
+}
+
+/* 游戏头部UI */
+.mini-game-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 15px 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+}
+
+.game-title-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mini-game-title {
+    font-size: 16px;
+    color: var(--accent-light);
+    text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.game-level-badge {
+    background: linear-gradient(135deg, #ffd700, #ff8c00);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    color: #1a1a2e;
+    font-weight: bold;
+}
+
+/* 倒计时 */
+.game-timer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--card-border);
+}
+
+.timer-icon {
+    font-size: 20px;
+    animation: timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.timer-value {
+    font-size: 24px;
+    color: var(--warning);
+    min-width: 50px;
+    text-align: center;
+}
+
+.timer-value.warning {
+    color: #ff4444;
+    animation: timer-warning 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes timer-warning {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.1); opacity: 0.7; }
+}
+
+/* 分数显示 */
+.game-score-area {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--card-border);
+}
+
+.score-icon {
+    font-size: 20px;
+}
+
+.score-value {
+    font-size: 24px;
+    color: var(--success);
+    min-width: 60px;
+    text-align: center;
+}
+
+.score-value.pop {
+    animation: score-pop 0.3s ease-out;
+}
+
+@keyframes score-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); color: #fff; }
+    100% { transform: scale(1); }
+}
+
+/* 连击显示 */
+.combo-display {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 28px;
+    color: var(--accent);
+    text-shadow: 0 0 20px var(--accent-glow);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+}
+
+.combo-display.active {
+    opacity: 1;
+    animation: combo-bounce 0.5s ease-out;
+}
+
+@keyframes combo-bounce {
+    0% { transform: translateX(-50%) scale(0.5); }
+    50% { transform: translateX(-50%) scale(1.2); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+
+/* 关闭按钮 */
+.mini-game-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 68, 68, 0.3);
+    border: 2px solid rgba(255, 68, 68, 0.6);
+    border-radius: 50%;
+    color: #ff6666;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: all 0.3s;
+}
+
+.mini-game-close:hover {
+    background: rgba(255, 68, 68, 0.5);
+    transform: rotate(90deg);
+}
+
+/* 掉落物品 */
+.falling-item {
+    position: absolute;
+    font-size: 42px;
+    pointer-events: none;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+    z-index: 5;
+}
+
+.falling-item.caught {
+    animation: item-caught 0.4s ease-out forwards;
+}
+
+@keyframes item-caught {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.5); opacity: 0.8; }
+    100% { transform: scale(0); opacity: 0; }
+}
+
+.falling-item.missed {
+    animation: item-missed 0.3s ease-out forwards;
+}
+
+@keyframes item-missed {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.5) translateY(20px); opacity: 0; }
+}
+
+/* 篮子 */
+.basket-container {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    cursor: grab;
+    touch-action: none;
+}
+
+.basket-container:active {
+    cursor: grabbing;
+}
+
+.basket {
+    width: 100px;
+    height: 70px;
+    position: relative;
+    transition: transform 0.1s;
+}
+
+.basket-body {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50px;
+    background: linear-gradient(180deg, #8b4513 0%, #654321 100%);
+    border-radius: 0 0 20px 20px;
+    border: 3px solid #5d3a1a;
+    border-top: none;
+    overflow: hidden;
+}
+
+.basket-body::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+    border-radius: 0 0 15px 15px;
+}
+
+/* 篮子编织纹理 */
+.basket-weave {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    background:
+        repeating-linear-gradient(0deg,
+            transparent 0px, transparent 4px,
+            rgba(0,0,0,0.2) 4px, rgba(0,0,0,0.2) 8px
+        ),
+        repeating-linear-gradient(90deg,
+            transparent 0px, transparent 6px,
+            rgba(255,255,255,0.1) 6px, rgba(255,255,255,0.1) 8px
+        );
+    border-radius: 0 0 12px 12px;
+}
+
+.basket-rim {
+    position: absolute;
+    top: 0;
+    width: 110px;
+    height: 15px;
+    left: -5px;
+    background: linear-gradient(180deg, #a0522d 0%, #8b4513 100%);
+    border-radius: 8px 8px 0 0;
+    border: 3px solid #5d3a1a;
+}
+
+.basket-handle {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 30px;
+    border: 5px solid #654321;
+    border-bottom: none;
+    border-radius: 30px 30px 0 0;
+}
+
+/* 篮子发光效果 */
+.basket-glow {
+    position: absolute;
+    inset: -10px;
+    background: radial-gradient(ellipse, rgba(255, 200, 100, 0.3) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.basket-container.catching .basket-glow {
+    opacity: 1;
+}
+
+.basket-container.catching .basket {
+    animation: basket-bounce 0.2s ease-out;
+}
+
+@keyframes basket-bounce {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.9); }
+}
+
+/* 接住特效 */
+.catch-effect {
+    position: absolute;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.catch-star {
+    position: absolute;
+    font-size: 20px;
+    animation: catch-star-fly 0.6s ease-out forwards;
+}
+
+@keyframes catch-star-fly {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+    100% { transform: scale(0) rotate(360deg) translateY(-30px); opacity: 0; }
+}
+
+/* 分数飘字 */
+.score-float {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--success);
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+    animation: score-float-up 0.8s ease-out forwards;
+    pointer-events: none;
+    z-index: 20;
+}
+
+@keyframes score-float-up {
+    0% { transform: translateY(0) scale(0.5); opacity: 1; }
+    50% { transform: translateY(-30px) scale(1.2); opacity: 1; }
+    100% { transform: translateY(-60px) scale(1); opacity: 0; }
+}
+
+/* 游戏说明 */
+.game-instructions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: rgba(0,0,0,0.5);
+    padding: 8px 16px;
+    border-radius: 12px;
+    white-space: nowrap;
+}
+
+/* 游戏结束画面 */
+.game-over-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.game-over-screen.active {
+    display: flex;
+    animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+.game-over-title {
+    font-size: 32px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    text-shadow: 0 0 20px var(--accent-glow);
+    animation: title-glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes title-glow {
+    0% { text-shadow: 0 0 20px var(--accent-glow); }
+    100% { text-shadow: 0 0 40px var(--accent-glow), 0 0 60px var(--accent-glow); }
+}
+
+.game-over-stats {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.stat-box {
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 16px;
+    padding: 15px 25px;
+    text-align: center;
+}
+
+.stat-box .label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.stat-box .value {
+    font-size: 28px;
+    color: var(--warning);
+}
+
+.game-over-buttons {
+    display: flex;
+    gap: 20px;
+}
+
+.game-over-btn {
+    padding: 12px 30px;
+    border-radius: 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.game-over-btn.primary {
+    background: linear-gradient(135deg, var(--accent), #ff4d8d);
+    color: white;
+}
+
+.game-over-btn.primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.game-over-btn.secondary {
+    background: transparent;
+    border-color: var(--card-border);
+    color: var(--text-secondary);
+}
+
+.game-over-btn.secondary:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* 时间选择界面 */
+.time-select-screen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 100;
+}
+
+.time-select-screen.active {
+    display: flex;
+}
+
+.time-select-title {
+    font-size: 24px;
+    color: var(--accent-light);
+    margin-bottom: 30px;
+}
+
+.time-options {
+    display: flex;
+    gap: 20px;
+}
+
+.time-option {
+    background: var(--card-bg);
+    border: 3px solid var(--card-border);
+    border-radius: 20px;
+    padding: 20px 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.time-option:hover {
+    border-color: var(--accent);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(255, 107, 157, 0.3);
+}
+
+.time-option .duration {
+    font-size: 32px;
+    color: var(--warning);
+    margin-bottom: 8px;
+}
+
+.time-option .desc {
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* ===== 天气效果 ===== */
+.weather-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.raindrop {
+    position: absolute;
+    width: 2px;
+    height: 15px;
+    background: linear-gradient(180deg, transparent, rgba(100, 150, 255, 0.6));
+    animation: rain-fall 0.6s linear infinite;
+}
+
+@keyframes rain-fall {
+    0% { transform: translateY(-20px); }
+    100% { transform: translateY(100vh); }
+}
+
+.snowflake {
+    position: absolute;
+    color: #fff;
+    font-size: 12px;
+    animation: snow-fall 4s linear infinite;
+}
+
+@keyframes snow-fall {
+    0% { transform: translateY(-20px) rotate(0deg); }
+    100% { transform: translateY(100vh) rotate(360deg); }
+}
+
+/* ===== 时间显示 ===== */
+.time-display {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 10px;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+}
+
+.time-display .time {
+    color: var(--text-primary);
+}
+
+.time-display .period {
+    color: var(--accent);
+    margin-left: 8px;
+}
+
+/* ===== 可爱装饰元素 ===== */
+
+/* 蝴蝶 */
+.butterfly {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 60;
+}
+
+.butterfly::before, .butterfly::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 12px;
+    border-radius: 50% 50% 50% 50%;
+    animation: wing-flap 0.15s ease-in-out infinite alternate;
+}
+
+.butterfly::before {
+    left: 0;
+    transform-origin: right center;
+}
+
+.butterfly::after {
+    right: 0;
+    transform-origin: left center;
+    animation-delay: 0.05s;
+}
+
+.butterfly-1 {
+    top: 150px;
+    left: 20%;
+    animation: butterfly-float-1 8s ease-in-out infinite;
+}
+.butterfly-1::before, .butterfly-1::after {
+    background: linear-gradient(135deg, #ff9ed8, #ffc1e3);
+    box-shadow: 0 0 8px rgba(255, 158, 216, 0.6);
+}
+
+.butterfly-2 {
+    top: 180px;
+    left: 60%;
+    animation: butterfly-float-2 10s ease-in-out infinite;
+}
+.butterfly-2::before, .butterfly-2::after {
+    background: linear-gradient(135deg, #7dd3fc, #bae6fd);
+    box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+}
+
+.butterfly-3 {
+    top: 120px;
+    left: 40%;
+    animation: butterfly-float-3 12s ease-in-out infinite;
+}
+.butterfly-3::before, .butterfly-3::after {
+    background: linear-gradient(135deg, #fde047, #fef08a);
+    box-shadow: 0 0 8px rgba(253, 224, 71, 0.6);
+}
+
+@keyframes wing-flap {
+    0% { transform: rotateY(0deg) scaleX(1); }
+    100% { transform: rotateY(60deg) scaleX(0.6); }
+}
+
+@keyframes butterfly-float-1 {
+    0%, 100% { transform: translate(0, 0) rotate(5deg); }
+    25% { transform: translate(50px, -30px) rotate(-5deg); }
+    50% { transform: translate(100px, 10px) rotate(10deg); }
+    75% { transform: translate(50px, 40px) rotate(-10deg); }
+}
+
+@keyframes butterfly-float-2 {
+    0%, 100% { transform: translate(0, 0) rotate(-5deg); }
+    25% { transform: translate(-60px, 20px) rotate(8deg); }
+    50% { transform: translate(-30px, -40px) rotate(-8deg); }
+    75% { transform: translate(-80px, -10px) rotate(5deg); }
+}
+
+@keyframes butterfly-float-3 {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(40px, 50px) rotate(15deg); }
+    66% { transform: translate(-30px, 20px) rotate(-15deg); }
+}
+
+/* 萤火虫 */
+.firefly {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #fff9c4;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #fff59d, 0 0 20px #ffee58, 0 0 30px #fdd835;
+    animation: firefly-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes firefly-glow {
+    0% { opacity: 0.3; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 彩虹 */
+.rainbow-arc {
+    position: absolute;
+    top: 80px;
+    right: 150px;
+    width: 120px;
+    height: 60px;
+    border-radius: 60px 60px 0 0;
+    background: conic-gradient(
+        from 180deg,
+        #ff6b6b 0deg,
+        #ffa500 30deg,
+        #ffd93d 60deg,
+        #6bcb77 90deg,
+        #4d96ff 120deg,
+        #9b59b6 150deg,
+        transparent 180deg
+    );
+    opacity: 0.4;
+    filter: blur(2px);
+    animation: rainbow-shimmer 5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes rainbow-shimmer {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
+}
+
+/* 气泡 */
+.bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+    border: 1px solid rgba(255,255,255,0.3);
+    animation: bubble-rise linear infinite;
+    pointer-events: none;
+}
+
+@keyframes bubble-rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.7; }
+    50% { transform: translateY(-150px) scale(1.1); opacity: 0.5; }
+    100% { transform: translateY(-300px) scale(0.9); opacity: 0; }
+}

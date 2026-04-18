@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星友乐园 - 像素宠物世界</title>
+    <link rel="stylesheet" href="../css/pixel-pet-game.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- 场景 -->
+        <div class="scene-container">
+            <div class="sky" id="sky"></div>
+            <div class="stars-layer" id="stars-layer"></div>
+            <div class="moon" id="moon"></div>
+            <div class="clouds-layer" id="clouds-layer"></div>
+            <div class="mountains">
+                <div class="mountain mountain-1"></div>
+                <div class="mountain mountain-2"></div>
+                <div class="mountain mountain-3"></div>
+            </div>
+            <div class="weather-container" id="weather-container"></div>
+            <div class="grass-layer"></div>
+            <div class="ground-layer">
+                <div class="ground"></div>
+            </div>
+        </div>
+
+        <!-- 装饰物 -->
+        <div class="pixel-decor" style="left: 5%;">
+            <div class="pixel-tree">
+                <div class="tree-crown"></div>
+                <div class="tree-trunk"></div>
+            </div>
+        </div>
+        <div class="pixel-decor" style="left: 85%;">
+            <div class="pixel-tree">
+                <div class="tree-crown"></div>
+                <div class="tree-trunk"></div>
+            </div>
+        </div>
+        <div class="pixel-decor" style="left: 15%;"><div class="pixel-flower pink"></div></div>
+        <div class="pixel-decor" style="left: 20%;"><div class="pixel-flower yellow"></div></div>
+        <div class="pixel-decor" style="left: 75%;"><div class="pixel-mushroom"></div></div>
+        <div class="pixel-decor" style="left: 80%;"><div class="pixel-flower blue"></div></div>
+        <div class="pixel-decor" style="left: 35%;"><div class="pixel-flower pink"></div></div>
+        <div class="pixel-decor" style="left: 65%;"><div class="pixel-flower yellow"></div></div>
+
+        <!-- 可爱装饰：蝴蝶 -->
+        <div class="butterfly butterfly-1"></div>
+        <div class="butterfly butterfly-2"></div>
+        <div class="butterfly butterfly-3"></div>
+
+        <!-- 可爱装饰：萤火虫 -->
+        <div class="fireflies-container" id="fireflies-container"></div>
+
+        <!-- 可爱装饰：彩虹 -->
+        <div class="rainbow-arc" id="rainbow-arc"></div>
+
+        <!-- 可爱装饰：气泡 -->
+        <div class="bubbles-container" id="bubbles-container"></div>
+
+        <!-- 像素房子 -->
+        <div class="pixel-house">
+            <div class="house-roof"></div>
+            <div class="house-body">
+                <div class="house-window left"></div>
+                <div class="house-window right"></div>
+                <div class="house-door"></div>
+            </div>
+        </div>
+
+        <!-- 像素围栏 -->
+        <div class="pixel-fence" style="left: 130px;">
+            <div class="fence-post"></div>
+            <div class="fence-post"></div>
+            <div class="fence-post"></div>
+            <div class="fence-post"></div>
+        </div>
+
+        <!-- 时间显示 -->
+        <div class="time-display">
+            <span class="time" id="game-time">12:00</span>
+            <span class="period" id="time-period">☀️ 白天</span>
+        </div>
+
+        <!-- 游戏UI -->
+        <div class="game-ui">
+            <div class="top-bar">
+                <div class="game-logo">
+                    <span class="logo-icon">🐾</span>
+                    <span class="logo-text">星友乐园</span>
+                </div>
+                <div class="resource-bar">
+                    <div class="resource-item">
+                        <span class="resource-icon">💰</span>
+                        <span class="resource-value" id="coins">100</span>
+                    </div>
+                    <div class="resource-item">
+                        <span class="resource-icon">⭐</span>
+                        <span class="resource-value" id="stars">0</span>
+                    </div>
+                </div>
+            </div>
+            <button class="back-btn" onclick="goBack()">
+                <span>←</span>
+                <span>返回</span>
+            </button>
+        </div>
+
+        <!-- 左侧状态面板 -->
+        <div class="status-panel">
+            <div class="panel-header">
+                <span>📊</span>
+                <span class="panel-title">宠物状态</span>
+            </div>
+            <div class="pet-info">
+                <div class="pet-avatar" id="pet-avatar">🐱</div>
+                <div class="pet-details">
+                    <div class="pet-name" id="pet-name">星喵</div>
+                    <div class="pet-level">Lv.1 小萌新</div>
+                    <div class="pet-mood" id="pet-mood">😊 心情不错</div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-header">
+                    <span class="stat-label">🍖 饱食度</span>
+                    <span class="stat-value" id="hunger-value" style="color: #ff9800;">80%</span>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-fill hunger" id="hunger-bar" style="width: 80%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-header">
+                    <span class="stat-label">💖 快乐值</span>
+                    <span class="stat-value" id="happiness-value" style="color: #e91e63;">70%</span>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-fill happiness" id="happiness-bar" style="width: 70%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-header">
+                    <span class="stat-label">⚡ 能量</span>
+                    <span class="stat-value" id="energy-value" style="color: #4caf50;">90%</span>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-fill energy" id="energy-bar" style="width: 90%"></div>
+                </div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-header">
+                    <span class="stat-label">💕 亲密度</span>
+                    <span class="stat-value" id="intimacy-value" style="color: #9c27b0;">50%</span>
+                </div>
+                <div class="stat-bar">
+                    <div class="stat-fill intimacy" id="intimacy-bar" style="width: 50%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧宠物选择 -->
+        <div class="pet-selector-panel">
+            <div class="panel-header">
+                <span>🐾</span>
+                <span class="panel-title">选择伙伴</span>
+            </div>
+            <div class="pet-grid" id="pet-grid"></div>
+        </div>
+
+        <!-- 宠物容器 -->
+        <div class="pet-container idle" id="pet-container">
+            <div class="pet-shadow"></div>
+            <div class="pet-sprite" id="pet-sprite"></div>
+            <div class="sleep-z">Z</div>
+            <div class="sleep-z">z</div>
+            <div class="sleep-z">z</div>
+        </div>
+
+        <!-- 操作栏 -->
+        <div class="action-bar">
+            <div class="action-btn" onclick="feedPet()" title="喂食">
+                <span class="icon">🍖</span>
+                <span class="label">喂食</span>
+            </div>
+            <div class="action-btn" onclick="playWithPet()" title="玩耍">
+                <span class="icon">🎾</span>
+                <span class="label">玩耍</span>
+            </div>
+            <div class="action-btn" onclick="petThePet()" title="抚摸">
+                <span class="icon">💖</span>
+                <span class="label">抚摸</span>
+            </div>
+            <div class="action-btn" onclick="letRest()" title="休息">
+                <span class="icon">💤</span>
+                <span class="label">休息</span>
+            </div>
+            <div class="action-btn special" onclick="startMiniGame()" title="小游戏">
+                <span class="icon">🎮</span>
+                <span class="label">游戏</span>
+            </div>
+        </div>
+
+        <!-- 小游戏 -->
+        <div class="mini-game-overlay" id="mini-game">
+            <div class="game-bg"></div>
+            <div class="game-ground"></div>
+
+            <div class="mini-game-header">
+                <div class="game-title-area">
+                    <div class="mini-game-title">🎮 接食物大作战</div>
+                    <div class="game-level-badge" id="game-level-badge">Lv.1</div>
+                </div>
+                <div class="game-timer">
+                    <span class="timer-icon">⏱️</span>
+                    <span class="timer-value" id="game-timer">60</span>
+                </div>
+                <div class="game-score-area">
+                    <span class="score-icon">⭐</span>
+                    <span class="score-value" id="game-score">0</span>
+                </div>
+            </div>
+
+            <div class="combo-display" id="combo-display">连击 x0</div>
+
+            <div class="mini-game-close" onclick="closeMiniGame()">✕</div>
+
+            <div class="basket-container" id="basket-container">
+                <div class="basket-glow"></div>
+                <div class="basket">
+                    <div class="basket-handle"></div>
+                    <div class="basket-rim"></div>
+                    <div class="basket-body">
+                        <div class="basket-weave"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-instructions">🖱️ 拖动篮子接住掉落的食物 | 🍎 普通食物 +10 | ⭐ 金币 +20 | 💎 钻石 +50</div>
+
+            <!-- 时间选择界面 -->
+            <div class="time-select-screen" id="time-select">
+                <div class="time-select-title">选择游戏时长</div>
+                <div class="time-options">
+                    <div class="time-option" onclick="startGameWithTime(30)">
+                        <div class="duration">30s</div>
+                        <div class="desc">快速挑战</div>
+                    </div>
+                    <div class="time-option" onclick="startGameWithTime(60)">
+                        <div class="duration">60s</div>
+                        <div class="desc">标准模式</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 游戏结束画面 -->
+            <div class="game-over-screen" id="game-over">
+                <div class="game-over-title">🎉 游戏结束!</div>
+                <div class="game-over-stats">
+                    <div class="stat-box">
+                        <div class="label">最终得分</div>
+                        <div class="value" id="final-score">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">最高连击</div>
+                        <div class="value" id="max-combo">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">获得金币</div>
+                        <div class="value" id="reward-coins">0</div>
+                    </div>
+                </div>
+                <div class="game-over-buttons">
+                    <button class="game-over-btn primary" onclick="restartMiniGame()">再来一局</button>
+                    <button class="game-over-btn secondary" onclick="closeMiniGame()">返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/notifications.js"></script>
+    <script src="../js/pixel-pet-game.js"></script>
+</body>
+</html>

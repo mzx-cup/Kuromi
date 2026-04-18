@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -18,7 +18,7 @@ import db as database
 import pymysql
 import asyncio
 
-from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole
+from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest
 from proactive_tutor import (
     get_connection_manager, get_proactive_tutor,
     ProactiveMessage, ProactiveMessageType, MessagePriority,
@@ -305,6 +305,7 @@ def retrieve_knowledge(keywords: list):
     return context, sources, source_links
 
 def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
+    # Try Xunfei first
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.xunfei_api_key}"
@@ -324,17 +325,101 @@ def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
 
-    if not response.ok:
-        snippet = (response.text or "")[:800]
-        raise HTTPException(
-            status_code=502,
-            detail=f"大模型接口返回 HTTP {response.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
-        )
+    if not response.ok or response.status_code != 200:
+        # Xunfei failed, try minimax fallback
+        print(f"[call_llm] Xunfei API failed (status={response.status_code}), trying minimax fallback")
+        minimax_headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {settings.minimax_api_key}"
+        }
+        minimax_payload = {
+            "model": settings.minimax_model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": temperature
+        }
+        try:
+            fallback_resp = requests.post(
+                f"{settings.minimax_api_url}/chat/completions",
+                headers=minimax_headers,
+                json=minimax_payload,
+                timeout=120
+            )
+        except requests.exceptions.Timeout:
+            raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
+        except requests.exceptions.RequestException as e:
+            raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
+
+        if not fallback_resp.ok:
+            snippet = (fallback_resp.text or "")[:800]
+            raise HTTPException(
+                status_code=502,
+                detail=f"大模型接口返回 HTTP {fallback_resp.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
+            )
+
+        try:
+            fallback_body = fallback_resp.json()
+        except ValueError:
+            raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
+
+        try:
+            return fallback_body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            brief = json.dumps(fallback_body, ensure_ascii=False)[:600]
+            raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
 
     try:
         body = response.json()
     except ValueError:
         raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
+
+    # Check for vendor-level errors in response
+    if isinstance(body, dict) and (body.get("error") or body.get("code") or "quota" in str(body).lower()):
+        # Xunfei returned error in body, try minimax fallback
+        print(f"[call_llm] Xunfei API returned error in body: {body}, trying minimax fallback")
+        minimax_headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {settings.minimax_api_key}"
+        }
+        minimax_payload = {
+            "model": settings.minimax_model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": temperature
+        }
+        try:
+            fallback_resp = requests.post(
+                f"{settings.minimax_api_url}/chat/completions",
+                headers=minimax_headers,
+                json=minimax_payload,
+                timeout=120
+            )
+        except requests.exceptions.Timeout:
+            raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
+        except requests.exceptions.RequestException as e:
+            raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
+
+        if not fallback_resp.ok:
+            snippet = (fallback_resp.text or "")[:800]
+            raise HTTPException(
+                status_code=502,
+                detail=f"大模型接口返回 HTTP {fallback_resp.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
+            )
+
+        try:
+            fallback_body = fallback_resp.json()
+        except ValueError:
+            raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
+
+        try:
+            return fallback_body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError):
+            brief = json.dumps(fallback_body, ensure_ascii=False)[:600]
+            raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
 
     try:
         return body["choices"][0]["message"]["content"]
@@ -496,12 +581,28 @@ def serve_personal():
         return FileResponse(personal_path)
     raise HTTPException(status_code=404, detail="个人中心页面未找到")
 
+@app.get("/pixel-pet-game.html")
+def serve_pixel_pet_game():
+    game_path = os.path.join(HTML_DIR, "pixel-pet-game.html")
+    if os.path.exists(game_path):
+        return FileResponse(game_path)
+    raise HTTPException(status_code=404, detail="像素宠物游戏页面未找到")
+
 @app.get("/register.html")
 def serve_register():
     register_path = os.path.join(HTML_DIR, "register.html")
     if os.path.exists(register_path):
         return FileResponse(register_path)
     raise HTTPException(status_code=404, detail="注册页面未找到")
+
+
+@app.get("/struggle_test.html")
+def serve_struggle_test():
+    """Serve the local struggle_test.html to allow browser-based testing (avoids file:// origin issues)."""
+    struggle_path = os.path.join(HTML_DIR, "struggle_test.html")
+    if os.path.exists(struggle_path):
+        return FileResponse(struggle_path)
+    raise HTTPException(status_code=404, detail="struggle_test.html 未找到")
 
 @app.get("/css/{filename}")
 def serve_css(filename: str):
@@ -1615,7 +1716,9 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 ):
                     if disconnected.is_set():
                         break
-                    if event["type"] == "text":
+                    if event["type"] == "content_chunk":
+                        await push_content_chunk(event["content"])
+                    elif event["type"] == "text":
                         await push_content_chunk(event["content"])
                     elif event["type"] == "log":
                         await push_agent_log(agent_label, event.get("message", ""))
@@ -1693,6 +1796,370 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 except asyncio.CancelledError:
                     pass
             logger.info(f"Stream closed: student={body.student_id}")
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ========== 辩论模式API ==========
+
+DEBATE_TIMEOUT_FIRST_ROUND = 120  # 第一轮超时(秒)
+DEBATE_TIMEOUT_COMMENT = 60       # 评论轮超时
+DEBATE_TIMEOUT_JUDGE = 90         # 裁判超时
+
+
+async def run_debate_agent_turn(
+    agent_id: str,
+    agent_name: str,
+    system_prompt: str,
+    user_input: str,
+    context: str,
+    round_num: int,
+    push_event,
+    timeout: int = DEBATE_TIMEOUT_FIRST_ROUND
+) -> str:
+    """运行单个AI身份的辩论回合"""
+
+    await push_event({
+        "type": "agent_start",
+        "agent_id": agent_id,
+        "agent_name": agent_name,
+        "round": round_num
+    })
+
+    # 构建身份隔离的系统提示词
+    isolated_prompt = f"""你是「{agent_name}」，一个具有独特视角的AI导师。
+
+【身份边界】
+- 你必须始终以「{agent_name}」的身份回答问题
+- 你的专业领域和思考方式由你的角色决定
+- 绝对不要模仿或引用其他AI身份的观点
+- 用你自己独特的风格和专业视角来分析问题
+
+【核心专长】
+{system_prompt}
+
+【回答要求】
+1. 从你的专业角度出发，给出独特见解
+2. 回答要有深度，但要简洁（控制在300字以内）
+3. 如果其他身份可能持有不同观点，简要说明你的立场差异
+4. 使用你独特的语言风格和表达方式
+
+{"【其他身份的观点参考】" + context if context else "这是第一轮回答，请给出你的独立见解。"}
+"""
+
+    full_response = ""
+    try:
+        async for chunk in call_llm_stream(isolated_prompt, user_input, temperature=0.5):
+            full_response += chunk
+            await push_event({
+                "type": "agent_chunk",
+                "agent_id": agent_id,
+                "content": chunk
+            })
+
+        await push_event({
+            "type": "agent_complete",
+            "agent_id": agent_id,
+            "agent_name": agent_name,
+            "full_response": full_response
+        })
+
+        return full_response
+
+    except asyncio.TimeoutError:
+        await push_event({
+            "type": "agent_error",
+            "agent_id": agent_id,
+            "message": "响应超时"
+        })
+        return ""
+    except Exception as e:
+        await push_event({
+            "type": "agent_error",
+            "agent_id": agent_id,
+            "message": str(e)
+        })
+        raise
+
+
+async def run_debate_cross_comment(
+    agent_id: str,
+    agent_name: str,
+    user_input: str,
+    other_responses: dict[str, str],
+    push_event,
+    timeout: int = DEBATE_TIMEOUT_COMMENT
+) -> str:
+    """运行交叉评论"""
+
+    await push_event({
+        "type": "comment_start",
+        "agent_id": agent_id,
+        "agent_name": agent_name
+    })
+
+    # 构建其他身份观点摘要
+    other_views = "\n\n".join([
+        f"【{aid}的观点】\n{resp[:500]}{'...' if len(resp) > 500 else ''}"
+        for aid, resp in other_responses.items()
+    ])
+
+    comment_prompt = f"""你是「{agent_name}」，现在进入辩论的第二轮。
+
+【原始问题】
+{user_input}
+
+【其他AI身份的观点】
+{other_views}
+
+【你的任务】
+1. 简要评论其他身份的观点（选择1-2个最有价值的观点进行讨论）
+2. 指出你认同或不认同的地方
+3. 补充你认为被遗漏的重要视角
+4. 保持你的身份特色，不要改变立场
+
+请用100-200字进行评论。"""
+
+    full_comment = ""
+    try:
+        async for chunk in call_llm_stream(comment_prompt, "", temperature=0.4):
+            full_comment += chunk
+            await push_event({
+                "type": "comment_chunk",
+                "agent_id": agent_id,
+                "content": chunk
+            })
+
+        await push_event({
+            "type": "comment_complete",
+            "agent_id": agent_id,
+            "comment": full_comment
+        })
+
+        return full_comment
+
+    except Exception as e:
+        logger.error(f"Cross comment error for {agent_id}: {e}")
+        return ""
+
+
+async def run_judge_synthesis(
+    user_input: str,
+    agent_responses: dict[str, str],
+    cross_comments: dict[str, str],
+    push_event,
+    timeout: int = DEBATE_TIMEOUT_JUDGE
+) -> str:
+    """裁判综合判定"""
+
+    await push_event({"type": "judge_start"})
+
+    # 汇总所有观点
+    all_views = "\n\n".join([
+        f"【{aid}】\n回答：{resp}\n评论：{cross_comments.get(aid, '无')}"
+        for aid, resp in agent_responses.items()
+    ])
+
+    judge_prompt = f"""你是一位公正的学术裁判，负责综合多位AI导师的观点。
+
+【原始问题】
+{user_input}
+
+【多身份辩论记录】
+{all_views}
+
+【裁判任务】
+1. 分析各身份观点的核心价值
+2. 找出共识点和分歧点
+3. 综合各方观点，形成最终答案
+4. 指出学生应该关注的关键要点
+
+【输出格式】
+## 综合判定
+
+### 核心共识
+（列出各身份一致认同的要点）
+
+### 观点分歧
+（列出有价值的分歧视角）
+
+### 最终答案
+（综合各身份观点，给出完整解答）
+
+### 学习建议
+（对学生后续学习的建议）"""
+
+    full_answer = ""
+    try:
+        async for chunk in call_llm_stream(judge_prompt, "", temperature=0.3):
+            full_answer += chunk
+            await push_event({
+                "type": "judge_chunk",
+                "content": chunk
+            })
+
+        await push_event({
+            "type": "judge_complete",
+            "final_answer": full_answer
+        })
+
+        return full_answer
+
+    except Exception as e:
+        logger.error(f"Judge synthesis error: {e}")
+        return "裁判综合判定失败，请参考各身份的独立回答。"
+
+
+@app.post("/api/v2/debate/stream")
+async def debate_stream(raw_request: Request, body: DebateRequest):
+    """多身份辩论模式流式API"""
+    logger.info(f"Debate stream started: student={body.student_id}, input={body.user_input[:50]}")
+
+    event_queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=2048)
+    disconnected = asyncio.Event()
+
+    async def push_event(event: dict):
+        if not disconnected.is_set():
+            await event_queue.put(event)
+
+    async def run_debate():
+        try:
+            await push_event({"type": "debate_start", "message": "辩论开始"})
+
+            # 第一阶段：各身份独立回答 (并发)
+            tasks = []
+            for agent in body.agents:
+                task = asyncio.create_task(
+                    asyncio.wait_for(
+                        run_debate_agent_turn(
+                            agent_id=agent.id,
+                            agent_name=agent.name,
+                            system_prompt=agent.systemPrompt,
+                            user_input=body.user_input,
+                            context="",
+                            round_num=1,
+                            push_event=push_event
+                        ),
+                        timeout=DEBATE_TIMEOUT_FIRST_ROUND
+                    )
+                )
+                tasks.append((agent.id, task))
+
+            agent_responses = {}
+            for agent_id, task in tasks:
+                try:
+                    result = await task
+                    agent_responses[agent_id] = result
+                except Exception as e:
+                    logger.error(f"Agent {agent_id} failed: {e}")
+                    await push_event({
+                        "type": "agent_error",
+                        "agent_id": agent_id,
+                        "message": str(e)
+                    })
+
+            await push_event({
+                "type": "debate_round_complete",
+                "round": 1,
+                "message": "第一轮完成"
+            })
+
+            # 第二阶段：交叉评论 (可选)
+            cross_comments = {}
+            if len(agent_responses) > 1:
+                comment_tasks = []
+                for agent in body.agents:
+                    if agent.id not in agent_responses:
+                        continue
+                    other_responses = {
+                        aid: resp for aid, resp in agent_responses.items()
+                        if aid != agent.id
+                    }
+                    if not other_responses:
+                        continue
+
+                    task = asyncio.create_task(
+                        asyncio.wait_for(
+                            run_debate_cross_comment(
+                                agent_id=agent.id,
+                                agent_name=agent.name,
+                                user_input=body.user_input,
+                                other_responses=other_responses,
+                                push_event=push_event
+                            ),
+                            timeout=DEBATE_TIMEOUT_COMMENT
+                        )
+                    )
+                    comment_tasks.append((agent.id, task))
+
+                for agent_id, task in comment_tasks:
+                    try:
+                        result = await task
+                        cross_comments[agent_id] = result
+                    except Exception as e:
+                        logger.error(f"Comment {agent_id} failed: {e}")
+
+            # 第三阶段：裁判综合判定
+            final_answer = await asyncio.wait_for(
+                run_judge_synthesis(
+                    user_input=body.user_input,
+                    agent_responses=agent_responses,
+                    cross_comments=cross_comments,
+                    push_event=push_event
+                ),
+                timeout=DEBATE_TIMEOUT_JUDGE
+            )
+
+            # 完成
+            await push_event({
+                "type": "debate_complete",
+                "final_answer": final_answer,
+                "agent_responses": agent_responses
+            })
+
+        except Exception as e:
+            logger.error(f"Debate workflow error: {e}", exc_info=True)
+            await push_event({"type": "error", "message": str(e)})
+        finally:
+            await event_queue.put(None)
+
+    task = asyncio.create_task(run_debate())
+
+    async def event_generator():
+        try:
+            while not disconnected.is_set():
+                if await raw_request.is_disconnected():
+                    disconnected.set()
+                    break
+
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+
+                if event is None:
+                    break
+
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            logger.info(f"Debate stream closed: student={body.student_id}")
 
     return StreamingResponse(
         event_generator(),
@@ -2005,8 +2472,51 @@ async def proactive_sse_stream(
     )
 
 
-@app.post("/api/v2/event/struggle")
-async def report_struggle(event: StruggleEvent):
+@app.api_route("/api/v2/event/struggle", methods=["POST", "OPTIONS"])
+async def report_struggle(request: Request):
+    """Accept flexible struggle event payloads and return clearer validation errors.
+    Accepts both snake_case and camelCase keys and handles preflight OPTIONS to avoid 405 for browser requests.
+    """
+    if request.method == "OPTIONS":
+        # Return explicit CORS preflight headers to satisfy strict clients when middleware isn't applied
+        return Response(status_code=200, headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "3600",
+        })
+
+    try:
+        payload = await request.json()
+    except Exception as e:
+        req_logger.warning(f"Struggle event: invalid JSON body: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    # normalize common camelCase -> snake_case keys
+    if isinstance(payload, dict):
+        if 'userId' in payload and 'user_id' not in payload:
+            payload['user_id'] = payload.pop('userId')
+        if 'sessionId' in payload and 'session_id' not in payload:
+            payload['session_id'] = payload.pop('sessionId')
+        if 'currentContentId' in payload and 'current_content_id' not in payload:
+            payload['current_content_id'] = payload.pop('currentContentId')
+        if 'struggleMetrics' in payload and 'struggle_metrics' not in payload:
+            payload['struggle_metrics'] = payload.pop('struggleMetrics')
+
+    # Validate using Pydantic and give actionable errors
+    try:
+        # pydantic v2 validation
+        try:
+            event = StruggleEvent.model_validate(payload)
+        except AttributeError:
+            # fallback for pydantic v1
+            event = StruggleEvent(**payload)
+    except Exception as ve:
+        # Log the validation error for debugging
+        req_logger.warning(f"Struggle event validation failed: {ve}")
+        # Provide readable detail to client
+        raise HTTPException(status_code=422, detail=f"Invalid struggle event payload: {ve}")
+
     if not event.user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
 

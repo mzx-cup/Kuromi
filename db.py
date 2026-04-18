@@ -19,18 +19,22 @@ LOCAL_STORAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'l
 @contextmanager
 def get_db():
     global db_available
+    conn = None
     try:
         conn = pymysql.connect(**DB_CONFIG)
         db_available = True
-        try:
-            yield conn
-        finally:
-            conn.close()
+        yield conn
     except Exception as e:
         db_available = False
         print(f"数据库连接失败: {e}")
         print("将使用本地存储模式")
         yield None
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 def load_local_storage():
     if os.path.exists(LOCAL_STORAGE_PATH):

@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/notifications.css">
     <style>
         .mermaid { visibility: hidden; height: 0; overflow: hidden; }
         .mermaid-error { display: none !important; }
@@ -28,6 +29,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
     <script src="/js/learning-monitor.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/notifications.js"></script>
     <script src="/js/index.js"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
@@ -116,7 +118,7 @@
             </div>
         </div>
 
-        <div class="px-3 pb-3">
+        <div class="p-3">
             <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                 <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
                 <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
@@ -209,7 +211,7 @@
         <div id="chat-view" class="tab-view flex-1 flex h-full min-h-0">
             <div class="flex flex-col md:flex-row w-full h-full min-h-0">
 
-                <div id="track-a-container" class="relative md:shrink-0">
+                <div id="track-a-container" class="relative md:shrink-0 collapsed">
                     <div id="track-a" class="track-sandbox flex flex-col h-[35vh] md:h-full">
                         <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
                             <div class="flex items-center gap-2">
@@ -242,6 +244,49 @@
                 </button>
 
                 <div id="track-b" class="track-chat flex-1 flex flex-col min-h-0 min-w-0">
+                    <!-- 辩论面板 (浮动底部展开面板) -->
+                    <div id="debate-panel" class="hidden debate-panel-container shrink-0">
+                        <!-- 可折叠标题栏 -->
+                        <div class="debate-panel-header" id="debate-panel-header">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="message-square"></i>
+                                <span class="font-semibold text-sm">多视角辩论</span>
+                                <span class="debate-status" id="debate-status">等待提问...</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="debate-panel-expand-btn" class="debate-panel-btn" title="展开">
+                                    <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                                </button>
+                                <button id="debate-panel-collapse-btn" class="debate-panel-btn hidden" title="收起">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 展开后的内容 -->
+                        <div class="debate-panel-body" id="debate-panel-body">
+                            <div class="debate-agents-row" id="debate-agents-row"></div>
+                            <div class="debate-content-area">
+                                <div class="debate-round-label" id="debate-round-label">第一轮：独立观点</div>
+                                <div class="debate-messages" id="debate-messages"></div>
+                            </div>
+                        </div>
+
+                        <!-- 裁判悬浮卡片 -->
+                        <div class="debate-judge-float-card" id="debate-judge-float-card">
+                            <div class="float-card-header">
+                                <div class="flex items-center gap-2 text-amber-400">
+                                    <i data-lucide="scale"></i>
+                                    <span class="font-semibold text-sm">裁判综合判定</span>
+                                </div>
+                                <button id="debate-judge-close-btn" class="float-card-close" title="关闭">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="judge-content" id="judge-content"></div>
+                        </div>
+                    </div>
+
                     <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
 
                     <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
@@ -289,8 +334,8 @@
                     </div>
 
                     <div class="composer-glass-bar p-4 border-t shrink-0">
-                        <div class="max-w-4xl mx-auto">
-                            <div id="notion-input" class="notion-input" contenteditable="true" role="textbox" aria-label="输入消息" aria-multiline="true" data-placeholder="试试问我 HDFS 的工作原理，或说'我不太懂MapReduce'触发苏格拉底诊断..."></div>
+                        <div class="max-w-4xl mx-auto w-full">
+                            <div id="notion-input" class="notion-input" contenteditable="true" role="textbox" aria-label="输入消息" aria-multiline="true" data-placeholder="试试问我 HDFS 的工作原理，或说'我不太懂MapReduce'触发苏格拉底诊断..." style="width: 100%;"></div>
                             <div class="flex items-center justify-between mt-2">
                                 <div class="flex items-center gap-2 text-[10px]" style="color: var(--text-tertiary);"><span>Enter 发送 · Shift+Enter 换行</span></div>
                                 <button id="send-btn" class="send-fab p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg" style="background: var(--accent); color: var(--text-on-accent);" onmouseover="this.style.background='var(--accent-hover)'" onmouseout="this.style.background='var(--accent)'" aria-label="发送消息"><i data-lucide="send" class="w-4 h-4"></i></button>

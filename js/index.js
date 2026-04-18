@@ -6,6 +6,8 @@ const SAVE_PROGRESS_URL = `${API_BASE}/api/progress/save`;
 const LOAD_PROGRESS_URL = `${API_BASE}/api/progress/load`;
 const PROACTIVE_SSE_URL = `${API_BASE}/api/v2/proactive/stream`;
 const STRUGGLE_EVENT_URL = `${API_BASE}/api/v2/event/struggle`;
+const STREAM_API_URL = `${API_BASE}/api/v2/chat/stream`;
+const DEBATE_API_URL = `${API_BASE}/api/v2/debate/stream`;
 
 const AGENTS_CONFIG = [
     {
@@ -1841,8 +1843,16 @@ async function renderMessages() {
 
     container.innerHTML = messages.map(msg => {
         const processedContent = msg.role === 'user' ? msg.content : preprocessContent(msg.content);
-        let htmlContent = window.marked && msg.role !== 'user' ? marked.parse(processedContent) : processedContent;
+        let htmlContent = processedContent;
         if (msg.role !== 'user') {
+            try {
+                if (window.marked) {
+                    htmlContent = marked.parse(processedContent);
+                }
+            } catch (e) {
+                console.warn('[renderMessages] marked.parse error:', e);
+                htmlContent = escapeHtml(processedContent);
+            }
             htmlContent = processDocRefs(htmlContent);
         }
         const isSocratic = msg.role === 'assistant' && msg.socratic;
@@ -2201,8 +2211,6 @@ function detectLanguageNeed(text) {
     return null;
 }
 
-const STREAM_API_URL = `${API_BASE}/api/v2/chat/stream`;
-
 const AGENT_COLORS = {
     system: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-300', dot: 'bg-slate-400' },
     profiler: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
@@ -2214,6 +2222,13 @@ const AGENT_COLORS = {
     generator_pragmatic: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
     generator_textual: { bg: 'bg-cyan-50', text: 'text-cyan-700', border: 'border-cyan-200', dot: 'bg-cyan-500' },
     evaluator: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
+    // 辩论身份颜色
+    debate_bigdata_architect: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+    debate_psychologist: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-200', dot: 'bg-pink-500' },
+    debate_interviewer: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+    debate_educator: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+    debate_geek_senior: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+    judge: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
 };
 const DEFAULT_AGENT_COLOR = { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', dot: 'bg-gray-400' };
 
@@ -2228,6 +2243,13 @@ const AGENT_LABELS = {
     generator_pragmatic: '实践生成',
     generator_textual: '文本生成',
     evaluator: '评估',
+    // 辩论身份标签
+    debate_bigdata_architect: '大数据导师',
+    debate_psychologist: '知心辅导员',
+    debate_interviewer: '面试官',
+    debate_educator: '教育学大师',
+    debate_geek_senior: '极客学长',
+    judge: '裁判',
 };
 
 const FLOW_PIPELINE = ['system', 'profiler', 'planner', 'master_controller', 'rag_retriever', 'socratic_evaluator', 'generator_visual', 'generator_pragmatic', 'generator_textual', 'evaluator'];
@@ -2248,6 +2270,17 @@ let resourceCompletedAgents = new Set();
 let mockProgressTimers = {};
 let resourcePollingStartTime = 0;
 let resourceAgentStartTimes = {};
+
+// 辩论模式状态
+let debateState = {
+    isActive: false,
+    currentRound: 0,
+    agentResponses: {},
+    crossComments: {},
+    debateHistory: [],
+    isComplete: false
+};
+let debateAbortController = null;
 const RESOURCE_SHORT_TIMEOUT = 10000;
 const RESOURCE_LONG_TIMEOUT = 30000;
 
@@ -2903,7 +2936,15 @@ function renderStreamingMessage() {
     if (!streamBubble) return;
 
     const processedContent = preprocessContent(currentAssistantContent);
-    let htmlContent = window.marked ? marked.parse(processedContent) : currentAssistantContent;
+    let htmlContent = currentAssistantContent;
+    try {
+        if (window.marked) {
+            htmlContent = marked.parse(processedContent);
+        }
+    } catch (e) {
+        console.warn('[renderStreamingMessage] marked.parse error:', e);
+        htmlContent = escapeHtml(currentAssistantContent);
+    }
     htmlContent = processDocRefs(htmlContent);
 
     const isSocratic = messages[currentAssistantIdx]?.socratic;
@@ -2959,7 +3000,6 @@ function clearInput() {
     const notionInput = document.getElementById('notion-input');
     if (notionInput) {
         notionInput.innerHTML = '';
-        notionInput.style.height = 'auto';
         return;
     }
     const msgInput = document.getElementById('message-input');
@@ -3072,6 +3112,11 @@ async function handleSendStream() {
     const sendButton = document.getElementById('send-btn');
     const userMsg = getInputValue();
     if (!userMsg) return;
+
+    // 检测辩论模式
+    if (isDebateModeEnabled()) {
+        return handleDebateStream(userMsg);
+    }
 
     ensureCurrentPathValid();
     clearInput();
@@ -3192,7 +3237,28 @@ async function handleSendStream() {
                     renderFlowNodes();
                     renderFilterChips();
                 } else if (event.type === 'content_chunk') {
+                    console.log('[SSE] content_chunk received:', event.content?.substring(0, 50), '...');
                     startTypewriter(event.content || '');
+                } else if (event.type === 'done') {
+                    console.log('[SSE] done event, full_text length:', event.full_text?.length, 'currentAssistantContent length:', currentAssistantContent.length);
+                    typewriterQueue = [];
+                    isTypewriting = false;
+                    currentAssistantContent = (event.full_text || '') + currentAssistantContent;
+                    if (typewriterTimer) {
+                        clearTimeout(typewriterTimer);
+                        typewriterTimer = null;
+                    }
+                    // Immediately update messages content and re-render to ensure content is displayed
+                    if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length) {
+                        messages[currentAssistantIdx].content = currentAssistantContent;
+                    }
+                    // Remove stream-bubble and re-render all messages to show final content
+                    const container = document.getElementById('chat-container');
+                    if (container) {
+                        const streamBubble = container.querySelector('.stream-bubble');
+                        if (streamBubble) streamBubble.remove();
+                        renderMessages();
+                    }
                 } else if (event.type === 'complete') {
                     if (typewriterTimer) {
                         clearTimeout(typewriterTimer);
@@ -3619,6 +3685,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-btn');
 
     if (notionInput) {
+        // 强制固定宽度
+        const lockWidth = () => {
+            notionInput.style.width = '100%';
+            notionInput.style.minWidth = '100%';
+            notionInput.style.maxWidth = '100%';
+            notionInput.style.flex = 'none';
+        };
+        lockWidth();
+
+        // 监听样式变化并强制恢复
+        const observer = new MutationObserver(() => lockWidth());
+        observer.observe(notionInput, { attributes: true, attributeFilter: ['style'] });
+
         notionInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -3626,8 +3705,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         notionInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 160) + 'px';
+            lockWidth();
         });
     } else if (msgInput) {
         msgInput.addEventListener('keypress', function(e) {
@@ -3837,9 +3915,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.dispatchEvent(new Event('resize'));
     }
 
-    // 初始化沙盘状态 - 默认展开
-    if (trackAContainer && !trackAContainer.classList.contains('collapsed')) {
-        updateSandboxState(false);
+    // 初始化沙盘状态 - 默认隐藏
+    if (trackAContainer) {
+        const isCollapsed = trackAContainer.classList.contains('collapsed');
+        updateSandboxState(isCollapsed);
     }
 
     if (sandboxCollapseBtn) {
@@ -3906,6 +3985,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.focusDurationPanel) {
         window.focusDurationPanel.init();
     }
+
+    // 辩论面板展开/收起按钮
+    document.getElementById('debate-panel-expand-btn')?.addEventListener('click', () => toggleDebatePanel(true));
+    document.getElementById('debate-panel-collapse-btn')?.addEventListener('click', () => toggleDebatePanel(false));
+    document.getElementById('debate-judge-close-btn')?.addEventListener('click', () => {
+        document.getElementById('debate-judge-float-card')?.classList.remove('visible');
+    });
 });
 
 class FlowTimerState {
@@ -5900,3 +5986,354 @@ class FocusDurationPanel {
 }
 
 window.focusDurationPanel = new FocusDurationPanel();
+
+// ========== 辩论模式功能 ==========
+
+function isDebateModeEnabled() {
+    try {
+        const prefs = JSON.parse(localStorage.getItem('starlearn_preferences') || '{}');
+        return prefs.debateModeEnabled === true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function initDebatePanel() {
+    const agentsRow = document.getElementById('debate-agents-row');
+    if (!agentsRow) return;
+
+    agentsRow.innerHTML = AGENTS_CONFIG.map(agent => `
+        <div class="debate-agent-card" data-agent-id="${agent.id}" style="--agent-color: ${agent.themeColor}">
+            <div class="agent-avatar">${agent.icon}</div>
+            <div class="agent-name">${agent.name}</div>
+            <div class="status-dot"></div>
+        </div>
+    `).join('');
+}
+
+function toggleDebatePanel(expand) {
+    const panel = document.getElementById('debate-panel');
+    const expandBtn = document.getElementById('debate-panel-expand-btn');
+    const collapseBtn = document.getElementById('debate-panel-collapse-btn');
+    if (!panel) return;
+
+    if (expand === undefined) {
+        expand = !panel.classList.contains('expanded');
+    }
+
+    if (expand) {
+        panel.classList.add('expanded');
+        expandBtn?.classList.add('hidden');
+        collapseBtn?.classList.remove('hidden');
+    } else {
+        panel.classList.remove('expanded');
+        expandBtn?.classList.remove('hidden');
+        collapseBtn?.classList.add('hidden');
+    }
+}
+
+function resetDebateState() {
+    debateState = {
+        isActive: true,
+        currentRound: 0,
+        agentResponses: {},
+        crossComments: {},
+        debateHistory: [],
+        isComplete: false
+    };
+
+    const panel = document.getElementById('debate-panel');
+    if (panel) {
+        panel.classList.remove('hidden');
+        toggleDebatePanel(true);
+    }
+
+    const messagesEl = document.getElementById('debate-messages');
+    if (messagesEl) messagesEl.innerHTML = '';
+
+    // 隐藏旧的 judge-area（兼容旧结构）
+    const judgeArea = document.getElementById('debate-judge-area');
+    if (judgeArea) judgeArea.classList.add('hidden');
+
+    // 隐藏裁判悬浮卡片
+    const floatCard = document.getElementById('debate-judge-float-card');
+    if (floatCard) floatCard.classList.remove('visible');
+
+    const judgeContent = document.getElementById('judge-content');
+    if (judgeContent) judgeContent.textContent = '';
+
+    // 重置所有身份卡片状态
+    document.querySelectorAll('.debate-agent-card').forEach(card => {
+        card.dataset.status = '';
+        const dot = card.querySelector('.status-dot');
+        if (dot) dot.className = 'status-dot';
+    });
+
+    updateDebateStatus('正在召集AI身份...');
+    updateDebateRoundLabel('第一轮：独立观点');
+}
+
+function updateDebateStatus(status, type = '') {
+    const el = document.getElementById('debate-status');
+    if (!el) return;
+    el.textContent = status;
+    el.className = 'debate-status';
+    if (type) el.classList.add(type);
+}
+
+function updateDebateRoundLabel(label) {
+    const el = document.getElementById('debate-round-label');
+    if (el) el.textContent = label;
+}
+
+function updateDebateAgentStatus(agentId, status) {
+    const card = document.querySelector(`.debate-agent-card[data-agent-id="${agentId}"]`);
+    if (!card) return;
+
+    card.dataset.status = status;
+    const dot = card.querySelector('.status-dot');
+    if (dot) {
+        dot.className = 'status-dot';
+        if (status === 'thinking') dot.classList.add('thinking');
+        else if (status === 'complete') dot.classList.add('complete');
+    }
+}
+
+function appendDebateAgentResponse(agentId, content, isComment = false) {
+    const container = document.getElementById('debate-messages');
+    if (!container) return;
+
+    let bubble = container.querySelector(`.debate-bubble[data-agent="${agentId}"][data-type="${isComment ? 'comment' : 'answer'}"]`);
+    if (!bubble) {
+        const agent = AGENTS_CONFIG.find(a => a.id === agentId);
+        bubble = document.createElement('div');
+        bubble.className = 'debate-bubble';
+        bubble.dataset.agent = agentId;
+        bubble.dataset.type = isComment ? 'comment' : 'answer';
+        bubble.style.setProperty('--agent-color', agent?.themeColor || '#666');
+        bubble.innerHTML = `
+            <div class="bubble-header" style="color: ${agent?.themeColor || '#666'}">
+                <span class="bubble-agent-name">${agent?.name || agentId}${isComment ? ' (评论)' : ''}</span>
+            </div>
+            <div class="bubble-content"></div>
+        `;
+        container.appendChild(bubble);
+    }
+
+    const contentEl = bubble.querySelector('.bubble-content');
+    if (contentEl) {
+        // 压缩多余换行：超过2个连续换行压缩为最多2个，避免段落间间距过大
+        const normalized = content.replace(/\n{3,}/g, '\n\n');
+        contentEl.textContent += normalized;
+    }
+
+    // 滚动到底部
+    const contentArea = document.getElementById('debate-content-area');
+    if (contentArea) contentArea.scrollTop = contentArea.scrollHeight;
+}
+
+function showDebateJudgeArea() {
+    const floatCard = document.getElementById('debate-judge-float-card');
+    if (floatCard) floatCard.classList.add('visible');
+}
+
+function appendDebateJudgeContent(content) {
+    const judgeContent = document.getElementById('judge-content');
+    if (judgeContent) {
+        const normalized = content.replace(/\n{3,}/g, '\n\n');
+        judgeContent.textContent += normalized;
+    }
+}
+
+function addDebateSandboxLog(agentId, content) {
+    const logEntry = {
+        agent: agentId.startsWith('debate_') ? agentId : `debate_${agentId}`,
+        content: content,
+        timestamp: Date.now()
+    };
+    sandboxLogs.push(logEntry);
+    activeAgents.add(logEntry.agent);
+    renderSandboxLog(logEntry, false);
+    renderFlowNodes();
+    renderFilterChips();
+}
+
+async function handleDebateStream(userMsg) {
+    const sendButton = document.getElementById('send-btn');
+
+    ensureCurrentPathValid();
+    clearInput();
+    setInputDisabled(true);
+    if (sendButton) sendButton.disabled = true;
+
+    messages.push({ role: 'user', content: userMsg });
+    renderMessages();
+
+    // 重置沙盘
+    sandboxLogs = [];
+    activeAgents = new Set();
+    sandboxFilterSet = new Set();
+    const sandboxLogsEl = document.getElementById('sandbox-logs');
+    if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
+    renderFlowNodes();
+    renderFilterChips();
+    updateSandboxStatus('辩论中', 'bg-purple-100 text-purple-600');
+
+    // 初始化辩论面板
+    initDebatePanel();
+    resetDebateState();
+
+    debateAbortController = new AbortController();
+
+    try {
+        const res = await fetch(DEBATE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                student_id: String(currentUser?.id || 'anonymous'),
+                course_id: 'bigdata',
+                user_input: userMsg,
+                context_id: '',
+                current_profile: profile,
+                agents: AGENTS_CONFIG.map(a => ({
+                    id: a.id,
+                    name: a.name,
+                    systemPrompt: a.systemPrompt,
+                    themeColor: a.themeColor
+                }))
+            }),
+            signal: debateAbortController.signal
+        });
+
+        if (!res.ok) {
+            throw new Error(`辩论API错误: ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                try {
+                    const event = JSON.parse(line.slice(6).trim());
+                    handleDebateEvent(event);
+                } catch (e) {
+                    console.warn('解析辩论事件失败:', e);
+                }
+            }
+        }
+
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('辩论请求已取消');
+            return;
+        }
+        console.error('辩论错误:', error);
+        updateDebateStatus('辩论出错', 'error');
+        addDebateSandboxLog('system', `辩论过程出错: ${error.message}`);
+
+        // 回退到普通模式
+        messages.push({ role: 'assistant', content: '抱歉，辩论模式出现问题，请稍后重试。' });
+        renderMessages();
+    } finally {
+        setInputDisabled(false);
+        if (sendButton) sendButton.disabled = false;
+        debateAbortController = null;
+    }
+}
+
+function handleDebateEvent(event) {
+    switch (event.type) {
+        case 'debate_start':
+            updateDebateStatus('辩论开始');
+            addDebateSandboxLog('system', '辩论开始，各AI身份正在思考...');
+            break;
+
+        case 'agent_start':
+            updateDebateAgentStatus(event.agent_id, 'thinking');
+            addDebateSandboxLog(event.agent_id, `${event.agent_name || event.agent_id} 开始思考...`);
+            break;
+
+        case 'agent_chunk':
+            appendDebateAgentResponse(event.agent_id, event.content);
+            break;
+
+        case 'agent_complete':
+            updateDebateAgentStatus(event.agent_id, 'complete');
+            debateState.agentResponses[event.agent_id] = event.full_response;
+            addDebateSandboxLog(event.agent_id, `${event.agent_name || event.agent_id} 完成回答`);
+            break;
+
+        case 'debate_round_complete':
+            debateState.currentRound = event.round;
+            if (event.round === 1) {
+                updateDebateRoundLabel('第二轮：交叉评论');
+                updateDebateStatus('交叉评论中...');
+            }
+            addDebateSandboxLog('system', `第${event.round}轮完成`);
+            break;
+
+        case 'comment_start':
+            updateDebateAgentStatus(event.agent_id, 'thinking');
+            addDebateSandboxLog(event.agent_id, `${event.agent_name || event.agent_id} 开始评论...`);
+            break;
+
+        case 'comment_chunk':
+            appendDebateAgentResponse(event.agent_id, event.content, true);
+            break;
+
+        case 'comment_complete':
+            updateDebateAgentStatus(event.agent_id, 'complete');
+            debateState.crossComments[event.agent_id] = event.comment;
+            break;
+
+        case 'judge_start':
+            showDebateJudgeArea();
+            updateDebateRoundLabel('裁判综合判定');
+            updateDebateStatus('裁判判定中...', 'thinking');
+            addDebateSandboxLog('judge', '裁判开始综合评估...');
+            break;
+
+        case 'judge_chunk':
+            appendDebateJudgeContent(event.content);
+            break;
+
+        case 'judge_complete':
+            addDebateSandboxLog('judge', '裁判完成综合判定');
+            break;
+
+        case 'debate_complete':
+            debateState.isComplete = true;
+            updateDebateStatus('辩论完成', 'complete');
+            updateSandboxStatus('完成', 'bg-green-100 text-green-600');
+
+            // 将最终答案添加到消息列表
+            const finalAnswer = event.final_answer || '辩论完成，请查看上方各身份观点。';
+            messages.push({ role: 'assistant', content: finalAnswer });
+            renderMessages();
+
+            addDebateSandboxLog('system', '辩论结束');
+            break;
+
+        case 'agent_error':
+            addDebateSandboxLog('system', `${event.agent_id} 出错: ${event.message}`);
+            break;
+
+        case 'error':
+            updateDebateStatus('出错', 'error');
+            addDebateSandboxLog('system', `错误: ${event.message}`);
+            break;
+
+        default:
+            console.log('未知辩论事件:', event);
+    }
+}

@@ -239,3 +239,28 @@ class StreamChatRequest(BaseModel):
         if not v.strip():
             raise ValueError("用户输入不能为空白")
         return v.strip()
+
+
+class DebateAgentConfig(BaseModel):
+    """辩论身份配置"""
+    id: str
+    name: str
+    systemPrompt: str
+    themeColor: str = "#6366f1"
+
+
+class DebateRequest(BaseModel):
+    """辩论模式请求"""
+    student_id: str = ""
+    course_id: str = "bigdata"
+    user_input: str = Field(..., min_length=1)
+    context_id: str = ""
+    current_profile: dict[str, Any] = Field(default_factory=dict)
+    agents: list[DebateAgentConfig] = Field(default_factory=list)
+
+    @field_validator("user_input", mode="after")
+    @classmethod
+    def _validate_user_input(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("用户输入不能为空白")
+        return v.strip()

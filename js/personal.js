@@ -17,7 +17,8 @@ let userPreferences = JSON.parse(localStorage.getItem('starlearn_preferences') |
     reminderRepeat: [0, 1, 2, 3, 4, 5, 6],
     reminderAmPm: 'PM',
     learningGoals: ['应对考试'],
-    dailyGoalMinutes: 60
+    dailyGoalMinutes: 60,
+    debateModeEnabled: false
 };
 
 let pendingAvatarData = null;
@@ -324,6 +325,9 @@ let petState = {
     pressureLevel: 'low'
 };
 
+// 个人中心当前选中的植物槽位（缩略视图）
+let personalSelectedPlantSlot = 0;
+
 const petStatusMessages = {
     low: [
         '它在静静地陪你学习...',
@@ -582,19 +586,17 @@ function updateEcoPlantDisplay() {
     const growthValue = document.getElementById('eco-growth-value');
     const growthBar = document.getElementById('eco-growth-bar');
     const harvestCount = document.getElementById('eco-harvest-count');
+    const slotsContainer = document.getElementById('eco-plant-slots');
 
-    const plantData = {
-        seeds: parseInt(localStorage.getItem('starlearn_seeds') || '0'),
-        ownedPlants: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').ownedPlants || [],
-        currentPlant: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').currentPlant || null,
-        stage: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').stage || 0,
-        remainingTime: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').remainingTime || 0,
-        water: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').water || 0,
-        nutrient: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').nutrient || 0,
-        light: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').light || 50,
-        growth: JSON.parse(localStorage.getItem('starlearn_plants') || '{}').growth || 0
-    };
+    const rawPlant = JSON.parse(localStorage.getItem('starlearn_plants') || '{}');
+    const slots = rawPlant.slots || [];
+    const seeds = parseInt(localStorage.getItem('starlearn_seeds') || '0');
 
+    const PLANT_SLOTS = 3; // 保持与种植页面一致
+    // 填充默认槽位
+    while (slots.length < PLANT_SLOTS) slots.push({ plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() });
+
+    // 本地图鉴数据
     const PLANT_DATA = [
         { id: 'bamboo', name: '逻辑之竹', emoji: '🎋', stages: ['🌰', '🌱', '🎋', '🎍'] },
         { id: 'vine', name: '算法之藤', emoji: '🌿', stages: ['🌰', '🌱', '🌿', '🍃'] },
@@ -609,75 +611,133 @@ function updateEcoPlantDisplay() {
     ];
     const STAGE_NAMES = ['种子 Seed', '萌芽 Sprout', '成长期 Growth', '成熟 Harvest'];
 
-    if (!plantData.currentPlant) {
+    // 渲染槽位缩略图
+    if (slotsContainer) {
+        slotsContainer.innerHTML = '';
+        slots.forEach((slot, i) => {
+            const plant = slot.plantId ? PLANT_DATA.find(p => p.id === slot.plantId) : null;
+            const emoji = plant ? plant.stages[slot.stage] : '🌱';
+            const cls = slot.plantId ? 'occupied' : 'empty';
+            const selectedClass = i === personalSelectedPlantSlot ? ' selected' : '';
+            const html = `
+                <div class="eco-plant-slot ${cls}${selectedClass}" data-slot="${i}" onclick="selectEcoSlot(${i})" title="槽位 ${i+1}">
+                    <div class="slot-emoji">${emoji}</div>
+                </div>
+            `;
+            slotsContainer.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    // 选中的槽位显示详情（优先读取选中槽；若为空则显示占位）
+    const selected = slots[personalSelectedPlantSlot] || slots.find(s => s.plantId) || slots[0];
+    if (!selected || !selected.plantId) {
         if (plantEmoji) plantEmoji.textContent = '🌱';
         if (plantName) plantName.textContent = '选择你的植物';
         if (plantStage) plantStage.textContent = '待种植';
         if (timerValue) timerValue.textContent = '--:--:--';
     } else {
-        const plant = PLANT_DATA.find(p => p.id === plantData.currentPlant);
+        const plant = PLANT_DATA.find(p => p.id === selected.plantId);
         if (plant) {
-            if (plantEmoji) plantEmoji.textContent = plant.stages[plantData.stage];
+            if (plantEmoji) plantEmoji.textContent = plant.stages[selected.stage];
             if (plantName) plantName.textContent = plant.name;
-            if (plantStage) plantStage.textContent = STAGE_NAMES[plantData.stage];
+            if (plantStage) plantStage.textContent = STAGE_NAMES[selected.stage];
         }
 
-        if (plantData.stage >= 3) {
+        if (selected.stage >= 3) {
             if (timerValue) { timerValue.textContent = '可收获!'; timerValue.style.color = '#34d399'; }
         } else {
-            const hours = Math.floor(plantData.remainingTime / 3600);
-            const mins = Math.floor((plantData.remainingTime % 3600) / 60);
-            const secs = Math.floor(plantData.remainingTime % 60);
+            const hours = Math.floor(selected.remainingTime / 3600);
+            const mins = Math.floor((selected.remainingTime % 3600) / 60);
+            const secs = Math.floor(selected.remainingTime % 60);
             if (timerValue) timerValue.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
             if (timerValue) timerValue.style.color = '#10b981';
         }
+
+        if (waterValue) waterValue.textContent = Math.round(selected.water || 0) + '%';
+        if (waterBar) waterBar.style.width = (selected.water || 0) + '%';
+        if (nutrientValue) nutrientValue.textContent = Math.round(selected.nutrient || 0) + '%';
+        if (nutrientBar) nutrientBar.style.width = (selected.nutrient || 0) + '%';
+        if (lightValue) lightValue.textContent = Math.round(selected.light || 50) + '%';
+        if (lightBar) lightBar.style.width = (selected.light || 50) + '%';
+        if (growthValue) growthValue.textContent = Math.round(selected.growth || 0) + '%';
+        if (growthBar) growthBar.style.width = (selected.growth || 0) + '%';
     }
 
-    if (waterValue) waterValue.textContent = Math.round(plantData.water) + '%';
-    if (waterBar) waterBar.style.width = plantData.water + '%';
-    if (nutrientValue) nutrientValue.textContent = Math.round(plantData.nutrient) + '%';
-    if (nutrientBar) nutrientBar.style.width = plantData.nutrient + '%';
-    if (lightValue) lightValue.textContent = Math.round(plantData.light) + '%';
-    if (lightBar) lightBar.style.width = plantData.light + '%';
-    if (growthValue) growthValue.textContent = Math.round(plantData.growth) + '%';
-    if (growthBar) growthBar.style.width = plantData.growth + '%';
-    if (harvestCount) harvestCount.textContent = plantData.ownedPlants.length;
+    if (harvestCount) harvestCount.textContent = (rawPlant.ownedPlants && rawPlant.ownedPlants.length) || 0;
+}
+
+// 在个人页面点击槽位以切换查看
+function selectEcoSlot(idx) {
+    personalSelectedPlantSlot = idx;
+    updateEcoPlantDisplay();
+    showFloatTip('eco-plant-tip', `已切换到槽位 ${idx+1}`);
+}
+
+// 简单收集粒子效果（小规模）
+function createMiniParticles(targetEl) {
+    if (!targetEl) return;
+    for (let i = 0; i < 10; i++) {
+        const p = document.createElement('div');
+        p.className = 'mini-particle';
+        p.textContent = ['✨','🌟','💫','🍃'][Math.floor(Math.random()*4)];
+        p.style.left = (30 + Math.random()*40) + '%';
+        p.style.top = (10 + Math.random()*60) + '%';
+        targetEl.appendChild(p);
+        setTimeout(() => p.remove(), 1200);
+    }
 }
 
 function ecoPlantAction(action) {
     const plantStateData = JSON.parse(localStorage.getItem('starlearn_plants') || '{}');
-    if (!plantStateData.currentPlant) {
-        showToast('请先在林场种植一株植物~');
-        return;
+    const slots = plantStateData.slots || [];
+    const PLANT_SLOTS = 3;
+
+    // 确保 slots 数量
+    while (slots.length < PLANT_SLOTS) slots.push({ plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() });
+
+    // 选中的槽位或第一个有植物的槽
+    let idx = personalSelectedPlantSlot;
+    if (!slots[idx] || !slots[idx].plantId) {
+        idx = slots.findIndex(s => s && s.plantId);
+        if (idx === -1) { showToast('请先在林场种植一株植物~'); return; }
     }
 
+    const slot = slots[idx];
     const WATER_TIME_REDUCTION = 10 * 60;
     const NUTRIENT_TIME_REDUCTION = 30 * 60;
 
     let tipText = '';
     if (action === 'water') {
-        plantStateData.water = Math.min(100, Math.max(0, (plantStateData.water || 0) + 20));
-        plantStateData.growth = Math.min(100, Math.max(0, (plantStateData.growth || 0) + 5));
-        plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - WATER_TIME_REDUCTION);
-        tipText = '+20💧 +5🌡️';
+        slot.water = Math.min(100, Math.max(0, (slot.water || 0) + 20));
+        slot.remainingTime = Math.max(0, (slot.remainingTime || 0) - WATER_TIME_REDUCTION);
+        tipText = '+20💧';
         showToast('💧 浇水成功！生长时间缩短10分钟~');
+        // 水波动效
+        const slotEl = document.querySelector(`#eco-plant-slots .eco-plant-slot[data-slot='${idx}']`);
+        if (slotEl) {
+            slotEl.classList.remove('mini-water-ripple'); void slotEl.offsetWidth; slotEl.classList.add('mini-water-ripple');
+            createMiniParticles(slotEl);
+        }
     } else if (action === 'nutrient') {
-        plantStateData.nutrient = Math.min(100, Math.max(0, (plantStateData.nutrient || 0) + 15));
-        plantStateData.growth = Math.min(100, Math.max(0, (plantStateData.growth || 0) + 8));
-        plantStateData.light = Math.min(100, Math.max(0, (plantStateData.light || 50) + 3));
-        plantStateData.remainingTime = Math.max(0, plantStateData.remainingTime - NUTRIENT_TIME_REDUCTION);
-        tipText = '+15🧪 +8🌡️ +3☀️';
+        slot.nutrient = Math.min(100, Math.max(0, (slot.nutrient || 0) + 15));
+        slot.remainingTime = Math.max(0, (slot.remainingTime || 0) - NUTRIENT_TIME_REDUCTION);
+        tipText = '+15🧪';
         showToast('🧪 施肥成功！生长时间缩短30分钟~');
+        const slotEl = document.querySelector(`#eco-plant-slots .eco-plant-slot[data-slot='${idx}']`);
+        if (slotEl) { createMiniParticles(slotEl); }
     }
 
+    slot.lastUpdate = Date.now();
+    plantStateData.slots = slots;
     plantStateData.lastUpdate = Date.now();
-    localStorage.setItem('starlearn_plants', JSON.stringify(plantStateData));
+    try { localStorage.setItem('starlearn_plants', JSON.stringify(plantStateData)); } catch (e) {}
 
+    // 保存 eco_data 快照
     const ecoData = {
-        lastWater: plantStateData.water,
-        lastNutrient: plantStateData.nutrient,
-        lastLight: plantStateData.light,
-        lastGrowth: plantStateData.growth,
+        lastWater: slot.water,
+        lastNutrient: slot.nutrient,
+        lastLight: slot.light || 50,
+        lastGrowth: slot.growth || 0,
         lastUpdate: Date.now()
     };
     localStorage.setItem('eco_data', JSON.stringify(ecoData));
@@ -774,6 +834,7 @@ function loadPreferences() {
     setToggleState('notification-toggle', userPreferences.notificationEnabled);
     setToggleState('privacy-toggle', userPreferences.privacyMode);
     setToggleState('reminder-toggle', userPreferences.reminderEnabled);
+    setToggleState('debate-toggle', userPreferences.debateModeEnabled);
 
     const reminderSettings = document.getElementById('reminder-settings');
     if (reminderSettings) {
@@ -795,6 +856,24 @@ function loadPreferences() {
 
     updateFloatingAlarmTrigger();
 }
+
+// 当其它页面（例如宠物游戏页）更新了 starlearn_pet，本页也同步显示头像/状态
+window.addEventListener('storage', (e) => {
+  try {
+    if (e.key === 'starlearn_pet') {
+      const newPet = JSON.parse(e.newValue);
+      if (newPet) {
+        petState = { ...petState, ...newPet };
+        updatePetUI();
+      }
+    } else if (e.key === 'starlearn_plants') {
+      // 当林场数据变化时，更新展示
+      updateEcoPlantDisplay();
+    }
+  } catch (err) {
+    // ignore parse errors
+  }
+});
 
 function toggleSwitch(el, key) {
     if (!el) return;
@@ -826,6 +905,9 @@ function toggleSwitch(el, key) {
                 cancelAllReminders();
             }
             updateFloatingAlarmTrigger();
+            break;
+        case 'debate':
+            userPreferences.debateModeEnabled = isActive;
             break;
     }
 

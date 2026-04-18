@@ -6,6 +6,7 @@
     <title>星识 Star-Learn - 个人中心</title>
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/personal.css">
+    <link rel="stylesheet" href="/css/notifications.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/theme.js"></script>
 </head>
@@ -347,6 +348,10 @@
                                 <span class="eco-action-icon text-lg block">💖</span>
                                 <span class="eco-action-label text-[10px] font-semibold text-slate-600 dark:text-slate-300">抚摸</span>
                             </button>
+                            <button class="eco-action-btn game flex-1 bg-gradient-to-br from-purple-500 to-pink-500 border-0 rounded-xl py-2 px-3 hover:from-purple-600 hover:to-pink-600 active:scale-95 transition-all duration-200 cursor-pointer" onclick="event.stopPropagation();window.location.href='/pixel-pet-game.html'" title="进入游戏">
+                                <span class="eco-action-icon text-lg block">🎮</span>
+                                <span class="eco-action-label text-[10px] font-semibold text-white">游戏</span>
+                            </button>
                         </div>
                         <div class="eco-pet-stats flex-1 space-y-3 pr-4">
                             <div class="eco-stat-item">
@@ -400,6 +405,9 @@
                                 <div class="eco-plant-stage text-xs text-slate-500 dark:text-slate-400 truncate" id="eco-plant-stage">等待种植</div>
                             </div>
                         </div>
+                        <!-- 多槽位缩略视图 -->
+                        <div id="eco-plant-slots" class="eco-plant-slots" aria-label="植物槽位缩略"></div>
+                        <div id="eco-plant-tip" class="eco-float-tip"></div>
                         <div class="eco-plant-timer flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600/50 mb-3">
                             <span class="text-xs text-slate-500 dark:text-slate-400">预计收获</span>
                             <span class="font-mono text-base font-bold text-emerald-500" id="eco-timer-value">--:--:--</span>
@@ -574,6 +582,19 @@
                             </div>
                         </div>
                         <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
+                    </div>
+
+                    <div class="pref-card">
+                        <div class="pref-header">
+                            <div class="pref-icon purple">
+                                <i data-lucide="users"></i>
+                            </div>
+                            <div>
+                                <div class="pref-title">多身份辩论模式</div>
+                                <div class="pref-subtitle">多AI视角讨论，综合判定答案</div>
+                            </div>
+                        </div>
+                        <div class="toggle" id="debate-toggle" onclick="toggleSwitch(this, 'debate')"></div>
                     </div>
                 </div>
 
@@ -816,6 +837,7 @@
         </div>
     </div>
 
+    <script src="/js/notifications.js"></script>
     <script src="/js/personal.js"></script>
     <script>
         if (window.lucide) lucide.createIcons();
