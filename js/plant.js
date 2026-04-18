@@ -107,6 +107,8 @@ function savePlantState() {
     }
     const toSave = { ...plantState, ...legacy };
     localStorage.setItem('starlearn_plants', JSON.stringify(toSave));
+    // 广播自定义事件，通知其他页面（如个人中心）
+    window.dispatchEvent(new CustomEvent('plantStateUpdated', { detail: toSave }));
 }
 
 function renderSeedCount() {
@@ -248,6 +250,32 @@ function renderCurrentPlant() {
     if (waterEl) waterEl.textContent = Math.round(slot.water) + '%';
     if (nutrientEl) nutrientEl.textContent = Math.round(slot.nutrient) + '%';
 
+    // 更新浇水/施肥按钮状态
+    const waterBtn = document.getElementById('water-btn');
+    const nutrientBtn = document.getElementById('nutrient-btn');
+    if (waterBtn) {
+        if (slot.water >= 100) {
+            waterBtn.classList.add('disabled');
+            waterBtn.style.opacity = '0.5';
+            waterBtn.style.cursor = 'not-allowed';
+        } else {
+            waterBtn.classList.remove('disabled');
+            waterBtn.style.opacity = '1';
+            waterBtn.style.cursor = 'pointer';
+        }
+    }
+    if (nutrientBtn) {
+        if (slot.nutrient >= 100) {
+            nutrientBtn.classList.add('disabled');
+            nutrientBtn.style.opacity = '0.5';
+            nutrientBtn.style.cursor = 'not-allowed';
+        } else {
+            nutrientBtn.classList.remove('disabled');
+            nutrientBtn.style.opacity = '1';
+            nutrientBtn.style.cursor = 'pointer';
+        }
+    }
+
     if (harvestBtn) {
         harvestBtn.style.display = slot.stage >= 3 ? 'flex' : 'none';
     }
@@ -318,6 +346,10 @@ function plantAction(action) {
     const potEl = document.querySelector(`.plant-pot[data-slot='${selectedSlotIndex}']`);
 
     if (action === 'water') {
+        if (slot.water >= 100) {
+            showTip('💧 水分已达上限，无需再浇水！');
+            return;
+        }
         slot.water = Math.min(100, slot.water + WATER_PER_ACTION);
         slot.remainingTime = Math.max(0, slot.remainingTime - WATER_TIME_REDUCTION);
         if (displayEl) {
@@ -332,6 +364,10 @@ function plantAction(action) {
         }
         showTip('💧 浇水成功！水分+' + WATER_PER_ACTION + '%，生长时间缩短10分钟~');
     } else if (action === 'nutrient') {
+        if (slot.nutrient >= 100) {
+            showTip('🧪 营养已达上限，无需再施肥！');
+            return;
+        }
         slot.nutrient = Math.min(100, slot.nutrient + NUTRIENT_PER_ACTION);
         slot.remainingTime = Math.max(0, slot.remainingTime - NUTRIENT_TIME_REDUCTION);
         if (displayEl) {

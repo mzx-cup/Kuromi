@@ -192,6 +192,38 @@ function initAgentMenu() {
             closeMenu();
         }
     });
+
+    // 根据辩论模式状态控制智能体切换按钮的显示
+    updateAgentFabVisibility();
+
+    // 监听辩论模式变化
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'starlearn_preferences') {
+            updateAgentFabVisibility();
+        }
+    });
+}
+
+// 根据辩论模式状态控制智能体切换按钮的显示/隐藏
+function updateAgentFabVisibility() {
+    const wrapper = agentMenuState.wrapper;
+    if (!wrapper) return;
+
+    // 检查辩论模式状态
+    let isDebateEnabled = false;
+    try {
+        const prefs = JSON.parse(localStorage.getItem('starlearn_preferences') || '{}');
+        isDebateEnabled = prefs.debateModeEnabled === true;
+    } catch (e) {
+        isDebateEnabled = false;
+    }
+
+    if (isDebateEnabled) {
+        wrapper.classList.add('hidden');
+        closeMenu();
+    } else {
+        wrapper.classList.remove('hidden');
+    }
 }
 
 function isMenuLocked() {

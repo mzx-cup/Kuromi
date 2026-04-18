@@ -2229,6 +2229,109 @@ body {
     box-shadow: 0 12px 24px rgba(245, 158, 11, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
+/* 云端林场多槽位缩略视图 */
+.eco-plant-slots {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    justify-content: center;
+    padding: 8px 12px;
+    background: rgba(16,185,129,0.06);
+    border-radius: 12px;
+    border: 1px solid rgba(16,185,129,0.1);
+}
+.eco-plant-slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(16,185,129,0.04));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    border: 2px solid rgba(16,185,129,0.15);
+    transition: all 0.3s ease;
+    overflow: visible;
+}
+.eco-plant-slot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: radial-gradient(circle at 50% 0%, rgba(34,197,94,0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.eco-plant-slot.empty {
+    opacity: 0.5;
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.05);
+}
+.eco-plant-slot.occupied {
+    border-color: rgba(34,197,94,0.3);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+}
+.eco-plant-slot.selected {
+    border-color: rgba(34,197,94,0.9);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(16,185,129,0.3);
+}
+.eco-plant-slot.selected::before { opacity: 1; }
+.eco-plant-slot:hover { transform: translateY(-2px); }
+.eco-plant-slot .slot-emoji {
+    font-size: 22px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+.eco-plant-slot:hover .slot-emoji { transform: scale(1.15); }
+.eco-plant-slot .slot-ready-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: badgePulse 1s infinite;
+    box-shadow: 0 2px 6px rgba(245,158,11,0.5);
+    z-index: 2;
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* 植物显示区域美化 */
+.eco-plant-display:not(.empty) .w-16.h-16 {
+    background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(16,185,129,0.1)) !important;
+    border: 2px solid rgba(34,197,94,0.3) !important;
+    box-shadow: 0 0 20px rgba(34,197,94,0.2), inset 0 0 15px rgba(34,197,94,0.1) !important;
+}
+#eco-plant-emoji {
+    transition: all 0.5s ease;
+    filter: drop-shadow(0 0 8px rgba(34,197,94,0.4));
+}
+
+/* 小型水波动效与粒子 */
+@keyframes miniWater {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    50% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.9; }
+}
+.mini-water-ripple { animation: miniWater 0.6s ease-in-out; box-shadow: 0 8px 18px rgba(56,189,248,0.12); }
+.mini-particle { position: absolute; font-size: 12px; animation: miniFloat 1.2s ease-out forwards; }
+@keyframes miniFloat { 0% { transform: translateY(0) scale(0.6); opacity: 0.8 } 100% { transform: translateY(-40px) scale(1); opacity: 0 } }
+
 /* Eco Overview */
 .eco-overview {
     display: flex;

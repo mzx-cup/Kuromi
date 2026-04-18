@@ -80,9 +80,52 @@ function init() {
     initFloatingAlarm();
     requestNotificationPermission();
 
+    // 初始化云端林场同步
+    initEcoPlantSync();
+
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+}
+
+// 云端林场数据同步
+function initEcoPlantSync() {
+    updateEcoPlantDisplay();
+    // 每秒更新倒计时
+    setInterval(() => {
+        updateEcoPlantTimer();
+    }, 1000);
+    // 每5秒完整同步一次数据
+    setInterval(() => {
+        updateEcoPlantDisplay();
+    }, 5000);
+}
+
+// 更新倒计时显示
+function updateEcoPlantTimer() {
+    const timerValue = document.getElementById('eco-timer-value');
+    if (!timerValue) return;
+
+    const rawPlant = JSON.parse(localStorage.getItem('starlearn_plants') || '{}');
+    const slots = rawPlant.slots || [];
+    const selected = slots[personalSelectedPlantSlot] || slots.find(s => s.plantId) || slots[0];
+
+    if (!selected || !selected.plantId) {
+        timerValue.textContent = '--:--:--';
+        return;
+    }
+
+    if (selected.stage >= 3) {
+        timerValue.textContent = '可收获!';
+        timerValue.style.color = '#34d399';
+        return;
+    }
+
+    const hours = Math.floor(selected.remainingTime / 3600);
+    const mins = Math.floor((selected.remainingTime % 3600) / 60);
+    const secs = Math.floor(selected.remainingTime % 60);
+    timerValue.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    timerValue.style.color = selected.remainingTime < 300 ? '#f87171' : '#10b981';
 }
 
 function renderAvatarGrid() {
@@ -587,6 +630,7 @@ function updateEcoPlantDisplay() {
     const growthBar = document.getElementById('eco-growth-bar');
     const harvestCount = document.getElementById('eco-harvest-count');
     const slotsContainer = document.getElementById('eco-plant-slots');
+    const plantDisplayWrapper = document.getElementById('eco-plant-display');
 
     const rawPlant = JSON.parse(localStorage.getItem('starlearn_plants') || '{}');
     const slots = rawPlant.slots || [];
@@ -622,6 +666,7 @@ function updateEcoPlantDisplay() {
             const html = `
                 <div class="eco-plant-slot ${cls}${selectedClass}" data-slot="${i}" onclick="selectEcoSlot(${i})" title="槽位 ${i+1}">
                     <div class="slot-emoji">${emoji}</div>
+                    ${slot.plantId && slot.stage >= 3 ? '<div class="slot-ready-badge">!</div>' : ''}
                 </div>
             `;
             slotsContainer.insertAdjacentHTML('beforeend', html);
@@ -635,8 +680,10 @@ function updateEcoPlantDisplay() {
         if (plantName) plantName.textContent = '选择你的植物';
         if (plantStage) plantStage.textContent = '待种植';
         if (timerValue) timerValue.textContent = '--:--:--';
+        if (plantDisplayWrapper) plantDisplayWrapper.classList.add('empty');
     } else {
         const plant = PLANT_DATA.find(p => p.id === selected.plantId);
+        if (plantDisplayWrapper) plantDisplayWrapper.classList.remove('empty');
         if (plant) {
             if (plantEmoji) plantEmoji.textContent = plant.stages[selected.stage];
             if (plantName) plantName.textContent = plant.name;
@@ -650,7 +697,7 @@ function updateEcoPlantDisplay() {
             const mins = Math.floor((selected.remainingTime % 3600) / 60);
             const secs = Math.floor(selected.remainingTime % 60);
             if (timerValue) timerValue.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            if (timerValue) timerValue.style.color = '#10b981';
+            if (timerValue) timerValue.style.color = selected.remainingTime < 300 ? '#f87171' : '#10b981';
         }
 
         if (waterValue) waterValue.textContent = Math.round(selected.water || 0) + '%';
@@ -741,6 +788,9 @@ function ecoPlantAction(action) {
         lastUpdate: Date.now()
     };
     localStorage.setItem('eco_data', JSON.stringify(ecoData));
+
+    // 广播自定义事件，通知植物页面（如有打开）
+    window.dispatchEvent(new CustomEvent('plantStateUpdated', { detail: plantStateData }));
 
     updateEcoPlantDisplay();
     showFloatTip('eco-plant-tip', tipText);
@@ -872,6 +922,13 @@ window.addEventListener('storage', (e) => {
     }
   } catch (err) {
     // ignore parse errors
+  }
+});
+
+// 监听植物页面自定义事件，实现跨页面即时同步
+window.addEventListener('plantStateUpdated', (e) => {
+  if (e.detail) {
+    updateEcoPlantDisplay();
   }
 });
 
