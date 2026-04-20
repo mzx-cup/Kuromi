@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玄武·AI 结对编程舱</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/ai-pair-programming.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+
+    <!-- 触发入口 -->
+    <div class="flex items-center justify-center min-h-screen">
+        <button onclick="openIDEPanel()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl font-semibold text-lg hover:opacity-90 transition flex items-center gap-3">
+            <span class="text-2xl">🔮</span>
+            <span>开启玄武·AI 结对编程舱</span>
+        </button>
+    </div>
+
+    <!-- ==========================================
+         IDE 弹窗主体
+         ========================================== -->
+    <div id="ide-modal" class="fixed inset-0 z-50 hidden">
+        <!-- 遮罩 -->
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeIDEPanel()"></div>
+
+        <!-- IDE 容器 -->
+        <div class="absolute inset-2 md:inset-4 bg-[#0d1117] rounded-2xl overflow-hidden flex flex-col border border-white/10">
+
+            <!-- 顶部标签栏 -->
+            <div class="flex items-center justify-between bg-[#161b22] border-b border-white/10 px-4 py-2">
+                <div class="flex items-center gap-4">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 cursor-pointer transition"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 cursor-pointer transition"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 cursor-pointer transition"></div>
+                    </div>
+                    <div class="flex items-center gap-4 text-[13px]">
+                        <span class="text-gray-400">排序算法.py</span>
+                        <span class="text-indigo-400 border-b-2 border-indigo-400 pb-1">main.py</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <select id="problem-select" class="bg-[#21262d] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none hover:border-indigo-500/50 transition cursor-pointer">
+                        <option value="1">排序算法作用域问题</option>
+                        <option value="2">列表索引操作</option>
+                        <option value="3">文件处理异常</option>
+                    </select>
+                    <button onclick="closeIDEPanel()" class="p-1.5 hover:bg-white/10 rounded-lg transition">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="flex-1 flex overflow-hidden">
+
+                <!-- 左侧：代码编辑器 -->
+                <div class="flex-1 flex flex-col border-r border-white/10">
+                    <!-- 编辑器工具栏 -->
+                    <div class="flex items-center justify-between px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                        <div class="flex items-center gap-4 text-[12px] text-gray-400">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                                </svg>
+                                main.py
+                            </span>
+                            <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">Python</span>
+                        </div>
+                        <div class="flex items-center gap-2" id="error-count-wrapper">
+                            <span id="error-count" class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[11px]">1 Error</span>
+                        </div>
+                    </div>
+
+                    <!-- 问题标题 -->
+                    <div class="px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                        <h3 id="problem-title" class="text-[13px] text-gray-300 font-medium">排序算法作用域问题</h3>
+                    </div>
+
+                    <!-- 代码编辑区 -->
+                    <div id="editor-scroll" class="flex-1 overflow-auto editor-bg">
+                        <div id="editor-content" class="py-2 min-h-full">
+                            <!-- 代码由 JS 渲染 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：AI 诊断面板 -->
+                <div class="w-[420px] flex flex-col ai-sidebar">
+
+                    <!-- AI 状态栏 -->
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">🧠</span>
+                            <div>
+                                <div class="font-semibold text-[14px]">AI 诊断助手</div>
+                                <div class="text-[11px] text-gray-400">苏格拉底式提问引导</div>
+                            </div>
+                        </div>
+                        <div id="status-badge" class="ai-status-badge">
+                            <span class="status-dot"></span>
+                            <span class="status-text">就绪</span>
+                        </div>
+                    </div>
+
+                    <!-- 对话流 -->
+                    <div id="message-container" class="flex-1 overflow-y-auto p-4">
+                        <!-- 消息由 JS 渲染 -->
+                    </div>
+
+                    <!-- 用户输入 -->
+                    <div class="p-4 border-t border-white/10">
+                        <div class="relative">
+                            <textarea
+                                id="submit-input"
+                                class="code-submit-input w-full h-20 resize-none"
+                                placeholder="输入你的问题，按 Ctrl+Enter 发送..."
+                            ></textarea>
+                            <button id="send-btn" class="absolute bottom-3 right-3 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[12px] font-medium transition flex items-center gap-1">
+                                <span>发送</span>
+                                <span class="text-[10px] opacity-70">⌘↵</span>
+                            </button>
+                        </div>
+                        <div class="mt-2 text-[10px] text-gray-500 text-right">
+                            按 <kbd class="px-1 py-0.5 bg-white/10 rounded">ESC</kbd> 关闭 · <kbd class="px-1 py-0.5 bg-white/10 rounded">Ctrl+Enter</kbd> 发送
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal 状态栏 -->
+            <div class="terminal-bar">
+                <div class="terminal-bar-left">
+                    <div class="terminal-item error">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>Process exited with code 1</span>
+                    </div>
+                    <div class="terminal-item">
+                        <span>🐍 Python 3.11</span>
+                    </div>
+                </div>
+                <div class="terminal-bar-right">
+                    <div class="terminal-item" id="terminal-cpu">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                        <span>CPU: 12%</span>
+                    </div>
+                    <div class="terminal-item" id="terminal-token">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span>AI: 0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/ai-pair-programming.js"></script>
+</body>
+</html>

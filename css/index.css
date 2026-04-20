@@ -3808,6 +3808,17 @@ body.light-theme .path-tree-empty {
     opacity: 1;
     visibility: visible;
 }
+/* 浮动岛模式：只显示展开按钮，隐藏中间内容 */
+.flow-overlay.floating-mode .flow-center-area {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+.flow-overlay.floating-mode .flow-sidebar-right {
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0;
+}
 .flow-overlay.rest-mode {
     background: rgba(10,30,20,0.8);
 }

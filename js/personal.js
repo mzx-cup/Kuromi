@@ -1700,9 +1700,10 @@ function saveUser() {
 }
 
 function goBack() {
-    window.close();
-    if (!window.closed) {
-        window.location.href = '/index.html';
+    if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = '/hub.html';
     }
 }
 

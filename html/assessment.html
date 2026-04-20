@@ -67,6 +67,62 @@
         .multi-select-card.selected .check-icon {
             display: flex;
         }
+        .quiz-option-btn {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .quiz-option-btn:hover {
+            transform: translateX(4px);
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        }
+        .quiz-option-btn.selected {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border-color: transparent;
+        }
+        .quiz-option-btn.correct {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-color: transparent;
+        }
+        .quiz-option-btn.wrong {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border-color: transparent;
+        }
+        .quiz-option-btn:disabled {
+            cursor: default;
+        }
+        .quiz-heart {
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+        .quiz-heart.lost {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+        .quiz-progress-dots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+        .quiz-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+        }
+        .quiz-dot.current {
+            background: white;
+            transform: scale(1.3);
+        }
+        .quiz-dot.completed {
+            background: #10b981;
+        }
+        .quiz-dot.wrong {
+            background: #ef4444;
+        }
     </style>
 </head>
 <body class="min-h-screen gradient-bg overflow-x-hidden">
@@ -107,13 +163,15 @@
                 <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-8">8</div>
                 <div class="w-8 h-1 bg-white/20 rounded" id="line-8"></div>
                 <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-9">9</div>
+                <div class="w-8 h-1 bg-white/20 rounded" id="line-9"></div>
+                <div class="step-indicator w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/20 text-white" id="step-10">10</div>
             </div>
 
             <!-- Main Card -->
             <div class="bg-white rounded-3xl shadow-2xl overflow-hidden">
                 <!-- Progress Bar -->
                 <div class="h-2 bg-gray-100">
-                    <div class="progress-bar h-full bg-gradient-to-r from-blue-500 to-purple-500" id="progress-bar" style="width: 11.11%;"></div>
+                    <div class="progress-bar h-full bg-gradient-to-r from-blue-500 to-purple-500" id="progress-bar" style="width: 10%;"></div>
                 </div>
 
                 <!-- Content Area -->
@@ -648,6 +706,44 @@
                                     </div>
                                     <div class="font-semibold text-gray-800">需要引导</div>
                                     <div class="text-sm text-gray-500 mt-1">容易分心，需要互动刺激</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 10: 快速诊断测验 (多邻国风格) -->
+                    <div class="assessment-step hidden" id="step-content-10">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800">知识小测验</h2>
+                                <p class="text-gray-500 text-sm">做几道题让我更了解你的水平 (~5分钟)</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">题目 <span id="quiz-current-num">1</span>/<span id="quiz-total-num">5</span></span>
+                            </div>
+                            <div class="flex items-center gap-1" id="quiz-hearts">
+                                <span class="quiz-heart">❤️</span>
+                                <span class="quiz-heart">❤️</span>
+                                <span class="quiz-heart">❤️</span>
+                            </div>
+                        </div>
+
+                        <div id="quiz-question-container" class="mb-6">
+                            <!-- Quiz question will be rendered here -->
+                        </div>
+
+                        <div id="quiz-feedback" class="hidden p-4 rounded-xl mb-4">
+                            <div class="flex items-center gap-3">
+                                <div id="feedback-icon" class="w-10 h-10 rounded-full flex items-center justify-center"></div>
+                                <div>
+                                    <div id="feedback-title" class="font-semibold"></div>
+                                    <div id="feedback-detail" class="text-sm text-gray-600"></div>
                                 </div>
                             </div>
                         </div>

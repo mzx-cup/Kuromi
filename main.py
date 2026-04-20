@@ -908,6 +908,27 @@ def serve_flow_meter():
         return FileResponse(flow_meter_path)
     raise HTTPException(status_code=404, detail="心流共振仪页面未找到")
 
+@app.get("/html/concept-analyzer.html")
+def serve_concept_analyzer():
+    path = os.path.join(HTML_DIR, "concept-analyzer.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="概念拆解仪页面未找到")
+
+@app.get("/html/ai-pair-programming.html")
+def serve_ai_pair_programming():
+    path = os.path.join(HTML_DIR, "ai-pair-programming.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="结对编程舱页面未找到")
+
+@app.get("/html/architecture-blueprint.html")
+def serve_architecture_blueprint():
+    path = os.path.join(HTML_DIR, "architecture-blueprint.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="架构蓝图页面未找到")
+
 @app.post("/api/assessment/submit")
 def submit_assessment(request: AssessmentRequest):
     """根据9维评估数据生成个性化学习计划"""
@@ -2630,9 +2651,100 @@ async def get_textbook_chapter(req: TextbookChapterRequest):
     return {"success": True, "data": result}
 
 
+@app.get("/api/news/today")
+async def get_today_news():
+    """
+    获取今日要闻，覆盖多个领域：AI科技、民生、生活、国际形势等
+    """
+    today = datetime.now().strftime("%Y年%m月%d日")
+
+    system_prompt = """你是一个新闻资讯聚合助手，专门为用户提供当日重点新闻摘要。
+你的任务是根据当前日期，生成当日最重要的新闻资讯，涵盖以下领域：
+1. AI科技 - 人工智能、大模型、互联网技术等
+2. 民生 - 就业、收入、教育、医疗、住房等民生热点
+3. 生活 - 消费、文化、娱乐、体育等生活资讯
+4. 国际形势 - 国际政治、经济、外交等重大事件
+
+请以JSON数组格式返回，每条新闻包含以下字段：
+- title: 新闻标题（简洁有力，20字以内）
+- category: 分类（AI科技/民生/生活/国际形势）
+- description: 简短描述（30字以内）
+- source: 新闻来源（如：AI前哨、人民日报、新华社等）
+- timestamp: 发布时间描述（如：今日上午、刚刚、1小时前等）
+
+请返回4-6条最重要的新闻，确保涵盖至少3个不同领域。
+只返回JSON数组，不要包含任何其他文字说明。"""
+
+    user_prompt = f"请列出{today}今日最值得关注的重点新闻，涵盖AI科技、民生、生活、国际形势等多个领域。"
+
+    # 默认降级新闻数据
+    fallback_news = [
+        {
+            "title": "AI技术持续突破，各行业加速落地",
+            "category": "AI科技",
+            "description": "大模型应用深入发展，技术赋能千行百业",
+            "source": "AI前哨",
+            "timestamp": "今日"
+        },
+        {
+            "title": "民生政策持续出台，惠及千家万户",
+            "category": "民生",
+            "description": "多项惠民政策落地实施，民生保障不断加强",
+            "source": "人民日报",
+            "timestamp": "今日"
+        },
+        {
+            "title": "国际局势复杂多变，合作共赢成主流",
+            "category": "国际形势",
+            "description": "全球治理面临挑战，多边合作寻求突破",
+            "source": "新华社",
+            "timestamp": "今日"
+        },
+        {
+            "title": "消费市场持续回暖，生活品质不断提升",
+            "category": "生活",
+            "description": "内需市场活跃，居民消费信心增强",
+            "source": "经济日报",
+            "timestamp": "今日"
+        }
+    ]
+
+    try:
+        news_content = call_llm(system_prompt, user_prompt, temperature=0.3)
+
+        # 检查返回值是否有效
+        if not news_content or not isinstance(news_content, str):
+            logger.warning("[get_today_news] Empty or invalid response from LLM")
+            return {"success": True, "date": today, "news": fallback_news}
+
+        # 尝试解析JSON
+        import re
+        json_match = re.search(r'\[.*\]', news_content, re.DOTALL)
+        if json_match:
+            try:
+                news_list = json.loads(json_match.group())
+                if isinstance(news_list, list) and len(news_list) > 0:
+                    return {"success": True, "date": today, "news": news_list}
+                else:
+                    logger.warning("[get_today_news] Empty news list after parsing")
+                    return {"success": True, "date": today, "news": fallback_news}
+            except json.JSONDecodeError as e:
+                logger.warning(f"[get_today_news] JSON decode error: {e}, content: {news_content[:500]}")
+                return {"success": True, "date": today, "news": fallback_news}
+        else:
+            logger.warning(f"[get_today_news] No JSON array found in response: {news_content[:500]}")
+            return {"success": True, "date": today, "news": fallback_news}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[get_today_news] Unexpected error: {str(e)}")
+        return {"success": True, "date": today, "news": fallback_news}
+
+
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("星识 (Star-Learn) 伴学系统正在启动...")
-    print("请直接在浏览器打开链接: http://127.0.0.1:8000")
+    print("请直接在浏览器打开链接: http://127.0.0.1:8000/hub.html")
     print("="*50 + "\n")
     uvicorn.run(app, host="0.0.0.0", port=8000)

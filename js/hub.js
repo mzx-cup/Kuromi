@@ -495,6 +495,431 @@ function setTheme(theme) {
 }
 
 // ============================================
+// Personalized Content based on Assessment
+// ============================================
+function initPersonalizedContent() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+
+    if (!user.hasCompletedAssessment) {
+        // User hasn't completed assessment, redirect to assessment page
+        console.log('[Hub] User has not completed assessment, redirecting...');
+        // Don't redirect here, allow viewing hub but show default content
+        return;
+    }
+
+    // Update welcome message with personalized info
+    updateWelcomeMessage(user);
+
+    // Update recommended learning path based on profile
+    updateRecommendedPath(user);
+
+    // Update study recommendations based on radar scores
+    updateStudyRecommendations(user);
+
+    // Update peer pods to show compatible study partners
+    updatePeerRecommendations(user);
+
+    console.log('[Hub] Personalized content initialized with profile:', user.profile);
+}
+
+function updateWelcomeMessage(user) {
+    const welcomeEl = document.querySelector('.welcome-section h1');
+    if (!welcomeEl) return;
+
+    const profile = user.profile || {};
+    const direction = profile.learningDirection || '大数据技术';
+    const level = profile.knowledgeBase || '基础入门';
+
+    welcomeEl.textContent = `欢迎回来，${direction}学习者`;
+}
+
+function updateRecommendedPath(user) {
+    const pathNodes = document.querySelectorAll('.path-node');
+    const profile = user.profile || {};
+    const learningPath = user.learningPath || [];
+
+    if (learningPath.length === 0) return;
+
+    pathNodes.forEach((node, index) => {
+        if (learningPath[index]) {
+            node.dataset.task = learningPath[index].topic;
+            const titleEl = node.querySelector('.node-title');
+            if (titleEl) {
+                titleEl.textContent = learningPath[index].topic;
+            }
+            const descEl = node.querySelector('.node-desc');
+            if (descEl) {
+                descEl.textContent = learningPath[index].desc;
+            }
+
+            // Update status based on path
+            node.classList.remove('current', 'completed', 'pending');
+            node.classList.add(learningPath[index].status || 'pending');
+        }
+    });
+}
+
+function updateStudyRecommendations(user) {
+    const radarScores = user.radarScores || [];
+    const radarLabels = user.radarLabels || ['知识掌握', '实战能力', '学习效率', '内容记忆', '问题解决', '技术深度'];
+
+    if (radarScores.length !== 6) return;
+
+    // Find weakest dimension
+    const minScore = Math.min(...radarScores);
+    const minIndex = radarScores.indexOf(minScore);
+    const weakDimension = radarLabels[minIndex];
+
+    // Update recommendation cards based on weak areas
+    const recCards = document.querySelectorAll('.recommendation-card');
+    recCards.forEach(card => {
+        const titleEl = card.querySelector('.rec-title');
+        if (titleEl && minScore < 50) {
+            // Add emphasis on weak dimension
+            const badge = card.querySelector('.weakness-badge');
+            if (badge) {
+                badge.textContent = `需加强: ${weakDimension}`;
+                badge.style.display = 'inline-block';
+            }
+        }
+    });
+
+    // Update stream topics based on radar scores
+    const streamTopics = document.querySelectorAll('.stream-topic');
+    streamTopics.forEach((topic, index) => {
+        // Prioritize content for weak dimensions
+        if (index < 3 && minScore < 60) {
+            topic.classList.add('priority-topic');
+        }
+    });
+}
+
+function updatePeerRecommendations(user) {
+    const profile = user.profile || {};
+    const peerPods = document.querySelectorAll('.peer-pod');
+
+    peerPods.forEach(pod => {
+        // Filter peers by compatible learning direction
+        const podDirection = pod.dataset.direction;
+        if (profile.learningDirection && podDirection !== profile.learningDirection) {
+            pod.style.opacity = '0.5';
+        }
+    });
+}
+
+// ============================================
+// User Avatar Initialization
+// ============================================
+function initUserAvatar() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (user && user.avatar) {
+        const avatarImg = document.querySelector('#user-avatar img.user-avatar');
+        if (avatarImg) {
+            avatarImg.src = user.avatar;
+        }
+    }
+}
+
+// ============================================
+// 今日要闻 (Daily News) Fetching with Caching
+// ============================================
+const NEWS_CACHE_KEY = 'starlearn_daily_news';
+const NEWS_CACHE_DURATION = 12 * 60 * 60 * 1000; // 12小时缓存
+
+function getCategoryClass(category) {
+    const categoryMap = {
+        'AI科技': 'ai',
+        'AI': 'ai',
+        '人工智能': 'ai',
+        '民生': 'livelihood',
+        '生活': 'life',
+        '国际形势': 'international',
+        '国际': 'international',
+        'Web': 'web',
+        '云原生': 'cloud',
+        '数据': 'data'
+    };
+    return categoryMap[category] || 'ai';
+}
+
+function renderNewsCards(news) {
+    const grid = document.getElementById('highlights-grid');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+
+    if (!news || news.length === 0) {
+        grid.innerHTML = `
+            <div class="highlight-error">
+                <span class="error-icon">📭</span>
+                <span>暂无新闻数据</span>
+            </div>
+        `;
+        return;
+    }
+
+    news.forEach((item, index) => {
+        const isMain = index === 0;
+        const categoryClass = getCategoryClass(item.category);
+
+        const card = document.createElement('div');
+        card.className = `highlight-card ${isMain ? 'highlight-main' : 'highlight-side'}`;
+
+        if (isMain) {
+            card.innerHTML = `
+                <div class="highlight-category ${categoryClass}">
+                    <span class="category-tag">${item.category}</span>
+                    <span class="category-time">${item.timestamp || '今日'}</span>
+                </div>
+                <div class="highlight-content">
+                    <h3 class="highlight-title">${item.title}</h3>
+                    <p class="highlight-desc">${item.description}</p>
+                </div>
+                <div class="highlight-footer">
+                    <div class="highlight-tags">
+                        <span class="tag ai-tag">${item.source}</span>
+                    </div>
+                    <span class="highlight-source">${item.source}</span>
+                </div>
+            `;
+        } else {
+            card.innerHTML = `
+                <div class="highlight-category ${categoryClass}">
+                    <span class="category-tag">${item.category}</span>
+                    <span class="category-time">${item.timestamp || '今日'}</span>
+                </div>
+                <div class="highlight-content">
+                    <h3 class="highlight-title">${item.title}</h3>
+                    <p class="highlight-desc">${item.description}</p>
+                </div>
+            `;
+        }
+
+        grid.appendChild(card);
+    });
+}
+
+function getCachedNews() {
+    try {
+        const cached = localStorage.getItem(NEWS_CACHE_KEY);
+        if (!cached) return null;
+
+        const { news, date, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+        const cacheAge = now - timestamp;
+
+        // 缓存超过12小时，视为过期
+        if (cacheAge > NEWS_CACHE_DURATION) {
+            return null;
+        }
+
+        return { news, date, isStale: cacheAge > 6 * 60 * 60 * 1000 }; // 超过6小时显示刷新提示
+    } catch (e) {
+        return null;
+    }
+}
+
+function setCachedNews(news, date) {
+    try {
+        localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify({
+            news,
+            date,
+            timestamp: Date.now()
+        }));
+    } catch (e) {
+        console.warn('[Hub] Failed to cache news:', e);
+    }
+}
+
+async function fetchTodayNews(showLoading = false) {
+    const grid = document.getElementById('highlights-grid');
+    const dateEl = document.getElementById('news-date');
+
+    // 先尝试从缓存读取
+    const cached = getCachedNews();
+    if (cached && cached.news) {
+        if (dateEl && cached.date) {
+            const dateParts = cached.date.match(/(\d+)年(\d+)月(\d+)日/);
+            if (dateParts) {
+                const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
+                dateEl.textContent = `${dateParts[2]}月${dateParts[3]}日 · ${weekday}`;
+            }
+        }
+        renderNewsCards(cached.news);
+
+        // 缓存过期了，在后台静默更新
+        if (cached.isStale) {
+            silentRefreshNews();
+        }
+        return;
+    }
+
+    // 无缓存，显示加载状态（仅首次）
+    if (showLoading && grid) {
+        grid.innerHTML = `
+            <div class="highlight-loading">
+                <div class="loading-spinner"></div>
+                <span>正在加载今日要闻...</span>
+            </div>
+        `;
+    }
+
+    try {
+        const response = await fetch('/api/news/today');
+        const data = await response.json();
+
+        if (data.success && data.news) {
+            if (dateEl && data.date) {
+                const dateParts = data.date.match(/(\d+)年(\d+)月(\d+)日/);
+                if (dateParts) {
+                    const weekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][new Date().getDay()];
+                    dateEl.textContent = `${dateParts[2]}月${dateParts[3]}日 · ${weekday}`;
+                }
+            }
+
+            setCachedNews(data.news, data.date);
+            renderNewsCards(data.news);
+        } else {
+            throw new Error('Failed to fetch news');
+        }
+    } catch (error) {
+        console.error('[Hub] Failed to fetch today news:', error);
+
+        if (grid) {
+            grid.innerHTML = `
+                <div class="highlight-error">
+                    <span class="error-icon">😵</span>
+                    <span>新闻加载失败</span>
+                    <button class="retry-btn" onclick="fetchTodayNews(true)">重新加载</button>
+                </div>
+            `;
+        }
+    }
+}
+
+// ============================================
+// 侧边栏与导航控制
+// ============================================
+function toggleSidebar() {
+    const sidebar = document.getElementById('hub-sidebar');
+    sidebar.classList.toggle('open');
+}
+
+function updateNotificationDot() {
+    const notificationDot = document.getElementById('notification-dot');
+    if (!notificationDot) return;
+    const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+    if (unreadCount > 0) {
+        notificationDot.classList.add('active');
+    } else {
+        notificationDot.classList.remove('active');
+    }
+}
+
+function initSidebarAndNotifications() {
+    // 侧边栏切换
+    document.getElementById('sidebar-toggle')?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toggleSidebar();
+    });
+
+    // 点击其他区域关闭侧边栏
+    document.addEventListener('click', function(e) {
+        const sidebar = document.getElementById('hub-sidebar');
+        const toggle = document.getElementById('sidebar-toggle');
+        if (sidebar?.classList.contains('open') &&
+            !sidebar.contains(e.target) &&
+            !toggle?.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    });
+
+    // 导航高亮
+    document.querySelectorAll('.nav-item').forEach(item => {
+        const href = item.getAttribute('href');
+        if (href && href !== '#' && window.location.pathname === href) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+        }
+    });
+
+    // 导航点击处理
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (!href || href === '#') {
+                e.preventDefault();
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+                const section = this.dataset.section;
+                const target = document.getElementById('section-' + section);
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } else {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                this.classList.add('active');
+            }
+        });
+    });
+
+    // 通知面板
+    const notificationBtn = document.getElementById('notification-btn');
+    const notificationPanel = document.getElementById('notification-panel');
+    const notificationBackdrop = document.getElementById('notification-backdrop');
+    const markAllRead = document.getElementById('mark-all-read');
+    const notificationItems = document.querySelectorAll('.notification-item');
+
+    notificationBtn?.addEventListener('click', function(e) {
+        e.stopPropagation();
+        notificationPanel?.classList.toggle('active');
+        notificationBackdrop?.classList.toggle('active');
+    });
+
+    notificationBackdrop?.addEventListener('click', function() {
+        notificationPanel?.classList.remove('active');
+        notificationBackdrop?.classList.remove('active');
+    });
+
+    markAllRead?.addEventListener('click', function() {
+        notificationItems.forEach(item => {
+            item.classList.remove('unread');
+        });
+        notificationDot?.classList.remove('active');
+    });
+
+    notificationItems.forEach(item => {
+        item.addEventListener('click', function() {
+            this.classList.remove('unread');
+            updateNotificationDot();
+        });
+    });
+
+    updateNotificationDot();
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', initSidebarAndNotifications);
+
+// 后台静默刷新新闻（缓存超过6小时时触发）
+async function silentRefreshNews() {
+    try {
+        const response = await fetch('/api/news/today');
+        const data = await response.json();
+
+        if (data.success && data.news) {
+            setCachedNews(data.news, data.date);
+            const cached = getCachedNews();
+            if (cached && !cached.isStale) {
+                renderNewsCards(data.news);
+            }
+        }
+    } catch (e) {
+        // 静默失败，不打扰用户
+    }
+}
+
+// ============================================
 // Initialize
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -507,6 +932,10 @@ document.addEventListener('DOMContentLoaded', function() {
     animateLineChart();
     parseCourseParams();
     initHoloEcosystem();
+    initPersonalizedContent();
+    initUserAvatar();
+    // 使用缓存，不显示加载状态
+    fetchTodayNews(false);
 });
 
 // Smooth scroll for navigation

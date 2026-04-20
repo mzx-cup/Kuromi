@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创世·架构蓝图引擎</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/architecture-blueprint.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+
+    <!-- ==========================================
+         顶部导航栏
+         ========================================== -->
+    <nav class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur-xl border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <span class="text-3xl">🏗️</span>
+                    <div>
+                        <h1 class="font-bold text-xl tracking-tight">创世引擎</h1>
+                        <p class="text-xs text-gray-500">AI 架构蓝图生成器</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button id="new-project-btn" class="export-btn secondary">
+                        <span>✨</span>
+                        <span>新建项目</span>
+                    </button>
+                    <button id="projects-btn" class="export-btn secondary" onclick="toggleProjectsPanel()">
+                        <span>📁</span>
+                        <span>我的项目</span>
+                    </button>
+                    <button id="btn-export-md" class="export-btn primary" disabled>
+                        <span>⬇️</span>
+                        <span>导出</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+         项目侧边栏
+         ========================================== -->
+    <div id="projects-panel" class="fixed top-0 right-0 w-80 h-full bg-gray-900/95 backdrop-blur-xl border-l border-white/10 z-50 hidden transform transition-transform">
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+            <h2 class="font-semibold">我的项目</h2>
+            <button onclick="toggleProjectsPanel()" class="p-1 hover:bg-white/10 rounded">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div id="projects-list" class="p-4 overflow-y-auto h-[calc(100%-64px)]">
+            <!-- 由 JS 渲染 -->
+        </div>
+    </div>
+
+    <!-- ==========================================
+         魔法输入区
+         ========================================== -->
+    <section id="input-section" class="py-16 px-6">
+        <div class="max-w-3xl mx-auto text-center">
+            <div class="mb-8">
+                <h2 class="text-4xl font-bold mb-4">
+                    <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
+                        一句话，开启架构之旅
+                    </span>
+                </h2>
+                <p class="text-gray-400 text-lg">描述你的项目需求，AI 将为你生成完整的技术架构蓝图</p>
+            </div>
+
+            <div class="mb-8">
+                <input
+                    type="text"
+                    id="prompt-input"
+                    class="w-full px-6 py-5 bg-white/5 border border-white/10 rounded-2xl text-white text-lg placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition"
+                    placeholder="输入项目名称或需求描述..."
+                >
+                <button id="generate-btn" class="gradient-btn mt-4 px-10 py-4 rounded-2xl font-semibold text-white">
+                    <span class="flex items-center gap-2">
+                        <span>🚀</span>
+                        <span>生成架构蓝图</span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="text-sm text-gray-500 mb-6">或选择预设模板快速开始</div>
+            <div class="flex flex-wrap justify-center gap-3">
+                <button class="template-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition text-sm" data-template="校园二手交易平台">
+                    📦 校园二手交易平台
+                </button>
+                <button class="template-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition text-sm" data-template="在线教育平台">
+                    📚 在线教育平台
+                </button>
+                <button class="template-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition text-sm" data-template="社交博客系统">
+                    📝 社交博客系统
+                </button>
+                <button class="template-btn px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 transition text-sm" data-template="企业内部管理系统">
+                    🏢 企业内部管理系统
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==========================================
+         Loading 状态
+         ========================================== -->
+    <div id="loading-area" class="hidden py-20">
+        <div class="max-w-xl mx-auto text-center">
+            <div class="loading-animation mb-8">
+                <div class="loading-orbits">
+                    <div class="orbit orbit-1"></div>
+                    <div class="orbit orbit-2"></div>
+                    <div class="orbit orbit-3"></div>
+                    <div class="loading-core">
+                        <span class="text-4xl">⚙️</span>
+                    </div>
+                </div>
+            </div>
+            <div id="loading-text" class="text-xl font-medium text-indigo-400">
+                正在解析需求...
+            </div>
+            <div class="mt-4 flex justify-center gap-2">
+                <div class="loading-dot"></div>
+                <div class="loading-dot" style="animation-delay: 0.2s"></div>
+                <div class="loading-dot" style="animation-delay: 0.4s"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         主内容区
+         ========================================== -->
+    <div id="blueprint-content" class="hidden max-w-7xl mx-auto px-6 pb-16">
+
+        <!-- 项目标题 -->
+        <div class="mb-8">
+            <div class="flex items-start justify-between">
+                <div>
+                    <h2 id="project-title" class="text-2xl font-bold mb-2"></h2>
+                    <p id="project-desc" class="text-gray-400"></p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="syncToCalendar()" class="export-btn secondary">
+                        <span>📅</span>
+                        <span>同步日历</span>
+                    </button>
+                    <button onclick="exportMarkdown()" class="export-btn secondary">
+                        <span>⬇️</span>
+                        <span>导出</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 切换 -->
+        <div class="tabs-container mb-8">
+            <div class="tabs-header">
+                <button class="tab-btn active" data-tab="tech-stack">
+                    <span class="flex items-center gap-2">
+                        <span>🛠️</span>
+                        <span>技术栈</span>
+                    </span>
+                </button>
+                <button class="tab-btn" data-tab="data-model">
+                    <span class="flex items-center gap-2">
+                        <span>🗃️</span>
+                        <span>数据模型</span>
+                    </span>
+                </button>
+                <button class="tab-btn" data-tab="timeline">
+                    <span class="flex items-center gap-2">
+                        <span>📅</span>
+                        <span>里程碑</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 内容面板 -->
+        <div id="content-area" class="min-h-[400px]">
+            <!-- 由 JS 动态渲染 -->
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast-container"></div>
+
+    <script src="/js/architecture-blueprint.js"></script>
+    <script>
+        function toggleProjectsPanel() {
+            const panel = document.getElementById('projects-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        // 启用导出按钮
+        document.getElementById('btn-export-md').disabled = false;
+    </script>
+</body>
+</html>

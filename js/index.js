@@ -900,6 +900,29 @@ function generateWelcomeMessage(assessment, profile) {
     const goalStr = profile.learningGoal || '学习提升';
     const styleStr = profile.cognitiveStyle || '实践型';
 
+    // Get radar scores if available
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const radarScores = user.radarScores || null;
+    const quizScore = user.quizScore;
+    const quizTotal = user.quizTotal;
+
+    // Build radar score description
+    let radarDesc = '';
+    if (radarScores && radarScores.length === 6) {
+        const radarLabels = ['知识掌握', '实战能力', '学习效率', '内容记忆', '问题解决', '技术深度'];
+        const maxIdx = radarScores.indexOf(Math.max(...radarScores));
+        const minIdx = radarScores.indexOf(Math.min(...radarScores));
+        radarDesc = `\n📈 **你的六维雷达**\n- 最强项：${radarLabels[maxIdx]} (${radarScores[maxIdx]}%) - 继续保持！\n- 提升空间：${radarLabels[minIdx]} (${radarScores[minIdx]}%) - 我们会重点加强这个维度\n`;
+    }
+
+    // Build quiz result description
+    let quizDesc = '';
+    if (quizScore !== undefined && quizTotal !== undefined) {
+        const scorePercent = Math.round((quizScore / quizTotal) * 100);
+        const quizEmoji = scorePercent >= 80 ? '🌟' : scorePercent >= 60 ? '👍' : scorePercent >= 40 ? '💪' : '📚';
+        quizDesc = `\n${quizEmoji} **诊断测验**：${quizScore}/${quizTotal} (${scorePercent}%)`;
+    }
+
     let styleTip = '';
     if (assessment.cognitiveStyle === 'visual') {
         styleTip = '我会为你提供丰富的图表和可视化演示';
@@ -909,7 +932,13 @@ function generateWelcomeMessage(assessment, profile) {
         styleTip = '我会为你提供详细的理论解释和文档';
     }
 
-    return `你好，**${currentUser.name}**！欢迎来到星识伴学系统 🎓\n\n根据你的学习评估，我已为你生成专属学习计划：\n\n📊 **你的学习画像**\n- 学习方向：${dirStr}\n- 主要语言：${langStr}\n- 学习目标：${goalStr}\n- 认知风格：${styleStr}\n\n🚀 **当前学习任务**\n你正在学习「${currentPath.find(p => p.status === 'current')?.topic || '基础课程'}」\n\n💡 **个性化提示**\n${styleTip}，帮助你在${dirStr}方向上快速成长。\n\n---\n\n你可以直接问我问题，比如：\n- "${currentPath.find(p => p.status === 'current')?.topic || '当前课程'}的核心概念是什么？"\n- "给我讲讲${langStr.split('、')[0]}的基础语法"\n- "我不太理解这个概念，能详细解释一下吗？"`;
+    // Add weakness tip if available
+    let weaknessTip = '';
+    if (profile.weakness && profile.weakness !== '暂无' && profile.weakness !== '暂无明显短板') {
+        weaknessTip = `\n⚠️ **重点补足**：${profile.weakness}`;
+    }
+
+    return `你好，**${currentUser.name}**！欢迎来到星识伴学系统 🎓${quizDesc}\n\n根据你的学习评估，我已为你生成专属学习计划：\n\n📊 **你的学习画像**\n- 学习方向：${dirStr}\n- 主要语言：${langStr}\n- 学习目标：${goalStr}\n- 认知风格：${styleStr}${weaknessTip}${radarDesc}\n\n🚀 **当前学习任务**\n你正在学习「${currentPath.find(p => p.status === 'current')?.topic || '基础课程'}」\n\n💡 **个性化提示**\n${styleTip}，帮助你在${dirStr}方向上快速成长。\n\n---\n\n你可以直接问我问题，比如：\n- "${currentPath.find(p => p.status === 'current')?.topic || '当前课程'}的核心概念是什么？"\n- "给我讲讲${langStr.split('、')[0]}的基础语法"\n- "我不太理解这个概念，能详细解释一下吗？"`;
 }
 
 let profile = {
@@ -1614,7 +1643,17 @@ async function validateTextbookLink(url) {
 }
 
 function openTextbookLink(textbookInfo) {
-    openTextbookModal(textbookInfo);
+    // Try to get deep link for this source
+    const deepLink = currentSourceLinks[textbookInfo] || getLinkCache()[textbookInfo]?.url;
+
+    if (deepLink) {
+        // Open deep link directly in new tab - takes user to exact textbook page
+        window.open(deepLink, '_blank', 'noopener,noreferrer');
+        showToast('正在跳转到教材对应页面...', 'info');
+    } else {
+        // Fallback to modal if no deep link available
+        openTextbookModal(textbookInfo);
+    }
 }
 
 const _textbookContentCache = new Map();
@@ -4182,7 +4221,9 @@ class FlowModeManager {
         this.stopAudio();
         document.body.classList.remove('flow-mode-active');
         const overlay = document.getElementById('flow-overlay');
-        if (overlay) overlay.classList.remove('visible');
+        if (overlay) {
+            overlay.classList.remove('visible', 'floating-mode');
+        }
         const island = document.getElementById('flow-dynamic-island');
         if (island) {
             island.classList.remove('visible', 'is-paused', 'is-complete', 'flow-island-paused', 'flow-island-complete');
@@ -4204,7 +4245,9 @@ class FlowModeManager {
     exitOverlayOnly() {
         document.body.classList.remove('flow-mode-active');
         const overlay = document.getElementById('flow-overlay');
-        if (overlay) overlay.classList.remove('visible');
+        if (overlay) {
+            overlay.classList.remove('visible', 'floating-mode');
+        }
         document.removeEventListener('keydown', this._escHandler);
         const island = document.getElementById('flow-dynamic-island');
         if (island) island.classList.add('visible');
@@ -5745,7 +5788,7 @@ window.musicPanel = new MusicPanel();
 class FocusDurationPanel {
     constructor() {
         this.isOpen = false;
-        this.selectedMinutes = 25;
+        this.selectedMinutes = 30;
         this.selectionType = 'preset';
         this.currentMode = 'focus';
         this._initialized = false;
@@ -5859,7 +5902,7 @@ class FocusDurationPanel {
     switchMode(mode) {
         if (this.currentMode === mode) return;
         this.currentMode = mode;
-        this.selectedMinutes = mode === 'focus' ? 25 : 5;
+        this.selectedMinutes = mode === 'focus' ? 30 : 15;
         this.selectionType = 'preset';
 
         const panel = document.getElementById('focus-duration-panel');
@@ -5974,6 +6017,7 @@ class FocusDurationPanel {
             if (island) {
                 island.classList.toggle('rest-mode', this.currentMode === 'rest');
                 island.classList.toggle('flow-island-rest', this.currentMode === 'rest');
+                island.classList.add('visible');
             }
 
             const islandLabel = document.getElementById('island-timer-label');
@@ -5982,10 +6026,22 @@ class FocusDurationPanel {
             }
 
             const overlay = document.getElementById('flow-overlay');
-            if (overlay) overlay.classList.toggle('rest-mode', this.currentMode === 'rest');
+            if (overlay) {
+                overlay.classList.toggle('rest-mode', this.currentMode === 'rest');
+                // 添加浮动岛模式：显示展开按钮但隐藏中间内容
+                overlay.classList.add('floating-mode');
+            }
 
             if (!window.flowMode.active) {
-                window.flowMode.enter();
+                // 激活心流模式，显示浮动岛，隐藏左右侧边栏，显示展开按钮
+                window.flowMode.active = true;
+                document.body.classList.add('flow-mode-active');
+                // 初始状态下侧边栏是折叠的，显示展开按钮
+                window.flowMode.leftSidebarOpen = false;
+                window.flowMode.rightSidebarOpen = false;
+                window.flowMode._updateSidebarExpandBtns();
+                window.flowMode.resetTimer();
+                window.flowMode._updateIslandPlayIcon(true);
             } else {
                 window.flowMode.resetTimer();
                 window.flowMode._renderFlowPresets();
