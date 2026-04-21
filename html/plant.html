@@ -11,101 +11,175 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="plant-bg" id="plant-bg"></div>
 
-    <div class="plant-container">
-        <div class="plant-main-wrapper">
-            <div class="plant-header">
-                <h1>🌱 星识·林场</h1>
-                <p>专注学习，浇灌成长</p>
-            </div>
-
-            <div class="plant-main-card" id="plant-main-card">
-                <div class="card-inner">
-                    <div style="flex:1; min-width:260px;">
-                        <div class="seed-counter">
-                            <span class="seed-counter-icon">🎁</span>
-                            <div>
-                                <div class="seed-counter-text">待种植种子</div>
-                                <div class="seed-counter-value" id="seed-count">0</div>
-                            </div>
-                        </div>
-
-                        <div class="plant-pots" id="plant-pots">
-                            <!-- 多槽位花盆将在 JS 中渲染 -->
-                        </div>
-
-                        <div class="plant-actions">
-                            <button class="plant-action-btn plant-btn" id="plant-btn" onclick="plantSeed()">
-                                <span class="plant-action-icon">🌱</span>
-                                <span class="plant-action-label">种植</span>
-                            </button>
-                            <button class="plant-action-btn water" id="water-btn" onclick="plantAction('water')">
-                                <span class="plant-action-icon">💧</span>
-                                <span class="plant-action-label">浇水</span>
-                            </button>
-                            <button class="plant-action-btn nutrient" id="nutrient-btn" onclick="plantAction('nutrient')">
-                                <span class="plant-action-icon">🧪</span>
-                                <span class="plant-action-label">施肥</span>
-                            </button>
-                            <button class="plant-action-btn harvest-btn" id="harvest-btn" onclick="plantAction('harvest')" style="display: none;">
-                                <span class="plant-action-icon">🌾</span>
-                                <span class="plant-action-label">收获</span>
-                            </button>
-                        </div>
-
-                        <div class="plant-tip-box" id="plant-tip">
-                            💡 每次专注计时完成后可获得种子，快来种植你的第一株植物吧！
-                        </div>
-                    </div>
-
-                    <div style="width:320px; display:flex; flex-direction:column; gap:12px; align-items:center;">
-                        <div class="main-plant-display" id="main-plant-display">
-                            <div class="plant-display seed" id="plant-display">🌱</div>
-                        </div>
-
-                        <div class="plant-info">
-                            <div class="plant-name" id="plant-name">选择你的第一株植物</div>
-                            <div class="plant-stage" id="plant-stage">等待种植</div>
-                            <div class="plant-timer" id="plant-timer">--:--:--</div>
-                            <div class="plant-timer-label">预计收获时间</div>
-                        </div>
-
-                        <div class="plant-stats">
-                            <div class="plant-stat">
-                                <div class="plant-stat-label">💧 水分</div>
-                                <div class="plant-stat-value water" id="water-value">0%</div>
-                                <div class="plant-stat-bar">
-                                    <div class="plant-stat-fill water" id="water-bar" style="width:0%"></div>
-                                </div>
-                            </div>
-                            <div class="plant-stat">
-                                <div class="plant-stat-label">🧪 营养</div>
-                                <div class="plant-stat-value nutrient" id="nutrient-value">0%</div>
-                                <div class="plant-stat-bar">
-                                    <div class="plant-stat-fill nutrient" id="nutrient-bar" style="width:0%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="plant-collection">
-                <div class="plant-collection-title">
-                    <i data-lucide="leaf" class="w-4 h-4"></i>
-                    植物图鉴
-                </div>
-                <div class="plant-collection-grid" id="plant-collection"></div>
-            </div>
-        </div>
+    <!-- 天空背景 -->
+    <div class="plant-sky">
+        <div class="plant-sun"></div>
+        <div class="plant-cloud c1"></div>
+        <div class="plant-cloud c2"></div>
+        <div class="plant-cloud c3"></div>
     </div>
 
+    <!-- 地面背景 -->
+    <div class="plant-ground"></div>
+
+    <!-- 页面主体 -->
+    <div class="plant-page">
+
+        <!-- 顶部导航栏 -->
+        <nav class="plant-nav">
+            <a href="javascript:void(0);" onclick="goBack()" class="plant-nav-back">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <span>返回</span>
+            </a>
+            <div class="plant-nav-title">
+                <span class="nav-icon">🌱</span>
+                <span>星识·林场</span>
+            </div>
+            <div class="plant-nav-right">
+                <div class="seed-display-nav">
+                    <span class="seed-icon">🌰</span>
+                    <span id="seed-count-nav">0</span>
+                    <span>颗种子</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- 农场主体 -->
+        <div class="plant-main-card">
+
+            <!-- 花盆区 -->
+            <div class="plant-plot-section">
+                <div class="plant-plot-title">🌿 我的农场 — 点击槽位，再点击「种植」播下神秘种子</div>
+                <div class="plant-plot-grid" id="plant-pots">
+                    <!-- 槽位由 JS 渲染 -->
+                </div>
+            </div>
+
+            <!-- 植物信息 + 操作（木质指示牌风格） -->
+            <div class="plant-info-panel">
+                <div class="plant-info-left">
+                    <div class="plant-main-emoji" id="plant-emoji-display">🌱</div>
+
+                    <div class="plant-current-info">
+                        <div class="plant-current-name" id="plant-name">选择一块地开始种植</div>
+                        <div class="plant-current-stage" id="plant-stage">等待种植</div>
+                    </div>
+
+                    <div class="plant-timer-display">
+                        <div class="plant-timer-value" id="plant-timer">--:--:--</div>
+                        <div class="plant-timer-label-text">预计收获时间</div>
+                    </div>
+
+                    <div class="plant-status-bars">
+                        <div class="plant-stat-row">
+                            <div class="plant-stat-row-label">💧 水分</div>
+                            <div class="plant-stat-row-value water" id="water-value">0%</div>
+                            <div class="plant-stat-row-bar">
+                                <div class="plant-stat-row-fill water" id="water-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <div class="plant-stat-row">
+                            <div class="plant-stat-row-label">🧪 营养</div>
+                            <div class="plant-stat-row-value nutrient" id="nutrient-value">0%</div>
+                            <div class="plant-stat-row-bar">
+                                <div class="plant-stat-row-fill nutrient" id="nutrient-bar" style="width:0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="plant-action-row">
+                        <button class="plant-action-btn plant-btn" id="plant-btn" onclick="plantSeed()">
+                            <span class="btn-icon">🌱</span>
+                            <span class="btn-label">种植</span>
+                        </button>
+                        <button class="plant-action-btn water-btn" id="water-btn" onclick="plantAction('water')">
+                            <span class="btn-icon">💧</span>
+                            <span class="btn-label">浇水</span>
+                        </button>
+                        <button class="plant-action-btn nutrient-btn" id="nutrient-btn" onclick="plantAction('nutrient')">
+                            <span class="btn-icon">🧪</span>
+                            <span class="btn-label">施肥</span>
+                        </button>
+                        <button class="plant-action-btn harvest-btn" id="harvest-btn" onclick="plantAction('harvest')" style="display:none;">
+                            <span class="btn-icon">🌾</span>
+                            <span class="btn-label">收获</span>
+                        </button>
+                    </div>
+
+                    <div class="plant-tip-box" id="plant-tip">
+                        💡 点击上方槽位，然后点击"种植"播下神秘种子！稀有度只有在收获时才会揭晓~
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 植物图鉴（博物志） -->
+        <div class="plant-collection-section">
+            <div class="plant-collection-header">
+                <div class="plant-collection-title">
+                    <span>📖</span>
+                    植物图鉴 · 神秘种子，等你收获！
+                </div>
+                <div class="seed-display-nav" style="font-size:11px;background:rgba(0,0,0,0.2);border-color:rgba(255,255,255,0.1);">
+                    <span style="color:rgba(255,255,255,0.7)">已拥有</span>
+                    <span id="owned-count" style="color:#FFD54F;font-weight:800;">0</span>
+                    <span style="color:rgba(255,255,255,0.5)">/80 种</span>
+                </div>
+            </div>
+            <div class="plant-collection-grid" id="plant-collection">
+                <!-- 图鉴由 JS 渲染 -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 金币雨容器 -->
     <div class="gold-rain-container" id="gold-rain"></div>
 
     <script src="/js/notifications.js"></script>
     <script src="/js/achievements-data.js"></script>
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/plant.js"></script>
+    <script>
+        // 返回按钮逻辑（与个人中心一致）
+        function goBack() {
+            const entrySource = sessionStorage.getItem('personal_entry_from');
+            const referrer = document.referrer;
+            let target = null;
+            if (entrySource) {
+                target = entrySource;
+            } else if (referrer) {
+                if (referrer.includes('/index') || referrer.includes('/hub')) {
+                    target = referrer;
+                } else if (referrer.includes('/html/')) {
+                    target = referrer;
+                }
+            }
+            if (target) {
+                window.location.href = target;
+            } else {
+                window.location.href = '/hub.html';
+            }
+        }
+
+        // 同步种子数量到导航栏
+        document.addEventListener('DOMContentLoaded', function() {
+            const seedCountNav = document.getElementById('seed-count-nav');
+            if (seedCountNav) {
+                const updateNav = () => {
+                    const seeds = localStorage.getItem('starlearn_seeds') || '0';
+                    seedCountNav.textContent = seeds;
+                };
+                updateNav();
+                // 监听种子变化事件
+                window.addEventListener('storage', (e) => {
+                    if (e.key === 'starlearn_seeds') updateNav();
+                });
+                window.addEventListener('plantStateUpdated', updateNav);
+            }
+        });
+    </script>
 </body>
 </html>
