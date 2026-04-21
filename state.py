@@ -190,6 +190,11 @@ class StudentState(BaseModel):
 
     @classmethod
     def from_persist_dict(cls, data: dict[str, Any]) -> StudentState:
+        # Fix legacy data where source_links might be a list instead of dict
+        if "source_links" in data and not isinstance(data["source_links"], dict):
+            data["source_links"] = {}
+        if "sources" in data and not isinstance(data["sources"], list):
+            data["sources"] = []
         return cls.model_validate(data)
 
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Optional, Any
 import requests
 import json
 import re
@@ -1827,6 +1827,249 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ========== AI 结对编程 - 题目生成API ==========
+
+class ProblemGenerationRequest(BaseModel):
+    """题目生成请求"""
+    student_id: str = ""
+    course_id: str = "bigdata"
+    chapter: str = "ch1"  # 章节ID
+    topic: str = ""  # 知识点
+    difficulty: str = "medium"  # 难度: easy, medium, hard
+    weak_topics: list[str] = Field(default_factory=list)  # 薄弱知识点列表
+    learning_history: list[dict[str, Any]] = Field(default_factory=list)  # 学习历史
+    current_mastery: int = 0  # 当前掌握度 0-100
+
+
+@app.post("/api/v2/coding-problem/generate")
+async def generate_coding_problem(body: ProblemGenerationRequest):
+    """根据学生学情实时生成编程题目"""
+    logger.info(f"Generating problem for student={body.student_id}, chapter={body.chapter}, topic={body.topic}")
+
+    # 构建生成题目的提示词
+    topic_descriptions = {
+        "ch1": "变量与数据类型、运算符、控制流程",
+        "ch2": "列表List、字典Dict、集合Set、元组Tuple",
+        "ch3": "函数定义、参数传递、返回值、作用域",
+        "ch4": "类与对象、继承、封装、多态",
+        "ch5": "文件读写、异常处理、上下文管理器",
+        "ch6": "导入模块、标准库、第三方包",
+        "ch7": "排序算法、查找算法、递归、动态规划",
+        "ch8": "SQL基础、数据库连接、CRUD操作"
+    }
+
+    chapter_desc = topic_descriptions.get(body.chapter, "Python基础")
+
+    # 根据薄弱知识点调整题目难度和错误类型
+    error_types_for_weak = {
+        "变量与数据类型": ["TypeError", "NameError", "SyntaxError"],
+        "列表List": ["IndexError", "TypeError"],
+        "字典Dict": ["KeyError", "TypeError"],
+        "函数": ["TypeError", "UnboundLocalError"],
+        "类与对象": ["AttributeError", "TypeError"],
+        "异常处理": ["RuntimeError", "AttributeError"],
+        "文件读写": ["FileNotFoundError", "PermissionError"],
+        "排序算法": ["RecursionError", "IndexError"]
+    }
+
+    weak_errors = []
+    for wt in body.weak_topics:
+        if wt in error_types_for_weak:
+            weak_errors.extend(error_types_for_weak[wt])
+
+    # 去重
+    weak_errors = list(set(weak_errors))[:3]
+
+    difficulty_instruction = ""
+    if body.difficulty == "easy":
+        difficulty_instruction = "题目应该简单，包含5-6个明显错误，适合初学者"
+    elif body.difficulty == "hard":
+        difficulty_instruction = "题目应该困难，包含8个以上隐蔽错误，需要深入理解"
+    else:
+        difficulty_instruction = "题目难度适中，包含5-7个常见错误"
+
+    prompt = f"""你是「玄武·AI结对编程舱」的题目生成专家。
+
+【任务】
+根据以下学情信息，生成一道适合学生的Python编程题目。
+
+【学生学情】
+- 当前学习章节：{body.chapter}
+- 章节知识点：{chapter_desc}
+- 目标知识点：{body.topic}
+- 当前掌握度：{body.current_mastery}%
+- 薄弱知识点：{', '.join(body.weak_topics) if body.weak_topics else '无记录'}
+- 推荐错误类型：{', '.join(weak_errors) if weak_errors else '根据知识点常见错误'}
+
+【生成要求 - 重要】
+{difficulty_instruction}
+1. 题目必须是一个完整的Python代码片段（50-100行）
+2. 代码必须包含至少5个错误（可以是语法错误、运行时错误或逻辑错误）
+3. 每个错误都要标注在代码注释中，格式：# 错误X：描述（X从1开始编号）
+4. 错误应该符合目标知识点的特点，且错误类型要多样化
+5. 代码应该有实际的业务场景（如学生管理系统、数据处理、电商订单等）
+6. 结尾必须包含一个执行入口（if __name__ == "__main__":）
+7. 所有错误行必须在代码运行时真正触发错误，不能只是逻辑错误
+
+【输出格式】
+请严格按照以下JSON格式输出，不要包含任何其他内容：
+{{
+    "id": 随机生成的6位数字ID,
+    "chapter": "{body.chapter}",
+    "topic": "{body.topic}",
+    "title": "题目标题（简洁明了）",
+    "language": "python",
+    "difficulty": "{body.difficulty}",
+    "code": "完整的Python代码（必须包含5个以上的 # 错误X：标注）",
+    "errorLine": 第一处主要错误的行号,
+    "errorType": "错误类型",
+    "errorMsg": "错误提示信息",
+    "allErrors": [{{"line": 行号, "type": "错误类型", "desc": "描述"}}]
+}}
+
+请生成题目："""
+
+    try:
+        from llm_stream import call_llm_async
+
+        # 调用 LLM 生成题目
+        result = await call_llm_async(
+            system_prompt="你是一个专业的编程教育题目生成专家，擅长根据学生学情生成合适的编程题目。",
+            user_prompt=prompt,
+            temperature=0.7
+        )
+
+        # 解析 LLM 返回的 JSON
+        import json
+        import re
+
+        # 尝试提取 JSON
+        json_match = re.search(r'\{[\s\S]*\}', result)
+        if json_match:
+            problem_data = json.loads(json_match.group())
+            logger.info(f"Problem generated successfully: {problem_data.get('title', 'unknown')}")
+            return {"success": True, "problem": problem_data}
+        else:
+            logger.error(f"Failed to parse problem JSON: {result[:200]}")
+            return {"success": False, "error": "题目生成失败，请稍后再试"}
+
+    except Exception as e:
+        logger.error(f"Problem generation error: {str(e)}", exc_info=True)
+        return {"success": False, "error": f"生成出错: {str(e)}"}
+
+
+@app.post("/api/v2/coding-problem/generate-batch")
+async def generate_coding_problems_batch(body: ProblemGenerationRequest):
+    """批量生成编程题目（一次生成3道）"""
+    logger.info(f"Generating batch problems for student={body.student_id}")
+
+    results = []
+    for i in range(3):
+        # 每次生成一道题
+        req = ProblemGenerationRequest(
+            student_id=body.student_id,
+            course_id=body.course_id,
+            chapter=body.chapter,
+            topic=body.topic,
+            difficulty=body.difficulty,
+            weak_topics=body.weak_topics[:2] if body.weak_topics else [],
+            learning_history=body.learning_history,
+            current_mastery=body.current_mastery
+        )
+
+        result = await generate_coding_problem(req)
+        if result.get("success"):
+            # 修改ID避免重复
+            problem = result["problem"]
+            problem["id"] = problem["id"] + i * 100
+            results.append(problem)
+
+    return {"success": True, "problems": results}
+
+
+# ========== AI 代码批阅API ==========
+
+class CodeReviewRequest(BaseModel):
+    """代码批阅请求"""
+    student_id: str = ""
+    original_code: str = ""
+    user_code: str = ""
+    problem_id: Any = None
+    topic: str = ""
+    difficulty: str = "medium"
+
+
+@app.post("/api/v2/code/review")
+async def review_user_code(body: CodeReviewRequest):
+    """AI 批阅用户修改后的代码"""
+    logger.info(f"Code review for student={body.student_id}, problem={body.problem_id}")
+
+    prompt = f"""你是「玄武·AI结对编程舱」的代码批阅专家。
+
+【任务】
+对比原始题目代码和用户修改后的代码，找出：
+1. 用户改正了哪些错误
+2. 用户还有哪些错误没有改正
+
+【原始题目代码】
+```python
+{body.original_code}
+```
+
+【用户修改后的代码】
+```python
+{body.user_code}
+```
+
+【输出要求】
+请仔细对比两份代码，找出：
+1. 原本代码中的每个错误，以及用户是否改正了它
+2. 用户是否引入了新的错误
+
+请严格按照以下JSON格式输出：
+{{
+    "correct_items": [
+        {{"line": 行号, "description": "用户改正了xxx错误"}}
+    ],
+    "wrong_items": [
+        {{"line": 行号, "description": "错误描述", "suggestion": "修改建议"}}
+    ],
+    "summary": {{
+        "correct_count": 改正数量,
+        "wrong_count": 错误数量,
+        "passed": 是否全部改正 (true/false)
+    }}
+}}
+
+请进行批阅："""
+
+    try:
+        from llm_stream import call_llm_async
+
+        result = await call_llm_async(
+            system_prompt="你是一个专业的Python代码批阅专家，擅长找出代码中的错误并给出修改建议。",
+            user_prompt=prompt,
+            temperature=0.3
+        )
+
+        import re
+        import json
+
+        # 尝试提取 JSON
+        json_match = re.search(r'\{[\s\S]*\}', result)
+        if json_match:
+            report_data = json.loads(json_match.group())
+            logger.info(f"Review completed: correct={report_data.get('summary', {}).get('correct_count', 0)}, wrong={report_data.get('summary', {}).get('wrong_count', 0)}")
+            return {"success": True, "report": report_data}
+        else:
+            logger.error(f"Failed to parse review JSON: {result[:200]}")
+            return {"success": False, "error": "批阅解析失败"}
+
+    except Exception as e:
+        logger.error(f"Code review error: {str(e)}", exc_info=True)
+        return {"success": False, "error": f"批阅出错: {str(e)}"}
 
 
 # ========== 辩论模式API ==========

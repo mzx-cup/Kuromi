@@ -10,159 +10,223 @@
 </head>
 <body class="bg-gray-950 text-white min-h-screen">
 
-    <!-- 触发入口 -->
-    <div class="flex items-center justify-center min-h-screen">
-        <button onclick="openIDEPanel()" class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl font-semibold text-lg hover:opacity-90 transition flex items-center gap-3">
-            <span class="text-2xl">🔮</span>
-            <span>开启玄武·AI 结对编程舱</span>
-        </button>
-    </div>
-
     <!-- ==========================================
-         IDE 弹窗主体
+         IDE 主体
          ========================================== -->
-    <div id="ide-modal" class="fixed inset-0 z-50 hidden">
-        <!-- 遮罩 -->
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeIDEPanel()"></div>
+    <div id="ide-modal" class="fixed inset-0 z-50 flex flex-col">
 
-        <!-- IDE 容器 -->
-        <div class="absolute inset-2 md:inset-4 bg-[#0d1117] rounded-2xl overflow-hidden flex flex-col border border-white/10">
-
-            <!-- 顶部标签栏 -->
-            <div class="flex items-center justify-between bg-[#161b22] border-b border-white/10 px-4 py-2">
+        <!-- 顶部学习状态栏 -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 px-4 py-3">
+            <div class="flex items-center justify-between max-w-full mx-auto">
+                <!-- 左侧：章节和知识点选择 -->
                 <div class="flex items-center gap-4">
-                    <div class="flex gap-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 cursor-pointer transition"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 cursor-pointer transition"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 cursor-pointer transition"></div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">📚</span>
+                        <select id="chapter-select" class="bg-slate-800/80 border border-slate-600/50 rounded-lg px-3 py-1.5 text-sm text-white outline-none hover:border-indigo-500/50 transition cursor-pointer">
+                            <option value="ch1">🐍 Python基础</option>
+                        </select>
                     </div>
-                    <div class="flex items-center gap-4 text-[13px]">
-                        <span class="text-gray-400">排序算法.py</span>
-                        <span class="text-indigo-400 border-b-2 border-indigo-400 pb-1">main.py</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-400">知识点:</span>
+                        <select id="topic-select" class="bg-slate-800/80 border border-slate-600/50 rounded-lg px-3 py-1.5 text-sm text-white outline-none hover:border-indigo-500/50 transition cursor-pointer">
+                            <option value="all">全部知识点</option>
+                        </select>
+                    </div>
+                    <button onclick="recommendProblem()" class="px-3 py-1.5 bg-indigo-600/80 hover:bg-indigo-500 rounded-lg text-xs font-medium transition flex items-center gap-1">
+                        <span>🎯</span>
+                        <span>智能推荐</span>
+                    </button>
+                </div>
+
+                <!-- 中间：章节名称 -->
+                <div class="flex items-center gap-3">
+                    <span id="chapter-name" class="text-lg font-semibold text-indigo-300">🐍 Python基础</span>
+                </div>
+
+                <!-- 右侧：学情统计 -->
+                <div class="flex items-center gap-6">
+                    <!-- 掌握度 -->
+                    <div id="mastery-display" class="flex items-center gap-2">
+                        <span class="text-sm text-slate-400">掌握度</span>
+                        <div class="w-24 h-2 bg-slate-700 rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span id="progress-text" class="text-xs text-slate-400">0/0 题目已完成</span>
+                    </div>
+
+                    <!-- 正确/错误统计 -->
+                    <div class="flex items-center gap-4 text-sm">
+                        <div class="flex items-center gap-1">
+                            <span class="text-green-400">✓</span>
+                            <span id="stats-correct" class="text-green-400 font-medium">0</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-red-400">✗</span>
+                            <span id="stats-wrong" class="text-red-400 font-medium">0</span>
+                        </div>
+                    </div>
+
+                    <!-- 个人中心入口 -->
+                    <button onclick="window.location.href='/html/personal.html'" class="p-2 hover:bg-slate-800 rounded-lg transition" title="个人中心">
+                        <span id="user-avatar-small">👤</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 flex overflow-hidden">
+
+            <!-- 左侧：代码编辑器 -->
+            <div class="flex-1 flex flex-col border-r border-white/10">
+                <!-- 编辑器工具栏 -->
+                <div class="flex items-center justify-between px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                    <div class="flex items-center gap-4 text-[12px] text-gray-400">
+                        <span class="flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                            </svg>
+                            main.py
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">Python</span>
+                        <!-- 题目导航 -->
+                        <button onclick="prevProblem()" class="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded transition">
+                            <span>◀</span>
+                            <span>上一题</span>
+                        </button>
+                        <button onclick="nextProblem()" class="flex items-center gap-1 px-2 py-1 hover:bg-white/10 rounded transition">
+                            <span>下一题</span>
+                            <span>▶</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2" id="error-count-wrapper">
+                        <span id="error-count" class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[11px]">1 Error</span>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <select id="problem-select" class="bg-[#21262d] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-gray-300 outline-none hover:border-indigo-500/50 transition cursor-pointer">
-                        <option value="1">排序算法作用域问题</option>
-                        <option value="2">列表索引操作</option>
-                        <option value="3">文件处理异常</option>
-                    </select>
-                    <button onclick="closeIDEPanel()" class="p-1.5 hover:bg-white/10 rounded-lg transition">
-                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
+
+                <!-- 问题标题 -->
+                <div class="px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                    <h3 id="problem-title" class="text-[13px] text-gray-300 font-medium">加载中...</h3>
+                </div>
+
+                <!-- 代码编辑区 -->
+                <div id="editor-scroll" class="flex-1 overflow-auto editor-bg relative">
+                    <!-- AI生成题目时的loading -->
+                    <div id="code-loading" class="hidden absolute inset-0 flex-col items-center justify-center bg-[#1e1e1e] z-10">
+                        <div class="text-4xl mb-4 animate-pulse">✨</div>
+                        <div class="text-gray-300 mb-2">AI 正在生成个性化题目...</div>
+                        <div class="text-gray-500 text-sm">根据你的学习情况定制</div>
+                        <div class="mt-4 w-48 h-1 bg-gray-700 rounded-full overflow-hidden">
+                            <div id="loading-progress" class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <!-- 代码编辑器 -->
+                    <div id="code-editor-wrapper" class="h-full">
+                        <textarea id="code-editor" class="code-editor-textarea w-full h-full bg-transparent text-[13px] leading-6 font-mono text-white outline-none resize-none px-4 py-2" placeholder="代码加载中..." spellcheck="false"></textarea>
+                    </div>
+                </div>
+
+                <!-- 提交批阅按钮 -->
+                <div class="px-4 py-3 bg-[#1e1e1e] border-t border-white/5 flex items-center justify-between">
+                    <div class="text-xs text-gray-500">
+                        <span class="text-yellow-400">💡</span> 你可以修改代码，然后点击「AI批阅」让AI检查
+                    </div>
+                    <button id="review-btn" onclick="submitForReview()" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                        <span>🔍</span>
+                        <span>AI批阅</span>
                     </button>
                 </div>
             </div>
 
-            <!-- 主内容区 -->
-            <div class="flex-1 flex overflow-hidden">
+            <!-- 右侧：AI 诊断面板 -->
+            <div class="w-[420px] flex flex-col ai-sidebar">
 
-                <!-- 左侧：代码编辑器 -->
-                <div class="flex-1 flex flex-col border-r border-white/10">
-                    <!-- 编辑器工具栏 -->
-                    <div class="flex items-center justify-between px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
-                        <div class="flex items-center gap-4 text-[12px] text-gray-400">
-                            <span class="flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                                </svg>
-                                main.py
-                            </span>
-                            <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">Python</span>
-                        </div>
-                        <div class="flex items-center gap-2" id="error-count-wrapper">
-                            <span id="error-count" class="px-2 py-0.5 rounded bg-red-500/20 text-red-400 text-[11px]">1 Error</span>
+                <!-- AI 状态栏 -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl">🧠</span>
+                        <div>
+                            <div class="font-semibold text-[14px]">AI 诊断助手</div>
+                            <div class="text-[11px] text-gray-400">苏格拉底式提问引导</div>
                         </div>
                     </div>
-
-                    <!-- 问题标题 -->
-                    <div class="px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
-                        <h3 id="problem-title" class="text-[13px] text-gray-300 font-medium">排序算法作用域问题</h3>
-                    </div>
-
-                    <!-- 代码编辑区 -->
-                    <div id="editor-scroll" class="flex-1 overflow-auto editor-bg">
-                        <div id="editor-content" class="py-2 min-h-full">
-                            <!-- 代码由 JS 渲染 -->
-                        </div>
+                    <div id="status-badge" class="ai-status-badge">
+                        <span class="status-dot"></span>
+                        <span class="status-text">就绪</span>
                     </div>
                 </div>
 
-                <!-- 右侧：AI 诊断面板 -->
-                <div class="w-[420px] flex flex-col ai-sidebar">
+                <!-- 对话流 -->
+                <div id="message-container" class="flex-1 overflow-y-auto p-4">
+                    <!-- 消息由 JS 渲染 -->
+                </div>
 
-                    <!-- AI 状态栏 -->
-                    <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xl">🧠</span>
-                            <div>
-                                <div class="font-semibold text-[14px]">AI 诊断助手</div>
-                                <div class="text-[11px] text-gray-400">苏格拉底式提问引导</div>
-                            </div>
-                        </div>
-                        <div id="status-badge" class="ai-status-badge">
-                            <span class="status-dot"></span>
-                            <span class="status-text">就绪</span>
-                        </div>
+                <!-- 用户输入 -->
+                <div class="p-4 border-t border-white/10">
+                    <div class="relative">
+                        <textarea
+                            id="submit-input"
+                            class="code-submit-input w-full h-20 resize-none"
+                            placeholder="输入你的问题，按 Ctrl+Enter 发送..."
+                        ></textarea>
+                        <button id="send-btn" class="absolute bottom-3 right-3 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[12px] font-medium transition flex items-center gap-1">
+                            <span>发送</span>
+                            <span class="text-[10px] opacity-70">⌘↵</span>
+                        </button>
                     </div>
-
-                    <!-- 对话流 -->
-                    <div id="message-container" class="flex-1 overflow-y-auto p-4">
-                        <!-- 消息由 JS 渲染 -->
-                    </div>
-
-                    <!-- 用户输入 -->
-                    <div class="p-4 border-t border-white/10">
-                        <div class="relative">
-                            <textarea
-                                id="submit-input"
-                                class="code-submit-input w-full h-20 resize-none"
-                                placeholder="输入你的问题，按 Ctrl+Enter 发送..."
-                            ></textarea>
-                            <button id="send-btn" class="absolute bottom-3 right-3 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-[12px] font-medium transition flex items-center gap-1">
-                                <span>发送</span>
-                                <span class="text-[10px] opacity-70">⌘↵</span>
-                            </button>
-                        </div>
-                        <div class="mt-2 text-[10px] text-gray-500 text-right">
-                            按 <kbd class="px-1 py-0.5 bg-white/10 rounded">ESC</kbd> 关闭 · <kbd class="px-1 py-0.5 bg-white/10 rounded">Ctrl+Enter</kbd> 发送
-                        </div>
+                    <div class="mt-2 text-[10px] text-gray-500 text-right">
+                        <kbd class="px-1 py-0.5 bg-white/10 rounded">Ctrl+Enter</kbd> 发送 ·
+                        <kbd class="px-1 py-0.5 bg-white/10 rounded">Alt+←</kbd> 上一题 ·
+                        <kbd class="px-1 py-0.5 bg-white/10 rounded">Alt+↑</kbd> 推荐
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Terminal 状态栏 -->
-            <div class="terminal-bar">
-                <div class="terminal-bar-left">
-                    <div class="terminal-item error">
-                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        <span>Process exited with code 1</span>
-                    </div>
-                    <div class="terminal-item">
-                        <span>🐍 Python 3.11</span>
-                    </div>
+        <!-- Terminal 状态栏 -->
+        <div class="terminal-bar">
+            <div class="terminal-bar-left">
+                <div class="terminal-item error">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>Process exited with code 1</span>
                 </div>
-                <div class="terminal-bar-right">
-                    <div class="terminal-item" id="terminal-cpu">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
-                        </svg>
-                        <span>CPU: 12%</span>
-                    </div>
-                    <div class="terminal-item" id="terminal-token">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        <span>AI: 0</span>
-                    </div>
+                <div class="terminal-item">
+                    <span>🐍 Python 3.11</span>
+                </div>
+            </div>
+            <div class="terminal-bar-right">
+                <div class="terminal-item" id="terminal-cpu">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    <span>CPU: 12%</span>
+                </div>
+                <div class="terminal-item" id="terminal-token">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span>AI: 0</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="/js/ai-pair-programming.js"></script>
+    <script>
+        // 页面加载时同步用户头像
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const user = JSON.parse(localStorage.getItem('starlearn_user') || 'null');
+                if (user && user.avatar) {
+                    const avatarEl = document.getElementById('user-avatar-small');
+                    if (avatarEl) {
+                        avatarEl.innerHTML = '<img src="' + user.avatar + '" class="w-6 h-6 rounded-full object-cover">';
+                    }
+                }
+            } catch (e) {}
+        });
+    </script>
 </body>
 </html>

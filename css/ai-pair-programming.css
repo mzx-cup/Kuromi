@@ -181,6 +181,17 @@
 
 .message-avatar.user {
     background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.message-avatar.user img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
 }
 
 /* 启发式提问高亮 */
@@ -402,4 +413,209 @@
 
 ::-webkit-scrollbar-thumb:hover {
     background: #5a5a6a;
+}
+
+/* 顶部学习状态栏增强 */
+#ide-modal {
+    background: linear-gradient(180deg, #0a0a1a 0%, #0f0f23 100%);
+}
+
+/* 章节选择器样式 */
+#chapter-select, #topic-select {
+    min-width: 140px;
+}
+
+#chapter-select option, #topic-select option {
+    background: #1e1e1e;
+    color: white;
+    padding: 8px;
+}
+
+/* 难度标签 */
+.difficulty-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.difficulty-label.easy {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.difficulty-label.medium {
+    background: rgba(234, 179, 8, 0.2);
+    color: #fbbf24;
+}
+
+.difficulty-label.hard {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* 代码编辑器样式 */
+.code-editor-textarea {
+    font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+    tab-size: 4;
+    -moz-tab-size: 4;
+    white-space: pre;
+    overflow-x: auto;
+    box-sizing: border-box;
+}
+
+.code-editor-textarea::selection {
+    background: rgba(99, 102, 241, 0.3);
+}
+
+/* 代码编辑器容器 */
+#code-editor-wrapper {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+#code-editor-wrapper.hidden {
+    display: none;
+}
+
+/* 代码行号样式（用于显示） */
+.code-display {
+    font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+    overflow-x: auto;
+}
+
+/* AI生成loading动画 */
+#code-loading {
+    display: flex;
+    background: #1e1e1e;
+}
+
+#code-loading.hidden {
+    display: none !important;
+}
+
+/* 打字机光标效果 */
+.typing-cursor-block {
+    display: inline-block;
+    width: 8px;
+    height: 16px;
+    background: #6366f1;
+    animation: blink 0.8s step-end infinite;
+    vertical-align: middle;
+}
+
+@keyframes typing-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* 批阅报告样式 */
+.review-report {
+    background: rgba(30, 30, 50, 0.8);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid #6366f1;
+}
+
+.review-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-item.correct {
+    border-left: 3px solid #4ade80;
+}
+
+.review-item.wrong {
+    border-left: 3px solid #f87171;
+}
+
+.review-item-info {
+    flex: 1;
+}
+
+.review-item-line {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.review-item-content {
+    font-size: 13px;
+    color: #e5e5e5;
+}
+
+.review-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+.review-correct {
+    color: #4ade80;
+}
+
+.review-wrong {
+    color: #f87171;
+}
+
+/* 问题导航按钮 */
+.problem-nav-btn {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #9ca3af;
+    transition: all 0.2s;
+}
+
+.problem-nav-btn:hover {
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+/* 掌握度进度条动画 */
+#progress-bar {
+    transition: width 0.5s ease-out;
+}
+
+/* 用户头像在状态栏 */
+#user-avatar-small img {
+    border: 2px solid rgba(99, 102, 241, 0.5);
+}
+
+/* AI 消息内容样式 */
+.ai-message-content {
+    line-height: 1.7;
+}
+
+.ai-message-content strong {
+    color: #a5b4fc;
+}
+
+.ai-message-content em {
+    color: #c4b5fd;
+}
+
+/* 快捷键提示样式 */
+kbd {
+    font-family: 'JetBrains Mono', monospace;
 }
