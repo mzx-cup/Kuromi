@@ -414,6 +414,11 @@ function feedPet() {
     addExp(5);
     saveGameState();
     syncToPersonalCenter();
+
+    // 成就触发：喂食
+    if (window.AchievementManager) {
+        AchievementManager.incrementStat('pet_feed');
+    }
 }
 
 // 玩耍
@@ -448,6 +453,11 @@ function playWithPet() {
     addExp(8);
     saveGameState();
     syncToPersonalCenter();
+
+    // 成就触发：玩耍
+    if (window.AchievementManager) {
+        AchievementManager.incrementStat('pet_play');
+    }
 }
 
 // 抚摸
@@ -475,6 +485,12 @@ function petThePet() {
     addExp(3);
     saveGameState();
     syncToPersonalCenter();
+
+    // 成就触发：亲密度检查
+    if (window.AchievementManager) {
+        const intimacy = Math.round(gameState.intimacy);
+        AchievementManager.incrementStat('pet_intimacy', intimacy);
+    }
 }
 
 // 休息

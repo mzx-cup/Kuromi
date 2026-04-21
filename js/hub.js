@@ -898,6 +898,143 @@ function initSidebarAndNotifications() {
     updateNotificationDot();
 }
 
+// 通知持久化存储
+const NOTIF_STORAGE_KEY = 'starlearn_notifications';
+
+function getStoredNotifications() {
+    try {
+        return JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY) || '[]');
+    } catch (e) { return []; }
+}
+
+function saveNotificationToStorage(notif) {
+    const list = getStoredNotifications();
+    list.unshift({ ...notif, id: Date.now(), time: new Date().toLocaleString('zh-CN') });
+    if (list.length > 50) list.splice(50);
+    localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(list));
+}
+
+// 添加通知到 hub 面板
+function addNotificationToHubPanel(payload) {
+    const { title = '', content = '', type = 'system' } = payload || {};
+    const list = document.getElementById('notification-list');
+    if (!list) return;
+
+    const iconMap = {
+        achievement: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>`,
+        seed: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+        system: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+        reminder: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+    };
+
+    const colorMap = {
+        achievement: 'achievement',
+        seed: 'business',
+        system: 'system',
+        reminder: 'activity'
+    };
+
+    const icon = iconMap[type] || iconMap.system;
+    const colorClass = colorMap[type] || 'system';
+
+    const item = document.createElement('div');
+    item.className = 'notification-item unread';
+    item.innerHTML = `
+        <div class="notification-icon ${colorClass}">${icon}</div>
+        <div class="notification-content">
+            <p class="notification-title">${escapeHtml(title)}</p>
+            <p class="notification-text">${escapeHtml(content)}</p>
+            <span class="notification-time">刚刚</span>
+        </div>
+    `;
+
+    item.addEventListener('click', () => {
+        item.classList.remove('unread');
+        updateNotificationDot();
+    });
+
+    // 插入到最前面
+    list.insertBefore(item, list.firstChild);
+
+    // 持久化
+    saveNotificationToStorage({ title, content, type });
+
+    // 更新红点
+    updateNotificationDot();
+
+    // 同步到所有打开的 hub 页面（跨标签页）
+    localStorage.setItem('starlearn_notifications_last_update', String(Date.now()));
+}
+
+// 监听 achievement-unlocked 事件
+document.addEventListener('achievement-unlocked', (e) => {
+    const { achievement } = e.detail || {};
+    if (achievement) {
+        addNotificationToHubPanel({
+            title: '🏆 成就解锁',
+            content: `${achievement.name} - ${achievement.desc}`,
+            type: 'achievement'
+        });
+    }
+});
+
+// 监听 starlearnNotifications 调用（统一拦截）
+const _origShowNotif = window.starlearnNotifications?.showNotification;
+window.starlearnNotifications = window.starlearnNotifications || { showNotification: () => {} };
+const _origFn = window.starlearnNotifications.showNotification.bind(window.starlearnNotifications);
+window.starlearnNotifications.showNotification = function(payload) {
+    _origFn(payload);
+    addNotificationToHubPanel(payload);
+};
+
+// 跨标签页同步通知
+window.addEventListener('storage', (e) => {
+    if (e.key === 'starlearn_notifications_last_update') {
+        const list = document.getElementById('notification-list');
+        if (!list) return;
+        const stored = getStoredNotifications();
+        // 去重后重新渲染
+        const existingIds = new Set(
+            Array.from(list.querySelectorAll('.notification-item')).map(el => el.dataset.tempId).filter(Boolean)
+        );
+        stored.forEach(n => {
+            if (!existingIds.has(String(n.id))) {
+                const item = document.createElement('div');
+                item.className = 'notification-item';
+                item.dataset.tempId = n.id;
+                const iconMap = {
+                    achievement: 'achievement', seed: 'business', system: 'system', reminder: 'activity'
+                };
+                const iconSvg = {
+                    achievement: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>`,
+                    seed: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>`,
+                    system: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                    reminder: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
+                };
+                item.innerHTML = `
+                    <div class="notification-icon ${iconMap[n.type] || 'system'}">${iconSvg[n.type] || iconSvg.system}</div>
+                    <div class="notification-content">
+                        <p class="notification-title">${escapeHtml(n.title)}</p>
+                        <p class="notification-text">${escapeHtml(n.content)}</p>
+                        <span class="notification-time">${n.time || '刚刚'}</span>
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    item.classList.remove('unread');
+                    updateNotificationDot();
+                });
+                list.insertBefore(item, list.firstChild);
+                updateNotificationDot();
+            }
+        });
+    }
+});
+
+function escapeHtml(str) {
+    if (!str && str !== 0) return '';
+    return String(str).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c]);
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', initSidebarAndNotifications);
 

@@ -397,6 +397,12 @@ function plantAction(action) {
         renderPlantPots();
         renderCurrentPlant();
         renderPlantCollection();
+
+        // 成就触发：收获
+        if (window.AchievementManager) {
+            AchievementManager.incrementStat('harvest_count');
+            AchievementManager.incrementStat('plant_count');
+        }
         return;
     }
 

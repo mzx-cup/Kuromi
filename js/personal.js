@@ -1700,8 +1700,24 @@ function saveUser() {
 }
 
 function goBack() {
-    if (window.history.length > 1) {
-        window.history.back();
+    // 优先使用 sessionStorage 记录的直接来源，fallback 到 referrer
+    const entrySource = sessionStorage.getItem('personal_entry_from');
+    const referrer = document.referrer;
+
+    let target = null;
+
+    if (entrySource) {
+        target = entrySource;
+    } else if (referrer) {
+        if (referrer.includes('/index') || referrer.includes('/hub')) {
+            target = referrer;
+        } else if (referrer.includes('/html/')) {
+            target = referrer;
+        }
+    }
+
+    if (target) {
+        window.location.href = target;
     } else {
         window.location.href = '/hub.html';
     }
