@@ -1,97 +1,216 @@
-/* ============================================
-   星识·林场 - 3D 农场主题样式
-   直接在地面种植，无毛玻璃面板
-   ============================================ */
+/* ============================================================
+   星识·林场 - 治愈系植物种植游戏
+   风格：macOS 精致质感 + 马卡龙/莫兰迪色系
+   基调：慢节奏、解压、治愈
+   ============================================================ */
 
 :root {
-    --sky-top: #5BA3D9;
-    --sky-bottom: #A8D8F0;
-    --sun-color: #FFD700;
-    --soil-dark: #5D4037;
-    --soil-mid: #6D4C41;
-    --soil-light: #8D6E63;
-    --grass: #4CAF50;
-    --grass-dark: #388E3C;
-    --wood: #A1887F;
-    --wood-dark: #6D4C41;
-    --terracotta: #E07B39;
-    --terracotta-dark: #BF6327;
-    --text-dark: #3E2723;
-    --text-muted: #795548;
-    --leaf: #66BB6A;
-    --leaf-dark: #43A047;
-    --water-blue: #29B6F6;
-    --nutrient-amber: #FFA726;
-    --harvest-gold: #FFCA28;
-    --text-primary: #2d2016;
-    --text-secondary: #6d5a48;
-    --glass-bg: rgba(255,255,255,0.75);
-    --glass-border: rgba(255,255,255,0.5);
-    --rarity-common: #9CA3AF;
-    --rarity-rare: #3B82F6;
-    --rarity-fine: #8B5CF6;
-    --rarity-epic: #F59E0B;
-    --rarity-legendary: #EF4444;
+    /* ═══════════════════════════════════════════════════════
+       色彩系统 - 马卡龙/莫兰迪色系
+       ═══════════════════════════════════════════════════════ */
+
+    /* 天空渐变 - 柔和清新 */
+    --sky-top: #c5ddf0;
+    --sky-mid: #d8ebf5;
+    --sky-bottom: #f2f8fc;
+
+    /* 地面水彩渐变 */
+    --grass-light: #c5ddaa;
+    --grass-mid: #a8c98a;
+    --grass-dark: #8fb878;
+    --soil-light: #d4c4a0;
+    --soil-mid: #b8a67a;
+    --soil-dark: #9a8a60;
+
+    /* 陶土盆 - 温暖米色系 */
+    --pot-light: #f0d8c0;
+    --pot-mid: #e0c4a0;
+    --pot-dark: #c8a880;
+    --pot-shadow: #a08060;
+
+    /* 植物绿 - 柔和莫兰迪绿 */
+    --leaf-light: #b8d8a8;
+    --leaf-mid: #98c888;
+    --leaf-dark: #78b068;
+
+    /* 按钮色系 - 马卡龙色 */
+    --btn-plant: #8fcc8a;
+    --btn-plant-hover: #a0dc9a;
+    --btn-plant-shadow: rgba(140, 200, 138, 0.4);
+
+    --btn-water: #8ec8e0;
+    --btn-water-hover: #a0d8f0;
+    --btn-water-shadow: rgba(142, 200, 224, 0.4);
+
+    --btn-nutrient: #e8d090;
+    --btn-nutrient-hover: #f0e0a0;
+    --btn-nutrient-shadow: rgba(232, 208, 144, 0.4);
+
+    --btn-harvest: #f8d878;
+    --btn-harvest-hover: #ffe888;
+    --btn-harvest-shadow: rgba(248, 216, 120, 0.5);
+
+    --btn-insulation: #e8a890;
+    --btn-insulation-hover: #f8b8a0;
+    --btn-insulation-shadow: rgba(232, 168, 144, 0.4);
+
+    /* 状态条颜色 - 柔和马卡龙 */
+    --water-track: rgba(142, 200, 224, 0.25);
+    --water-fill-start: #a8dcf0;
+    --water-fill-end: #6ab8d8;
+    --water-glow: rgba(142, 200, 224, 0.6);
+
+    --nutrient-track: rgba(232, 208, 144, 0.25);
+    --nutrient-fill-start: #f0e0a8;
+    --nutrient-fill-end: #d8c070;
+    --nutrient-glow: rgba(232, 208, 144, 0.6);
+
+    /* 毛玻璃系统 */
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-bg-heavy: rgba(255, 255, 255, 0.82);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-border-subtle: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(100, 130, 160, 0.12), 0 2px 8px rgba(100, 130, 160, 0.08);
+    --glass-shadow-hover: 0 12px 40px rgba(100, 130, 160, 0.18), 0 4px 12px rgba(100, 130, 160, 0.1);
+    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+
+    /* 文字颜色 */
+    --text-primary: #4a5a6a;
+    --text-secondary: #6a7a8a;
+    --text-muted: #9aaabc;
+    --text-on-dark: #ffffff;
+
+    /* 稀有度 - 柔和莫兰迪色 */
+    --rarity-common: #9ab0c0;
+    --rarity-rare: #78b0d8;
+    --rarity-fine: #a898d0;
+    --rarity-epic: #e0b878;
+    --rarity-legendary: #d88888;
+
+    /* 动画曲线 */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
+
+    /* 呼吸动画 */
+    --breath-slow: 4s;
+    --breath-medium: 3s;
+    --breath-fast: 2s;
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; padding: 0; }
+/* ═══════════════════════════════════════════════════════
+   自定义滚动条 - 与页面风格统一
+   ═══════════════════════════════════════════════════════ */
+html {
+    overflow-y: auto;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(140, 160, 180, 0.35);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(140, 160, 180, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox 滚动条 */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(140, 160, 180, 0.35) rgba(0, 0, 0, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════
+   基础重置
+   ═══════════════════════════════════════════════════════ */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    min-width: 100%;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
 body {
-    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
-    background: linear-gradient(180deg, #1a4e7a 0%, #2980b9 15%, #74b9e8 40%, #a8d8f0 60%, #c9e8f7 75%, #d4efff 88%, #e8f6fd 100%);
-    color: var(--text-dark);
-    overflow-y: auto;
-    min-height: 100vh;
+    min-width: 100%;
+    width: 100%;
+    font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+                 -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.5;
 }
 
-/* ============================================
-   背景层：天空 + 太阳 + 云
-   ============================================ */
+/* ═══════════════════════════════════════════════════════
+   背景层
+   ═══════════════════════════════════════════════════════ */
 .plant-sky {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(180deg,
-        #1a4e7a 0%,
-        #2980b9 15%,
-        #74b9e8 38%,
-        #a8d8f0 55%,
-        #c9e8f7 70%,
-        #d4efff 85%,
-        #e8f6fd 100%
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        180deg,
+        var(--sky-top) 0%,
+        var(--sky-mid) 40%,
+        var(--sky-bottom) 70%,
+        #f8fcfd 100%
     );
-    overflow: hidden;
     z-index: 0;
+    overflow: hidden;
+    transition: background 1.5s var(--ease-smooth);
 }
 
 .plant-sun {
     position: absolute;
-    top: 30px; right: 60px;
-    width: 90px; height: 90px;
-    background: radial-gradient(circle, #fff176 0%, #ffd700 40%, #ff8f00 100%);
+    top: 20px;
+    right: 70px;
+    width: 90px;
+    height: 90px;
+    background: radial-gradient(
+        circle,
+        rgba(255, 252, 240, 0.98) 0%,
+        rgba(255, 235, 180, 0.85) 25%,
+        rgba(255, 220, 140, 0.5) 50%,
+        transparent 70%
+    );
     border-radius: 50%;
-    box-shadow:
-        0 0 60px rgba(255,215,0,0.7),
-        0 0 120px rgba(255,215,0,0.4),
-        0 0 200px rgba(255,143,0,0.2);
-    animation: sunPulse 4s ease-in-out infinite;
-    z-index: 1;
+    filter: blur(3px);
+    animation: sunBreath var(--breath-slow) ease-in-out infinite;
 }
-.plant-sun::before {
-    content: '';
-    position: absolute;
-    inset: -10px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,215,0,0.3), transparent 70%);
-}
-@keyframes sunPulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 60px rgba(255,215,0,0.7), 0 0 120px rgba(255,215,0,0.4); }
-    50% { transform: scale(1.05); box-shadow: 0 0 80px rgba(255,215,0,0.8), 0 0 160px rgba(255,215,0,0.5); }
+
+@keyframes sunBreath {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.1); opacity: 1; }
 }
 
 .plant-cloud {
     position: absolute;
-    background: rgba(255,255,255,0.92);
+    background: rgba(255, 255, 255, 0.92);
     border-radius: 50px;
     filter: blur(1px);
     animation: cloudDrift linear infinite;
@@ -99,192 +218,354 @@ body {
 .plant-cloud::before, .plant-cloud::after {
     content: '';
     position: absolute;
-    background: rgba(255,255,255,0.92);
+    background: rgba(255, 255, 255, 0.92);
     border-radius: 50%;
 }
-.plant-cloud.c1 { top: 40px; left: -140px; width: 100px; height: 36px; animation-duration: 40s; }
-.plant-cloud.c1::before { width: 50px; height: 50px; top: -22px; left: 15px; }
-.plant-cloud.c1::after { width: 35px; height: 35px; top: -14px; left: 50px; }
-
-.plant-cloud.c2 { top: 90px; left: -100px; width: 80px; height: 28px; animation-duration: 55s; animation-delay: -20s; }
-.plant-cloud.c2::before { width: 40px; height: 40px; top: -18px; left: 12px; }
-.plant-cloud.c2::after { width: 28px; height: 28px; top: -10px; left: 38px; }
-
-.plant-cloud.c3 { top: 25px; left: -110px; width: 90px; height: 32px; animation-duration: 48s; animation-delay: -30s; }
-.plant-cloud.c3::before { width: 44px; height: 44px; top: -20px; left: 12px; }
-.plant-cloud.c3::after { width: 30px; height: 30px; top: -12px; left: 44px; }
+.plant-cloud.c1 { top: 30px; left: -150px; width: 110px; height: 38px; animation-duration: 55s; }
+.plant-cloud.c1::before { width: 50px; height: 50px; top: -26px; left: 16px; }
+.plant-cloud.c1::after { width: 36px; height: 36px; top: -16px; left: 52px; }
+.plant-cloud.c2 { top: 80px; left: -100px; width: 85px; height: 30px; animation-duration: 70s; animation-delay: -25s; opacity: 0.75; }
+.plant-cloud.c2::before { width: 42px; height: 42px; top: -20px; left: 12px; }
+.plant-cloud.c2::after { width: 28px; height: 28px; top: -10px; left: 40px; }
+.plant-cloud.c3 { top: 50px; left: -110px; width: 95px; height: 34px; animation-duration: 62s; animation-delay: -40s; opacity: 0.8; }
+.plant-cloud.c3::before { width: 48px; height: 48px; top: -24px; left: 14px; }
+.plant-cloud.c3::after { width: 32px; height: 32px; top: -14px; left: 46px; }
 
 @keyframes cloudDrift {
     from { transform: translateX(0); }
     to { transform: translateX(calc(100vw + 200px)); }
 }
 
-/* ============================================
-   地面层：草地 + 泥土
-   ============================================ */
 .plant-ground {
     position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 48%;
-    background: linear-gradient(180deg,
-        #8BC34A 0%,
-        #7CB342 6%,
-        #689F38 12%,
-        #8D6E63 20%,
-        #6D4C41 40%,
-        #5D4037 62%,
-        #4E342E 100%
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 42%;
+    background: linear-gradient(
+        180deg,
+        var(--grass-light) 0%,
+        var(--grass-mid) 6%,
+        var(--grass-dark) 10%,
+        var(--soil-light) 16%,
+        var(--soil-mid) 32%,
+        var(--soil-dark) 55%,
+        #6a5a40 100%
     );
     z-index: 1;
-    overflow: hidden;
 }
 
 .plant-ground::before {
     content: '';
     position: absolute;
-    top: -18px; left: 0; right: 0;
-    height: 22px;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 22'%3E%3Cpath d='M0,22 Q15,0 30,11 T60,11 T90,11 T120,11 T150,11 T180,11 T200,11 L200,22 Z' fill='%237CB342'/%3E%3C/svg%3E") repeat-x;
-    background-size: 200px 22px;
+    top: -18px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 20'%3E%3Cpath d='M0,20 Q15,2 30,10 T60,10 T90,10 T120,10 T150,10 T180,10 T200,10 L200,20 Z' fill='%23a8c98a'/%3E%3C/svg%3E") repeat-x;
+    background-size: 200px 20px;
+    animation: grassWave 8s ease-in-out infinite;
 }
 
-.plant-ground::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 60px;
-    background:
-        repeating-linear-gradient(
-            90deg,
-            transparent 0px,
-            rgba(76,175,80,0.2) 3px,
-            transparent 6px,
-            transparent 18px
-        );
-    background-color: rgba(76,175,80,0.12);
+@keyframes grassWave {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-15px); }
 }
 
-/* ============================================
-   主内容区
-   ============================================ */
+/* ═══════════════════════════════════════════════════════
+   主页面容器
+   ═══════════════════════════════════════════════════════ */
 .plant-page {
     position: relative;
     z-index: 10;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    width: 100%;
+    overflow-y: auto;
 }
 
+/* ═══════════════════════════════════════════════════════
+   导航栏 - 毛玻璃质感
+   ═══════════════════════════════════════════════════════ */
 .plant-nav {
     position: sticky;
     top: 0;
     z-index: 100;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-    background: rgba(255,255,255,0.88);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255,255,255,0.6);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 12px 16px;
+    width: 100%;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--glass-border-subtle);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+    box-sizing: border-box;
 }
 
 .plant-nav-back {
+    position: relative;
+    left: 0;
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 7px 14px;
-    background: rgba(93,64,55,0.08);
-    border: 1px solid rgba(93,64,55,0.15);
-    border-radius: 20px;
-    color: var(--text-dark);
-    font-size: 13px;
-    font-weight: 600;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    color: var(--text-primary);
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.2s;
+    transition: all 0.3s var(--ease-smooth);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
+    z-index: 2;
 }
-.plant-nav-back:hover {
-    background: rgba(93,64,55,0.14);
-    transform: translateX(-2px);
-}
-.plant-nav-back svg { width: 16px; height: 16px; }
 
 .plant-nav-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 18px;
     font-weight: 800;
-    color: var(--text-dark);
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+    z-index: 1;
 }
-.plant-nav-title .nav-icon { font-size: 22px; }
+
+.plant-nav-right {
+    position: absolute;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    z-index: 2;
+}
+
+.nav-icon {
+    font-size: 24px;
+    animation: iconFloat 3s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
 
 .plant-nav-right {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   天气组件 - 精致的毛玻璃胶囊
+   ═══════════════════════════════════════════════════════ */
+.weather-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 10px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
+    transition: all 0.35s var(--ease-smooth);
+}
+
+.weather-display:hover {
+    background: rgba(255, 255, 255, 0.85);
+    transform: scale(1.02);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+.weather-icon {
+    font-size: 22px;
+    line-height: 1;
+    animation: weatherIconPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes weatherIconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.weather-temp {
+    font-family: 'SF Mono', 'JetBrains Mono', 'Consolas', monospace;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.weather-city {
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.weather-settings-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.35s var(--ease-smooth);
+    box-shadow: var(--glass-shadow);
+}
+
+.weather-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: rotate(45deg);
+    color: var(--text-primary);
+    box-shadow: var(--glass-shadow-hover);
 }
 
 .seed-display-nav {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 14px;
-    background: linear-gradient(135deg, rgba(224,123,57,0.15), rgba(255,202,40,0.1));
-    border: 1px solid rgba(224,123,57,0.3);
+    padding: 7px 14px;
+    background: linear-gradient(135deg, rgba(248, 216, 120, 0.3), rgba(232, 208, 144, 0.25));
+    border: 1px solid rgba(248, 216, 120, 0.5);
     border-radius: 20px;
     font-size: 13px;
     font-weight: 700;
-    color: var(--terracotta-dark);
+    color: #a08840;
+    box-shadow: 0 2px 10px rgba(248, 216, 120, 0.15);
+    transition: all 0.3s var(--ease-smooth);
 }
-.seed-display-nav .seed-icon { font-size: 18px; }
 
-/* ============================================
-   农场主体（直接种在地面，无玻璃面板）
-   ============================================ */
+.seed-display-nav:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(248, 216, 120, 0.25);
+}
+
+.seed-icon {
+    font-size: 18px;
+    animation: seedSwing 2s ease-in-out infinite;
+}
+
+@keyframes seedSwing {
+    0%, 100% { transform: rotate(-8deg); }
+    50% { transform: rotate(8deg); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   主内容区
+   ═══════════════════════════════════════════════════════ */
 .plant-main-card {
-    margin: 16px 20px 0;
+    margin: 16px auto 0;
+    max-width: 1200px;
+    padding: 0 20px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 100%;
 }
 
-/* ============================================
-   3D 土壤田垄 + 花盆区
-   ============================================ */
-.plant-plot-section { margin-bottom: 0; }
+.plant-plot-section {
+    margin-bottom: 0;
+    width: 100%;
+}
 
 .plant-plot-title {
     font-size: 13px;
     font-weight: 700;
-    color: #fff;
-    margin-bottom: 10px;
+    color: rgba(255, 255, 255, 0.92);
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: fadeSlideIn 0.6s var(--ease-smooth);
+}
+
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .plant-plot-grid {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 28px;
     flex-wrap: wrap;
 }
 
-/* 3D 梯形陶土花盆 */
+/* ═══════════════════════════════════════════════════════
+   3D 陶土花盆
+   ═══════════════════════════════════════════════════════ */
 .plant-pot-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
     cursor: pointer;
-    transition: transform 0.25s ease;
-    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.25));
+    transition: all 0.4s var(--ease-spring);
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.12));
+    animation: potAppear 0.6s var(--ease-spring) backwards;
 }
-.plant-pot-wrapper:hover { transform: translateY(-6px) scale(1.02); filter: drop-shadow(0 12px 24px rgba(0,0,0,0.3)); }
-.plant-pot-wrapper.selected { transform: translateY(-8px) scale(1.04); }
+
+.plant-pot-wrapper:nth-child(1) { animation-delay: 0.1s; }
+.plant-pot-wrapper:nth-child(2) { animation-delay: 0.2s; }
+.plant-pot-wrapper:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes potAppear {
+    from { opacity: 0; transform: translateY(30px) scale(0.85); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.plant-pot-wrapper:hover {
+    transform: translateY(-8px) scale(1.03);
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.18));
+}
+
+.plant-pot-wrapper.selected {
+    transform: translateY(-10px) scale(1.05);
+}
+
+.plant-pot-wrapper.selected .pot-body {
+    box-shadow:
+        inset -8px 0 16px rgba(0, 0, 0, 0.1),
+        inset 8px 0 16px rgba(255, 255, 255, 0.1),
+        0 0 0 4px rgba(248, 216, 120, 0.7),
+        0 0 24px rgba(248, 216, 120, 0.4),
+        6px 10px 24px rgba(200, 160, 100, 0.4);
+}
+
+.plant-pot-wrapper.selected .slot-label {
+    background: rgba(248, 216, 120, 0.35);
+    border-color: rgba(248, 216, 120, 0.6);
+    color: #6a5030;
+}
+
+.plant-pot-wrapper.empty .plant-in-pot {
+    opacity: 0.2;
+    font-size: 28px !important;
+}
+.plant-pot-wrapper.empty .pot-body { opacity: 0.55; }
 
 .plant-pot-3d {
     position: relative;
@@ -295,506 +576,928 @@ body {
     justify-content: center;
 }
 
-/* 陶土盆体 - 立体梯形 */
 .pot-body {
     position: absolute;
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 110px;
-    height: 80px;
-    background: linear-gradient(165deg,
-        #e8a87c 0%,
-        #d4855a 30%,
-        #bf6327 60%,
-        #a0522d 100%
+    width: 108px;
+    height: 78px;
+    background: linear-gradient(
+        165deg,
+        var(--pot-light) 0%,
+        var(--pot-mid) 35%,
+        var(--pot-dark) 65%,
+        var(--pot-shadow) 100%
     );
-    clip-path: polygon(6% 0%, 94% 0%, 100% 100%, 0% 100%);
+    clip-path: polygon(7% 0%, 93% 0%, 100% 100%, 0% 100%);
     border-radius: 0 0 10px 10px;
     box-shadow:
-        inset -8px 0 16px rgba(0,0,0,0.18),
-        inset 8px 0 16px rgba(255,255,255,0.08),
-        6px 10px 20px rgba(0,0,0,0.3),
-        0 2px 4px rgba(0,0,0,0.2);
+        inset -10px 0 18px rgba(0, 0, 0, 0.12),
+        inset 10px 0 18px rgba(255, 255, 255, 0.1),
+        6px 10px 20px rgba(0, 0, 0, 0.18),
+        0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s var(--ease-smooth);
 }
-/* 盆口沿 */
+
 .pot-body::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 14px;
-    background: linear-gradient(160deg, #e8b88a 0%, #d4855a 50%, #bf6327 100%);
+    background: linear-gradient(160deg, #f8e0c8 0%, var(--pot-light) 40%, var(--pot-mid) 100%);
     border-radius: 4px 4px 0 0;
-    clip-path: polygon(3% 0%, 97% 0%, 100% 100%, 0% 100%);
+    clip-path: polygon(4% 0%, 96% 0%, 100% 100%, 0% 100%);
 }
-/* 盆身纹理线 */
+
 .pot-body::after {
     content: '';
     position: absolute;
-    top: 16px; left: 8px; right: 8px;
-    height: 5px;
-    background: rgba(93,64,55,0.3);
+    top: 16px;
+    left: 10px;
+    right: 10px;
+    height: 4px;
+    background: rgba(140, 100, 70, 0.25);
     border-radius: 2px;
-    box-shadow: 0 12px 0 rgba(93,64,55,0.2), 0 24px 0 rgba(93,64,55,0.15);
+    box-shadow: 0 12px 0 rgba(140, 100, 70, 0.18), 0 24px 0 rgba(140, 100, 70, 0.12);
 }
 
-/* 盆内土壤 */
 .pot-soil {
     position: absolute;
     bottom: 12px;
     left: 50%;
     transform: translateX(-50%);
-    width: 90px;
+    width: 88px;
     height: 16px;
-    background: linear-gradient(180deg, #4E342E 0%, #3E2723 100%);
+    background: linear-gradient(180deg, #5a4838 0%, #4a3828 100%);
     border-radius: 0 0 8px 8px;
     z-index: 1;
-    box-shadow: inset 0 4px 8px rgba(0,0,0,0.4);
+    box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.4);
 }
-/* 土壤表面颗粒感 */
+
 .pot-soil::before {
     content: '';
     position: absolute;
-    top: 0; left: 5px; right: 5px;
+    top: 0;
+    left: 5px;
+    right: 5px;
     height: 4px;
     background: linear-gradient(90deg,
-        rgba(93,64,55,0.6) 0%,
-        rgba(121,83,66,0.5) 20%,
-        rgba(93,64,55,0.6) 40%,
-        rgba(121,83,66,0.5) 60%,
-        rgba(93,64,55,0.6) 80%,
-        rgba(121,83,66,0.5) 100%
+        rgba(100, 85, 60, 0.5) 0%,
+        rgba(130, 110, 80, 0.4) 25%,
+        rgba(100, 85, 60, 0.5) 50%,
+        rgba(130, 110, 80, 0.4) 75%,
+        rgba(100, 85, 60, 0.5) 100%
     );
     border-radius: 2px;
 }
 
-/* 盆中植物 */
 .plant-in-pot {
     position: absolute;
-    bottom: 26px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 44px;
     z-index: 2;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
-    transition: all 0.5s ease;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.18));
+    transition: all 0.5s var(--ease-spring);
     line-height: 1;
 }
+
 .plant-in-pot.stage-0 {
     font-size: 28px;
-    filter: grayscale(0.4) drop-shadow(0 1px 4px rgba(0,0,0,0.15));
+    filter: grayscale(0.3) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 .plant-in-pot.stage-1 {
     font-size: 36px;
-    filter: drop-shadow(0 3px 7px rgba(0,0,0,0.18));
+    filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.15));
 }
 .plant-in-pot.stage-2 {
     font-size: 48px;
-    filter: drop-shadow(0 5px 12px rgba(0,0,0,0.22));
+    filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.2));
 }
 .plant-in-pot.stage-3 {
-    font-size: 58px;
-    filter: drop-shadow(0 8px 20px rgba(251,191,36,0.5)) brightness(1.12);
-    animation: harvestGlow 1.5s ease-in-out infinite;
+    font-size: 56px;
+    filter: drop-shadow(0 8px 20px rgba(248, 216, 120, 0.5)) brightness(1.12);
+    animation: matureGlow 2s ease-in-out infinite;
 }
-@keyframes harvestGlow {
-    0%, 100% { filter: drop-shadow(0 8px 20px rgba(251,191,36,0.45)) brightness(1.12); }
-    50% { filter: drop-shadow(0 8px 30px rgba(251,191,36,0.7)) brightness(1.18); }
+
+@keyframes matureGlow {
+    0%, 100% {
+        filter: drop-shadow(0 8px 20px rgba(248, 216, 120, 0.45)) brightness(1.12);
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        filter: drop-shadow(0 12px 32px rgba(248, 216, 120, 0.6)) brightness(1.18);
+        transform: translateX(-50%) scale(1.04);
+    }
+}
+
+/* 雨天植物摇摆 */
+body.weather-rain .plant-in-pot {
+    animation: plantSway 3s ease-in-out infinite;
+}
+
+@keyframes plantSway {
+    0%, 100% { transform: translateX(-50%) rotate(0deg); }
+    25% { transform: translateX(-50%) rotate(3deg); }
+    75% { transform: translateX(-50%) rotate(-3deg); }
 }
 
 .slot-label {
     margin-top: 8px;
     font-size: 11px;
     font-weight: 700;
-    color: rgba(255,255,255,0.9);
-    background: rgba(93,64,55,0.6);
-    padding: 3px 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.2);
-    backdrop-filter: blur(4px);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(90, 70, 50, 0.5);
+    padding: 4px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(6px);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s var(--ease-smooth);
 }
 
-/* 选中槽位发光边框 */
-.plant-pot-wrapper.selected .pot-body {
-    box-shadow:
-        inset -8px 0 16px rgba(0,0,0,0.18),
-        inset 8px 0 16px rgba(255,255,255,0.08),
-        0 0 0 4px rgba(255,202,40,0.7),
-        6px 10px 24px rgba(224,123,57,0.4);
-}
-.plant-pot-wrapper.empty .plant-in-pot { opacity: 0.25; font-size: 28px !important; }
-.plant-pot-wrapper.empty .pot-body { opacity: 0.6; }
-
-/* ============================================
-   信息操作面板（贴在地面上的木质指示牌风格）
-   ============================================ */
+/* ═══════════════════════════════════════════════════════
+   信息操作面板 - 毛玻璃卡片
+   ═══════════════════════════════════════════════════════ */
 .plant-info-panel {
-    background: linear-gradient(180deg,
-        rgba(139,90,43,0.92) 0%,
-        rgba(121,68,35,0.96) 50%,
-        rgba(93,52,27,0.98) 100%
-    );
-    border-radius: 20px;
-    padding: 20px 24px;
-    border: 2px solid rgba(255,255,255,0.15);
-    box-shadow:
-        0 6px 24px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.1);
+    background: var(--glass-bg-heavy);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 24px;
+    padding: 24px 28px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), var(--glass-inset);
     display: flex;
-    gap: 20px;
+    gap: 24px;
     align-items: center;
     flex-wrap: wrap;
+    transition: all 0.5s var(--ease-smooth);
+    animation: panelSlideIn 0.7s var(--ease-smooth);
+    width: 100%;
+}
+
+@keyframes panelSlideIn {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .plant-info-left {
     flex: 1;
-    min-width: 200px;
+    min-width: 220px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 14px;
 }
 
-/* 主植物大大展示 */
+/* ═══════════════════════════════════════════════════════
+   中央植物展示 - 淡入淡出过渡
+   ═══════════════════════════════════════════════════════ */
 .plant-main-emoji {
-    font-size: 72px;
+    font-size: 80px;
     text-align: center;
     line-height: 1;
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
-    min-height: 80px;
+    filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.12));
+    min-height: 90px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.4s ease;
-}
-.plant-main-emoji.stage-0 { filter: grayscale(0.3) drop-shadow(0 2px 6px rgba(0,0,0,0.1)); }
-.plant-main-emoji.stage-1 { filter: drop-shadow(0 4px 10px rgba(0,0,0,0.15)); }
-.plant-main-emoji.stage-2 { filter: drop-shadow(0 6px 14px rgba(0,0,0,0.2)); }
-.plant-main-emoji.stage-3.mature {
-    filter: drop-shadow(0 8px 24px rgba(251,191,36,0.55)) brightness(1.12);
-    animation: harvestGlow 1.5s ease-in-out infinite;
+    transition: all 0.5s var(--ease-spring);
+    animation: emojiBreath 4s ease-in-out infinite;
 }
 
-/* 名称+阶段 */
-.plant-current-info { text-align: center; }
-.plant-current-name {
-    font-size: 20px;
-    font-weight: 900;
-    color: #FFF;
-    margin-bottom: 4px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+@keyframes emojiBreath {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
 }
+
+.plant-main-emoji.fade-out {
+    animation: emojiFadeOut 0.3s var(--ease-smooth) forwards;
+}
+
+.plant-main-emoji.fade-in {
+    animation: emojiFadeIn 0.4s var(--ease-smooth) forwards;
+}
+
+@keyframes emojiFadeOut {
+    to { opacity: 0; transform: scale(0.92); }
+}
+
+@keyframes emojiFadeIn {
+    from { opacity: 0; transform: scale(1.05); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.plant-main-emoji.stage-3.mature {
+    filter: drop-shadow(0 10px 28px rgba(248, 216, 120, 0.5)) brightness(1.15);
+    animation: mainEmojiGlow 2s ease-in-out infinite;
+}
+
+@keyframes mainEmojiGlow {
+    0%, 100% { filter: drop-shadow(0 10px 28px rgba(248, 216, 120, 0.45)) brightness(1.15); }
+    50% { filter: drop-shadow(0 14px 40px rgba(248, 216, 120, 0.55)) brightness(1.2); }
+}
+
+.plant-current-info {
+    text-align: center;
+    transition: all 0.3s var(--ease-smooth);
+}
+
+.plant-current-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+}
+
 .plant-current-stage {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 14px;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.2);
+    gap: 6px;
+    padding: 5px 16px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 20px;
     font-size: 12px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-secondary);
 }
 
-/* 计时器 */
-.plant-timer-display { text-align: center; }
+.plant-timer-display {
+    text-align: center;
+}
+
 .plant-timer-value {
-    font-size: 40px;
+    font-size: 42px;
     font-weight: 900;
-    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
-    color: #FFD700;
-    text-shadow: 0 2px 10px rgba(255,215,0,0.4), 0 0 30px rgba(255,215,0,0.2);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    color: var(--pot-dark);
+    text-shadow: 0 2px 12px rgba(180, 140, 100, 0.25);
     line-height: 1.1;
+    letter-spacing: -0.02em;
+    transition: color 0.3s;
 }
-.plant-timer-label-text { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 3px; }
 
-/* 状态条 */
+.plant-timer-label-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   自定义进度条 - 圆润轨道 + 内阴影 + 流光
+   ═══════════════════════════════════════════════════════ */
 .plant-status-bars {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 12px;
 }
+
 .plant-stat-row {
-    background: rgba(0,0,0,0.2);
-    border-radius: 10px;
-    padding: 8px 10px;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: all 0.3s var(--ease-smooth);
 }
+
+.plant-stat-row:hover {
+    background: rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+}
+
 .plant-stat-row-label {
     font-size: 11px;
-    color: rgba(255,255,255,0.7);
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 5px;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-weight: 600;
 }
-.plant-stat-row-value { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
-.plant-stat-row-value.water { color: #4FC3F7; }
-.plant-stat-row-value.nutrient { color: #FFD54F; }
-.plant-stat-row-bar { height: 5px; background: rgba(0,0,0,0.25); border-radius: 3px; overflow: hidden; }
-.plant-stat-row-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.plant-stat-row-fill.water { background: linear-gradient(90deg, #29B6F6, #4FC3F7); box-shadow: 0 0 6px rgba(41,182,246,0.5); }
-.plant-stat-row-fill.nutrient { background: linear-gradient(90deg, #FFA726, #FFD54F); box-shadow: 0 0 6px rgba(255,213,79,0.5); }
 
-/* 操作按钮行 */
-.plant-action-row { display: flex; gap: 10px; justify-content: center; }
+.plant-stat-row-value {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    transition: all 0.3s var(--ease-smooth);
+}
+
+.plant-stat-row-value.water { color: var(--btn-water); }
+.plant-stat-row-value.nutrient { color: #c8a858; }
+
+.plant-stat-row-value.bump {
+    animation: valueBump 0.4s var(--ease-spring);
+}
+
+@keyframes valueBump {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.plant-stat-row-bar {
+    position: relative;
+    height: 10px;
+    background: var(--water-track);
+    border-radius: 99px;
+    overflow: hidden;
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.08),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.plant-stat-row-bar.nutrient {
+    background: var(--nutrient-track);
+}
+
+.plant-stat-row-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.6s var(--ease-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+.plant-stat-row-fill.water {
+    background: linear-gradient(90deg, var(--water-fill-start), var(--water-fill-end));
+    box-shadow: 0 0 12px var(--water-glow);
+}
+
+.plant-stat-row-fill.nutrient {
+    background: linear-gradient(90deg, var(--nutrient-fill-start), var(--nutrient-fill-end));
+    box-shadow: 0 0 12px var(--nutrient-glow);
+}
+
+.plant-stat-row-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    50%, 100% { left: 150%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   操作按钮 - 马卡龙色 + 拟物质感
+   ═══════════════════════════════════════════════════════ */
+.plant-action-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
 .plant-action-btn {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 12px 10px;
-    border-radius: 16px;
+    gap: 5px;
+    padding: 14px 12px;
+    border-radius: 18px;
     border: none;
     cursor: pointer;
     font-size: 12px;
     font-weight: 700;
-    transition: all 0.2s ease;
-    min-height: 68px;
+    transition: all 0.35s var(--ease-spring);
+    min-height: 72px;
     justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        0 4px 12px var(--btn-plant-shadow),
+        0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.05);
 }
-.plant-action-btn .btn-icon { font-size: 28px; line-height: 1; }
-.plant-action-btn .btn-label { font-size: 11px; opacity: 0.85; }
+
+.plant-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent);
+    border-radius: 18px 18px 0 0;
+    pointer-events: none;
+}
+
+.plant-action-btn .btn-icon {
+    font-size: 30px;
+    line-height: 1;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s var(--ease-spring);
+}
+
+.plant-action-btn .btn-label {
+    font-size: 11px;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+}
+
+.plant-action-btn:hover {
+    transform: translateY(-3px);
+}
+
+.plant-action-btn:hover .btn-icon {
+    transform: scale(1.1);
+}
+
+.plant-action-btn:active {
+    transform: scale(0.95) translateY(0);
+    box-shadow:
+        0 2px 6px var(--btn-plant-shadow),
+        0 1px 2px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.plant-action-btn:disabled,
+.plant-action-btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
 .plant-action-btn.plant-btn {
-    background: linear-gradient(135deg, #66BB6A, #43A047);
+    background: linear-gradient(180deg, var(--btn-plant-hover), var(--btn-plant));
     color: white;
-    box-shadow: 0 4px 14px rgba(76,175,80,0.35);
 }
+
 .plant-action-btn.plant-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 22px rgba(76,175,80,0.45);
+    background: linear-gradient(180deg, #b0e0a8, var(--btn-plant-hover));
+    box-shadow:
+        0 8px 20px var(--btn-plant-shadow),
+        0 4px 8px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.05);
 }
+
 .plant-action-btn.water-btn {
-    background: linear-gradient(135deg, #29B6F6, #0288D1);
+    background: linear-gradient(180deg, var(--btn-water-hover), var(--btn-water));
     color: white;
-    box-shadow: 0 4px 14px rgba(41,182,246,0.35);
 }
+
 .plant-action-btn.water-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 22px rgba(41,182,246,0.45);
+    background: linear-gradient(180deg, #b0e8f5, var(--btn-water-hover));
+    box-shadow:
+        0 8px 20px var(--btn-water-shadow),
+        0 4px 8px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.05);
 }
+
 .plant-action-btn.nutrient-btn {
-    background: linear-gradient(135deg, #FFA726, #F57C00);
-    color: white;
-    box-shadow: 0 4px 14px rgba(255,167,38,0.35);
+    background: linear-gradient(180deg, var(--btn-nutrient-hover), var(--btn-nutrient));
+    color: #6a5a30;
 }
+
 .plant-action-btn.nutrient-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 22px rgba(255,167,38,0.45);
+    background: linear-gradient(180deg, #f0e8b0, var(--btn-nutrient-hover));
+    box-shadow:
+        0 8px 20px var(--btn-nutrient-shadow),
+        0 4px 8px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5),
+        inset 0 -2px 0 rgba(0, 0, 0, 0.05);
 }
+
 .plant-action-btn.harvest-btn {
-    background: linear-gradient(135deg, #FFD54F, #FF8F00);
-    color: #4E342E;
-    box-shadow: 0 4px 16px rgba(255,202,40,0.45);
-    animation: harvestBtnPulse 1.5s ease-in-out infinite;
+    background: linear-gradient(180deg, var(--btn-harvest-hover), var(--btn-harvest));
+    color: #6a5020;
+    animation: harvestBreathe 2s ease-in-out infinite;
 }
+
+@keyframes harvestBreathe {
+    0%, 100% { box-shadow: 0 6px 18px var(--btn-harvest-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+    50% { box-shadow: 0 8px 28px rgba(248, 216, 120, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+}
+
 .plant-action-btn.harvest-btn:hover {
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 10px 30px rgba(255,202,40,0.55);
+    background: linear-gradient(180deg, #ffe898, var(--btn-harvest-hover));
+    transform: translateY(-4px) scale(1.03);
 }
-@keyframes harvestBtnPulse {
-    0%, 100% { box-shadow: 0 4px 16px rgba(255,202,40,0.45); }
-    50% { box-shadow: 0 4px 28px rgba(255,202,40,0.7); }
-}
-.plant-action-btn:active { transform: scale(0.95); }
-.plant-action-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-.plant-action-btn.disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* 提示框 */
+.plant-action-btn.insulation-btn {
+    background: linear-gradient(180deg, var(--btn-insulation-hover), var(--btn-insulation));
+    color: white;
+}
+
+.plant-action-btn.insulation-btn.active {
+    background: linear-gradient(180deg, #f8a080, #e87860);
+    animation: insulationBreathe 1.5s ease-in-out infinite;
+}
+
+@keyframes insulationBreathe {
+    0%, 100% { box-shadow: 0 6px 18px rgba(232, 120, 96, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+    50% { box-shadow: 0 8px 30px rgba(232, 120, 96, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+}
+
 .plant-tip-box {
-    padding: 10px 14px;
-    background: rgba(0,0,0,0.25);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-left: 3px solid #FFD54F;
-    border-radius: 8px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-left: 4px solid var(--btn-nutrient);
+    border-radius: 10px;
     font-size: 12px;
-    color: rgba(255,255,255,0.85);
-    line-height: 1.5;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    transition: all 0.3s var(--ease-smooth);
 }
 
-/* ============================================
-   植物图鉴（博物志风格）
-   ============================================ */
-.plant-collection-section {
-    margin: 16px 20px 24px;
-    background: linear-gradient(180deg,
-        rgba(62,39,35,0.85) 0%,
-        rgba(50,30,25,0.92) 100%
-    );
+.weather-tip {
+    padding: 10px 16px;
+    background: var(--glass-bg);
     backdrop-filter: blur(12px);
-    border: 2px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 18px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+    animation: weatherTipFade 0.5s var(--ease-smooth);
+}
+
+@keyframes weatherTipFade {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.plant-collection-section {
+    margin: 16px auto 28px;
+    max-width: 1200px;
+    padding: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    animation: collectionSlideIn 0.8s var(--ease-smooth) 0.2s backwards;
+    width: calc(100% - 40px);
+}
+
+@keyframes collectionSlideIn {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .plant-collection-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
+
 .plant-collection-title {
     font-size: 14px;
     font-weight: 800;
-    color: #fff;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 6px;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
-/* 图鉴网格 - 8列 */
 .plant-collection-grid {
     display: grid;
     grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
+    gap: 10px;
 }
+
 .plant-collection-item {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 4px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    min-height: 68px;
+    padding: 10px 5px;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    transition: all 0.35s var(--ease-spring);
+    min-height: 72px;
     justify-content: center;
 }
+
 .plant-collection-item:hover {
-    background: rgba(255,255,255,0.12);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-}
-.plant-collection-item.owned {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.15);
+    background: rgba(255, 255, 255, 0.85);
+    transform: translateY(-4px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-/* 稀有度小圆点 */
+.plant-collection-item.owned {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.8);
+}
+
 .item-rarity-dot {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 6px;
-    height: 6px;
+    top: 5px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    box-shadow: 0 0 4px currentColor;
+    animation: rarityDotPulse 2s ease-in-out infinite;
 }
+
+@keyframes rarityDotPulse {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
 .plant-collection-item .item-emoji {
-    font-size: 26px;
-    margin-bottom: 2px;
+    font-size: 28px;
+    margin-bottom: 3px;
     line-height: 1.2;
+    transition: transform 0.3s var(--ease-spring);
 }
+
+.plant-collection-item:hover .item-emoji {
+    transform: scale(1.15);
+}
+
 .plant-collection-item .item-name {
     font-size: 9px;
-    color: rgba(255,255,255,0.6);
+    color: var(--text-muted);
     text-align: center;
     line-height: 1.3;
+    font-weight: 600;
 }
+
 .plant-collection-item .item-owned-tag {
     font-size: 8px;
     font-weight: 800;
-    padding: 1px 5px;
-    border-radius: 6px;
-    margin-top: 2px;
-    letter-spacing: 0.02em;
+    padding: 2px 6px;
+    border-radius: 8px;
+    margin-top: 3px;
 }
 
-/* ============================================
-   动画
-   ============================================ */
-@keyframes waterDrop {
-    0% { transform: translateY(-30px) scale(0.5); opacity: 0; }
-    30% { transform: translateY(0) scale(1.1); opacity: 1; }
-    50% { transform: translateY(5px) scale(1); opacity: 1; }
-    100% { transform: translateY(20px) scale(0.8); opacity: 0; }
+.falling-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
 }
+
+.falling-leaf {
+    position: absolute;
+    font-size: 16px;
+    opacity: 0.65;
+    animation: leafFall linear infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+@keyframes leafFall {
+    0% {
+        transform: translateY(-30px) rotate(0deg) translateX(0);
+        opacity: 0;
+    }
+    10% { opacity: 0.65; }
+    90% { opacity: 0.55; }
+    100% {
+        transform: translateY(100vh) rotate(360deg) translateX(40px);
+        opacity: 0;
+    }
+}
+
+#weather-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 6;
+    overflow: hidden;
+}
+
+.rain-drop {
+    position: absolute;
+    top: -30px;
+    width: 2px;
+    background: linear-gradient(180deg, transparent, rgba(120, 180, 220, 0.7), rgba(80, 150, 200, 0.9));
+    border-radius: 0 0 2px 2px;
+    animation: rainFall linear forwards;
+}
+
+@keyframes rainFall {
+    0% { transform: translateY(0); opacity: 0; }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(110vh); opacity: 0; }
+}
+
+.snow-flake {
+    position: absolute;
+    top: -20px;
+    color: rgba(220, 235, 255, 0.9);
+    text-shadow: 0 0 6px rgba(180, 210, 255, 0.8);
+    animation: snowFall linear forwards;
+    filter: drop-shadow(0 2px 4px rgba(180, 210, 255, 0.4));
+}
+
+@keyframes snowFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.9; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(100vh) rotate(360deg) translateX(30px); opacity: 0; }
+}
+
+.sand-particle {
+    position: absolute;
+    top: -10px;
+    background: rgba(200, 180, 140, 0.5);
+    border-radius: 50%;
+    animation: sandDrift linear forwards;
+}
+
+@keyframes sandDrift {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.4; }
+    100% { transform: translateY(100vh) translateX(-80px); opacity: 0; }
+}
+
+.gold-rain-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.gold-particle {
+    position: absolute;
+    font-size: 24px;
+    animation: goldRain 2.2s ease-out forwards;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.12));
+}
+
+@keyframes goldRain {
+    0% { transform: translateY(-80px) rotate(0deg); opacity: 0; }
+    8% { opacity: 1; }
+    85% { opacity: 0.7; }
+    100% { transform: translateY(110vh) rotate(600deg); opacity: 0; }
+}
+
+/* 操作反馈动画 */
+@keyframes waterDrop {
+    0% { transform: translateY(-40px) scale(0.4); opacity: 0; }
+    20% { transform: translateY(-10px) scale(1.1); opacity: 1; }
+    40% { transform: translateY(0) scale(1); opacity: 1; }
+    100% { transform: translateY(30px) scale(0.6); opacity: 0; }
+}
+
 .water-drop-anim::after {
     content: '💧';
     position: absolute;
-    top: -15px; left: 50%;
+    top: -18px;
+    left: 50%;
     transform: translateX(-50%);
-    font-size: 22px;
-    animation: waterDrop 0.8s ease-out forwards;
+    font-size: 24px;
+    animation: waterDrop 0.9s ease-out forwards;
+    filter: drop-shadow(0 3px 8px rgba(142, 200, 224, 0.5));
 }
 
 @keyframes nutrientPop {
-    0% { transform: translateY(-20px) scale(0.5); opacity: 0; }
-    40% { transform: translateY(0) scale(1.2); opacity: 1; }
-    100% { transform: translateY(15px) scale(0.9); opacity: 0; }
+    0% { transform: translateY(-30px) scale(0.3); opacity: 0; }
+    35% { transform: translateY(0) scale(1.3); opacity: 1; }
+    100% { transform: translateY(25px) scale(0.8); opacity: 0; }
 }
+
 .nutrient-pop-anim::after {
     content: '✨';
     position: absolute;
-    top: -10px; left: 50%;
+    top: -14px;
+    left: 50%;
     transform: translateX(-50%);
-    font-size: 20px;
-    animation: nutrientPop 0.7s ease-out forwards;
+    font-size: 22px;
+    animation: nutrientPop 0.8s ease-out forwards;
+    filter: drop-shadow(0 3px 8px rgba(232, 208, 144, 0.6));
 }
 
 @keyframes potShake {
     0% { transform: translateX(-50%) rotate(0deg); }
-    20% { transform: translateX(-50%) rotate(-4deg); }
-    40% { transform: translateX(-50%) rotate(4deg); }
-    60% { transform: translateX(-50%) rotate(-3deg); }
-    80% { transform: translateX(-50%) rotate(2deg); }
+    15% { transform: translateX(-50%) rotate(-5deg); }
+    30% { transform: translateX(-50%) rotate(5deg); }
+    45% { transform: translateX(-50%) rotate(-4deg); }
+    60% { transform: translateX(-50%) rotate(3deg); }
+    75% { transform: translateX(-50%) rotate(-2deg); }
     100% { transform: translateX(-50%) rotate(0deg); }
 }
-.pot-shake .pot-body { animation: potShake 0.5s ease-in-out; }
+
+.pot-shake .pot-body {
+    animation: potShake 0.6s ease-in-out;
+}
 
 @keyframes plantGrow {
-    0% { transform: translateX(-50%) scale(0.4); opacity: 0; }
-    60% { transform: translateX(-50%) scale(1.12); opacity: 1; }
-    100% { transform: translateX(-50%) scale(1); opacity: 1; }
-}
-.plant-grow-anim { animation: plantGrow 0.6s ease-out; }
-
-.gold-rain-container { position: fixed; inset: 0; pointer-events: none; z-index: 1000; }
-.gold-particle { position: absolute; font-size: 22px; animation: goldRain 2s ease-out forwards; }
-@keyframes goldRain {
-    0% { transform: translateY(-60px) rotate(0deg); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 0.8; }
-    100% { transform: translateY(100vh) rotate(540deg); opacity: 0; }
+    0% { transform: translateX(-50%) scale(0.3); opacity: 0; filter: grayscale(0.5); }
+    50% { transform: translateX(-50%) scale(1.15); opacity: 1; filter: grayscale(0); }
+    100% { transform: translateX(-50%) scale(1); opacity: 1; filter: grayscale(0); }
 }
 
-/* ============================================
-   响应式
-   ============================================ */
+.plant-grow-anim {
+    animation: plantGrow 0.7s var(--ease-spring);
+}
+
+.stage-up-flash {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.stage-up-flash::before {
+    content: '✨';
+    font-size: 42px;
+    animation: stageFlash 0.8s ease-out forwards;
+}
+
+@keyframes stageFlash {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 0; transform: scale(1.8); }
+}
+
+/* 天气背景类 */
+body.weather-clear .plant-sky {
+    background: linear-gradient(180deg, #9ec8e8 0%, #c8e4f0 30%, #e8f2f8 60%, #f5f9fc 100%);
+}
+
+body.weather-cloudy .plant-sky {
+    background: linear-gradient(180deg, #a8b5c0 0%, #c0c8ce 30%, #d8dfe4 60%, #e8ecf0 100%);
+}
+
+body.weather-rain .plant-sky {
+    background: linear-gradient(180deg, #6080a0 0%, #8098b0 30%, #a8b8c8 60%, #c8d0d8 100%);
+}
+
+body.weather-snow .plant-sky {
+    background: linear-gradient(180deg, #a0b0c0 0%, #c0cbd5 30%, #d8e0e8 60%, #e8eef2 100%);
+}
+
+body.weather-sandstorm .plant-sky {
+    background: linear-gradient(180deg, #c8b890 0%, #d8c8a0 30%, #e0d4b8 60%, #e8dcc4 100%);
+}
+
+/* 响应式 */
 @media (max-width: 768px) {
-    .plant-plot-grid { gap: 16px; }
+    .plant-plot-grid { gap: 18px; }
     .plant-pot-3d { width: 108px; height: 92px; }
     .pot-body { width: 90px; height: 66px; }
     .pot-soil { width: 72px; height: 13px; }
-    .plant-in-pot { font-size: 36px; bottom: 22px; }
+    .plant-in-pot { font-size: 36px; bottom: 20px; }
     .plant-in-pot.stage-0 { font-size: 22px; }
     .plant-in-pot.stage-1 { font-size: 30px; }
     .plant-in-pot.stage-2 { font-size: 40px; }
     .plant-in-pot.stage-3 { font-size: 48px; }
+
     .plant-collection-grid { grid-template-columns: repeat(5, 1fr); }
-    .plant-info-panel { padding: 14px 16px; gap: 12px; }
-    .plant-main-emoji { font-size: 56px; }
-    .plant-timer-value { font-size: 32px; }
+    .plant-info-panel { padding: 16px 18px; gap: 14px; }
+    .plant-main-emoji { font-size: 60px; min-height: 70px; }
+    .plant-timer-value { font-size: 34px; }
+
+    .plant-action-row { gap: 8px; }
+    .plant-action-btn { padding: 12px 8px; min-height: 64px; }
+    .plant-action-btn .btn-icon { font-size: 26px; }
 }
+
 @media (max-width: 480px) {
-    .plant-plot-grid { gap: 12px; }
+    .plant-plot-grid { gap: 14px; }
     .plant-pot-3d { width: 90px; height: 78px; }
     .pot-body { width: 76px; height: 56px; }
     .pot-soil { width: 60px; height: 11px; }
-    .plant-in-pot { font-size: 30px; bottom: 18px; }
+    .plant-in-pot { font-size: 30px; bottom: 16px; }
     .plant-in-pot.stage-0 { font-size: 18px; }
     .plant-in-pot.stage-1 { font-size: 26px; }
     .plant-in-pot.stage-2 { font-size: 34px; }
     .plant-in-pot.stage-3 { font-size: 40px; }
-    .plant-collection-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
-    .plant-collection-item { min-height: 60px; }
-    .plant-collection-item .item-emoji { font-size: 22px; }
+
+    .plant-collection-grid { grid-template-columns: repeat(5, 1fr); gap: 7px; }
+    .plant-collection-item { min-height: 64px; padding: 8px 4px; }
+    .plant-collection-item .item-emoji { font-size: 24px; }
+
     .plant-main-card { margin: 10px 10px 0; }
-    .plant-collection-section { margin: 12px 10px 20px; }
+    .plant-collection-section { margin: 12px 10px 24px; padding: 14px; }
+
+    .plant-status-bars { gap: 8px; }
+    .plant-stat-row { padding: 10px 12px; }
+    .plant-stat-row-bar { height: 8px; }
 }

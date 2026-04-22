@@ -23,6 +23,9 @@
     <!-- 地面背景 -->
     <div class="plant-ground"></div>
 
+    <!-- 装饰性落叶/花瓣粒子 -->
+    <div class="falling-particles" id="falling-particles"></div>
+
     <!-- 页面主体 -->
     <div class="plant-page">
 
@@ -30,7 +33,6 @@
         <nav class="plant-nav">
             <a href="javascript:void(0);" onclick="goBack()" class="plant-nav-back">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                <span>返回</span>
             </a>
             <div class="plant-nav-title">
                 <span class="nav-icon">🌱</span>
@@ -40,8 +42,18 @@
                 <div class="seed-display-nav">
                     <span class="seed-icon">🌰</span>
                     <span id="seed-count-nav">0</span>
-                    <span>颗种子</span>
                 </div>
+                <div class="weather-display" id="weather-widget">
+                    <span class="weather-icon" id="weather-icon">⛅</span>
+                    <span class="weather-temp" id="weather-temp">--°C</span>
+                    <span class="weather-city" id="weather-city">定位中</span>
+                </div>
+                <button class="weather-settings-btn" onclick="openWeatherSettings()" title="设置城市">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
             </div>
         </nav>
 
@@ -105,7 +117,13 @@
                             <span class="btn-icon">🌾</span>
                             <span class="btn-label">收获</span>
                         </button>
+                        <button class="plant-action-btn insulation-btn" id="insulation-btn" onclick="toggle保温罩()" style="display:none;">
+                            <span class="btn-icon">❄️</span>
+                            <span class="btn-label">保温罩</span>
+                        </button>
                     </div>
+
+                    <div class="weather-tip" id="weather-tip" style="display:none;"></div>
 
                     <div class="plant-tip-box" id="plant-tip">
                         💡 点击上方槽位，然后点击"种植"播下神秘种子！稀有度只有在收获时才会揭晓~

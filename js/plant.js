@@ -2,6 +2,12 @@
 // 植物数据：80种，5个稀有度
 // 普通30 + 稀有20 + 精良15 + 史诗10 + 传说5 = 80种
 // ============================================================
+
+// 装饰性粒子配置
+const DECORATIVE_LEAVES = ['🍃', '🍂', '🌿', '🌸', '💮', '🪷', '🌺'];
+const PARTICLE_COUNT = 8;
+const PARTICLE_LIFETIME = 12000; // 12秒
+
 const PLANT_DATA = [
     // ─── 普通 common (30种) ───
     { id: 'carrot',    name: '🥕 胡萝卜',   emoji: '🥕', stages: ['🌱','🌿','🥕','🥕'], growTime: 60,  desc: '基础根茎', rarity: 'common' },
@@ -122,6 +128,651 @@ const WATER_DECAY_RATE = 2;
 const NUTRIENT_DECAY_RATE = 1;
 const WATER_TIME_REDUCTION = 5 * 60;
 const NUTRIENT_TIME_REDUCTION = 15 * 60;
+
+// ============================================================
+// 天气 API 配置 - 使用 Open-Meteo (免费无需 API key)
+// ============================================================
+
+// 天气类型映射
+const WEATHER_TYPES = {
+    CLEAR: 'clear',       // 晴天
+    CLOUDY: 'cloudy',     // 多云/阴天
+    RAIN: 'rain',         // 雨天
+    SNOW: 'snow',         // 雪天
+    SANDSTORM: 'sandstorm' // 沙尘暴
+};
+
+// 天气配置
+const WEATHER_CONFIG = {
+    clear: {
+        name: '晴天',
+        icon: '☀️',
+        growthRate: 1.15,
+        waterDecayRate: 2.5,
+        nutrientDecayRate: 1.2,
+        bgHue: 195,
+        particleEffect: 'none'
+    },
+    cloudy: {
+        name: '多云',
+        icon: '⛅',
+        growthRate: 1.0,
+        waterDecayRate: 1.0,
+        nutrientDecayRate: 1.0,
+        bgHue: 200,
+        particleEffect: 'none'
+    },
+    rain: {
+        name: '雨天',
+        icon: '🌧️',
+        growthRate: 1.05,
+        waterDecayRate: 0,
+        nutrientDecayRate: 0.8,
+        bgHue: 220,
+        particleEffect: 'rain'
+    },
+    snow: {
+        name: '雪天',
+        icon: '❄️',
+        growthRate: 0.4,
+        waterDecayRate: 0.3,
+        nutrientDecayRate: 0.5,
+        bgHue: 230,
+        particleEffect: 'snow'
+    },
+    sandstorm: {
+        name: '沙尘暴',
+        icon: '🌪️',
+        growthRate: 0.6,
+        waterDecayRate: 1.8,
+        nutrientDecayRate: 1.5,
+        bgHue: 35,
+        particleEffect: 'sand'
+    }
+};
+
+let weatherState = {
+    currentWeather: 'cloudy',
+    temperature: 20,
+    city: '',
+    cityId: '',
+    lastUpdate: 0,
+   保温罩: false  // 雪天保温
+};
+
+// ============================================================
+// 天气系统
+// ============================================================
+async function initWeather() {
+    console.log('Initializing weather...');
+
+    // 强制清除旧缓存，重新获取
+    localStorage.removeItem('starlearn_weather');
+
+    await fetchWeather();
+
+    // 确保 UI 更新
+    console.log('Final weather state:', weatherState);
+    updateWeatherDisplay();
+}
+
+async function fetchWeather() {
+    const city = localStorage.getItem('starlearn_weather_city');
+    if (!city) {
+        // 默认使用 IP 定位
+        await fetchWeatherByIP();
+        return;
+    }
+    await fetchWeatherByCity(city);
+}
+
+async function fetchWeatherByIP() {
+    // 首先检查浏览器是否支持 Geolocation API
+    if (!navigator.geolocation) {
+        console.warn('Geolocation not supported, using default');
+        setDefaultWeatherWithCity('定位不支持');
+        return;
+    }
+
+    // 使用浏览器原生 Geolocation API
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                console.log('Got coordinates:', lat, lon);
+
+                // 保存坐标
+                weatherState.lat = lat;
+                weatherState.lon = lon;
+
+                try {
+                    // 尝试 BigDataCloud 逆地理编码 (支持 CORS)
+                    const bdcRes = await fetch(
+                        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}`
+                    );
+                    if (bdcRes.ok) {
+                        const bdcData = await bdcRes.json();
+                        const cityName = bdcData.city || bdcData.locality || bdcData.principalSubdivision;
+                        if (cityName) {
+                            console.log('BigDataCloud reverse geocoded city:', cityName);
+                            weatherState.city = cityName;
+                            localStorage.setItem('starlearn_weather_city', cityName);
+                            await fetchWeatherByCity(cityName);
+                            resolve();
+                            return;
+                        }
+                    }
+
+                    // 备用：尝试 Open-Meteo 逆地理编码
+                    try {
+                        const reverseGeoRes = await fetch(
+                            `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&language=zh&count=1`
+                        );
+                        if (reverseGeoRes.ok) {
+                            const reverseGeoData = await reverseGeoRes.json();
+                            if (reverseGeoData.results && reverseGeoData.results[0]) {
+                                const cityName = reverseGeoData.results[0].name;
+                                console.log('Open-Meteo reverse geocoded city:', cityName);
+                                weatherState.city = cityName;
+                                localStorage.setItem('starlearn_weather_city', cityName);
+                                await fetchWeatherByCity(cityName);
+                                resolve();
+                                return;
+                            }
+                        }
+                    } catch (omErr) {
+                        console.warn('Open-Meteo reverse geocoding failed:', omErr);
+                    }
+
+                    // 备用：尝试 Nominatim
+                    try {
+                        const nominatimRes = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`,
+                            { headers: { 'User-Agent': 'StarLearn-App/1.0' } }
+                        );
+                        if (nominatimRes.ok) {
+                            const nominatimData = await nominatimRes.json();
+                            if (nominatimData.address) {
+                                const city = nominatimData.address.city ||
+                                           nominatimData.address.town ||
+                                           nominatimData.address.village ||
+                                           nominatimData.address.county ||
+                                           nominatimData.address.state;
+                                if (city) {
+                                    console.log('Nominatim reverse geocoded city:', city);
+                                    weatherState.city = city;
+                                    localStorage.setItem('starlearn_weather_city', city);
+                                    await fetchWeatherByCity(city);
+                                    resolve();
+                                    return;
+                                }
+                            }
+                        }
+                    } catch (nominatimErr) {
+                        console.warn('Nominatim reverse geocoding failed:', nominatimErr);
+                    }
+
+                    // 如果所有逆地理编码都失败，直接用坐标获取天气
+                    weatherState.city = '定位中';
+                    localStorage.setItem('starlearn_weather_city', '定位中');
+                    await fetchWeatherByCoordinates(lat, lon);
+                    resolve();
+                } catch (e) {
+                    console.error('All reverse geocoding failed:', e);
+                    weatherState.city = '定位中';
+                    localStorage.setItem('starlearn_weather_city', '定位中');
+                    await fetchWeatherByCoordinates(lat, lon);
+                    resolve();
+                }
+            },
+            async (error) => {
+                console.warn('Geolocation error:', error.message);
+                // 定位被拒绝或失败时，使用默认城市让用户手动设置
+                setDefaultWeatherWithCity('请点击设置城市');
+                resolve();
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000 // 缓存5分钟
+            }
+        );
+    });
+}
+
+// 通过坐标获取天气（不通过城市名）
+async function fetchWeatherByCoordinates(lat, lon) {
+    try {
+        const weatherRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`
+        );
+        if (!weatherRes.ok) throw new Error('Weather fetch failed');
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.current_weather) {
+            weatherState.lastUpdate = Date.now();
+            processWeatherDataFromOpenMeteo(weatherData.current_weather);
+            applyWeatherEffect(weatherState.currentWeather);
+            updateWeatherDisplay();
+            saveWeatherState();
+        } else {
+            setDefaultWeatherWithCity(weatherState.city);
+        }
+    } catch (e) {
+        console.error('Weather fetch by coordinates failed:', e);
+        setDefaultWeatherWithCity(weatherState.city);
+    }
+}
+
+// 使用 Open-Meteo 免费天气 API
+async function fetchWeatherByCity(cityName) {
+    try {
+        // 1. 先用 Open-Meteo Geocoding API 获取城市坐标
+        const geoRes = await fetch(
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=zh&format=json`
+        );
+        if (!geoRes.ok) throw new Error('Geo lookup failed');
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+            throw new Error('City not found');
+        }
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+        weatherState.city = name;
+
+        // 2. 用坐标获取天气
+        const weatherRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=auto`
+        );
+        if (!weatherRes.ok) throw new Error('Weather fetch failed');
+        const weatherData = await weatherRes.json();
+
+        if (weatherData.current_weather) {
+            weatherState.lastUpdate = Date.now();
+            processWeatherDataFromOpenMeteo(weatherData.current_weather);
+            applyWeatherEffect(weatherState.currentWeather);
+            updateWeatherDisplay();
+            saveWeatherState();
+        } else {
+            setDefaultWeatherWithCity(name);
+        }
+    } catch (e) {
+        console.error('Weather fetch by city failed:', e);
+        setDefaultWeatherWithCity(cityName || '未知');
+    }
+}
+
+// 处理 Open-Meteo 天气数据
+function processWeatherDataFromOpenMeteo(weather) {
+    weatherState.temperature = Math.round(weather.temperature);
+    const weatherCode = weather.weathercode;
+
+    // WMO 天气码映射到我们的天气类型
+    // 0: 晴天, 1-3: 多云, 45-48: 雾, 51-67: 雨, 71-77: 雪, 80-82: 阵雨, 85-86: 阵雪, 95-99: 雷暴
+    if (weatherCode === 0) {
+        weatherState.currentWeather = WEATHER_TYPES.CLEAR;
+    } else if (weatherCode >= 1 && weatherCode <= 3) {
+        weatherState.currentWeather = WEATHER_TYPES.CLOUDY;
+    } else if (weatherCode >= 45 && weatherCode <= 48) {
+        weatherState.currentWeather = WEATHER_TYPES.CLOUDY; // 雾按多云处理
+    } else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
+        weatherState.currentWeather = WEATHER_TYPES.RAIN;
+    } else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
+        weatherState.currentWeather = WEATHER_TYPES.SNOW;
+    } else if (weatherCode >= 95) {
+        weatherState.currentWeather = WEATHER_TYPES.RAIN; // 雷暴按雨天处理
+    } else {
+        weatherState.currentWeather = WEATHER_TYPES.CLOUDY;
+    }
+}
+
+function setDefaultWeatherWithCity(cityName) {
+    weatherState.currentWeather = WEATHER_TYPES.CLOUDY;
+    weatherState.temperature = 20;
+    weatherState.city = cityName;
+    weatherState.lastUpdate = Date.now();
+    applyWeatherEffect(WEATHER_TYPES.CLOUDY);
+    updateWeatherDisplay();
+}
+
+function processWeatherData(nowData) {
+    weatherState.temperature = parseInt(nowData.temp) || 20;
+    const weatherCode = parseInt(nowData.icon);
+
+    // 根据天气码判断天气类型
+    let weatherType = WEATHER_TYPES.CLOUDY;
+
+    // 和风天气码映射：1xx=晴, 2xx=阴天, 3xx=雨, 4xx=雪, 5xx=雾, 6xx=沙尘, 7xx=大风, 8xx=云, 9xx=晴天
+    if (weatherCode >= 100 && weatherCode < 104) {
+        weatherType = WEATHER_TYPES.CLEAR;
+    } else if ((weatherCode >= 104 && weatherCode < 150) || (weatherCode >= 152 && weatherCode < 160)) {
+        weatherType = WEATHER_TYPES.CLOUDY;
+    } else if (weatherCode >= 300 && weatherCode < 350) {
+        weatherType = WEATHER_TYPES.RAIN;
+    } else if (weatherCode >= 400 && weatherCode < 450) {
+        weatherType = WEATHER_TYPES.SNOW;
+    } else if (weatherCode >= 500 && weatherCode < 515) {
+        weatherType = WEATHER_TYPES.RAIN; // 雾按雨天处理
+    } else if (weatherCode >= 600 && weatherCode < 630) {
+        weatherType = WEATHER_TYPES.SANDSTORM;
+    } else if (weatherCode >= 150 && weatherCode < 160) {
+        weatherType = WEATHER_TYPES.CLOUDY;
+    } else if (weatherCode >= 160 && weatherCode < 170) {
+        weatherType = WEATHER_TYPES.CLOUDY;
+    } else if (weatherCode >= 170 && weatherCode < 200) {
+        weatherType = WEATHER_TYPES.CLEAR;
+    } else {
+        weatherType = WEATHER_TYPES.CLOUDY;
+    }
+
+    weatherState.currentWeather = weatherType;
+    weatherState.lastUpdate = Date.now();
+    saveWeatherState();
+    applyWeatherEffect(weatherType);
+
+    // 更新UI显示
+    updateWeatherDisplay();
+}
+
+function setDefaultWeather() {
+    weatherState.currentWeather = WEATHER_TYPES.CLOUDY;
+    weatherState.temperature = 20;
+    // 不覆盖城市名，保持已有值
+    weatherState.lastUpdate = Date.now();
+    applyWeatherEffect(WEATHER_TYPES.CLOUDY);
+    updateWeatherDisplay();
+}
+
+function saveWeatherState() {
+    localStorage.setItem('starlearn_weather', JSON.stringify(weatherState));
+}
+
+function updateWeatherDisplay() {
+    const tempDisplay = document.getElementById('weather-temp');
+    const iconDisplay = document.getElementById('weather-icon');
+    const cityDisplay = document.getElementById('weather-city');
+
+    if (tempDisplay) tempDisplay.textContent = weatherState.temperature + '°C';
+    if (iconDisplay) iconDisplay.textContent = WEATHER_CONFIG[weatherState.currentWeather].icon;
+    if (cityDisplay) cityDisplay.textContent = weatherState.city;
+
+    // 应用天气背景类
+    document.body.className = 'weather-' + weatherState.currentWeather;
+}
+
+function applyWeatherEffect(weatherType) {
+    const config = WEATHER_CONFIG[weatherType];
+    if (!config) return;
+
+    // 更新背景色调
+    document.documentElement.style.setProperty('--weather-hue', config.bgHue);
+
+    // 清除现有粒子效果
+    clearWeatherParticles();
+
+    // 应用新的粒子效果
+    switch (config.particleEffect) {
+        case 'rain':
+            startRainEffect();
+            break;
+        case 'snow':
+            startSnowEffect();
+            break;
+        case 'sand':
+            startSandEffect();
+            break;
+    }
+}
+
+function clearWeatherParticles() {
+    const container = document.getElementById('weather-particles');
+    if (container) {
+        container.innerHTML = '';
+    }
+}
+
+// ============================================================
+// 雨滴效果
+// ============================================================
+let rainInterval = null;
+
+function startRainEffect() {
+    const container = document.getElementById('weather-particles') || createWeatherContainer();
+    if (!container) return;
+
+    stopWeatherEffect();
+
+    const createRainDrop = () => {
+        const drop = document.createElement('div');
+        drop.className = 'rain-drop';
+        drop.style.left = Math.random() * 100 + '%';
+        drop.style.animationDuration = (0.5 + Math.random() * 0.3) + 's';
+        drop.style.opacity = 0.3 + Math.random() * 0.5;
+        drop.style.width = (1 + Math.random() * 2) + 'px';
+        drop.style.height = (15 + Math.random() * 20) + 'px';
+        container.appendChild(drop);
+
+        setTimeout(() => drop.remove(), 1200);
+    };
+
+    // 初始创建
+    for (let i = 0; i < 50; i++) {
+        setTimeout(createRainDrop, i * 20);
+    }
+
+    // 持续生成
+    rainInterval = setInterval(() => {
+        for (let i = 0; i < 5; i++) {
+            createRainDrop();
+        }
+    }, 100);
+}
+
+function stopWeatherEffect() {
+    if (rainInterval) {
+        clearInterval(rainInterval);
+        rainInterval = null;
+    }
+    if (snowInterval) {
+        clearInterval(snowInterval);
+        snowInterval = null;
+    }
+}
+
+// ============================================================
+// 雪花效果
+// ============================================================
+let snowInterval = null;
+
+function startSnowEffect() {
+    const container = document.getElementById('weather-particles') || createWeatherContainer();
+    if (!container) return;
+
+    stopWeatherEffect();
+
+    const createSnowflake = () => {
+        const flake = document.createElement('div');
+        flake.className = 'snow-flake';
+        flake.textContent = ['❄', '❅', '❆', '✦', '✧'][Math.floor(Math.random() * 5)];
+        flake.style.left = Math.random() * 100 + '%';
+        flake.style.animationDuration = (4 + Math.random() * 4) + 's';
+        flake.style.opacity = 0.5 + Math.random() * 0.5;
+        flake.style.fontSize = (8 + Math.random() * 12) + 'px';
+        container.appendChild(flake);
+
+        setTimeout(() => flake.remove(), 9000);
+    };
+
+    // 初始创建
+    for (let i = 0; i < 30; i++) {
+        setTimeout(createSnowflake, i * 200);
+    }
+
+    // 持续生成
+    snowInterval = setInterval(() => {
+        for (let i = 0; i < 3; i++) {
+            createSnowflake();
+        }
+    }, 500);
+}
+
+// ============================================================
+// 沙尘效果
+// ============================================================
+let sandInterval = null;
+
+function startSandEffect() {
+    const container = document.getElementById('weather-particles') || createWeatherContainer();
+    if (!container) return;
+
+    stopWeatherEffect();
+
+    const createSandParticle = () => {
+        const particle = document.createElement('div');
+        particle.className = 'sand-particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDuration = (3 + Math.random() * 3) + 's';
+        particle.style.opacity = 0.2 + Math.random() * 0.4;
+        particle.style.width = (2 + Math.random() * 4) + 'px';
+        particle.style.height = (2 + Math.random() * 4) + 'px';
+        particle.style.background = `rgba(200, 170, 120, ${0.3 + Math.random() * 0.4})`;
+        container.appendChild(particle);
+
+        setTimeout(() => particle.remove(), 7000);
+    };
+
+    // 初始创建
+    for (let i = 0; i < 40; i++) {
+        setTimeout(createSandParticle, i * 100);
+    }
+
+    // 持续生成
+    sandInterval = setInterval(() => {
+        for (let i = 0; i < 4; i++) {
+            createSandParticle();
+        }
+    }, 200);
+}
+
+function createWeatherContainer() {
+    const existing = document.getElementById('weather-particles');
+    if (existing) return existing;
+
+    const container = document.createElement('div');
+    container.id = 'weather-particles';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 4;
+        overflow: hidden;
+    `;
+    document.body.appendChild(container);
+    return container;
+}
+
+// ============================================================
+// 保温罩功能（雪天）
+// ============================================================
+function toggle保温罩() {
+    if (weatherState.currentWeather !== WEATHER_TYPES.SNOW) {
+        showTip('❄️ 只有雪天才需要保温罩！');
+        return;
+    }
+
+    weatherState.保温罩 = !weatherState.保温罩;
+    update保温罩Display();
+
+    if (weatherState.保温罩) {
+        showTip('🔥 保温罩已开启，植物生长速度恢复 80%！');
+        triggerHarvestEffect(true);
+    } else {
+        showTip('❄️ 保温罩已关闭，植物生长缓慢...');
+    }
+}
+
+function update保温罩Display() {
+    const btn = document.getElementById('insulation-btn');
+    if (!btn) return;
+
+    if (weatherState.保温罩) {
+        btn.style.background = 'linear-gradient(135deg, #ff7043, #ff5722)';
+        btn.style.boxShadow = '0 6px 20px rgba(255, 112, 67, 0.5)';
+        btn.innerHTML = '<span class="btn-icon">🔥</span><span class="btn-label">保温中</span>';
+    } else {
+        btn.style.background = 'linear-gradient(135deg, #90a4ae, #607d8b)';
+        btn.style.boxShadow = '0 6px 20px rgba(96, 125, 139, 0.3)';
+        btn.innerHTML = '<span class="btn-icon">❄️</span><span class="btn-label">保温罩</span>';
+    }
+}
+
+// 获取当前天气加成
+function getWeatherGrowthMultiplier() {
+    const config = WEATHER_CONFIG[weatherState.currentWeather];
+    if (!config) return 1;
+
+    let rate = config.growthRate;
+
+    // 雪天且开启保温罩
+    if (weatherState.currentWeather === WEATHER_TYPES.SNOW && weatherState.保温罩) {
+        rate = Math.max(rate, 0.8); // 保温罩恢复80%生长
+    }
+
+    return rate;
+}
+
+function getWeatherWaterDecayMultiplier() {
+    const config = WEATHER_CONFIG[weatherState.currentWeather];
+    return config ? config.waterDecayRate : 1;
+}
+
+function getWeatherNutrientDecayMultiplier() {
+    const config = WEATHER_CONFIG[weatherState.currentWeather];
+    return config ? config.nutrientDecayRate : 1;
+}
+
+// ============================================================
+// 天气 UI 渲染
+// ============================================================
+function renderWeatherUI() {
+    return `
+        <div class="weather-display" id="weather-display">
+            <span class="weather-icon" id="weather-icon">⛅</span>
+            <span class="weather-temp" id="weather-temp">--°C</span>
+            <span class="weather-city" id="weather-city">定位中</span>
+        </div>
+        <button class="weather-settings-btn" onclick="openWeatherSettings()" title="设置城市">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </button>
+    `;
+}
+
+// 天气设置弹窗
+function openWeatherSettings() {
+    const currentCity = localStorage.getItem('starlearn_weather_city') || '';
+    const input = prompt('请输入城市名称（如：北京、上海）:\n留空则使用自动定位', currentCity);
+    if (input === null) return; // 用户取消
+
+    const city = input.trim();
+    if (city) {
+        localStorage.setItem('starlearn_weather_city', city);
+        showTip(`🌍 已设置城市为：${city}，正在获取天气...`);
+        fetchWeatherByCity(city);
+    } else {
+        localStorage.removeItem('starlearn_weather_city');
+        showTip('🌍 已切换为自动定位，正在获取天气...');
+        fetchWeatherByIP();
+    }
+}
 const PLANT_SLOTS = 3;
 
 let plantState = {
@@ -153,7 +804,77 @@ function init() {
     renderPlantPots();
     renderCurrentPlant();
     startGrowthTimer();
-    // 粒子效果已移除，使用 CSS 天空背景
+    // 启动装饰性落叶/花瓣粒子
+    startDecorativeParticles();
+    // 初始化天气系统（异步）
+    initWeather().then(() => {
+        console.log('Weather initialized:', weatherState);
+    }).catch(e => {
+        console.error('Weather init failed:', e);
+    });
+}
+
+// ============================================================
+// 装饰性落叶/花瓣粒子效果 - 营造治愈氛围
+// ============================================================
+function createFallingParticle() {
+    const container = document.getElementById('falling-particles');
+    if (!container) return;
+
+    const leaf = document.createElement('div');
+    leaf.className = 'falling-leaf';
+    leaf.textContent = DECORATIVE_LEAVES[Math.floor(Math.random() * DECORATIVE_LEAVES.length)];
+    leaf.style.left = Math.random() * 100 + '%';
+    leaf.style.animationDuration = (10 + Math.random() * 8) + 's';
+    leaf.style.animationDelay = Math.random() * 2 + 's';
+    leaf.style.fontSize = (14 + Math.random() * 10) + 'px';
+    leaf.style.opacity = 0.5 + Math.random() * 0.4;
+
+    container.appendChild(leaf);
+
+    setTimeout(() => {
+        if (leaf.parentNode) {
+            leaf.remove();
+        }
+    }, PARTICLE_LIFETIME);
+}
+
+function startDecorativeParticles() {
+    // 初始创建几个粒子
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => createFallingParticle(), i * 1500);
+    }
+    // 持续生成粒子
+    setInterval(() => {
+        if (document.querySelectorAll('.falling-leaf').length < PARTICLE_COUNT) {
+            createFallingParticle();
+        }
+    }, 3000 + Math.random() * 4000);
+}
+
+// ============================================================
+// 阶段升级闪光效果
+// ============================================================
+function triggerStageUpEffect(slotIndex) {
+    const display = document.getElementById(`plant-display-${slotIndex}`) || document.getElementById('plant-display');
+    const potWrapper = document.querySelector(`.plant-pot-wrapper[data-slot='${slotIndex}']`);
+
+    if (display) {
+        display.classList.remove('plant-grow-anim');
+        void display.offsetWidth;
+        display.classList.add('plant-grow-anim');
+    }
+
+    // 添加闪光效果
+    if (potWrapper) {
+        const flash = document.createElement('div');
+        flash.className = 'stage-up-flash';
+        potWrapper.appendChild(flash);
+        setTimeout(() => flash.remove(), 1000);
+    }
+
+    // 触发收获粒子效果（少量）
+    triggerHarvestEffect(true);
 }
 
 function loadPlantState() {
@@ -374,6 +1095,8 @@ function renderCurrentPlant() {
     const nutrientBar = document.getElementById('nutrient-bar');
     const plantBtn = document.getElementById('plant-btn');
     const tipEl = document.getElementById('plant-tip');
+    const waterBtn = document.getElementById('water-btn');
+    const nutrientBtn = document.getElementById('nutrient-btn');
 
     if (!slot || !slot.plantId) {
         if (display) { display.textContent = '🌱'; display.className = 'plant-main-emoji stage-0'; }
@@ -416,8 +1139,6 @@ function renderCurrentPlant() {
     if (nutrientBar) nutrientBar.style.width = Math.round(slot.nutrient) + '%';
 
     // 更新浇水/施肥按钮状态
-    const waterBtn = document.getElementById('water-btn');
-    const nutrientBtn = document.getElementById('nutrient-btn');
     if (waterBtn) {
         if (slot.water >= 100) {
             waterBtn.classList.add('disabled');
@@ -456,6 +1177,20 @@ function renderCurrentPlant() {
         if (plantBtn) plantBtn.style.display = 'none';
     }
 
+    // 雪天显示保温罩按钮
+    const insulationBtn = document.getElementById('insulation-btn');
+    if (insulationBtn) {
+        if (weatherState.currentWeather === WEATHER_TYPES.SNOW && !isMature) {
+            insulationBtn.style.display = 'flex';
+            update保温罩Display();
+        } else {
+            insulationBtn.style.display = 'none';
+        }
+    }
+
+    // 更新天气提示
+    updateWeatherGrowthTip();
+
     updateTimerDisplay();
 }
 
@@ -486,11 +1221,22 @@ function startGrowthTimer() {
     setInterval(() => {
         const now = Date.now();
         let changed = false;
+
+        // 获取天气加成
+        const growthMult = getWeatherGrowthMultiplier();
+        const waterDecayMult = getWeatherWaterDecayMultiplier();
+        const nutrientDecayMult = getWeatherNutrientDecayMultiplier();
+
         plantState.slots.forEach((slot, idx) => {
             if (!slot || !slot.plantId || slot.stage >= 3) return;
-            slot.remainingTime = Math.max(0, slot.remainingTime - 1);
-            slot.water = Math.max(0, slot.water - (WATER_DECAY_RATE / 3600));
-            slot.nutrient = Math.max(0, slot.nutrient - (NUTRIENT_DECAY_RATE / 3600));
+
+            // 应用天气加成的生长时间流逝
+            const adjustedTimeDecay = growthMult;
+            slot.remainingTime = Math.max(0, slot.remainingTime - adjustedTimeDecay);
+
+            // 应用天气加成的水分/营养消耗
+            slot.water = Math.max(0, slot.water - (WATER_DECAY_RATE / 3600) * waterDecayMult);
+            slot.nutrient = Math.max(0, slot.nutrient - (NUTRIENT_DECAY_RATE / 3600) * nutrientDecayMult);
 
             const plant = PLANT_DATA.find(p => p.id === slot.plantId);
             if (plant) {
@@ -514,8 +1260,38 @@ function startGrowthTimer() {
             savePlantState();
             renderPlantPots();
             renderCurrentPlant();
+            updateWeatherGrowthTip();
         }
     }, 1000);
+}
+
+// 更新天气提示
+function updateWeatherGrowthTip() {
+    const config = WEATHER_CONFIG[weatherState.currentWeather];
+    if (!config || config.growthRate === 1) return;
+
+    const tipEl = document.getElementById('weather-tip');
+    if (!tipEl) return;
+
+    let tipText = '';
+    if (weatherState.currentWeather === WEATHER_TYPES.CLEAR) {
+        tipText = '☀️ 晴天生长加速，但水分消耗加剧！';
+    } else if (weatherState.currentWeather === WEATHER_TYPES.RAIN) {
+        tipText = '🌧️ 雨天自动浇水，水分充足！';
+    } else if (weatherState.currentWeather === WEATHER_TYPES.SNOW) {
+        if (weatherState.保温罩) {
+            tipText = '❄️ 雪天！保温罩已开启，生长恢复80%';
+        } else {
+            tipText = '❄️ 雪天生长极缓，点击"保温罩"保护植物！';
+        }
+    } else if (weatherState.currentWeather === WEATHER_TYPES.SANDSTORM) {
+        tipText = '🌪️ 沙尘暴！生长减缓40%...';
+    }
+
+    if (tipText) {
+        tipEl.textContent = tipText;
+        tipEl.style.display = 'block';
+    }
 }
 
 function plantAction(action) {
@@ -530,20 +1306,27 @@ function plantAction(action) {
             showTip('💧 水分已达上限，无需再浇水！');
             return;
         }
+        const oldWater = slot.water;
         slot.water = Math.min(100, slot.water + WATER_PER_ACTION);
         slot.remainingTime = Math.max(0, slot.remainingTime - WATER_TIME_REDUCTION);
+
+        // 柔和的生长脉冲动画
         if (displayEl) {
             displayEl.classList.remove('plant-grow-anim');
             void displayEl.offsetWidth;
             displayEl.classList.add('plant-grow-anim');
         }
+        // 水滴效果
         if (potWrapper) {
             potWrapper.classList.remove('water-drop-anim');
             void potWrapper.offsetWidth;
             potWrapper.classList.add('water-drop-anim');
-            setTimeout(() => potWrapper.classList.remove('water-drop-anim'), 900);
+            setTimeout(() => potWrapper.classList.remove('water-drop-anim'), 1000);
         }
         showTip('💧 浇水成功！水分+' + WATER_PER_ACTION + '%，生长时间缩短5分钟~');
+
+        // 数值跳动动画
+        triggerValueBump('water-value');
     } else if (action === 'nutrient') {
         if (slot.nutrient >= 100) {
             showTip('🧪 营养已达上限，无需再施肥！');
@@ -551,24 +1334,33 @@ function plantAction(action) {
         }
         slot.nutrient = Math.min(100, slot.nutrient + NUTRIENT_PER_ACTION);
         slot.remainingTime = Math.max(0, slot.remainingTime - NUTRIENT_TIME_REDUCTION);
+
+        // 柔和的生长脉冲动画
         if (displayEl) {
             displayEl.classList.remove('plant-grow-anim');
             void displayEl.offsetWidth;
             displayEl.classList.add('plant-grow-anim');
         }
+        // 营养闪光效果
         if (potWrapper) {
             potWrapper.classList.remove('nutrient-pop-anim');
             void potWrapper.offsetWidth;
             potWrapper.classList.add('nutrient-pop-anim');
-            setTimeout(() => potWrapper.classList.remove('nutrient-pop-anim'), 800);
+            setTimeout(() => potWrapper.classList.remove('nutrient-pop-anim'), 900);
         }
         showTip('🧪 施肥成功！营养+' + NUTRIENT_PER_ACTION + '%，生长时间缩短15分钟~');
+
+        // 数值跳动动画
+        triggerValueBump('nutrient-value');
     } else if (action === 'harvest') {
         if (slot.stage < 3) return;
-        const plant = PLANT_DATA.find(p => p.id === slot.plantId);
+
         const rarityName = RARITY_NAMES[slot.plantRarity] || '普通';
         const rarityColor = RARITY_COLORS[slot.plantRarity] || '#9CA3AF';
-        triggerHarvestEffect();
+
+        // 收获动画 - 先播放粒子
+        triggerHarvestEffect(false);
+
         // 右上角推送通知，揭晓真实植物和稀有度
         if (window.starlearnNotifications && typeof window.starlearnNotifications.showNotification === 'function') {
             window.starlearnNotifications.showNotification({
@@ -580,6 +1372,7 @@ function plantAction(action) {
             });
         }
         showTip(`🌾 收获成功！稀有度：${rarityName} ✨「${slot.plantName}」已被收录到图鉴！`);
+
         // 记录到已拥有（去重）
         const ownedEntry = { id: slot.plantId, name: slot.plantName, emoji: slot.plantEmoji, rarity: slot.plantRarity };
         const existingIdx = plantState.ownedPlants.findIndex(o => o.id === slot.plantId);
@@ -588,12 +1381,15 @@ function plantAction(action) {
         } else {
             plantState.ownedPlants.push(ownedEntry);
         }
-        // 清空槽位
-        plantState.slots[selectedSlotIndex] = { plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() };
-        savePlantState();
-        renderPlantPots();
-        renderCurrentPlant();
-        renderPlantCollection();
+
+        // 清空槽位（带延迟动画效果）
+        setTimeout(() => {
+            plantState.slots[selectedSlotIndex] = { plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() };
+            savePlantState();
+            renderPlantPots();
+            renderCurrentPlant();
+            renderPlantCollection();
+        }, 300);
 
         // 成就触发：收获
         if (window.AchievementManager) {
@@ -609,34 +1405,6 @@ function plantAction(action) {
     renderCurrentPlant();
 }
 
-function triggerStageUpEffect(slotIndex) {
-    // 播放单槽的阶段升级动画
-    const display = document.getElementById(`plant-display-${slotIndex}`) || document.getElementById('plant-display');
-    if (display) {
-        display.classList.remove('plant-grow-anim');
-        void display.offsetWidth;
-        display.classList.add('plant-grow-anim');
-    }
-    triggerHarvestEffect();
-}
-
-function triggerHarvestEffect() {
-    const container = document.getElementById('gold-rain');
-    if (!container) return;
-
-    const emojis = ['✨', '🌟', '💫', '🌾', '🍃', '🌸', '💐', '🪙', '⭐'];
-    for (let i = 0; i < 40; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'gold-particle';
-        particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 0.5 + 's';
-        particle.style.animationDuration = (1.5 + Math.random()) + 's';
-        container.appendChild(particle);
-        setTimeout(() => particle.remove(), 3000);
-    }
-}
-
 function showTip(message) {
     const tipEl = document.getElementById('plant-tip');
     if (tipEl) {
@@ -644,21 +1412,57 @@ function showTip(message) {
     }
 }
 
+// 触发数值跳动动画
+function triggerValueBump(elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.classList.remove('bump');
+    void el.offsetWidth; // force reflow
+    el.classList.add('bump');
+    setTimeout(() => el.classList.remove('bump'), 400);
+}
+
 function selectSlot(idx) {
-    selectedSlotIndex = idx;
-    renderPlantPots();
-    renderCurrentPlant();
-    const slot = plantState.slots[idx];
-    if (!slot || !slot.plantId) {
-        showTip(`槽位 ${idx+1} 为空，点击【种植】播下神秘种子！`);
-    } else {
-        const isMature = slot.stage >= 3;
-        if (isMature) {
-            showTip(`槽位 ${idx+1}：${slot.plantName} 已成熟！点击【收获】揭晓稀有度~`);
-        } else {
-            showTip(`槽位 ${idx+1}：神秘植物 · ${STAGE_NAMES[slot.stage]}，浇水施肥加速成长！`);
-        }
+    // 槽位切换时添加淡入淡出效果
+    const display = document.getElementById('plant-emoji-display');
+    const infoPanel = document.querySelector('.plant-info-left');
+
+    if (display) {
+        display.classList.add('fade-out');
     }
+    if (infoPanel) {
+        infoPanel.style.opacity = '0';
+        infoPanel.style.transform = 'translateX(10px)';
+    }
+
+    setTimeout(() => {
+        selectedSlotIndex = idx;
+        renderPlantPots();
+        renderCurrentPlant();
+
+        if (display) {
+            display.classList.remove('fade-out');
+            display.classList.add('fade-in');
+            setTimeout(() => display.classList.remove('fade-in'), 400);
+        }
+        if (infoPanel) {
+            infoPanel.style.opacity = '1';
+            infoPanel.style.transform = 'translateX(0)';
+            infoPanel.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        }
+
+        const slot = plantState.slots[idx];
+        if (!slot || !slot.plantId) {
+            showTip(`槽位 ${idx+1} 为空，点击【种植】播下神秘种子！`);
+        } else {
+            const isMature = slot.stage >= 3;
+            if (isMature) {
+                showTip(`槽位 ${idx+1}：${slot.plantName} 已成熟！点击【收获】揭晓稀有度~`);
+            } else {
+                showTip(`槽位 ${idx+1}：神秘植物 · ${STAGE_NAMES[slot.stage]}，浇水施肥加速成长！`);
+            }
+        }
+    }, 150);
 }
 
 function generateParticles() {
