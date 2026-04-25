@@ -167,10 +167,16 @@
 */
 
 /* Base transitions for key animated elements */
+/* ============================================
+   Base Typography & Fluid Sizing
+   For better zoom level compatibility
+   ============================================ */
 html {
     scroll-behavior: smooth;
     background: var(--bg-primary);
     transition: background-color 250ms ease-out;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
 body {
@@ -180,13 +186,35 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     transition: background-color 250ms ease-out, color 250ms ease-out;
+    /* Prevent layout breakage at various zoom levels */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove universal selector transitions - they cause severe performance issues */
+/* Ensure consistent box-sizing */
 *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Prevent text enlargement from breaking layouts */
+input, textarea, select {
+    font-size: 100%;
+}
+
+/* Prevent overflow from long words/urls */
+.highlight-title,
+.highlight-desc,
+.node-name,
+.node-status,
+.task-list-name,
+.pod-name {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 /* Optimized transitions for specific UI components only */
@@ -458,6 +486,20 @@ img, svg {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-glass);
+}
+
+.hub-navbar > div {
+    max-width: 100% !important;
+    padding-left: 24px;
+    padding-right: 24px;
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .hub-navbar > div {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
 }
 
 .logo-glow {
@@ -1206,15 +1248,16 @@ img, svg {
     position: relative;
     z-index: 10;
     padding-top: 96px;
-    max-width: 1440px;
-    margin: 0 auto;
-    padding-left: 32px;
-    padding-right: 32px;
+    padding-left: 264px;
+    padding-right: 24px;
     padding-bottom: 60px;
+    min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
 }
 
 .module-section {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
     transition: all 0.3s ease;
 }
 
@@ -1226,7 +1269,7 @@ img, svg {
    今日要闻 (Daily Highlights)
    ============================================ */
 .daily-highlights-section {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .highlights-header {
@@ -1446,17 +1489,25 @@ img, svg {
     .highlight-main {
         grid-row: span 1;
     }
-}
 
-@media (max-width: 768px) {
-    .highlights-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
+    .flow-resonance-card,
+    .study-hall-card {
+        padding: 16px;
     }
 
-    .highlight-card {
-        padding: 14px;
+    .ecg-container {
+        height: 100px;
+    }
+}
+
+@media (max-width: 900px) {
+    .highlights-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .highlight-main {
+        grid-row: span 1;
     }
 
     .highlight-main .highlight-title {
@@ -1472,11 +1523,40 @@ img, svg {
     }
 }
 
+@media (max-width: 768px) {
+    .highlights-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .highlights-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .highlight-card {
+        padding: 14px;
+    }
+
+    .highlight-main .highlight-title {
+        font-size: 14px;
+    }
+
+    .highlight-title {
+        font-size: 13px;
+    }
+
+    .highlight-desc {
+        font-size: 11px;
+    }
+}
+
 /* ============================================
    学习仪表板 (Learning Dashboard)
    ============================================ */
 .dashboard-section {
-    margin-bottom: 32px;
+    margin-bottom: 28px;
 }
 
 .dashboard-header {
@@ -1526,8 +1606,9 @@ img, svg {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
-    padding: 16px 24px;
-    margin-bottom: 20px;
+    padding: 20px 28px;
+    margin-bottom: 24px;
+    gap: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -1603,26 +1684,26 @@ img, svg {
 .dashboard-main {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
-    gap: 16px;
-    margin-bottom: 16px;
+    gap: 20px;
+    margin-bottom: 20px;
 }
 
 .dashboard-left {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .dashboard-right {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
 }
 
 .dashboard-bottom {
     display: grid;
     grid-template-columns: 1fr 1.5fr;
-    gap: 16px;
+    gap: 20px;
     align-items: stretch;
 }
 
@@ -1655,8 +1736,8 @@ img, svg {
 .card-header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 12px;
+    margin-bottom: 16px;
 }
 
 .card-header-icon {
@@ -2168,6 +2249,11 @@ img, svg {
     .goals-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+
+    .hub-content {
+        padding-left: 264px;
+        padding-right: 20px;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -2177,7 +2263,43 @@ img, svg {
 
     .dashboard-left,
     .dashboard-right {
-        gap: 12px;
+        gap: 16px;
+    }
+
+    .hub-content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .search-box {
+        width: 200px;
+    }
+
+    .module-section {
+        padding: 20px;
+    }
+
+    .quick-stats-bar {
+        padding: 16px 20px;
+        gap: 16px;
+    }
+}
+
+@media (max-width: 900px) {
+    .quick-stats-bar {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+        padding: 16px 20px;
+    }
+
+    .quick-stat-item {
+        flex: 0 0 calc(50% - 10px);
+        justify-content: center;
+    }
+
+    .quick-stat-divider {
+        display: none;
     }
 }
 
@@ -2185,7 +2307,7 @@ img, svg {
     .dashboard-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 12px;
     }
 
     .quick-stats-bar {
@@ -2223,6 +2345,179 @@ img, svg {
 
     .insight-stat {
         flex: 1 0 calc(33% - 8px);
+    }
+
+    .hub-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .module-section {
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+
+    .search-box {
+        display: none;
+    }
+
+    .holo-incubator {
+        padding: 16px;
+    }
+
+    .holo-header {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+        padding: 16px;
+    }
+
+    .holo-stats-bar {
+        gap: 20px;
+        padding: 12px 16px;
+    }
+
+    .daily-route-section,
+    .daily-highlights-section,
+    .dashboard-section {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 640px) {
+    .quick-stat-item {
+        flex: 0 0 100%;
+        justify-content: flex-start;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .quick-stat-item:last-child {
+        border-bottom: none;
+    }
+
+    .quick-stat-divider {
+        display: none;
+    }
+
+    .notification-panel {
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+
+    .dashboard-goals-card,
+    .dashboard-trend-card,
+    .dashboard-insight-card,
+    .dashboard-calendar-card {
+        padding: 16px;
+    }
+
+    .goals-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .card-header {
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .task-list-item {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hub-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .module-section {
+        padding: 14px;
+        margin-bottom: 16px;
+        border-radius: 16px;
+    }
+
+    .quick-stats-bar {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .quick-stat-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .quick-stat-value {
+        font-size: 16px;
+    }
+
+    .quick-stat-label {
+        font-size: 9px;
+    }
+
+    .dashboard-left,
+    .dashboard-right {
+        gap: 14px;
+    }
+
+    .holo-nodes {
+        height: auto;
+        min-height: 350px;
+    }
+
+    .holo-tree-container {
+        min-height: 400px;
+        padding: 10px 5px 40px;
+    }
+
+    .holo-stats-bar {
+        gap: 16px;
+        padding: 10px 12px;
+        flex-wrap: wrap;
+    }
+
+    .stat-value {
+        font-size: 14px;
+    }
+
+    .stat-label {
+        font-size: 10px;
+    }
+
+    .hall-header {
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+    }
+}
+
+/* Large Desktop - 1440px+ */
+@media (min-width: 1440px) {
+    .hub-content {
+        padding-left: 280px;
+        padding-right: 32px;
+    }
+
+    .module-section {
+        padding: 28px 32px;
+    }
+
+    .quick-stats-bar {
+        padding: 24px 36px;
+    }
+}
+
+/* Extra Large Desktop - 1920px+ */
+@media (min-width: 1920px) {
+    .hub-content {
+        padding-left: 296px;
+        padding-right: 48px;
+    }
+
+    .module-section {
+        padding: 32px 40px;
     }
 }
 
@@ -2464,24 +2759,16 @@ img, svg {
     box-shadow: 0 6px 25px var(--glow-purple);
 }
 
-/* Main Content */
-.hub-content {
-    flex: 1;
-    margin-left: 240px;
-    padding: 24px;
-    position: relative;
-    z-index: 1;
-    background: var(--bg-primary);
-}
+/* Main Content - Duplicate removed, using definition at line 1247 */
 
 .module-section {
-    margin-bottom: 20px;
+    margin-bottom: 28px;
     background: var(--bg-card);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-xl);
-    padding: 20px;
+    padding: 24px;
     transition: all var(--transition-normal);
 }
 
@@ -2900,7 +3187,9 @@ img, svg {
 
 @media (max-width: 768px) {
     .hub-content {
-        padding: 16px;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 88px;
     }
 
     .search-box {
@@ -2933,7 +3222,7 @@ img, svg {
    沉浸式游戏化启动组件样式
    ============================================ */
 .daily-route-section {
-    margin-bottom: 24px;
+    margin-bottom: 28px;
 }
 
 .mothership-card {
@@ -3445,7 +3734,7 @@ img, svg {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: 20px 28px;
     border-bottom: 1px solid var(--border-glass);
 }
 
@@ -4028,8 +4317,8 @@ img, svg {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 32px;
-    padding: 14px 24px;
+    gap: 40px;
+    padding: 16px 24px;
     background: var(--bg-card);
     border-top: 1px solid var(--border-glass);
 }
@@ -4348,9 +4637,42 @@ img, svg {
 /* 同侪舱位网格 */
 .peer-pods-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 20px;
+}
+
+/* Large desktop - 1200px+ */
+@media (max-width: 1200px) {
+    .peer-pods-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Tablet - 900px+ */
+@media (max-width: 1024px) {
+    .peer-pods-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+    .peer-pods-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .peer-pods-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .peer-pod {
+        padding: 12px;
+    }
 }
 
 .peer-pod {
@@ -4608,11 +4930,6 @@ img, svg {
 
 /* 响应式适配 */
 @media (max-width: 768px) {
-    .peer-pods-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-
     .peer-pod {
         padding: 12px;
     }

@@ -81,7 +81,7 @@
                     </svg>
                     <div class="notification-dot" id="notification-dot"></div>
                 </button>
-                <a href="/personal.html" class="user-avatar-wrapper" id="user-avatar">
+                <a href="/personal.html" class="user-avatar-wrapper" id="user-avatar" onclick="sessionStorage.setItem('personal_entry_from', window.location.href);">
                     <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%234F46E5'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E李%3C/text%3E%3C/svg%3E" alt="User" class="user-avatar">
                     <div class="online-indicator"></div>
                 </a>
@@ -268,7 +268,7 @@
                     </svg>
                     <span>AI 问答</span>
                 </a>
-                <a href="/personal.html" class="nav-item text-sm">
+                <a href="/personal.html" class="nav-item text-sm" onclick="sessionStorage.setItem('personal_entry_from', window.location.href);">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
@@ -1265,6 +1265,9 @@
         </main>
     </div>
 
+    <script src="/js/notifications.js"></script>
+    <script src="/js/achievements-data.js"></script>
+    <script src="/js/achievement-manager.js"></script>
     <script src="/js/hub.js"></script>
 </body>
 </html>

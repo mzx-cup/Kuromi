@@ -1206,6 +1206,7 @@ function setTheme(theme) {
 function goToPersonal() {
     const dropdown = document.getElementById('avatar-dropdown');
     if (dropdown) dropdown.classList.remove('show');
+    sessionStorage.setItem('personal_entry_from', window.location.href);
     window.open('/personal.html', '_blank');
 }
 
@@ -4369,6 +4370,13 @@ class FlowModeManager {
         if (lucide) lucide.createIcons();
         this.playCompletionSound();
         this._showPlantReward();
+
+        // 成就触发：专注完成
+        if (window.AchievementManager && this.currentMode === 'focus') {
+            const minutes = Math.round((this.totalSeconds || this.state.total_time || 1500) / 60);
+            AchievementManager.incrementStat('study_count');
+            AchievementManager.incrementStat('study_minutes', minutes);
+        }
     }
 
     _showPlantReward() {
