@@ -1501,3 +1501,1048 @@ body.weather-sandstorm .plant-sky {
     .plant-stat-row { padding: 10px 12px; }
     .plant-stat-row-bar { height: 8px; }
 }
+
+/* ============================================
+   Responsive Design
+   响应式适配 - 多分辨率 & 缩放支持
+   ============================================ */
+
+/* Base zoom level compatibility */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Prevent text enlargement from breaking layouts */
+input, textarea, select {
+    font-size: 100%;
+}
+
+/* Text overflow handling */
+.plant-nav-title,
+.plant-current-name,
+.plant-current-stage,
+.plant-timer-label-text,
+.plant-stat-row-label,
+.plant-stat-row-value,
+.plant-action-btn .btn-label,
+.plant-collection-title,
+.plant-collection-item .itemName {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+/* Extra Large Desktop - 1920px+ */
+@media (min-width: 1920px) {
+    .plant-main-card,
+    .plant-collection-section {
+        max-width: 1400px;
+    }
+
+    .plant-main-card {
+        margin: 20px auto 0;
+        padding: 0 32px;
+    }
+
+    .plant-plot-grid {
+        gap: 36px;
+    }
+
+    .plant-pot-3d {
+        width: 150px;
+        height: 130px;
+    }
+
+    .plant-in-pot {
+        font-size: 48px;
+        bottom: 24px;
+    }
+
+    .plant-collection-section {
+        margin: 20px auto 32px;
+        padding: 24px;
+    }
+
+    .plant-info-panel {
+        padding: 24px 28px;
+    }
+
+    .plant-main-emoji {
+        font-size: 80px;
+    }
+
+    .plant-timer-value {
+        font-size: 42px;
+    }
+}
+
+/* Large Desktop - 1600px-1919px */
+@media (min-width: 1600px) and (max-width: 1919px) {
+    .plant-main-card,
+    .plant-collection-section {
+        max-width: 1300px;
+    }
+
+    .plant-plot-grid {
+        gap: 32px;
+    }
+
+    .plant-pot-3d {
+        width: 140px;
+        height: 120px;
+    }
+}
+
+/* Large Desktop - 1440px-1599px */
+@media (min-width: 1440px) and (max-width: 1599px) {
+    .plant-main-card,
+    .plant-collection-section {
+        max-width: 1200px;
+    }
+
+    .plant-plot-grid {
+        gap: 30px;
+    }
+
+    .plant-pot-3d {
+        width: 136px;
+        height: 116px;
+    }
+}
+
+/* Desktop - 1200px-1439px */
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .plant-main-card,
+    .plant-collection-section {
+        max-width: 1100px;
+        padding: 0 24px;
+    }
+
+    .plant-plot-grid {
+        gap: 26px;
+    }
+
+    .plant-pot-3d {
+        width: 128px;
+        height: 108px;
+    }
+
+    .plant-in-pot {
+        font-size: 42px;
+        bottom: 22px;
+    }
+}
+
+/* Tablet Landscape - 1024px-1199px */
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .plant-main-card,
+    .plant-collection-section {
+        max-width: 100%;
+        padding: 0 20px;
+    }
+
+    .plant-main-card {
+        margin: 14px auto 0;
+    }
+
+    .plant-plot-grid {
+        gap: 24px;
+    }
+
+    .plant-pot-3d {
+        width: 120px;
+        height: 102px;
+    }
+
+    .plant-in-pot {
+        font-size: 38px;
+        bottom: 20px;
+    }
+
+    .plant-collection-section {
+        margin: 14px auto 24px;
+    }
+
+    .plant-info-panel {
+        padding: 18px 20px;
+        gap: 16px;
+    }
+
+    .plant-main-emoji {
+        font-size: 68px;
+        min-height: 80px;
+    }
+
+    .plant-timer-value {
+        font-size: 36px;
+    }
+
+    .plant-action-row {
+        gap: 10px;
+    }
+
+    .plant-action-btn {
+        padding: 14px 10px;
+        min-height: 70px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 28px;
+    }
+}
+
+/* Tablet Portrait - 900px-1023px */
+@media (min-width: 900px) and (max-width: 1023px) {
+    .plant-main-card,
+    .plant-collection-section {
+        padding: 0 16px;
+    }
+
+    .plant-main-card {
+        margin: 12px auto 0;
+    }
+
+    .plant-plot-grid {
+        gap: 20px;
+    }
+
+    .plant-pot-3d {
+        width: 112px;
+        height: 96px;
+    }
+
+    .plant-in-pot {
+        font-size: 36px;
+        bottom: 18px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 20px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 28px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 38px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 44px;
+    }
+
+    .plant-collection-section {
+        margin: 12px auto 20px;
+        padding: 16px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(6, 1fr);
+    }
+
+    .plant-info-panel {
+        padding: 16px 18px;
+        gap: 14px;
+    }
+
+    .plant-main-emoji {
+        font-size: 62px;
+        min-height: 72px;
+    }
+
+    .plant-timer-value {
+        font-size: 32px;
+    }
+
+    .plant-action-row {
+        gap: 8px;
+    }
+
+    .plant-action-btn {
+        padding: 12px 8px;
+        min-height: 66px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 26px;
+    }
+}
+
+/* Tablet - 768px-899px */
+@media (min-width: 768px) and (max-width: 899px) {
+    .plant-main-card,
+    .plant-collection-section {
+        padding: 0 14px;
+    }
+
+    .plant-main-card {
+        margin: 10px auto 0;
+    }
+
+    .plant-plot-grid {
+        gap: 18px;
+    }
+
+    .plant-pot-3d {
+        width: 108px;
+        height: 92px;
+    }
+
+    .plant-in-pot {
+        font-size: 36px;
+        bottom: 20px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 22px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 30px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 40px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 48px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .plant-collection-section {
+        margin: 12px auto 20px;
+        padding: 14px;
+    }
+
+    .plant-collection-item {
+        min-height: 68px;
+        padding: 8px 6px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 26px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 9px;
+    }
+
+    .plant-info-panel {
+        padding: 14px 16px;
+        gap: 12px;
+    }
+
+    .plant-main-emoji {
+        font-size: 58px;
+        min-height: 68px;
+    }
+
+    .plant-timer-value {
+        font-size: 30px;
+    }
+
+    .plant-action-row {
+        gap: 8px;
+    }
+
+    .plant-action-btn {
+        padding: 10px 6px;
+        min-height: 60px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 24px;
+    }
+
+    .plant-action-btn .btn-label {
+        font-size: 10px;
+    }
+
+    .plant-status-bars {
+        gap: 8px;
+    }
+
+    .plant-stat-row {
+        padding: 8px 10px;
+    }
+
+    .plant-stat-row-bar {
+        height: 8px;
+    }
+}
+
+/* Mobile Landscape - 640px-767px */
+@media (min-width: 640px) and (max-width: 767px) {
+    .plant-main-card,
+    .plant-collection-section {
+        padding: 0 12px;
+    }
+
+    .plant-main-card {
+        margin: 8px auto 0;
+    }
+
+    .plant-plot-grid {
+        gap: 16px;
+    }
+
+    .plant-pot-3d {
+        width: 100px;
+        height: 86px;
+    }
+
+    .plant-in-pot {
+        font-size: 32px;
+        bottom: 18px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 20px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 28px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 36px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 44px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+    }
+
+    .plant-collection-section {
+        margin: 10px auto 18px;
+        padding: 12px;
+    }
+
+    .plant-collection-item {
+        min-height: 64px;
+        padding: 6px 4px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 24px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 8px;
+    }
+
+    .plant-info-panel {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .plant-main-emoji {
+        font-size: 52px;
+        min-height: 60px;
+    }
+
+    .plant-current-name {
+        font-size: 14px;
+    }
+
+    .plant-current-stage {
+        font-size: 10px;
+    }
+
+    .plant-timer-value {
+        font-size: 26px;
+    }
+
+    .plant-timer-label-text {
+        font-size: 9px;
+    }
+
+    .plant-action-row {
+        gap: 6px;
+    }
+
+    .plant-action-btn {
+        padding: 8px 6px;
+        min-height: 56px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 22px;
+    }
+
+    .plant-action-btn .btn-label {
+        font-size: 9px;
+    }
+
+    .plant-status-bars {
+        gap: 6px;
+    }
+
+    .plant-stat-row {
+        padding: 6px 8px;
+    }
+
+    .plant-stat-row-label {
+        font-size: 10px;
+    }
+
+    .plant-stat-row-bar {
+        height: 6px;
+    }
+}
+
+/* Mobile Portrait - 480px-639px */
+@media (min-width: 480px) and (max-width: 639px) {
+    .plant-main-card {
+        margin: 6px 8px 0;
+        padding: 0 10px;
+    }
+
+    .plant-collection-section {
+        margin: 8px 8px 16px;
+        padding: 10px;
+    }
+
+    .plant-plot-grid {
+        gap: 14px;
+    }
+
+    .plant-pot-3d {
+        width: 90px;
+        height: 78px;
+    }
+
+    .plant-in-pot {
+        font-size: 30px;
+        bottom: 16px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 18px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 26px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 34px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 40px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+    }
+
+    .plant-collection-item {
+        min-height: 60px;
+        padding: 6px 4px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 22px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 8px;
+    }
+
+    .plant-info-panel {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .plant-info-left {
+        min-width: 180px;
+    }
+
+    .plant-main-emoji {
+        font-size: 48px;
+        min-height: 56px;
+    }
+
+    .plant-current-name {
+        font-size: 13px;
+    }
+
+    .plant-current-stage {
+        font-size: 9px;
+    }
+
+    .plant-timer-display {
+        gap: 6px;
+    }
+
+    .plant-timer-value {
+        font-size: 24px;
+    }
+
+    .plant-timer-label-text {
+        font-size: 8px;
+    }
+
+    .plant-action-row {
+        gap: 6px;
+    }
+
+    .plant-action-btn {
+        padding: 8px 6px;
+        min-height: 52px;
+        min-width: 48px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 20px;
+    }
+
+    .plant-action-btn .btn-label {
+        font-size: 8px;
+    }
+
+    .plant-status-bars {
+        gap: 6px;
+    }
+
+    .plant-stat-row {
+        padding: 6px 8px;
+        border-radius: 10px;
+    }
+
+    .plant-stat-row-label {
+        font-size: 9px;
+    }
+
+    .plant-stat-row-value {
+        font-size: 10px;
+    }
+
+    .plant-stat-row-bar {
+        height: 6px;
+    }
+}
+
+/* Extra Small Mobile - 375px-479px */
+@media (max-width: 479px) {
+    .plant-main-card {
+        margin: 4px 6px 0;
+        padding: 0 8px;
+    }
+
+    .plant-collection-section {
+        margin: 6px 6px 14px;
+        padding: 8px;
+    }
+
+    .plant-plot-grid {
+        gap: 12px;
+    }
+
+    .plant-pot-3d {
+        width: 80px;
+        height: 70px;
+    }
+
+    .plant-in-pot {
+        font-size: 26px;
+        bottom: 14px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 16px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 22px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 30px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 36px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+
+    .plant-collection-item {
+        min-height: 56px;
+        padding: 5px 3px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 20px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 7px;
+    }
+
+    .plant-collection-item .item-owned-tag {
+        font-size: 7px;
+        padding: 1px 4px;
+    }
+
+    .plant-collection-header {
+        margin-bottom: 10px;
+    }
+
+    .plant-collection-title {
+        font-size: 12px;
+    }
+
+    .plant-info-panel {
+        padding: 8px 10px;
+        gap: 8px;
+        border-radius: 18px;
+    }
+
+    .plant-info-left {
+        min-width: 160px;
+    }
+
+    .plant-main-emoji {
+        font-size: 42px;
+        min-height: 50px;
+    }
+
+    .plant-current-name {
+        font-size: 12px;
+    }
+
+    .plant-current-stage {
+        font-size: 8px;
+    }
+
+    .plant-timer-display {
+        gap: 4px;
+    }
+
+    .plant-timer-value {
+        font-size: 20px;
+    }
+
+    .plant-timer-label-text {
+        font-size: 7px;
+    }
+
+    .plant-action-row {
+        gap: 4px;
+    }
+
+    .plant-action-btn {
+        padding: 6px 4px;
+        min-height: 46px;
+        min-width: 42px;
+        border-radius: 12px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 18px;
+    }
+
+    .plant-action-btn .btn-label {
+        font-size: 7px;
+    }
+
+    .plant-status-bars {
+        gap: 4px;
+    }
+
+    .plant-stat-row {
+        padding: 5px 6px;
+        border-radius: 8px;
+    }
+
+    .plant-stat-row-label {
+        font-size: 8px;
+    }
+
+    .plant-stat-row-value {
+        font-size: 9px;
+    }
+
+    .plant-stat-row-bar {
+        height: 5px;
+    }
+
+    .plant-tip-box {
+        padding: 8px 10px;
+        font-size: 9px;
+    }
+}
+
+/* Extra Small Mobile - 320px-374px */
+@media (max-width: 375px) {
+    .plant-main-card {
+        margin: 2px 4px 0;
+        padding: 0 6px;
+    }
+
+    .plant-collection-section {
+        margin: 4px 4px 10px;
+        padding: 6px;
+    }
+
+    .plant-plot-grid {
+        gap: 10px;
+    }
+
+    .plant-pot-3d {
+        width: 70px;
+        height: 62px;
+    }
+
+    .plant-in-pot {
+        font-size: 22px;
+        bottom: 12px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 14px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 20px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 26px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 32px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+    }
+
+    .plant-collection-item {
+        min-height: 50px;
+        padding: 4px 2px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 18px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 6px;
+    }
+
+    .plant-info-panel {
+        padding: 6px 8px;
+        gap: 6px;
+        border-radius: 14px;
+    }
+
+    .plant-info-left {
+        min-width: 140px;
+    }
+
+    .plant-main-emoji {
+        font-size: 36px;
+        min-height: 44px;
+    }
+
+    .plant-current-name {
+        font-size: 11px;
+    }
+
+    .plant-current-stage {
+        font-size: 7px;
+    }
+
+    .plant-timer-value {
+        font-size: 18px;
+    }
+
+    .plant-timer-label-text {
+        font-size: 6px;
+    }
+
+    .plant-action-btn {
+        padding: 5px 3px;
+        min-height: 42px;
+        min-width: 38px;
+        border-radius: 10px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 16px;
+    }
+
+    .plant-action-btn .btn-label {
+        font-size: 6px;
+    }
+
+    .plant-stat-row {
+        padding: 4px 5px;
+        border-radius: 6px;
+    }
+
+    .plant-stat-row-label {
+        font-size: 7px;
+    }
+
+    .plant-stat-row-bar {
+        height: 4px;
+    }
+
+    .plant-tip-box {
+        padding: 6px 8px;
+        font-size: 8px;
+        border-radius: 10px;
+    }
+}
+
+/* Existing Responsive - Enhanced versions */
+@media (max-width: 768px) {
+    .plant-plot-grid {
+        gap: 18px;
+    }
+
+    .plant-pot-3d {
+        width: 108px;
+        height: 92px;
+    }
+
+    .plant-in-pot {
+        font-size: 36px;
+        bottom: 20px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 22px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 30px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 40px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 48px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .plant-info-panel {
+        padding: 16px 18px;
+        gap: 14px;
+    }
+
+    .plant-main-emoji {
+        font-size: 60px;
+        min-height: 70px;
+    }
+
+    .plant-timer-value {
+        font-size: 34px;
+    }
+
+    .plant-action-row {
+        gap: 8px;
+    }
+
+    .plant-action-btn {
+        padding: 12px 8px;
+        min-height: 64px;
+    }
+
+    .plant-action-btn .btn-icon {
+        font-size: 26px;
+    }
+}
+
+@media (max-width: 480px) {
+    .plant-plot-grid {
+        gap: 14px;
+    }
+
+    .plant-pot-3d {
+        width: 90px;
+        height: 78px;
+    }
+
+    .plant-in-pot {
+        font-size: 30px;
+        bottom: 16px;
+    }
+
+    .plant-in-pot.stage-0 {
+        font-size: 18px;
+    }
+
+    .plant-in-pot.stage-1 {
+        font-size: 26px;
+    }
+
+    .plant-in-pot.stage-2 {
+        font-size: 34px;
+    }
+
+    .plant-in-pot.stage-3 {
+        font-size: 40px;
+    }
+
+    .plant-collection-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 7px;
+    }
+
+    .plant-collection-item {
+        min-height: 64px;
+        padding: 8px 4px;
+    }
+
+    .plant-collection-item .item-emoji {
+        font-size: 24px;
+    }
+
+    .plant-main-card {
+        margin: 10px 10px 0;
+    }
+
+    .plant-collection-section {
+        margin: 12px 10px 24px;
+        padding: 14px;
+    }
+
+    .plant-status-bars {
+        gap: 8px;
+    }
+
+    .plant-stat-row {
+        padding: 10px 12px;
+    }
+
+    .plant-stat-row-bar {
+        height: 8px;
+    }
+}

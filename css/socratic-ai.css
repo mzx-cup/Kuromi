@@ -10,6 +10,19 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+input, textarea, select {
+    font-size: 100%;
+}
+
+body {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 .socratic-body {
@@ -64,6 +77,7 @@
     background: rgba(5, 5, 8, 0.8);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(168, 85, 247, 0.15);
+    max-width: 100% !important;
 }
 
 .nav-back {
@@ -138,6 +152,8 @@
     justify-content: center;
     min-height: 100vh;
     padding: 80px 24px 160px;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* Dialogue Chamber */
@@ -765,13 +781,548 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (min-width: 1920px) {
+    .socratic-nav {
+        padding: 0 48px;
+    }
+
+    .nav-title {
+        font-size: 22px;
+        letter-spacing: 3px;
+    }
+
+    .nav-icon {
+        font-size: 28px;
+    }
+
+    .status-text {
+        font-size: 15px;
+    }
+
+    .socratic-main {
+        padding: 100px 32px 200px;
+    }
+
+    .dialogue-chamber {
+        max-width: 900px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 80px;
+    }
+
+    .energy-orb {
+        width: 220px;
+        height: 220px;
+    }
+
+    .orb-core {
+        width: 100px;
+        height: 100px;
+    }
+
+    .orb-ring.ring-1 { width: 140px; height: 140px; }
+    .orb-ring.ring-2 { width: 180px; height: 180px; }
+    .orb-ring.ring-3 { width: 220px; height: 220px; }
+
+    .orb-glow {
+        width: 400px;
+        height: 400px;
+    }
+
+    .orb-status {
+        margin-top: 32px;
+        padding: 10px 24px;
+        font-size: 16px;
+    }
+
+    .transcript-container {
+        gap: 28px;
+    }
+
+    .transcript-content {
+        padding: 40px 60px;
+        max-width: 800px;
+        border-radius: 28px;
+    }
+
+    .question-number {
+        padding: 6px 16px;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .transcript-text {
+        font-size: 28px;
+    }
+
+    .transcript-hint {
+        font-size: 16px;
+    }
+
+    .audio-visualizer {
+        height: 70px;
+        gap: 8px;
+    }
+
+    .wave-bar {
+        width: 8px;
+        border-radius: 4px;
+    }
+
+    .wave-bar:nth-child(1) { height: 24px; }
+    .wave-bar:nth-child(2) { height: 42px; }
+    .wave-bar:nth-child(3) { height: 60px; }
+    .wave-bar:nth-child(4) { height: 48px; }
+    .wave-bar:nth-child(5) { height: 66px; }
+    .wave-bar:nth-child(6) { height: 36px; }
+    .wave-bar:nth-child(7) { height: 54px; }
+    .wave-bar:nth-child(8) { height: 30px; }
+
+    .response-indicator {
+        margin-top: 32px;
+        padding: 14px 28px;
+        gap: 14px;
+    }
+
+    .response-dot {
+        width: 12px;
+        height: 12px;
+    }
+
+    .response-text {
+        font-size: 16px;
+    }
+
+    .hint-text {
+        margin-top: 48px;
+        padding: 20px 28px;
+        max-width: 600px;
+    }
+
+    .hint-text p {
+        font-size: 15px;
+    }
+
+    .mic-console {
+        bottom: 80px;
+        gap: 20px;
+    }
+
+    .mic-btn {
+        width: 96px;
+        height: 96px;
+    }
+
+    .mic-icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .mic-ring.ring-1 { width: 100px; height: 100px; }
+    .mic-ring.ring-2 { width: 130px; height: 130px; }
+    .mic-ring.ring-3 { width: 160px; height: 160px; }
+
+    .label-text {
+        font-size: 15px;
+    }
+
+    .history-panel {
+        width: 420px;
+    }
+
+    .history-toggle {
+        top: 80px;
+        right: 32px;
+        width: 56px;
+        height: 56px;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .socratic-nav {
+        padding: 0 40px;
+    }
+
+    .nav-title {
+        font-size: 20px;
+    }
+
+    .socratic-main {
+        padding: 90px 28px 180px;
+    }
+
+    .energy-orb {
+        width: 200px;
+        height: 200px;
+    }
+
+    .orb-core {
+        width: 90px;
+        height: 90px;
+    }
+
+    .orb-ring.ring-1 { width: 130px; height: 130px; }
+    .orb-ring.ring-2 { width: 165px; height: 165px; }
+    .orb-ring.ring-3 { width: 200px; height: 200px; }
+
+    .orb-glow {
+        width: 350px;
+        height: 350px;
+    }
+
+    .transcript-text {
+        font-size: 26px;
+    }
+
+    .transcript-content {
+        padding: 36px 52px;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .socratic-nav {
+        padding: 0 32px;
+    }
+
+    .nav-title {
+        font-size: 18px;
+    }
+
+    .socratic-main {
+        padding: 80px 24px 160px;
+    }
+
+    .energy-orb {
+        width: 180px;
+        height: 180px;
+    }
+
+    .orb-core {
+        width: 80px;
+        height: 80px;
+    }
+
+    .orb-ring.ring-1 { width: 120px; height: 120px; }
+    .orb-ring.ring-2 { width: 150px; height: 150px; }
+    .orb-ring.ring-3 { width: 180px; height: 180px; }
+
+    .transcript-text {
+        font-size: 24px;
+    }
+
+    .transcript-content {
+        padding: 32px 48px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .socratic-nav {
+        padding: 0 24px;
+    }
+
+    .nav-title {
+        font-size: 17px;
+    }
+
+    .nav-back {
+        font-size: 13px;
+        padding: 6px 12px;
+    }
+
+    .status-text {
+        font-size: 12px;
+    }
+
+    .socratic-main {
+        padding: 76px 20px 150px;
+    }
+
+    .dialogue-chamber {
+        max-width: 700px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 50px;
+    }
+
+    .energy-orb {
+        width: 160px;
+        height: 160px;
+    }
+
+    .orb-core {
+        width: 70px;
+        height: 70px;
+    }
+
+    .orb-ring.ring-1 { width: 110px; height: 110px; }
+    .orb-ring.ring-2 { width: 135px; height: 135px; }
+    .orb-ring.ring-3 { width: 160px; height: 160px; }
+
+    .orb-glow {
+        width: 280px;
+        height: 280px;
+    }
+
+    .orb-status {
+        margin-top: 20px;
+        padding: 6px 16px;
+        font-size: 13px;
+    }
+
+    .transcript-content {
+        padding: 28px 40px;
+    }
+
+    .transcript-text {
+        font-size: 22px;
+    }
+
+    .question-number {
+        font-size: 11px;
+        padding: 3px 10px;
+        margin-bottom: 14px;
+    }
+
+    .transcript-hint {
+        font-size: 13px;
+    }
+
+    .audio-visualizer {
+        height: 54px;
+    }
+
+    .wave-bar {
+        width: 5px;
+    }
+
+    .wave-bar:nth-child(1) { height: 18px; }
+    .wave-bar:nth-child(2) { height: 32px; }
+    .wave-bar:nth-child(3) { height: 45px; }
+    .wave-bar:nth-child(4) { height: 36px; }
+    .wave-bar:nth-child(5) { height: 50px; }
+    .wave-bar:nth-child(6) { height: 27px; }
+    .wave-bar:nth-child(7) { height: 40px; }
+    .wave-bar:nth-child(8) { height: 22px; }
+
+    .response-indicator {
+        margin-top: 20px;
+        padding: 10px 20px;
+        gap: 10px;
+    }
+
+    .response-text {
+        font-size: 13px;
+    }
+
+    .hint-text {
+        margin-top: 36px;
+        padding: 14px 22px;
+    }
+
+    .hint-text p {
+        font-size: 12px;
+    }
+
+    .mic-console {
+        bottom: 56px;
+    }
+
+    .mic-btn {
+        width: 76px;
+        height: 76px;
+    }
+
+    .mic-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .history-panel {
+        width: 340px;
+    }
+
+    .history-toggle {
+        right: 20px;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+    .socratic-nav {
+        padding: 0 20px;
+    }
+
+    .nav-title {
+        font-size: 16px;
+        letter-spacing: 1.5px;
+    }
+
+    .nav-icon {
+        font-size: 22px;
+    }
+
+    .nav-back {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    .status-text {
+        font-size: 12px;
+    }
+
+    .socratic-main {
+        padding: 72px 16px 140px;
+    }
+
+    .dialogue-chamber {
+        max-width: 640px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 48px;
+    }
+
+    .energy-orb {
+        width: 150px;
+        height: 150px;
+    }
+
+    .orb-core {
+        width: 65px;
+        height: 65px;
+    }
+
+    .orb-ring.ring-1 { width: 105px; height: 105px; }
+    .orb-ring.ring-2 { width: 128px; height: 128px; }
+    .orb-ring.ring-3 { width: 150px; height: 150px; }
+
+    .orb-glow {
+        width: 260px;
+        height: 260px;
+    }
+
+    .orb-status {
+        margin-top: 18px;
+        padding: 6px 14px;
+        font-size: 12px;
+    }
+
+    .transcript-container {
+        gap: 16px;
+    }
+
+    .transcript-content {
+        padding: 24px 36px;
+    }
+
+    .transcript-text {
+        font-size: 20px;
+    }
+
+    .question-number {
+        font-size: 10px;
+        padding: 3px 8px;
+        margin-bottom: 12px;
+    }
+
+    .transcript-hint {
+        font-size: 12px;
+    }
+
+    .audio-visualizer {
+        height: 50px;
+        gap: 5px;
+    }
+
+    .wave-bar {
+        width: 5px;
+    }
+
+    .wave-bar:nth-child(1) { height: 16px; }
+    .wave-bar:nth-child(2) { height: 30px; }
+    .wave-bar:nth-child(3) { height: 42px; }
+    .wave-bar:nth-child(4) { height: 34px; }
+    .wave-bar:nth-child(5) { height: 46px; }
+    .wave-bar:nth-child(6) { height: 25px; }
+    .wave-bar:nth-child(7) { height: 38px; }
+    .wave-bar:nth-child(8) { height: 20px; }
+
+    .response-indicator {
+        margin-top: 18px;
+        padding: 10px 18px;
+        gap: 8px;
+    }
+
+    .response-dot {
+        width: 9px;
+        height: 9px;
+    }
+
+    .response-text {
+        font-size: 12px;
+    }
+
+    .hint-text {
+        margin-top: 32px;
+        padding: 12px 20px;
+    }
+
+    .hint-text p {
+        font-size: 11px;
+    }
+
+    .mic-console {
+        bottom: 50px;
+    }
+
+    .mic-btn {
+        width: 72px;
+        height: 72px;
+    }
+
+    .mic-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .mic-ring.ring-1 { width: 90px; height: 90px; }
+    .mic-ring.ring-2 { width: 120px; height: 120px; }
+    .mic-ring.ring-3 { width: 150px; height: 150px; }
+
+    .label-text {
+        font-size: 12px;
+    }
+
+    .history-panel {
+        width: 320px;
+    }
+
+    .history-toggle {
+        top: 76px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
     .socratic-nav {
         padding: 0 16px;
     }
 
     .nav-title {
-        font-size: 16px;
+        font-size: 15px;
+        letter-spacing: 1px;
+    }
+
+    .nav-icon {
+        font-size: 20px;
+    }
+
+    .nav-back {
+        font-size: 12px;
+        padding: 5px 8px;
     }
 
     .status-text {
@@ -779,7 +1330,15 @@
     }
 
     .socratic-main {
-        padding: 80px 16px 140px;
+        padding: 68px 14px 130px;
+    }
+
+    .dialogue-chamber {
+        max-width: 580px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 44px;
     }
 
     .energy-orb {
@@ -796,26 +1355,104 @@
     .orb-ring.ring-2 { width: 120px; height: 120px; }
     .orb-ring.ring-3 { width: 140px; height: 140px; }
 
+    .orb-glow {
+        width: 240px;
+        height: 240px;
+    }
+
+    .orb-status {
+        margin-top: 16px;
+        padding: 5px 12px;
+        font-size: 11px;
+    }
+
+    .transcript-container {
+        gap: 14px;
+    }
+
     .transcript-content {
-        padding: 24px;
-        margin: 0 16px;
+        padding: 20px 28px;
     }
 
     .transcript-text {
         font-size: 18px;
     }
 
+    .question-number {
+        font-size: 10px;
+        padding: 2px 8px;
+        margin-bottom: 10px;
+    }
+
+    .transcript-hint {
+        font-size: 11px;
+    }
+
+    .audio-visualizer {
+        height: 44px;
+        gap: 4px;
+    }
+
+    .wave-bar {
+        width: 4px;
+        border-radius: 2px;
+    }
+
+    .wave-bar:nth-child(1) { height: 14px; }
+    .wave-bar:nth-child(2) { height: 26px; }
+    .wave-bar:nth-child(3) { height: 36px; }
+    .wave-bar:nth-child(4) { height: 30px; }
+    .wave-bar:nth-child(5) { height: 40px; }
+    .wave-bar:nth-child(6) { height: 22px; }
+    .wave-bar:nth-child(7) { height: 34px; }
+    .wave-bar:nth-child(8) { height: 18px; }
+
+    .response-indicator {
+        margin-top: 16px;
+        padding: 8px 16px;
+        gap: 8px;
+        border-radius: 14px;
+    }
+
+    .response-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .response-text {
+        font-size: 11px;
+    }
+
     .hint-text {
-        margin: 32px 16px 0;
+        margin-top: 28px;
+        padding: 10px 16px;
+    }
+
+    .hint-text p {
+        font-size: 11px;
     }
 
     .mic-console {
-        bottom: 40px;
+        bottom: 44px;
     }
 
     .mic-btn {
-        width: 70px;
-        height: 70px;
+        width: 68px;
+        height: 68px;
+    }
+
+    .mic-icon {
+        width: 26px;
+        height: 26px;
+    }
+
+    .mic-waves .wave {
+        width: 3px;
+        height: 16px;
+    }
+
+    .label-text {
+        font-size: 11px;
     }
 
     .history-panel {
@@ -824,17 +1461,924 @@
 
     .history-toggle {
         top: auto;
-        bottom: 140px;
+        bottom: 120px;
         right: 16px;
+        width: 44px;
+        height: 44px;
+    }
+
+    .history-header {
+        padding: 16px 20px;
+    }
+
+    .history-header h3 {
+        font-size: 14px;
+    }
+
+    .close-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .close-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .history-list {
+        padding: 12px;
+    }
+
+    .history-item {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .history-question {
+        font-size: 12px;
     }
 }
 
-@media (max-width: 480px) {
+@media (min-width: 640px) and (max-width: 767px) {
+    .socratic-nav {
+        padding: 0 12px;
+    }
+
+    .nav-title {
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    .nav-icon {
+        font-size: 18px;
+    }
+
+    .nav-back {
+        font-size: 11px;
+        padding: 4px 6px;
+    }
+
+    .status-text {
+        display: none;
+    }
+
+    .socratic-main {
+        padding: 60px 12px 120px;
+    }
+
+    .dialogue-chamber {
+        max-width: 520px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 40px;
+    }
+
+    .energy-orb {
+        width: 130px;
+        height: 130px;
+    }
+
+    .orb-core {
+        width: 55px;
+        height: 55px;
+    }
+
+    .orb-ring.ring-1 { width: 92px; height: 92px; }
+    .orb-ring.ring-2 { width: 111px; height: 111px; }
+    .orb-ring.ring-3 { width: 130px; height: 130px; }
+
+    .orb-glow {
+        width: 220px;
+        height: 220px;
+    }
+
+    .orb-status {
+        margin-top: 14px;
+        padding: 4px 10px;
+        font-size: 10px;
+    }
+
+    .transcript-container {
+        gap: 12px;
+    }
+
+    .transcript-content {
+        padding: 18px 24px;
+    }
+
     .transcript-text {
+        font-size: 17px;
+    }
+
+    .question-number {
+        font-size: 9px;
+        padding: 2px 6px;
+        margin-bottom: 8px;
+    }
+
+    .transcript-hint {
+        font-size: 10px;
+    }
+
+    .audio-visualizer {
+        height: 40px;
+        gap: 4px;
+    }
+
+    .wave-bar {
+        width: 4px;
+        border-radius: 2px;
+    }
+
+    .wave-bar:nth-child(1) { height: 12px; }
+    .wave-bar:nth-child(2) { height: 24px; }
+    .wave-bar:nth-child(3) { height: 32px; }
+    .wave-bar:nth-child(4) { height: 28px; }
+    .wave-bar:nth-child(5) { height: 36px; }
+    .wave-bar:nth-child(6) { height: 20px; }
+    .wave-bar:nth-child(7) { height: 30px; }
+    .wave-bar:nth-child(8) { height: 16px; }
+
+    .response-indicator {
+        margin-top: 14px;
+        padding: 6px 14px;
+        gap: 6px;
+        border-radius: 12px;
+    }
+
+    .response-dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .response-text {
+        font-size: 10px;
+    }
+
+    .hint-text {
+        margin-top: 24px;
+        padding: 8px 14px;
+    }
+
+    .hint-text p {
+        font-size: 10px;
+    }
+
+    .mic-console {
+        bottom: 40px;
+    }
+
+    .mic-btn {
+        width: 64px;
+        height: 64px;
+    }
+
+    .mic-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .mic-waves .wave {
+        width: 3px;
+        height: 14px;
+    }
+
+    .label-text {
+        font-size: 10px;
+    }
+
+    .history-panel {
+        width: 100%;
+    }
+
+    .history-toggle {
+        top: auto;
+        bottom: 110px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+    }
+
+    .history-toggle svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .history-header {
+        padding: 14px 16px;
+    }
+
+    .history-header h3 {
+        font-size: 13px;
+    }
+
+    .close-btn {
+        width: 30px;
+        height: 30px;
+    }
+
+    .close-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .history-list {
+        padding: 10px;
+    }
+
+    .history-item {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .history-q {
+        font-size: 10px;
+    }
+
+    .history-question {
+        font-size: 11px;
+        margin-top: 6px;
+    }
+
+    .history-score {
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    .score-value {
+        font-size: 14px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+    .socratic-nav {
+        padding: 0 10px;
+    }
+
+    .nav-title {
+        font-size: 13px;
+        letter-spacing: 0.5px;
+    }
+
+    .nav-icon {
         font-size: 16px;
+    }
+
+    .nav-back {
+        font-size: 10px;
+        padding: 3px 5px;
+        gap: 4px;
     }
 
     .nav-back span {
         display: none;
+    }
+
+    .status-text {
+        display: none;
+    }
+
+    .socratic-main {
+        padding: 56px 10px 100px;
+    }
+
+    .dialogue-chamber {
+        max-width: 460px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 36px;
+    }
+
+    .energy-orb {
+        width: 110px;
+        height: 110px;
+    }
+
+    .orb-core {
+        width: 48px;
+        height: 48px;
+    }
+
+    .orb-ring.ring-1 { width: 78px; height: 78px; }
+    .orb-ring.ring-2 { width: 94px; height: 94px; }
+    .orb-ring.ring-3 { width: 110px; height: 110px; }
+
+    .orb-glow {
+        width: 180px;
+        height: 180px;
+    }
+
+    .orb-status {
+        margin-top: 12px;
+        padding: 3px 8px;
+        font-size: 9px;
+    }
+
+    .transcript-container {
+        gap: 10px;
+    }
+
+    .transcript-content {
+        padding: 14px 20px;
+    }
+
+    .transcript-text {
+        font-size: 15px;
+    }
+
+    .question-number {
+        font-size: 8px;
+        padding: 2px 5px;
+        margin-bottom: 6px;
+    }
+
+    .transcript-hint {
+        font-size: 9px;
+    }
+
+    .audio-visualizer {
+        height: 36px;
+        gap: 3px;
+    }
+
+    .wave-bar {
+        width: 3px;
+        border-radius: 1.5px;
+    }
+
+    .wave-bar:nth-child(1) { height: 10px; }
+    .wave-bar:nth-child(2) { height: 20px; }
+    .wave-bar:nth-child(3) { height: 28px; }
+    .wave-bar:nth-child(4) { height: 24px; }
+    .wave-bar:nth-child(5) { height: 32px; }
+    .wave-bar:nth-child(6) { height: 16px; }
+    .wave-bar:nth-child(7) { height: 26px; }
+    .wave-bar:nth-child(8) { height: 14px; }
+
+    .response-indicator {
+        margin-top: 12px;
+        padding: 5px 12px;
+        gap: 5px;
+        border-radius: 10px;
+    }
+
+    .response-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .response-text {
+        font-size: 9px;
+    }
+
+    .hint-text {
+        margin-top: 20px;
+        padding: 6px 12px;
+    }
+
+    .hint-text p {
+        font-size: 9px;
+    }
+
+    .mic-console {
+        bottom: 36px;
+        gap: 12px;
+    }
+
+    .mic-btn {
+        width: 58px;
+        height: 58px;
+    }
+
+    .mic-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    .mic-waves .wave {
+        width: 2px;
+        height: 12px;
+    }
+
+    .label-text {
+        font-size: 9px;
+    }
+
+    .history-panel {
+        width: 100%;
+    }
+
+    .history-toggle {
+        top: auto;
+        bottom: 96px;
+        right: 10px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+    }
+
+    .history-toggle svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .history-header {
+        padding: 12px 14px;
+    }
+
+    .history-header h3 {
+        font-size: 12px;
+    }
+
+    .close-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .close-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .history-list {
+        padding: 8px;
+    }
+
+    .history-item {
+        padding: 8px;
+        margin-bottom: 6px;
+        border-radius: 10px;
+    }
+
+    .history-q {
+        font-size: 9px;
+    }
+
+    .history-question {
+        font-size: 10px;
+        margin-top: 4px;
+    }
+
+    .history-score {
+        margin-top: 6px;
+        padding-top: 6px;
+    }
+
+    .score-label {
+        font-size: 9px;
+    }
+
+    .score-value {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 479px) {
+    .socratic-nav {
+        padding: 0 8px;
+    }
+
+    .nav-title {
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    .nav-icon {
+        font-size: 14px;
+    }
+
+    .nav-back {
+        font-size: 9px;
+        padding: 2px 4px;
+        gap: 2px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .status-text {
+        display: none;
+    }
+
+    .socratic-main {
+        padding: 52px 8px 80px;
+    }
+
+    .dialogue-chamber {
+        max-width: 400px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 32px;
+    }
+
+    .energy-orb {
+        width: 100px;
+        height: 100px;
+    }
+
+    .orb-core {
+        width: 44px;
+        height: 44px;
+    }
+
+    .orb-ring.ring-1 { width: 72px; height: 72px; }
+    .orb-ring.ring-2 { width: 86px; height: 86px; }
+    .orb-ring.ring-3 { width: 100px; height: 100px; }
+
+    .orb-glow {
+        width: 160px;
+        height: 160px;
+    }
+
+    .orb-status {
+        margin-top: 10px;
+        padding: 2px 6px;
+        font-size: 8px;
+    }
+
+    .transcript-container {
+        gap: 8px;
+    }
+
+    .transcript-content {
+        padding: 12px 16px;
+    }
+
+    .transcript-text {
+        font-size: 14px;
+    }
+
+    .question-number {
+        font-size: 7px;
+        padding: 1px 4px;
+        margin-bottom: 5px;
+        border-radius: 8px;
+    }
+
+    .transcript-hint {
+        font-size: 8px;
+    }
+
+    .audio-visualizer {
+        height: 32px;
+        gap: 2px;
+    }
+
+    .wave-bar {
+        width: 3px;
+        border-radius: 1.5px;
+    }
+
+    .wave-bar:nth-child(1) { height: 8px; }
+    .wave-bar:nth-child(2) { height: 16px; }
+    .wave-bar:nth-child(3) { height: 24px; }
+    .wave-bar:nth-child(4) { height: 20px; }
+    .wave-bar:nth-child(5) { height: 28px; }
+    .wave-bar:nth-child(6) { height: 14px; }
+    .wave-bar:nth-child(7) { height: 22px; }
+    .wave-bar:nth-child(8) { height: 12px; }
+
+    .response-indicator {
+        margin-top: 10px;
+        padding: 4px 10px;
+        gap: 4px;
+        border-radius: 8px;
+    }
+
+    .response-dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    .response-text {
+        font-size: 8px;
+    }
+
+    .hint-text {
+        margin-top: 16px;
+        padding: 5px 10px;
+    }
+
+    .hint-text p {
+        font-size: 8px;
+        line-height: 1.4;
+    }
+
+    .mic-console {
+        bottom: 32px;
+        gap: 10px;
+    }
+
+    .mic-btn {
+        width: 54px;
+        height: 54px;
+    }
+
+    .mic-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .mic-waves .wave {
+        width: 2px;
+        height: 10px;
+    }
+
+    .label-text {
+        font-size: 8px;
+    }
+
+    .history-panel {
+        width: 100%;
+    }
+
+    .history-toggle {
+        top: auto;
+        bottom: 84px;
+        right: 8px;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .history-toggle svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .history-header {
+        padding: 10px 12px;
+    }
+
+    .history-header h3 {
+        font-size: 11px;
+    }
+
+    .close-btn {
+        width: 26px;
+        height: 26px;
+    }
+
+    .close-btn svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    .history-list {
+        padding: 6px;
+    }
+
+    .history-item {
+        padding: 6px;
+        margin-bottom: 5px;
+        border-radius: 8px;
+    }
+
+    .history-q {
+        font-size: 8px;
+    }
+
+    .history-question {
+        font-size: 9px;
+        margin-top: 3px;
+    }
+
+    .history-score {
+        margin-top: 5px;
+        padding-top: 5px;
+    }
+
+    .score-label {
+        font-size: 8px;
+    }
+
+    .score-value {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 374px) {
+    .socratic-nav {
+        padding: 0 6px;
+    }
+
+    .nav-title {
+        font-size: 11px;
+        letter-spacing: 0;
+    }
+
+    .nav-icon {
+        font-size: 12px;
+    }
+
+    .nav-back {
+        font-size: 8px;
+        padding: 2px 3px;
+    }
+
+    .status-text {
+        display: none;
+    }
+
+    .socratic-main {
+        padding: 48px 6px 70px;
+    }
+
+    .dialogue-chamber {
+        max-width: 360px;
+    }
+
+    .energy-orb-container {
+        margin-bottom: 28px;
+    }
+
+    .energy-orb {
+        width: 88px;
+        height: 88px;
+    }
+
+    .orb-core {
+        width: 38px;
+        height: 38px;
+    }
+
+    .orb-ring.ring-1 { width: 64px; height: 64px; }
+    .orb-ring.ring-2 { width: 76px; height: 76px; }
+    .orb-ring.ring-3 { width: 88px; height: 88px; }
+
+    .orb-glow {
+        width: 140px;
+        height: 140px;
+    }
+
+    .orb-status {
+        margin-top: 8px;
+        padding: 2px 5px;
+        font-size: 7px;
+    }
+
+    .transcript-container {
+        gap: 6px;
+    }
+
+    .transcript-content {
+        padding: 10px 14px;
+    }
+
+    .transcript-text {
+        font-size: 13px;
+    }
+
+    .question-number {
+        font-size: 6px;
+        padding: 1px 3px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+    }
+
+    .transcript-hint {
+        font-size: 7px;
+    }
+
+    .audio-visualizer {
+        height: 28px;
+        gap: 2px;
+    }
+
+    .wave-bar {
+        width: 2px;
+        border-radius: 1px;
+    }
+
+    .wave-bar:nth-child(1) { height: 6px; }
+    .wave-bar:nth-child(2) { height: 14px; }
+    .wave-bar:nth-child(3) { height: 20px; }
+    .wave-bar:nth-child(4) { height: 16px; }
+    .wave-bar:nth-child(5) { height: 24px; }
+    .wave-bar:nth-child(6) { height: 12px; }
+    .wave-bar:nth-child(7) { height: 18px; }
+    .wave-bar:nth-child(8) { height: 10px; }
+
+    .response-indicator {
+        margin-top: 8px;
+        padding: 3px 8px;
+        gap: 3px;
+        border-radius: 6px;
+    }
+
+    .response-dot {
+        width: 4px;
+        height: 4px;
+    }
+
+    .response-text {
+        font-size: 7px;
+    }
+
+    .hint-text {
+        margin-top: 12px;
+        padding: 4px 8px;
+    }
+
+    .hint-text p {
+        font-size: 7px;
+        line-height: 1.3;
+    }
+
+    .mic-console {
+        bottom: 28px;
+        gap: 8px;
+    }
+
+    .mic-btn {
+        width: 48px;
+        height: 48px;
+        border-width: 2px;
+    }
+
+    .mic-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .mic-waves .wave {
+        width: 2px;
+        height: 8px;
+    }
+
+    .label-text {
+        font-size: 7px;
+    }
+
+    .history-panel {
+        width: 100%;
+    }
+
+    .history-toggle {
+        bottom: 74px;
+        right: 6px;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .history-toggle svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .history-header {
+        padding: 8px 10px;
+    }
+
+    .history-header h3 {
+        font-size: 10px;
+    }
+
+    .close-btn {
+        width: 24px;
+        height: 24px;
+    }
+
+    .close-btn svg {
+        width: 10px;
+        height: 10px;
+    }
+
+    .history-list {
+        padding: 5px;
+    }
+
+    .history-item {
+        padding: 5px;
+        margin-bottom: 4px;
+        border-radius: 6px;
+    }
+
+    .history-q {
+        font-size: 7px;
+    }
+
+    .history-question {
+        font-size: 8px;
+        margin-top: 2px;
+    }
+
+    .history-score {
+        margin-top: 4px;
+        padding-top: 4px;
+    }
+
+    .score-label {
+        font-size: 7px;
+    }
+
+    .score-value {
+        font-size: 11px;
     }
 }

@@ -1270,6 +1270,683 @@ kbd {
     background: transparent;
 }
 
+/* ============================================
+   Responsive Design
+   响应式适配 - 多分辨率 & 缩放支持
+   ============================================ */
+
+/* Base zoom level compatibility */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Prevent text enlargement from breaking layouts */
+input, textarea, select {
+    font-size: 100%;
+}
+
+/* Text overflow handling */
+.topbar-title,
+.topbar-pill,
+.mode-btn,
+.ghost-btn,
+.action-btn,
+.send-btn,
+.code-text,
+.chat-message,
+.assistant-message {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+/* Extra Large Desktop - 1920px+ */
+@media (min-width: 1920px) {
+    body.code-body {
+        padding: 20px;
+    }
+
+    .app-shell {
+        height: calc(100vh - 40px);
+        border-radius: 32px;
+    }
+
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 420px;
+        gap: 14px;
+        padding: 14px;
+    }
+
+    .topbar {
+        padding: 0 28px;
+        min-height: 80px;
+    }
+
+    .topbar-title {
+        font-size: 18px;
+    }
+
+    .stage-head {
+        padding: 18px 22px;
+        border-radius: 24px;
+    }
+
+    .code-textarea {
+        padding: 24px 22px;
+        font-size: 15px;
+    }
+}
+
+/* Large Desktop - 1600px-1919px */
+@media (min-width: 1600px) and (max-width: 1919px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 380px;
+    }
+
+    .topbar {
+        padding: 0 24px;
+        min-height: 76px;
+    }
+
+    .stage-head {
+        padding: 16px 20px;
+    }
+}
+
+/* Large Desktop - 1440px-1599px */
+@media (min-width: 1440px) and (max-width: 1599px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .topbar {
+        padding: 0 22px;
+        min-height: 74px;
+    }
+}
+
+/* Desktop - 1200px-1439px */
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 340px;
+    }
+
+    .topbar {
+        padding: 0 20px;
+    }
+}
+
+/* Tablet Landscape - 1024px-1199px */
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .topbar {
+        padding: 0 18px;
+        min-height: 70px;
+    }
+
+    .topbar-title {
+        font-size: 15px;
+    }
+
+    .stage-head {
+        padding: 14px 16px;
+        border-radius: 20px;
+    }
+
+    .mode-btn {
+        min-width: 96px;
+        height: 36px;
+        font-size: 13px;
+    }
+}
+
+/* Tablet Portrait - 900px-1023px */
+@media (min-width: 900px) and (max-width: 1023px) {
+    body.code-body {
+        padding: 10px;
+    }
+
+    .app-shell {
+        height: calc(100vh - 20px);
+        border-radius: 24px;
+    }
+
+    .workspace {
+        grid-template-columns: minmax(0, 1fr) 300px;
+    }
+
+    .topbar {
+        padding: 0 16px;
+        min-height: 68px;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        gap: 10px;
+    }
+
+    .topbar-title {
+        font-size: 14px;
+    }
+
+    .topbar-pill {
+        font-size: 11px;
+        padding: 0 10px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .stage-head {
+        padding: 12px 14px;
+        border-radius: 18px;
+    }
+
+    .mode-btn {
+        min-width: 88px;
+        height: 34px;
+        font-size: 12px;
+    }
+
+    .code-textarea {
+        padding: 18px 16px;
+        font-size: 14px;
+    }
+}
+
+/* Tablet - 768px-899px */
+@media (min-width: 768px) and (max-width: 899px) {
+    body.code-body {
+        padding: 8px;
+    }
+
+    .app-shell {
+        height: calc(100vh - 16px);
+        border-radius: 20px;
+    }
+
+    .workspace {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .assistant-panel {
+        min-height: 320px;
+    }
+
+    .topbar {
+        padding: 0 14px;
+        min-height: 64px;
+    }
+
+    .topbar-title {
+        font-size: 13px;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        gap: 8px;
+    }
+
+    .topbar-pill {
+        font-size: 10px;
+        min-height: 28px;
+        padding: 0 8px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .stage-head {
+        padding: 10px 12px;
+        border-radius: 16px;
+    }
+
+    .mode-section {
+        gap: 10px;
+    }
+
+    .mode-btn {
+        min-width: 80px;
+        height: 32px;
+        font-size: 11px;
+        border-radius: 10px;
+    }
+
+    .ghost-btn,
+    .action-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .code-textarea {
+        padding: 16px 14px;
+        font-size: 13px;
+    }
+}
+
+/* Mobile Landscape - 640px-767px */
+@media (min-width: 640px) and (max-width: 767px) {
+    body.code-body {
+        padding: 6px;
+        overflow: auto;
+    }
+
+    .app-shell {
+        height: auto;
+        min-height: calc(100vh - 12px);
+        border-radius: 16px;
+    }
+
+    .workspace {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        padding: 10px 14px;
+        min-height: auto;
+        gap: 10px;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        gap: 8px;
+    }
+
+    .topbar-right {
+        justify-content: flex-start;
+    }
+
+    .topbar-title {
+        font-size: 14px;
+    }
+
+    .topbar-statusbar {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0;
+    }
+
+    .stage-head {
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .mode-section {
+        gap: 8px;
+    }
+
+    .mode-switch {
+        padding: 3px;
+        border-radius: 12px;
+    }
+
+    .mode-btn {
+        min-width: 72px;
+        height: 30px;
+        font-size: 11px;
+        border-radius: 10px;
+    }
+
+    .ghost-btn,
+    .action-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+    }
+
+    .assistant-panel {
+        min-height: 280px;
+    }
+
+    .code-editor {
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .code-textarea {
+        padding: 14px 12px;
+        font-size: 13px;
+    }
+}
+
+/* Mobile Portrait - 480px-639px */
+@media (min-width: 480px) and (max-width: 639px) {
+    body.code-body {
+        padding: 0;
+        overflow: auto;
+    }
+
+    .app-shell {
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .workspace {
+        grid-template-columns: 1fr;
+        gap: 6px;
+        padding: 6px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        padding: 8px 12px;
+        min-height: auto;
+        gap: 8px;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        gap: 6px;
+    }
+
+    .topbar-right {
+        justify-content: flex-start;
+    }
+
+    .topbar-title {
+        font-size: 13px;
+    }
+
+    .topbar-pill {
+        font-size: 10px;
+        min-height: 26px;
+        padding: 0 8px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .window-dots {
+        gap: 6px;
+    }
+
+    .topbar-statusbar {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0;
+        gap: 6px;
+    }
+
+    .stage-head {
+        padding: 8px 10px;
+        border-radius: 12px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .mode-section {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .mode-switch {
+        padding: 3px;
+        border-radius: 10px;
+    }
+
+    .mode-btn {
+        min-width: 64px;
+        height: 28px;
+        font-size: 10px;
+        border-radius: 8px;
+    }
+
+    .ghost-btn,
+    .action-btn {
+        padding: 4px 6px;
+        font-size: 9px;
+    }
+
+    .brief-panel {
+        max-height: 300px;
+    }
+
+    .assistant-panel {
+        min-height: 240px;
+    }
+
+    .code-editor {
+        grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .code-textarea {
+        padding: 12px 10px;
+        font-size: 12px;
+    }
+
+    .editor-toolbar {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .terminal-left,
+    .terminal-right {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+}
+
+/* Extra Small Mobile - 375px-479px */
+@media (max-width: 479px) {
+    body.code-body {
+        padding: 0;
+        overflow: auto;
+    }
+
+    .app-shell {
+        height: auto;
+        min-height: 100vh;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .workspace {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 4px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: center;
+        padding: 6px 10px;
+        min-height: auto;
+        gap: 6px;
+    }
+
+    .topbar-left,
+    .topbar-right,
+    .mode-section,
+    .editor-toolbar,
+    .assistant-header,
+    .assistant-input-footer,
+    .terminal-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .topbar-left,
+    .topbar-right {
+        gap: 4px;
+        width: 100%;
+    }
+
+    .topbar-right {
+        justify-content: flex-start;
+    }
+
+    .topbar-title {
+        font-size: 12px;
+    }
+
+    .topbar-pill {
+        font-size: 9px;
+        min-height: 24px;
+        padding: 0 6px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .window-dots {
+        gap: 4px;
+    }
+
+    .topbar-statusbar {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 0;
+        gap: 4px;
+    }
+
+    .stage-head {
+        padding: 6px 8px;
+        border-radius: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .mode-section {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .mode-switch {
+        padding: 2px;
+        border-radius: 8px;
+        width: 100%;
+    }
+
+    .mode-btn,
+    .ghost-btn,
+    .action-btn,
+    .send-btn {
+        flex: 1 1 calc(50% - 4px);
+        min-width: 0;
+        height: 28px;
+        font-size: 10px;
+        border-radius: 6px;
+    }
+
+    .mode-copy-top {
+        flex-wrap: wrap;
+    }
+
+    .editor-actions {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+
+    .brief-panel {
+        max-height: 240px;
+    }
+
+    .editor-panel {
+        min-height: 200px;
+    }
+
+    .assistant-panel {
+        min-height: 200px;
+    }
+
+    .code-editor {
+        grid-template-columns: 32px minmax(0, 1fr);
+    }
+
+    .code-textarea {
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+
+    .terminal-left,
+    .terminal-right {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+}
+
+/* Extra Small Mobile - 320px-374px */
+@media (max-width: 375px) {
+    .topbar {
+        padding: 5px 8px;
+    }
+
+    .topbar-title {
+        font-size: 11px;
+    }
+
+    .topbar-pill {
+        font-size: 8px;
+        min-height: 22px;
+        padding: 0 5px;
+    }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    .stage-head {
+        padding: 5px 6px;
+        border-radius: 8px;
+    }
+
+    .mode-btn,
+    .ghost-btn,
+    .action-btn,
+    .send-btn {
+        font-size: 9px;
+        height: 26px;
+    }
+
+    .code-textarea {
+        padding: 8px 6px;
+        font-size: 10px;
+    }
+
+    .code-editor {
+        grid-template-columns: 28px minmax(0, 1fr);
+    }
+
+    .brief-panel {
+        max-height: 200px;
+    }
+
+    .editor-panel,
+    .assistant-panel {
+        min-height: 180px;
+    }
+}
+
+/* Existing Media Queries - Enhanced versions */
 @media (max-width: 1520px) {
     .topbar {
         flex-direction: column;

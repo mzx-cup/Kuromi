@@ -93,6 +93,12 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+input, textarea, select {
+    font-size: 100%;
 }
 
 html {
@@ -109,6 +115,10 @@ body {
     background: var(--bg-primary);
     min-height: 100vh;
     overflow-x: hidden;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 /* ============================================
@@ -207,8 +217,8 @@ body {
 .personal-container {
     position: relative;
     z-index: var(--z-base);
-    max-width: 1200px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
     padding: 24px;
     min-height: 100vh;
 }
@@ -3912,6 +3922,762 @@ body {
 
     .task-card {
         padding: 16px 12px;
+    }
+}
+
+/* Comprehensive Responsive */
+@media (min-width: 1920px) {
+    .personal-container {
+        padding: 32px;
+    }
+
+    .personal-nav {
+        padding: 20px 32px;
+        margin-bottom: 32px;
+    }
+
+    .nav-back {
+        padding: 12px 22px;
+        font-size: 15px;
+    }
+
+    .nav-title {
+        font-size: 22px;
+    }
+
+    .personal-main {
+        padding: 40px;
+    }
+
+    .cockpit-container {
+        padding: 36px;
+        margin-bottom: 32px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 32px;
+    }
+
+    .cockpit-title-icon {
+        width: 56px;
+        height: 56px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 24px;
+    }
+
+    .cockpit-title-text p {
+        font-size: 15px;
+    }
+
+    .cockpit-body {
+        gap: 32px;
+    }
+
+    .knowledge-topology {
+        padding: 20px;
+    }
+
+    .knowledge-topology-title {
+        font-size: 16px;
+    }
+
+    .personal-section {
+        padding: 32px;
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 22px;
+    }
+
+    .avatar {
+        width: 120px;
+        height: 120px;
+    }
+
+    .identity-name {
+        font-size: 32px;
+    }
+
+    .identity-title {
+        font-size: 16px;
+    }
+
+    .stat-value {
+        font-size: 36px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    .task-card {
+        padding: 24px 20px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 20px;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .personal-container {
+        padding: 28px;
+    }
+
+    .personal-nav {
+        padding: 18px 28px;
+        margin-bottom: 28px;
+    }
+
+    .personal-main {
+        padding: 36px;
+    }
+
+    .cockpit-container {
+        padding: 32px;
+        margin-bottom: 28px;
+    }
+
+    .section-title {
+        font-size: 20px;
+    }
+
+    .avatar {
+        width: 110px;
+        height: 110px;
+    }
+
+    .identity-name {
+        font-size: 30px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 18px;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .personal-container {
+        padding: 24px;
+    }
+
+    .personal-nav {
+        padding: 16px 24px;
+        margin-bottom: 24px;
+    }
+
+    .nav-back {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+
+    .nav-title {
+        font-size: 18px;
+    }
+
+    .personal-main {
+        padding: 32px;
+    }
+
+    .cockpit-container {
+        padding: 28px;
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 19px;
+    }
+
+    .avatar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .identity-name {
+        font-size: 28px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .personal-container {
+        padding: 20px;
+    }
+
+    .personal-nav {
+        padding: 14px 20px;
+        margin-bottom: 20px;
+    }
+
+    .nav-title {
+        font-size: 17px;
+    }
+
+    .personal-main {
+        padding: 28px;
+    }
+
+    .cockpit-container {
+        padding: 24px;
+        margin-bottom: 20px;
+    }
+
+    .cockpit-title-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 18px;
+    }
+
+    .section-title {
+        font-size: 18px;
+    }
+
+    .avatar {
+        width: 90px;
+        height: 90px;
+    }
+
+    .identity-name {
+        font-size: 26px;
+    }
+
+    .stat-value {
+        font-size: 32px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+    .personal-container {
+        padding: 16px;
+    }
+
+    .personal-nav {
+        padding: 12px 16px;
+        margin-bottom: 16px;
+    }
+
+    .nav-back {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .nav-title {
+        font-size: 16px;
+    }
+
+    .personal-main {
+        padding: 24px;
+    }
+
+    .cockpit-container {
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 20px;
+    }
+
+    .cockpit-title-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 17px;
+    }
+
+    .cockpit-title-text p {
+        font-size: 12px;
+    }
+
+    .section-title {
+        font-size: 17px;
+    }
+
+    .avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .identity-name {
+        font-size: 24px;
+    }
+
+    .identity-title {
+        font-size: 13px;
+    }
+
+    .stat-value {
+        font-size: 30px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .task-card {
+        padding: 18px 14px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+    .personal-container {
+        padding: 14px;
+    }
+
+    .personal-nav {
+        padding: 10px 14px;
+        margin-bottom: 14px;
+    }
+
+    .nav-back {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .nav-title {
+        font-size: 15px;
+    }
+
+    .personal-main {
+        padding: 20px;
+    }
+
+    .cockpit-container {
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 16px;
+    }
+
+    .cockpit-title-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 16px;
+    }
+
+    .cockpit-title-text p {
+        font-size: 11px;
+    }
+
+    .section-title {
+        font-size: 16px;
+    }
+
+    .avatar {
+        width: 72px;
+        height: 72px;
+    }
+
+    .identity-name {
+        font-size: 22px;
+    }
+
+    .identity-title {
+        font-size: 12px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .task-card {
+        padding: 14px 12px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+    .personal-container {
+        padding: 12px;
+    }
+
+    .personal-nav {
+        padding: 8px 12px;
+        margin-bottom: 12px;
+    }
+
+    .nav-back {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .nav-title {
+        font-size: 14px;
+    }
+
+    .personal-main {
+        padding: 16px;
+    }
+
+    .cockpit-container {
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 14px;
+    }
+
+    .cockpit-title-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 15px;
+    }
+
+    .cockpit-title-text p {
+        font-size: 10px;
+    }
+
+    .section-title {
+        font-size: 15px;
+    }
+
+    .avatar {
+        width: 64px;
+        height: 64px;
+    }
+
+    .identity-name {
+        font-size: 20px;
+    }
+
+    .identity-title {
+        font-size: 11px;
+    }
+
+    .stat-value {
+        font-size: 26px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .task-card {
+        padding: 12px 10px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+    .personal-container {
+        padding: 10px;
+    }
+
+    .personal-nav {
+        padding: 6px 10px;
+        margin-bottom: 10px;
+    }
+
+    .nav-back {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .nav-title {
+        font-size: 13px;
+    }
+
+    .personal-main {
+        padding: 14px;
+    }
+
+    .cockpit-container {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 12px;
+    }
+
+    .cockpit-title-icon {
+        width: 28px;
+        height: 28px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 14px;
+    }
+
+    .cockpit-title-text p {
+        display: none;
+    }
+
+    .section-title {
+        font-size: 14px;
+    }
+
+    .avatar {
+        width: 56px;
+        height: 56px;
+    }
+
+    .identity-name {
+        font-size: 18px;
+    }
+
+    .identity-title {
+        font-size: 10px;
+    }
+
+    .stat-value {
+        font-size: 24px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .task-card {
+        padding: 10px 8px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+}
+
+@media (max-width: 479px) {
+    .personal-container {
+        padding: 8px;
+    }
+
+    .personal-nav {
+        padding: 5px 8px;
+        margin-bottom: 8px;
+    }
+
+    .nav-back {
+        padding: 3px 6px;
+        font-size: 9px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .nav-title {
+        font-size: 12px;
+    }
+
+    .personal-main {
+        padding: 12px;
+    }
+
+    .cockpit-container {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 10px;
+    }
+
+    .cockpit-title-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 13px;
+    }
+
+    .cockpit-title-text p {
+        display: none;
+    }
+
+    .section-title {
+        font-size: 13px;
+    }
+
+    .avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .identity-name {
+        font-size: 16px;
+    }
+
+    .identity-title {
+        font-size: 9px;
+    }
+
+    .stat-value {
+        font-size: 22px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+    }
+
+    .task-card {
+        padding: 8px 6px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+    }
+}
+
+@media (max-width: 374px) {
+    .personal-container {
+        padding: 6px;
+    }
+
+    .personal-nav {
+        padding: 4px 6px;
+        margin-bottom: 6px;
+    }
+
+    .nav-back {
+        padding: 2px 4px;
+        font-size: 8px;
+    }
+
+    .nav-back span {
+        display: none;
+    }
+
+    .nav-title {
+        font-size: 11px;
+    }
+
+    .personal-main {
+        padding: 10px;
+    }
+
+    .cockpit-container {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+
+    .cockpit-header {
+        margin-bottom: 8px;
+    }
+
+    .cockpit-title-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .cockpit-title-text h2 {
+        font-size: 12px;
+    }
+
+    .section-title {
+        font-size: 12px;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    .identity-name {
+        font-size: 14px;
+    }
+
+    .identity-title {
+        display: none;
+    }
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .task-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+    }
+
+    .task-card {
+        padding: 6px 4px;
+    }
+
+    .achievement-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
     }
 }
 

@@ -5402,3 +5402,540 @@ body.light-theme .path-tree-empty {
         font-size: 9px;
     }
 }
+
+/* ============================================
+   Responsive Design
+   响应式适配 - 多分辨率 & 缩放支持
+   ============================================ */
+
+/* Base zoom level compatibility */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Prevent text enlargement from breaking layouts */
+input, textarea, select {
+    font-size: 100%;
+}
+
+/* Text overflow handling for various elements */
+.agent-fab-name,
+.mini-player-title,
+.music-item-title,
+.flow-music-title,
+.track-name,
+.path-title,
+.node-title,
+.chat-message-text,
+.msg-bubble p {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+/* Large Desktop - 1920px+ */
+@media (min-width: 1920px) {
+    .main-glass-surface {
+        margin: 16px;
+        border-radius: var(--radius-2xl);
+    }
+
+    .top-bar-glass {
+        padding: 18px 32px;
+    }
+
+    .chat-glass-scroll {
+        padding: 24px 32px;
+    }
+
+    .composer-glass-bar {
+        padding: 16px 32px;
+    }
+
+    .left-col {
+        width: 300px;
+        min-width: 300px;
+    }
+
+    .right-col {
+        width: 360px;
+        min-width: 360px;
+    }
+
+    .agent-fab-name {
+        font-size: 15px;
+        max-width: 140px;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 38%;
+        min-width: 320px;
+        max-width: 420px;
+    }
+}
+
+/* Large Desktop - 1440px+ */
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .main-glass-surface {
+        margin: 14px;
+    }
+
+    .top-bar-glass {
+        padding: 16px 28px;
+    }
+
+    .chat-glass-scroll {
+        padding: 20px 28px;
+    }
+
+    .composer-glass-bar {
+        padding: 14px 28px;
+    }
+
+    .left-col {
+        width: 280px;
+        min-width: 280px;
+    }
+
+    .right-col {
+        width: 340px;
+        min-width: 340px;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 36%;
+        min-width: 300px;
+        max-width: 400px;
+    }
+}
+
+/* Desktop - 1200px */
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .left-col {
+        width: 260px;
+        min-width: 260px;
+    }
+
+    .right-col {
+        width: 300px;
+        min-width: 300px;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 35%;
+        min-width: 280px;
+        max-width: 380px;
+    }
+}
+
+/* Tablet Landscape - 1024px */
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .left-col {
+        width: 240px;
+        min-width: 240px;
+    }
+
+    .right-col {
+        width: 280px;
+        min-width: 280px;
+    }
+
+    .top-bar-glass {
+        padding: 12px 20px;
+    }
+
+    .chat-glass-scroll {
+        padding: 16px 20px;
+    }
+
+    .composer-glass-bar {
+        padding: 12px 20px;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 34%;
+        min-width: 260px;
+        max-width: 340px;
+    }
+}
+
+/* Tablet Portrait - 900px */
+@media (min-width: 900px) and (max-width: 1023px) {
+    .right-col {
+        width: 260px;
+        min-width: 260px;
+    }
+
+    .agent-fab-name {
+        display: none;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 50%;
+        min-width: 260px;
+        max-width: 400px;
+    }
+}
+
+/* Tablet - 768px */
+@media (min-width: 768px) and (max-width: 899px) {
+    .main-glass-surface {
+        margin: 10px;
+        border-radius: var(--radius-lg);
+    }
+
+    .top-bar-glass {
+        padding: 10px 16px;
+    }
+
+    .chat-glass-scroll {
+        padding: 14px 16px;
+    }
+
+    .composer-glass-bar {
+        padding: 10px 16px;
+    }
+
+    .left-col {
+        width: 220px;
+        min-width: 220px;
+    }
+
+    .right-col {
+        width: 240px;
+        min-width: 240px;
+    }
+
+    .agent-fab-name {
+        display: none;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 55%;
+        min-width: 240px;
+        max-width: 360px;
+    }
+
+    .focus-duration-panel {
+        width: 280px;
+    }
+}
+
+/* Mobile Landscape - 640px */
+@media (min-width: 640px) and (max-width: 767px) {
+    .main-glass-surface {
+        margin: 8px;
+        border-radius: var(--radius-md);
+    }
+
+    .top-bar-glass {
+        padding: 8px 14px;
+    }
+
+    .chat-glass-scroll {
+        padding: 12px 14px;
+    }
+
+    .composer-glass-bar {
+        padding: 8px 14px;
+    }
+
+    .left-col {
+        width: 200px;
+        min-width: 200px;
+    }
+
+    .right-col {
+        width: 220px;
+        min-width: 220px;
+    }
+
+    .agent-fab-main {
+        padding: 8px 12px;
+    }
+
+    .agent-fab-icon {
+        font-size: 18px;
+    }
+
+    .agent-fab-name {
+        display: none;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 65%;
+        min-width: 200px;
+        max-width: 300px;
+    }
+
+    .focus-duration-panel {
+        width: 260px;
+        bottom: 100px;
+    }
+
+    .flow-dynamic-island {
+        min-width: 200px;
+        padding: 6px 16px;
+    }
+
+    .mini-player {
+        bottom: 10px;
+    }
+
+    .mini-player-info {
+        max-width: 80px;
+    }
+
+    .debate-judge-float-card {
+        bottom: 320px;
+        width: 95%;
+    }
+}
+
+/* Mobile Portrait - 480px */
+@media (min-width: 480px) and (max-width: 639px) {
+    .main-glass-surface {
+        margin: 6px;
+        border-radius: var(--radius-sm);
+    }
+
+    .top-bar-glass {
+        padding: 8px 12px;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+
+    .chat-glass-scroll {
+        padding: 10px 12px;
+    }
+
+    .composer-glass-bar {
+        padding: 8px 12px;
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+
+    .left-col {
+        width: 180px;
+        min-width: 180px;
+    }
+
+    .agent-fab-main {
+        padding: 6px 10px;
+    }
+
+    .agent-fab-icon {
+        font-size: 16px;
+    }
+
+    .agent-fab-name {
+        display: none;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 100%;
+    }
+
+    .focus-duration-panel {
+        width: 240px;
+        bottom: 90px;
+        padding: 12px;
+    }
+
+    .flow-dynamic-island {
+        min-width: 160px;
+        padding: 5px 12px;
+        top: 8px;
+    }
+
+    .mini-player {
+        bottom: 8px;
+        padding: 4px 8px;
+    }
+
+    .mini-player-info {
+        display: none;
+    }
+
+    .debate-judge-float-card {
+        bottom: 280px;
+        width: 98%;
+        max-width: none;
+    }
+
+    .debate-panel-container.expanded {
+        height: 55vh;
+    }
+
+    .debate-panel-body {
+        height: calc(55vh - 48px);
+    }
+}
+
+/* Extra Small Mobile - 375px */
+@media (max-width: 479px) {
+    .main-glass-surface {
+        margin: 4px;
+        border-radius: var(--radius-xs);
+    }
+
+    .top-bar-glass {
+        padding: 6px 10px;
+        border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    }
+
+    .chat-glass-scroll {
+        padding: 8px 10px;
+    }
+
+    .composer-glass-bar {
+        padding: 6px 10px;
+        border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+    }
+
+    .left-col {
+        width: 160px;
+        min-width: 160px;
+    }
+
+    .right-col {
+        width: 180px;
+        min-width: 180px;
+    }
+
+    .agent-fab-main {
+        padding: 5px 8px;
+    }
+
+    .agent-fab-icon {
+        font-size: 14px;
+    }
+
+    .agent-fab-name {
+        display: none;
+    }
+
+    #track-a-container:not(.collapsed) {
+        width: 100%;
+    }
+
+    .focus-duration-panel {
+        width: 200px;
+        bottom: 80px;
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    .focus-duration-toggle-btn {
+        right: 10px;
+        bottom: 60px;
+        width: 36px;
+        height: 36px;
+    }
+
+    .flow-dynamic-island {
+        min-width: 140px;
+        padding: 4px 10px;
+        top: 6px;
+        border-radius: 20px;
+    }
+
+    .flow-dynamic-island .island-time {
+        font-size: 10px;
+    }
+
+    .mini-player {
+        bottom: 6px;
+        padding: 4px 6px;
+        border-radius: 10px;
+    }
+
+    .mini-player-info {
+        display: none;
+    }
+
+    .mini-ctrl-btn {
+        width: 22px;
+        height: 22px;
+    }
+
+    .mini-ctrl-play {
+        width: 26px;
+        height: 26px;
+    }
+
+    .debate-judge-float-card {
+        bottom: 260px;
+        width: 98%;
+        max-width: none;
+        border-radius: 12px;
+    }
+
+    .debate-panel-container.expanded {
+        height: 60vh;
+    }
+
+    .debate-panel-body {
+        height: calc(60vh - 48px);
+    }
+
+    .debate-agents-row {
+        padding: 6px 8px;
+    }
+
+    .debate-agent-card {
+        min-width: 50px;
+        padding: 4px 6px;
+    }
+
+    .debate-agent-card .agent-avatar {
+        font-size: 16px;
+    }
+
+    .debate-agent-card .agent-name {
+        font-size: 8px;
+    }
+}
+
+/* Extra Small Mobile - 320px */
+@media (max-width: 375px) {
+    .top-bar-glass {
+        padding: 5px 8px;
+    }
+
+    .chat-glass-scroll {
+        padding: 6px 8px;
+    }
+
+    .composer-glass-bar {
+        padding: 5px 8px;
+    }
+
+    .left-col {
+        width: 140px;
+        min-width: 140px;
+    }
+
+    .right-col {
+        width: 160px;
+        min-width: 160px;
+    }
+
+    .flow-dynamic-island {
+        min-width: 120px;
+        padding: 3px 8px;
+    }
+
+    .focus-duration-panel {
+        width: 180px;
+        bottom: 70px;
+    }
+
+    .debate-judge-float-card {
+        bottom: 240px;
+    }
+
+    .debate-panel-container.expanded {
+        height: 65vh;
+    }
+}

@@ -1,12 +1,44 @@
 /* 创世·架构蓝图引擎 样式 */
 
-/* 基础样式 */
+/* 基础样式 & Zoom Level 兼容性 */
 * {
     font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Prevent text enlargement from breaking layouts */
+input, textarea, select {
+    font-size: 100%;
+}
+
+/* Code and text overflow handling */
+#project-title,
+#project-desc,
+.er-field-name,
+.er-field-type,
+.timeline-task .task-text,
+.tech-name,
+.tech-desc {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 .cyber-font {
     font-family: 'JetBrains Mono', monospace;
+}
+
+/* Base typography */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* 渐变动画按钮 */
@@ -606,22 +638,325 @@
 }
 
 /* ============================================
-   响应式
+   Responsive Design
+   响应式适配 - 多分辨率 & 缩放支持
    ============================================ */
 
-@media (max-width: 768px) {
+/* Large Desktop - 1440px+ */
+@media (min-width: 1440px) {
+    nav .max-w-7xl,
+    #blueprint-content {
+        max-width: 1400px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 900px;
+    }
+
+    .er-tables {
+        gap: 32px;
+    }
+
+    .timeline-container {
+        max-width: 900px;
+    }
+}
+
+/* Extra Large Desktop - 1920px+ */
+@media (min-width: 1920px) {
+    nav .max-w-7xl,
+    #blueprint-content {
+        max-width: 1600px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 1000px;
+    }
+
+    .tech-card {
+        padding: 24px;
+    }
+
+    .timeline-content {
+        padding: 24px;
+    }
+}
+
+/* Desktop - 1200px */
+@media (max-width: 1200px) {
+    nav .max-w-7xl,
+    #blueprint-content {
+        max-width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 90%;
+    }
+
+    .er-tables {
+        gap: 20px;
+    }
+
+    .er-table {
+        min-width: 260px;
+    }
+}
+
+/* Tablet Landscape - 1024px */
+@media (max-width: 1024px) {
+    nav {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    nav .max-w-7xl {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    nav .flex.items-center.justify-between {
+        gap: 16px;
+    }
+
+    .flex.items-center.gap-3 {
+        gap: 12px;
+    }
+
+    .export-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    #blueprint-content {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    #input-section {
+        padding-top: 48px;
+        padding-bottom: 48px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 90%;
+    }
+
+    #input-section .text-4xl {
+        font-size: 2rem;
+    }
+
+    .er-tables {
+        gap: 16px;
+    }
+
+    .er-table {
+        min-width: 240px;
+    }
+
+    .timeline-container {
+        max-width: 100%;
+    }
+}
+
+/* Tablet Portrait - 900px */
+@media (max-width: 900px) {
+    nav .flex.items-center.gap-3 {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .export-btn span:last-child {
+        display: none;
+    }
+
+    .export-btn {
+        padding: 8px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 95%;
+    }
+
+    #input-section .text-lg {
+        font-size: 15px;
+    }
+
+    #prompt-input {
+        padding: 14px 16px;
+        font-size: 15px;
+    }
+
+    .flex.flex-wrap.justify-center.gap-3 {
+        gap: 8px;
+    }
+
+    .template-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
     .tabs-header {
         overflow-x: auto;
         padding-bottom: 8px;
+        scrollbar-width: none;
+    }
+
+    .tabs-header::-webkit-scrollbar {
+        display: none;
     }
 
     .tab-btn {
         padding: 10px 16px;
         font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .er-diagram-container {
+        overflow-x: auto;
     }
 
     .er-tables {
         flex-direction: column;
+        min-width: max-content;
+    }
+
+    .er-table {
+        min-width: 280px;
+    }
+
+    .timeline {
+        padding-left: 48px;
+    }
+
+    .timeline-marker {
+        left: -32px;
+        width: 28px;
+        height: 28px;
+    }
+
+    .timeline-progress-bar {
+        left: 20px;
+    }
+}
+
+/* Tablet - 768px */
+@media (max-width: 768px) {
+    nav {
+        padding: 12px 16px;
+    }
+
+    nav .flex.items-center.justify-between {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    nav h1.text-xl {
+        font-size: 18px;
+    }
+
+    nav p.text-xs {
+        font-size: 10px;
+    }
+
+    .flex.items-center.gap-3 {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    #input-section {
+        padding: 32px 16px;
+    }
+
+    #input-section .max-w-3xl {
+        max-width: 100%;
+    }
+
+    #input-section h2.text-4xl {
+        font-size: 1.75rem;
+    }
+
+    #input-section p.text-lg {
+        font-size: 14px;
+    }
+
+    #prompt-input {
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+
+    #generate-btn {
+        padding: 12px 24px;
+        font-size: 14px;
+    }
+
+    .flex.flex-wrap.justify-center.gap-3 {
+        justify-content: flex-start;
+    }
+
+    .template-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    #blueprint-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .mb-8 {
+        margin-bottom: 16px;
+    }
+
+    #project-title.text-2xl {
+        font-size: 20px;
+    }
+
+    .flex.items-start.justify-between {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .flex.gap-2 {
+        width: 100%;
+    }
+
+    .export-btn.secondary {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    .tab-btn span.hidden {
+        display: inline;
+    }
+
+    .tech-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .tech-card {
+        padding: 16px;
+    }
+
+    .er-tables {
+        gap: 16px;
+    }
+
+    .er-table {
+        min-width: 260px;
+    }
+
+    .er-legend {
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
     .timeline {
@@ -637,6 +972,410 @@
 
     .timeline-progress-bar {
         left: 16px;
+    }
+
+    .timeline-content {
+        padding: 16px;
+    }
+
+    .timeline-tasks {
+        gap: 8px;
+    }
+
+    .timeline-task {
+        padding: 6px 10px;
+    }
+
+    /* Projects panel */
+    #projects-panel {
+        width: 100%;
+    }
+}
+
+/* Mobile Landscape - 640px */
+@media (max-width: 640px) {
+    nav {
+        padding: 10px 12px;
+    }
+
+    nav .flex.items-center.gap-4 {
+        gap: 8px;
+    }
+
+    nav .text-3xl {
+        font-size: 24px;
+    }
+
+    nav h1.text-xl {
+        font-size: 16px;
+    }
+
+    .flex.items-center.gap-3 {
+        gap: 6px;
+    }
+
+    #input-section {
+        padding: 24px 12px;
+    }
+
+    #input-section h2.text-4xl {
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+    }
+
+    #input-section p.text-lg {
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    #prompt-input {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: 16px;
+    }
+
+    #generate-btn {
+        width: 100%;
+        padding: 14px 20px;
+        border-radius: 16px;
+    }
+
+    .flex.flex-wrap.justify-center.gap-3 {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .flex.flex-wrap.justify-center.gap-3::-webkit-scrollbar {
+        display: none;
+    }
+
+    .template-btn {
+        flex-shrink: 0;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    #blueprint-content {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .tabs-container.mb-8 {
+        margin-bottom: 16px;
+    }
+
+    .tab-btn {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .tab-btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .tech-grid {
+        gap: 10px;
+    }
+
+    .tech-card {
+        padding: 14px;
+    }
+
+    .tech-card-header {
+        margin-bottom: 6px;
+    }
+
+    .tech-name {
+        font-size: 14px;
+    }
+
+    .er-table {
+        min-width: 240px;
+    }
+
+    .er-table-header {
+        padding: 10px 12px;
+    }
+
+    .er-field {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .timeline {
+        padding-left: 36px;
+    }
+
+    .timeline-marker {
+        left: -24px;
+        width: 20px;
+        height: 20px;
+        font-size: 9px;
+    }
+
+    .timeline-content {
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .timeline-week {
+        font-size: 13px;
+    }
+
+    .timeline-theme {
+        font-size: 12px;
+    }
+
+    .timeline-summary {
+        margin-top: 16px;
+        padding: 12px 16px;
+    }
+}
+
+/* Mobile Portrait - 480px */
+@media (max-width: 480px) {
+    nav {
+        padding: 8px 12px;
+    }
+
+    nav .max-w-7xl {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .flex.items-center.justify-between {
+        width: 100%;
+    }
+
+    .flex.items-center.gap-3 {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #input-section {
+        padding: 20px 12px;
+    }
+
+    #input-section h2.text-4xl {
+        font-size: 1.25rem;
+    }
+
+    #input-section p.text-lg {
+        font-size: 12px;
+    }
+
+    #prompt-input {
+        padding: 10px 12px;
+        font-size: 13px;
+        border-radius: 12px;
+    }
+
+    .text-sm.text-gray-500 {
+        font-size: 11px;
+    }
+
+    #generate-btn {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .template-btn {
+        padding: 5px 8px;
+        font-size: 10px;
+    }
+
+    .tab-btn {
+        padding: 6px 8px;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .tab-btn span:not(.flex) {
+        display: none;
+    }
+
+    .tab-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .tech-card {
+        padding: 12px;
+    }
+
+    .tech-name {
+        font-size: 13px;
+    }
+
+    .tech-level {
+        font-size: 10px;
+    }
+
+    .tech-desc {
+        font-size: 11px;
+    }
+
+    .er-table {
+        min-width: 220px;
+    }
+
+    .er-legend {
+        font-size: 11px;
+        padding: 8px 12px;
+    }
+
+    .er-table-header {
+        padding: 8px 10px;
+    }
+
+    .er-name {
+        font-size: 13px;
+    }
+
+    .er-field {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .timeline {
+        padding-left: 32px;
+    }
+
+    .timeline-marker {
+        left: -22px;
+        width: 18px;
+        height: 18px;
+        font-size: 8px;
+        border-width: 2px;
+    }
+
+    .timeline-progress-bar {
+        top: 20px;
+        left: 14px;
+        height: 3px;
+    }
+
+    .timeline-content {
+        padding: 10px;
+    }
+
+    .timeline-header {
+        margin-bottom: 10px;
+    }
+
+    .timeline-tasks {
+        gap: 6px;
+    }
+
+    .timeline-task {
+        padding: 4px 8px;
+        gap: 8px;
+    }
+
+    .timeline-task input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+    }
+
+    .timeline-summary {
+        padding: 10px 12px;
+        margin-top: 16px;
+    }
+
+    .export-btn {
+        font-size: 11px;
+        padding: 5px 8px;
+    }
+
+    .export-btn span:first-child {
+        font-size: 12px;
+    }
+}
+
+/* Extra Small Mobile - 375px */
+@media (max-width: 375px) {
+    nav {
+        padding: 8px 10px;
+    }
+
+    nav .text-3xl {
+        font-size: 20px;
+    }
+
+    nav h1.text-xl {
+        font-size: 14px;
+    }
+
+    #input-section {
+        padding: 16px 10px;
+    }
+
+    #input-section h2.text-4xl {
+        font-size: 1.1rem;
+    }
+
+    #prompt-input {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    #generate-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+    }
+
+    .template-btn {
+        padding: 4px 6px;
+        font-size: 9px;
+    }
+
+    .tech-card {
+        padding: 10px;
+    }
+
+    .tech-name {
+        font-size: 12px;
+    }
+
+    .er-table {
+        min-width: 200px;
+    }
+
+    .er-name {
+        font-size: 12px;
+    }
+
+    .er-field {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .timeline {
+        padding-left: 28px;
+    }
+
+    .timeline-marker {
+        left: -18px;
+        width: 16px;
+        height: 16px;
+        font-size: 7px;
+    }
+
+    .timeline-content {
+        padding: 8px;
+    }
+
+    .timeline-week {
+        font-size: 11px;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .timeline-theme {
+        font-size: 10px;
     }
 }
 

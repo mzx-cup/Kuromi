@@ -368,6 +368,13 @@ async function fetchWeatherByCoordinates(lat, lon) {
 
 // 使用 Open-Meteo 免费天气 API
 async function fetchWeatherByCity(cityName) {
+    // 过滤无效或占位的城市名称
+    if (!cityName || cityName === '定位中' || cityName === '请点击设置城市' || cityName === '未知') {
+        console.warn('Invalid city name, falling back to IP-based weather');
+        await fetchWeatherByIP();
+        return;
+    }
+
     try {
         // 1. 先用 Open-Meteo Geocoding API 获取城市坐标
         const geoRes = await fetch(
@@ -401,7 +408,10 @@ async function fetchWeatherByCity(cityName) {
         }
     } catch (e) {
         console.error('Weather fetch by city failed:', e);
-        setDefaultWeatherWithCity(cityName || '未知');
+        // 城市无法识别，清除无效的城市缓存，切换到自动定位
+        localStorage.removeItem('starlearn_weather_city');
+        showTip('🌍 城市未找到，已切换为自动定位');
+        setDefaultWeatherWithCity('请点击设置城市');
     }
 }
 

@@ -1,5 +1,24 @@
 /* 灵犀·动态概念拆解仪 样式 */
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+input, textarea, select {
+    font-size: 100%;
+}
+
+body {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
 .cyber-font {
     font-family: 'JetBrains Mono', monospace;
 }
@@ -437,4 +456,289 @@ kbd {
 
 #expert-content::-webkit-scrollbar-thumb:hover {
     background: rgba(168, 85, 247, 0.5);
+}
+
+/* Comprehensive Responsive */
+@media (min-width: 1920px) {
+    .control-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .control-btn.primary {
+        width: 56px;
+        height: 56px;
+    }
+
+    .scrubber-track {
+        height: 8px;
+    }
+
+    .scrubber-thumb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .category-tab {
+        padding: 10px 20px;
+        font-size: 15px;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .control-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .control-btn.primary {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .control-btn {
+        width: 42px;
+        height: 42px;
+    }
+
+    .control-btn.primary {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .control-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .control-btn.primary {
+        width: 48px;
+        height: 48px;
+    }
+
+    .category-tab {
+        padding: 7px 14px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+    .control-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .control-btn.primary {
+        width: 46px;
+        height: 46px;
+    }
+
+    .category-tab {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .scrubber-track {
+        height: 5px;
+    }
+
+    .scrubber-thumb {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+    .control-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .control-btn.primary {
+        width: 44px;
+        height: 44px;
+    }
+
+    .category-tab {
+        padding: 6px 10px;
+        font-size: 11px;
+        gap: 4px;
+    }
+
+    .scrubber-track {
+        height: 5px;
+    }
+
+    .scrubber-thumb {
+        width: 14px;
+        height: 14px;
+    }
+
+    .step-dot {
+        width: 7px;
+        height: 7px;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+    .control-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .control-btn.primary {
+        width: 42px;
+        height: 42px;
+    }
+
+    .category-tab {
+        padding: 5px 10px;
+        font-size: 11px;
+        gap: 4px;
+        border-radius: 8px;
+    }
+
+    .scrubber-track {
+        height: 4px;
+    }
+
+    .scrubber-thumb {
+        width: 12px;
+        height: 12px;
+    }
+
+    .step-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .code-fragment {
+        font-size: 8px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+    .control-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .control-btn.primary {
+        width: 38px;
+        height: 38px;
+    }
+
+    .category-tab {
+        padding: 4px 8px;
+        font-size: 10px;
+        gap: 3px;
+        border-radius: 6px;
+    }
+
+    .scrubber-track {
+        height: 4px;
+    }
+
+    .scrubber-thumb {
+        width: 10px;
+        height: 10px;
+    }
+
+    .step-dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    .code-fragment {
+        font-size: 7px;
+    }
+}
+
+@media (max-width: 479px) {
+    .control-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .control-btn.primary {
+        width: 34px;
+        height: 34px;
+    }
+
+    .category-tab {
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 2px;
+        border-radius: 5px;
+    }
+
+    .scrubber-track {
+        height: 3px;
+    }
+
+    .scrubber-thumb {
+        width: 8px;
+        height: 8px;
+    }
+
+    .step-dot {
+        width: 4px;
+        height: 4px;
+    }
+
+    .code-fragment {
+        font-size: 6px;
+    }
+
+    kbd {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 374px) {
+    .control-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+    }
+
+    .control-btn.primary {
+        width: 30px;
+        height: 30px;
+    }
+
+    .category-tab {
+        padding: 2px 5px;
+        font-size: 8px;
+        border-radius: 4px;
+    }
+
+    .scrubber-track {
+        height: 2px;
+    }
+
+    .scrubber-thumb {
+        width: 6px;
+        height: 6px;
+    }
+
+    .step-dot {
+        width: 3px;
+        height: 3px;
+    }
+
+    .code-fragment {
+        display: none;
+    }
+
+    kbd {
+        font-size: 8px;
+    }
 }

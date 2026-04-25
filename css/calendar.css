@@ -11,6 +11,19 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+input, textarea, select {
+    font-size: 100%;
+}
+
+body {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 .calendar-body {
@@ -38,11 +51,12 @@
     background: rgba(10, 10, 26, 0.9);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 100% !important;
 }
 
 .nav-container {
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
     padding: 0 24px;
     height: 100%;
     display: flex;
@@ -104,8 +118,8 @@
 .calendar-main {
     padding-top: 87px;
     padding-bottom: 40px;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
     padding-left: 24px;
     padding-right: 24px;
     position: relative;
@@ -718,7 +732,92 @@
     box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
 }
 
-@media (max-width: 1024px) {
+/* Comprehensive Responsive */
+@media (min-width: 1920px) {
+    .nav-container {
+        padding: 0 32px;
+    }
+
+    .calendar-main {
+        padding-left: 32px;
+        padding-right: 32px;
+    }
+
+    .calendar-section {
+        padding: 28px;
+    }
+
+    .month-title {
+        font-size: 22px;
+    }
+
+    .summary-value {
+        font-size: 28px;
+    }
+
+    .modal-content {
+        max-width: 520px;
+        padding: 28px;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .nav-container {
+        padding: 0 28px;
+    }
+
+    .calendar-main {
+        padding-left: 28px;
+        padding-right: 28px;
+    }
+
+    .calendar-section {
+        padding: 26px;
+    }
+
+    .month-title {
+        font-size: 21px;
+    }
+
+    .summary-value {
+        font-size: 26px;
+    }
+
+    .modal-content {
+        max-width: 500px;
+        padding: 26px;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .nav-container {
+        padding: 0 24px;
+    }
+
+    .calendar-main {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .calendar-section {
+        padding: 24px;
+    }
+
+    .month-title {
+        font-size: 20px;
+    }
+
+    .summary-value {
+        font-size: 24px;
+    }
+
+    .modal-content {
+        max-width: 480px;
+        padding: 24px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
     .calendar-layout {
         grid-template-columns: 1fr;
     }
@@ -730,9 +829,446 @@
     .stats-summary {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .nav-container {
+        padding: 0 20px;
+    }
+
+    .calendar-main {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .calendar-section {
+        padding: 20px;
+    }
+
+    .month-title {
+        font-size: 19px;
+    }
+
+    .summary-value {
+        font-size: 22px;
+    }
+
+    .nav-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .month-nav-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .modal-content {
+        max-width: 460px;
+        padding: 22px;
+    }
 }
 
-@media (max-width: 768px) {
+@media (min-width: 900px) and (max-width: 1023px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-section {
+        order: -1;
+    }
+
+    .stats-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .nav-container {
+        padding: 0 16px;
+    }
+
+    .calendar-main {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .calendar-section {
+        padding: 18px;
+    }
+
+    .month-title {
+        font-size: 18px;
+    }
+
+    .summary-value {
+        font-size: 20px;
+    }
+
+    .nav-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .month-nav-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .modal-content {
+        max-width: 440px;
+        padding: 20px;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .schedule-section {
+        order: -1;
+    }
+
+    .stats-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .calendar-section {
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .month-title {
+        font-size: 17px;
+    }
+
+    .calendar-weekday {
+        padding: 8px;
+        font-size: 11px;
+    }
+
+    .calendar-day {
+        font-size: 13px;
+        border-radius: 10px;
+    }
+
+    .summary-value {
+        font-size: 18px;
+    }
+
+    .summary-card {
+        padding: 12px;
+    }
+
+    .nav-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .month-nav-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .modal-content {
+        max-width: 420px;
+        padding: 18px;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        padding: 10px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .schedule-section {
+        order: -1;
+    }
+
+    .stats-summary {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .calendar-section {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .month-title {
+        font-size: 16px;
+    }
+
+    .month-nav-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+    }
+
+    .calendar-weekday {
+        padding: 6px;
+        font-size: 10px;
+    }
+
+    .calendar-day {
+        font-size: 12px;
+        border-radius: 8px;
+    }
+
+    .summary-value {
+        font-size: 16px;
+    }
+
+    .summary-card {
+        padding: 10px 12px;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .summary-label {
+        font-size: 10px;
+    }
+
+    .day-detail-card {
+        padding: 16px;
+    }
+
+    .detail-title {
+        font-size: 14px;
+    }
+
+    .task-name {
+        font-size: 13px;
+    }
+
+    .event-title {
+        font-size: 13px;
+    }
+
+    .calendar-legend {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .legend-item {
+        font-size: 11px;
+    }
+
+    .nav-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+    }
+
+    .nav-back {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    .modal-content {
+        max-width: 400px;
+        padding: 16px;
+        border-radius: 16px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 9px 12px;
+        font-size: 13px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        padding: 10px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+    .calendar-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .schedule-section {
+        order: -1;
+    }
+
+    .stats-summary {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .summary-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+    }
+
+    .summary-value {
+        font-size: 20px;
+    }
+
+    .calendar-section {
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .month-title {
+        font-size: 15px;
+    }
+
+    .month-nav-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .calendar-weekday {
+        padding: 4px;
+        font-size: 9px;
+    }
+
+    .calendar-day {
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .calendar-legend {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .legend-item {
+        font-size: 10px;
+        gap: 4px;
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .day-detail-card {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .detail-title {
+        font-size: 13px;
+    }
+
+    .task-name {
+        font-size: 12px;
+    }
+
+    .task-item {
+        padding: 10px;
+    }
+
+    .event-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .event-date {
+        width: 40px;
+        padding: 6px;
+    }
+
+    .event-day {
+        font-size: 16px;
+    }
+
+    .event-title {
+        font-size: 12px;
+    }
+
+    .upcoming-section {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .nav-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .nav-back {
+        font-size: 12px;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+
+    .modal-content {
+        max-width: 360px;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .form-label {
+        font-size: 12px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        padding: 9px;
+        font-size: 12px;
+        border-radius: 8px;
+    }
+}
+
+@media (max-width: 479px) {
+    .calendar-main {
+        padding-top: 79px;
+        padding-bottom: 24px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .calendar-layout {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .schedule-section {
+        order: -1;
+    }
+
     .stats-summary {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -756,5 +1292,427 @@
     .calendar-legend {
         flex-wrap: wrap;
         gap: 12px;
+    }
+
+    .calendar-section {
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .month-title {
+        font-size: 14px;
+    }
+
+    .month-nav-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+    }
+
+    .calendar-weekday {
+        padding: 4px;
+        font-size: 8px;
+    }
+
+    .calendar-day {
+        font-size: 10px;
+        border-radius: 4px;
+    }
+
+    .calendar-legend {
+        gap: 6px;
+    }
+
+    .legend-item {
+        font-size: 9px;
+        gap: 3px;
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 3px;
+    }
+
+    .day-detail-card {
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .detail-title {
+        font-size: 12px;
+    }
+
+    .task-name {
+        font-size: 11px;
+    }
+
+    .task-item {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .task-checkbox {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+    }
+
+    .event-item {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .event-date {
+        width: 36px;
+        padding: 4px;
+        border-radius: 6px;
+    }
+
+    .event-day {
+        font-size: 14px;
+    }
+
+    .event-month {
+        font-size: 8px;
+    }
+
+    .event-title {
+        font-size: 11px;
+    }
+
+    .event-desc {
+        font-size: 10px;
+    }
+
+    .event-meta {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .event-tag {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+
+    .event-duration {
+        font-size: 9px;
+    }
+
+    .upcoming-section {
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .section-title {
+        font-size: 12px;
+        margin-bottom: 12px;
+    }
+
+    .nav-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+    }
+
+    .nav-back {
+        font-size: 11px;
+        padding: 4px 6px;
+        gap: 3px;
+    }
+
+    .nav-title {
+        font-size: 14px;
+    }
+
+    .modal-overlay {
+        padding: 12px;
+    }
+
+    .modal-content {
+        max-width: 320px;
+        padding: 12px;
+        border-radius: 12px;
+    }
+
+    .modal-title {
+        font-size: 14px;
+    }
+
+    .modal-close {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .form-label {
+        font-size: 11px;
+    }
+
+    .category-tag {
+        padding: 6px 10px;
+        font-size: 10px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        padding: 8px;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 374px) {
+    .calendar-main {
+        padding-top: 71px;
+        padding-bottom: 16px;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .calendar-layout {
+        gap: 8px;
+    }
+
+    .calendar-section {
+        padding: 8px;
+        border-radius: 8px;
+    }
+
+    .month-header {
+        margin-bottom: 16px;
+    }
+
+    .month-title {
+        font-size: 12px;
+    }
+
+    .month-nav-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+    }
+
+    .calendar-weekday {
+        padding: 2px;
+        font-size: 7px;
+    }
+
+    .calendar-day {
+        font-size: 9px;
+        border-radius: 3px;
+    }
+
+    .calendar-legend {
+        gap: 4px;
+    }
+
+    .legend-item {
+        font-size: 8px;
+        gap: 2px;
+    }
+
+    .legend-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 2px;
+    }
+
+    .stats-summary {
+        gap: 6px;
+    }
+
+    .summary-card {
+        padding: 8px 12px;
+    }
+
+    .summary-value {
+        font-size: 16px;
+    }
+
+    .summary-label {
+        font-size: 8px;
+    }
+
+    .day-detail-card {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .detail-title {
+        font-size: 11px;
+    }
+
+    .detail-subtitle {
+        font-size: 9px;
+    }
+
+    .detail-content {
+        min-height: 80px;
+    }
+
+    .empty-state {
+        height: 80px;
+        font-size: 10px;
+    }
+
+    .task-name {
+        font-size: 10px;
+    }
+
+    .task-meta {
+        font-size: 9px;
+    }
+
+    .task-item {
+        padding: 6px;
+        gap: 6px;
+    }
+
+    .task-checkbox {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+    }
+
+    .task-checkbox.checked::after {
+        font-size: 10px;
+    }
+
+    .event-item {
+        padding: 6px;
+        gap: 6px;
+    }
+
+    .event-date {
+        width: 32px;
+        padding: 4px;
+        border-radius: 4px;
+    }
+
+    .event-day {
+        font-size: 12px;
+    }
+
+    .event-month {
+        font-size: 7px;
+    }
+
+    .event-title {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+
+    .event-desc {
+        font-size: 9px;
+        margin-bottom: 4px;
+    }
+
+    .event-tag {
+        font-size: 8px;
+        padding: 1px 4px;
+        border-radius: 3px;
+    }
+
+    .event-duration {
+        font-size: 8px;
+    }
+
+    .upcoming-section {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .section-title {
+        font-size: 11px;
+        margin-bottom: 10px;
+    }
+
+    .events-list {
+        gap: 8px;
+    }
+
+    .nav-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+    }
+
+    .nav-back {
+        font-size: 10px;
+        padding: 2px 4px;
+        gap: 2px;
+    }
+
+    .nav-title {
+        font-size: 12px;
+    }
+
+    .modal-overlay {
+        padding: 8px;
+    }
+
+    .modal-content {
+        max-width: 280px;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .modal-title {
+        font-size: 12px;
+    }
+
+    .modal-close {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+    }
+
+    .modal-header {
+        margin-bottom: 16px;
+    }
+
+    .event-form {
+        gap: 12px;
+    }
+
+    .form-input,
+    .form-textarea {
+        padding: 6px 8px;
+        font-size: 11px;
+        border-radius: 6px;
+    }
+
+    .form-label {
+        font-size: 10px;
+    }
+
+    .category-tag {
+        padding: 4px 8px;
+        font-size: 9px;
+        border-radius: 4px;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+        padding: 6px;
+        font-size: 10px;
+        border-radius: 4px;
+    }
+
+    .form-input::placeholder,
+    .form-textarea::placeholder {
+        font-size: 9px;
     }
 }
