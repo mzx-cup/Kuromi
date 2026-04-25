@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import os
 import logging
+from typing import Any
 from pathlib import Path
 
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings
 
 logger = logging.getLogger("starlearn.config")
@@ -20,7 +21,11 @@ class Settings(BaseSettings):
     minimax_api_key: str = "sk-cp-NVJBfQDPdzQCtzIJoXOXamJ1L-hNMTDyweOV_1KsePGk9FnSLBvRejIDDpbjMe67O0aiZEIkMd267a2zNutthLjnUF5rxOU65dzMsYNXeWMcGOoQ7WCGX4I"
     minimax_model_name: str = "MiniMax-M2.7"
 
-    debug: bool = False
+    # Use app-specific env names so a global DEBUG variable does not override us.
+    debug: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("KUROMI_DEBUG", "APP_DEBUG"),
+    )
 
     model_config = {
         "env_file": str(_dotenv_path),
@@ -28,6 +33,21 @@ class Settings(BaseSettings):
         "case_sensitive": False,
         "extra": "ignore",
     }
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug_value(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            truthy = {"1", "true", "yes", "on", "debug", "dev", "development", "local"}
+            falsy = {"0", "false", "no", "off", "release", "prod", "production"}
+
+            if normalized in truthy:
+                return True
+            if normalized in falsy:
+                return False
+
+        return value
 
 
 def _load_settings() -> Settings:

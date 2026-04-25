@@ -3,202 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 代码练习</title>
+    <title>星识 Star-Learn - 代码工坊</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/css/code.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/code.css?v=20260421-9">
 </head>
 <body class="code-body">
-    <!-- Background -->
-    <div class="code-bg"></div>
-
-    <!-- Top Navigation -->
-    <nav class="code-nav">
-        <div class="nav-container">
-            <a href="/hub.html" class="nav-back">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                <span>返回中枢</span>
-            </a>
-            <h1 class="nav-title">代码练习</h1>
-            <div class="nav-actions">
-                <select class="language-select" id="language-select">
-                    <option value="python">Python</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                    <option value="javascript">JavaScript</option>
-                </select>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="code-main">
-        <!-- Problem List Sidebar -->
-        <aside class="problem-sidebar">
-            <div class="sidebar-header">
-                <h2>题目列表</h2>
-                <span class="problem-count">共 48 题</span>
-            </div>
-            <div class="problem-filter">
-                <button class="filter-btn active" data-filter="all">全部</button>
-                <button class="filter-btn" data-filter="easy">简单</button>
-                <button class="filter-btn" data-filter="medium">中等</button>
-                <button class="filter-btn" data-filter="hard">困难</button>
-            </div>
-            <div class="problem-list" id="problem-list">
-                <!-- Problem Items -->
-                <div class="problem-item active" data-id="1">
-                    <div class="problem-status solved"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#001</span>
-                        <span class="problem-title">两数之和</span>
-                    </div>
-                    <span class="problem-difficulty easy">简单</span>
+    <div class="app-shell">
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="window-dots" aria-hidden="true">
+                    <span class="dot dot-red"></span>
+                    <span class="dot dot-yellow"></span>
+                    <span class="dot dot-green"></span>
                 </div>
-                <div class="problem-item" data-id="2">
-                    <div class="problem-status solved"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#002</span>
-                        <span class="problem-title">回文数判定</span>
-                    </div>
-                    <span class="problem-difficulty easy">简单</span>
-                </div>
-                <div class="problem-item" data-id="3">
-                    <div class="problem-status attempted"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#003</span>
-                        <span class="problem-title">合并两个有序链表</span>
-                    </div>
-                    <span class="problem-difficulty medium">中等</span>
-                </div>
-                <div class="problem-item" data-id="4">
-                    <div class="problem-status"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#004</span>
-                        <span class="problem-title">无重复字符的最长子串</span>
-                    </div>
-                    <span class="problem-difficulty medium">中等</span>
-                </div>
-                <div class="problem-item" data-id="5">
-                    <div class="problem-status"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#005</span>
-                        <span class="problem-title">寻找两个有序数组的中位数</span>
-                    </div>
-                    <span class="problem-difficulty hard">困难</span>
-                </div>
-                <div class="problem-item" data-id="6">
-                    <div class="problem-status"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#006</span>
-                        <span class="problem-title">盛水最多的容器</span>
-                    </div>
-                    <span class="problem-difficulty medium">中等</span>
-                </div>
-                <div class="problem-item" data-id="7">
-                    <div class="problem-status"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#007</span>
-                        <span class="problem-title">三数之和</span>
-                    </div>
-                    <span class="problem-difficulty medium">中等</span>
-                </div>
-                <div class="problem-item" data-id="8">
-                    <div class="problem-status"></div>
-                    <div class="problem-info">
-                        <span class="problem-id">#008</span>
-                        <span class="problem-title">括号生成</span>
-                    </div>
-                    <span class="problem-difficulty hard">困难</span>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Code Editor Area -->
-        <section class="editor-section">
-            <!-- Problem Description -->
-            <div class="problem-description">
-                <div class="problem-header">
-                    <h2 class="problem-name">#001 两数之和</h2>
-                    <div class="problem-tags">
-                        <span class="tag easy">简单</span>
-                        <span class="tag">数组</span>
-                        <span class="tag">哈希表</span>
-                    </div>
-                </div>
-                <div class="problem-content">
-                    <h3>题目描述</h3>
-                    <p>给定一个整数数组 nums 和一个整数目标值 target，请你在该数组中找出和为目标值 target 的那两个整数，并返回它们的数组下标。</p>
-                    <p>你可以假设每种输入只会对应一个答案，且同样的元素不能被重复利用。</p>
-
-                    <h3>示例</h3>
-                    <pre><code>输入: nums = [2,7,11,15], target = 9
-输出: [0,1]
-解释: 因为 nums[0] + nums[1] == 9 ，返回 [0, 1] 。</code></pre>
-
-                    <h3>提示</h3>
-                    <ul>
-                        <li>2 <= nums.length <= 10<sup>4</sup></li>
-                        <li>-10<sup>9</sup> <= nums[i] <= 10<sup>9</sup></li>
-                        <li>-10<sup>9</sup> <= target <= 10<sup>9</sup></li>
-                        <li>只会存在一个有效答案</li>
-                    </ul>
+                <a href="/hub.html" class="window-back">返回中枢</a>
+                <div class="brand-block">
+                    <p class="brand-eyebrow">Unified Coding Entry</p>
+                    <div class="brand-title">代码工坊</div>
                 </div>
             </div>
 
-            <!-- Code Editor -->
-            <div class="code-editor-container">
-                <div class="editor-header">
-                    <span class="editor-title">Python 3</span>
-                    <div class="editor-actions">
-                        <button class="action-btn" id="reset-btn">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                            重置
-                        </button>
-                        <button class="action-btn primary" id="run-btn">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            运行代码
-                        </button>
-                        <button class="action-btn submit" id="submit-btn">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                            </svg>
-                            提交答案
-                        </button>
+            <div class="topbar-right">
+                <div class="topbar-statusbar">
+                    <div class="status-inline">
+                        <span class="status-inline-label">知识点</span>
+                        <strong class="status-inline-value" id="learning-focus">排序算法</strong>
+                    </div>
+                    <span class="status-divider" aria-hidden="true"></span>
+                    <div class="status-inline mastery-inline">
+                        <span class="status-inline-label">掌握度</span>
+                        <div class="mastery-meter" aria-hidden="true">
+                            <div class="mastery-meter-fill" id="mastery-progress"></div>
+                        </div>
+                        <strong class="status-inline-value" id="mastery-rate">53%</strong>
+                    </div>
+                    <span class="status-divider" aria-hidden="true"></span>
+                    <div class="status-inline">
+                        <span class="status-inline-label">推荐依据</span>
+                        <strong class="status-inline-value" id="recommend-reason">需巩固</strong>
+                    </div>
+                    <button class="recommend-btn icon-only" id="recommend-btn" type="button" aria-label="刷新任务">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M20 11a8 8 0 1 0 1.4 4.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M20 4v7h-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <span class="assistant-inline-name">AI 诊断助手</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="main-stage">
+                <div class="stage-head">
+                    <div class="mode-section">
+                        <div class="mode-switch" id="mode-switch">
+                            <button class="mode-btn" data-mode="fix" type="button">代码修改</button>
+                            <button class="mode-btn active" data-mode="complete" type="button">补全代码</button>
+                        </div>
+                        <div class="mode-copy">
+                            <div class="mode-copy-top">
+                                <span class="mode-badge" id="current-task-badge">补全代码</span>
+                                <span class="topbar-pill subtle" id="window-course-title">学情推题</span>
+                                <span class="topbar-pill subtle accent" id="runtime-chip">Python 3.11</span>
+                            </div>
+                            <p id="mode-summary-text">系统会根据学习表现推送补全代码任务，用更轻量的 IDE 视图完成练习、运行验证与学习评估。</p>
+                        </div>
                     </div>
                 </div>
-                <div class="code-editor" id="code-editor">
-                    <textarea class="code-textarea" id="code-input" spellcheck="false">def two_sum(nums, target):
-    """
-    :type nums: List[int]
-    :type target: int
-    :rtype: List[int]
-    """
-    # 在此编写你的代码
-    pass
 
-# 测试用例
-print(two_sum([2, 7, 11, 15], 9))  # 输出: [0, 1]</textarea>
+                <div class="stage-body">
+                    <aside class="brief-panel">
+                        <div class="brief-hero">
+                            <div class="hero-top">
+                                <span class="hero-chip" id="hero-mode-label">补全代码</span>
+                                <span class="hero-chip success" id="hero-status">学习反馈开启</span>
+                            </div>
+                            <h1 id="problem-name">#C04 区间合并</h1>
+                            <p id="problem-subtitle">先补全排序与合并逻辑，再运行验证，最后查看学习评估，整个过程保持在一个屏幕内完成。</p>
+                            <div class="problem-tags" id="problem-tags"></div>
+                        </div>
+
+                        <div class="brief-card">
+                            <div class="section-head">
+                                <h2>任务说明</h2>
+                                <span id="description-mode-tag">Complete Mode</span>
+                            </div>
+                            <div class="problem-copy" id="problem-description-text"></div>
+                        </div>
+
+                        <div class="brief-card">
+                            <div class="section-head">
+                                <h2>示例与诊断点</h2>
+                                <span id="guide-label">补全建议</span>
+                            </div>
+                            <div class="problem-examples" id="problem-examples"></div>
+                        </div>
+
+                        <div class="brief-card">
+                            <div class="section-head">
+                                <h2>操作建议</h2>
+                                <span>Checklist</span>
+                            </div>
+                            <ul class="problem-hints" id="problem-hints"></ul>
+                        </div>
+                    </aside>
+
+                    <section class="editor-panel">
+                        <div class="editor-toolbar">
+                            <div class="editor-title-group">
+                                <span class="editor-file-pill" id="editor-title">当前练习脚本</span>
+                                <span class="editor-context" id="editor-context">学情模板推送 · 第 7 章 · 排序算法</span>
+                                <span class="issue-badge" id="issue-badge">2 处 TODO 待补全</span>
+                            </div>
+
+                            <div class="editor-actions">
+                                <button class="ghost-btn" id="quick-hint-btn" type="button">补全提示</button>
+                                <button class="ghost-btn" id="reset-btn" type="button">重置代码</button>
+                                <button class="action-btn success" id="run-btn" type="button">运行代码</button>
+                                <button class="action-btn primary" id="submit-btn" type="button">学习评估</button>
+                            </div>
+                        </div>
+
+                        <div class="editor-stage">
+                            <div class="generation-panel" id="generation-panel" hidden>
+                                <div class="generation-icon">AI</div>
+                                <div class="generation-title" id="generation-title">正在生成个性化代码任务</div>
+                                <div class="generation-copy" id="generation-copy">系统会结合学生近期表现推送新的训练内容，并以打字机效果写入编辑器。</div>
+                                <div class="generation-progress-track">
+                                    <div class="generation-progress-bar" id="generation-progress"></div>
+                                </div>
+                            </div>
+
+                            <div class="code-editor">
+                                <div class="line-number-gutter" aria-hidden="true">
+                                    <div class="line-numbers" id="line-numbers"></div>
+                                </div>
+                                <textarea
+                                    class="code-textarea"
+                                    id="code-input"
+                                    spellcheck="false"
+                                    aria-label="代码编辑器"
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div class="output-panel">
+                            <div class="output-header">
+                                <span>运行结果</span>
+                                <button class="clear-btn" id="clear-output" type="button">清空</button>
+                            </div>
+                            <div
+                                class="output-content terminal-output"
+                                id="output-content"
+                                data-state="idle"
+                                role="log"
+                                aria-live="polite"
+                                aria-label="代码运行终端"
+                            ></div>
+                        </div>
+                    </section>
                 </div>
+            </section>
+
+            <aside class="assistant-panel">
+                <div class="assistant-header">
+                    <div class="assistant-title-wrap">
+                        <div class="assistant-icon">AI</div>
+                        <div>
+                            <div class="assistant-title">AI 诊断助手</div>
+                            <div class="assistant-subtitle" id="assistant-subtitle">思路引导 + TODO 补全</div>
+                        </div>
+                    </div>
+
+                    <div class="assistant-status" id="status-badge">
+                        <span class="status-dot"></span>
+                        <span id="status-text">就绪</span>
+                    </div>
+                </div>
+
+                <div class="assistant-quick-actions" id="assistant-quick-actions"></div>
+                <div class="message-container" id="message-container"></div>
+
+                <div class="assistant-input-panel">
+                    <textarea
+                        id="assistant-input"
+                        class="assistant-input"
+                        placeholder="输入你的问题，按 Ctrl+Enter 发送..."
+                    ></textarea>
+                    <div class="assistant-input-footer">
+                        <div class="assistant-hotkeys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发送</div>
+                        <button id="send-btn" class="send-btn" type="button">发送</button>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer class="terminal-bar">
+            <div class="terminal-left">
+                <div class="terminal-item" id="terminal-state">
+                    <span class="terminal-dot"></span>
+                    <span>等待推题</span>
+                </div>
+                <div class="terminal-item" id="terminal-runtime">Python 3.11</div>
             </div>
 
-            <!-- Output Panel -->
-            <div class="output-panel" id="output-panel">
-                <div class="output-header">
-                    <span>运行结果</span>
-                    <button class="clear-btn" id="clear-output">清空</button>
-                </div>
-                <pre class="output-content" id="output-content">// 点击"运行代码"查看输出结果</pre>
+            <div class="terminal-right">
+                <div class="terminal-item" id="terminal-mode">模式: 补全代码</div>
+                <div class="terminal-item" id="terminal-token">AI: 0</div>
+                <div class="terminal-item" id="terminal-cpu">CPU: 12%</div>
             </div>
-        </section>
-    </main>
+        </footer>
+    </div>
 
-    <script src="/js/code.js"></script>
+    <script src="/js/code.js?v=20260421-9"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Any
 import requests
@@ -608,14 +608,14 @@ def serve_struggle_test():
 def serve_css(filename: str):
     file_path = os.path.join(CSS_DIR, filename)
     if os.path.exists(file_path):
-        return FileResponse(file_path, media_type="text/css")
+        return FileResponse(file_path, media_type="text/css; charset=utf-8")
     raise HTTPException(status_code=404, detail="CSS文件未找到")
 
 @app.get("/js/{filename}")
 def serve_js(filename: str):
     file_path = os.path.join(JS_DIR, filename)
     if os.path.exists(file_path):
-        return FileResponse(file_path, media_type="application/javascript")
+        return FileResponse(file_path, media_type="application/javascript; charset=utf-8")
     raise HTTPException(status_code=404, detail="JS文件未找到")
 
 @app.get("/audio/{filename}")
@@ -917,10 +917,7 @@ def serve_concept_analyzer():
 
 @app.get("/html/ai-pair-programming.html")
 def serve_ai_pair_programming():
-    path = os.path.join(HTML_DIR, "ai-pair-programming.html")
-    if os.path.exists(path):
-        return FileResponse(path)
-    raise HTTPException(status_code=404, detail="结对编程舱页面未找到")
+    return RedirectResponse(url="/code.html?mode=fix&source=pair", status_code=307)
 
 @app.get("/html/architecture-blueprint.html")
 def serve_architecture_blueprint():
@@ -1843,6 +1840,176 @@ class ProblemGenerationRequest(BaseModel):
     current_mastery: int = 0  # 当前掌握度 0-100
 
 
+def sse_event(event: str, data: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def sse_data(data: Any) -> str:
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def extract_json_object(text: str) -> dict[str, Any]:
+    json_match = re.search(r'\{[\s\S]*\}', text or "")
+    if not json_match:
+        raise ValueError("未从大模型响应中解析到 JSON")
+    return json.loads(json_match.group())
+
+
+def strip_spoiler_comments(code: str) -> str:
+    return re.sub(
+        r'\s+#\s*(错误|錯誤|error|bug|这里写错|此处写错|写错了)\d*[:：]?.*',
+        '',
+        code or '',
+        flags=re.IGNORECASE,
+    ).strip()
+
+
+def extract_fenced_section(markdown: str, label: str) -> str:
+    pattern = rf'{label}\s*:?\s*```(?:python)?\s*(.*?)\s*```'
+    match = re.search(pattern, markdown or "", flags=re.IGNORECASE | re.DOTALL)
+    return match.group(1).strip() if match else ""
+
+
+def extract_labeled_line(markdown: str, label: str) -> str:
+    match = re.search(rf'^{label}\s*:\s*(.+)$', markdown or "", flags=re.IGNORECASE | re.MULTILINE)
+    return match.group(1).strip() if match else ""
+
+
+def extract_starter_code_progress(markdown: str) -> tuple[str, bool]:
+    """Return the currently available starter code and whether its fence is closed."""
+    text = markdown or ""
+    marker = re.search(r'STARTER_CODE\s*:?', text, flags=re.IGNORECASE)
+    search_start = marker.end() if marker else 0
+    fence = re.search(r'```(?:python)?\s*\n?', text[search_start:], flags=re.IGNORECASE)
+    if not fence:
+        return "", False
+
+    code_start = search_start + fence.end()
+    rest = text[code_start:]
+    close_match = re.search(r'\n?```', rest)
+    if close_match:
+        return rest[:close_match.start()], True
+
+    # Avoid briefly rendering a partial closing fence if it arrives split across chunks.
+    partial = rest
+    for suffix in ("\n``", "\n`", "``", "`"):
+        if partial.endswith(suffix):
+            partial = partial[: -len(suffix)]
+            break
+    return partial, False
+
+
+def parse_markdown_problem(markdown: str, body: ProblemGenerationRequest) -> dict[str, Any]:
+    starter_code = strip_spoiler_comments(extract_fenced_section(markdown, "STARTER_CODE"))
+    if not starter_code:
+        raise ValueError("未解析到 STARTER_CODE 代码块")
+
+    solution_code = extract_fenced_section(markdown, "SOLUTION_CODE")
+    title = extract_labeled_line(markdown, "TITLE") or f"{body.topic or 'Python'} 调试任务"
+    description = extract_labeled_line(markdown, "DESCRIPTION") or (
+        f"这道题聚焦「{body.topic or 'Python'}」，代码中预计包含 2-3 处隐蔽错误，请阅读代码并运行排查。"
+    )
+    known_issue = extract_labeled_line(markdown, "KNOWN_ISSUE") or "第一次运行通常会暴露最靠前的运行时错误，请从 traceback 最底部开始定位。"
+    error_clue = extract_labeled_line(markdown, "ERROR_CLUE") or "建议关注变量命名、边界条件和数据结构是否与调用处保持一致。"
+
+    return {
+        "id": int(time.time() * 1000) % 1000000,
+        "chapter": body.chapter,
+        "topic": body.topic,
+        "language": "python",
+        "difficulty": body.difficulty,
+        "task_info": {
+            "title": title,
+            "description": description,
+        },
+        "starter_code": starter_code,
+        "solution_code": solution_code,
+        "ui_hints": {
+            "known_issue": known_issue,
+            "error_clue": error_clue,
+        },
+    }
+
+
+def build_problem_generation_prompt(body: ProblemGenerationRequest) -> tuple[str, str]:
+    topic_descriptions = {
+        "ch1": "变量与数据类型、运算符、控制流程",
+        "ch2": "列表List、字典Dict、集合Set、元组Tuple",
+        "ch3": "函数定义、参数传递、返回值、作用域",
+        "ch4": "类与对象、继承、封装、多态",
+        "ch5": "文件读写、异常处理、上下文管理器",
+        "ch6": "导入模块、标准库、第三方包",
+        "ch7": "排序算法、查找算法、递归、动态规划",
+        "ch8": "SQL基础、数据库连接、CRUD操作",
+    }
+    error_types_for_weak = {
+        "变量与数据类型": ["TypeError", "NameError", "SyntaxError"],
+        "列表List": ["IndexError", "TypeError"],
+        "字典Dict": ["KeyError", "TypeError"],
+        "函数": ["TypeError", "UnboundLocalError"],
+        "类与对象": ["AttributeError", "TypeError"],
+        "异常处理": ["RuntimeError", "AttributeError"],
+        "文件读写": ["FileNotFoundError", "PermissionError"],
+        "排序算法": ["RecursionError", "IndexError"],
+    }
+    weak_errors: list[str] = []
+    for weak_topic in body.weak_topics:
+        weak_errors.extend(error_types_for_weak.get(weak_topic, []))
+    weak_errors = list(set(weak_errors))[:3]
+
+    if body.difficulty == "easy":
+        difficulty_instruction = "题目应该简单，包含2处相对明显但不在代码注释中剧透的错误，适合初学者"
+    elif body.difficulty == "hard":
+        difficulty_instruction = "题目应该困难，包含3处隐蔽错误，需要深入理解运行结果和数据流"
+    else:
+        difficulty_instruction = "题目难度适中，包含2-3处常见但需要运行定位的错误"
+
+    chapter_desc = topic_descriptions.get(body.chapter, "Python基础")
+    system_prompt = "你是严谨的大学计算机实验课导师。生成 Debug 题时必须先输出学生可见的 STARTER_CODE Markdown 代码块，禁止输出 JSON，禁止在代码注释中剧透错误。"
+    user_prompt = f"""你是「玄武·AI结对编程舱」的题目生成专家。
+
+【任务】
+根据以下学情信息，生成一道适合学生的 Python Debug 实操题。
+
+【学生学情】
+- 当前学习章节：{body.chapter}
+- 章节知识点：{chapter_desc}
+- 目标知识点：{body.topic}
+- 当前掌握度：{body.current_mastery}%
+- 薄弱知识点：{', '.join(body.weak_topics) if body.weak_topics else '无记录'}
+- 推荐错误类型：{', '.join(weak_errors) if weak_errors else '根据知识点常见错误'}
+
+【生成要求 - 重要】
+{difficulty_instruction}
+1. 题目必须是一个完整的 Python 代码片段（40-90行）。
+2. starter_code 必须包含2-3处真实开发中常见的语法、运行时或逻辑错误。
+3. starter_code 中严禁出现任何揭示错误的注释，尤其禁止 "# 错误1"、"# 这里写错了"、"# bug"、"# fix me" 等剧透字样。
+4. 如果代码需要注释，只能写自然的业务说明，不能暗示错误位置、变量名修复方式或正确答案。
+5. 至少第一处错误应能通过点击“运行代码”在终端中暴露。
+6. solution_code 必须是修复后的完整正确代码，仅供后台判定使用，不要在 starter_code 中泄露。
+
+【输出协议 - 必须按顺序输出，禁止 JSON】
+第一段必须立刻输出学生可见的初始代码，不能先解释：
+STARTER_CODE:
+```python
+# 这里放完整初始代码。代码可包含自然业务注释，但严禁写“错误1/这里写错/bug/fix me”等剧透注释。
+```
+
+第二段输出页面元信息：
+TASK_INFO:
+TITLE: 学生成绩排序与统计系统
+DESCRIPTION: 这道题聚焦「{body.topic}」，代码中预计包含 2-3 处隐蔽错误，请阅读代码并运行排查。
+KNOWN_ISSUE: 第一次运行通常会在第 XX 行附近触发某类报错，请检查上下文变量或数据结构是否一致。
+ERROR_CLUE: 建议关注变量作用域、排序 key 或边界条件，不要直接给出答案。
+
+第三段输出后台参考答案，供系统判定使用，不会展示给学生：
+SOLUTION_CODE:
+```python
+# 这里放修复后的完整正确代码
+```"""
+    return system_prompt, user_prompt
+
+
 @app.post("/api/v2/coding-problem/generate")
 async def generate_coding_problem(body: ProblemGenerationRequest):
     """根据学生学情实时生成编程题目"""
@@ -1884,11 +2051,11 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
 
     difficulty_instruction = ""
     if body.difficulty == "easy":
-        difficulty_instruction = "题目应该简单，包含5-6个明显错误，适合初学者"
+        difficulty_instruction = "题目应该简单，包含2处相对明显但不在代码注释中剧透的错误，适合初学者"
     elif body.difficulty == "hard":
-        difficulty_instruction = "题目应该困难，包含8个以上隐蔽错误，需要深入理解"
+        difficulty_instruction = "题目应该困难，包含3处隐蔽错误，需要深入理解运行结果和数据流"
     else:
-        difficulty_instruction = "题目难度适中，包含5-7个常见错误"
+        difficulty_instruction = "题目难度适中，包含2-3处常见但需要运行定位的错误"
 
     prompt = f"""你是「玄武·AI结对编程舱」的题目生成专家。
 
@@ -1905,28 +2072,34 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
 
 【生成要求 - 重要】
 {difficulty_instruction}
-1. 题目必须是一个完整的Python代码片段（50-100行）
-2. 代码必须包含至少5个错误（可以是语法错误、运行时错误或逻辑错误）
-3. 每个错误都要标注在代码注释中，格式：# 错误X：描述（X从1开始编号）
-4. 错误应该符合目标知识点的特点，且错误类型要多样化
-5. 代码应该有实际的业务场景（如学生管理系统、数据处理、电商订单等）
-6. 结尾必须包含一个执行入口（if __name__ == "__main__":）
-7. 所有错误行必须在代码运行时真正触发错误，不能只是逻辑错误
+1. 题目必须是一个完整的Python代码片段（40-90行）
+2. starter_code 必须包含2-3处真实开发中常见的语法、运行时或逻辑错误
+3. 【绝对禁令】starter_code 中严禁出现任何揭示错误的注释，尤其禁止 "# 错误1"、"# 这里写错了"、"# bug"、"# fix me" 等剧透字样
+4. 如果代码需要注释，只能写自然的业务说明，不能暗示错误位置、变量名修复方式或正确答案
+5. 错误应该符合目标知识点的特点，且错误类型要多样化
+6. 代码应该有实际的业务场景（如学生成绩排序系统、数据处理、电商订单等）
+7. 结尾必须包含一个执行入口（if __name__ == "__main__":）
+8. 至少第一处错误应能通过点击“运行代码”在终端中暴露，后续错误可以是运行时错误或需要进一步验证的逻辑错误
+9. solution_code 必须是修复后的完整正确代码，仅供后台判定使用，不要在 starter_code 中泄露
 
 【输出格式】
-请严格按照以下JSON格式输出，不要包含任何其他内容：
+请严格按照以下 JSON 格式输出，不要包含任何其他内容。最终返回必须是可直接 json.loads 解析的合法 JSON，不能出现 Markdown、注释或未加引号的占位符：
 {{
-    "id": 随机生成的6位数字ID,
+    "id": 123456,
     "chapter": "{body.chapter}",
     "topic": "{body.topic}",
-    "title": "题目标题（简洁明了）",
     "language": "python",
     "difficulty": "{body.difficulty}",
-    "code": "完整的Python代码（必须包含5个以上的 # 错误X：标注）",
-    "errorLine": 第一处主要错误的行号,
-    "errorType": "错误类型",
-    "errorMsg": "错误提示信息",
-    "allErrors": [{{"line": 行号, "type": "错误类型", "desc": "描述"}}]
+    "task_info": {{
+        "title": "学生成绩排序与统计系统",
+        "description": "这道题聚焦「{body.topic}」，代码中预计包含 2-3 处隐蔽错误，请阅读代码并运行排查。"
+    }},
+    "starter_code": "完整 Python 初始代码字符串。包含隐蔽错误，但严禁在注释中指出错误位置和原因。",
+    "solution_code": "修复后的完整正确 Python 代码字符串。仅供后台对比判定使用，不对学生展示。",
+    "ui_hints": {{
+        "known_issue": "已知现象。例如：第一次运行通常会在第 XX 行附近触发 NameError，请检查上下文的变量声明是否一致。",
+        "error_clue": "方向性报错线索。例如：建议关注变量作用域、排序 key 或边界条件，不要直接给出答案。"
+    }}
 }}
 
 请生成题目："""
@@ -1936,7 +2109,7 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
 
         # 调用 LLM 生成题目
         result = await call_llm_async(
-            system_prompt="你是一个专业的编程教育题目生成专家，擅长根据学生学情生成合适的编程题目。",
+            system_prompt="你是严谨的大学计算机实验课导师。生成 Debug 题时，starter_code 内绝对禁止用注释剧透错误位置或原因；启发式线索只能写入 ui_hints。",
             user_prompt=prompt,
             temperature=0.7
         )
@@ -1949,7 +2122,15 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
         json_match = re.search(r'\{[\s\S]*\}', result)
         if json_match:
             problem_data = json.loads(json_match.group())
-            logger.info(f"Problem generated successfully: {problem_data.get('title', 'unknown')}")
+            if problem_data.get("starter_code"):
+                problem_data["starter_code"] = re.sub(
+                    r'\s+#\s*(错误|錯誤|error|bug|这里写错|此处写错|写错了)\d*[:：]?.*',
+                    '',
+                    problem_data["starter_code"],
+                    flags=re.IGNORECASE,
+                ).strip()
+            title = problem_data.get("task_info", {}).get("title") or problem_data.get("title", "unknown")
+            logger.info(f"Problem generated successfully: {title}")
             return {"success": True, "problem": problem_data}
         else:
             logger.error(f"Failed to parse problem JSON: {result[:200]}")
@@ -1958,6 +2139,63 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
     except Exception as e:
         logger.error(f"Problem generation error: {str(e)}", exc_info=True)
         return {"success": False, "error": f"生成出错: {str(e)}"}
+
+
+@app.post("/api/v2/coding-problem/generate/stream")
+async def generate_coding_problem_stream(raw_request: Request, body: ProblemGenerationRequest):
+    """SSE 流式生成 Debug 题：先实时推 starter code，再返回结构化结果。"""
+    logger.info(f"Streaming problem generation: student={body.student_id}, chapter={body.chapter}, topic={body.topic}")
+
+    system_prompt, user_prompt = build_problem_generation_prompt(body)
+
+    async def event_generator():
+        full_text = ""
+        emitted_code_len = 0
+        code_started = False
+        code_completed = False
+        try:
+            yield sse_event("status", {"msg": "正在读取学情画像..."})
+            await asyncio.sleep(0)
+            yield sse_event("status", {"msg": "正在请求大模型流式生成代码..."})
+
+            async for chunk in call_llm_stream(system_prompt, user_prompt, temperature=0.7):
+                if await raw_request.is_disconnected():
+                    logger.info(f"Problem generation stream disconnected: student={body.student_id}")
+                    return
+                full_text += chunk
+
+                current_code, is_code_complete = extract_starter_code_progress(full_text)
+                if current_code and not code_started:
+                    code_started = True
+                    yield sse_event("code_start", {"msg": "代码流已建立"})
+
+                if len(current_code) > emitted_code_len:
+                    delta = current_code[emitted_code_len:]
+                    emitted_code_len = len(current_code)
+                    yield sse_event("code_chunk", {"chunk": delta})
+
+                if is_code_complete and not code_completed:
+                    code_completed = True
+                    yield sse_event("code_complete", {"msg": "初始代码生成完成，正在整理题目信息..."})
+
+            yield sse_event("status", {"msg": "正在解析 Markdown 题目协议..."})
+            problem_data = parse_markdown_problem(full_text, body)
+            title = problem_data.get("task_info", {}).get("title") or problem_data.get("title", "unknown")
+            logger.info(f"Streaming problem generated successfully: {title}")
+            yield sse_event("result", {"success": True, "problem": problem_data})
+        except Exception as exc:
+            logger.error(f"Streaming problem generation error: {str(exc)}", exc_info=True)
+            yield sse_event("error", {"message": f"题目生成失败: {str(exc)}"})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.post("/api/v2/coding-problem/generate-batch")
@@ -1995,10 +2233,51 @@ class CodeReviewRequest(BaseModel):
     """代码批阅请求"""
     student_id: str = ""
     original_code: str = ""
+    solution_code: str = ""
     user_code: str = ""
     problem_id: Any = None
     topic: str = ""
     difficulty: str = "medium"
+
+
+def build_code_review_prompt(body: CodeReviewRequest) -> tuple[str, str]:
+    system_prompt = "你是一个专业的 Python 代码批阅专家，擅长对比参考答案、定位代码问题，并输出严格 JSON。"
+    user_prompt = f"""你是「玄武·AI结对编程舱」的代码批阅专家。
+
+【任务】
+对比原始题目代码、后台参考答案和用户修改后的代码，判断用户是否完成修复。
+
+【原始题目代码】
+```python
+{body.original_code}
+```
+
+【后台参考答案】
+```python
+{body.solution_code or "本题未提供参考答案，请主要依据原始代码与用户代码进行审阅。"}
+```
+
+【用户修改后的代码】
+```python
+{body.user_code}
+```
+
+【输出要求】
+只输出合法 JSON，不要输出 Markdown：
+{{
+    "correct_items": [
+        {{"line": 1, "description": "用户修复了某个问题"}}
+    ],
+    "wrong_items": [
+        {{"line": 1, "description": "仍存在的问题", "suggestion": "方向性建议，不要直接整段代写"}}
+    ],
+    "summary": {{
+        "correct_count": 0,
+        "wrong_count": 0,
+        "passed": false
+    }}
+}}"""
+    return system_prompt, user_prompt
 
 
 @app.post("/api/v2/code/review")
@@ -2016,6 +2295,11 @@ async def review_user_code(body: CodeReviewRequest):
 【原始题目代码】
 ```python
 {body.original_code}
+```
+
+【后台参考答案（仅用于判定，不对学生展示）】
+```python
+{body.solution_code or "本题未提供参考答案，请主要依据原始代码与用户代码进行审阅。"}
 ```
 
 【用户修改后的代码】
@@ -2070,6 +2354,50 @@ async def review_user_code(body: CodeReviewRequest):
     except Exception as e:
         logger.error(f"Code review error: {str(e)}", exc_info=True)
         return {"success": False, "error": f"批阅出错: {str(e)}"}
+
+
+@app.post("/api/v2/code/review/stream")
+async def review_user_code_stream(raw_request: Request, body: CodeReviewRequest):
+    """SSE 流式批阅：先推分析状态，最后推结构化 JSON 结果。"""
+    logger.info(f"Streaming code review: student={body.student_id}, problem={body.problem_id}")
+    system_prompt, user_prompt = build_code_review_prompt(body)
+
+    async def event_generator():
+        full_text = ""
+        try:
+            yield sse_event("status", {"msg": "正在分析代码语法..."})
+            await asyncio.sleep(0.12)
+            yield sse_event("status", {"msg": "正在对比参考答案..."})
+
+            chunk_count = 0
+            async for chunk in call_llm_stream(system_prompt, user_prompt, temperature=0.3):
+                if await raw_request.is_disconnected():
+                    logger.info(f"Code review stream disconnected: student={body.student_id}")
+                    return
+                full_text += chunk
+                chunk_count += 1
+                if chunk_count == 8:
+                    yield sse_event("status", {"msg": "正在检测逻辑漏洞..."})
+                elif chunk_count == 18:
+                    yield sse_event("status", {"msg": "正在整理修复建议..."})
+                yield sse_event("content", {"chunk": chunk})
+
+            yield sse_event("status", {"msg": "正在生成结构化批阅报告..."})
+            report = extract_json_object(full_text)
+            yield sse_event("result", {"success": True, "report": report})
+        except Exception as exc:
+            logger.error(f"Streaming code review error: {str(exc)}", exc_info=True)
+            yield sse_event("error", {"message": f"批阅失败: {str(exc)}"})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ========== 辩论模式API ==========
