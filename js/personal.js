@@ -467,6 +467,8 @@ function confirmPetSelection() {
 
 function savePetState() {
     localStorage.setItem('starlearn_pet', JSON.stringify(petState));
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setPet(petState);
 }
 
 function applyPetDecay() {
@@ -788,6 +790,8 @@ function ecoPlantAction(action) {
         lastUpdate: Date.now()
     };
     localStorage.setItem('eco_data', JSON.stringify(ecoData));
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setEcoData(ecoData);
 
     // 广播自定义事件，通知植物页面（如有打开）
     window.dispatchEvent(new CustomEvent('plantStateUpdated', { detail: plantStateData }));

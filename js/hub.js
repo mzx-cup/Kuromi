@@ -40,34 +40,329 @@ function createDataParticles() {
 // ============================================
 // Daily Adaptive Route (今日星际航线)
 // ============================================
+
+// 今日航线状态
+let dailyRouteState = {
+    tasks: [],
+    completed: [],
+    currentIndex: 0,
+    generated: false
+};
+
+// 任务类型对应的 emoji 和颜色
+const TASK_TYPE_CONFIG = {
+    study: { emoji: '📖', color: '#8b5cf6' },
+    practice: { emoji: '⚡', color: '#f59e0b' },
+    review: { emoji: '🔄', color: '#3b82f6' },
+    relax: { emoji: '🌟', color: '#10b981' }
+};
+
 function initDailyRoute() {
     const launchBtn = document.getElementById('launch-btn');
-    const pathNodes = document.querySelectorAll('.path-node');
 
     if (launchBtn) {
         launchBtn.addEventListener('click', handleLaunch);
     }
 
-    pathNodes.forEach(node => {
-        node.addEventListener('click', () => handleNodeClick(node));
-    });
+    // 页面加载时检查今日航线状态
+    checkDailyRouteStatus();
 }
 
-function handleLaunch() {
-    const launchBtn = document.getElementById('launch-btn');
-    const currentNode = document.querySelector('.path-node.current');
+async function checkDailyRouteStatus() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) {
+        return;
+    }
 
-    launchBtn.style.transform = 'scale(0.95)';
+    try {
+        const response = await fetch(`/api/daily-route/status?userId=${user.id}`);
+        const data = await response.json();
+
+        if (data.success && data.generated) {
+            dailyRouteState = {
+                tasks: data.tasks || [],
+                completed: data.completed || [],
+                currentIndex: findCurrentIndex(data.tasks || [], data.completed || []),
+                generated: true
+            };
+            renderDailyRoute();
+        }
+    } catch (e) {
+        console.warn('[DailyRoute] Failed to check status:', e);
+    }
+}
+
+function findCurrentIndex(tasks, completed) {
+    for (let i = 0; i < tasks.length; i++) {
+        if (!completed.includes(tasks[i].id)) {
+            return i;
+        }
+    }
+    return tasks.length > 0 ? tasks.length - 1 : 0;
+}
+
+async function handleLaunch() {
+    const launchBtn = document.getElementById('launch-btn');
+    const launchEngine = document.getElementById('launch-engine');
+    const routeTip = document.getElementById('route-tip');
+    const routeLoading = document.getElementById('route-loading');
+    const launchBtnText = document.getElementById('launch-btn-text');
+
+    // 如果已经生成过，直接跳转当前任务
+    if (dailyRouteState.generated && dailyRouteState.tasks.length > 0) {
+        const currentTask = dailyRouteState.tasks[dailyRouteState.currentIndex];
+        if (currentTask) {
+            showLaunchAnimation();
+            showToast(`🚀 继续 "${currentTask.title}" 学习任务！`, 'success');
+            navigateToTask(currentTask);
+        }
+        return;
+    }
+
+    // 获取用户信息
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) {
+        showToast('请先登录后再使用此功能', 'error');
+        return;
+    }
+
+    // 显示加载状态
+    if (launchBtn) launchBtn.style.transform = 'scale(0.95)';
 
     setTimeout(() => {
-        launchBtn.style.transform = '';
-        showLaunchAnimation();
-
-        if (currentNode) {
-            const taskName = currentNode.dataset.task;
-            showToast(`🚀 启动 "${taskName}" 学习任务！`, 'success');
-        }
+        if (launchBtn) launchBtn.style.transform = '';
     }, 150);
+
+    // 显示加载动画
+    showLaunchAnimation();
+
+    if (routeTip) routeTip.style.display = 'none';
+    if (routeLoading) routeLoading.style.display = 'flex';
+    if (launchBtnText) launchBtnText.textContent = '生成中...';
+    if (launchBtn) launchBtn.disabled = true;
+
+    try {
+        console.log('[DailyRoute] Starting generation for user:', user.id);
+        const response = await fetch('/api/daily-route/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id })
+        });
+
+        console.log('[DailyRoute] Response status:', response.status);
+        const data = await response.json();
+        console.log('[DailyRoute] Response data:', data);
+
+        if (data.success && data.tasks && data.tasks.length > 0) {
+            dailyRouteState = {
+                tasks: data.tasks || [],
+                completed: [],
+                currentIndex: 0,
+                generated: true
+            };
+
+            // 显示通知
+            showRouteGeneratedNotification(data.tasks, data.profile);
+
+            // 渲染航线
+            renderDailyRoute();
+
+            showToast(`🎉 今日航线已生成！包含 ${data.tasks.length} 个学习任务`, 'success');
+        } else {
+            console.error('[DailyRoute] Invalid response:', data);
+            throw new Error(data.error || '生成失败');
+        }
+    } catch (e) {
+        console.error('[DailyRoute] Failed to generate:', e);
+        showToast('航线生成失败，请重试: ' + e.message, 'error');
+    } finally {
+        if (routeLoading) routeLoading.style.display = 'none';
+        if (routeTip) routeTip.style.display = 'block';
+        if (launchBtnText) launchBtnText.textContent = '重新生成';
+        if (launchBtn) launchBtn.disabled = false;
+    }
+}
+
+function showRouteGeneratedNotification(tasks, profile) {
+    // 使用通知系统显示
+    if (window.starlearnNotifications && typeof window.starlearnNotifications.showNotification === 'function') {
+        const totalTime = tasks.reduce((sum, t) => sum + (t.duration || 0), 0);
+        window.starlearnNotifications.showNotification({
+            title: '🚀 今日航线已生成',
+            content: `根据你的学习画像，AI 为你规划了 ${tasks.length} 个任务，总计约 ${totalTime} 分钟`,
+            type: 'achievement'
+        });
+    }
+}
+
+function renderDailyRoute() {
+    const pathTimeline = document.getElementById('path-timeline');
+    const progressIndicator = document.getElementById('route-progress-indicator');
+    const launchEngine = document.getElementById('launch-engine');
+    const launchBtnText = document.getElementById('launch-btn-text');
+    const routeTip = document.getElementById('route-tip');
+
+    if (!pathTimeline || !dailyRouteState.tasks.length) return;
+
+    if (launchEngine) launchEngine.style.display = 'none';
+    if (progressIndicator) progressIndicator.style.display = 'none';
+
+    const total = dailyRouteState.tasks.length;
+    const completed = dailyRouteState.completed.length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    let html = `
+        <div class="daily-route-header">
+            <div class="route-date">${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</div>
+            <div class="route-summary">
+                <span class="route-progress-badge">${progress}%</span>
+                <span class="route-status-text">${completed}/${total} 任务完成</span>
+            </div>
+        </div>
+        <div class="route-progress-bar">
+            <div class="route-progress-fill" style="width: ${progress}%"></div>
+        </div>
+        <div class="route-tasks">
+    `;
+
+    dailyRouteState.tasks.forEach((task, index) => {
+        const isCompleted = dailyRouteState.completed.includes(task.id);
+        const isCurrent = index === dailyRouteState.currentIndex && !isCompleted;
+        const typeConfig = TASK_TYPE_CONFIG[task.type] || TASK_TYPE_CONFIG.study;
+
+        const difficultyLabels = { easy: '简单', medium: '中等', hard: '困难' };
+        const difficultyColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
+        const difficultyColor = difficultyColors[task.difficulty] || difficultyColors.medium;
+
+        html += `
+            <div class="route-task-card ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}"
+                 data-task-id="${task.id}"
+                 data-task-url="${task.taskUrl || 'courses.html'}"
+                 onclick="handleNodeClick(${task.id})">
+                <div class="task-card-header">
+                    <div class="task-subject-icon" style="background: ${typeConfig.color}20; color: ${typeConfig.color}">
+                        ${typeConfig.emoji}
+                    </div>
+                    <div class="task-header-info">
+                        <span class="task-type-label">${task.type === 'study' ? '学习' : task.type === 'practice' ? '练习' : task.type === 'review' ? '复习' : '放松'}</span>
+                        <span class="task-duration">⏱${task.duration}分钟</span>
+                    </div>
+                    ${isCompleted ? '<div class="task-completed-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></div>' : ''}
+                    ${isCurrent ? '<div class="task-current-badge">进行中</div>' : ''}
+                </div>
+                <div class="task-card-body">
+                    <h4 class="task-title">${task.title}</h4>
+                    <p class="task-description">${task.description}</p>
+                </div>
+                <div class="task-card-footer">
+                    <span class="task-subject">${task.subject}</span>
+                    <span class="task-difficulty" style="color: ${difficultyColor}">${difficultyLabels[task.difficulty] || '中等'}</span>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    pathTimeline.innerHTML = html;
+
+    updateRouteProgress();
+}
+
+function updateRouteProgress() {
+    const progressFill = document.getElementById('route-progress');
+    const completedCount = document.getElementById('completed-count');
+    const totalCount = document.getElementById('total-count');
+
+    const total = dailyRouteState.tasks.length;
+    const completed = dailyRouteState.completed.length;
+    const progress = total > 0 ? (completed / total) * 100 : 0;
+
+    if (progressFill) progressFill.style.width = `${progress}%`;
+    if (completedCount) completedCount.textContent = completed;
+    if (totalCount) totalCount.textContent = total;
+}
+
+async function handleNodeClick(taskId) {
+    const task = dailyRouteState.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const isCompleted = dailyRouteState.completed.includes(taskId);
+
+    if (isCompleted) {
+        showToast('⏪ 这项任务已完成，可以做点别的~', 'info');
+        return;
+    }
+
+    // 点击当前任务，开始执行
+    showToast(`⚡ 开始 "${task.title}"，预计 ${task.duration} 分钟`, 'success');
+
+    // 导航到任务页面
+    navigateToTask(task);
+}
+
+function navigateToTask(task) {
+    const taskUrl = task.taskUrl || 'courses.html';
+    window.location.href = '/' + taskUrl.replace(/^\//, '');
+}
+
+async function completeTask(taskId) {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) return;
+
+    try {
+        const response = await fetch('/api/daily-route/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id, taskId: taskId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 更新本地状态
+            if (!dailyRouteState.completed.includes(taskId)) {
+                dailyRouteState.completed.push(taskId);
+            }
+            dailyRouteState.currentIndex = findCurrentIndex(dailyRouteState.tasks, dailyRouteState.completed);
+
+            // 重新渲染
+            renderDailyRoute();
+
+            // 显示通知
+            const task = dailyRouteState.tasks.find(t => t.id === taskId);
+            showTaskCompletedNotification(task, data.completedCount, data.totalCount);
+        }
+    } catch (e) {
+        console.error('[DailyRoute] Failed to complete task:', e);
+    }
+}
+
+function showTaskCompletedNotification(task, completedCount, totalCount) {
+    const remaining = totalCount - completedCount;
+
+    // 使用通知系统
+    if (window.starlearnNotifications && typeof window.starlearnNotifications.showNotification === 'function') {
+        if (remaining > 0) {
+            window.starlearnNotifications.showNotification({
+                title: '✅ 任务完成！',
+                content: `"${task.title}" 已完成！还剩 ${remaining} 个任务，继续加油！`,
+                type: 'achievement'
+            });
+        } else {
+            window.starlearnNotifications.showNotification({
+                title: '🎉 今日航线全部完成！',
+                content: `太棒了！你已完成今日所有 ${totalCount} 个学习任务！`,
+                type: 'achievement'
+            });
+        }
+    }
+
+    // 也显示 toast
+    if (remaining > 0) {
+        showToast(`✅ "${task.title}" 完成！还剩 ${remaining} 个任务`, 'success');
+    } else {
+        showToast('🎉 恭喜！今日航线全部完成！', 'success');
+    }
 }
 
 function showLaunchAnimation() {
@@ -89,23 +384,8 @@ function showLaunchAnimation() {
     }, 1000);
 }
 
-function handleNodeClick(node) {
-    if (node.classList.contains('completed')) {
-        showToast('⏪ 回顾已完成的任务', 'info');
-        return;
-    }
-
-    if (node.classList.contains('current')) {
-        const taskName = node.dataset.task;
-        showToast(`⚡ 继续 "${taskName}"`, 'success');
-        return;
-    }
-
-    if (node.classList.contains('pending')) {
-        const taskName = node.dataset.task;
-        showToast(`📋 已记录 "${taskName}" 任务待完成`, 'info');
-    }
-}
+// 暴露 completeTask 到全局，以便其他页面可以调用
+window.completeDailyRouteTask = completeTask;
 
 // ============================================
 // 星际自习大厅 (Interstellar Study Hall)
@@ -699,6 +979,160 @@ function renderNewsCards(news) {
     });
 }
 
+// ============================================
+// 更多资讯弹窗
+// ============================================
+let allNewsData = [];
+let currentNewsCategory = 'all';
+
+function initNewsModal() {
+    const modal = document.getElementById('news-modal');
+    const overlay = document.getElementById('news-modal-overlay');
+    const closeBtn = document.getElementById('news-modal-close');
+    const moreBtn = document.getElementById('more-news-btn');
+    const tabs = document.querySelectorAll('.news-tab');
+
+    if (!modal) return;
+
+    // 点击"查看更多"按钮
+    if (moreBtn) {
+        moreBtn.addEventListener('click', openNewsModal);
+    }
+
+    // 点击遮罩关闭
+    if (overlay) {
+        overlay.addEventListener('click', closeNewsModal);
+    }
+
+    // 点击关闭按钮
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeNewsModal);
+    }
+
+    // Tab 切换
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const category = tab.dataset.category;
+            currentNewsCategory = category;
+
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            renderModalNews();
+        });
+    });
+
+    // ESC 键关闭
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeNewsModal();
+        }
+    });
+}
+
+async function openNewsModal() {
+    const modal = document.getElementById('news-modal');
+    const body = document.getElementById('news-modal-body');
+    if (!modal || !body) return;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // 如果没有数据，先加载
+    if (allNewsData.length === 0) {
+        body.innerHTML = `
+            <div class="news-modal-loading">
+                <div class="loading-spinner"></div>
+                <span>正在加载资讯...</span>
+            </div>
+        `;
+
+        try {
+            const response = await fetch('/api/news/more');
+            const data = await response.json();
+            if (data.success && data.news) {
+                allNewsData = data.news;
+                renderModalNews();
+            } else {
+                throw new Error('Failed to fetch news');
+            }
+        } catch (e) {
+            body.innerHTML = `
+                <div class="news-modal-error">
+                    <div class="news-modal-empty-icon">😵</div>
+                    <p>资讯加载失败</p>
+                    <button class="more-btn" onclick="reloadMoreNews()" style="margin-top:12px">重新加载</button>
+                </div>
+            `;
+        }
+    } else {
+        renderModalNews();
+    }
+}
+
+function closeNewsModal() {
+    const modal = document.getElementById('news-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+function renderModalNews() {
+    const body = document.getElementById('news-modal-body');
+    if (!body) return;
+
+    let filteredNews = allNewsData;
+    if (currentNewsCategory !== 'all') {
+        filteredNews = allNewsData.filter(n => n.category === currentNewsCategory);
+    }
+
+    if (filteredNews.length === 0) {
+        body.innerHTML = `
+            <div class="news-modal-empty">
+                <div class="news-modal-empty-icon">📭</div>
+                <p>暂无${currentNewsCategory === 'all' ? '' : currentNewsCategory}相关资讯</p>
+            </div>
+        `;
+        return;
+    }
+
+    const getCategoryClass = (category) => {
+        const map = { 'AI科技': 'ai', '民生': 'livelihood', '生活': 'life', '国际形势': 'international' };
+        return map[category] || 'ai';
+    };
+
+    body.innerHTML = `
+        <div class="news-modal-list">
+            ${filteredNews.map(news => `
+                <div class="news-modal-item" onclick="openNewsLink('${news.link || ''}')">
+                    <div class="news-item-header">
+                        <span class="news-item-category ${getCategoryClass(news.category)}">${news.category}</span>
+                        <span class="news-item-time">${news.timestamp}</span>
+                    </div>
+                    <h4 class="news-item-title">${news.title}</h4>
+                    <p class="news-item-desc">${news.description}</p>
+                    <div class="news-item-footer">
+                        <span class="news-item-source">${news.source}</span>
+                        ${news.link ? '<span class="news-item-link">阅读原文 →</span>' : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function openNewsLink(link) {
+    if (link && link.startsWith('http')) {
+        window.open(link, '_blank');
+    }
+}
+
+async function reloadMoreNews() {
+    allNewsData = [];
+    await openNewsModal();
+}
+
 function getCachedNews() {
     try {
         const cached = localStorage.getItem(NEWS_CACHE_KEY);
@@ -896,6 +1330,9 @@ function initSidebarAndNotifications() {
     });
 
     updateNotificationDot();
+
+    // 初始化更多资讯弹窗
+    initNewsModal();
 }
 
 // 通知持久化存储
@@ -912,6 +1349,8 @@ function saveNotificationToStorage(notif) {
     list.unshift({ ...notif, id: Date.now(), time: new Date().toLocaleString('zh-CN') });
     if (list.length > 50) list.splice(50);
     localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(list));
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setNotifications(list);
 }
 
 // 添加通知到 hub 面板

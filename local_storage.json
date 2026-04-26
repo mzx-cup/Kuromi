@@ -1,0 +1,84 @@
+{
+  "users": [],
+  "learning_records": [],
+  "daily_routes": [
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "了解你的学习助手",
+          "description": "认识学习系统的功能和使用方法",
+          "type": "study",
+          "duration": 10,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/guide"
+        },
+        {
+          "id": 2,
+          "title": "基础知识精讲",
+          "description": "学习核心知识概念，建立基础",
+          "type": "study",
+          "duration": 30,
+          "subject": "fundamentals",
+          "difficulty": "medium",
+          "taskUrl": "/course/intro"
+        },
+        {
+          "id": 3,
+          "title": "随堂小练习",
+          "description": "趁热打铁，完成基础练习题",
+          "type": "practice",
+          "duration": 20,
+          "subject": "fundamentals",
+          "difficulty": "easy",
+          "taskUrl": "/practice/basic"
+        },
+        {
+          "id": 4,
+          "title": "今日错题回顾",
+          "description": "分析今天练习中的易错点",
+          "type": "review",
+          "duration": 15,
+          "subject": "general",
+          "difficulty": "medium",
+          "taskUrl": "/review/errors"
+        },
+        {
+          "id": 5,
+          "title": "专注学习25分钟",
+          "description": "使用番茄钟高效学习，计时练习",
+          "type": "practice",
+          "duration": 25,
+          "subject": "general",
+          "difficulty": "medium",
+          "taskUrl": "/focus/timer"
+        },
+        {
+          "id": 6,
+          "title": "知识卡片复习",
+          "description": "用记忆卡片回顾今日所学",
+          "type": "review",
+          "duration": 15,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/flashcards/today"
+        },
+        {
+          "id": 7,
+          "title": "虚拟宠物喂食",
+          "description": "照顾你的学习宠物，放松一下",
+          "type": "relax",
+          "duration": 10,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/pet/feed"
+        }
+      ],
+      "date": "2026-04-26",
+      "completed": [],
+      "generated_at": "2026-04-26T15:25:56.106533",
+      "user_id": 1
+    }
+  ]
+}

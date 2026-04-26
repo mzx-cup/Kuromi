@@ -3226,27 +3226,30 @@ async def get_textbook_chapter(req: TextbookChapterRequest):
 async def get_today_news():
     """
     获取今日要闻，覆盖多个领域：AI科技、民生、生活、国际形势等
+    通过实时抓取多个新闻源，获取真正的实时新闻
     """
+    import feedparser
+    from bs4 import BeautifulSoup
+    import re
+    import time
+
     today = datetime.now().strftime("%Y年%m月%d日")
+    today_english = datetime.now().strftime("%Y-%m-%d")
 
-    system_prompt = """你是一个新闻资讯聚合助手，专门为用户提供当日重点新闻摘要。
-你的任务是根据当前日期，生成当日最重要的新闻资讯，涵盖以下领域：
-1. AI科技 - 人工智能、大模型、互联网技术等
-2. 民生 - 就业、收入、教育、医疗、住房等民生热点
-3. 生活 - 消费、文化、娱乐、体育等生活资讯
-4. 国际形势 - 国际政治、经济、外交等重大事件
-
-请以JSON数组格式返回，每条新闻包含以下字段：
-- title: 新闻标题（简洁有力，20字以内）
-- category: 分类（AI科技/民生/生活/国际形势）
-- description: 简短描述（30字以内）
-- source: 新闻来源（如：AI前哨、人民日报、新华社等）
-- timestamp: 发布时间描述（如：今日上午、刚刚、1小时前等）
-
-请返回4-6条最重要的新闻，确保涵盖至少3个不同领域。
-只返回JSON数组，不要包含任何其他文字说明。"""
-
-    user_prompt = f"请列出{today}今日最值得关注的重点新闻，涵盖AI科技、民生、生活、国际形势等多个领域。"
+    # 多个新闻 RSS 源（使用国内可访问的源）
+    RSS_SOURCES = [
+        # 国际新闻源（相对稳定）
+        ("https://feeds.bbci.co.uk/news/world/rss.xml", "BBC World", "国际形势"),
+        ("https://feeds.bbci.co.uk/news/technology/rss.xml", "BBC Tech", "AI科技"),
+        ("https://www.aljazeera.com/xml/rss.xml", "Al Jazeera", "国际形势"),
+        # 科技新闻
+        ("https://techcrunch.com/feed/", "TechCrunch", "AI科技"),
+        ("https://www.theverge.com/rss/index.xml", "The Verge", "AI科技"),
+        ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica", "AI科技"),
+        # 商业/民生
+        ("https://feeds.reuters.com/reuters/businessNews", "Reuters", "民生"),
+        ("https://feeds.reuters.com/reuters/technologyNews", "Reuters Tech", "AI科技"),
+    ]
 
     # 默认降级新闻数据
     fallback_news = [
@@ -3277,40 +3280,1211 @@ async def get_today_news():
             "description": "内需市场活跃，居民消费信心增强",
             "source": "经济日报",
             "timestamp": "今日"
+        },
+        {
+            "title": "人工智能掀起新一轮科技革命",
+            "category": "AI科技",
+            "description": "生成式AI快速发展，各行业加速智能化转型",
+            "source": "科技日报",
+            "timestamp": "今日"
+        },
+        {
+            "title": "教育公平持续推进，优质资源下沉基层",
+            "category": "民生",
+            "description": "教育资源均衡配置，更多孩子享受优质教育",
+            "source": "光明日报",
+            "timestamp": "今日"
+        },
+        {
+            "title": "全球气候治理取得新进展",
+            "category": "国际形势",
+            "description": "各国携手应对气候变化，共建绿色家园",
+            "source": "中国环境报",
+            "timestamp": "今日"
         }
     ]
 
+    collected_news = []
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+
+    # 抓取各 RSS 源新闻
+    for rss_url, source_name, default_category in RSS_SOURCES:
+        try:
+            resp = requests.get(rss_url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                continue
+
+            # 尝试解析 RSS
+            try:
+                feed = feedparser.parse(resp.text)
+                for entry in feed.entries[:8]:  # 每个源最多取8条
+                    title = getattr(entry, 'title', '') or ''
+                    summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '') or ''
+                    published = getattr(entry, 'published', '') or getattr(entry, 'updated', '') or ''
+
+                    # 清理 HTML 标签
+                    if summary:
+                        soup = BeautifulSoup(summary, 'html.parser')
+                        summary = soup.get_text(separator=' ', strip=True)[:200]
+
+                    if title and len(title) > 5:
+                        # 判断分类
+                        category = default_category
+                        title_lower = title.lower()
+                        if any(k in title_lower for k in ['ai', 'artificial', 'tech', 'technology', 'digital', 'software', 'app', 'robot', '模型', '科技', '技术', '互联网']):
+                            category = "AI科技"
+                        elif any(k in title_lower for k in ['economy', 'market', 'business', 'stock', 'trade', '经济', '股市', '贸易', '就业', '民生']):
+                            category = "民生"
+                        elif any(k in title_lower for k in ['sport', 'movie', 'music', 'entertainment', 'culture', 'life', '文化', '体育', '娱乐', '生活']):
+                            category = "生活"
+
+                        collected_news.append({
+                            "title": re.sub(r'[^\w\s一-鿿]', '', title)[:40],
+                            "category": category,
+                            "description": summary[:80] if summary else '点击查看详情',
+                            "source": source_name,
+                            "timestamp": published[:16] if published else '今日',
+                            "raw_title": title
+                        })
+            except Exception as e:
+                logger.warning(f"[get_today_news] RSS parse error for {source_name}: {e}")
+                continue
+
+            time.sleep(0.3)  # 避免请求过快
+
+        except Exception as e:
+            logger.warning(f"[get_today_news] Failed to fetch {source_name}: {e}")
+            continue
+
+    # 如果没有获取到新闻，使用 fallback
+    if len(collected_news) < 3:
+        logger.warning(f"[get_today_news] Only got {len(collected_news)} news items, using fallback")
+        return {"success": True, "date": today, "news": fallback_news}
+
+    # 去重（基于标题相似度）
+    unique_news = []
+    seen_titles = set()
+    for news in collected_news:
+        title_key = news['raw_title'].lower()[:30]
+        is_duplicate = False
+        for seen in seen_titles:
+            # 简单相似度判断
+            if sum(c1 == c2 for c1, c2 in zip(title_key, seen)) > len(seen) * 0.7:
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            seen_titles.add(title_key)
+            unique_news.append(news)
+        if len(unique_news) >= 12:  # 最多保留12条
+            break
+
+    # 使用 LLM 总结和整理新闻
+    if len(unique_news) >= 3:
+        news_context = "\n".join([
+            f"[{i+1}] {n['title']} | {n['source']} | {n['category']} | {n['description']}"
+            for i, n in enumerate(unique_news[:12])
+        ])
+
+        system_prompt = """你是一个新闻资讯聚合助手，专门为用户提供当日重点新闻摘要。
+你的任务是从提供的实时新闻列表中，筛选出当日最重要的新闻资讯，涵盖以下领域：
+1. AI科技 - 人工智能、大模型、互联网技术等
+2. 民生 - 就业、收入、教育、医疗、住房等民生热点
+3. 生活 - 消费、文化、娱乐、体育等生活资讯
+4. 国际形势 - 国际政治、经济、外交等重大事件
+
+请以JSON数组格式返回，每条新闻包含以下字段：
+- title: 新闻标题（简洁有力，25字以内，优先使用原文标题）
+- category: 分类（AI科技/民生/生活/国际形势）
+- description: 简短描述（40字以内，从原文描述中提取关键信息）
+- source: 新闻来源（如：BBC、Reuters、CNN 等）
+- timestamp: 发布时间描述（如：今日、刚刚、几小时前等，基于原文时间推断）
+
+请返回5-7条最重要的新闻，确保涵盖至少3个不同领域。
+只返回JSON数组，不要包含任何其他文字说明。"""
+
+        user_prompt = f"""请从以下实时新闻中筛选出今日最重要的新闻（日期：{today}）：
+
+{news_context}
+
+请返回JSON数组格式的新闻列表："""
+
+        try:
+            news_content = call_llm(system_prompt, user_prompt, temperature=0.3)
+
+            if news_content and isinstance(news_content, str):
+                json_match = re.search(r'\[.*\]', news_content, re.DOTALL)
+                if json_match:
+                    try:
+                        news_list = json.loads(json_match.group())
+                        if isinstance(news_list, list) and len(news_list) > 0:
+                            return {"success": True, "date": today, "news": news_list}
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"[get_today_news] JSON decode error: {e}")
+        except Exception as e:
+            logger.warning(f"[get_today_news] LLM summary failed: {e}")
+
+    # 如果 LLM 处理失败，返回原始新闻
+    simple_news = [{
+        "title": n['title'][:25],
+        "category": n['category'],
+        "description": n['description'][:40],
+        "source": n['source'],
+        "timestamp": "今日"
+    } for n in unique_news[:6]]
+
+    return {"success": True, "date": today, "news": simple_news if simple_news else fallback_news}
+
+
+# ============================================
+# 今日航线 API - AI 智能学习计划生成
+# ============================================
+
+DAILY_ROUTE_CACHE_KEY = 'starlearn_daily_route'
+DAILY_ROUTE_CACHE_DURATION = 12 * 60 * 60 * 1000  # 12小时
+
+class DailyRouteRequest(BaseModel):
+    userId: Optional[int] = None
+
+def call_llm_for_daily_route(system_prompt: str, user_prompt: str, temperature=0.3):
+    """
+    直接调用 minimax API 生成今日航线计划
+    """
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.minimax_api_key}"
+    }
+    payload = {
+        "model": settings.minimax_model_name,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": temperature
+    }
+
+    try:
+        response = requests.post(
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=180  # 增加超时到180秒
+        )
+
+        if response.ok:
+            body = response.json()
+            if "choices" in body and len(body["choices"]) > 0:
+                return body["choices"][0]["message"]["content"]
+
+        # 如果失败，打印错误
+        print(f"[call_llm_for_daily_route] API error: {response.status_code} - {response.text[:500]}")
+        return None
+
+    except Exception as e:
+        print(f"[call_llm_for_daily_route] Exception: {e}")
+        return None
+
+
+@app.post("/api/daily-route/generate")
+def generate_daily_route(request: DailyRouteRequest):
+    """
+    根据学生画像生成专属的今日学习计划
+    """
+    try:
+        user_id = request.userId
+        today = datetime.now().strftime("%Y年%m月%d日")
+        today_key = datetime.now().strftime("%Y-%m-%d")
+
+        default_tasks = [
+            {"id": 1, "title": "英语单词记忆", "description": "背诵20个核心词汇", "type": "study", "duration": 20, "subject": "英语", "difficulty": "easy", "taskUrl": "/html/courses.html"},
+            {"id": 2, "title": "高数专项练习", "description": "完成5道极限练习题", "type": "practice", "duration": 30, "subject": "数学", "difficulty": "medium", "taskUrl": "/html/courses.html"},
+            {"id": 3, "title": "错题回顾", "description": "复习本周典型错题", "type": "review", "duration": 25, "subject": "通用", "difficulty": "medium", "taskUrl": "/html/courses.html"},
+            {"id": 4, "title": "算法挑战", "description": "完成2道简单算法题", "type": "practice", "duration": 30, "subject": "编程", "difficulty": "medium", "taskUrl": "/html/courses.html"},
+            {"id": 5, "title": "喂养星宝", "description": "放松一下，照顾虚拟宠物", "type": "relax", "duration": 10, "subject": "休闲", "difficulty": "easy", "taskUrl": "/html/pet.html"},
+        ]
+
+        if not user_id:
+            return {"success": False, "error": "用户未登录"}
+
+        print(f"[generate_daily_route] Starting for user_id: {user_id}")
+
+        profile_data = {}
+        try:
+            user_profile = database.get_user_profile(user_id)
+            if user_profile:
+                if isinstance(user_profile, dict):
+                    profile_json = user_profile.get('profile_json', {})
+                    if isinstance(profile_json, str):
+                        profile_data = json.loads(profile_json)
+                    else:
+                        profile_data = profile_json
+                elif isinstance(user_profile, str):
+                    profile_data = json.loads(user_profile)
+            print(f"[generate_daily_route] Profile: {profile_data}")
+        except Exception as e:
+            print(f"[generate_daily_route] Failed to get profile: {e}")
+
+        learning_records = []
+        try:
+            learning_record = database.get_learning_record(user_id)
+            if learning_record:
+                learning_records = [learning_record]
+            storage = database.load_local_storage()
+            all_records = storage.get('learning_records', [])
+            user_records = [r for r in all_records if r.get('user_id') == user_id]
+            if user_records:
+                learning_records = user_records
+            print(f"[generate_daily_route] Got {len(learning_records)} learning records")
+        except Exception as e:
+            print(f"[generate_daily_route] Failed to get records: {e}")
+
+        knowledge_mastery = profile_data.get('knowledgeMastery', [])
+        cognitive_level = profile_data.get('cognitiveLevel', 'basic')
+        learning_style = profile_data.get('learningStyle', 'pragmatic')
+        learning_goals = profile_data.get('learningGoals', ['应对考试'])
+
+        total_interactions = 0
+        total_practice_time = 0
+        pass_rates = []
+        for r in learning_records:
+            if isinstance(r, dict):
+                total_interactions += r.get('interaction_count', 0)
+                total_practice_time += r.get('code_practice_time', 0)
+                pr = r.get('socratic_pass_rate', 0)
+                if pr > 0:
+                    pass_rates.append(pr)
+        avg_pass_rate = sum(pass_rates) / len(pass_rates) if pass_rates else 0
+
+        system_prompt = """你是一个专业的AI学习规划师，专门为学生生成每日的个性化学习计划。
+你的任务是分析学生的学习画像，生成最适合他们的今日学习任务。
+
+## 学生画像分析维度：
+1. 知识掌握情况 - 哪些知识点已掌握，哪些薄弱
+2. 认知水平 - 基础/进阶/高级
+3. 学习风格 - 理论型/实践型/混合型
+4. 学习目标 - 应对考试/兴趣学习/技能提升
+
+## 任务设计原则：
+1. 难度适中，既有挑战又不至于无法完成
+2. 结合学生的薄弱点和目标
+3. 任务类型多样化（阅读、练习、复习、实践等）
+4. 总时长控制在2-4小时
+5. 包含一个轻松的任务（如喂养虚拟宠物、放松活动）
+
+## 返回格式：
+请返回JSON数组，每个任务包含：
+- id: 任务ID（数字）
+- title: 任务标题（15字以内，简短有力）
+- description: 任务描述（30字以内，说明具体做什么）
+- type: 任务类型（study/practice/review/relax）
+- duration: 预计时长（分钟）
+- subject: 学科领域
+- difficulty: 难度（easy/medium/hard）
+- taskUrl: 点击后跳转的页面路径，必须是以下之一：
+  - courses.html （课程学习：视频课程、知识点学习）
+  - code.html （编程练习：代码编写、调试、算法训练）
+  - flow-meter.html （专注计时：番茄钟、专注力训练）
+  - calendar.html （日历计划：制定学习计划、查看日程）
+  - pixel-pet-game.html （休闲游戏：虚拟宠物、放松娱乐）
+  - progress.html （学习进度：查看学习统计、成长记录）
+  - socratic-ai.html （AI问答：苏格拉底式AI辅导）
+  - plant.html （植物养成：种植、收获、图鉴收集）
+  - stellar-showcase.html （星座展示：天文知识学习）
+  - concept-analyzer.html （概念分析：概念梳理、知识图谱）
+  - architecture-blueprint.html （架构蓝图：系统设计学习）
+  - ai-pair-programming.html （AI结对编程：AI辅助编程）
+  - video-player.html （视频学习：视频课程播放）
+  - assessment.html （能力评估：测评答题）
+
+请生成5-7个任务，确保：
+1. 至少3个是针对当前薄弱环节的专项练习
+2. 任务描述要具体（如"完成5道一元二次方程练习题"而不是"数学练习"）
+3. 合理分配taskUrl（编程相关用/code.html，记忆背诵用/courses.html，等）
+4. 总时长控制在2-3小时
+5. 包含一个放松任务（taskUrl用/pixel-pet-game.html或/plant.html）
+
+只返回JSON数组，不要包含任何其他说明文字。"""
+
+        user_prompt = f"""请为以下学生生成今日学习计划：
+
+## 学生基本信息
+- 日期：{today}
+- 学习目标：{', '.join(learning_goals)}
+- 认知水平：{cognitive_level}
+- 学习风格：{learning_style}
+
+## 学习数据统计
+- 累计学习交互：{total_interactions} 次
+- 编程练习时长：{total_practice_time} 分钟
+- 苏格拉底问答通过率：{avg_pass_rate:.1%}
+
+## 知识掌握情况
+"""
+
+        if knowledge_mastery:
+            for k in knowledge_mastery[:10]:
+                name = k.get('name', k.get('topic', '未知'))
+                mastery = k.get('mastery', k.get('level', '未知'))
+                user_prompt += f"- {name}：{mastery}\n"
+        else:
+            user_prompt += "暂无详细数据\n"
+
+        user_prompt += "\n请生成专属的今日学习计划："
+
+        print("[generate_daily_route] Calling LLM...")
+        tasks = default_tasks
+        llm_used = False
+
+        try:
+            llm_response = call_llm_for_daily_route(system_prompt, user_prompt, temperature=0.3)
+            print(f"[generate_daily_route] LLM response: {str(llm_response)[:300] if llm_response else 'None'}")
+
+            if llm_response:
+                json_match = re.search(r'\[.*\]', llm_response, re.DOTALL)
+                if json_match:
+                    parsed_tasks = json.loads(json_match.group())
+                    if isinstance(parsed_tasks, list) and len(parsed_tasks) > 0:
+                        tasks = parsed_tasks
+                        llm_used = True
+                        print(f"[generate_daily_route] Successfully parsed {len(tasks)} tasks from LLM")
+        except json.JSONDecodeError as e:
+            print(f"[generate_daily_route] JSON decode error: {e}")
+        except Exception as e:
+            print(f"[generate_daily_route] LLM processing error: {e}")
+
+        for i, task in enumerate(tasks):
+            if 'id' not in task:
+                task['id'] = i + 1
+            if 'taskUrl' not in task:
+                task['taskUrl'] = '/html/courses.html'
+
+        try:
+            cache_data = {
+                'tasks': tasks,
+                'date': today_key,
+                'completed': [],
+                'generated_at': datetime.now().isoformat()
+            }
+            save_daily_route_cache(user_id, cache_data)
+            print(f"[generate_daily_route] Cached {len(tasks)} tasks")
+        except Exception as e:
+            print(f"[generate_daily_route] Failed to cache: {e}")
+
+        result = {
+            "success": True,
+            "date": today,
+            "tasks": tasks,
+            "llmUsed": llm_used,
+            "profile": {
+                "cognitiveLevel": cognitive_level,
+                "learningStyle": learning_style,
+                "totalInteractions": total_interactions,
+                "practiceTime": total_practice_time,
+                "passRate": avg_pass_rate
+            }
+        }
+        print(f"[generate_daily_route] Returning {len(tasks)} tasks")
+        return result
+    except Exception as e:
+        print(f"[generate_daily_route] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "error": str(e)}
+
+
+def save_daily_route_cache(user_id, cache_data):
+    """保存今日航线缓存"""
+    storage = database.load_local_storage()
+    if 'daily_routes' not in storage:
+        storage['daily_routes'] = []
+    # 移除同一天的数据
+    today_key = datetime.now().strftime("%Y-%m-%d")
+    storage['daily_routes'] = [r for r in storage['daily_routes'] if r.get('date') != today_key]
+    # 添加新数据
+    cache_data['user_id'] = user_id
+    storage['daily_routes'].append(cache_data)
+    # 只保留最近30天的数据
+    storage['daily_routes'] = storage['daily_routes'][-30:]
+    database.save_local_storage(storage)
+
+
+@app.post("/api/daily-route/complete")
+async def complete_daily_task(request: dict):
+    """
+    标记任务完成
+    """
+    user_id = request.get('userId')
+    task_id = request.get('taskId')
+
+    if not user_id or task_id is None:
+        return {"success": False, "error": "参数错误"}
+
+    today_key = datetime.now().strftime("%Y-%m-%d")
+    storage = database.load_local_storage()
+
+    # 查找今日航线
+    daily_routes = storage.get('daily_routes', [])
+    today_route = None
+    for route in reversed(daily_routes):
+        if route.get('user_id') == user_id and route.get('date') == today_key:
+            today_route = route
+            break
+
+    if not today_route:
+        return {"success": False, "error": "今日航线未生成"}
+
+    # 标记完成
+    if task_id not in today_route.get('completed', []):
+        if 'completed' not in today_route:
+            today_route['completed'] = []
+        today_route['completed'].append(task_id)
+
+    # 更新存储
+    storage['daily_routes'] = daily_routes
+    database.save_local_storage(storage)
+
+    # 获取任务信息用于通知
+    task = next((t for t in today_route.get('tasks', []) if t.get('id') == task_id), None)
+
+    return {
+        "success": True,
+        "completedCount": len(today_route.get('completed', [])),
+        "totalCount": len(today_route.get('tasks', [])),
+        "task": task
+    }
+
+
+@app.get("/api/daily-route/status")
+async def get_daily_route_status(userId: int):
+    """
+    获取今日航线状态
+    """
+    if not userId:
+        return {"success": False, "error": "用户未登录"}
+
+    today_key = datetime.now().strftime("%Y-%m-%d")
+    storage = database.load_local_storage()
+
+    daily_routes = storage.get('daily_routes', [])
+    today_route = None
+    for route in reversed(daily_routes):
+        if route.get('user_id') == userId and route.get('date') == today_key:
+            today_route = route
+            break
+
+    if not today_route:
+        return {
+            "success": True,
+            "generated": False,
+            "tasks": [],
+            "completed": [],
+            "progress": 0
+        }
+
+    completed = today_route.get('completed', [])
+    tasks = today_route.get('tasks', [])
+    progress = len(completed) / len(tasks) * 100 if tasks else 0
+
+    return {
+        "success": True,
+        "generated": True,
+        "tasks": tasks,
+        "completed": completed,
+        "progress": progress,
+        "date": today_route.get('date')
+    }
+
+
+@app.get("/api/news/more")
+async def get_more_news():
+    """
+    获取更多新闻，支持按分类筛选
+    使用并发请求 + 缓存优化加载速度
+    """
+    import feedparser
+    from bs4 import BeautifulSoup
+    import re
+    import asyncio
+    import aiohttp
+
+    today = datetime.now().strftime("%Y年%m月%d日")
+
+    # 内存缓存（进程内缓存，减少重复请求）
+    global _more_news_cache, _more_news_cache_time
+    cache_duration = 10 * 60  # 10分钟缓存
+    if '_more_news_cache' not in globals():
+        globals()['_more_news_cache'] = None
+        globals()['_more_news_cache_time'] = 0
+
+    # 检查缓存是否有效
+    if (_more_news_cache is not None and
+        (datetime.now() - _more_news_cache_time).total_seconds() < cache_duration):
+        return {"success": True, "news": _more_news_cache, "cached": True}
+
+    # 减少 RSS 源数量，只保留最可靠的，提高并发
+    RSS_SOURCES = [
+        ("https://feeds.bbci.co.uk/news/world/rss.xml", "BBC World", "国际形势"),
+        ("https://feeds.bbci.co.uk/news/technology/rss.xml", "BBC Tech", "AI科技"),
+        ("https://www.aljazeera.com/xml/rss.xml", "Al Jazeera", "国际形势"),
+        ("https://techcrunch.com/feed/", "TechCrunch", "AI科技"),
+        ("https://www.theverge.com/rss/index.xml", "The Verge", "AI科技"),
+        ("https://feeds.reuters.com/reuters/businessNews", "Reuters Business", "民生"),
+        ("https://feeds.reuters.com/reuters/technologyNews", "Reuters Tech", "AI科技"),
+    ]
+
+    collected_news = []
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+
+    # 并发获取所有 RSS 源
+    async def fetch_single_feed(session, rss_url, source_name, default_category):
+        try:
+            timeout = aiohttp.ClientTimeout(total=8)  # 减少超时到8秒
+            async with session.get(rss_url, headers=headers, timeout=timeout) as resp:
+                if resp.status != 200:
+                    return []
+                text = await resp.text()
+
+            feed = feedparser.parse(text)
+            results = []
+            for entry in feed.entries[:8]:
+                title = getattr(entry, 'title', '') or ''
+                summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '') or ''
+                published = getattr(entry, 'published', '') or getattr(entry, 'updated', '') or ''
+                link = getattr(entry, 'link', '') or ''
+
+                if summary:
+                    soup = BeautifulSoup(summary, 'html.parser')
+                    summary = soup.get_text(separator=' ', strip=True)[:200]
+
+                if title and len(title) > 5:
+                    category = default_category
+                    title_lower = title.lower()
+                    if any(k in title_lower for k in ['ai', 'artificial', 'tech', 'technology', 'digital', 'software', 'app', 'robot', 'openai', 'google', 'microsoft', 'apple', '模型', '科技']):
+                        category = "AI科技"
+                    elif any(k in title_lower for k in ['economy', 'market', 'business', 'stock', 'trade', 'finance', 'bank', 'economy', '就业', '民生', 'health', '医疗', '教育', '房价']):
+                        category = "民生"
+                    elif any(k in title_lower for k in ['sport', 'movie', 'music', 'entertainment', 'culture', 'life', 'food', 'travel', '文化', '体育', '娱乐']):
+                        category = "生活"
+
+                    # 解析时间
+                    timestamp = "今日"
+                    if published:
+                        try:
+                            from email.utils import parsedate_to_datetime
+                            dt = parsedate_to_datetime(published)
+                            now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+                            diff = (now - dt).total_seconds()
+                            if diff < 3600:
+                                timestamp = f"{int(diff/60)}分钟前"
+                            elif diff < 86400:
+                                timestamp = f"{int(diff/3600)}小时前"
+                            else:
+                                timestamp = dt.strftime("%m月%d日")
+                        except:
+                            timestamp = "今日"
+
+                    results.append({
+                        "title": re.sub(r'[^\w\s一-鿿]', '', title)[:50],
+                        "category": category,
+                        "description": summary[:100] if summary else '点击查看详情',
+                        "source": source_name,
+                        "timestamp": timestamp,
+                        "link": link
+                    })
+            return results
+        except asyncio.TimeoutError:
+            logger.warning(f"[get_more_news] Timeout fetching {source_name}")
+            return []
+        except Exception as e:
+            logger.warning(f"[get_more_news] Error fetching {source_name}: {e}")
+            return []
+
+    # 使用 aiohttp 并发请求所有源
+    connector = aiohttp.TCPConnector(limit=10, force_close=True)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        tasks = [
+            fetch_single_feed(session, url, name, cat)
+            for url, name, cat in RSS_SOURCES
+        ]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for result in results:
+        if isinstance(result, list):
+            collected_news.extend(result)
+
+    # 去重
+    unique_news = []
+    seen_titles = set()
+    for news in collected_news:
+        title_key = news['title'].lower()[:25]
+        is_duplicate = False
+        for seen in seen_titles:
+            if sum(c1 == c2 for c1, c2 in zip(title_key, seen)) > len(seen) * 0.65:
+                is_duplicate = True
+                break
+        if not is_duplicate:
+            seen_titles.add(title_key)
+            unique_news.append(news)
+        if len(unique_news) >= 30:
+            break
+
+    # 如果抓取到的新闻太少，使用 LLM 生成新闻
+    if len(unique_news) < 5:
+        logger.warning(f"[get_more_news] Only got {len(unique_news)} news, trying LLM fallback")
+        llm_fallback = await generate_llm_news(today)
+        if llm_fallback:
+            _more_news_cache = llm_fallback
+            _more_news_cache_time = datetime.now()
+            return {"success": True, "news": llm_fallback}
+
+    # 最终降级数据
+    if len(unique_news) < 3:
+        unique_news = [
+            {"title": "AI大模型技术持续突破，应用场景不断拓展", "category": "AI科技", "description": "各大科技公司纷纷布局AI领域，大模型技术日新月异", "source": "AI前哨", "timestamp": "今日", "link": ""},
+            {"title": "教育改革深入推进，素质教育受重视", "category": "民生", "description": "教育部门出台新政策，促进学生全面发展", "source": "教育报", "timestamp": "今日", "link": ""},
+            {"title": "全球数字经济蓬勃发展，数字化转型加速", "category": "国际形势", "description": "数字经济成为全球经济增长新引擎", "source": "经济参考报", "timestamp": "今日", "link": ""},
+            {"title": "健康生活方式受追捧，健身行业快速增长", "category": "生活", "description": "全民健身意识增强，健康产业迎来发展机遇", "source": "健康时报", "timestamp": "今日", "link": ""},
+            {"title": "新能源汽车销量持续增长，绿色出行成趋势", "category": "民生", "description": "新能源汽车市场火爆，充电设施建设加速", "source": "汽车时报", "timestamp": "今日", "link": ""},
+        ]
+
+    # 更新缓存
+    _more_news_cache = unique_news[:30]
+    _more_news_cache_time = datetime.now()
+
+    return {"success": True, "news": _more_news_cache}
+
+
+async def generate_llm_news(today):
+    """使用 LLM 生成新闻（当 RSS 抓取失败时）"""
+    import re
+
+    system_prompt = """你是一个新闻资讯聚合助手，专门为用户提供当日重点新闻摘要。
+你的任务是根据当前日期，生成当日最重要的新闻资讯，涵盖以下领域：
+1. AI科技 - 人工智能、大模型、互联网技术等
+2. 民生 - 就业、收入、教育、医疗、住房等民生热点
+3. 生活 - 消费、文化、娱乐、体育等生活资讯
+4. 国际形势 - 国际政治、经济、外交等重大事件
+
+请以JSON数组格式返回，每条新闻包含以下字段：
+- title: 新闻标题（简洁有力，25字以内）
+- category: 分类（AI科技/民生/生活/国际形势）
+- description: 简短描述（40字以内）
+- source: 新闻来源（可以是通用来源如：AI前哨、财经观察等）
+- timestamp: 发布时间描述（统一使用"今日"）
+
+请返回6-8条最重要的新闻，确保涵盖至少3个不同领域。
+只返回JSON数组，不要包含任何其他文字说明。"""
+
+    user_prompt = f"请列出{today}今日最值得关注的重点新闻，涵盖AI科技、民生、生活、国际形势等多个领域。"
+
     try:
         news_content = call_llm(system_prompt, user_prompt, temperature=0.3)
-
-        # 检查返回值是否有效
-        if not news_content or not isinstance(news_content, str):
-            logger.warning("[get_today_news] Empty or invalid response from LLM")
-            return {"success": True, "date": today, "news": fallback_news}
-
-        # 尝试解析JSON
-        import re
-        json_match = re.search(r'\[.*\]', news_content, re.DOTALL)
-        if json_match:
-            try:
+        if news_content and isinstance(news_content, str):
+            json_match = re.search(r'\[.*\]', news_content, re.DOTALL)
+            if json_match:
                 news_list = json.loads(json_match.group())
                 if isinstance(news_list, list) and len(news_list) > 0:
-                    return {"success": True, "date": today, "news": news_list}
-                else:
-                    logger.warning("[get_today_news] Empty news list after parsing")
-                    return {"success": True, "date": today, "news": fallback_news}
-            except json.JSONDecodeError as e:
-                logger.warning(f"[get_today_news] JSON decode error: {e}, content: {news_content[:500]}")
-                return {"success": True, "date": today, "news": fallback_news}
-        else:
-            logger.warning(f"[get_today_news] No JSON array found in response: {news_content[:500]}")
-            return {"success": True, "date": today, "news": fallback_news}
+                    return news_list
+    except Exception as e:
+        logger.warning(f"[generate_llm_news] LLM news generation failed: {e}")
 
+    return None
+
+
+# ============================================================
+# 数据库全面接入 - Pydantic 模型
+# ============================================================
+
+class GardenSaveRequest(BaseModel):
+    userId: int
+    seeds: int = 0
+    gardenData: dict = {}
+
+class PetSaveRequest(BaseModel):
+    userId: int
+    petData: Optional[dict] = None
+    petGameData: Optional[dict] = None
+
+class AchievementsSaveRequest(BaseModel):
+    userId: int
+    achievementsData: dict = {}
+
+class StatsSaveRequest(BaseModel):
+    userId: int
+    statsData: dict = {}
+
+class NotificationsSaveRequest(BaseModel):
+    userId: int
+    notificationsData: list = []
+    lastUpdateTime: Optional[int] = None
+
+class SettingsSaveRequest(BaseModel):
+    userId: int
+    settingsData: Optional[dict] = None
+    weatherCity: Optional[str] = None
+    floatingAlarmX: Optional[int] = None
+    floatingAlarmY: Optional[int] = None
+    hubTheme: Optional[str] = None
+
+class CodingStateSaveRequest(BaseModel):
+    userId: int
+    codingStateData: dict = {}
+
+class WeatherSaveRequest(BaseModel):
+    userId: int
+    weatherData: dict = {}
+
+class FocusSaveRequest(BaseModel):
+    userId: int
+    focusData: list = []
+
+class EcoSaveRequest(BaseModel):
+    userId: int
+    ecoData: dict = {}
+
+class ProjectsSaveRequest(BaseModel):
+    userId: int
+    projectsData: list = []
+
+class CalendarEventsSaveRequest(BaseModel):
+    userId: int
+    eventsData: dict = {}
+
+class UserMetaUpdateRequest(BaseModel):
+    userId: int
+    preferredLanguage: Optional[str] = None
+    theme: Optional[str] = None
+    lastAgentId: Optional[str] = None
+
+
+# ============================================================
+# 数据库全面接入 - API 端点
+# ============================================================
+
+# ── 用户状态批量加载 ──
+
+@app.get("/api/user/state/{user_id}")
+def get_user_full_state(user_id: int):
+    """一次性加载用户所有数据"""
+    try:
+        state = database.get_full_user_state(user_id)
+        if state.get('user') is None:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        return {"success": True, **state}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"[get_today_news] Unexpected error: {str(e)}")
-        return {"success": True, "date": today, "news": fallback_news}
+        raise HTTPException(status_code=500, detail=f"加载用户数据失败: {str(e)}")
+
+
+# ── 用户元数据更新（语言、主题、代理） ──
+
+@app.post("/api/user/meta")
+def update_user_meta(request: UserMetaUpdateRequest):
+    try:
+        database.update_user_meta(
+            request.userId,
+            preferred_language=request.preferredLanguage,
+            theme=request.theme,
+            last_agent_id=request.lastAgentId,
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}")
+
+
+# ── 花园 / 植物 ──
+
+@app.post("/api/garden/save")
+def save_garden(request: GardenSaveRequest):
+    try:
+        database.save_user_garden(request.userId, request.seeds, request.gardenData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存花园失败: {str(e)}")
+
+
+@app.get("/api/garden/load/{user_id}")
+def load_garden(user_id: int):
+    try:
+        garden = database.get_user_garden(user_id)
+        if garden:
+            return {"success": True, "seeds": garden.get('seeds', 3), "gardenData": garden.get('garden_data', garden.get('garden_json', {}))}
+        return {"success": True, "seeds": 3, "gardenData": {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载花园失败: {str(e)}")
+
+
+# ── 宠物 ──
+
+@app.post("/api/pet/save")
+def save_pet(request: PetSaveRequest):
+    try:
+        database.save_user_pet(
+            request.userId,
+            pet_data=request.petData,
+            pet_game_data=request.petGameData,
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存宠物失败: {str(e)}")
+
+
+@app.get("/api/pet/load/{user_id}")
+def load_pet(user_id: int):
+    try:
+        pet = database.get_user_pet(user_id)
+        if pet:
+            return {"success": True, "petData": pet.get('pet', {}), "petGameData": pet.get('pet_game', {})}
+        return {"success": True, "petData": {}, "petGameData": {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载宠物失败: {str(e)}")
+
+
+# ── 成就 ──
+
+@app.post("/api/achievements/save")
+def save_achievements(request: AchievementsSaveRequest):
+    try:
+        database.save_user_achievements(request.userId, request.achievementsData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存成就失败: {str(e)}")
+
+
+@app.get("/api/achievements/load/{user_id}")
+def load_achievements(user_id: int):
+    try:
+        achievements = database.get_user_achievements(user_id)
+        return {"success": True, "achievementsData": achievements if achievements else {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载成就失败: {str(e)}")
+
+
+# ── 统计数据 ──
+
+@app.post("/api/stats/save")
+def save_stats(request: StatsSaveRequest):
+    try:
+        database.save_user_stats(request.userId, request.statsData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存统计失败: {str(e)}")
+
+
+@app.get("/api/stats/load/{user_id}")
+def load_stats(user_id: int):
+    try:
+        stats = database.get_user_stats(user_id)
+        return {"success": True, "statsData": stats if stats else {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载统计失败: {str(e)}")
+
+
+# ── 通知 ──
+
+@app.post("/api/notifications/save")
+def save_notifications(request: NotificationsSaveRequest):
+    try:
+        database.save_user_notifications(
+            request.userId,
+            request.notificationsData,
+            last_update_time=request.lastUpdateTime,
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存通知失败: {str(e)}")
+
+
+@app.get("/api/notifications/load/{user_id}")
+def load_notifications(user_id: int):
+    try:
+        data = database.get_user_notifications(user_id)
+        return {"success": True, **data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载通知失败: {str(e)}")
+
+
+# ── 综合设置 ──
+
+@app.post("/api/settings/save")
+def save_settings(request: SettingsSaveRequest):
+    try:
+        database.save_user_settings(
+            request.userId,
+            settings_data=request.settingsData,
+            weather_city=request.weatherCity,
+            floating_alarm_x=request.floatingAlarmX,
+            floating_alarm_y=request.floatingAlarmY,
+            hub_theme=request.hubTheme,
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存设置失败: {str(e)}")
+
+
+@app.get("/api/settings/load/{user_id}")
+def load_settings(user_id: int):
+    try:
+        settings = database.get_user_settings(user_id)
+        return {"success": True, **settings}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载设置失败: {str(e)}")
+
+
+# ── 编程状态 ──
+
+@app.post("/api/coding-state/save")
+def save_coding_state(request: CodingStateSaveRequest):
+    try:
+        database.save_user_coding_state(request.userId, request.codingStateData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存编程状态失败: {str(e)}")
+
+
+@app.get("/api/coding-state/load/{user_id}")
+def load_coding_state(user_id: int):
+    try:
+        state = database.get_user_coding_state(user_id)
+        return {"success": True, "codingStateData": state}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载编程状态失败: {str(e)}")
+
+
+# ── 天气缓存 ──
+
+@app.post("/api/weather/save")
+def save_weather(request: WeatherSaveRequest):
+    try:
+        database.save_user_weather_cache(request.userId, request.weatherData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存天气失败: {str(e)}")
+
+
+@app.get("/api/weather/load/{user_id}")
+def load_weather(user_id: int):
+    try:
+        weather = database.get_user_weather_cache(user_id)
+        return {"success": True, "weatherData": weather}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载天气失败: {str(e)}")
+
+
+@app.delete("/api/weather/clear/{user_id}")
+def clear_weather(user_id: int):
+    try:
+        database.delete_user_weather_cache(user_id)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"清除天气失败: {str(e)}")
+
+
+# ── 专注历史 ──
+
+@app.post("/api/focus/save")
+def save_focus(request: FocusSaveRequest):
+    try:
+        database.save_user_focus_history(request.userId, request.focusData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存专注历史失败: {str(e)}")
+
+
+@app.get("/api/focus/load/{user_id}")
+def load_focus(user_id: int):
+    try:
+        focus = database.get_user_focus_history(user_id)
+        return {"success": True, "focusData": focus if focus else []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载专注历史失败: {str(e)}")
+
+
+# ── 生态数据 ──
+
+@app.post("/api/eco/save")
+def save_eco(request: EcoSaveRequest):
+    try:
+        database.save_user_eco_data(request.userId, request.ecoData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存生态数据失败: {str(e)}")
+
+
+@app.get("/api/eco/load/{user_id}")
+def load_eco(user_id: int):
+    try:
+        eco = database.get_user_eco_data(user_id)
+        return {"success": True, "ecoData": eco if eco else {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载生态数据失败: {str(e)}")
+
+
+# ── 架构项目 ──
+
+@app.post("/api/projects/save")
+def save_projects(request: ProjectsSaveRequest):
+    try:
+        database.save_user_projects(request.userId, request.projectsData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存项目失败: {str(e)}")
+
+
+@app.get("/api/projects/load/{user_id}")
+def load_projects(user_id: int):
+    try:
+        projects = database.get_user_projects(user_id)
+        return {"success": True, "projectsData": projects if projects else []}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载项目失败: {str(e)}")
+
+
+# ── 日历事件 ──
+
+@app.post("/api/calendar-events/save")
+def save_calendar_events(request: CalendarEventsSaveRequest):
+    try:
+        database.save_user_calendar_events(request.userId, request.eventsData)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存日历事件失败: {str(e)}")
+
+
+@app.get("/api/calendar-events/load/{user_id}")
+def load_calendar_events(user_id: int):
+    try:
+        events = database.get_user_calendar_events(user_id)
+        return {"success": True, "eventsData": events if events else {}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载日历事件失败: {str(e)}")
+
+
+# ── 每日路线 ──
+
+class DailyRouteSaveRequest(BaseModel):
+    userId: int
+    routeDate: str
+    tasks: list = []
+    completed: list = []
+
+
+@app.post("/api/daily-route/save-db")
+def save_daily_route_db(request: DailyRouteSaveRequest):
+    """保存每日学习路线到数据库"""
+    try:
+        database.save_daily_route(
+            request.userId, request.routeDate,
+            request.tasks, request.completed,
+        )
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存路线失败: {str(e)}")
+
+
+@app.get("/api/daily-route/load-db/{user_id}/{route_date}")
+def load_daily_route_db(user_id: int, route_date: str):
+    try:
+        route = database.get_daily_route(user_id, route_date)
+        if route:
+            return {"success": True, "route": route}
+        return {"success": True, "route": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载路线失败: {str(e)}")
+
+
+# ── 游客登录 ──
+
+@app.post("/api/login/guest")
+def guest_login():
+    """游客快速登录 - 生成临时账号"""
+    import random
+    import string
+    guest_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    guest_username = f"guest_{guest_id}"
+    guest_password = hashlib.md5(guest_username.encode()).hexdigest()
+    avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={guest_username}&backgroundColor=b6e3f4"
+
+    existing = database.get_user_by_username(guest_username)
+    if existing:
+        user_id = existing.get('id')
+    else:
+        hashed = hash_password(guest_password)
+        user_id = database.create_user(guest_username, hashed, avatar, f"游客_{guest_id[:4]}")
+
+    database.update_last_login(user_id)
+    return {
+        "success": True,
+        "userId": user_id,
+        "username": guest_username,
+        "nickname": f"游客_{guest_id[:4]}",
+        "avatar": avatar,
+        "currentTask": "大数据导论",
+        "hasCompletedAssessment": False,
+        "preferences": get_user_preferences_internal(user_id),
+    }
+
+
+# ============================================================
+# 修改已有 /api/login 端点（增强版：返回完整状态）
+# ============================================================
+
+# 原始 login 端点已存在，这里提供一个增强版 login-v2，
+# 返回完整用户状态，省去前端再请求一次 /api/user/state
+
+class LoginRequestV2(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/login-v2")
+def login_v2(request: LoginRequestV2):
+    """增强版登录：返回完整用户状态 + 认证信息"""
+    if not request.username or not request.password:
+        raise HTTPException(status_code=400, detail="用户名和密码不能为空")
+    user = database.get_user_by_username(request.username)
+    if not user:
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    if user['password'] != hash_password(request.password):
+        raise HTTPException(status_code=401, detail="用户名或密码错误")
+    database.update_last_login(user['id'])
+    avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={request.username}&backgroundColor=b6e3f4"
+    nickname = user['nickname'] or (user['username'] + "同学")
+    profile = database.get_user_profile(user['id'])
+    has_completed_assessment = profile is not None and profile.get('profile_json') is not None
+
+    # 加载完整状态
+    full_state = database.get_full_user_state(user['id'])
+
+    return {
+        "success": True,
+        "userId": user['id'],
+        "username": user['username'],
+        "nickname": nickname,
+        "avatar": avatar,
+        "currentTask": user['current_task'],
+        "hasCompletedAssessment": has_completed_assessment,
+        "preferences": full_state.get('preferences', {}),
+        "garden": full_state.get('garden', {}),
+        "pet": full_state.get('pet', {}),
+        "achievements": full_state.get('achievements', {}),
+        "stats": full_state.get('stats', {}),
+        "notifications": full_state.get('notifications', {}),
+        "settings": full_state.get('settings', {}),
+        "codingState": full_state.get('coding_state'),
+        "weatherCache": full_state.get('weather_cache'),
+        "focusHistory": full_state.get('focus_history', []),
+        "ecoData": full_state.get('eco_data', {}),
+        "projects": full_state.get('projects', []),
+        "calendarEvents": full_state.get('calendar_events', {}),
+        "learningProfile": full_state.get('learning_profile'),
+        "learningPath": full_state.get('learning_path'),
+        "learningRecord": full_state.get('learning_record'),
+    }
 
 
 if __name__ == "__main__":

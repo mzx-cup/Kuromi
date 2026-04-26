@@ -22,7 +22,7 @@ const PLANT_DATA = [
     { id: 'garlic',    name: '🧄 大蒜',     emoji: '🧄', stages: ['🌱','🌿','🧄','🧄'], growTime: 58,  desc: '调味料之王', rarity: 'common' },
     { id: 'potato',    name: '🥔 土豆',     emoji: '🥔', stages: ['🌱','🌿','🥔','🥔'], growTime: 64,  desc: '块茎之王', rarity: 'common' },
     { id: 'sweetpot',  name: '🍠 红薯',     emoji: '🍠', stages: ['🌱','🌿','🍠','🍠'], growTime: 68,  desc: '块根作物', rarity: 'common' },
-    { id: 'radish',    name: '🔴 白萝卜',   emoji: '🔴', stages: ['🌱','🌿','🔴','🔴'], growTime: 55,  desc: '快根蔬菜', rarity: 'common' },
+    { id: 'radish',    name: '⚪ 白萝卜',   emoji: '⚪', stages: ['🌱','🌿','⚪','⚪'], growTime: 55,  desc: '快根蔬菜', rarity: 'common' },
     { id: 'pumpkin',   name: '🎃 南瓜',     emoji: '🎃', stages: ['🌱','🌿','🎃','🎃'], growTime: 80,  desc: '瓜类作物', rarity: 'common' },
     { id: 'melon',     name: '🍈 甜瓜',     emoji: '🍈', stages: ['🌱','🌿','🍈','🍈'], growTime: 76,  desc: '蔓生水果', rarity: 'common' },
     { id: 'watermelon',name: '🍉 西瓜',     emoji: '🍉', stages: ['🌱','🌿','🍉','🍉'], growTime: 82,  desc: '夏季水果', rarity: 'common' },
@@ -122,12 +122,58 @@ const RARITY_BG = {
 const MYSTERY_STAGES = ['🌰', '🌱', '🌿'];
 
 const STAGE_NAMES = ['种子', '萌芽', '成长期', '已成熟'];
+const STAGE_DESCS = [
+    '🌰 种子沉睡中，等待破土...',
+    '🌱 嫩芽破土而出，充满生机！',
+    '🌿 枝叶舒展，茁壮成长中！',
+    '🌟 已完全成熟，快来收获吧！'
+];
 const WATER_PER_ACTION = 20;
 const NUTRIENT_PER_ACTION = 15;
 const WATER_DECAY_RATE = 2;
 const NUTRIENT_DECAY_RATE = 1;
 const WATER_TIME_REDUCTION = 5 * 60;
 const NUTRIENT_TIME_REDUCTION = 15 * 60;
+
+// ============================================================
+// 稀有变体系统：异色 / 炫彩 / 异色炫彩
+// ============================================================
+const VARIANT_TYPES = {
+    NORMAL: 'normal',
+    ALT_COLOR: '异色',
+    SHINY: '炫彩',
+    ALT_SHINY: '异色炫彩'
+};
+
+const VARIANT_CONFIG = {
+    [VARIANT_TYPES.NORMAL]: { label: '普通', suffix: '', glowColor: '', chance: 0.74 },
+    [VARIANT_TYPES.ALT_COLOR]: { label: '异色', suffix: '异', glowColor: '#8b5cf6', chance: 0.15 },
+    [VARIANT_TYPES.SHINY]: { label: '炫彩', suffix: '炫', glowColor: '#f59e0b', chance: 0.08 },
+    [VARIANT_TYPES.ALT_SHINY]: { label: '异色炫彩', suffix: '异炫', glowColor: '#ec4899', chance: 0.03 }
+};
+
+function rollVariantType() {
+    const r = Math.random();
+    let cumulative = 0;
+    // 按 chance 降序遍历，确保异色炫彩(3%)最先被检查
+    const entries = Object.entries(VARIANT_CONFIG).sort((a, b) => b[1].chance - a[1].chance);
+    for (const [key, config] of entries) {
+        cumulative += config.chance;
+        if (r < cumulative) return key;
+    }
+    return VARIANT_TYPES.NORMAL;
+}
+
+function getVariantEmoji(baseEmoji, variantType) {
+    if (variantType === VARIANT_TYPES.NORMAL) return baseEmoji;
+    // 为变体添加不同的后缀标记
+    const suffixMap = {
+        [VARIANT_TYPES.ALT_COLOR]: '🌈',
+        [VARIANT_TYPES.SHINY]: '✨',
+        [VARIANT_TYPES.ALT_SHINY]: '💎'
+    };
+    return suffixMap[variantType] || baseEmoji;
+}
 
 // ============================================================
 // 天气 API 配置 - 使用 Open-Meteo (免费无需 API key)
@@ -218,12 +264,18 @@ async function initWeather() {
 
 async function fetchWeather() {
     const city = localStorage.getItem('starlearn_weather_city');
+    const isManual = localStorage.getItem('starlearn_weather_manual') === '1';
     if (!city) {
-        // 默认使用 IP 定位
         await fetchWeatherByIP();
         return;
     }
-    await fetchWeatherByCity(city);
+    // 如果是手动设置的城市，直接使用；否则先尝试 IP 定位获取更精确位置
+    if (isManual) {
+        await fetchWeatherByCity(city);
+    } else {
+        // 自动定位的场景，优先用 IP 重新定位（可能已移动）
+        await fetchWeatherByIP();
+    }
 }
 
 async function fetchWeatherByIP() {
@@ -254,10 +306,34 @@ async function fetchWeatherByIP() {
                     );
                     if (bdcRes.ok) {
                         const bdcData = await bdcRes.json();
-                        const cityName = bdcData.city || bdcData.locality || bdcData.principalSubdivision;
-                        if (cityName) {
-                            console.log('BigDataCloud reverse geocoded city:', cityName);
+                        // 对于直辖市（principalSubdivision 含"市"），优先使用 principalSubdivision
+                        // 对于省份，优先使用 city，如果没有则组合 locality + principalSubdivision
+                        let cityName = '';
+                        const subdivision = bdcData.principalSubdivision || '';
+                        const isMunicipality = subdivision.includes('市') &&
+                            (subdivision.includes('北京') || subdivision.includes('上海') ||
+                             subdivision.includes('天津') || subdivision.includes('重庆'));
+
+                        if (isMunicipality) {
+                            // 直辖市：使用 locality（区/县）作为 API 查询名，完整名称用于显示
+                            const district = bdcData.locality || bdcData.city || '';
+                            const apiName = district || subdivision;
+                            const displayName = (district && district !== subdivision) ? district + ', ' + subdivision : (district || subdivision);
+                            weatherState.city = displayName; // 显示用完整名称（如"巴南区, 重庆市"）
+                            cityName = apiName; // localStorage / API 用纯净区名
+                        } else {
+                            // 其他省份：优先使用 city，其次组合 locality + 省份
+                            cityName = bdcData.city || '';
+                            if (!cityName && bdcData.locality && subdivision) {
+                                cityName = bdcData.locality + ' ' + subdivision;
+                            } else if (!cityName && subdivision) {
+                                cityName = subdivision;
+                            }
                             weatherState.city = cityName;
+                        }
+
+                        if (cityName) {
+                            console.log('BigDataCloud reverse geocoded city:', cityName, 'display:', weatherState.city);
                             localStorage.setItem('starlearn_weather_city', cityName);
                             await fetchWeatherByCity(cityName);
                             resolve();
@@ -295,14 +371,22 @@ async function fetchWeatherByIP() {
                         if (nominatimRes.ok) {
                             const nominatimData = await nominatimRes.json();
                             if (nominatimData.address) {
-                                const city = nominatimData.address.city ||
-                                           nominatimData.address.town ||
-                                           nominatimData.address.village ||
-                                           nominatimData.address.county ||
-                                           nominatimData.address.state;
-                                if (city) {
-                                    console.log('Nominatim reverse geocoded city:', city);
+                                const addr = nominatimData.address;
+                                // 对于直辖市（state 含"市"），优先使用 state，避免 county（区）不准确
+                                let city = '';
+                                if (addr.state && addr.state.includes('市')) {
+                                    // 直辖市：显示"巴南区, 重庆市"，API 查询只用区名
+                                    const district = addr.city || addr.town || addr.village || addr.county || '';
+                                    const apiName = district || addr.state;
+                                    const displayName = (district && district !== addr.state) ? district + ', ' + addr.state : (district || addr.state);
+                                    weatherState.city = displayName;
+                                    city = apiName;
+                                } else {
+                                    city = addr.city || addr.town || addr.village || addr.county || addr.state;
                                     weatherState.city = city;
+                                }
+                                if (city) {
+                                    console.log('Nominatim reverse geocoded city:', city, 'display:', weatherState.city);
                                     localStorage.setItem('starlearn_weather_city', city);
                                     await fetchWeatherByCity(city);
                                     resolve();
@@ -701,7 +785,7 @@ function toggle保温罩() {
 
     if (weatherState.保温罩) {
         showTip('🔥 保温罩已开启，植物生长速度恢复 80%！');
-        triggerHarvestEffect(true);
+        try { triggerHarvestEffect(true); } catch(e) { /* ignore */ }
     } else {
         showTip('❄️ 保温罩已关闭，植物生长缓慢...');
     }
@@ -734,17 +818,45 @@ function getWeatherGrowthMultiplier() {
         rate = Math.max(rate, 0.8); // 保温罩恢复80%生长
     }
 
-    return rate;
+    // 温度修正：极端温度影响生长
+    const temp = weatherState.temperature;
+    if (temp > 35) {
+        rate *= 0.7; // 酷热，生长缓慢
+    } else if (temp >= 25 && temp <= 35) {
+        rate *= 0.9; // 较热，轻微影响
+    } else if (temp >= 15 && temp < 25) {
+        rate *= 1.1; // 适宜温度，加速生长
+    } else if (temp >= 5 && temp < 15) {
+        rate *= 0.85; // 偏冷
+    } else if (temp < 5) {
+        rate *= 0.6; // 严寒
+    }
+
+    return Math.max(0.1, rate); // 最低不低于 0.1
 }
 
 function getWeatherWaterDecayMultiplier() {
     const config = WEATHER_CONFIG[weatherState.currentWeather];
-    return config ? config.waterDecayRate : 1;
+    let rate = config ? config.waterDecayRate : 1;
+
+    // 温度修正
+    const temp = weatherState.temperature;
+    if (temp > 35) rate *= 2.0;
+    else if (temp >= 15 && temp < 25) rate *= 0.8;
+
+    return rate;
 }
 
 function getWeatherNutrientDecayMultiplier() {
     const config = WEATHER_CONFIG[weatherState.currentWeather];
-    return config ? config.nutrientDecayRate : 1;
+    let rate = config ? config.nutrientDecayRate : 1;
+
+    // 温度修正
+    const temp = weatherState.temperature;
+    if (temp > 35) rate *= 1.5;
+    else if (temp >= 15 && temp < 25) rate *= 0.85;
+
+    return rate;
 }
 
 // ============================================================
@@ -769,16 +881,18 @@ function renderWeatherUI() {
 // 天气设置弹窗
 function openWeatherSettings() {
     const currentCity = localStorage.getItem('starlearn_weather_city') || '';
-    const input = prompt('请输入城市名称（如：北京、上海）:\n留空则使用自动定位', currentCity);
+    const input = prompt('请输入城市名称（如：重庆、北京、巴南区）:\n输入精确区县名称可获得更准确定位\n留空则使用自动定位', currentCity);
     if (input === null) return; // 用户取消
 
     const city = input.trim();
     if (city) {
         localStorage.setItem('starlearn_weather_city', city);
+        localStorage.setItem('starlearn_weather_manual', '1');
         showTip(`🌍 已设置城市为：${city}，正在获取天气...`);
         fetchWeatherByCity(city);
     } else {
         localStorage.removeItem('starlearn_weather_city');
+        localStorage.removeItem('starlearn_weather_manual');
         showTip('🌍 已切换为自动定位，正在获取天气...');
         fetchWeatherByIP();
     }
@@ -884,7 +998,31 @@ function triggerStageUpEffect(slotIndex) {
     }
 
     // 触发收获粒子效果（少量）
-    triggerHarvestEffect(true);
+    try { triggerHarvestEffect(true); } catch(e) { /* ignore */ }
+}
+
+// ============================================================
+// 收获粒子效果
+// ============================================================
+function triggerHarvestEffect(isMini) {
+    const goldRain = document.getElementById('gold-rain');
+    if (!goldRain) return;
+
+    const count = isMini ? 8 : 24;
+    const emojis = isMini ? ['✨', '⭐', '💫'] : ['🪙', '✨', '⭐', '💫', '🌟'];
+
+    for (let i = 0; i < count; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'gold-particle';
+        particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        particle.style.left = (20 + Math.random() * 60) + '%';
+        particle.style.top = (10 + Math.random() * 40) + '%';
+        particle.style.fontSize = (isMini ? 12 : 16) + Math.random() * 8 + 'px';
+        particle.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+        particle.style.animationDelay = Math.random() * 0.5 + 's';
+        goldRain.appendChild(particle);
+        setTimeout(() => particle.remove(), 3000);
+    }
 }
 
 function loadPlantState() {
@@ -942,6 +1080,16 @@ function loadPlantState() {
                 const plant = PLANT_DATA.find(p => p.id === id);
                 return plant ? { id: plant.id, name: plant.name, emoji: plant.emoji, rarity: plant.rarity } : null;
             }).filter(Boolean);
+        } else {
+            // 兼容旧对象格式：补充缺失的 obtainedAt 和 harvestCount 字段
+            plantState.ownedPlants = plantState.ownedPlants.map(entry => {
+                if (entry && typeof entry === 'object' && !entry.hasOwnProperty('harvestCount')) {
+                    // 这些是旧版本获取的植物，无法知道确切获取时间
+                    // 设为当前时间作为估算值
+                    return { ...entry, obtainedAt: Date.now(), harvestCount: 1 };
+                }
+                return entry;
+            });
         }
     }
 }
@@ -960,6 +1108,8 @@ function savePlantState() {
     }
     const toSave = { ...plantState, ...legacy };
     localStorage.setItem('starlearn_plants', JSON.stringify(toSave));
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setPlants(toSave, plantState.seeds);
     // 广播自定义事件，通知其他页面（如个人中心）
     window.dispatchEvent(new CustomEvent('plantStateUpdated', { detail: toSave }));
 }
@@ -970,22 +1120,45 @@ function renderSeedCount() {
     if (navEl) navEl.textContent = plantState.seeds;
     // 同步到 localStorage
     localStorage.setItem('starlearn_seeds', String(plantState.seeds));
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setSeeds(plantState.seeds);
 }
 
 function renderPlantCollection() {
     const grid = document.getElementById('plant-collection');
     if (!grid) return;
+
+    // 构建变体映射
+    const variantMap = {};
+    plantState.ownedPlants.forEach(o => {
+        variantMap[o.id] = o.variants || {};
+    });
+
     grid.innerHTML = PLANT_DATA.map(plant => {
         const ownedEntry = plantState.ownedPlants.find(o => o.id === plant.id);
         const owned = !!ownedEntry;
         const rarityColor = RARITY_COLORS[plant.rarity];
         const rarityBg = RARITY_BG[plant.rarity];
+        const variants = variantMap[plant.id] || {};
+
+        // 检查各变体是否拥有
+        const has异色 = variants[VARIANT_TYPES.ALT_COLOR];
+        const hasShiny = variants[VARIANT_TYPES.SHINY];
+        const hasAltShiny = variants[VARIANT_TYPES.ALT_SHINY];
+
+        // 变体标记徽章
+        let variantBadges = '';
+        if (has异色) variantBadges += `<span class="variant-badge variant-altcolor" title="异色已收集">🌈</span>`;
+        if (hasShiny) variantBadges += `<span class="variant-badge variant-shiny" title="炫彩已收集">✨</span>`;
+        if (hasAltShiny) variantBadges += `<span class="variant-badge variant-alt-shiny" title="异色炫彩已收集">💎</span>`;
+
         return `
-            <div class="plant-collection-item ${owned ? 'owned' : ''}" title="${plant.desc}">
+            <div class="plant-collection-item ${owned ? 'owned' : ''}" onclick="showPlantDetail('${plant.id}')" title="${plant.desc}">
                 <div class="item-rarity-dot" style="background:${rarityColor}"></div>
                 <span class="item-emoji">${plant.emoji}</span>
                 <span class="item-name">${plant.name}</span>
                 ${owned ? `<span class="item-owned-tag" style="color:${rarityColor};background:${rarityBg}">${RARITY_NAMES[plant.rarity]}</span>` : ''}
+                ${variantBadges ? `<div class="variant-badges-row">${variantBadges}</div>` : ''}
             </div>
         `;
     }).join('');
@@ -995,6 +1168,95 @@ function renderPlantCollection() {
     if (ownedCountEl) {
         ownedCountEl.textContent = plantState.ownedPlants.length;
     }
+}
+
+// 显示植物详情弹窗
+function showPlantDetail(plantId) {
+    const plant = PLANT_DATA.find(p => p.id === plantId);
+    if (!plant) return;
+
+    const ownedEntry = plantState.ownedPlants.find(o => o.id === plantId);
+    const owned = !!ownedEntry;
+    const rarityColor = RARITY_COLORS[plant.rarity];
+    const rarityBg = RARITY_BG[plant.rarity];
+
+    // 更新弹窗内容
+    document.getElementById('detail-emoji').textContent = plant.emoji;
+    document.getElementById('detail-name').textContent = plant.name;
+    document.getElementById('detail-desc').textContent = plant.desc;
+
+    const rarityEl = document.getElementById('detail-rarity');
+    rarityEl.textContent = RARITY_NAMES[plant.rarity];
+    rarityEl.style.color = rarityColor;
+    rarityEl.style.background = rarityBg;
+
+    const obtainedEl = document.getElementById('detail-obtained');
+    if (owned) {
+        obtainedEl.textContent = '已获取 ✓';
+        obtainedEl.className = 'detail-stat-value obtained';
+    } else {
+        obtainedEl.textContent = '未获取';
+        obtainedEl.className = 'detail-stat-value not-obtained';
+    }
+
+    const obtainedTimeEl = document.getElementById('detail-obtained-time');
+    if (owned && ownedEntry.obtainedAt) {
+        const date = new Date(ownedEntry.obtainedAt);
+        obtainedTimeEl.textContent = `${date.getFullYear()}/${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+    } else {
+        obtainedTimeEl.textContent = '--';
+    }
+
+    document.getElementById('detail-harvest-count').textContent = owned ? (ownedEntry.harvestCount || 1) : '0';
+    document.getElementById('detail-rarity-level').textContent = RARITY_NAMES[plant.rarity];
+
+    const growTimeEl = document.getElementById('detail-grow-time');
+    const mins = Math.floor(plant.growTime);
+    const hours = Math.floor(mins / 60);
+    const remainingMins = mins % 60;
+    if (hours > 0) {
+        growTimeEl.textContent = `${hours}小时${remainingMins}分钟`;
+    } else {
+        growTimeEl.textContent = `${mins}分钟`;
+    }
+
+    // 更新变体收集进度
+    const variants = (ownedEntry && ownedEntry.variants) || {};
+    const variantTypes = [VARIANT_TYPES.NORMAL, VARIANT_TYPES.ALT_COLOR, VARIANT_TYPES.SHINY, VARIANT_TYPES.ALT_SHINY];
+    variantTypes.forEach(vType => {
+        const el = document.getElementById(`variant-${vType}-status`);
+        if (!el) return;
+        const itemEl = document.getElementById(`variant-${vType}`);
+        const vData = variants[vType];
+        if (vType === VARIANT_TYPES.NORMAL) {
+            // 普通变体：只要拥有该植物就算已获取
+            if (owned) {
+                el.textContent = `✓ ${ownedEntry.harvestCount || 1}次`;
+                el.className = 'variant-status obtained';
+                if (itemEl) itemEl.className = 'variant-item obtained';
+            } else {
+                el.textContent = '未获取';
+                el.className = 'variant-status';
+                if (itemEl) itemEl.className = 'variant-item';
+            }
+        } else if (vData) {
+            el.textContent = `✓ ${vData.count}次`;
+            el.className = 'variant-status obtained';
+            if (itemEl) itemEl.className = 'variant-item obtained';
+        } else {
+            el.textContent = '未获取';
+            el.className = 'variant-status';
+            if (itemEl) itemEl.className = 'variant-item';
+        }
+    });
+
+    // 显示弹窗
+    document.getElementById('plant-detail-modal').classList.add('active');
+}
+
+// 关闭植物详情弹窗
+function closePlantDetail() {
+    document.getElementById('plant-detail-modal').classList.remove('active');
 }
 
 function selectPlant(plantId) {
@@ -1062,6 +1324,8 @@ function plantSeed() {
 
     // 同步到个人中心
     try { localStorage.setItem('starlearn_plants', JSON.stringify(plantState)); } catch(e) {}
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setPlants(plantState, plantState.seeds);
 }
 
 function renderPlantPots() {
@@ -1126,13 +1390,14 @@ function renderCurrentPlant() {
     }
 
     const isMature = slot.stage >= 3;
-    // 成熟前显示神秘 emoji，成熟后显示真实植物
-    const displayEmoji = isMature ? (slot.plantEmoji || MYSTERY_STAGES[3]) : MYSTERY_STAGES[slot.stage];
-    const displayName = isMature ? (slot.plantName || '??? 神秘植物') : '??? 神秘植物';
+    // 各阶段显示不同的神秘 emoji，成熟后显示真实植物
+    const displayEmoji = isMature ? (slot.plantEmoji || '🌟') : MYSTERY_STAGES[slot.stage];
+    const displayName = isMature ? (slot.plantName || '神秘植物') : MYSTERY_STAGES[slot.stage] + ' 神秘植物';
 
     if (display) {
         display.textContent = displayEmoji;
         display.className = `plant-main-emoji stage-${slot.stage}${isMature ? ' mature' : ''}`;
+        display.style.filter = isMature ? 'none' : 'none';
     }
     if (nameEl) nameEl.textContent = displayName;
     if (stageEl) {
@@ -1140,7 +1405,7 @@ function renderCurrentPlant() {
             const rColor = RARITY_COLORS[slot.plantRarity] || '#9CA3AF';
             stageEl.innerHTML = `<span style="color:${rColor};font-weight:800">🌟 ${RARITY_NAMES[slot.plantRarity]} - 已成熟！</span>`;
         } else {
-            stageEl.textContent = `🌿 ${STAGE_NAMES[slot.stage]} - 神秘植物`;
+            stageEl.innerHTML = `<span>${STAGE_DESCS[slot.stage] || '🌱 神秘植物成长中...'}</span>`;
         }
     }
     if (waterEl) waterEl.textContent = Math.round(slot.water) + '%';
@@ -1241,12 +1506,24 @@ function startGrowthTimer() {
             if (!slot || !slot.plantId || slot.stage >= 3) return;
 
             // 应用天气加成的生长时间流逝
-            const adjustedTimeDecay = growthMult;
+            let adjustedTimeDecay = growthMult;
+
+            // 雨天额外加速：每秒额外减少 0.5 秒
+            if (weatherState.currentWeather === WEATHER_TYPES.RAIN) {
+                adjustedTimeDecay += 0.5;
+            }
+
             slot.remainingTime = Math.max(0, slot.remainingTime - adjustedTimeDecay);
 
             // 应用天气加成的水分/营养消耗
             slot.water = Math.max(0, slot.water - (WATER_DECAY_RATE / 3600) * waterDecayMult);
             slot.nutrient = Math.max(0, slot.nutrient - (NUTRIENT_DECAY_RATE / 3600) * nutrientDecayMult);
+
+            // 沙尘暴极低概率造成额外消耗
+            if (weatherState.currentWeather === WEATHER_TYPES.SANDSTORM && Math.random() < 0.01) {
+                slot.water = Math.max(0, slot.water - 2);
+                slot.nutrient = Math.max(0, slot.nutrient - 1);
+            }
 
             const plant = PLANT_DATA.find(p => p.id === slot.plantId);
             if (plant) {
@@ -1278,25 +1555,40 @@ function startGrowthTimer() {
 // 更新天气提示
 function updateWeatherGrowthTip() {
     const config = WEATHER_CONFIG[weatherState.currentWeather];
-    if (!config || config.growthRate === 1) return;
-
     const tipEl = document.getElementById('weather-tip');
     if (!tipEl) return;
 
     let tipText = '';
+    const temp = weatherState.temperature;
+
+    // 温度提示
+    let tempTip = '';
+    if (temp > 35) tempTip = '🌡️ 酷热！生长严重受阻';
+    else if (temp >= 25 && temp <= 35) tempTip = '🌡️ 温度偏高，略有影响';
+    else if (temp >= 15 && temp < 25) tempTip = '🌡️ 温度适宜，生长加速';
+    else if (temp >= 5 && temp < 15) tempTip = '🌡️ 温度偏低，生长减缓';
+    else if (temp < 5 && temp > 0) tempTip = '🌡️ 严寒！生长极度缓慢';
+    else if (temp <= 0) tempTip = '🌡️ 冰点！注意防冻';
+
+    // 天气提示
+    let weatherTip = '';
     if (weatherState.currentWeather === WEATHER_TYPES.CLEAR) {
-        tipText = '☀️ 晴天生长加速，但水分消耗加剧！';
+        weatherTip = '☀️ 晴天，水分消耗快';
     } else if (weatherState.currentWeather === WEATHER_TYPES.RAIN) {
-        tipText = '🌧️ 雨天自动浇水，水分充足！';
+        weatherTip = '🌧️ 雨天生长加速，自动补水';
     } else if (weatherState.currentWeather === WEATHER_TYPES.SNOW) {
         if (weatherState.保温罩) {
-            tipText = '❄️ 雪天！保温罩已开启，生长恢复80%';
+            weatherTip = '❄️ 保温罩已开启';
         } else {
-            tipText = '❄️ 雪天生长极缓，点击"保温罩"保护植物！';
+            weatherTip = '❄️ 点击保温罩保护植物！';
         }
     } else if (weatherState.currentWeather === WEATHER_TYPES.SANDSTORM) {
-        tipText = '🌪️ 沙尘暴！生长减缓40%...';
+        weatherTip = '🌪️ 沙尘暴！有害作物';
+    } else {
+        weatherTip = '⛅ 多云天气，生长平稳';
     }
+
+    tipText = weatherTip + (tempTip ? ' · ' + tempTip : '');
 
     if (tipText) {
         tipEl.textContent = tipText;
@@ -1369,27 +1661,69 @@ function plantAction(action) {
         const rarityColor = RARITY_COLORS[slot.plantRarity] || '#9CA3AF';
 
         // 收获动画 - 先播放粒子
-        triggerHarvestEffect(false);
+        try { triggerHarvestEffect(false); } catch(e) { console.warn('Harvest effect error:', e); }
+
+        // Roll 变体类型
+        const variantType = rollVariantType();
+        const variantConfig = VARIANT_CONFIG[variantType] || VARIANT_CONFIG[VARIANT_TYPES.NORMAL];
+        const variantLabel = variantConfig.label;
+        const variantSuffix = variantConfig.suffix;
+
+        // 变体收获时的特殊提示
+        let variantTip = '';
+        if (variantType !== VARIANT_TYPES.NORMAL) {
+            variantTip = ` ✨ 稀有变体【${variantLabel}】！`;
+            try { triggerHarvestEffect(true); } catch(e) { /* ignore */ }
+        }
+
+        const vEmoji = getVariantEmoji(slot.plantEmoji, variantType);
+        showTip(`🌾 收获成功！稀有度：${rarityName}${variantTip}「${slot.plantName}」已被收录到图鉴！`);
 
         // 右上角推送通知，揭晓真实植物和稀有度
+        const notifTitle = variantType !== VARIANT_TYPES.NORMAL
+            ? `🌾 ${vEmoji} ${slot.plantName} [${variantLabel}]`
+            : `🌾 ${slot.plantEmoji} ${slot.plantName}`;
+        const notifContent = variantType !== VARIANT_TYPES.NORMAL
+            ? `稀有度：${rarityName} ✨ 变体：${variantLabel}！`
+            : `稀有度：${rarityName} ✨ 恭喜发现隐藏的植物！`;
         if (window.starlearnNotifications && typeof window.starlearnNotifications.showNotification === 'function') {
             window.starlearnNotifications.showNotification({
-                title: `🌾 收获 ${slot.plantEmoji} ${slot.plantName}`,
-                content: `稀有度：${rarityName} ✨ 恭喜发现隐藏的植物！`,
+                title: notifTitle,
+                content: notifContent,
                 actionLabel: '查看林场',
                 actionUrl: '/html/plant.html',
                 type: 'achievement'
             });
         }
-        showTip(`🌾 收获成功！稀有度：${rarityName} ✨「${slot.plantName}」已被收录到图鉴！`);
 
-        // 记录到已拥有（去重）
-        const ownedEntry = { id: slot.plantId, name: slot.plantName, emoji: slot.plantEmoji, rarity: slot.plantRarity };
+        // 记录到已拥有（去重），携带变体信息
         const existingIdx = plantState.ownedPlants.findIndex(o => o.id === slot.plantId);
         if (existingIdx >= 0) {
-            plantState.ownedPlants[existingIdx] = ownedEntry;
+            // 已拥有：更新信息，增加收获次数
+            plantState.ownedPlants[existingIdx].harvestCount = (plantState.ownedPlants[existingIdx].harvestCount || 1) + 1;
+            // 记录变体
+            if (!plantState.ownedPlants[existingIdx].variants) {
+                plantState.ownedPlants[existingIdx].variants = {};
+            }
+            const vKey = variantType;
+            if (!plantState.ownedPlants[existingIdx].variants[vKey]) {
+                plantState.ownedPlants[existingIdx].variants[vKey] = { count: 1, firstObtained: Date.now() };
+            } else {
+                plantState.ownedPlants[existingIdx].variants[vKey].count += 1;
+            }
         } else {
-            plantState.ownedPlants.push(ownedEntry);
+            // 新获取
+            plantState.ownedPlants.push({
+                id: slot.plantId,
+                name: slot.plantName,
+                emoji: slot.plantEmoji,
+                rarity: slot.plantRarity,
+                obtainedAt: Date.now(),
+                harvestCount: 1,
+                variants: {
+                    [variantType]: { count: 1, firstObtained: Date.now() }
+                }
+            });
         }
 
         // 清空槽位（带延迟动画效果）
@@ -1480,3 +1814,10 @@ function generateParticles() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ESC 键关闭详情弹窗
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closePlantDetail();
+    }
+});

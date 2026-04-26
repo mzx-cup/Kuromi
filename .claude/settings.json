@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "claude-hud@claude-hud": true,
+    "superpowers@claude-plugins-official": true
+  }
+}

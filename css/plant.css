@@ -1243,6 +1243,140 @@ body.weather-rain .plant-in-pot {
     margin-top: 3px;
 }
 
+/* 植物详情弹窗 */
+.plant-detail-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.plant-detail-modal.active {
+    display: flex;
+}
+
+.plant-detail-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.plant-detail-card {
+    position: relative;
+    background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+    border-radius: 20px;
+    padding: 28px 24px;
+    max-width: 340px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: modalPopIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalPopIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.plant-detail-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.plant-detail-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+.plant-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.plant-detail-emoji {
+    font-size: 56px;
+    line-height: 1;
+}
+
+.plant-detail-title {
+    flex: 1;
+}
+
+.plant-detail-name {
+    font-size: 22px;
+    font-weight: 800;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.plant-detail-rarity {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.plant-detail-desc {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 18px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
+}
+
+.plant-detail-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+}
+
+.detail-stat-label {
+    font-size: 13px;
+    color: #555;
+    font-weight: 600;
+}
+
+.detail-stat-value {
+    font-size: 13px;
+    color: #333;
+    font-weight: 700;
+}
+
+.detail-stat-value.obtained { color: #43A047; }
+.detail-stat-value.not-obtained { color: #999; }
+
 .falling-particles {
     position: fixed;
     top: 0;
@@ -2545,4 +2679,232 @@ input, textarea, select {
     .plant-stat-row-bar {
         height: 8px;
     }
+}
+
+/* ============================================================
+   稀有变体系统样式
+   ============================================================ */
+.variant-badges-row {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    margin-top: 3px;
+}
+
+.variant-badge {
+    font-size: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+
+.variant-badge.variant-altcolor {
+    filter: hue-rotate(180deg);
+}
+
+.variant-badge.variant-shiny {
+    animation: sparklePop 2s ease-in-out infinite;
+}
+
+.variant-badge.variant-alt-shiny {
+    animation: sparklePop 1.5s ease-in-out infinite;
+    filter: hue-rotate(180deg) brightness(1.2);
+}
+
+/* 详情弹窗 - 变体收集 */
+.plant-detail-variants {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.variants-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.variants-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.variant-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.03);
+    border: 1.5px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.variant-item.obtained {
+    background: rgba(76, 175, 80, 0.08);
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.variant-item .variant-icon {
+    font-size: 22px;
+}
+
+.variant-item .variant-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.variant-item .variant-status {
+    font-size: 9px;
+    color: var(--text-muted);
+}
+
+.variant-item .variant-status.obtained {
+    color: #43A047;
+    font-weight: 600;
+}
+
+/* 详情弹窗增强 */
+.plant-detail-card {
+    max-width: 380px;
+}
+
+.plant-detail-stats {
+    background: rgba(0,0,0,0.02);
+    border-radius: 12px;
+    padding: 4px 0;
+}
+
+.detail-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+
+.detail-stat-row:last-child {
+    border-bottom: none;
+}
+
+.detail-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.detail-stat-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.detail-stat-value.obtained {
+    color: #43A047;
+}
+
+.detail-stat-value.not-obtained {
+    color: #e53935;
+}
+
+/* 金雨粒子 */
+.gold-particle {
+    position: absolute;
+    font-size: 18px;
+    pointer-events: none;
+    z-index: 1001;
+    animation: goldRain 2.2s ease-out forwards;
+}
+
+@keyframes goldRain {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-30px) rotate(180deg) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-80px) rotate(360deg) scale(0.5);
+    }
+}
+
+/* 天气 widget 增强 */
+.weather-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(8px);
+    transition: all 0.3s ease;
+}
+
+.weather-display:hover {
+    background: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+}
+
+.weather-icon {
+    font-size: 16px;
+    animation: weatherIconPulse 2.5s ease-in-out infinite;
+}
+
+.weather-temp {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.weather-city {
+    font-size: 11px;
+    color: var(--text-secondary);
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 闪光动画 */
+@keyframes sparklePop {
+    0%, 100% { opacity: 0.7; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+/* 主显示区稀有度辉光 */
+.plant-main-emoji.mature {
+    animation: matureGlow 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.4));
+}
+
+/* 提示框增强 */
+.plant-tip-box {
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--btn-nutrient);
+}
+
+.plant-tip-box:hover {
+    background: rgba(0,0,0,0.06);
+    transform: translateX(4px);
+}
+
+/* 天气提示框 */
+.weather-tip {
+    text-align: center;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    animation: weatherTipFade 0.4s ease-out;
 }

@@ -1183,6 +1183,8 @@ const DynamicThemeManager = {
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('starlearn_theme', theme);
+    // 同步到服务端数据库
+    if (window.StarData) StarData.setTheme(theme);
     document.querySelectorAll('.theme-option').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.theme === theme);
     });

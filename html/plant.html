@@ -43,7 +43,7 @@
                     <span class="seed-icon">🌰</span>
                     <span id="seed-count-nav">0</span>
                 </div>
-                <div class="weather-display" id="weather-widget">
+                <div class="weather-display" id="weather-widget" onclick="openWeatherSettings()" style="cursor:pointer;" title="点击更改城市">
                     <span class="weather-icon" id="weather-icon">⛅</span>
                     <span class="weather-temp" id="weather-temp">--°C</span>
                     <span class="weather-city" id="weather-city">定位中</span>
@@ -153,12 +153,79 @@
 
     </div>
 
+    <!-- 植物详情弹窗 -->
+    <div class="plant-detail-modal" id="plant-detail-modal">
+        <div class="plant-detail-overlay" onclick="closePlantDetail()"></div>
+        <div class="plant-detail-card">
+            <button class="plant-detail-close" onclick="closePlantDetail()">✕</button>
+            <div class="plant-detail-header">
+                <span class="plant-detail-emoji" id="detail-emoji">🌱</span>
+                <div class="plant-detail-title">
+                    <div class="plant-detail-name" id="detail-name">神秘植物</div>
+                    <div class="plant-detail-rarity" id="detail-rarity">普通</div>
+                </div>
+            </div>
+            <div class="plant-detail-desc" id="detail-desc">一种神秘的植物</div>
+            <div class="plant-detail-stats">
+                <div class="detail-stat-row">
+                    <span class="detail-stat-label">📦 获取状态</span>
+                    <span class="detail-stat-value" id="detail-obtained">未获取</span>
+                </div>
+                <div class="detail-stat-row">
+                    <span class="detail-stat-label">📅 首次获取</span>
+                    <span class="detail-stat-value" id="detail-obtained-time">--</span>
+                </div>
+                <div class="detail-stat-row">
+                    <span class="detail-stat-label">🌾 收获次数</span>
+                    <span class="detail-stat-value" id="detail-harvest-count">0</span>
+                </div>
+                <div class="detail-stat-row">
+                    <span class="detail-stat-label">⭐ 稀有度</span>
+                    <span class="detail-stat-value" id="detail-rarity-level">普通</span>
+                </div>
+                <div class="detail-stat-row">
+                    <span class="detail-stat-label">⏱️ 生长时间</span>
+                    <span class="detail-stat-value" id="detail-grow-time">--</span>
+                </div>
+            </div>
+            <div class="plant-detail-variants">
+                <div class="variants-title">🎨 收集进度</div>
+                <div class="variants-grid">
+                    <div class="variant-item" id="variant-normal">
+                        <span class="variant-icon">🌱</span>
+                        <span class="variant-label">普通</span>
+                        <span class="variant-status" id="variant-normal-status">未获取</span>
+                    </div>
+                    <div class="variant-item" id="variant-异色">
+                        <span class="variant-icon">🌈</span>
+                        <span class="variant-label">异色</span>
+                        <span class="variant-status" id="variant-异色-status">未获取</span>
+                    </div>
+                    <div class="variant-item" id="variant-炫彩">
+                        <span class="variant-icon">✨</span>
+                        <span class="variant-label">炫彩</span>
+                        <span class="variant-status" id="variant-炫彩-status">未获取</span>
+                    </div>
+                    <div class="variant-item" id="variant-异色炫彩">
+                        <span class="variant-icon">💎</span>
+                        <span class="variant-label">异色炫彩</span>
+                        <span class="variant-status" id="variant-异色炫彩-status">未获取</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 金币雨容器 -->
     <div class="gold-rain-container" id="gold-rain"></div>
 
+    <script src="/js/data-layer.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/achievements-data.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/achievement-manager.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/plant.js"></script>
     <script>
         // 返回按钮逻辑（与个人中心一致）

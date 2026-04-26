@@ -64,6 +64,8 @@ async function handleRegister() {
             isNewUser: true
         };
         localStorage.setItem('starlearn_user', JSON.stringify(user));
+        // 初始化 StarData（新用户没有服务端数据）
+        if (window.StarData) StarData.init(data.userId);
 
         setTimeout(() => {
             window.location.href = '/assessment.html';

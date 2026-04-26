@@ -312,87 +312,33 @@
 
                     <div class="route-content">
                         <!-- 左侧：启动引擎按钮 -->
-                        <div class="launch-engine">
+                        <div class="launch-engine" id="launch-engine">
                             <button class="launch-btn" id="launch-btn">
                                 <span class="launch-btn-glow"></span>
                                 <span class="launch-btn-content">
                                     <span class="launch-icon">🚀</span>
-                                    <span class="launch-text">开启今日航线</span>
+                                    <span class="launch-text" id="launch-btn-text">开启今日航线</span>
                                 </span>
                             </button>
-                            <p class="route-tip">点击启动今日学习旅程</p>
+                            <p class="route-tip" id="route-tip">点击启动今日学习旅程</p>
+                            <div class="route-loading" id="route-loading" style="display:none;">
+                                <div class="loading-spinner"></div>
+                                <span>AI 正在分析学习画像...</span>
+                            </div>
                         </div>
 
                         <!-- 右侧：节点化飞行路线 -->
-                        <div class="flight-path">
-                            <div class="path-timeline">
-                                <!-- 节点1：已完成 -->
-                                <div class="path-node completed" data-task="英语单词">
-                                    <div class="node-connector before"></div>
-                                    <div class="node-circle">
-                                        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                    <div class="node-info">
-                                        <span class="node-time">15m</span>
-                                        <span class="node-title">英语单词</span>
-                                    </div>
-                                </div>
-
-                                <!-- 连接线 -->
-                                <div class="path-line"></div>
-
-                                <!-- 节点2：已完成 -->
-                                <div class="path-node completed" data-task="高数错题">
-                                    <div class="node-circle">
-                                        <svg class="node-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                        </svg>
-                                    </div>
-                                    <div class="node-info">
-                                        <span class="node-time">45m</span>
-                                        <span class="node-title">高数错题</span>
-                                    </div>
-                                </div>
-
-                                <!-- 连接线 -->
-                                <div class="path-line"></div>
-
-                                <!-- 节点3：当前进行中 -->
-                                <div class="path-node current" data-task="喂养星宝">
-                                    <div class="node-connector before"></div>
-                                    <div class="node-circle">
-                                        <span class="node-emoji">🌟</span>
-                                    </div>
-                                    <div class="node-info">
-                                        <span class="node-time">10m</span>
-                                        <span class="node-title">喂养星宝</span>
-                                    </div>
-                                    <div class="current-badge">当前</div>
-                                </div>
-
-                                <!-- 连接线 -->
-                                <div class="path-line"></div>
-
-                                <!-- 节点4：未开始 -->
-                                <div class="path-node pending" data-task="算法挑战">
-                                    <div class="node-circle">
-                                        <span class="node-emoji">⚡</span>
-                                    </div>
-                                    <div class="node-info">
-                                        <span class="node-time">30m</span>
-                                        <span class="node-title">算法挑战</span>
-                                    </div>
-                                </div>
+                        <div class="flight-path" id="flight-path">
+                            <div class="path-timeline" id="path-timeline">
+                                <!-- 任务节点将由 JavaScript 动态渲染 -->
                             </div>
 
                             <!-- 进度指示器 -->
-                            <div class="progress-indicator">
+                            <div class="progress-indicator" id="route-progress-indicator" style="display:none;">
                                 <div class="progress-track">
-                                    <div class="progress-fill" id="route-progress" style="width: 40%;"></div>
+                                    <div class="progress-fill" id="route-progress" style="width: 0%;"></div>
                                 </div>
-                                <span class="progress-text"><span id="completed-count">2</span>/4 完成</span>
+                                <span class="progress-text"><span id="completed-count">0</span>/<span id="total-count">0</span> 完成</span>
                             </div>
                         </div>
                     </div>
@@ -1265,9 +1211,40 @@
         </main>
     </div>
 
+    <script src="/js/data-layer.js"></script>
     <script src="/js/notifications.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/achievements-data.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/achievement-manager.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/hub.js"></script>
+
+    <!-- 更多资讯弹窗 -->
+    <div class="news-modal" id="news-modal">
+        <div class="news-modal-overlay" id="news-modal-overlay"></div>
+        <div class="news-modal-card">
+            <div class="news-modal-header">
+                <h2 class="news-modal-title">
+                    <span class="news-modal-icon">📰</span>
+                    <span>资讯中心</span>
+                </h2>
+                <div class="news-modal-tabs" id="news-modal-tabs">
+                    <button class="news-tab active" data-category="all">全部</button>
+                    <button class="news-tab" data-category="AI科技">AI科技</button>
+                    <button class="news-tab" data-category="民生">民生</button>
+                    <button class="news-tab" data-category="生活">生活</button>
+                    <button class="news-tab" data-category="国际形势">国际形势</button>
+                </div>
+                <button class="news-modal-close" id="news-modal-close">✕</button>
+            </div>
+            <div class="news-modal-body" id="news-modal-body">
+                <div class="news-modal-loading">
+                    <div class="loading-spinner"></div>
+                    <span>正在加载资讯...</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

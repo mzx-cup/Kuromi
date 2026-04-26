@@ -7,7 +7,15 @@
       "Bash(curl -s -X POST http://127.0.0.1:8000/api/register -H \"Content-Type: application/json\" -d '{\"username\":\"testuser123\",\"password\":\"test1234\"}')",
       "Bash(curl -s -X POST http://127.0.0.1:8000/api/login -H \"Content-Type: application/json\" -d '{\"username\":\"testuser123\",\"password\":\"test1234\"}')",
       "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
-      "Bash(curl -s http://localhost:8000/api/news/today)"
+      "Bash(curl -s http://localhost:8000/api/news/today)",
+      "Bash(pip list *)",
+      "Bash(pip install *)",
+      "Bash(pip show *)",
+      "Read(//c/Users/22821/PycharmProjects/Hachiware/**)",
+      "Bash(python -c \"import main\")",
+      "Bash(python -m py_compile /c/Users/22821/PycharmProjects/Hachiware/星识/main.py)",
+      "Bash(python *)",
+      "Bash(del xingshi.db)"
     ]
   }
 }

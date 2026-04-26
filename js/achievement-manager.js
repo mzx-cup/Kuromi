@@ -22,6 +22,9 @@
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(achievements));
 
+            // 同步到服务端数据库
+            if (window.StarData) StarData.setAchievements(achievements);
+
             // 触发成就解锁事件
             const achievement = window.ACHIEVEMENTS?.find(a => a.id === achievementId);
             if (achievement) {
@@ -139,6 +142,21 @@
         });
     }
 
+    // 同步所有统计到服务端
+    function syncStatsToServer() {
+        if (!window.StarData) return;
+        const stats = {};
+        // 收集所有 starlearn_stats_* 键值
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('starlearn_stats_')) {
+                const statName = key.replace('starlearn_stats_', '');
+                stats[statName] = parseInt(localStorage.getItem(key) || '0');
+            }
+        }
+        StarData.setStats(stats);
+    }
+
     // 增加统计
     function incrementStat(key, amount = 1) {
         const storageKey = `starlearn_stats_${key}`;
@@ -146,6 +164,10 @@
         const newValue = current + amount;
         localStorage.setItem(storageKey, newValue.toString());
         checkAndUnlock(key, newValue);
+        // 延迟同步到服务端（避免频繁保存）
+        if (window.StarData) {
+            StarData.incrementStat(key, amount);
+        }
         return newValue;
     }
 
