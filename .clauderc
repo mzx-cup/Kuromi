@@ -1,0 +1,5 @@
+[Skills Autopilot Protocol]
+1.强制前置：任何涉及代码重构或复杂逻辑的请求，必须先激活 sequential-thinking 进行三轮深度推演。
+2. 多重交叉：>- 涉及前端 UI（特别是 LinkXi的 macOS适配）时，自动结合 frontend-design 规范。
+•涉及后端大数据逻辑或模块解耦时，自动调用 senior-architect 指令集。
+3. 默认准则：即使需求看起来简单，也请优先检查已安装的 engineering-advanced-skills 库，确保输出符合工业级标准，严禁输出"学生作业级"代码。

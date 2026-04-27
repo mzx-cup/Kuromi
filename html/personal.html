@@ -322,6 +322,9 @@
                                 <div class="eco-card-icon text-xl">🐾</div>
                                 <div class="eco-card-title text-base font-bold text-purple-600 dark:text-purple-400">星友陪伴</div>
                                 <div class="eco-card-badge ml-auto px-2 py-0.5 text-[10px] font-semibold text-white rounded-full bg-emerald-500" id="pet-online-badge">在线</div>
+                                <div class="eco-card-link ml-auto w-7 h-7 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/50 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 active:scale-95 transition-colors duration-200 cursor-pointer" onclick="event.stopPropagation();goToPetGame()">
+                                    <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400"></i>
+                                </div>
                             </div>
                         </div>
                         <div class="eco-pet-display flex items-center gap-3 mb-3">
@@ -502,35 +505,27 @@
                     <div class="pref-card">
                         <div class="pref-header">
                             <div class="pref-icon blue">
-                                <i data-lucide="brain"></i>
+                                <i data-lucide="bell-ring"></i>
                             </div>
                             <div>
-                                <div class="pref-title">认知风格</div>
-                                <div class="pref-subtitle">选择学习方式</div>
+                                <div class="pref-title">系统通知</div>
+                                <div class="pref-subtitle">消息推送</div>
                             </div>
                         </div>
-                        <select id="cognitive-style" class="pref-select" onchange="savePreferences()">
-                            <option value="pragmatic">实践型</option>
-                            <option value="visual">视觉型</option>
-                            <option value="textual">文字型</option>
-                        </select>
+                        <div class="toggle active" id="notification-toggle" onclick="toggleSwitch(this, 'notification')"></div>
                     </div>
 
                     <div class="pref-card">
                         <div class="pref-header">
-                            <div class="pref-icon amber">
-                                <i data-lucide="gauge"></i>
+                            <div class="pref-icon violet">
+                                <i data-lucide="shield"></i>
                             </div>
                             <div>
-                                <div class="pref-title">难度偏好</div>
-                                <div class="pref-subtitle">挑战级别</div>
+                                <div class="pref-title">隐私保护</div>
+                                <div class="pref-subtitle">数据安全</div>
                             </div>
                         </div>
-                        <select id="difficulty-pref" class="pref-select" onchange="savePreferences()">
-                            <option value="basic">基础</option>
-                            <option value="medium">中等</option>
-                            <option value="advanced">高级</option>
-                        </select>
+                        <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
                     </div>
 
                     <div class="pref-card">
@@ -562,27 +557,35 @@
                     <div class="pref-card">
                         <div class="pref-header">
                             <div class="pref-icon blue">
-                                <i data-lucide="bell-ring"></i>
+                                <i data-lucide="brain"></i>
                             </div>
                             <div>
-                                <div class="pref-title">系统通知</div>
-                                <div class="pref-subtitle">消息推送</div>
+                                <div class="pref-title">认知风格</div>
+                                <div class="pref-subtitle">选择学习方式</div>
                             </div>
                         </div>
-                        <div class="toggle active" id="notification-toggle" onclick="toggleSwitch(this, 'notification')"></div>
+                        <select id="cognitive-style" class="pref-select" onchange="savePreferences()">
+                            <option value="pragmatic">实践型</option>
+                            <option value="visual">视觉型</option>
+                            <option value="textual">文字型</option>
+                        </select>
                     </div>
 
                     <div class="pref-card">
                         <div class="pref-header">
-                            <div class="pref-icon violet">
-                                <i data-lucide="shield"></i>
+                            <div class="pref-icon amber">
+                                <i data-lucide="gauge"></i>
                             </div>
                             <div>
-                                <div class="pref-title">隐私保护</div>
-                                <div class="pref-subtitle">数据安全</div>
+                                <div class="pref-title">难度偏好</div>
+                                <div class="pref-subtitle">挑战级别</div>
                             </div>
                         </div>
-                        <div class="toggle" id="privacy-toggle" onclick="toggleSwitch(this, 'privacy')"></div>
+                        <select id="difficulty-pref" class="pref-select" onchange="savePreferences()">
+                            <option value="basic">基础</option>
+                            <option value="medium">中等</option>
+                            <option value="advanced">高级</option>
+                        </select>
                     </div>
 
                     <div class="pref-card">
@@ -624,6 +627,10 @@
                                     <span class="time-tag-icon"><i data-lucide="moon"></i></span>
                                     21:00
                                 </button>
+                                <button class="time-tag" onclick="openCustomTimePicker()">
+                                    <span class="time-tag-icon"><i data-lucide="clock-edit"></i></span>
+                                    自定义
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -642,42 +649,6 @@
                 </div>
 
                 <div class="avatar-grid" id="avatar-grid"></div>
-            </section>
-
-            <section class="personal-section">
-                <div class="section-header">
-                    <div class="section-header-icon">
-                        <i data-lucide="bar-chart-3"></i>
-                    </div>
-                    <div>
-                        <div class="section-title">学习统计</div>
-                        <div class="section-subtitle">追踪你的学习进度</div>
-                    </div>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i data-lucide="flame"></i>
-                        </div>
-                        <div class="stat-value" id="stat-interactions">0</div>
-                        <div class="stat-label">交互次数</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i data-lucide="clock"></i>
-                        </div>
-                        <div class="stat-value" id="stat-time">0</div>
-                        <div class="stat-label">学习分钟</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">
-                            <i data-lucide="check-circle"></i>
-                        </div>
-                        <div class="stat-value" id="stat-tasks">0</div>
-                        <div class="stat-label">完成任务</div>
-                    </div>
-                </div>
             </section>
 
             <section class="personal-section">
@@ -716,70 +687,6 @@
 
         </main>
     </div>
-
-    <div id="floating-alarm" class="floating-alarm">
-        <div class="floating-alarm-header" id="floating-alarm-header">
-            <div class="floating-alarm-title">
-                <i data-lucide="alarm-clock"></i>
-                学习提醒
-            </div>
-            <div class="floating-alarm-time-mini">
-                <i data-lucide="clock"></i>
-                <span id="floating-alarm-time-mini-display">14:00</span>
-            </div>
-            <div class="floating-alarm-controls">
-                <button class="floating-alarm-btn minimize" onclick="toggleMinimizeAlarm()">
-                    <i data-lucide="minus"></i>
-                </button>
-                <button class="floating-alarm-btn maximize hidden" onclick="toggleMinimizeAlarm()">
-                    <i data-lucide="maximize-2"></i>
-                </button>
-                <button class="floating-alarm-btn" onclick="closeFloatingAlarm()">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-        </div>
-        <div class="floating-alarm-content">
-            <div class="floating-alarm-time">
-                <input type="number" id="alarm-hour" class="floating-alarm-time-input" min="1" max="12" value="14" onchange="updateAlarmDisplay()">
-                <span class="floating-alarm-time-separator">:</span>
-                <input type="number" id="alarm-minute" class="floating-alarm-time-input" min="0" max="59" value="00" onchange="updateAlarmDisplay()">
-                <div class="floating-alarm-time-ampm">
-                    <button class="floating-alarm-ampm-btn" id="alarm-am-btn" onclick="setAlarmAmPm('AM')">AM</button>
-                    <button class="floating-alarm-ampm-btn active" id="alarm-pm-btn" onclick="setAlarmAmPm('PM')">PM</button>
-                </div>
-            </div>
-
-            <div class="floating-alarm-quick-set">
-                <button class="floating-alarm-quick-btn" onclick="setQuickTime(30)">30分钟后</button>
-                <button class="floating-alarm-quick-btn" onclick="setQuickTime(60)">1小时后</button>
-                <button class="floating-alarm-quick-btn" onclick="setQuickTime(120)">2小时后</button>
-                <button class="floating-alarm-quick-btn" onclick="setQuickTime(180)">3小时后</button>
-            </div>
-
-            <div class="floating-alarm-repeat">
-                <div class="floating-alarm-repeat-label">重复</div>
-                <div class="floating-alarm-repeat-options">
-                    <button class="floating-alarm-repeat-btn active" data-day="0" onclick="toggleDay(this, 0)">日</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="1" onclick="toggleDay(this, 1)">一</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="2" onclick="toggleDay(this, 2)">二</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="3" onclick="toggleDay(this, 3)">三</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="4" onclick="toggleDay(this, 4)">四</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="5" onclick="toggleDay(this, 5)">五</button>
-                    <button class="floating-alarm-repeat-btn active" data-day="6" onclick="toggleDay(this, 6)">六</button>
-                </div>
-            </div>
-
-            <div class="floating-alarm-actions">
-                <button class="floating-alarm-action cancel" onclick="closeFloatingAlarm()">取消</button>
-                <button class="floating-alarm-action save" onclick="saveFloatingAlarm()">保存提醒</button>
-            </div>
-        </div>
-    </div>
-
-    <button id="floating-alarm-trigger" class="floating-alarm-trigger" onclick="toggleAlarmPopup()">
-        <i data-lucide="alarm-clock"></i>
-    </button>
 
     <!-- Time Picker Popup Modal -->
     <div id="time-picker-modal" class="crop-modal">

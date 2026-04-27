@@ -1406,6 +1406,798 @@ def save_user_eco_data(user_id, eco_data_dict):
 
 
 # ============================================================
+# 全息知识生态 - SM2 间隔重复算法
+# ============================================================
+
+def calculate_sm2(quality, easiness_factor, interval, repetitions):
+    """
+    SM-2 间隔重复算法计算
+
+    参数:
+        quality: 回答质量 (0-5)
+            0 - 完全忘记
+            1 - 错误但看到答案后想起
+            2 - 错误但感觉接近
+            3 - 正确但困难
+            4 - 正确且稍慢
+            5 - 正确且立即想起
+        easiness_factor: 简易度因子 (初始2.5, 最小1.3)
+        interval: 当前间隔天数
+        repetitions: 连续正确次数
+
+    返回:
+        (new_interval, new_ef, new_repetitions, next_review_date)
+    """
+    import datetime
+
+    # 计算新的简易度因子
+    # EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
+    new_ef = easiness_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+    new_ef = max(1.3, new_ef)  # 最小1.3
+
+    if quality < 3:
+        # 回答不正确，重新开始
+        new_repetitions = 0
+        new_interval = 1
+    else:
+        new_repetitions = repetitions + 1
+        if new_repetitions == 1:
+            new_interval = 1
+        elif new_repetitions == 2:
+            new_interval = 6
+        else:
+            new_interval = round(interval * new_ef)
+
+    # 计算下次复习日期
+    next_review = datetime.datetime.now() + datetime.timedelta(days=new_interval)
+
+    return new_interval, new_ef, new_repetitions, next_review.isoformat()
+
+
+def calculate_comprehensive_score(node_data):
+    """
+    计算知识节点的综合评分 (0-100)
+
+    综合评分 = 正确率分 (50%) + 遗忘曲线分 (30%) + 学习深度分 (20%)
+
+    参数:
+        node_data: 包含 sm2_data 和 stats 的节点数据
+
+    返回:
+        综合评分 (0-100)
+    """
+    import datetime
+
+    sm2 = node_data.get('sm2_data', {})
+    stats = node_data.get('stats', {})
+
+    # 1. 正确率分 (50%)
+    total = stats.get('total_reviews', 0)
+    correct = stats.get('correct_count', 0)
+    if total > 0:
+        accuracy_score = (correct / total) * 50
+    else:
+        accuracy_score = 25  # 没有记录时给个中间值
+
+    # 2. 遗忘曲线分 (30%) - 距离下次复习越远越健康
+    next_review_str = sm2.get('next_review')
+    if next_review_str:
+        try:
+            next_review = datetime.datetime.fromisoformat(next_review_str.replace('Z', '+00:00'))
+            now = datetime.datetime.now()
+            days_until = (next_review - now).total_seconds() / 86400
+
+            if days_until < 0:
+                # 已过期 - 危险
+                forgetting_curve_score = max(0, 30 + days_until * 5)
+            elif days_until < 1:
+                # 24小时内 - 警告
+                forgetting_curve_score = 15 + days_until * 15
+            elif days_until < 3:
+                # 1-3天 - 正常
+                forgetting_curve_score = 15 + (days_until - 1) * 7.5
+            else:
+                # 3天以上 - 优秀
+                forgetting_curve_score = 30
+        except:
+            forgetting_curve_score = 15
+    else:
+        forgetting_curve_score = 15  # 没有复习记录
+
+    # 3. 学习深度分 (20%) - 基于复习次数和EF
+    reps = sm2.get('repetitions', 0)
+    ef = sm2.get('easiness_factor', 2.5)
+    depth_score = min(20, reps * 2 + (ef - 1.3) * 5)
+
+    total_score = accuracy_score + forgetting_curve_score + depth_score
+    return round(min(100, max(0, total_score)))
+
+
+def get_node_status(node_data):
+    """
+    根据综合评分和复习时间判断节点状态
+
+    返回: 'healthy', 'warning', 'danger'
+    """
+    import datetime
+
+    score = calculate_comprehensive_score(node_data)
+    sm2 = node_data.get('sm2_data', {})
+    next_review_str = sm2.get('next_review')
+
+    # 超过复习时间 → danger
+    if next_review_str:
+        try:
+            next_review = datetime.datetime.fromisoformat(next_review_str.replace('Z', '+00:00'))
+            now = datetime.datetime.now()
+            if next_review < now:
+                return 'danger'
+        except:
+            pass
+
+    # 综合评分判断
+    if score >= 70:
+        return 'healthy'
+    elif score >= 40:
+        return 'warning'
+    else:
+        return 'danger'
+
+
+def calculate_urgency_score(node_data):
+    """
+    基于艾宾浩斯遗忘曲线计算机器的紧迫性评分 (0-100)
+
+    紧迫性评分 = 距离复习时间越近，评分越高
+    - 已过期: 100 (最高紧迫)
+    - 1天内: 95-99
+    - 1-3天: 70-94
+    - 3-7天: 30-69
+    - 7天以上: 0-29
+
+    参数:
+        node_data: 包含 sm2_data 的节点数据
+
+    返回:
+        urgency_score (0-100), time_to_review (人类可读), hours_until (小时数)
+    """
+    import datetime
+
+    sm2 = node_data.get('sm2_data', {})
+    next_review_str = sm2.get('next_review')
+
+    if not next_review_str:
+        # 没有复习计划，默认为最不紧迫
+        return 0, '未安排', float('inf')
+
+    try:
+        next_review = datetime.datetime.fromisoformat(next_review_str.replace('Z', '+00:00'))
+        # 如果是带时区的datetime，转换为本地时间
+        if next_review.tzinfo is not None:
+            next_review = next_review.replace(tzinfo=None)
+
+        now = datetime.datetime.now()
+        hours_until = (next_review - now).total_seconds() / 3600
+
+        if hours_until < 0:
+            # 已过期 - 最高紧迫
+            urgency = 100
+            time_str = '已过期'
+        elif hours_until < 1:
+            # 不到1小时
+            urgency = 98
+            time_str = '不到1小时'
+        elif hours_until < 24:
+            # 1-24小时
+            urgency = 95 - (hours_until / 24) * 5  # 95-90
+            time_str = f'{int(hours_until)}小时'
+        elif hours_until < 72:
+            # 1-3天
+            urgency = 90 - ((hours_until - 24) / 48) * 20  # 90-70
+            time_str = f'{int(hours_until / 24)}天'
+        elif hours_until < 168:
+            # 3-7天
+            urgency = 70 - ((hours_until - 72) / 96) * 40  # 70-30
+            time_str = f'{int(hours_until / 24)}天'
+        else:
+            # 7天以上
+            urgency = max(0, 30 - ((hours_until - 168) / 672) * 30)  # 30-0
+            days = hours_until / 24
+            if days < 14:
+                time_str = f'{int(days)}天'
+            elif days < 30:
+                time_str = f'{int(days / 7)}周'
+            else:
+                time_str = f'{int(days / 30)}月'
+
+        return round(urgency), time_str, hours_until
+
+    except Exception as e:
+        print(f"计算紧迫性评分失败: {e}")
+        return 0, '未知', float('inf')
+
+
+def get_knowledge_layout(user_id):
+    """
+    获取知识节点的遗忘曲线布局数据
+
+    返回每个节点的:
+    - position: 基于紧迫性的 X 坐标 (0-100)
+    - Y坐标: 基于知识层级
+    - urgency: 紧迫性评分
+    - time_to_review: 距离下次复习的人类可读时间
+    - connection_lines: 需要绘制的连接线
+
+    返回:
+        {
+            'nodes': [...布局后的节点列表...],
+            'tree_connections': [...父子连接线...],
+            'ai_connections': [...AI分析的相关连接线...]
+        }
+    """
+    import json as json_mod
+
+    nodes = get_active_knowledge_nodes(user_id)
+
+    if not nodes:
+        return {'nodes': [], 'tree_connections': [], 'ai_connections': []}
+
+    # 计算每个节点的位置和紧迫性
+    level_y_map = {'root': 10, 'branch': 35, 'leaf': 60}
+
+    layout_nodes = []
+    tree_connections = []
+    ai_connections = []
+
+    for node in nodes:
+        urgency, time_str, hours = calculate_urgency_score(node)
+        level = node.get('level', 'leaf')
+        y = level_y_map.get(level, 60)
+
+        # 构建布局节点
+        layout_node = {
+            **node,
+            'urgency': urgency,
+            'urgency_x': urgency,  # 0-100, 左边=紧迫
+            'position_y': y,
+            'time_to_review': time_str,
+            'hours_until_review': hours,
+            'level_y': y
+        }
+        layout_nodes.append(layout_node)
+
+        # 父子连接线
+        parent_id = node.get('parent_id')
+        if parent_id:
+            tree_connections.append({
+                'source': node.get('node_id'),
+                'target': parent_id,
+                'type': 'tree'
+            })
+
+        # AI分析的相关连接线
+        related_str = node.get('related_node_ids', '[]')
+        if isinstance(related_str, str):
+            try:
+                related_list = json_mod.loads(related_str)
+            except:
+                related_list = []
+        else:
+            related_list = related_str
+
+        for rel in related_list:
+            if rel.get('type') in ('prerequisite', 'related'):
+                ai_connections.append({
+                    'source': node.get('node_id'),
+                    'target': rel.get('node_id'),
+                    'type': rel.get('type'),
+                    'strength': rel.get('strength', 0.5)
+                })
+
+    return {
+        'nodes': layout_nodes,
+        'tree_connections': tree_connections,
+        'ai_connections': ai_connections
+    }
+
+
+def init_knowledge_tables():
+    """初始化知识节点相关的数据表"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    # SQLite
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS knowledge_nodes (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            node_id TEXT NOT NULL UNIQUE,
+                            name TEXT NOT NULL,
+                            parent_id TEXT,
+                            level TEXT DEFAULT 'leaf',
+                            icon TEXT DEFAULT '📚',
+                            subject TEXT DEFAULT '',
+                            is_active INTEGER DEFAULT 0,
+                            first_studied_at TEXT,
+                            last_studied_at TEXT,
+                            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                            sm2_data_json TEXT,
+                            stats_json TEXT,
+                            position_x REAL DEFAULT 0,
+                            position_y REAL DEFAULT 0,
+                            related_node_ids TEXT DEFAULT '[]',
+                            ai_analyzed_at TEXT
+                        )
+                    """)
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS review_records (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            record_id TEXT NOT NULL UNIQUE,
+                            user_id INTEGER NOT NULL,
+                            node_id TEXT NOT NULL,
+                            review_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                            quality INTEGER DEFAULT 0,
+                            response_time REAL DEFAULT 0,
+                            sm2_result_json TEXT
+                        )
+                    """)
+                else:
+                    # MySQL
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS knowledge_nodes (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_id INT NOT NULL,
+                            node_id VARCHAR(255) NOT NULL UNIQUE,
+                            name VARCHAR(255) NOT NULL,
+                            parent_id VARCHAR(255),
+                            level VARCHAR(50) DEFAULT 'leaf',
+                            icon VARCHAR(50) DEFAULT '📚',
+                            subject VARCHAR(100) DEFAULT '',
+                            is_active TINYINT DEFAULT 0,
+                            first_studied_at TIMESTAMP NULL,
+                            last_studied_at TIMESTAMP NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            sm2_data_json TEXT,
+                            stats_json TEXT,
+                            position_x REAL DEFAULT 0,
+                            position_y REAL DEFAULT 0,
+                            related_node_ids TEXT DEFAULT '[]',
+                            ai_analyzed_at TIMESTAMP NULL,
+                            INDEX idx_user_id (user_id)
+                        )
+                    """)
+                    cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS review_records (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            record_id VARCHAR(255) NOT NULL UNIQUE,
+                            user_id INT NOT NULL,
+                            node_id VARCHAR(255) NOT NULL,
+                            review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            quality INT DEFAULT 0,
+                            response_time REAL DEFAULT 0,
+                            sm2_result_json TEXT,
+                            INDEX idx_user_node (user_id, node_id)
+                        )
+                    """)
+                conn.commit()
+                cursor.close()
+            except Exception as e:
+                print(f"初始化知识节点表失败: {e}")
+
+
+def get_knowledge_nodes(user_id):
+    """获取用户的所有知识节点"""
+    init_knowledge_tables()
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM knowledge_nodes WHERE user_id = ?",
+                        (user_id,))
+                else:
+                    cursor.execute(
+                        "SELECT * FROM knowledge_nodes WHERE user_id = %s",
+                        (user_id,))
+                rows = cursor.fetchall()
+                cursor.close()
+
+                nodes = []
+                for row in rows:
+                    node = dict(row) if isinstance(row, dict) else {
+                        'id': row[0], 'user_id': row[1], 'node_id': row[2],
+                        'name': row[3], 'parent_id': row[4], 'level': row[5],
+                        'icon': row[6], 'subject': row[7], 'is_active': row[8],
+                        'first_studied_at': row[9], 'last_studied_at': row[10],
+                        'created_at': row[11], 'sm2_data_json': row[12],
+                        'stats_json': row[13], 'position_x': row[14], 'position_y': row[15],
+                        'related_node_ids': row[16] if len(row) > 16 else '[]',
+                        'ai_analyzed_at': row[17] if len(row) > 17 else None
+                    }
+                    # 解析 JSON 字段
+                    import json as json_mod
+                    if isinstance(node.get('sm2_data_json'), str):
+                        node['sm2_data'] = json_mod.loads(node['sm2_data_json'])
+                    else:
+                        node['sm2_data'] = node.get('sm2_data_json', {})
+                    if isinstance(node.get('stats_json'), str):
+                        node['stats'] = json_mod.loads(node['stats_json'])
+                    else:
+                        node['stats'] = node.get('stats_json', {})
+                    # 解析 related_node_ids
+                    related_str = node.get('related_node_ids', '[]')
+                    if isinstance(related_str, str):
+                        try:
+                            node['related_node_ids'] = json_mod.loads(related_str)
+                        except:
+                            node['related_node_ids'] = []
+                    else:
+                        node['related_node_ids'] = related_str if related_str else []
+                    node['status'] = get_node_status(node)
+                    nodes.append(node)
+                return nodes
+            except Exception as e:
+                print(f"获取知识节点失败: {e}")
+
+        # JSON fallback
+        storage = load_local_storage()
+        for u in storage.get('user_eco_data', []):
+            if u.get('user_id') == user_id:
+                return u.get('knowledge_nodes', [])
+        return []
+
+
+def get_active_knowledge_nodes(user_id):
+    """
+    获取用户已激活的知识节点（真正在学习的课程）
+    根据学习记录中的课程主题过滤
+    """
+    import datetime
+
+    # 获取用户的学习记录
+    learning_record = get_learning_record(user_id)
+    if not learning_record:
+        return []
+
+    # 从学习记录中获取课程信息
+    profile_json = learning_record.get('profile_json', '{}')
+    try:
+        import json as json_mod
+        profile = json_mod.loads(profile_json) if isinstance(profile_json, str) else profile_json
+    except:
+        profile = {}
+
+    # 获取用户正在学习的课程主题
+    studied_subjects = profile.get('subjects', [])
+    if not studied_subjects:
+        # 如果没有明确的主题，使用 difficulty_level 作为筛选
+        difficulty = learning_record.get('difficulty_level', '')
+        if difficulty:
+            studied_subjects = [difficulty]
+
+    # 获取所有知识节点
+    all_nodes = get_knowledge_nodes(user_id)
+
+    # 过滤：只返回激活的且属于已学课程的节点
+    active_nodes = []
+    for node in all_nodes:
+        is_active = node.get('is_active', False)
+        node_subject = node.get('subject', '')
+
+        # 检查节点是否激活且属于已学课程
+        if is_active and (not studied_subjects or node_subject in studied_subjects or not node_subject):
+            active_nodes.append(node)
+
+    return active_nodes
+
+
+def activate_nodes_by_subjects(user_id, subjects):
+    """
+    根据课程主题激活知识节点
+    """
+    import json as json_mod
+
+    if not subjects:
+        return
+
+    all_nodes = get_knowledge_nodes(user_id)
+    now = datetime.datetime.now().isoformat()
+
+    for node in all_nodes:
+        if node.get('subject') in subjects:
+            node['is_active'] = True
+            if not node.get('first_studied_at'):
+                node['first_studied_at'] = now
+            node['last_studied_at'] = now
+            save_knowledge_node(user_id, node)
+
+
+def save_knowledge_node(user_id, node_data):
+    """保存知识节点（创建或更新）"""
+    import json as json_mod
+
+    node_id = node_data.get('node_id')
+    sm2_data = node_data.get('sm2_data', {})
+    stats = node_data.get('stats', {})
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                sm2_json = json_mod.dumps(sm2_data, ensure_ascii=False)
+                stats_json = json_mod.dumps(stats, ensure_ascii=False)
+
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO knowledge_nodes
+                        (user_id, node_id, name, parent_id, level, icon, sm2_data_json, stats_json, position_x, position_y)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(node_id) DO UPDATE SET
+                            name=excluded.name, parent_id=excluded.parent_id, level=excluded.level,
+                            icon=excluded.icon, sm2_data_json=excluded.sm2_data_json,
+                            stats_json=excluded.stats_json, position_x=excluded.position_x, position_y=excluded.position_y
+                    """, (
+                        user_id, node_id, node_data.get('name', ''), node_data.get('parent_id'),
+                        node_data.get('level', 'leaf'), node_data.get('icon', '📚'),
+                        sm2_json, stats_json,
+                        node_data.get('position_x', 0), node_data.get('position_y', 0)
+                    ))
+                else:
+                    cursor.execute("""
+                        INSERT INTO knowledge_nodes
+                        (user_id, node_id, name, parent_id, level, icon, sm2_data_json, stats_json, position_x, position_y)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            name=VALUES(name), parent_id=VALUES(parent_id), level=VALUES(level),
+                            icon=VALUES(icon), sm2_data_json=VALUES(sm2_data_json),
+                            stats_json=VALUES(stats_json), position_x=VALUES(position_x), position_y=VALUES(position_y)
+                    """, (
+                        user_id, node_id, node_data.get('name', ''), node_data.get('parent_id'),
+                        node_data.get('level', 'leaf'), node_data.get('icon', '📚'),
+                        sm2_json, stats_json,
+                        node_data.get('position_x', 0), node_data.get('position_y', 0)
+                    ))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存知识节点失败: {e}")
+                return False
+
+        # JSON fallback
+        storage = load_local_storage()
+        for u in storage.get('user_eco_data', []):
+            if u.get('user_id') == user_id:
+                nodes = u.get('knowledge_nodes', [])
+                for i, n in enumerate(nodes):
+                    if n.get('node_id') == node_id:
+                        nodes[i] = node_data
+                        u['knowledge_nodes'] = nodes
+                        save_local_storage(storage)
+                        return True
+                nodes.append(node_data)
+                u['knowledge_nodes'] = nodes
+                save_local_storage(storage)
+                return True
+        return False
+
+
+def update_node_relations(user_id, node_id, related_list, analyzed_at=None):
+    """更新节点的关系数据
+
+    参数:
+        user_id: 用户ID
+        node_id: 节点ID
+        related_list: 关系列表 [{'node_id': 'xxx', 'type': 'prerequisite', 'strength': 0.9}, ...]
+        analyzed_at: 分析时间（ISO格式字符串）
+    """
+    import json as json_mod
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                related_json = json_mod.dumps(related_list, ensure_ascii=False)
+
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        UPDATE knowledge_nodes
+                        SET related_node_ids = ?, ai_analyzed_at = ?
+                        WHERE user_id = ? AND node_id = ?
+                    """, (related_json, analyzed_at, user_id, node_id))
+                else:
+                    cursor.execute("""
+                        UPDATE knowledge_nodes
+                        SET related_node_ids = %s, ai_analyzed_at = %s
+                        WHERE user_id = %s AND node_id = %s
+                    """, (related_json, analyzed_at, user_id, node_id))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"更新节点关系失败: {e}")
+                return False
+
+        # JSON fallback - 暂时不支持
+        return False
+
+
+def add_review_record(user_id, node_id, quality, response_time=0):
+    """添加复习记录并更新节点的SM2数据"""
+    import datetime
+    import json as json_mod
+
+    # 获取当前节点数据
+    nodes = get_knowledge_nodes(user_id)
+    node = None
+    for n in nodes:
+        if n.get('node_id') == node_id:
+            node = n
+            break
+
+    if not node:
+        return None
+
+    sm2_data = node.get('sm2_data', {
+        'easiness_factor': 2.5,
+        'interval': 1,
+        'repetitions': 0,
+        'next_review': datetime.datetime.now().isoformat(),
+        'last_review': None
+    })
+    stats = node.get('stats', {'total_reviews': 0, 'correct_count': 0, 'avg_response_time': 0})
+
+    # 计算新的SM2值
+    new_interval, new_ef, new_reps, next_review = calculate_sm2(
+        quality,
+        sm2_data.get('easiness_factor', 2.5),
+        sm2_data.get('interval', 1),
+        sm2_data.get('repetitions', 0)
+    )
+
+    # 更新SM2数据
+    sm2_data['easiness_factor'] = new_ef
+    sm2_data['interval'] = new_interval
+    sm2_data['repetitions'] = new_reps
+    sm2_data['next_review'] = next_review
+    sm2_data['last_review'] = datetime.datetime.now().isoformat()
+
+    # 更新统计
+    stats['total_reviews'] = stats.get('total_reviews', 0) + 1
+    if quality >= 3:
+        stats['correct_count'] = stats.get('correct_count', 0) + 1
+    current_avg = stats.get('avg_response_time', 0)
+    total = stats['total_reviews']
+    stats['avg_response_time'] = (current_avg * (total - 1) + response_time) / total
+
+    # 保存更新后的节点
+    node['sm2_data'] = sm2_data
+    node['stats'] = stats
+    save_knowledge_node(user_id, node)
+
+    # 创建复习记录
+    record_id = f"{node_id}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    sm2_result = {
+        'new_interval': new_interval,
+        'new_ef': new_ef,
+        'new_reps': new_reps
+    }
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO review_records (record_id, user_id, node_id, quality, response_time, sm2_result_json)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (record_id, user_id, node_id, quality, response_time, json_mod.dumps(sm2_result)))
+                else:
+                    cursor.execute("""
+                        INSERT INTO review_records (record_id, user_id, node_id, quality, response_time, sm2_result_json)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (record_id, user_id, node_id, quality, response_time, json_mod.dumps(sm2_result)))
+                conn.commit()
+                cursor.close()
+            except Exception as e:
+                print(f"保存复习记录失败: {e}")
+
+    return {
+        'record_id': record_id,
+        'node_id': node_id,
+        'quality': quality,
+        'sm2_result': sm2_result,
+        'next_review': next_review
+    }
+
+
+def get_review_records(user_id, node_id=None, limit=50):
+    """获取复习记录"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if node_id:
+                    if _is_sqlite(conn):
+                        cursor.execute(
+                            "SELECT * FROM review_records WHERE user_id = ? AND node_id = ? ORDER BY review_date DESC LIMIT ?",
+                            (user_id, node_id, limit))
+                    else:
+                        cursor.execute(
+                            "SELECT * FROM review_records WHERE user_id = %s AND node_id = %s ORDER BY review_date DESC LIMIT %s",
+                            (user_id, node_id, limit))
+                else:
+                    if _is_sqlite(conn):
+                        cursor.execute(
+                            "SELECT * FROM review_records WHERE user_id = ? ORDER BY review_date DESC LIMIT ?",
+                            (user_id, limit))
+                    else:
+                        cursor.execute(
+                            "SELECT * FROM review_records WHERE user_id = %s ORDER BY review_date DESC LIMIT %s",
+                            (user_id, limit))
+                rows = cursor.fetchall()
+                cursor.close()
+
+                records = []
+                for row in rows:
+                    r = dict(row) if isinstance(row, dict) else {
+                        'id': row[0], 'record_id': row[1], 'user_id': row[2],
+                        'node_id': row[3], 'review_date': row[4], 'quality': row[5],
+                        'response_time': row[6], 'sm2_result_json': row[7]
+                    }
+                    if isinstance(r.get('sm2_result_json'), str):
+                        import json as json_mod
+                        r['sm2_result'] = json_mod.loads(r['sm2_result_json'])
+                    records.append(r)
+                return records
+            except Exception as e:
+                print(f"获取复习记录失败: {e}")
+
+        return []
+
+
+def get_pending_reviews(user_id):
+    """获取需要复习的节点列表"""
+    import datetime
+
+    nodes = get_knowledge_nodes(user_id)
+    pending = []
+
+    for node in nodes:
+        sm2 = node.get('sm2_data', {})
+        next_review_str = sm2.get('next_review')
+        if next_review_str:
+            try:
+                next_review = datetime.datetime.fromisoformat(next_review_str.replace('Z', '+00:00'))
+                now = datetime.datetime.now()
+                if next_review <= now:
+                    pending.append({
+                        'node_id': node.get('node_id'),
+                        'name': node.get('name'),
+                        'icon': node.get('icon', '📚'),
+                        'next_review': next_review_str,
+                        'status': 'overdue'
+                    })
+                elif (next_review - now).total_seconds() < 86400:  # 24小时内
+                    pending.append({
+                        'node_id': node.get('node_id'),
+                        'name': node.get('name'),
+                        'icon': node.get('icon', '📚'),
+                        'next_review': next_review_str,
+                        'status': 'due_soon'
+                    })
+            except:
+                pass
+
+    return pending
+
+
+# ============================================================
 # 架构项目
 # ============================================================
 

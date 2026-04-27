@@ -5,7 +5,7 @@ function createDataParticles() {
     const bg = document.getElementById('hub-bg');
     if (!bg) return;
 
-    const particleCount = 30;
+    const particleCount = 60;
 
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
@@ -592,24 +592,392 @@ function animateLineChart() {
 // ============================================
 // 全息知识生态 - 树状金字塔布局
 // ============================================
-function initHoloEcosystem() {
+
+// 知识节点缓存
+let knowledgeNodesCache = [];
+
+// SM2 算法前端计算
+function calculateSM2(quality, easinessFactor, interval, repetitions) {
+    let newEF = easinessFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    newEF = Math.max(1.3, newEF);
+
+    let newInterval, newReps;
+    if (quality < 3) {
+        newReps = 0;
+        newInterval = 1;
+    } else {
+        newReps = repetitions + 1;
+        if (newReps === 1) newInterval = 1;
+        else if (newReps === 2) newInterval = 6;
+        else newInterval = Math.round(interval * newEF);
+    }
+
+    const nextReview = new Date(Date.now() + newInterval * 86400000);
+    return {
+        newInterval,
+        newEF,
+        newReps,
+        nextReview: nextReview.toISOString()
+    };
+}
+
+// 计算综合评分
+function calculateComprehensiveScore(nodeData) {
+    const sm2 = nodeData.sm2_data || {};
+    const stats = nodeData.stats || {};
+
+    // 1. 正确率分 (50%)
+    const total = stats.total_reviews || 0;
+    const correct = stats.correct_count || 0;
+    const accuracyScore = total > 0 ? (correct / total) * 50 : 25;
+
+    // 2. 遗忘曲线分 (30%)
+    let forgettingCurveScore = 15;
+    const nextReviewStr = sm2.next_review;
+    if (nextReviewStr) {
+        const nextReview = new Date(nextReviewStr);
+        const now = new Date();
+        const daysUntil = (nextReview - now) / 86400000;
+
+        if (daysUntil < 0) {
+            forgettingCurveScore = Math.max(0, 30 + daysUntil * 5);
+        } else if (daysUntil < 1) {
+            forgettingCurveScore = 15 + daysUntil * 15;
+        } else if (daysUntil < 3) {
+            forgettingCurveScore = 15 + (daysUntil - 1) * 7.5;
+        } else {
+            forgettingCurveScore = 30;
+        }
+    }
+
+    // 3. 学习深度分 (20%)
+    const reps = sm2.repetitions || 0;
+    const ef = sm2.easiness_factor || 2.5;
+    const depthScore = Math.min(20, reps * 2 + (ef - 1.3) * 5);
+
+    return Math.round(Math.min(100, Math.max(0, accuracyScore + forgettingCurveScore + depthScore)));
+}
+
+// 获取节点状态（5种状态）
+function getNodeDynamicStatus(nodeData) {
+    const sm2 = nodeData.sm2_data || {};
+    const stats = nodeData.stats || {};
+    const isActive = nodeData.is_active;
+    const firstStudied = nodeData.first_studied_at;
+    const repetitions = sm2.repetitions || 0;
+
+    // 未开始学习：没有首次学习时间且没有复习记录
+    if (!firstStudied && repetitions === 0) {
+        return 'not-started';
+    }
+
+    // 学习中：开始学习了但还没有SM2复习记录
+    if (repetitions === 0 && firstStudied) {
+        return 'in-progress';
+    }
+
+    // 检查是否过期
+    const nextReviewStr = sm2.next_review;
+    if (nextReviewStr) {
+        const nextReview = new Date(nextReviewStr);
+        if (nextReview < new Date()) {
+            return 'danger';
+        }
+    }
+
+    // 计算综合评分
+    const score = calculateComprehensiveScore(nodeData);
+    if (score >= 70) return 'healthy';
+    if (score >= 40) return 'warning';
+    return 'danger';
+}
+
+// 获取状态文本
+function getStatusText(status) {
+    switch(status) {
+        case 'not-started': return '未开始';
+        case 'in-progress': return '学习中';
+        case 'healthy': return '掌握良好';
+        case 'warning': return '需复习';
+        case 'danger': return '濒临遗忘';
+        default: return '未知';
+    }
+}
+
+// 从API加载知识节点
+async function loadKnowledgeNodes(activeOnly = false) {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) {
+        console.warn('[Holo] No user ID found');
+        return [];
+    }
+
+    try {
+        const url = `/api/knowledge/nodes/${user.id}${activeOnly ? '?active=true' : ''}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success) {
+            knowledgeNodesCache = data.nodes || [];
+            return knowledgeNodesCache;
+        }
+    } catch (e) {
+        console.error('[Holo] Failed to load knowledge nodes:', e);
+    }
+    return [];
+}
+
+// 提交复习结果
+async function submitReview(nodeId, quality, responseTime = 0) {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) return null;
+
+    try {
+        const response = await fetch('/api/knowledge/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: user.id,
+                node_id: nodeId,
+                quality: quality,
+                response_time: responseTime
+            })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // 刷新节点数据
+            await loadKnowledgeNodes();
+            updateHoloEcosystemUI();
+        }
+        return data.result;
+    } catch (e) {
+        console.error('[Holo] Failed to submit review:', e);
+        return null;
+    }
+}
+
+// 获取待复习节点
+async function getPendingReviews() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user.id) return [];
+
+    try {
+        const response = await fetch(`/api/knowledge/pending/${user.id}`);
+        const data = await response.json();
+        if (data.success) {
+            return data.pending || [];
+        }
+    } catch (e) {
+        console.error('[Holo] Failed to get pending reviews:', e);
+    }
+    return [];
+}
+
+// 更新全息生态UI
+function updateHoloEcosystemUI() {
+    const nodesContainer = document.getElementById('holoNodes');
+    if (!nodesContainer) return;
+
+    const nodeElements = nodesContainer.querySelectorAll('.holo-node');
+    nodeElements.forEach(nodeEl => {
+        const nodeId = nodeEl.dataset.id;
+        const nodeData = knowledgeNodesCache.find(n => n.node_id === nodeId);
+
+        if (nodeData) {
+            const status = getNodeDynamicStatus(nodeData);
+            nodeEl.dataset.status = status;
+
+            // 更新状态显示
+            const statusEl = nodeEl.querySelector('.node-status');
+            if (statusEl) {
+                statusEl.textContent = getStatusText(status);
+            }
+
+            // 更新节点样式
+            nodeEl.classList.remove('healthy', 'warning', 'danger');
+            nodeEl.classList.add(status);
+        }
+    });
+
+    // 更新统计栏
+    updateHoloStats();
+    drawTreeConnections();
+}
+
+// 更新统计栏
+function updateHoloStats() {
+    const healthyCount = knowledgeNodesCache.filter(n => getNodeDynamicStatus(n) === 'healthy').length;
+    const warningCount = knowledgeNodesCache.filter(n => getNodeDynamicStatus(n) === 'warning').length;
+    const dangerCount = knowledgeNodesCache.filter(n => getNodeDynamicStatus(n) === 'danger').length;
+
+    const total = knowledgeNodesCache.length || 1;
+    const healthPercent = Math.round((healthyCount / total) * 100);
+
+    const statsBar = document.querySelector('.holo-stats-bar');
+    if (statsBar) {
+        const healthyEl = statsBar.querySelector('.stat-item:nth-child(1) .stat-value');
+        const warningEl = statsBar.querySelector('.stat-item:nth-child(2) .stat-value');
+        const dangerEl = statsBar.querySelector('.stat-item:nth-child(3) .stat-value');
+        const percentEl = statsBar.querySelector('.stat-item:nth-child(4) .stat-value');
+
+        if (healthyEl) healthyEl.textContent = healthyCount;
+        if (warningEl) warningEl.textContent = warningCount;
+        if (dangerEl) dangerEl.textContent = dangerCount;
+        if (percentEl) percentEl.textContent = healthPercent + '%';
+    }
+}
+
+// 初始化全息知识生态
+async function initHoloEcosystem() {
     const container = document.getElementById('holoTree');
     const nodesContainer = document.getElementById('holoNodes');
 
     if (!container || !nodesContainer) return;
 
+    // 先从API加载节点数据
+    await loadKnowledgeNodes();
+
     const nodes = nodesContainer.querySelectorAll('.holo-node');
     nodes.forEach((node, index) => {
         node.style.animationDelay = (0.1 + index * 0.1) + 's';
+
+        // 为每个节点添加点击事件
+        node.addEventListener('click', () => {
+            const nodeId = node.dataset.id;
+            showReviewModal(nodeId);
+        });
     });
 
-    drawTreeConnections();
+    // 根据加载的数据更新UI，使用遗忘曲线布局
+    if (knowledgeNodesCache.length > 0) {
+        updateHoloEcosystemUI();
+        // 使用新的遗忘曲线布局代替原来的树状金字塔布局
+        setTimeout(() => {
+            drawEbbinghausLayout();
+        }, 100);
+    } else {
+        drawTreeConnections();
+    }
 
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(drawTreeConnections, 100);
+        resizeTimeout = setTimeout(drawEbbinghausLayout, 100);
     });
+}
+
+// 显示复习弹窗
+function showReviewModal(nodeId) {
+    const nodeData = knowledgeNodesCache.find(n => n.node_id === nodeId);
+    if (!nodeData) return;
+
+    // 创建或显示复习弹窗
+    let modal = document.getElementById('review-modal');
+    if (!modal) {
+        modal = createReviewModal();
+        document.body.appendChild(modal);
+    }
+
+    // 更新弹窗内容
+    const titleEl = modal.querySelector('.review-modal-title');
+    const infoEl = modal.querySelector('.review-modal-info');
+    const statsEl = modal.querySelector('.review-modal-stats');
+
+    if (titleEl) titleEl.textContent = nodeData.name;
+    if (infoEl) {
+        const sm2 = nodeData.sm2_data || {};
+        const nextReview = sm2.next_review ? new Date(sm2.next_review).toLocaleDateString() : '未设置';
+        infoEl.innerHTML = `
+            <p>下次复习: ${nextReview}</p>
+            <p>简易度: ${(sm2.easiness_factor || 2.5).toFixed(2)}</p>
+            <p>间隔: ${sm2.interval || 1} 天</p>
+        `;
+    }
+    if (statsEl) {
+        const stats = nodeData.stats || {};
+        const total = stats.total_reviews || 0;
+        const correct = stats.correct_count || 0;
+        const rate = total > 0 ? Math.round((correct / total) * 100) : 0;
+        statsEl.innerHTML = `
+            <p>复习次数: ${total}</p>
+            <p>正确率: ${rate}%</p>
+        `;
+    }
+
+    modal.dataset.nodeId = nodeId;
+    modal.classList.add('active');
+}
+
+// 创建复习弹窗
+function createReviewModal() {
+    const modal = document.createElement('div');
+    modal.id = 'review-modal';
+    modal.className = 'review-modal';
+    modal.innerHTML = `
+        <div class="review-modal-content">
+            <div class="review-modal-header">
+                <h3 class="review-modal-title">复习</h3>
+                <button class="review-modal-close">&times;</button>
+            </div>
+            <div class="review-modal-body">
+                <div class="review-modal-info"></div>
+                <div class="review-modal-stats"></div>
+                <div class="review-quality-buttons">
+                    <p>这次复习你记得多好?</p>
+                    <button class="quality-btn" data-quality="0">忘记</button>
+                    <button class="quality-btn" data-quality="2">困难</button>
+                    <button class="quality-btn" data-quality="3">一般</button>
+                    <button class="quality-btn" data-quality="4">良好</button>
+                    <button class="quality-btn" data-quality="5">完美</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 关闭按钮事件
+    modal.querySelector('.review-modal-close').addEventListener('click', () => {
+        modal.classList.remove('active');
+    });
+
+    // 质量按钮事件
+    modal.querySelectorAll('.quality-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const quality = parseInt(btn.dataset.quality);
+            const nodeId = modal.dataset.nodeId;
+            const result = await submitReview(nodeId, quality);
+
+            if (result) {
+                modal.classList.remove('active');
+                // 更新通知徽章
+                updateNotificationBadge();
+            }
+        });
+    });
+
+    // 点击外部关闭
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.classList.remove('active');
+        }
+    });
+
+    return modal;
+}
+
+// 更新通知徽章
+async function updateNotificationBadge() {
+    const pending = await getPendingReviews();
+    const badge = document.querySelector('.notification-badge');
+    const pendingBadge = document.querySelector('.pending-review-badge');
+
+    if (badge && pending.length > 0) {
+        badge.textContent = pending.length;
+        badge.style.display = 'flex';
+    }
+
+    if (pendingBadge) {
+        pendingBadge.textContent = pending.length;
+        pendingBadge.style.display = pending.length > 0 ? 'flex' : 'none';
+    }
 }
 
 // 绘制树状金字塔的 SVG 连线
@@ -719,6 +1087,339 @@ function drawTreeConnections() {
             path.style.opacity = '0.5';
         }, 400 + Math.random() * 300);
     });
+}
+
+// ============================================
+// 遗忘曲线时间轴布局 (Ebbinghaus Timeline Layout)
+// ============================================
+
+// 基于紧迫性的布局配置
+const URGENCY_CONFIG = {
+    // X轴: 紧迫性 (0=最紧迫在左边, 100=最不紧迫在右边)
+    // Y轴: 知识层级 (10=root, 35=branch, 60=leaf)
+    levelY: { 'root': 10, 'branch': 35, 'leaf': 60 },
+    // 紧迫性颜色
+    urgencyColors: {
+        critical: { from: '#ef4444', to: '#f87171' },  // 0-30: 危险红
+        warning: { from: '#f59e0b', to: '#fbbf24' },   // 30-70: 警告橙
+        healthy: { from: '#10b981', to: '#34d399' }    // 70-100: 健康绿
+    }
+};
+
+// 计算机器的紧迫性评分和时间
+function calculateNodeUrgency(nodeData) {
+    const sm2 = nodeData.sm2_data || {};
+    const nextReview = sm2.next_review;
+
+    if (!nextReview) {
+        return { score: 50, timeStr: '未安排', hoursUntil: Infinity };
+    }
+
+    const now = new Date();
+    const reviewDate = new Date(nextReview.replace('Z', '+00:00'));
+    const hoursUntil = (reviewDate - now) / (1000 * 60 * 60);
+
+    let score, timeStr;
+
+    if (hoursUntil < 0) {
+        // 已过期 - 最高紧迫
+        score = 100;
+        timeStr = '已过期';
+    } else if (hoursUntil < 1) {
+        score = 98;
+        timeStr = '不到1小时';
+    } else if (hoursUntil < 24) {
+        score = 95 - (hoursUntil / 24) * 5;
+        timeStr = `${Math.round(hoursUntil)}小时`;
+    } else if (hoursUntil < 72) {
+        score = 90 - ((hoursUntil - 24) / 48) * 20;
+        timeStr = `${Math.round(hoursUntil / 24)}天`;
+    } else if (hoursUntil < 168) {
+        score = 70 - ((hoursUntil - 72) / 96) * 40;
+        timeStr = `${Math.round(hoursUntil / 24)}天`;
+    } else {
+        score = Math.max(0, 30 - ((hoursUntil - 168) / 672) * 30);
+        const days = hoursUntil / 24;
+        if (days < 14) timeStr = `${Math.round(days)}天`;
+        else if (days < 30) timeStr = `${Math.round(days / 7)}周`;
+        else timeStr = `${Math.round(days / 30)}月`;
+    }
+
+    return { score: Math.round(score), timeStr, hoursUntil };
+}
+
+// 根据紧迫性计算节点位置
+function calculateNodePosition(nodeData, totalNodes) {
+    const levelY = URGENCY_CONFIG.levelY;
+    const level = nodeData.level || 'leaf';
+    const y = levelY[level] || 60;
+
+    const { score: urgency } = calculateNodeUrgency(nodeData);
+
+    return {
+        x: urgency,  // 0-100, 左边=紧迫
+        y: y,
+        urgency: urgency
+    };
+}
+
+// 根据紧迫性获取颜色
+function getUrgencyColor(urgency, opacity = 1) {
+    let color;
+    if (urgency >= 70) {
+        color = URGENCY_CONFIG.urgencyColors.healthy;
+    } else if (urgency >= 30) {
+        color = URGENCY_CONFIG.urgencyColors.warning;
+    } else {
+        color = URGENCY_CONFIG.urgencyColors.critical;
+    }
+
+    // 根据紧迫性在颜色范围内插值
+    let r, g, b;
+    if (urgency >= 70) {
+        const t = (urgency - 70) / 30; // 0-1
+        r = Math.round(parseInt(color.from.slice(1, 3), 16) + (parseInt(color.to.slice(1, 3), 16) - parseInt(color.from.slice(1, 3), 16)) * t);
+        g = Math.round(parseInt(color.from.slice(3, 5), 16) + (parseInt(color.to.slice(3, 5), 16) - parseInt(color.from.slice(3, 5), 16)) * t);
+        b = Math.round(parseInt(color.from.slice(5, 7), 16) + (parseInt(color.to.slice(5, 7), 16) - parseInt(color.from.slice(5, 7), 16)) * t);
+    } else if (urgency >= 30) {
+        const t = (urgency - 30) / 40;
+        r = Math.round(parseInt(color.from.slice(1, 3), 16) + (parseInt(color.to.slice(1, 3), 16) - parseInt(color.from.slice(1, 3), 16)) * t);
+        g = Math.round(parseInt(color.from.slice(3, 5), 16) + (parseInt(color.to.slice(3, 5), 16) - parseInt(color.from.slice(3, 5), 16)) * t);
+        b = Math.round(parseInt(color.from.slice(5, 7), 16) + (parseInt(color.to.slice(5, 7), 16) - parseInt(color.from.slice(5, 7), 16)) * t);
+    } else {
+        const t = urgency / 30;
+        r = Math.round(parseInt(color.from.slice(1, 3), 16) * t + 255 * (1 - t));
+        g = Math.round(parseInt(color.from.slice(3, 5), 16) * t + 255 * (1 - t));
+        b = Math.round(parseInt(color.from.slice(5, 7), 16) * t + 255 * (1 - t));
+    }
+
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// 绘制遗忘曲线布局
+function drawEbbinghausLayout() {
+    const svgContainer = document.getElementById('holoConnections');
+    const nodesContainer = document.getElementById('holoNodes');
+
+    if (!svgContainer || !nodesContainer) return;
+
+    // 清除现有内容
+    svgContainer.innerHTML = '';
+
+    // 添加 SVG 定义
+    svgContainer.innerHTML = `
+        <defs>
+            <!-- 紧迫性渐变 - 危险红 -->
+            <linearGradient id="urgencyGradientCritical" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(239, 68, 68, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(248, 113, 113, 0.4)"/>
+            </linearGradient>
+            <!-- 紧迫性渐变 - 警告橙 -->
+            <linearGradient id="urgencyGradientWarning" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(245, 158, 11, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(251, 191, 36, 0.4)"/>
+            </linearGradient>
+            <!-- 紧迫性渐变 - 健康绿 -->
+            <linearGradient id="urgencyGradientHealthy" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(16, 185, 129, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(52, 211, 153, 0.4)"/>
+            </linearGradient>
+            <!-- 前置知识虚线样式 -->
+            <marker id="arrowPrerequisite" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="rgba(168, 85, 247, 0.7)"/>
+            </marker>
+            <!-- 相关知识标记 -->
+            <marker id="arrowRelated" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="rgba(59, 130, 246, 0.6)"/>
+            </marker>
+            <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="glow"/>
+                <feMerge>
+                    <feMergeNode in="glow"/>
+                    <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+
+    svgContainer.setAttribute('viewBox', '0 0 100 100');
+    svgContainer.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+    // 绘制时间轴背景（可选）
+    drawTimeAxisBackground(svgContainer);
+
+    // 获取所有节点
+    const allNodes = nodesContainer.querySelectorAll('.holo-node');
+    const nodePositions = new Map();
+
+    // 第一步：计算所有节点位置
+    allNodes.forEach(node => {
+        const nodeId = node.dataset.id;
+        const nodeData = knowledgeNodesCache.find(n => n.node_id === nodeId);
+        if (!nodeData) return;
+
+        const pos = calculateNodePosition(nodeData, allNodes.length);
+        nodePositions.set(nodeId, pos);
+
+        // 应用位置到节点
+        const nodeEl = node;
+        nodeEl.style.left = `${pos.x}%`;
+        nodeEl.style.top = `${pos.y}%`;
+        nodeEl.style.transform = 'translate(-50%, -50%)';
+        nodeEl.style.zIndex = Math.round(100 - pos.urgency); // 紧迫的节点在上层
+
+        // 更新紧迫性颜色
+        updateNodeUrgencyStyle(nodeEl, pos.urgency);
+    });
+
+    // 第二步：绘制连接线
+    drawUrgencyConnections(svgContainer, nodesContainer, nodePositions);
+}
+
+// 绘制时间轴背景
+function drawTimeAxisBackground(svgContainer) {
+    // 绘制紧迫性区域背景
+    const urgencyBg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    urgencyBg.setAttribute('class', 'urgency-background');
+
+    // 左侧紧迫区 (0-30)
+    const criticalZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    criticalZone.setAttribute('x', '0');
+    criticalZone.setAttribute('y', '0');
+    criticalZone.setAttribute('width', '30');
+    criticalZone.setAttribute('height', '100');
+    criticalZone.setAttribute('fill', 'rgba(239, 68, 68, 0.05)');
+    urgencyBg.appendChild(criticalZone);
+
+    // 中间缓冲X区 (30-70)
+    const warningZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    warningZone.setAttribute('x', '30');
+    warningZone.setAttribute('y', '0');
+    warningZone.setAttribute('width', '40');
+    warningZone.setAttribute('height', '100');
+    warningZone.setAttribute('fill', 'rgba(245, 158, 11, 0.03)');
+    urgencyBg.appendChild(warningZone);
+
+    // 右侧安全区 (70-100)
+    const healthyZone = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    healthyZone.setAttribute('x', '70');
+    healthyZone.setAttribute('y', '0');
+    healthyZone.setAttribute('width', '30');
+    healthyZone.setAttribute('height', '100');
+    healthyZone.setAttribute('fill', 'rgba(16, 185, 129, 0.03)');
+    urgencyBg.appendChild(healthyZone);
+
+    svgContainer.appendChild(urgencyBg);
+}
+
+// 更新节点的紧迫性样式
+function updateNodeUrgencyStyle(nodeEl, urgency) {
+    const color = getUrgencyColor(urgency, 0.8);
+    const glowColor = getUrgencyColor(urgency, 0.4);
+
+    // 更新边框颜色
+    nodeEl.style.borderColor = color;
+
+    // 更新光晕
+    const glowEl = nodeEl.querySelector('.node-glow');
+    if (glowEl) {
+        glowEl.style.background = `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`;
+    }
+}
+
+// 绘制基于紧迫性的连接线
+function drawUrgencyConnections(svgContainer, nodesContainer, nodePositions) {
+    const allNodes = nodesContainer.querySelectorAll('.holo-node');
+    const connectionsDrawn = new Set(); // 避免重复绘制
+
+    // 绘制父子连接（树形连接）
+    allNodes.forEach(node => {
+        const parentId = node.dataset.parent;
+        if (!parentId) return;
+
+        const childPos = nodePositions.get(node.dataset.id);
+        const parentPos = nodePositions.get(parentId);
+        if (!childPos || !parentPos) return;
+
+        const connectionKey = `${parentId}-${node.dataset.id}`;
+        if (connectionsDrawn.has(connectionKey)) return;
+        connectionsDrawn.add(connectionKey);
+
+        // 获取子节点状态决定连线颜色
+        const nodeData = knowledgeNodesCache.find(n => n.node_id === node.dataset.id);
+        const urgency = nodeData ? calculateNodeUrgency(nodeData).score : 50;
+
+        drawConnectionLine(svgContainer, parentPos, childPos, 'tree', urgency);
+    });
+
+    // 绘制AI识别的相关连接
+    knowledgeNodesCache.forEach(nodeData => {
+        const relatedList = nodeData.related_node_ids || [];
+        const sourcePos = nodePositions.get(nodeData.node_id);
+        if (!sourcePos) return;
+
+        relatedList.forEach(rel => {
+            const targetPos = nodePositions.get(rel.node_id);
+            if (!targetPos) return;
+
+            const connectionKey = `${nodeData.node_id}-${rel.node_id}`;
+            if (connectionsDrawn.has(connectionKey)) return;
+            connectionsDrawn.add(connectionKey);
+
+            drawConnectionLine(svgContainer, sourcePos, targetPos, rel.type, rel.strength || 0.5);
+        });
+    });
+}
+
+// 绘制单条连接线
+function drawConnectionLine(svgContainer, fromPos, toPos, type, param = 0.5) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+
+    // 转换为实际坐标
+    const x1 = fromPos.x;
+    const y1 = fromPos.y;
+    const x2 = toPos.x;
+    const y2 = toPos.y;
+
+    // 创建贝塞尔曲线
+    const midY = (y1 + y2) / 2;
+    let d;
+
+    if (type === 'tree') {
+        // 树形连接 - 向上/向下的曲线
+        d = `M${x1} ${y1} Q${x1} ${midY} ${x2} ${y2}`;
+        line.setAttribute('stroke', getUrgencyColor(param, 0.6));
+        line.setAttribute('stroke-width', '0.8');
+        line.setAttribute('stroke-dasharray', 'none');
+    } else if (type === 'prerequisite') {
+        // 前置知识连接 - 虚线+箭头
+        d = `M${x1} ${y1} L${x2} ${y2}`;
+        line.setAttribute('stroke', 'rgba(168, 85, 247, 0.7)');
+        line.setAttribute('stroke-width', '0.6');
+        line.setAttribute('stroke-dasharray', '3,2');
+        line.setAttribute('marker-end', 'url(#arrowPrerequisite)');
+    } else if (type === 'related') {
+        // 相关知识连接 - 点线
+        d = `M${x1} ${y1} L${x2} ${y2}`;
+        line.setAttribute('stroke', 'rgba(59, 130, 246, 0.5)');
+        line.setAttribute('stroke-width', '0.4');
+        line.setAttribute('stroke-dasharray', '1,2');
+        line.setAttribute('marker-end', 'url(#arrowRelated)');
+    } else {
+        return;
+    }
+
+    line.setAttribute('d', d);
+    line.setAttribute('fill', 'none');
+    line.setAttribute('filter', 'url(#connectionGlow)');
+    line.style.opacity = '0';
+    line.style.transition = 'opacity 0.5s ease';
+
+    svgContainer.appendChild(line);
+
+    setTimeout(() => {
+        line.style.opacity = type === 'tree' ? '0.6' : '0.4';
+    }, 100);
 }
 
 // ============================================
@@ -938,42 +1639,40 @@ function renderNewsCards(news) {
         return;
     }
 
-    news.forEach((item, index) => {
+    // 填充到4的倍数，避免留空
+    const paddedNews = [...news];
+    const remainder = paddedNews.length % 4;
+    if (remainder !== 0) {
+        const padCount = 4 - remainder;
+        for (let i = 0; i < padCount; i++) {
+            // 复制最后一条新闻来填充空白位置
+            paddedNews.push({ ...paddedNews[paddedNews.length - 1] });
+        }
+    }
+
+    paddedNews.forEach((item, index) => {
         const isMain = index === 0;
         const categoryClass = getCategoryClass(item.category);
 
         const card = document.createElement('div');
         card.className = `highlight-card ${isMain ? 'highlight-main' : 'highlight-side'}`;
 
-        if (isMain) {
-            card.innerHTML = `
-                <div class="highlight-category ${categoryClass}">
-                    <span class="category-tag">${item.category}</span>
-                    <span class="category-time">${item.timestamp || '今日'}</span>
+        card.innerHTML = `
+            <div class="highlight-category ${categoryClass}">
+                <span class="category-tag">${item.category}</span>
+                <span class="category-time">${item.timestamp || '今日'}</span>
+            </div>
+            <div class="highlight-content">
+                <h3 class="highlight-title">${item.title}</h3>
+                <p class="highlight-desc">${item.description}</p>
+            </div>
+            <div class="highlight-footer">
+                <div class="highlight-tags">
+                    <span class="tag ai-tag">${item.source}</span>
                 </div>
-                <div class="highlight-content">
-                    <h3 class="highlight-title">${item.title}</h3>
-                    <p class="highlight-desc">${item.description}</p>
-                </div>
-                <div class="highlight-footer">
-                    <div class="highlight-tags">
-                        <span class="tag ai-tag">${item.source}</span>
-                    </div>
-                    <span class="highlight-source">${item.source}</span>
-                </div>
-            `;
-        } else {
-            card.innerHTML = `
-                <div class="highlight-category ${categoryClass}">
-                    <span class="category-tag">${item.category}</span>
-                    <span class="category-time">${item.timestamp || '今日'}</span>
-                </div>
-                <div class="highlight-content">
-                    <h3 class="highlight-title">${item.title}</h3>
-                    <p class="highlight-desc">${item.description}</p>
-                </div>
-            `;
-        }
+                <span class="highlight-source">${item.source}</span>
+            </div>
+        `;
 
         grid.appendChild(card);
     });

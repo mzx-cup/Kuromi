@@ -301,7 +301,49 @@ MYSQL_TABLES = [
     """,
 
     # ──────────────────────────────────────────────────────
-    # 19. telemetry_data - 遥测/行为数据
+    # 19. knowledge_nodes - 知识节点（SM2间隔重复）
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS knowledge_nodes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        node_id VARCHAR(255) NOT NULL UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        parent_id VARCHAR(255),
+        level VARCHAR(50) DEFAULT 'leaf',
+        icon VARCHAR(50) DEFAULT '📚',
+        subject VARCHAR(100) DEFAULT '',
+        is_active TINYINT DEFAULT 0,
+        first_studied_at TIMESTAMP NULL,
+        last_studied_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sm2_data_json TEXT,
+        stats_json TEXT,
+        position_x REAL DEFAULT 0,
+        position_y REAL DEFAULT 0,
+        INDEX idx_user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 20. review_records - 复习记录（SM2）
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS review_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        record_id VARCHAR(255) NOT NULL UNIQUE,
+        user_id INT NOT NULL,
+        node_id VARCHAR(255) NOT NULL,
+        review_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        quality INT DEFAULT 0,
+        response_time REAL DEFAULT 0,
+        sm2_result_json TEXT,
+        INDEX idx_user_node (user_id, node_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 21. telemetry_data - 遥测/行为数据
     # ──────────────────────────────────────────────────────
     """
     CREATE TABLE IF NOT EXISTS telemetry_data (
@@ -339,6 +381,8 @@ TABLE_NAMES = [
     "user_projects",
     "user_calendar_events",
     "daily_routes",
+    "knowledge_nodes",
+    "review_records",
     "telemetry_data",
 ]
 

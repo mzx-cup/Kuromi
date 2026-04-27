@@ -23,14 +23,6 @@ let userPreferences = JSON.parse(localStorage.getItem('starlearn_preferences') |
 
 let pendingAvatarData = null;
 
-let floatingAlarmState = {
-    isOpen: false,
-    isMinimized: false,
-    isDragging: false,
-    dragOffset: { x: 0, y: 0 },
-    position: { x: window.innerWidth - 400, y: 100 }
-};
-
 let activeReminderTimeouts = [];
 
 const tasks = [
@@ -64,20 +56,22 @@ function init() {
     document.getElementById('display-name').textContent = currentUser.name;
     document.getElementById('edit-name').value = currentUser.name;
 
-    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
-    document.getElementById('stat-interactions').textContent = evaluation.interactionCount || 0;
-    document.getElementById('stat-tasks').textContent = Math.floor((evaluation.interactionCount || 0) / 3);
-    document.getElementById('stat-time').textContent = evaluation.codePracticeTime || 0;
-
     renderAvatarGrid();
     renderTaskGrid();
     renderGoalTags();
-    syncCockpitStats();
+    initToggleGlowDots();
     initWaveCanvas();
     initQuantumCockpit();
     initPetSystem();
     loadPreferences();
-    initFloatingAlarm();
+    initCustomDropdowns();
+
+    // 从数据库加载实时驾驶舱数据
+    fetchAndUpdateCockpit();
+    // 每30秒刷新一次
+    setInterval(fetchAndUpdateCockpit, 30000);
+    // 每分钟同步学习时长
+    setInterval(syncLearningMinute, 60000);
     requestNotificationPermission();
 
     // 初始化云端林场同步
@@ -170,19 +164,141 @@ function renderGoalTags() {
     }).join('');
 }
 
-function syncCockpitStats() {
-    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
-    const interactions = evaluation.interactionCount || 0;
-    const minutes = evaluation.codePracticeTime || 0;
-    const completed = Math.floor(interactions / 3);
+// 驾驶舱实时数据缓存
+let cockpitDataCache = null;
 
+async function fetchAndUpdateCockpit() {
+    const userId = StarData.getUserId();
+    if (!userId) return;
+
+    try {
+        const res = await fetch(`/api/cockpit/analysis/${userId}`);
+        const data = await res.json();
+        if (data.success) {
+            cockpitDataCache = data;
+            renderCockpitData(data);
+        }
+    } catch (e) {
+        console.warn('[Cockpit] fetch failed:', e.message);
+    }
+}
+
+function renderCockpitData(data) {
+    const { analysis, eco, stats } = data;
+
+    // 更新底部统计卡片
     const elInteractions = document.getElementById('cockpit-interactions');
     const elMinutes = document.getElementById('cockpit-minutes');
     const elCompleted = document.getElementById('cockpit-completed');
+    if (elInteractions) animateNumber(elInteractions, parseInt(elInteractions.textContent) || 0, stats.interactions);
+    if (elMinutes) animateNumber(elMinutes, parseInt(elMinutes.textContent) || 0, stats.minutes);
+    if (elCompleted) animateNumber(elCompleted, parseInt(elCompleted.textContent) || 0, stats.tasks);
 
-    if (elInteractions) elInteractions.textContent = interactions;
-    if (elMinutes) elMinutes.textContent = minutes;
-    if (elCompleted) elCompleted.textContent = completed;
+    // 更新量子驾驶舱指标
+    quantumState.thinkingDepth = analysis.thinking_depth;
+    quantumState.conceptMastery = analysis.concept_mastery;
+    quantumState.learningMomentum = analysis.learning_momentum;
+    quantumState.focusMinutes = Math.floor(analysis.learning_minutes * 0.8);
+    quantumState.restMinutes = Math.floor(analysis.learning_minutes * 0.2);
+
+    const total = quantumState.focusMinutes + quantumState.restMinutes;
+    const focusPercent = total > 0 ? Math.round((quantumState.focusMinutes / total) * 100) : 80;
+    const restPercent = 100 - focusPercent;
+    const ratio = focusPercent >= 80 ? '4:1' : focusPercent >= 60 ? '3:1' : focusPercent >= 40 ? '2:1' : '1:1';
+    quantumState.focusRestRatio = ratio;
+
+    updateCockpitDisplay(focusPercent, restPercent);
+
+    // 更新AI分析
+    updateAIAnalysis(analysis);
+
+    // 更新生态空间数据
+    if (eco) updateEcoData(eco);
+}
+
+function animateNumber(el, from, to) {
+    if (from === to) { el.textContent = to; return; }
+    const duration = 600;
+    const start = performance.now();
+    const diff = to - from;
+
+    function step(timestamp) {
+        const progress = Math.min((timestamp - start) / duration, 1);
+        // ease-out quad
+        const eased = 1 - (1 - progress) * (1 - progress);
+        el.textContent = Math.round(from + diff * eased);
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+function updateCockpitDisplay(focusPercent, restPercent) {
+    const thinkingEl = document.getElementById('metric-thinking');
+    const masteryEl = document.getElementById('metric-mastery');
+    const focusEl = document.getElementById('metric-focus');
+    const momentumEl = document.getElementById('metric-momentum');
+    const barThinking = document.getElementById('bar-thinking');
+    const barMastery = document.getElementById('bar-mastery');
+    const barMomentum = document.getElementById('bar-momentum');
+    const focusPortion = document.getElementById('focus-portion');
+    const restPortion = document.getElementById('rest-portion');
+
+    if (thinkingEl) thinkingEl.innerHTML = `${quantumState.thinkingDepth}<span class="metric-unit">%</span>`;
+    if (masteryEl) masteryEl.innerHTML = `${quantumState.conceptMastery}<span class="metric-unit">%</span>`;
+    if (focusEl) focusEl.textContent = quantumState.focusRestRatio;
+    if (momentumEl) momentumEl.innerHTML = `${quantumState.learningMomentum}<span class="metric-unit">/100</span>`;
+
+    if (barThinking) barThinking.style.width = quantumState.thinkingDepth + '%';
+    if (barMastery) barMastery.style.width = quantumState.conceptMastery + '%';
+    if (barMomentum) barMomentum.style.width = quantumState.learningMomentum + '%';
+    if (focusPortion) focusPortion.style.width = focusPercent + '%';
+    if (restPortion) restPortion.style.width = restPercent + '%';
+
+    // 更新描述文字
+    const descThinking = document.getElementById('metric-thinking-desc');
+    const descMastery = document.getElementById('metric-mastery-desc');
+    const descFocus = document.getElementById('metric-focus-desc');
+    const descMomentum = document.getElementById('metric-momentum-desc');
+
+    if (descThinking && cockpitDataCache) {
+        const lvl = cockpitDataCache.analysis.cognitive_level || 'L3·进阶级';
+        descThinking.textContent = `实时分析你近期的学习行为，当前认知评估等级为${lvl}。`;
+    }
+    if (descMastery && cockpitDataCache) {
+        descMastery.textContent = cockpitDataCache.analysis.suggestions?.[0] || '答题记录显示你对核心概念掌握良好，建议加强实践。';
+    }
+    if (descFocus && cockpitDataCache) {
+        descFocus.textContent = cockpitDataCache.analysis.suggestions?.[1] || '当前专注节律良好，已进入深度学习状态。';
+    }
+    if (descMomentum && cockpitDataCache) {
+        descMomentum.textContent = cockpitDataCache.analysis.suggestions?.[2] || '综合你今日全网交互情况和目标进度，当前动能良好。';
+    }
+}
+
+function updateEcoData(eco) {
+    const harvestEl = document.getElementById('eco-harvest-count');
+    const companionEl = document.getElementById('eco-companion-hours');
+    const petLevelEl = document.getElementById('eco-pet-level');
+    if (harvestEl) harvestEl.textContent = eco.harvest_count || 0;
+    if (companionEl) companionEl.textContent = (eco.companion_hours || 0) + 'h';
+    if (petLevelEl) petLevelEl.textContent = 'Lv.' + (eco.pet_level || 1);
+}
+
+async function syncLearningMinute() {
+    const userId = StarData.getUserId();
+    if (!userId) return;
+    try {
+        await fetch('/api/cockpit/learning-time', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId }),
+        });
+    } catch (e) { /* silent */ }
+}
+
+function syncCockpitStats() {
+    // 保留兼容旧调用，实际数据由 fetchAndUpdateCockpit 处理
+    fetchAndUpdateCockpit();
 }
 
 let quantumState = {
@@ -243,80 +359,16 @@ const metricDescriptions = {
 };
 
 function updateQuantumCockpit() {
-    const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
-    const interactions = evaluation.interactionCount || 0;
-    const minutes = evaluation.codePracticeTime || 0;
-    const completed = Math.floor(interactions / 3);
-
-    quantumState.thinkingDepth = Math.min(95, Math.max(45, 78 + Math.floor(Math.random() * 15) - 7));
-    quantumState.conceptMastery = Math.min(95, Math.max(50, 85 + Math.floor(Math.random() * 10) - 5));
-    quantumState.learningMomentum = Math.min(98, Math.max(40, 88 + Math.floor(Math.random() * 12) - 6));
-    quantumState.focusMinutes = Math.floor(minutes * 0.8);
-    quantumState.restMinutes = Math.floor(minutes * 0.2);
-
-    const total = quantumState.focusMinutes + quantumState.restMinutes;
-    const focusPercent = total > 0 ? Math.round((quantumState.focusMinutes / total) * 100) : 80;
-    const restPercent = 100 - focusPercent;
-    const ratio = focusPercent >= 80 ? '4:1' : focusPercent >= 60 ? '3:1' : focusPercent >= 40 ? '2:1' : '1:1';
-
-    quantumState.focusRestRatio = ratio;
-
-    const thinkingEl = document.getElementById('metric-thinking');
-    const masteryEl = document.getElementById('metric-mastery');
-    const focusEl = document.getElementById('metric-focus');
-    const momentumEl = document.getElementById('metric-momentum');
-
-    const barThinking = document.getElementById('bar-thinking');
-    const barMastery = document.getElementById('bar-mastery');
-    const barMomentum = document.getElementById('bar-momentum');
-    const focusPortion = document.getElementById('focus-portion');
-    const restPortion = document.getElementById('rest-portion');
-
-    const descThinking = document.getElementById('metric-thinking-desc');
-    const descMastery = document.getElementById('metric-mastery-desc');
-    const descFocus = document.getElementById('metric-focus-desc');
-    const descMomentum = document.getElementById('metric-momentum-desc');
-
-    if (thinkingEl) {
-        thinkingEl.innerHTML = `${quantumState.thinkingDepth}<span class="metric-unit">%</span>`;
+    // 数据由 fetchAndUpdateCockpit 定时刷新，这里保持兼容
+    if (!cockpitDataCache) {
+        fetchAndUpdateCockpit();
+        return;
     }
-    if (masteryEl) {
-        masteryEl.innerHTML = `${quantumState.conceptMastery}<span class="metric-unit">%</span>`;
-    }
-    if (focusEl) {
-        focusEl.textContent = quantumState.focusRestRatio;
-    }
-    if (momentumEl) {
-        momentumEl.innerHTML = `${quantumState.learningMomentum}<span class="metric-unit">/100</span>`;
-    }
-
-    if (barThinking) barThinking.style.width = quantumState.thinkingDepth + '%';
-    if (barMastery) barMastery.style.width = quantumState.conceptMastery + '%';
-    if (barMomentum) barMomentum.style.width = quantumState.learningMomentum + '%';
-    if (focusPortion) focusPortion.style.width = focusPercent + '%';
-    if (restPortion) restPortion.style.width = restPercent + '%';
-
-    if (descThinking) {
-        const msgs = metricDescriptions.thinking;
-        descThinking.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    }
-    if (descMastery) {
-        const msgs = metricDescriptions.mastery;
-        descMastery.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    }
-    if (descFocus) {
-        const msgs = metricDescriptions.focus;
-        descFocus.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    }
-    if (descMomentum) {
-        const msgs = metricDescriptions.momentum;
-        descMomentum.textContent = msgs[Math.floor(Math.random() * msgs.length)];
-    }
-
-    updateAIAnalysis();
+    const data = cockpitDataCache;
+    renderCockpitData(data);
 }
 
-function updateAIAnalysis() {
+function updateAIAnalysis(analysis) {
     const now = new Date();
     const timestamp = now.toLocaleString('zh-CN', {
         month: 'numeric',
@@ -326,19 +378,19 @@ function updateAIAnalysis() {
         second: '2-digit'
     });
 
-    const topic = knowledgeKeywords[Math.floor(Math.random() * knowledgeKeywords.length)].name;
-    const minutes = Math.floor(Math.random() * 60) + 30;
-    const accuracy = Math.floor(Math.random() * 30) + 70;
-    const level = Math.floor(Math.random() * 3) + 3;
-    const count = Math.floor(Math.random() * 5) + 3;
-
-    const template = aiAnalysisTemplates[Math.floor(Math.random() * aiAnalysisTemplates.length)];
-    const analysisText = template
-        .replace('{topic}', topic)
-        .replace('{minutes}', minutes)
-        .replace('{accuracy}', accuracy)
-        .replace('{level}', level)
-        .replace('{count}', count);
+    let analysisText;
+    if (analysis && analysis.recent_topics && analysis.recent_topics.length > 0) {
+        const topic = analysis.recent_topics[0];
+        const level = analysis.cognitive_level || 'L3·进阶级';
+        const suggestions = analysis.suggestions || [];
+        if (suggestions.length > 0) {
+            analysisText = `星识认知引擎分析：${suggestions[0]} | 当前认知等级：${level}`;
+        } else {
+            analysisText = `你在${topic}领域的学习持续深化，认知连接稳固度提升。当前认知等级：${level}`;
+        }
+    } else {
+        analysisText = `AI 分析：正在连接星识认知引擎，分析你的学习拓扑结构...`;
+    }
 
     const textEl = document.getElementById('ai-analysis-text');
     const timeEl = document.getElementById('ai-analysis-timestamp');
@@ -353,9 +405,12 @@ function updateAIAnalysis() {
 }
 
 function initQuantumCockpit() {
-    updateQuantumCockpit();
-    setInterval(updateQuantumCockpit, 30000);
-    setInterval(updateAIAnalysis, 15000);
+    fetchAndUpdateCockpit();
+    setInterval(() => {
+        if (cockpitDataCache) {
+            updateAIAnalysis(cockpitDataCache.analysis);
+        }
+    }, 15000);
 }
 
 let petState = {
@@ -804,6 +859,10 @@ function goToPlantFarm() {
     window.location.href = '/plant.html';
 }
 
+function goToPetGame() {
+    window.location.href = '/pixel-pet-game.html';
+}
+
 function initWaveCanvas() {
     const canvas = document.getElementById('wave-canvas');
     if (!canvas) return;
@@ -907,8 +966,6 @@ function loadPreferences() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-
-    updateFloatingAlarmTrigger();
 }
 
 // 当其它页面（例如宠物游戏页）更新了 starlearn_pet，本页也同步显示头像/状态
@@ -965,7 +1022,6 @@ function toggleSwitch(el, key) {
             } else {
                 cancelAllReminders();
             }
-            updateFloatingAlarmTrigger();
             break;
         case 'debate':
             userPreferences.debateModeEnabled = isActive;
@@ -1046,34 +1102,6 @@ function triggerReminder() {
 
     if (userPreferences.notificationEnabled) {
         showNotificationToast('学习提醒', `该学习啦！今日目标：${userPreferences.dailyGoalMinutes}分钟`);
-    }
-
-    showFloatingAlarmNotification();
-}
-
-function showFloatingAlarmNotification() {
-    const trigger = document.getElementById('floating-alarm-trigger');
-    if (trigger) {
-        trigger.classList.add('visible', 'bounce');
-        setTimeout(() => {
-            trigger.classList.remove('visible', 'bounce');
-        }, 5000);
-    }
-}
-
-function toggleAlarmPopup() {
-    const trigger = document.getElementById('floating-alarm-trigger');
-    const modal = document.getElementById('time-picker-modal');
-
-    if (!trigger || !modal) return;
-
-    trigger.classList.add('bounce');
-    setTimeout(() => trigger.classList.remove('bounce'), 600);
-
-    if (modal.classList.contains('visible')) {
-        closeTimePicker();
-    } else {
-        openTimePicker();
     }
 }
 
@@ -1206,12 +1234,16 @@ function saveTimePicker() {
         userPreferences.reminderEnabled = true;
         savePreferences();
         scheduleReminder();
-        updateFloatingAlarmTrigger();
         updateTimeTagActiveState();
 
         closeTimePicker();
         showToast(`提醒已设置为 ${timeStr}`);
     }
+}
+
+// 自定义时间选择器 - 点击"自定义"按钮时打开时间选择弹窗
+function openCustomTimePicker() {
+    openTimePicker();
 }
 
 function updateTimeTagActiveState() {
@@ -1255,303 +1287,6 @@ function showNotificationToast(title, message) {
         toast.classList.remove('visible');
         setTimeout(() => toast.remove(), 400);
     }, 5000);
-}
-
-function initFloatingAlarm() {
-    const header = document.getElementById('floating-alarm-header');
-    if (!header) return;
-
-    header.addEventListener('mousedown', startDrag);
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', stopDrag);
-
-    header.addEventListener('touchstart', handleTouchStart, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
-    document.addEventListener('touchend', stopDrag);
-
-    loadFloatingAlarmPosition();
-    updateFloatingAlarmDisplay();
-    updateFloatingAlarmTrigger();
-}
-
-function startDrag(e) {
-    if (e.target.closest('.floating-alarm-controls')) return;
-
-    floatingAlarmState.isDragging = true;
-    const alarm = document.getElementById('floating-alarm');
-    const rect = alarm.getBoundingClientRect();
-    floatingAlarmState.dragOffset = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
-    };
-    alarm.classList.add('dragging');
-}
-
-function drag(e) {
-    if (!floatingAlarmState.isDragging) return;
-
-    const alarm = document.getElementById('floating-alarm');
-    const x = e.clientX - floatingAlarmState.dragOffset.x;
-    const y = e.clientY - floatingAlarmState.dragOffset.y;
-
-    alarm.style.left = Math.max(0, Math.min(x, window.innerWidth - alarm.offsetWidth)) + 'px';
-    alarm.style.top = Math.max(0, Math.min(y, window.innerHeight - alarm.offsetHeight)) + 'px';
-    alarm.style.right = 'auto';
-    alarm.style.bottom = 'auto';
-}
-
-function stopDrag() {
-    if (!floatingAlarmState.isDragging) return;
-
-    floatingAlarmState.isDragging = false;
-    const alarm = document.getElementById('floating-alarm');
-    if (alarm) {
-        alarm.classList.remove('dragging');
-        saveFloatingAlarmPosition();
-    }
-}
-
-function handleTouchStart(e) {
-    if (e.target.closest('.floating-alarm-controls')) return;
-
-    e.preventDefault();
-    const touch = e.touches[0];
-    floatingAlarmState.isDragging = true;
-    const alarm = document.getElementById('floating-alarm');
-    const rect = alarm.getBoundingClientRect();
-    floatingAlarmState.dragOffset = {
-        x: touch.clientX - rect.left,
-        y: touch.clientY - rect.top
-    };
-    alarm.classList.add('dragging');
-}
-
-function handleTouchMove(e) {
-    if (!floatingAlarmState.isDragging) return;
-
-    e.preventDefault();
-    const touch = e.touches[0];
-    const alarm = document.getElementById('floating-alarm');
-    const x = touch.clientX - floatingAlarmState.dragOffset.x;
-    const y = touch.clientY - floatingAlarmState.dragOffset.y;
-
-    alarm.style.left = Math.max(0, Math.min(x, window.innerWidth - alarm.offsetWidth)) + 'px';
-    alarm.style.top = Math.max(0, Math.min(y, window.innerHeight - alarm.offsetHeight)) + 'px';
-    alarm.style.right = 'auto';
-    alarm.style.bottom = 'auto';
-}
-
-function loadFloatingAlarmPosition() {
-    const saved = localStorage.getItem('floatingAlarmPosition');
-    if (saved) {
-        const pos = JSON.parse(saved);
-        floatingAlarmState.position = pos;
-        const alarm = document.getElementById('floating-alarm');
-        if (alarm) {
-            alarm.style.left = pos.x + 'px';
-            alarm.style.top = pos.y + 'px';
-            alarm.style.right = 'auto';
-            alarm.style.bottom = 'auto';
-        }
-    }
-}
-
-function saveFloatingAlarmPosition() {
-    const alarm = document.getElementById('floating-alarm');
-    if (alarm) {
-        floatingAlarmState.position = {
-            x: alarm.offsetLeft,
-            y: alarm.offsetTop
-        };
-        localStorage.setItem('floatingAlarmPosition', JSON.stringify(floatingAlarmState.position));
-    }
-}
-
-function openFloatingAlarm() {
-    const alarm = document.getElementById('floating-alarm');
-    if (!alarm) return;
-
-    updateFloatingAlarmDisplay();
-    alarm.classList.add('visible');
-    alarm.classList.remove('minimized');
-    floatingAlarmState.isOpen = true;
-
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
-
-function closeFloatingAlarm() {
-    const alarm = document.getElementById('floating-alarm');
-    if (alarm) {
-        alarm.classList.remove('visible');
-        floatingAlarmState.isOpen = false;
-    }
-}
-
-function toggleMinimizeAlarm() {
-    const alarm = document.getElementById('floating-alarm');
-    if (!alarm) return;
-
-    floatingAlarmState.isMinimized = !floatingAlarmState.isMinimized;
-    alarm.classList.toggle('minimized', floatingAlarmState.isMinimized);
-
-    const minimizeBtn = alarm.querySelector('.floating-alarm-btn.minimize');
-    const maximizeBtn = alarm.querySelector('.floating-alarm-btn.maximize');
-    if (minimizeBtn) minimizeBtn.classList.toggle('hidden', floatingAlarmState.isMinimized);
-    if (maximizeBtn) maximizeBtn.classList.toggle('hidden', !floatingAlarmState.isMinimized);
-}
-
-function updateFloatingAlarmDisplay() {
-    const hourInput = document.getElementById('alarm-hour');
-    const minuteInput = document.getElementById('alarm-minute');
-    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
-
-    if (hourInput && minuteInput) {
-        hourInput.value = userPreferences.reminderTime.split(':')[0];
-        minuteInput.value = userPreferences.reminderTime.split(':')[1];
-    }
-
-    if (miniDisplay) {
-        miniDisplay.textContent = userPreferences.reminderTime;
-    }
-
-    const amBtn = document.getElementById('alarm-am-btn');
-    const pmBtn = document.getElementById('alarm-pm-btn');
-    if (amBtn && pmBtn) {
-        const isPm = userPreferences.reminderAmPm === 'PM';
-        amBtn.classList.toggle('active', !isPm);
-        pmBtn.classList.toggle('active', isPm);
-    }
-
-    document.querySelectorAll('.floating-alarm-repeat-btn').forEach(btn => {
-        const day = parseInt(btn.dataset.day);
-        btn.classList.toggle('active', userPreferences.reminderRepeat.includes(day));
-    });
-}
-
-function updateAlarmDisplay() {
-    const hourInput = document.getElementById('alarm-hour');
-    const minuteInput = document.getElementById('alarm-minute');
-    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
-
-    if (hourInput && minuteInput) {
-        let hour = parseInt(hourInput.value) || 14;
-        let minute = parseInt(minuteInput.value) || 0;
-
-        hour = Math.max(1, Math.min(12, hour));
-        minute = Math.max(0, Math.min(59, minute));
-
-        hourInput.value = hour;
-        minuteInput.value = minute.toString().padStart(2, '0');
-
-        const isPm = document.getElementById('alarm-pm-btn').classList.contains('active');
-        let hours24 = hour;
-        if (isPm && hour !== 12) hours24 += 12;
-        if (!isPm && hour === 12) hours24 = 0;
-
-        const timeStr = hours24.toString().padStart(2, '0') + ':' + minute.toString().padStart(2, '0');
-        userPreferences.reminderTime = timeStr;
-
-        if (miniDisplay) {
-            miniDisplay.textContent = timeStr;
-        }
-    }
-}
-
-function setAlarmAmPm(ampm) {
-    const amBtn = document.getElementById('alarm-am-btn');
-    const pmBtn = document.getElementById('alarm-pm-btn');
-
-    if (ampm === 'AM') {
-        amBtn.classList.add('active');
-        pmBtn.classList.remove('active');
-    } else {
-        pmBtn.classList.add('active');
-        amBtn.classList.remove('active');
-    }
-
-    userPreferences.reminderAmPm = ampm;
-    updateAlarmDisplay();
-}
-
-function setQuickTime(minutes) {
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + minutes);
-
-    let hours = now.getHours();
-    let mins = now.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-
-    const hourInput = document.getElementById('alarm-hour');
-    const minuteInput = document.getElementById('alarm-minute');
-    const amBtn = document.getElementById('alarm-am-btn');
-    const pmBtn = document.getElementById('alarm-pm-btn');
-
-    if (hourInput) hourInput.value = hours12;
-    if (minuteInput) minuteInput.value = mins.toString().padStart(2, '0');
-
-    if (ampm === 'AM') {
-        amBtn.classList.add('active');
-        pmBtn.classList.remove('active');
-    } else {
-        pmBtn.classList.add('active');
-        amBtn.classList.remove('active');
-    }
-
-    userPreferences.reminderAmPm = ampm;
-
-    let hours24 = hours;
-    if (ampm === 'PM' && hours12 !== 12) hours24 += 12;
-    if (ampm === 'AM' && hours12 === 12) hours24 = 0;
-
-    userPreferences.reminderTime = hours24.toString().padStart(2, '0') + ':' + mins.toString().padStart(2, '0');
-
-    const miniDisplay = document.getElementById('floating-alarm-time-mini-display');
-    if (miniDisplay) {
-        miniDisplay.textContent = userPreferences.reminderTime;
-    }
-}
-
-function toggleDay(btn, day) {
-    btn.classList.toggle('active');
-
-    if (userPreferences.reminderRepeat.includes(day)) {
-        userPreferences.reminderRepeat = userPreferences.reminderRepeat.filter(d => d !== day);
-    } else {
-        userPreferences.reminderRepeat.push(day);
-        userPreferences.reminderRepeat.sort((a, b) => a - b);
-    }
-}
-
-function saveFloatingAlarm() {
-    updateAlarmDisplay();
-    userPreferences.reminderEnabled = true;
-    userPreferences.reminderRepeat = userPreferences.reminderRepeat.length > 0 ? userPreferences.reminderRepeat : [0, 1, 2, 3, 4, 5, 6];
-
-    savePreferences();
-    scheduleReminder();
-    updateFloatingAlarmTrigger();
-
-    const reminderToggle = document.getElementById('reminder-toggle');
-    if (reminderToggle) {
-        reminderToggle.classList.add('active');
-    }
-
-    closeFloatingAlarm();
-    showToast(`提醒已设置为 ${userPreferences.reminderTime}`);
-}
-
-function updateFloatingAlarmTrigger() {
-    const trigger = document.getElementById('floating-alarm-trigger');
-    if (!trigger) return;
-
-    if (userPreferences.reminderEnabled) {
-        trigger.classList.add('visible');
-    } else {
-        trigger.classList.remove('visible');
-    }
 }
 
 function selectAvatar(style, el) {
@@ -1682,14 +1417,26 @@ function saveName() {
     showToast('昵称已保存');
 }
 
-function switchTask(taskName, taskId) {
+async function switchTask(taskName, taskId) {
     currentUser.currentTask = taskName;
     saveUser();
+
+    // 同步任务偏好到数据库，影响AI内容和教学推荐
+    if (StarData.isLoggedIn()) {
+        try {
+            await fetch('/api/user/meta', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: StarData.getUserId(), currentTask: taskName }),
+            });
+        } catch (e) { /* silent */ }
+    }
+
     renderTaskGrid();
-    showToast(`已切换到「${taskName}」`);
+    showToast(`已切换到「${taskName}」 | 平台教学内容已同步更新`);
 }
 
-function savePreferences() {
+async function savePreferences() {
     const cognitiveStyle = document.getElementById('cognitive-style');
     const difficultyPref = document.getElementById('difficulty-pref');
 
@@ -1697,6 +1444,19 @@ function savePreferences() {
     if (difficultyPref) userPreferences.difficultyPref = difficultyPref.value;
 
     localStorage.setItem('starlearn_preferences', JSON.stringify(userPreferences));
+
+    // 同步到数据库
+    if (StarData.isLoggedIn()) {
+        await StarData.setPreferences(userPreferences);
+        // 同步学习偏好到后端，影响AI教学内容生成
+        try {
+            await fetch('/api/user/preferences', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: StarData.getUserId(), preferences: userPreferences }),
+            });
+        } catch (e) { /* silent */ }
+    }
 }
 
 function saveUser() {
@@ -1730,14 +1490,6 @@ function goBack() {
 function clearData() {
     if (confirm('确定要清除所有学习数据吗？此操作不可恢复。')) {
         localStorage.removeItem('starlearn_evaluation');
-
-        const statInteractions = document.getElementById('stat-interactions');
-        const statTasks = document.getElementById('stat-tasks');
-        const statTime = document.getElementById('stat-time');
-
-        if (statInteractions) statInteractions.textContent = '0';
-        if (statTasks) statTasks.textContent = '0';
-        if (statTime) statTime.textContent = '0';
 
         showToast('学习数据已清除');
     }
@@ -1783,15 +1535,310 @@ document.addEventListener('keydown', function(e) {
         if (modal && !modal.classList.contains('hidden')) {
             cancelCrop();
         }
-        if (floatingAlarmState.isOpen) {
-            closeFloatingAlarm();
-        }
     }
 });
 
+// 偏好设置卡片鼠标跟随效果
+function initPrefCardMouseTracking() {
+    document.querySelectorAll('.pref-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--mouse-x', x + '%');
+            card.style.setProperty('--mouse-y', y + '%');
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.removeProperty('--mouse-x');
+            card.style.removeProperty('--mouse-y');
+        });
+    });
+}
+
+function initToggleGlowDots() {
+    document.querySelectorAll('.toggle').forEach(toggle => {
+        const glow = document.createElement('span');
+        glow.className = 'toggle-glow';
+        toggle.appendChild(glow);
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     init();
+    // 延迟初始化鼠标追踪，确保 DOM 渲染完成
+    setTimeout(initPrefCardMouseTracking, 500);
 });
+
+// ============================================
+// Custom Liquid Glass Dropdown
+// ============================================
+function initCustomDropdowns() {
+    document.querySelectorAll('select.pref-select').forEach(function(select) {
+        // Already processed?
+        if (select._dropdownInit) return;
+        select._dropdownInit = true;
+
+        // Create wrapper - sibling to select, not parent
+        var wrap = document.createElement('div');
+        wrap.className = 'pref-select-wrap';
+
+        // Insert wrapper right after the select in the DOM
+        select.parentNode.insertBefore(wrap, select.nextSibling);
+
+        // Build trigger
+        var trigger = document.createElement('button');
+        trigger.className = 'pref-select-trigger';
+        trigger.type = 'button';
+
+        var valueSpan = document.createElement('span');
+        valueSpan.className = 'pref-select-value';
+        valueSpan.textContent = select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : '';
+        trigger.appendChild(valueSpan);
+
+        // Arrow SVG
+        var arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrowSvg.setAttribute('class', 'pref-select-arrow');
+        arrowSvg.setAttribute('width', '16');
+        arrowSvg.setAttribute('height', '16');
+        arrowSvg.setAttribute('viewBox', '0 0 24 24');
+        arrowSvg.setAttribute('fill', 'none');
+        arrowSvg.setAttribute('stroke', 'currentColor');
+        arrowSvg.setAttribute('stroke-width', '2.5');
+        arrowSvg.setAttribute('stroke-linecap', 'round');
+        arrowSvg.setAttribute('stroke-linejoin', 'round');
+
+        var arrowPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        arrowPath.setAttribute('d', 'M6 9l6 6 6-6');
+        arrowSvg.appendChild(arrowPath);
+        trigger.appendChild(arrowSvg);
+
+        wrap.appendChild(trigger);
+
+        // Build menu
+        var menu = document.createElement('div');
+        menu.className = 'pref-select-menu';
+        menu._isPortal = false;
+
+        var options = select.querySelectorAll('option');
+        var optionItems = [];
+        options.forEach(function(option) {
+            var item = document.createElement('div');
+            item.className = 'pref-select-option';
+            if (option.selected) item.classList.add('active');
+            item.dataset.value = option.value;
+            item.textContent = option.text;
+            menu.appendChild(item);
+            optionItems.push(item);
+        });
+
+        // Store trigger reference for portal positioning
+        menu._triggerRef = trigger;
+        menu._wrapRef = wrap;
+
+        // Initially hide via CSS (no inline style needed)
+        wrap.appendChild(menu);
+
+        // Portal positioning function
+        function positionMenuAsPortal() {
+            if (!wrap.classList.contains('open') || !menu._isPortal) return;
+            var triggerRect = trigger.getBoundingClientRect();
+            var viewportHeight = window.innerHeight;
+            var viewportWidth = window.innerWidth;
+
+            // Position below trigger (viewport-relative for fixed positioning)
+            var top = triggerRect.bottom + 4;
+            var left = triggerRect.left;
+
+            // Check if menu would go below viewport - flip above
+            if (triggerRect.bottom + 280 > viewportHeight) {
+                top = triggerRect.top - 280 - 4;
+            }
+
+            // Ensure menu doesn't overflow right edge
+            if (left + 200 > viewportWidth) {
+                left = viewportWidth - 220;
+            }
+
+            menu.style.setProperty('top', top + 'px', 'important');
+            menu.style.setProperty('left', left + 'px', 'important');
+            menu.style.setProperty('right', 'auto', 'important');
+            menu.style.setProperty('min-width', Math.max(200, triggerRect.width) + 'px', 'important');
+        }
+
+        // Update value display
+        function updateValue() {
+            var selected = select.options[select.selectedIndex];
+            if (selected) {
+                valueSpan.textContent = selected.text;
+            }
+            optionItems.forEach(function(item) {
+                item.classList.toggle('active', item.dataset.value === select.value);
+            });
+        }
+
+        // Toggle open/close
+        trigger.addEventListener('click', function(e) {
+            e.stopPropagation();
+            // Close other dropdowns
+            document.querySelectorAll('.pref-select-wrap.open').forEach(function(otherWrap) {
+                if (otherWrap !== wrap) {
+                    otherWrap.classList.remove('open');
+                    // Return their menus back
+                    var otherMenu = otherWrap.querySelector('.pref-select-menu');
+                    if (otherMenu && otherMenu._isPortal) {
+                        otherWrap.appendChild(otherMenu);
+                        otherMenu._isPortal = false;
+                        // Reset all portal-related inline styles
+                        otherMenu.style.position = '';
+                        otherMenu.style.left = '';
+                        otherMenu.style.top = '';
+                        otherMenu.style.right = '';
+                        otherMenu.style.zIndex = '';
+                        otherMenu.style.opacity = '';
+                        otherMenu.style.visibility = '';
+                        otherMenu.style.pointerEvents = '';
+                        otherMenu.style.minWidth = '';
+                        otherMenu.style.transform = '';
+                    }
+                }
+            });
+
+            wrap.classList.toggle('open');
+
+            if (wrap.classList.contains('open')) {
+                arrowSvg.style.transform = 'rotate(180deg)';
+                // Move menu to body for Portal rendering
+                if (!menu._isPortal) {
+                    document.body.appendChild(menu);
+                    menu._isPortal = true;
+                }
+                // Set position fixed and update z-index for portal (must exceed notification card's 99999)
+                menu.style.position = 'fixed';
+                menu.style.zIndex = '1000000';
+                // Explicitly show the menu via setProperty with priority
+                menu.style.setProperty('opacity', '1', 'important');
+                menu.style.setProperty('visibility', 'visible', 'important');
+                menu.style.setProperty('pointer-events', 'auto', 'important');
+                // Position it
+                positionMenuAsPortal();
+            } else {
+                arrowSvg.style.transform = 'rotate(0deg)';
+                // Return menu to wrapper
+                if (menu._isPortal) {
+                    wrap.appendChild(menu);
+                    menu._isPortal = false;
+                    // Reset all portal-related inline styles
+                    menu.style.position = '';
+                    menu.style.left = '';
+                    menu.style.top = '';
+                    menu.style.right = '';
+                    menu.style.zIndex = '';
+                    menu.style.opacity = '';
+                    menu.style.visibility = '';
+                    menu.style.pointerEvents = '';
+                    menu.style.minWidth = '';
+                    menu.style.transform = '';
+                }
+            }
+        });
+
+        // Select option
+        menu.addEventListener('click', function(e) {
+            var item = e.target.closest('.pref-select-option');
+            if (!item) return;
+
+            select.value = item.dataset.value;
+            valueSpan.textContent = item.textContent;
+
+            optionItems.forEach(function(o) {
+                o.classList.remove('active');
+                if (o.dataset.value === item.dataset.value) o.classList.add('active');
+            });
+
+            wrap.classList.remove('open');
+            arrowSvg.style.transform = 'rotate(0deg)';
+
+            // Return menu to wrapper
+            if (menu._isPortal) {
+                wrap.appendChild(menu);
+                menu._isPortal = false;
+                // Reset all portal-related inline styles
+                menu.style.position = '';
+                menu.style.left = '';
+                menu.style.top = '';
+                menu.style.right = '';
+                menu.style.zIndex = '';
+                menu.style.opacity = '';
+                menu.style.visibility = '';
+                menu.style.pointerEvents = '';
+                menu.style.minWidth = '';
+                menu.style.transform = '';
+            }
+
+            // Trigger native change event for savePreferences()
+            var changeEvent = new Event('change', { bubbles: true });
+            select.dispatchEvent(changeEvent);
+        });
+
+        // Close on click outside
+        document.addEventListener('click', function(e) {
+            if (!wrap.contains(e.target) && !menu.contains(e.target)) {
+                if (wrap.classList.contains('open')) {
+                    wrap.classList.remove('open');
+                    arrowSvg.style.transform = 'rotate(0deg)';
+                    // Return menu to wrapper
+                    if (menu._isPortal) {
+                        wrap.appendChild(menu);
+                        menu._isPortal = false;
+                        // Reset all portal-related inline styles
+                        menu.style.position = '';
+                        menu.style.left = '';
+                        menu.style.top = '';
+                        menu.style.right = '';
+                        menu.style.zIndex = '';
+                        menu.style.opacity = '';
+                        menu.style.visibility = '';
+                        menu.style.pointerEvents = '';
+                        menu.style.minWidth = '';
+                        menu.style.transform = '';
+                    }
+                }
+            }
+        });
+
+        // Reposition on scroll/resize
+        window.addEventListener('scroll', positionMenuAsPortal, true);
+        window.addEventListener('resize', positionMenuAsPortal);
+
+        // Close on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && wrap.classList.contains('open')) {
+                wrap.classList.remove('open');
+                arrowSvg.style.transform = 'rotate(0deg)';
+                // Return menu to wrapper
+                if (menu._isPortal) {
+                    wrap.appendChild(menu);
+                    menu._isPortal = false;
+                    // Reset all portal-related inline styles
+                    menu.style.position = '';
+                    menu.style.left = '';
+                    menu.style.top = '';
+                    menu.style.right = '';
+                    menu.style.zIndex = '';
+                    menu.style.opacity = '';
+                    menu.style.visibility = '';
+                    menu.style.pointerEvents = '';
+                    menu.style.minWidth = '';
+                    menu.style.transform = '';
+                }
+            }
+        });
+
+        // Sync if native select changes externally
+        select.addEventListener('change', updateValue);
+        updateValue();
+    });
+}
 
 document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') {

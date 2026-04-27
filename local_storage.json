@@ -79,6 +79,74 @@
       "completed": [],
       "generated_at": "2026-04-26T15:25:56.106533",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础知识入门",
+          "description": "学习核心概念章节，完成随堂小测",
+          "type": "study",
+          "duration": 30,
+          "subject": "计算机科学",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "编程基础练习",
+          "description": "完成10道变量与数据类型基础题",
+          "type": "practice",
+          "duration": 40,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "专注力训练",
+          "description": "开启番茄钟，完成2个专注25分钟的学习",
+          "type": "study",
+          "duration": 25,
+          "subject": "通用技能",
+          "difficulty": "easy",
+          "taskUrl": "/flow-meter.html"
+        },
+        {
+          "id": 4,
+          "title": "苏格拉底式问答",
+          "description": "回答3道基础知识问答，巩固理解",
+          "type": "review",
+          "duration": 25,
+          "subject": "思维训练",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 5,
+          "title": "入门视频学习",
+          "description": "观看2个知识点讲解视频，做好笔记",
+          "type": "study",
+          "duration": 30,
+          "subject": "计算机科学",
+          "difficulty": "easy",
+          "taskUrl": "/video-player.html"
+        },
+        {
+          "id": 6,
+          "title": "虚拟宠物互动",
+          "description": "喂养宠物并完成日常任务，放松一下",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-04-27",
+      "completed": [],
+      "generated_at": "2026-04-27T12:10:13.255147",
+      "user_id": 1
     }
   ]
 }

@@ -2,5 +2,18 @@
   "enabledPlugins": {
     "claude-hud@claude-hud": true,
     "superpowers@claude-plugins-official": true
+  },
+  "autoCompactEnabled": true,
+  "autoCompactWindow": 150000,
+  "hooks": {
+    "PreCompact": [{
+      "matcher": "manual|auto",
+      "hooks": [{
+        "type": "agent",
+        "prompt": "Extract and preserve these key items from the current conversation context:\n1. Active tasks and their current status\n2. Any in-progress implementation details or decisions\n3. Pending user requests or follow-up actions\n4. Important context that would be lost if the conversation were compacted\n\nOutput a concise preservation summary that will be injected after compaction as additional context.",
+        "timeout": 30,
+        "model": "sonnet"
+      }]
+    }]
   }
 }

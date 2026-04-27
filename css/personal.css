@@ -22,29 +22,31 @@
     --danger: #ef4444;
     --danger-bg: rgba(239, 68, 68, 0.12);
 
-    /* Text Colors - High Contrast for Light BG */
+    /* Text Colors - High Contrast */
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-tertiary: #94a3b8;
     --text-inverse: #ffffff;
 
-    /* Background Colors */
-    --bg-primary: #f8fafc;
-    --bg-secondary: #f1f5f9;
-    --bg-card: rgba(255, 255, 255, 0.85);
-    --bg-card-hover: rgba(255, 255, 255, 0.95);
-    --bg-elevated: #ffffff;
+    /* Background Colors - Darker base */
+    --bg-primary: #d4dbe0;
+    --bg-secondary: #c5cdd3;
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-card-hover: rgba(255, 255, 255, 0.88);
+    --bg-elevated: rgba(255, 255, 255, 0.85);
 
-    /* Glass Effect */
-    --glass-bg: rgba(255, 255, 255, 0.7);
-    --glass-border: rgba(0, 0, 0, 0.06);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-    --glass-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.12);
+    /* iOS 26 Liquid Glass Effect */
+    --glass-bg: rgba(255, 255, 255, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --glass-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.7);
+    --glass-blur: 24px;
+    --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 
     /* Orb Colors */
-    --orb-1: rgba(99, 102, 241, 0.15);
-    --orb-2: rgba(236, 72, 153, 0.12);
-    --orb-3: rgba(59, 130, 246, 0.1);
+    --orb-1: rgba(99, 102, 241, 0.18);
+    --orb-2: rgba(236, 72, 153, 0.15);
+    --orb-3: rgba(59, 130, 246, 0.12);
 
     /* Spacing & Border */
     --radius-sm: 12px;
@@ -71,18 +73,20 @@
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-tertiary: #64748b;
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: rgba(30, 41, 59, 0.8);
-    --bg-card-hover: rgba(30, 41, 59, 0.9);
-    --bg-elevated: #1e293b;
-    --glass-bg: rgba(30, 41, 59, 0.7);
-    --glass-border: rgba(255, 255, 255, 0.08);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    --glass-shadow-hover: 0 12px 48px rgba(0, 0, 0, 0.4);
-    --orb-1: rgba(99, 102, 241, 0.2);
-    --orb-2: rgba(236, 72, 153, 0.15);
-    --orb-3: rgba(59, 130, 246, 0.15);
+    --bg-primary: #1a1d23;
+    --bg-secondary: #252931;
+    --bg-card: rgba(30, 41, 59, 0.72);
+    --bg-card-hover: rgba(30, 41, 59, 0.88);
+    --bg-elevated: rgba(30, 41, 59, 0.85);
+    --glass-bg: rgba(30, 41, 59, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --glass-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+    --glass-blur: 24px;
+    --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    --orb-1: rgba(99, 102, 241, 0.25);
+    --orb-2: rgba(236, 72, 153, 0.2);
+    --orb-3: rgba(59, 130, 246, 0.18);
 }
 
 /* ============================================
@@ -231,11 +235,11 @@ body {
     padding: 16px 24px;
     margin-bottom: 24px;
     background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
     animation: slideDown 0.6s var(--ease-out-expo);
 }
 
@@ -287,11 +291,11 @@ body {
 /* Main Glass Card */
 .personal-main {
     background: var(--glass-bg);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-xl);
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--glass-shadow), var(--glass-highlight);
     padding: 32px;
     animation: fadeInUp 0.8s var(--ease-out-expo) 0.2s both;
 }
@@ -1209,6 +1213,9 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
+    position: relative;
+    z-index: 200000;
+    pointer-events: auto;
 }
 
 .pref-card {
@@ -1218,30 +1225,12 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-md);
     transition: all 0.4s var(--ease-out-expo);
-    overflow: hidden;
-}
-
-.pref-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    opacity: 0;
-    transition: opacity 0.3s ease;
 }
 
 .pref-card:hover {
     background: var(--bg-card-hover);
     border-color: var(--primary);
-    transform: translateY(-4px);
     box-shadow: var(--glass-shadow-hover);
-}
-
-.pref-card:hover::before {
-    opacity: 1;
 }
 
 .pref-header {
@@ -1309,26 +1298,35 @@ body {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
-    background: var(--bg-elevated);
-    border: 2px solid var(--glass-border);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-sm);
     outline: none;
     cursor: pointer;
     transition: all 0.3s var(--ease-out-expo);
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    -webkit-appearance: none;
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 12px center;
+    background-position: right 14px center;
     padding-right: 44px;
 }
 
 .pref-select:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 4px var(--primary-glow);
+    box-shadow: 0 0 0 4px var(--primary-glow), var(--glass-highlight);
 }
 
 .pref-select option {
     padding: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: none;
+    color: var(--text-primary);
 }
 
 /* ============================================
@@ -1664,6 +1662,12 @@ body {
     border: none !important;
     border-radius: 1.5rem !important;
     min-height: 320px;
+    /* iOS 26 Liquid Glass Effect */
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border) !important;
 }
 
 .eco-card::before {
@@ -1672,10 +1676,20 @@ body {
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 50%, rgba(168,85,247,0.3) 100%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 50%, rgba(168,85,247,0.25) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.eco-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 40%, rgba(0,0,0,0.02) 100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -2519,11 +2533,15 @@ body {
     position: relative;
     width: 56px;
     height: 30px;
-    background: var(--bg-secondary);
-    border: 2px solid var(--glass-border);
+    background: rgba(100, 116, 139, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: var(--radius-full);
     cursor: pointer;
     transition: all 0.4s var(--ease-out-expo);
+    /* iOS 26 Liquid Glass */
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .toggle::after {
@@ -2533,21 +2551,22 @@ body {
     left: 3px;
     width: 20px;
     height: 20px;
-    background: var(--text-tertiary);
+    background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
     border-radius: 50%;
     transition: all 0.4s var(--ease-out-expo);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .toggle.active {
-    background: var(--primary);
-    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    border-color: transparent;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 20px var(--primary-glow), 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .toggle.active::after {
     left: 29px;
-    background: white;
-    box-shadow: 0 2px 12px var(--primary-glow);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 2px 12px var(--primary-glow), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* ============================================
@@ -4796,4 +4815,636 @@ body {
     transform: translateZ(0);
     will-change: transform;
     backface-visibility: hidden;
+}
+
+/* ============================================
+   生态空间 UI 增强
+   ============================================ */
+
+/* 生态总览标签增强 */
+.eco-overview {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(139, 92, 246, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: ecoOverviewSlideIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ecoOverviewSlideIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.eco-overview-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.eco-overview-item:hover {
+    color: var(--text-primary);
+    transform: scale(1.05);
+}
+
+.eco-overview-item strong {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 1.1em;
+}
+
+.eco-overview-divider {
+    width: 1px;
+    height: 24px;
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
+
+/* 生态卡片动画增强 */
+.eco-card {
+    animation: ecoCardFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.eco-card:nth-child(1) { animation-delay: 0.1s; }
+.eco-card:nth-child(2) { animation-delay: 0.25s; }
+
+@keyframes ecoCardFadeIn {
+    from { opacity: 0; transform: translateY(30px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 宠物头像光晕脉动 */
+@keyframes petRingPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(168, 85, 247, 0.7), 0 0 40px rgba(139, 92, 246, 0.3); }
+}
+
+.eco-pet-avatar-ring {
+    animation: petRingPulse 2.5s ease-in-out infinite;
+}
+
+/* 操作按钮波纹效果 */
+@keyframes btnRipple {
+    0% { transform: scale(0); opacity: 0.6; }
+    100% { transform: scale(4); opacity: 0; }
+}
+
+.eco-action-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.eco-action-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: scale(0);
+    pointer-events: none;
+}
+
+.eco-action-btn:active::after {
+    animation: btnRipple 0.6s ease-out;
+}
+
+/* 植物卡片生长动画 */
+.eco-plant-display {
+    animation: plantSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes plantSlideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* 统计条脉动 */
+@keyframes statBarPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+}
+
+.eco-stat-fill {
+    animation: statBarPulse 3s ease-in-out infinite;
+}
+
+/* ============================================
+   偏好设置 UI 优化
+   ============================================ */
+
+/* 设置卡片悬停增强 */
+.pref-card {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: visible;
+}
+
+.pref-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(168, 85, 247, 0.08) 0%,
+        transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.pref-card:hover::after {
+    opacity: 1;
+}
+
+.pref-card:hover {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 24px rgba(168, 85, 247, 0.08);
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+/* Toggle 开关增强 */
+.toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: rgba(120, 130, 150, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: box-shadow 0.3s ease, background 0.4s ease;
+    flex-shrink: 0;
+    overflow: visible;
+}
+
+/* 滑块 - 使用 left 精确定位 */
+.toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+    border-radius: 50%;
+    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.4s ease;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.18),
+        0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* 发光点 - 跟随滑块 */
+.toggle .toggle-glow {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.6) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.4s ease,
+                opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* 开启状态 - 弹簧弹入 + 光晕扩散 */
+.toggle.active {
+    background: linear-gradient(135deg, #9333ea, #6366f1);
+    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow:
+        0 0 0 2px rgba(168, 85, 247, 0.15),
+        0 0 20px rgba(168, 85, 247, 0.35),
+        0 0 40px rgba(168, 85, 247, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.toggle.active::after {
+    left: calc(52px - 20px - 3px); /* 52 - 20 - 3 = 29px */
+    box-shadow:
+        0 4px 12px rgba(99, 102, 241, 0.4),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 0 12px rgba(168, 85, 247, 0.5);
+}
+
+.toggle.active .toggle-glow {
+    left: calc(3px + 20px + 12px); /* 35px - follows slider center */
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    transition-delay: 0.1s;
+}
+
+/* 关闭状态 - 滑块弹簧回位 + 光晕消失 */
+.toggle:not(.active) {
+    box-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.3);
+    background: rgba(100, 116, 139, 0.3);
+}
+
+.toggle:not(.active)::after {
+    left: 3px;
+}
+
+.toggle:not(.active) .toggle-glow {
+    left: 3px;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition-delay: 0s;
+}
+
+/* Hover 微调 */
+.toggle:hover::after {
+    box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Select 下拉框增强 */
+.pref-select {
+    width: 100%;
+    padding: 10px 14px;
+    margin-top: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+.pref-select:hover {
+    border-color: rgba(168, 85, 247, 0.4);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.pref-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), var(--glass-highlight);
+}
+
+/* ============================================
+   Custom Liquid Glass Dropdown
+   ============================================ */
+
+.pref-select-wrap {
+    position: relative;
+    z-index: 100;
+    overflow: visible;
+    pointer-events: auto;
+}
+
+.pref-select-wrap.open {
+    position: relative;
+    z-index: 999999;
+    pointer-events: auto;
+}
+
+.pref-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.3s var(--ease-out-expo);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    outline: none;
+    font-family: inherit;
+    text-align: left;
+    gap: 12px;
+}
+
+.pref-select-trigger:hover {
+    border-color: var(--primary);
+    box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.pref-select-wrap.open .pref-select-trigger {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-glow), var(--glass-highlight);
+}
+
+.pref-select-value {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pref-select-arrow {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--text-tertiary);
+    transition: transform 0.3s var(--ease-out-expo);
+    display: block;
+    pointer-events: none;
+}
+
+.pref-select-wrap.open .pref-select-arrow {
+    transform: rotate(180deg);
+    color: var(--primary);
+}
+
+/* Dropdown menu - iOS 26 liquid glass */
+.pref-select-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    min-width: 200px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.25),
+        0 8px 20px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.97);
+    z-index: 999999;
+    padding: 8px;
+    pointer-events: none;
+}
+
+/* Portal mode: when menu is moved to body, it uses position:fixed */
+.pref-select-menu[style*="position: fixed"],
+.pref-select-menu[style*="position:fixed"] {
+    position: fixed !important;
+    transform: none !important;
+    top: auto;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.pref-select-wrap.open .pref-select-trigger {
+    border-color: var(--primary);
+    background: rgba(168, 85, 247, 0.08);
+    box-shadow: 0 0 0 4px var(--primary-glow), var(--glass-highlight);
+}
+
+.pref-select-wrap.open .pref-select-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+/* When in portal mode (body-levelled), override transform */
+.pref-select-wrap.open .pref-select-menu[style*="position: fixed"] {
+    transform: none !important;
+}
+
+.pref-select-option {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+    position: relative;
+}
+
+.pref-select-option:last-child {
+    margin-bottom: 0;
+}
+
+.pref-select-option:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1));
+    backdrop-filter: blur(8px);
+    transform: translateX(4px);
+}
+
+.pref-select-option.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15));
+    color: var(--primary);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.pref-select-option.active::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* Hide native select */
+select.pref-select {
+    display: none;
+}
+
+/* Dark theme overrides for custom dropdown */
+[data-theme="midnight"] .pref-select-menu {
+    background: rgba(25, 30, 45, 0.95);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.5),
+        0 8px 24px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="midnight"] .pref-select-option:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(59, 130, 246, 0.2));
+}
+
+[data-theme="midnight"] .pref-select-option.active {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.25));
+}
+
+/* ============================================
+   驾驶舱仪表增强
+   ============================================ */
+
+/* 量子指标条脉动 */
+.quantum-metric-fill {
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.quantum-metric-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: metricShimmer 2s ease-in-out infinite;
+}
+
+@keyframes metricShimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* 数字滚动动画 */
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.cockpit-stat-value {
+    animation: countUp 0.5s ease-out;
+}
+
+/* AI 分析区域脉动 */
+@keyframes aiAnalysisPulse {
+    0%, 100% { border-color: rgba(168, 85, 247, 0.15); }
+    50% { border-color: rgba(168, 85, 247, 0.3); }
+}
+
+.topology-ai-analysis {
+    animation: aiAnalysisPulse 3s ease-in-out infinite;
+}
+
+/* ============================================
+   全局交互动画
+   ============================================ */
+
+/* 页面元素渐入 */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(0.92); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.personal-section {
+    animation: fadeInUp 0.5s ease-out both;
+}
+
+.personal-section:nth-child(1) { animation-delay: 0.05s; }
+.personal-section:nth-child(2) { animation-delay: 0.12s; }
+.personal-section:nth-child(3) { animation-delay: 0.19s; }
+.personal-section:nth-child(4) { animation-delay: 0.26s; }
+.personal-section:nth-child(5) { animation-delay: 0.33s; }
+.personal-section:nth-child(6) { animation-delay: 0.40s; }
+.personal-section:nth-child(7) { animation-delay: 0.47s; }
+.personal-section:nth-child(8) { animation-delay: 0.54s; }
+
+/* 统计卡片弹跳 */
+.stat-card {
+    animation: fadeInScale 0.5s ease-out both;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+.stat-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), 0 0 24px rgba(168, 85, 247, 0.1);
+}
+
+/* Toast 通知动画 */
+@keyframes toastSlideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastSlideOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+
+/* 任务网格卡片增强 */
+.task-card {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: var(--accent);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(168, 85, 247, 0.1);
+}
+
+/* 目标标签增强 */
+.goal-tag {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.goal-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.goal-tag:active {
+    transform: scale(0.96);
+}
+
+/* 时间标签交互 */
+.time-tag {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.time-tag:hover {
+    transform: translateY(-2px);
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.time-tag:active {
+    transform: scale(0.95);
 }
