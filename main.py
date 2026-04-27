@@ -12,7 +12,7 @@ import tempfile
 import hashlib
 import uvicorn
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 import db as database
 import pymysql
@@ -4213,6 +4213,8 @@ def load_stats(user_id: int):
 
 class CockpitAnalysisRequest(BaseModel):
     userId: int
+    minutes: Optional[int] = 1  # 本次学习分钟数
+    hour: Optional[int] = None  # 当前小时 (0-23)
 
 @app.get("/api/cockpit/analysis/{user_id}")
 async def get_cockpit_analysis(user_id: int):
@@ -4373,16 +4375,294 @@ async def sync_cockpit_stats(request: CockpitAnalysisRequest):
 async def update_learning_time(request: CockpitAnalysisRequest):
     """
     更新学习时长（每分钟调用一次）
+    同时记录每日分钟数用于趋势图
     """
     try:
         stats = database.get_user_stats(request.userId)
         if not stats:
-            stats = {}
-        stats['codePracticeTime'] = stats.get('codePracticeTime', 0) + 1
+            stats = {"daily_minutes": {}, "hourly_minutes": {}}
+
+        today = datetime.now().strftime('%Y-%m-%d')
+        current_hour = request.hour if request.hour is not None else datetime.now().hour
+
+        # 初始化 daily_minutes 结构
+        if 'daily_minutes' not in stats:
+            stats['daily_minutes'] = {}
+        if 'hourly_minutes' not in stats:
+            stats['hourly_minutes'] = {}
+        if today not in stats['hourly_minutes']:
+            stats['hourly_minutes'][today] = {}
+
+        # 更新每日分钟数（使用传入的分钟数）
+        minutes_to_add = request.minutes if request.minutes else 1
+        stats['daily_minutes'][today] = stats['daily_minutes'].get(today, 0) + minutes_to_add
+
+        # 更新小时分钟数
+        stats['hourly_minutes'][today][str(current_hour)] = stats['hourly_minutes'][today].get(str(current_hour), 0) + minutes_to_add
+
+        # 更新累计分钟数
+        stats['codePracticeTime'] = stats.get('codePracticeTime', 0) + minutes_to_add
+
         database.save_user_stats(request.userId, stats)
-        return {"success": True, "minutes": stats['codePracticeTime']}
+        return {
+            "success": True,
+            "minutes": stats['codePracticeTime'],
+            "today_minutes": stats['daily_minutes'].get(today, 0)
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ── 学习概览 API ──
+
+class StudySessionRequest(BaseModel):
+    userId: int
+    session_date: str
+    duration_minutes: int = 0
+    start_time: str = ""
+    end_time: str = ""
+    subject: str = ""
+    node_id: str = ""
+
+
+class LearningGoalRequest(BaseModel):
+    userId: int
+    goal_type: str = "daily"
+    title: str = ""
+    target_value: int = 60
+    current_value: int = 0
+    unit: str = "minutes"
+    start_date: str = ""
+    end_date: str = ""
+
+
+class GoalUpdateRequest(BaseModel):
+    goal_id: int
+    current_value: int
+
+
+@app.get("/api/study/sessions/{user_id}")
+def get_study_sessions(user_id: int, start_date: str = None, end_date: str = None):
+    """获取学习时段记录"""
+    try:
+        sessions = database.get_study_sessions(user_id, start_date, end_date)
+        return {"success": True, "sessions": sessions}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取学习时段失败: {str(e)}")
+
+
+@app.post("/api/study/sessions")
+def create_study_session(request: StudySessionRequest):
+    """记录学习时段"""
+    try:
+        session_data = {
+            'session_date': request.session_date,
+            'duration_minutes': request.duration_minutes,
+            'start_time': request.start_time,
+            'end_time': request.end_time,
+            'subject': request.subject,
+            'node_id': request.node_id,
+        }
+        database.save_study_session(request.userId, session_data)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存学习时段失败: {str(e)}")
+
+
+@app.get("/api/study/total/{user_id}")
+def get_total_study_time(user_id: int, start_date: str = None, end_date: str = None):
+    """获取总学习时长"""
+    try:
+        total = database.get_total_study_minutes(user_id, start_date, end_date)
+        return {"success": True, "total_minutes": total}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取学习时长失败: {str(e)}")
+
+
+@app.get("/api/goals/{user_id}")
+def get_goals(user_id: int, active_only: bool = True):
+    """获取学习目标"""
+    try:
+        goals = database.get_learning_goals(user_id, active_only)
+        return {"success": True, "goals": goals}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取学习目标失败: {str(e)}")
+
+
+@app.post("/api/goals")
+def create_goal(request: LearningGoalRequest):
+    """创建学习目标"""
+    try:
+        goal_data = {
+            'goal_type': request.goal_type,
+            'title': request.title,
+            'target_value': request.target_value,
+            'current_value': request.current_value,
+            'unit': request.unit,
+            'start_date': request.start_date,
+            'end_date': request.end_date,
+        }
+        database.save_learning_goal(request.userId, goal_data)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建学习目标失败: {str(e)}")
+
+
+@app.put("/api/goals")
+def update_goal(request: GoalUpdateRequest):
+    """更新目标进度"""
+    try:
+        database.update_learning_goal(request.goal_id, request.current_value)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新目标失败: {str(e)}")
+
+
+@app.delete("/api/goals/{goal_id}")
+def delete_goal(goal_id: int):
+    """停用学习目标"""
+    try:
+        database.deactivate_learning_goal(goal_id)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"停用目标失败: {str(e)}")
+
+
+@app.get("/api/stats/overview/{user_id}")
+def get_stats_overview(user_id: int):
+    """获取学习概览数据"""
+    try:
+        today = datetime.now().strftime('%Y-%m-%d')
+
+        # 从 user_stats 读取数据
+        stats = database.get_user_stats(user_id)
+        daily_minutes = stats.get('daily_minutes', {}) if stats else {}
+
+        # 今日学习分钟数
+        today_minutes = daily_minutes.get(today, 0)
+
+        # 计算本周总学习时长
+        week_start = (datetime.now() - timedelta(days=datetime.now().weekday())).strftime('%Y-%m-%d')
+        week_minutes = 0
+        current = datetime.now()
+        for i in range(7):
+            date = current - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            if date_str >= week_start:
+                week_minutes += daily_minutes.get(date_str, 0)
+
+        # 计算上周总学习时长（用于趋势计算）
+        last_week_end = week_start
+        last_week_start = (datetime.strptime(week_start, '%Y-%m-%d') - timedelta(days=7)).strftime('%Y-%m-%d')
+        last_week_minutes = 0
+        for date_str, minutes in daily_minutes.items():
+            if last_week_start <= date_str < last_week_end:
+                last_week_minutes += minutes
+
+        # 计算周同比趋势百分比
+        if last_week_minutes > 0:
+            week_trend = round(((week_minutes - last_week_minutes) / last_week_minutes) * 100)
+        else:
+            week_trend = 100 if week_minutes > 0 else 0
+
+        # 获取活跃目标
+        goals = database.get_learning_goals(user_id, active_only=True)
+
+        # 获取知识点掌握度
+        mastery = database.get_user_knowledge_mastery(user_id)
+        avg_mastery = sum(m['mastery'] for m in mastery) / len(mastery) if mastery else 0
+
+        return {
+            "success": True,
+            "overview": {
+                "today_minutes": today_minutes,
+                "week_minutes": week_minutes,
+                "week_trend": week_trend,
+                "total_goals": len(goals),
+                "active_goals": [dict(g) if not isinstance(g, dict) else g for g in goals],
+                "knowledge_count": len(mastery),
+                "avg_mastery": int(avg_mastery),
+            }
+        }
+    except Exception as e:
+        return {
+            "success": True,
+            "overview": {
+                "today_minutes": 0,
+                "week_minutes": 0,
+                "week_trend": 0,
+                "total_goals": 0,
+                "active_goals": [],
+                "knowledge_count": 0,
+                "avg_mastery": 0,
+            }
+        }
+
+
+@app.get("/api/stats/heatmap/{user_id}")
+def get_heatmap_data(user_id: int, weeks: int = 4):
+    """获取热力图数据"""
+    try:
+        stats = database.get_user_stats(user_id)
+        daily_minutes = stats.get('daily_minutes', {}) if stats else {}
+
+        today = datetime.now()
+        heatmap_data = []
+
+        for i in range(weeks * 7):
+            date = today - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            total_minutes = daily_minutes.get(date_str, 0)
+
+            heatmap_data.append({
+                'date': date_str,
+                'day_of_week': date.strftime('%a'),
+                'minutes': total_minutes,
+                'level': 0 if total_minutes == 0 else (1 if total_minutes < 30 else (2 if total_minutes < 60 else (3 if total_minutes < 120 else 4)))
+            })
+
+        heatmap_data.reverse()
+        return {"success": True, "heatmap": heatmap_data}
+    except Exception as e:
+        return {"success": True, "heatmap": []}
+
+
+@app.get("/api/stats/mastery/{user_id}")
+def get_mastery_data(user_id: int):
+    """获取知识点掌握度"""
+    try:
+        mastery = database.get_user_knowledge_mastery(user_id)
+        return {"success": True, "mastery": mastery}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取掌握度失败: {str(e)}")
+
+
+@app.get("/api/stats/trend/{user_id}")
+def get_trend_data(user_id: int, days: int = 7):
+    """获取学习趋势数据"""
+    try:
+        stats = database.get_user_stats(user_id)
+        daily_minutes = stats.get('daily_minutes', {}) if stats else {}
+
+        today = datetime.now()
+        trend_data = []
+
+        for i in range(days):
+            date = today - timedelta(days=i)
+            date_str = date.strftime('%Y-%m-%d')
+            minutes = daily_minutes.get(date_str, 0)
+
+            trend_data.append({
+                'date': date_str,
+                'day': date.strftime('%m/%d'),
+                'weekday': date.strftime('%a'),
+                'minutes': minutes,
+            })
+
+        trend_data.reverse()
+        return {"success": True, "trend": trend_data}
+    except Exception as e:
+        return {"success": True, "trend": []}
 
 
 # ── 通知 ──

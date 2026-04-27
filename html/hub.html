@@ -38,34 +38,22 @@
         <div class="max-w-[1600px] mx-auto px-4 h-full flex items-center justify-between">
             <!-- Logo Section -->
             <div class="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" class="logo-svg">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" class="logo-svg">
                     <defs>
                         <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#a855f7"/>
                             <stop offset="50%" stop-color="#3b82f6"/>
                             <stop offset="100%" stop-color="#10b981"/>
                         </linearGradient>
-                        <filter id="logoGlow" x="-50%" y="-50%" width="200%" height="200%">
-                            <feGaussianBlur stdDeviation="2" result="glow"/>
-                            <feMerge>
-                                <feMergeNode in="glow"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
                     </defs>
-                    <!-- 外围光环 -->
-                    <circle cx="30" cy="30" r="26" fill="none" stroke="url(#logoGradient)" stroke-width="1.5" opacity="0.4"/>
-                    <!-- 星星主体 - 六角星形 -->
-                    <path d="M30 8 L33.5 24 L50 24 L37 33 L42 50 L30 40 L18 50 L23 33 L10 24 L26.5 24 Z"
-                          fill="url(#logoGradient)"
-                          filter="url(#logoGlow)"/>
-                    <!-- 中心亮点 -->
-                    <circle cx="30" cy="30" r="5" fill="white" opacity="0.9"/>
-                    <circle cx="30" cy="30" r="3" fill="url(#logoGradient)"/>
+                    <!-- 星星主体 -->
+                    <path d="M20 4 L23 15 L34 15 L25 22 L28 34 L20 27 L12 34 L15 22 L6 15 L17 15 Z"
+                          fill="url(#logoGradient)"/>
+                    <circle cx="20" cy="20" r="4" fill="white" opacity="0.9"/>
                 </svg>
-                <div class="hidden sm:block">
+                <div class="flex flex-col">
                     <span class="logo-title">星识</span>
-                    <span class="text-muted text-xs ml-2">Star-Learn</span>
+                    <span class="logo-subtitle">Star Learn</span>
                 </div>
             </div>
 
@@ -472,7 +460,7 @@
                             <div class="holo-node node-root healthy" data-status="healthy" data-id="python-core">
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🐍</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.3C13.5 1.5 8 2 5 6c-2 3 0 7 4 7.5 1 .1 2.5-.2 3-1 .6-.9.4-2-1-2.5-2.5-.8-6 .5-7 4-.7 2.5.5 6 4 7s7-2 9-6c1.4-2.8 0-6-2-7"/><circle cx="16" cy="5" r="1.2" fill="currentColor" stroke="none"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -488,7 +476,7 @@
                                 <div class="branch-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">📐</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L20 4"/><path d="M4 20h4l12-12-4-4L4 16v4z"/><path d="M8 8l3 3"/><text x="8" y="19" font-size="5" fill="currentColor" stroke="none" font-weight="bold">x</text></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -503,7 +491,7 @@
                                 <div class="branch-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🌐</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -518,7 +506,7 @@
                                 <div class="branch-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🗄️</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M3 6v6c0 1.7 4 3 9 3s9-1.3 9-3V6"/><path d="M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -533,7 +521,7 @@
                                 <div class="branch-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">📚</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -549,7 +537,7 @@
                                 <div class="leaf-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🤖</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M4 9H1M4 15H1M23 9h-3M23 15h-3"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -564,7 +552,7 @@
                                 <div class="leaf-connector left"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🧮</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="12" r="3"/><path d="M8 6.5l8 4M8 17.5l8-4"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -579,7 +567,7 @@
                                 <div class="leaf-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">⚙️</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -594,7 +582,7 @@
                                 <div class="leaf-connector right"></div>
                                 <div class="node-sphere">
                                     <div class="node-inner">
-                                        <span class="node-icon">🔤</span>
+                                        <span class="node-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></span>
                                     </div>
                                     <div class="node-glow"></div>
                                 </div>
@@ -775,351 +763,233 @@
             </section>
 
             <!-- ==========================================
-                 学习仪表板 (Learning Dashboard)
+                 学习概览 (Learning Overview) - Redesigned
                  以用户直觉为导向的数据可视化布局
                  ========================================== -->
-            <section class="dashboard-section" id="section-dashboard">
-                <!-- 仪表板头部 -->
-                <div class="dashboard-header">
-                    <div class="dashboard-title-row">
-                        <span class="dashboard-icon">📊</span>
-                        <h2 class="dashboard-title">学习数据中心</h2>
+            <section class="overview-section" id="section-dashboard">
+                <!-- 概览头部 -->
+                <div class="overview-header">
+                    <div class="overview-title-row">
+                        <span class="overview-icon">📊</span>
+                        <h2 class="overview-title">学习概览</h2>
                     </div>
-                    <div class="dashboard-meta">
-                        <span class="dashboard-update">最后更新: 刚刚</span>
+                    <div class="overview-meta">
+                        <span class="overview-date" id="overview-date"></span>
                     </div>
                 </div>
 
-                <!-- 快速统计条 -->
-                <div class="quick-stats-bar">
-                    <div class="quick-stat-item">
-                        <div class="quick-stat-icon purple">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Hero 状态卡 -->
+                <div class="hero-status-card" id="hero-status-card">
+                    <div class="hero-glow"></div>
+                    <div class="hero-content">
+                        <div class="hero-icon-wrapper">
+                            <span class="hero-icon">🚀</span>
+                        </div>
+                        <div class="hero-info">
+                            <h3 class="hero-title">今日学习进行中</h3>
+                            <p class="hero-subtitle">已专注 45 分钟，继续保持！</p>
+                        </div>
+                        <div class="hero-stats">
+                            <div class="hero-stat">
+                                <span class="hero-stat-value">5.2</span>
+                                <span class="hero-stat-unit">小时</span>
+                            </div>
+                            <div class="hero-stat-trend up">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                                </svg>
+                                <span>+12%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 指标卡片网格 -->
+                <div class="stat-cards-grid">
+                    <div class="stat-card" data-type="time">
+                        <div class="stat-card-accent purple"></div>
+                        <div class="stat-card-icon">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
-                        <div class="quick-stat-content">
-                            <span class="quick-stat-value">207</span>
-                            <span class="quick-stat-unit">小时</span>
-                            <span class="quick-stat-label">累计学习</span>
+                        <div class="stat-card-body">
+                            <span class="stat-card-value">207</span>
+                            <span class="stat-card-unit">小时</span>
                         </div>
+                        <span class="stat-card-label">累计学习</span>
                     </div>
-                    <div class="quick-stat-divider"></div>
-                    <div class="quick-stat-item">
-                        <div class="quick-stat-icon blue">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+
+                    <div class="stat-card" data-type="tasks">
+                        <div class="stat-card-accent blue"></div>
+                        <div class="stat-card-icon">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
-                        <div class="quick-stat-content">
-                            <span class="quick-stat-value">88</span>
-                            <span class="quick-stat-unit">/120</span>
-                            <span class="quick-stat-label">完成任务</span>
+                        <div class="stat-card-body">
+                            <span class="stat-card-value">88</span>
+                            <span class="stat-card-unit">/120</span>
                         </div>
+                        <span class="stat-card-label">完成任务</span>
                     </div>
-                    <div class="quick-stat-divider"></div>
-                    <div class="quick-stat-item">
-                        <div class="quick-stat-icon green">
-                            <svg class="w-4 h-4" fill="none" stroke="currentCharColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+
+                    <div class="stat-card" data-type="streak">
+                        <div class="stat-card-accent green"></div>
+                        <div class="stat-card-icon">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
                             </svg>
                         </div>
-                        <div class="quick-stat-content">
-                            <span class="quick-stat-value">13</span>
-                            <span class="quick-stat-unit">天</span>
-                            <span class="quick-stat-label">连续学习</span>
+                        <div class="stat-card-body">
+                            <span class="stat-card-value">13</span>
+                            <span class="stat-card-unit">天</span>
                         </div>
+                        <span class="stat-card-label">连续学习</span>
                     </div>
-                    <div class="quick-stat-divider"></div>
-                    <div class="quick-stat-item">
-                        <div class="quick-stat-icon orange">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+                    <div class="stat-card" data-type="goal">
+                        <div class="stat-card-accent orange"></div>
+                        <div class="stat-card-icon">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
                         </div>
-                        <div class="quick-stat-content">
-                            <span class="quick-stat-value">78</span>
-                            <span class="quick-stat-unit">%</span>
-                            <span class="quick-stat-label">年度目标</span>
+                        <div class="stat-card-body">
+                            <span class="stat-card-value">78</span>
+                            <span class="stat-card-unit">%</span>
                         </div>
+                        <span class="stat-card-label">年度目标</span>
                     </div>
                 </div>
 
-                <!-- 主内容区：左右分栏 -->
-                <div class="dashboard-main">
-                    <!-- 左侧：详细数据 -->
-                    <div class="dashboard-left">
-                        <!-- 年度目标进度 -->
-                        <div class="glass-card dashboard-goals-card">
-                            <div class="card-header">
-                                <div class="card-header-icon orange">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                    </svg>
-                                </div>
-                                <h3 class="card-header-title">年度目标</h3>
-                                <span class="card-header-badge">2026</span>
-                            </div>
-                            <div class="goals-grid">
-                                <div class="goal-item">
-                                    <div class="goal-ring">
-                                        <svg viewBox="0 0 80 80">
-                                            <circle class="ring-bg" cx="40" cy="40" r="34"/>
-                                            <circle class="ring-progress purple" cx="40" cy="40" r="34" style="stroke-dashoffset: 57;"/>
-                                        </svg>
-                                        <div class="ring-value"><span class="ring-number">83</span><span class="ring-unit">%</span></div>
-                                    </div>
-                                    <div class="goal-info">
-                                        <span class="goal-label">总专注时间</span>
-                                        <span class="goal-detail">124,560分钟</span>
-                                    </div>
-                                </div>
-                                <div class="goal-item">
-                                    <div class="goal-ring">
-                                        <svg viewBox="0 0 80 80">
-                                            <circle class="ring-bg" cx="40" cy="40" r="34"/>
-                                            <circle class="ring-progress blue" cx="40" cy="40" r="34" style="stroke-dashoffset: 75;"/>
-                                        </svg>
-                                        <div class="ring-value"><span class="ring-number">73</span><span class="ring-unit">%</span></div>
-                                    </div>
-                                    <div class="goal-info">
-                                        <span class="goal-label">完成任务数</span>
-                                        <span class="goal-detail">88/120任务</span>
-                                    </div>
-                                </div>
-                                <div class="goal-item">
-                                    <div class="goal-ring">
-                                        <svg viewBox="0 0 80 80">
-                                            <circle class="ring-bg" cx="40" cy="40" r="34"/>
-                                            <circle class="ring-progress green" cx="40" cy="40" r="34" style="stroke-dashoffset: 66;"/>
-                                        </svg>
-                                        <div class="ring-value"><span class="ring-number">79</span><span class="ring-unit">%</span></div>
-                                    </div>
-                                    <div class="goal-info">
-                                        <span class="goal-label">平均专注时长</span>
-                                        <span class="goal-detail">95分钟/日</span>
-                                    </div>
-                                </div>
-                                <div class="goal-item">
-                                    <div class="goal-ring">
-                                        <svg viewBox="0 0 80 80">
-                                            <circle class="ring-bg" cx="40" cy="40" r="34"/>
-                                            <circle class="ring-progress orange" cx="40" cy="40" r="34" style="stroke-dashoffset: 85;"/>
-                                        </svg>
-                                        <div class="ring-value"><span class="ring-number">75</span><span class="ring-unit">%</span></div>
-                                    </div>
-                                    <div class="goal-info">
-                                        <span class="goal-label">年度学习天数</span>
-                                        <span class="goal-detail">103/137天</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 学习趋势 -->
-                        <div class="glass-card dashboard-trend-card">
-                            <div class="card-header">
-                                <div class="card-header-icon blue">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
-                                    </svg>
-                                </div>
-                                <h3 class="card-header-title">学习趋势</h3>
-                                <span class="card-header-badge">月度统计</span>
-                            </div>
-                            <div class="trend-chart-container">
-                                <div class="trend-chart">
-                                    <svg viewBox="0 0 400 100" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                <stop offset="0%" stop-color="rgba(59, 130, 246, 0.5)"/>
-                                                <stop offset="100%" stop-color="rgba(59, 130, 246, 0)"/>
-                                            </linearGradient>
-                                        </defs>
-                                        <path class="trend-area" fill="url(#trendGradient)" d="M0,80 L33,65 L66,50 L100,35 L133,42 L166,25 L200,32 L233,18 L266,28 L300,12 L333,20 L366,8 L400,5 L400,100 L0,100 Z"/>
-                                        <path class="trend-line" d="M0,80 L33,65 L66,50 L100,35 L133,42 L166,25 L200,32 L233,18 L266,28 L300,12 L333,20 L366,8 L400,5"/>
-                                        <circle class="trend-dot" cx="0" cy="80" r="3"/>
-                                        <circle class="trend-dot" cx="100" cy="35" r="3"/>
-                                        <circle class="trend-dot" cx="200" cy="32" r="3"/>
-                                        <circle class="trend-dot" cx="300" cy="12" r="3"/>
-                                        <circle class="trend-dot" cx="400" cy="5" r="3"/>
-                                    </svg>
-                                </div>
-                                <div class="trend-labels">
-                                    <span>1月</span><span>2月</span><span>3月</span><span>4月</span>
-                                    <span>5月</span><span>6月</span><span>7月</span><span>8月</span>
-                                    <span>9月</span><span>10月</span><span>11月</span><span>12月</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 右侧：任务与日历 -->
-                    <div class="dashboard-right">
-                        <!-- 学习洞察 -->
-                        <div class="glass-card dashboard-insight-card">
-                            <div class="card-header">
-                                <div class="card-header-icon purple">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                    </svg>
-                                </div>
-                                <h3 class="card-header-title">本周学习</h3>
-                                <span class="card-header-badge">洞察</span>
-                            </div>
-                            <div class="insight-content">
-                                <div class="insight-section">
-                                    <h4 class="insight-section-title">每日学习时长</h4>
-                                    <div class="bar-chart-mini">
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini mon" style="height: 60%;"></div>
-                                            <span class="bar-mini-label">一</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini tue" style="height: 80%;"></div>
-                                            <span class="bar-mini-label">二</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini wed" style="height: 45%;"></div>
-                                            <span class="bar-mini-label">三</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini thu" style="height: 90%;"></div>
-                                            <span class="bar-mini-label">四</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini fri" style="height: 70%;"></div>
-                                            <span class="bar-mini-label">五</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini sat" style="height: 55%;"></div>
-                                            <span class="bar-mini-label">六</span>
-                                        </div>
-                                        <div class="bar-mini-item">
-                                            <div class="bar-mini sun" style="height: 40%;"></div>
-                                            <span class="bar-mini-label">日</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="insight-stats-row">
-                                    <div class="insight-stat">
-                                        <span class="insight-stat-value purple">5.2</span>
-                                        <span class="insight-stat-label">日均小时</span>
-                                    </div>
-                                    <div class="insight-stat">
-                                        <span class="insight-stat-value blue">周四</span>
-                                        <span class="insight-stat-label">最高效日</span>
-                                    </div>
-                                    <div class="insight-stat">
-                                        <span class="insight-stat-value green">+12%</span>
-                                        <span class="insight-stat-label">环比增长</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 今日专注日历 -->
-                        <div class="glass-card dashboard-calendar-card">
-                            <div class="card-header">
-                                <div class="card-header-icon green">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                                <h3 class="card-header-title">专注日历</h3>
-                                <span class="card-header-badge">4月</span>
-                            </div>
-                            <div class="mini-calendar">
-                                <div class="mini-calendar-header">
-                                    <span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span>
-                                </div>
-                                <div class="mini-calendar-grid">
-                                    <span class="empty"></span><span class="empty"></span>
-                                    <span class="completed">1</span><span class="completed">2</span>
-                                    <span class="completed">3</span><span class="completed">4</span>
-                                    <span class="completed">5</span><span class="completed">6</span>
-                                    <span class="completed">7</span><span class="completed">8</span>
-                                    <span class="completed">9</span><span class="completed">10</span>
-                                    <span class="completed">11</span><span class="completed">12</span>
-                                    <span class="completed">13</span><span class="today">14</span>
-                                    <span>15</span><span>16</span><span>17</span><span>18</span>
-                                </div>
-                            </div>
-                            <div class="calendar-legend">
-                                <span class="legend-item"><span class="legend-dot completed"></span>已完成</span>
-                                <span class="legend-item"><span class="legend-dot today-dot"></span>今日</span>
-                                <span class="legend-item"><span class="legend-dot"></span>未完成</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 底部：任务列表 + 学习标签 -->
-                <div class="dashboard-bottom">
-                    <!-- 专注任务列表 -->
-                    <div class="glass-card dashboard-task-card">
-                        <div class="card-header">
-                            <div class="card-header-icon purple">
+                <!-- 趋势 + 热力图 -->
+                <div class="dashboard-charts-row">
+                    <!-- 学习趋势图 -->
+                    <div class="chart-card trend-chart-card">
+                        <div class="chart-header">
+                            <h4 class="chart-title">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                                 </svg>
-                            </div>
-                            <h3 class="card-header-title">专注任务</h3>
-                            <span class="card-header-badge">3个任务</span>
+                                学习趋势
+                            </h4>
+                            <span class="chart-badge">近7天</span>
                         </div>
-                        <div class="task-list">
-                            <div class="task-list-item completed">
-                                <div class="task-list-status completed">
+                        <div class="trend-chart-wrapper">
+                            <canvas id="overviewTrendChart"></canvas>
+                            <div class="trend-tooltip" id="trendTooltip"></div>
+                        </div>
+                    </div>
+
+                    <!-- 学习时段热力图 -->
+                    <div class="chart-card heatmap-card">
+                        <div class="chart-header">
+                            <h4 class="chart-title">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                                </svg>
+                                学习时段
+                            </h4>
+                            <div class="heatmap-toggle">
+                                <button class="toggle-btn" data-period="day">日</button>
+                                <button class="toggle-btn active" data-period="week">周</button>
+                                <button class="toggle-btn" data-period="month">月</button>
+                                <button class="toggle-btn" data-period="year">年</button>
+                            </div>
+                        </div>
+                        <div class="heatmap-wrapper" id="heatmapWrapper">
+                            <div class="heatmap-hours" id="heatmapHours"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部：任务 + 日历 + 标签 -->
+                <div class="dashboard-bottom-row">
+                    <!-- 专注任务列表 -->
+                    <div class="compact-card task-list-card">
+                        <div class="compact-header">
+                            <h4 class="compact-title">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                专注任务
+                            </h4>
+                            <span class="compact-badge">3个</span>
+                        </div>
+                        <div class="task-items">
+                            <div class="task-item completed">
+                                <div class="task-status completed">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
                                     </svg>
                                 </div>
-                                <div class="task-list-info">
-                                    <span class="task-list-name">数据结构复习</span>
-                                    <span class="task-list-meta">120分钟 · 已完成</span>
+                                <div class="task-info">
+                                    <span class="task-name">数据结构复习</span>
+                                    <span class="task-meta">120分钟 · 已完成</span>
                                 </div>
                             </div>
-                            <div class="task-list-item in-progress">
-                                <div class="task-list-status in-progress">
+                            <div class="task-item in-progress">
+                                <div class="task-status in-progress">
                                     <span class="status-pulse"></span>
                                 </div>
-                                <div class="task-list-info">
-                                    <span class="task-list-name">LeetCode刷题</span>
-                                    <span class="task-list-meta">60分钟 · 进行中</span>
+                                <div class="task-info">
+                                    <span class="task-name">LeetCode刷题</span>
+                                    <span class="task-meta">60分钟 · 进行中</span>
                                 </div>
                             </div>
-                            <div class="task-list-item pending">
-                                <div class="task-list-status pending"></div>
-                                <div class="task-list-info">
-                                    <span class="task-list-name">机器学习项目</span>
-                                    <span class="task-list-meta">180分钟 · 待开始</span>
+                            <div class="task-item pending">
+                                <div class="task-status pending"></div>
+                                <div class="task-info">
+                                    <span class="task-name">机器学习项目</span>
+                                    <span class="task-meta">180分钟 · 待开始</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- 专注日历 -->
+                    <div class="compact-card calendar-card">
+                        <div class="compact-header">
+                            <h4 class="compact-title">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                专注日历
+                            </h4>
+                            <span class="compact-badge">4月</span>
+                        </div>
+                        <div class="mini-calendar-grid">
+                            <span class="empty"></span><span class="empty"></span>
+                            <span class="day completed">1</span><span class="day completed">2</span>
+                            <span class="day completed">3</span><span class="day completed">4</span>
+                            <span class="day completed">5</span><span class="day completed">6</span>
+                            <span class="day completed">7</span><span class="day completed">8</span>
+                            <span class="day completed">9</span><span class="day completed">10</span>
+                            <span class="day completed">11</span><span class="day completed">12</span>
+                            <span class="day completed">13</span><span class="day today">14</span>
+                            <span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span>
+                        </div>
+                    </div>
+
                     <!-- 学习标签 -->
-                    <div class="glass-card dashboard-tags-card">
-                        <div class="card-header">
-                            <div class="card-header-icon green">
+                    <div class="compact-card tags-card">
+                        <div class="compact-header">
+                            <h4 class="compact-title">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                 </svg>
-                            </div>
-                            <h3 class="card-header-title">学习领域</h3>
-                            <span class="card-header-badge">10个</span>
+                                学习领域
+                            </h4>
+                            <span class="compact-badge">10个</span>
                         </div>
                         <div class="tags-cloud">
-                            <span class="tag-cloud-item python">🐍 Python</span>
-                            <span class="tag-cloud-item ds">📊 数据结构</span>
-                            <span class="tag-cloud-item ml">🤖 机器学习</span>
-                            <span class="tag-cloud-item dl">🧠 深度学习</span>
-                            <span class="tag-cloud-item algo">🧮 算法导论</span>
-                            <span class="tag-cloud-item sys">🏗️ 系统设计</span>
-                            <span class="tag-cloud-item" style="--tag-bg: rgba(249,115,22,0.15); --tag-border: rgba(249,115,22,0.3);">🐳 Docker</span>
-                            <span class="tag-cloud-item" style="--tag-bg: rgba(6,182,212,0.15); --tag-border: rgba(6,182,212,0.3);">☸️ K8s</span>
-                            <span class="tag-cloud-item" style="--tag-bg: rgba(236,72,153,0.15); --tag-border: rgba(236,72,153,0.3);">📈 可视化</span>
-                            <span class="tag-cloud-item" style="--tag-bg: rgba(139,92,246,0.15); --tag-border: rgba(139,92,246,0.3);">🔗 区块链</span>
+                            <span class="tag-item python">🐍 Python</span>
+                            <span class="tag-item ds">📊 数据结构</span>
+                            <span class="tag-item ml">🤖 机器学习</span>
+                            <span class="tag-item dl">🧠 深度学习</span>
+                            <span class="tag-item algo">🧮 算法</span>
+                            <span class="tag-item sys">🏗️ 系统设计</span>
                         </div>
                     </div>
                 </div>

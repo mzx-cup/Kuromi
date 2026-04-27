@@ -590,6 +590,879 @@ function animateLineChart() {
 }
 
 // ============================================
+// 学习概览图表初始化
+// ============================================
+
+// 学习概览日期显示
+function initOverviewDate() {
+    const dateEl = document.getElementById('overview-date');
+    if (!dateEl) return;
+
+    const now = new Date();
+    const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+    dateEl.textContent = now.toLocaleDateString('zh-CN', options);
+}
+
+// 加载学习概览数据 (从API)
+async function loadStudyOverviewData() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    try {
+        // 获取概览数据
+        const overviewRes = await fetch(`/api/stats/overview/${user.id}`);
+        const overviewData = await overviewRes.json();
+
+        if (overviewData.success && overviewData.overview) {
+            const o = overviewData.overview;
+
+            // 更新 Hero 状态卡
+            const heroTitle = document.querySelector('.hero-title');
+            const heroSubtitle = document.querySelector('.hero-subtitle');
+            const heroValue = document.querySelector('.hero-stat-value');
+            const heroUnit = document.querySelector('.hero-stat-unit');
+
+            if (heroSubtitle) {
+                const todayHours = o.today_minutes >= 60
+                    ? (o.today_minutes / 60).toFixed(1) + ' 小时'
+                    : o.today_minutes + ' 分钟';
+                heroSubtitle.textContent = `已专注 ${todayHours}，继续保持！`;
+            }
+            if (heroValue) {
+                const weekHours = (o.week_minutes / 60).toFixed(1);
+                heroValue.textContent = weekHours;
+            }
+
+            // 更新趋势显示
+            const trendEl = document.querySelector('.hero-stat-trend');
+            const trendSpan = trendEl?.querySelector('span');
+            if (trendEl && trendSpan) {
+                const trend = o.week_trend || 0;
+                const isUp = trend >= 0;
+                trendEl.className = `hero-stat-trend ${isUp ? 'up' : 'down'}`;
+                trendSpan.textContent = `${isUp ? '+' : ''}${trend}%`;
+                // 更新箭头方向
+                const svg = trendEl.querySelector('svg');
+                if (svg) {
+                    svg.innerHTML = isUp
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>';
+                }
+            }
+
+            // 更新指标卡片
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => {
+                const type = card.dataset.type;
+                const valueEl = card.querySelector('.stat-card-value');
+                const unitEl = card.querySelector('.stat-card-unit');
+                const labelEl = card.querySelector('.stat-card-label');
+
+                if (type === 'time' && valueEl) {
+                    // 累计学习时间
+                    const totalHours = o.week_minutes || 0;
+                    valueEl.textContent = (totalHours / 60).toFixed(1);
+                    if (unitEl) unitEl.textContent = '小时';
+                    if (labelEl) labelEl.textContent = '本周学习';
+                } else if (type === 'tasks' && valueEl) {
+                    // 活跃目标数
+                    valueEl.textContent = o.total_goals || 0;
+                    if (unitEl) unitEl.textContent = '个';
+                    if (labelEl) labelEl.textContent = '学习目标';
+                } else if (type === 'streak' && valueEl) {
+                    // 知识点掌握度
+                    valueEl.textContent = o.avg_mastery || 0;
+                    if (unitEl) unitEl.textContent = '%';
+                    if (labelEl) labelEl.textContent = '平均掌握度';
+                } else if (type === 'goal' && valueEl) {
+                    // 知识点数量
+                    valueEl.textContent = o.knowledge_count || 0;
+                    if (unitEl) unitEl.textContent = '个';
+                    if (labelEl) labelEl.textContent = '已学知识点';
+                }
+            });
+        }
+    } catch (e) {
+        console.log('[StudyOverview] 加载失败，使用默认数据');
+    }
+}
+
+// 同步学习时长到服务器（每分钟调用）
+async function syncLearningMinute() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const hour = now.getHours();
+
+    // 从 localStorage 读取当前学习数据
+    let studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+    if (!studyData.daily_minutes) {
+        studyData.daily_minutes = {};
+    }
+    if (!studyData.hourly_minutes) {
+        studyData.hourly_minutes = {};
+    }
+    if (!studyData.hourly_minutes[today]) {
+        studyData.hourly_minutes[today] = {};
+    }
+
+    // 更新今日分钟数
+    studyData.daily_minutes[today] = (studyData.daily_minutes[today] || 0) + 1;
+
+    // 更新当前小时分钟数
+    studyData.hourly_minutes[today][hour] = (studyData.hourly_minutes[today][hour] || 0) + 1;
+
+    // 保存到 localStorage
+    localStorage.setItem('starlearn_study', JSON.stringify(studyData));
+
+    try {
+        await fetch('/api/cockpit/learning-time', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id }),
+        });
+        localStorage.setItem('starlearn_learning_update', String(Date.now()));
+    } catch (e) { /* silent */ }
+}
+
+// 加载专注任务列表（从每日航线或目标API）
+async function loadFocusTasks() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    const container = document.querySelector('.task-items');
+    const badge = document.querySelector('.task-list-card .compact-badge');
+    if (!container) return;
+
+    try {
+        // 尝试从每日航线获取任务
+        const routeRes = await fetch(`/api/daily-route/status?userId=${user.id}`);
+        const routeData = await routeRes.json();
+
+        if (routeData.success && routeData.tasks && routeData.tasks.length > 0) {
+            // 使用每日航线任务
+            renderTaskItems(container, badge, routeData.tasks, routeData.completed || []);
+            return;
+        }
+
+        // 备用：从目标API获取
+        const goalsRes = await fetch(`/api/goals/${user.id}?active_only=true`);
+        const goalsData = await goalsRes.json();
+
+        if (goalsData.success && goalsData.goals && goalsData.goals.length > 0) {
+            renderTaskItemsFromGoals(container, badge, goalsData.goals);
+            return;
+        }
+
+        // 无数据时显示提示
+        container.innerHTML = '<div class="task-empty">暂无专注任务，<a href="/courses.html">去选课</a></div>';
+        if (badge) badge.textContent = '0个';
+    } catch (e) {
+        console.log('[FocusTasks] 加载失败');
+    }
+}
+
+// 渲染任务列表（从每日航线）
+function renderTaskItems(container, badge, tasks, completed) {
+    if (!tasks || tasks.length === 0) {
+        container.innerHTML = '<div class="task-empty">暂无专注任务，<a href="/courses.html">去选课</a></div>';
+        if (badge) badge.textContent = '0个';
+        return;
+    }
+
+    if (badge) badge.textContent = tasks.length + '个';
+
+    const statusMap = {};
+    completed.forEach(id => statusMap[id] = 'completed');
+
+    container.innerHTML = tasks.slice(0, 5).map(task => {
+        const status = statusMap[task.id] || 'pending';
+        const statusLabels = { completed: '已完成', in_progress: '进行中', pending: '待开始' };
+        const duration = task.duration || 60;
+        return `
+            <div class="task-item ${status}" data-task-id="${task.id}">
+                <div class="task-status ${status}">
+                    ${status === 'completed' ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                    ${status === 'in_progress' ? '<span class="status-pulse"></span>' : ''}
+                </div>
+                <div class="task-info">
+                    <span class="task-name">${escapeHtml(task.title)}</span>
+                    <span class="task-meta">${duration}分钟 · ${statusLabels[status]}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 从目标渲染任务列表
+function renderTaskItemsFromGoals(container, badge, goals) {
+    if (!goals || goals.length === 0) {
+        container.innerHTML = '<div class="task-empty">暂无目标，<a href="/courses.html">去设定</a></div>';
+        if (badge) badge.textContent = '0个';
+        return;
+    }
+
+    if (badge) badge.textContent = goals.length + '个';
+
+    container.innerHTML = goals.slice(0, 5).map(goal => {
+        const progress = goal.current_value && goal.target_value
+            ? Math.round(goal.current_value / goal.target_value * 100)
+            : 0;
+        const status = progress >= 100 ? 'completed' : progress > 0 ? 'in_progress' : 'pending';
+        const statusLabels = { completed: '已完成', in_progress: '进行中', pending: '待开始' };
+        return `
+            <div class="task-item ${status}">
+                <div class="task-status ${status}">
+                    ${status === 'completed' ? '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
+                    ${status === 'in_progress' ? '<span class="status-pulse"></span>' : ''}
+                </div>
+                <div class="task-info">
+                    <span class="task-name">${escapeHtml(goal.title)}</span>
+                    <span class="task-meta">${progress}% · ${statusLabels[status]}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// 加载专注日历（动态渲染）
+async function loadFocusCalendar() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    const grid = document.querySelector('.mini-calendar-grid');
+    const badge = document.querySelector('.calendar-card .compact-badge');
+    if (!grid) return;
+
+    try {
+        const response = await fetch(`/api/stats/heatmap/${user.id}?weeks=4`);
+        const result = await response.json();
+
+        if (result.success && result.heatmap && result.heatmap.length > 0) {
+            renderCalendarGrid(grid, badge, result.heatmap);
+        } else {
+            // 无数据时显示空白日历
+            renderEmptyCalendar(grid, badge);
+        }
+    } catch (e) {
+        console.log('[Calendar] 加载失败');
+        renderEmptyCalendar(grid, badge);
+    }
+}
+
+// 渲染日历网格
+function renderCalendarGrid(grid, badge, heatmapData) {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    if (badge) badge.textContent = currentMonth + '月';
+
+    // 获取本月数据
+    const monthData = {};
+    heatmapData.forEach(item => {
+        const date = new Date(item.date);
+        if (date.getMonth() + 1 === currentMonth) {
+            monthData[date.getDate()] = item.minutes > 0;
+        }
+    });
+
+    // 计算本月第一天是星期几
+    const firstDay = new Date(today.getFullYear(), currentMonth - 1, 1).getDay();
+    const daysInMonth = new Date(today.getFullYear(), currentMonth, 0).getDate();
+
+    let html = '';
+
+    // 填充空白
+    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+    for (let i = 0; i < firstDay; i++) {
+        html += '<span class="empty"></span>';
+    }
+
+    // 填充日期
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate();
+        const hasStudy = monthData[day];
+        html += `<span class="day${hasStudy ? ' completed' : ''}${isToday ? ' today' : ''}">${day}</span>`;
+    }
+
+    grid.innerHTML = html;
+}
+
+// 渲染空白日历
+function renderEmptyCalendar(grid, badge) {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    if (badge) badge.textContent = currentMonth + '月';
+
+    const firstDay = new Date(today.getFullYear(), currentMonth - 1, 1).getDay();
+    const daysInMonth = new Date(today.getFullYear(), currentMonth, 0).getDate();
+
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += '<span class="empty"></span>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = day === today.getDate();
+        html += `<span class="day${isToday ? ' today' : ''}">${day}</span>`;
+    }
+    grid.innerHTML = html;
+}
+
+// 加载学习领域标签（从知识节点或用户画像）
+async function loadLearningDomains() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    const container = document.querySelector('.tags-cloud');
+    const badge = document.querySelector('.tags-card .compact-badge');
+    if (!container) return;
+
+    try {
+        // 从每日航线获取学习领域
+        const routeRes = await fetch(`/api/daily-route/status?userId=${user.id}`);
+        const routeData = await routeRes.json();
+
+        if (routeData.success && routeData.tasks && routeData.tasks.length > 0) {
+            // 收集所有subject
+            const subjects = [...new Set(routeData.tasks.map(t => t.subject).filter(Boolean))];
+            if (subjects.length > 0) {
+                renderDomainTags(container, badge, subjects);
+                return;
+            }
+        }
+
+        // 备用：从知识节点获取
+        const nodesRes = await fetch(`/api/knowledge/nodes/${user.id}?active=true`);
+        const nodesData = await nodesRes.json();
+
+        if (nodesData.success && nodesData.nodes && nodesData.nodes.length > 0) {
+            const subjects = [...new Set(nodesData.nodes.map(n => n.subject).filter(Boolean))];
+            if (subjects.length > 0) {
+                renderDomainTags(container, badge, subjects);
+                return;
+            }
+        }
+
+        // 无数据时显示默认标签
+        renderDefaultDomainTags(container, badge);
+    } catch (e) {
+        console.log('[Domains] 加载失败');
+        renderDefaultDomainTags(container, badge);
+    }
+}
+
+// 渲染领域标签
+function renderDomainTags(container, badge, subjects) {
+    if (badge) badge.textContent = subjects.length + '个';
+
+    const emojis = { 'Python': '🐍', '数学': '📊', '机器学习': '🤖', '深度学习': '🧠', '算法': '🧮', '数据库': '🗄️', 'Web开发': '🌐', '英语': '📖', '数据结构': '📚' };
+    const colors = ['python', 'ds', 'ml', 'dl', 'algo', 'sys'];
+
+    container.innerHTML = subjects.slice(0, 8).map((subject, i) => {
+        const emoji = emojis[subject] || '📚';
+        const color = colors[i % colors.length];
+        return `<span class="tag-item ${color}">${emoji} ${escapeHtml(subject)}</span>`;
+    }).join('');
+}
+
+// 渲染默认领域标签
+function renderDefaultDomainTags(container, badge) {
+    if (badge) badge.textContent = '6个';
+    const defaults = [
+        { name: 'Python', emoji: '🐍', color: 'python' },
+        { name: '数据结构', emoji: '📊', color: 'ds' },
+        { name: '机器学习', emoji: '🤖', color: 'ml' },
+        { name: '深度学习', emoji: '🧠', color: 'dl' },
+        { name: '算法', emoji: '🧮', color: 'algo' },
+        { name: '系统设计', emoji: '🏗️', color: 'sys' }
+    ];
+    container.innerHTML = defaults.map(d =>
+        `<span class="tag-item ${d.color}">${d.emoji} ${d.name}</span>`
+    ).join('');
+}
+
+// 渲染学习趋势图 (Canvas) - 异步加载数据
+async function initTrendChart() {
+    const canvas = document.getElementById('overviewTrendChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const wrapper = canvas.parentElement;
+    if (!wrapper) return;
+
+    // 设置 Canvas 尺寸
+    const dpr = window.devicePixelRatio || 1;
+    const rect = wrapper.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.scale(dpr, dpr);
+
+    // 获取近7天数据 (异步从API)
+    const data = await getWeekStudyData();
+    const labels = data.map(d => d.day);
+    const values = data.map(d => d.hours);
+
+    const maxValue = Math.max(...values, 8);
+    const padding = { top: 20, right: 20, bottom: 30, left: 40 };
+    const chartWidth = rect.width - padding.left - padding.right;
+    const chartHeight = rect.height - padding.top - padding.bottom;
+
+    // 绘制网格
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = padding.top + (chartHeight / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + chartWidth, y);
+        ctx.stroke();
+    }
+
+    // 绘制 Y 轴标签
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'right';
+    for (let i = 0; i <= 4; i++) {
+        const value = maxValue - (maxValue / 4) * i;
+        const y = padding.top + (chartHeight / 4) * i + 4;
+        ctx.fillText(value.toFixed(0) + 'h', padding.left - 8, y);
+    }
+
+    // 计算点位置
+    const points = values.map((v, i) => ({
+        x: padding.left + (chartWidth / (labels.length - 1)) * i,
+        y: padding.top + chartHeight - (v / maxValue) * chartHeight
+    }));
+
+    // 绘制渐变填充
+    const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
+    gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
+    gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, padding.top + chartHeight);
+    points.forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(points[points.length - 1].x, padding.top + chartHeight);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    // 绘制曲线
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        const cp = {
+            x: (points[i - 1].x + points[i].x) / 2,
+            y: points[i].y
+        };
+        ctx.bezierCurveTo(cp.x, points[i - 1].y, cp.x, points[i].y, points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = '#a855f7';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 绘制点和hover效果
+    points.forEach((p, i) => {
+        // 外圈
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+        ctx.fill();
+
+        // 内圈
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#a855f7';
+        ctx.fill();
+    });
+
+    // 绘制 X 轴标签
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    labels.forEach((label, i) => {
+        const x = padding.left + (chartWidth / (labels.length - 1)) * i;
+        ctx.fillText(label, x, rect.height - 8);
+    });
+}
+
+// 获取近7天学习数据 (从API)
+async function getWeekStudyData() {
+    const dayMap = { 'Sun': '周日', 'Mon': '周一', 'Tue': '周二', 'Wed': '周三', 'Thu': '周四', 'Fri': '周五', 'Sat': '周六' };
+    const daysOrder = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const data = [];
+    const today = new Date();
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+
+    // 尝试从API获取数据
+    if (user && user.id) {
+        try {
+            const response = await fetch(`/api/stats/trend/${user.id}?days=7`);
+            const result = await response.json();
+            if (result.success && result.trend && result.trend.length > 0) {
+                // API返回的是从最早到最近排序的7天数据
+                return result.trend.map(t => ({
+                    day: dayMap[t.weekday] || t.weekday || daysOrder[data.length],
+                    hours: parseFloat((t.minutes / 60).toFixed(1))
+                }));
+            }
+        } catch (e) {
+            console.log('[Trend] API加载失败，使用本地数据');
+        }
+    }
+
+    // 降级：使用本地存储（无假数据）
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+
+        let hours = 0;
+        try {
+            const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            const dayData = studyData[dateStr];
+            if (dayData && dayData.duration) {
+                hours = parseFloat((dayData.duration / 60).toFixed(1));
+            }
+        } catch (e) {}
+
+        data.push({
+            day: daysOrder[6 - i], // 从周一到周日
+            hours: parseFloat(hours.toFixed(1))
+        });
+    }
+
+    return data;
+}
+
+// 学习时段热力图当前周期
+let heatmapCurrentPeriod = 'week';
+
+// 渲染学习时段热力图 - 异步加载数据
+async function initHeatmap(period = 'week') {
+    const hoursContainer = document.getElementById('heatmapHours');
+    const heatmapWrapper = document.getElementById('heatmapWrapper');
+    if (!hoursContainer) {
+        console.log('[Heatmap] 未找到heatmapHours元素');
+        return;
+    }
+
+    console.log('[Heatmap] 开始渲染, period:', period);
+    heatmapCurrentPeriod = period;
+    hoursContainer.innerHTML = '';
+
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) {
+        console.log('[Heatmap] 未登录用户');
+        return;
+    }
+
+    // 合并 API 数据和 localStorage 数据
+    let dailyMinutes = {};
+
+    // 从 localStorage 获取数据（浏览器实时数据）
+    try {
+        const localStudy = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+        if (localStudy.daily_minutes) {
+            Object.assign(dailyMinutes, localStudy.daily_minutes);
+        }
+    } catch (e) {}
+
+    // 从API获取学习数据（数据库数据）
+    try {
+        const response = await fetch(`/api/stats/heatmap/${user.id}?weeks=52`);
+        const result = await response.json();
+        if (result.success && result.heatmap) {
+            result.heatmap.forEach(item => {
+                // API 数据覆盖 localStorage 数据（以数据库为准）
+                dailyMinutes[item.date] = item.minutes || 0;
+            });
+        }
+    } catch (e) {
+        console.log('[Heatmap] API加载失败，使用本地数据', e);
+    }
+
+    console.log('[Heatmap] 合并后的数据:', dailyMinutes);
+
+    const today = new Date();
+    const dayLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+
+    if (period === 'day') {
+        // 今日视图：显示24小时的学习数据
+        const todayStr = today.toISOString().split('T')[0];
+        const todayMinutes = dailyMinutes[todayStr] || 0;
+        const hasStudy = todayMinutes > 0;
+
+        // 获取今日小时数据
+        let hourlyData = {};
+        try {
+            const localStudy = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            hourlyData = localStudy.hourly_minutes?.[todayStr] || {};
+        } catch (e) {}
+
+        // 时段标签
+        const periods = [
+            { label: '凌晨', hours: [0,1,2,3,4,5] },
+            { label: '上午', hours: [6,7,8,9,10,11] },
+            { label: '下午', hours: [12,13,14,15,16,17] },
+            { label: '晚上', hours: [18,19,20,21,22,23] }
+        ];
+
+        // 添加时段标签行
+        const labelRow = document.createElement('div');
+        labelRow.className = 'heatmap-periods';
+        periods.forEach(p => {
+            const span = document.createElement('span');
+            span.className = 'heat-period';
+            span.textContent = p.label;
+            labelRow.appendChild(span);
+        });
+        hoursContainer.appendChild(labelRow);
+
+        // 找到今日最大小时分钟数
+        let maxHourMinutes = 0;
+        Object.values(hourlyData).forEach(m => maxHourMinutes = Math.max(maxHourMinutes, m));
+
+        // 每个时段一行
+        periods.forEach((p, pIdx) => {
+            const row = document.createElement('div');
+            row.className = 'heatmap-row';
+
+            p.hours.forEach(hour => {
+                const cell = document.createElement('div');
+                cell.className = 'heatmap-hour';
+
+                const hourMinutes = hourlyData[hour] || 0;
+                const intensity = getIntensityLevel(hourMinutes, maxHourMinutes);
+
+                if (intensity > 0) cell.classList.add(`level-${intensity}`);
+                cell.title = `${hour}:00 - ${hourMinutes}分钟`;
+                row.appendChild(cell);
+            });
+            hoursContainer.appendChild(row);
+        });
+
+    } else if (period === 'week') {
+        // 本周7天 - 每天一行
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay() + 1); // 周一
+
+        // 找到本周最大分钟数用于渐变计算
+        let maxMinutes = 0;
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(weekStart);
+            d.setDate(weekStart.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            maxMinutes = Math.max(maxMinutes, dailyMinutes[dateStr] || 0);
+        }
+
+        // 添加星期标签行
+        const labelRow = document.createElement('div');
+        labelRow.className = 'heatmap-days';
+        dayLabels.forEach(label => {
+            const span = document.createElement('span');
+            span.className = 'heat-day';
+            span.textContent = label;
+            labelRow.appendChild(span);
+        });
+        hoursContainer.appendChild(labelRow);
+
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(weekStart);
+            d.setDate(weekStart.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            const minutes = dailyMinutes[dateStr] || 0;
+
+            const row = document.createElement('div');
+            row.className = 'heatmap-row';
+
+            // 每天一个格子，用渐变颜色
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-hour';
+            cell.style.flex = '1';
+
+            // 根据相对强度计算渐变（传入maxMinutes）
+            const intensity = getIntensityLevel(minutes, maxMinutes);
+            if (intensity > 0) cell.classList.add(`level-${intensity}`);
+            cell.title = `${dayLabels[i]} - ${minutes}分钟`;
+            row.appendChild(cell);
+            hoursContainer.appendChild(row);
+        }
+
+    } else if (period === 'month') {
+        // 本月视图 - 显示4周
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay() + 1);
+
+        // 找到本月最大周分钟数
+        let maxWeekMinutes = 0;
+        const weekMinutesArr = [];
+        for (let w = 0; w < 4; w++) {
+            let weekMinutes = 0;
+            for (let d = 0; d < 7; d++) {
+                const dayDate = new Date(weekStart);
+                dayDate.setDate(weekStart.getDate() + w * 7 + d);
+                const dateStr = dayDate.toISOString().split('T')[0];
+                weekMinutes += dailyMinutes[dateStr] || 0;
+            }
+            weekMinutesArr.push(weekMinutes);
+            maxWeekMinutes = Math.max(maxWeekMinutes, weekMinutes);
+        }
+
+        // 添加周标签行
+        const labelRow = document.createElement('div');
+        labelRow.className = 'heatmap-days';
+        for (let w = 0; w < 4; w++) {
+            const span = document.createElement('span');
+            span.className = 'heat-day';
+            span.textContent = `第${w + 1}周`;
+            labelRow.appendChild(span);
+        }
+        hoursContainer.appendChild(labelRow);
+
+        for (let w = 0; w < 4; w++) {
+            const intensity = getIntensityLevel(weekMinutesArr[w], maxWeekMinutes);
+
+            const row = document.createElement('div');
+            row.className = 'heatmap-row';
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-hour';
+            cell.style.flex = '1';
+            if (intensity > 0) cell.classList.add(`level-${intensity}`);
+            cell.title = `第${w + 1}周 - ${weekMinutesArr[w]}分钟`;
+            row.appendChild(cell);
+            hoursContainer.appendChild(row);
+        }
+
+    } else if (period === 'year') {
+        // 全年12个月 - 柱状图
+        const year = today.getFullYear();
+
+        // 计算每月分钟数
+        let maxMonthMinutes = 0;
+        const monthMinutesArr = [];
+        for (let m = 0; m < 12; m++) {
+            const daysInMonth = new Date(year, m + 1, 0).getDate();
+            let monthMinutes = 0;
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                monthMinutes += dailyMinutes[dateStr] || 0;
+            }
+            monthMinutesArr.push(monthMinutes);
+            maxMonthMinutes = Math.max(maxMonthMinutes, monthMinutes);
+        }
+
+        // 添加月份标签行
+        const labelRow = document.createElement('div');
+        labelRow.className = 'heatmap-days';
+        monthLabels.forEach(label => {
+            const span = document.createElement('span');
+            span.className = 'heat-day';
+            span.textContent = label;
+            labelRow.appendChild(span);
+        });
+        hoursContainer.appendChild(labelRow);
+
+        // 创建柱状图容器
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'heatmap-year-chart';
+
+        // 每月一个柱状条
+        for (let m = 0; m < 12; m++) {
+            const intensity = getIntensityLevel(monthMinutesArr[m], maxMonthMinutes);
+            const heightPercent = maxMonthMinutes > 0 ? (monthMinutesArr[m] / maxMonthMinutes) * 100 : 0;
+
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'heatmap-year-bar';
+
+            const barFill = document.createElement('div');
+            barFill.className = 'heatmap-year-bar-fill';
+            if (intensity > 0) {
+                barFill.classList.add(`level-${intensity}`);
+            } else {
+                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+            barFill.style.height = `${Math.max(heightPercent, 4)}%`;
+            barFill.title = `${monthLabels[m]} - ${monthMinutesArr[m]}分钟`;
+
+            const label = document.createElement('div');
+            label.className = 'heatmap-year-bar-label';
+            label.textContent = monthLabels[m];
+
+            barWrapper.appendChild(barFill);
+            barWrapper.appendChild(label);
+            chartContainer.appendChild(barWrapper);
+        }
+
+        hoursContainer.appendChild(chartContainer);
+    }
+}
+
+// 获取热力图强度等级 - 根据相对值计算
+function getIntensityLevel(minutes, maxMinutes = null) {
+    // 如果传入了最大分钟数，则根据相对比例计算
+    if (maxMinutes !== null && maxMinutes > 0) {
+        const ratio = minutes / maxMinutes;
+        if (ratio >= 0.8) return 4;
+        if (ratio >= 0.5) return 3;
+        if (ratio >= 0.2) return 2;
+        if (ratio > 0) return 1;
+        return 0;
+    }
+    // 默认阈值
+    if (minutes >= 120) return 4;
+    if (minutes >= 60) return 3;
+    if (minutes >= 30) return 2;
+    if (minutes > 0) return 1;
+    return 0;
+}
+
+function getWeekHeatmapData() {
+    const data = {};
+    const today = new Date();
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+
+        try {
+            const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            data[dateStr] = studyData[dateStr] || {};
+        } catch (e) {
+            data[dateStr] = {};
+        }
+    }
+
+    return data;
+}
+
+// 获取热力图强度等级
+function getHeatmapIntensity(studyData, dayOffset, hour) {
+    const date = new Date();
+    date.setDate(date.getDate() - dayOffset);
+    const dateStr = date.toISOString().split('T')[0];
+
+    const dayData = studyData[dateStr];
+    if (!dayData || !dayData.sessions) return 0;
+
+    let count = 0;
+    dayData.sessions.forEach(session => {
+        const sessionHour = new Date(session.start).getHours();
+        if (sessionHour === hour) count++;
+    });
+
+    if (count >= 3) return 4;
+    if (count >= 2) return 3;
+    if (count >= 1) return 2;
+    return 1;
+}
+
+// ============================================
 // 全息知识生态 - 树状金字塔布局
 // ============================================
 
@@ -772,6 +1645,23 @@ async function getPendingReviews() {
     return [];
 }
 
+// 根据节点学科/icon返回对应的SVG图标
+function getNodeIcon(nodeData) {
+    const svgMap = {
+        '🐍': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3.3C13.5 1.5 8 2 5 6c-2 3 0 7 4 7.5 1 .1 2.5-.2 3-1 .6-.9.4-2-1-2.5-2.5-.8-6 .5-7 4-.7 2.5.5 6 4 7s7-2 9-6c1.4-2.8 0-6-2-7"/><circle cx="16" cy="5" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+        '📐': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20L20 4"/><path d="M4 20h4l12-12-4-4L4 16v4z"/><circle cx="7" cy="17" r="0.5" fill="currentColor" stroke="none"/></svg>`,
+        '🌐': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>`,
+        '🗄️': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="9" ry="3"/><path d="M3 6v6c0 1.7 4 3 9 3s9-1.3 9-3V6"/><path d="M3 12v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>`,
+        '📚': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>`,
+        '🤖': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6" rx="1"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M4 9H1M4 15H1M23 9h-3M23 15h-3"/></svg>`,
+        '🧮': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="12" r="3"/><path d="M8 6.5l8 4M8 17.5l8-4"/></svg>`,
+        '⚙️': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
+        '🔤': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>`
+    };
+    const icon = nodeData.icon || '📚';
+    return svgMap[icon] || svgMap['📚'];
+}
+
 // 更新全息生态UI
 function updateHoloEcosystemUI() {
     const nodesContainer = document.getElementById('holoNodes');
@@ -785,6 +1675,12 @@ function updateHoloEcosystemUI() {
         if (nodeData) {
             const status = getNodeDynamicStatus(nodeData);
             nodeEl.dataset.status = status;
+
+            // 更新图标
+            const iconEl = nodeEl.querySelector('.node-icon');
+            if (iconEl) {
+                iconEl.innerHTML = getNodeIcon(nodeData);
+            }
 
             // 更新状态显示
             const statusEl = nodeEl.querySelector('.node-status');
@@ -1639,18 +2535,10 @@ function renderNewsCards(news) {
         return;
     }
 
-    // 填充到4的倍数，避免留空
-    const paddedNews = [...news];
-    const remainder = paddedNews.length % 4;
-    if (remainder !== 0) {
-        const padCount = 4 - remainder;
-        for (let i = 0; i < padCount; i++) {
-            // 复制最后一条新闻来填充空白位置
-            paddedNews.push({ ...paddedNews[paddedNews.length - 1] });
-        }
-    }
+    // 只显示7条新闻，不重复
+    const displayNews = news.slice(0, 7);
 
-    paddedNews.forEach((item, index) => {
+    displayNews.forEach((item, index) => {
         const isMain = index === 0;
         const categoryClass = getCategoryClass(item.category);
 
@@ -1664,13 +2552,7 @@ function renderNewsCards(news) {
             </div>
             <div class="highlight-content">
                 <h3 class="highlight-title">${item.title}</h3>
-                <p class="highlight-desc">${item.description}</p>
-            </div>
-            <div class="highlight-footer">
-                <div class="highlight-tags">
-                    <span class="tag ai-tag">${item.source}</span>
-                </div>
-                <span class="highlight-source">${item.source}</span>
+                <p class="highlight-desc">${item.description || item.summary || ''}</p>
             </div>
         `;
 
@@ -2054,7 +2936,7 @@ function saveNotificationToStorage(notif) {
 
 // 添加通知到 hub 面板
 function addNotificationToHubPanel(payload) {
-    const { title = '', content = '', type = 'system' } = payload || {};
+    const { title = '', content = '', type = 'system', actionLabel = '', actionUrl = '' } = payload || {};
     const list = document.getElementById('notification-list');
     if (!list) return;
 
@@ -2083,6 +2965,7 @@ function addNotificationToHubPanel(payload) {
             <p class="notification-title">${escapeHtml(title)}</p>
             <p class="notification-text">${escapeHtml(content)}</p>
             <span class="notification-time">刚刚</span>
+            ${actionLabel ? `<button class="notif-action-btn">${escapeHtml(actionLabel)}</button>` : ''}
         </div>
     `;
 
@@ -2091,11 +2974,22 @@ function addNotificationToHubPanel(payload) {
         updateNotificationDot();
     });
 
+    // 操作按钮点击 - 跳转到目标页面
+    if (actionLabel && actionUrl) {
+        const actionBtn = item.querySelector('.notif-action-btn');
+        if (actionBtn) {
+            actionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.location.href = actionUrl;
+            });
+        }
+    }
+
     // 插入到最前面
     list.insertBefore(item, list.firstChild);
 
     // 持久化
-    saveNotificationToStorage({ title, content, type });
+    saveNotificationToStorage({ title, content, type, actionLabel, actionUrl });
 
     // 更新红点
     updateNotificationDot();
@@ -2155,16 +3049,39 @@ window.addEventListener('storage', (e) => {
                         <p class="notification-title">${escapeHtml(n.title)}</p>
                         <p class="notification-text">${escapeHtml(n.content)}</p>
                         <span class="notification-time">${n.time || '刚刚'}</span>
+                        ${n.actionLabel ? `<button class="notif-action-btn">${escapeHtml(n.actionLabel)}</button>` : ''}
                     </div>
                 `;
                 item.addEventListener('click', () => {
                     item.classList.remove('unread');
                     updateNotificationDot();
                 });
+                // 操作按钮导航
+                if (n.actionLabel && n.actionUrl) {
+                    const btn = item.querySelector('.notif-action-btn');
+                    if (btn) {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            window.location.href = n.actionUrl;
+                        });
+                    }
+                }
                 list.insertBefore(item, list.firstChild);
                 updateNotificationDot();
             }
         });
+    }
+});
+
+// 跨页面学习数据实时同步 - 其他页面更新学习时间时自动刷新概览
+window.addEventListener('storage', (e) => {
+    if (e.key === 'starlearn_learning_update') {
+        loadStudyOverviewData();
+        initTrendChart();
+        initHeatmap(heatmapCurrentPeriod);
+        loadFocusTasks();
+        loadFocusCalendar();
+        loadLearningDomains();
     }
 });
 
@@ -2211,6 +3128,52 @@ document.addEventListener('DOMContentLoaded', function() {
     initUserAvatar();
     // 使用缓存，不显示加载状态
     fetchTodayNews(false);
+    // 学习概览图表 (异步加载)
+    initOverviewDate();
+    loadStudyOverviewData();
+    initTrendChart();
+    initHeatmap('week');
+    // 加载动态数据
+    syncLearningMinute(); // 立即同步一次学习时长
+    loadFocusTasks();     // 加载专注任务
+    loadFocusCalendar();  // 加载专注日历
+    loadLearningDomains(); // 加载学习领域
+
+    // 热力图切换按钮事件
+    document.querySelectorAll('.heatmap-toggle .toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.heatmap-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initHeatmap(btn.dataset.period);
+        });
+    });
+
+    // 每分钟同步一次学习时长
+    setInterval(syncLearningMinute, 60000);
+
+    // 定时轮询学习数据（每2分钟）
+    let studyPollInterval = setInterval(() => {
+        loadStudyOverviewData();
+        initTrendChart();
+        initHeatmap(heatmapCurrentPeriod);
+    }, 120000);
+
+    // 页面隐藏时暂停轮询，显示时恢复并立即刷新
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(studyPollInterval);
+            studyPollInterval = null;
+        } else {
+            loadStudyOverviewData();
+            initTrendChart();
+            initHeatmap(heatmapCurrentPeriod);
+            studyPollInterval = setInterval(() => {
+                loadStudyOverviewData();
+                initTrendChart();
+                initHeatmap(heatmapCurrentPeriod);
+            }, 120000);
+        }
+    });
 });
 
 // Smooth scroll for navigation

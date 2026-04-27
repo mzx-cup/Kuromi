@@ -9,6 +9,46 @@ const STRUGGLE_EVENT_URL = `${API_BASE}/api/v2/event/struggle`;
 const STREAM_API_URL = `${API_BASE}/api/v2/chat/stream`;
 const DEBATE_API_URL = `${API_BASE}/api/v2/debate/stream`;
 
+// 同步学习时长到服务器（每分钟调用）
+async function syncLearningMinute() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) return;
+
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const hour = now.getHours();
+
+    // 从 localStorage 读取当前学习数据
+    let studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+    if (!studyData.daily_minutes) {
+        studyData.daily_minutes = {};
+    }
+    if (!studyData.hourly_minutes) {
+        studyData.hourly_minutes = {};
+    }
+    if (!studyData.hourly_minutes[today]) {
+        studyData.hourly_minutes[today] = {};
+    }
+
+    // 更新今日分钟数
+    studyData.daily_minutes[today] = (studyData.daily_minutes[today] || 0) + 1;
+
+    // 更新当前小时分钟数
+    studyData.hourly_minutes[today][hour] = (studyData.hourly_minutes[today][hour] || 0) + 1;
+
+    // 保存到 localStorage
+    localStorage.setItem('starlearn_study', JSON.stringify(studyData));
+
+    try {
+        await fetch('/api/cockpit/learning-time', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id }),
+        });
+        localStorage.setItem('starlearn_learning_update', String(Date.now()));
+    } catch (e) { /* silent */ }
+}
+
 const AGENTS_CONFIG = [
     {
         id: 'bigdata-architect',
@@ -3831,6 +3871,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentUser && currentUser.id) {
         loadProgress();
         window.proactiveTutor.connect(currentUser.id || currentUser.name || 'anonymous', currentUser.currentTask || 'bigdata');
+        // 同步学习时长
+        syncLearningMinute();
+        setInterval(syncLearningMinute, 60000);
+        // 页面可见性变化时立即同步
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                syncLearningMinute();
+            }
+        });
+        // 页面离开时同步
+        window.addEventListener('beforeunload', () => {
+            syncLearningMinute();
+        });
     }
 
     if (window.marked && window.mermaid) {
@@ -4378,6 +4431,21 @@ class FlowModeManager {
             const minutes = Math.round((this.totalSeconds || this.state.total_time || 1500) / 60);
             AchievementManager.incrementStat('study_count');
             AchievementManager.incrementStat('study_minutes', minutes);
+        }
+
+        // 记录学习时间到数据库（用于 hub 页面学习概览）
+        if (this.currentMode === 'focus' && window.StarData) {
+            const userId = StarData.getUserId();
+            const minutes = Math.round((this.totalSeconds || this.state.total_time || 1500) / 60);
+            if (userId && minutes > 0) {
+                fetch('/api/cockpit/learning-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, minutes }),
+                }).then(() => {
+                    localStorage.setItem('starlearn_learning_update', String(Date.now()));
+                }).catch(() => {});
+            }
         }
     }
 
