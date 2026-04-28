@@ -24,6 +24,17 @@
             <span class="nav-icon">🧠</span>
             <span>智脑苏格拉底</span>
         </div>
+        <!-- Role Toggle -->
+        <div class="role-toggle">
+            <button class="role-btn active" data-role="teacher" id="role-teacher">
+                <span class="role-icon">👨‍🏫</span>
+                <span class="role-name">老师模式</span>
+            </button>
+            <button class="role-btn" data-role="interviewer" id="role-interviewer">
+                <span class="role-icon">👔</span>
+                <span class="role-name">面试模式</span>
+            </button>
+        </div>
         <div class="nav-status">
             <span class="status-dot"></span>
             <span class="status-text">AI 对话模式</span>
@@ -48,13 +59,26 @@
             <!-- Floating Transcript -->
             <div class="transcript-container" id="transcript-container">
                 <div class="transcript-content" id="transcript">
-                    <div class="question-number">Q1</div>
+                    <div class="question-header">
+                        <span class="question-number" id="question-number">Q1</span>
+                    </div>
                     <p class="transcript-text" id="transcript-text">
                         请解释一下 Apache Flink 中 Checkpoint 的对齐机制，当发生故障恢复时，系统如何确保状态一致性？
                     </p>
                 </div>
                 <div class="transcript-hint" id="transcript-hint">
                     按住麦克风按钮回答
+                </div>
+            </div>
+
+            <!-- Score Result Display -->
+            <div class="score-result hidden" id="score-result">
+                <div class="score-circle">
+                    <span class="score-number" id="score-number">85</span>
+                    <span class="score-label">分</span>
+                </div>
+                <div class="score-feedback" id="score-feedback">
+                    回答得很好！思路清晰，表达流畅。
                 </div>
             </div>
 
@@ -107,6 +131,49 @@
         </button>
         <div class="mic-label" id="mic-label">
             <span class="label-text">长按说话</span>
+        </div>
+    </div>
+
+    <!-- Transcription Status Panel -->
+    <div class="transcription-panel hidden" id="transcription-panel">
+        <div class="transcription-title">语音识别结果</div>
+        <div class="transcription-row">
+            <span class="transcription-label">识别文字：</span>
+            <span class="transcription-text" id="transcription-recognized">（等待说话...）</span>
+        </div>
+        <div class="transcription-row">
+            <span class="transcription-label">传给AI：</span>
+            <span class="transcription-text" id="transcription-to-ai">（等待说话...）</span>
+        </div>
+        <div class="manual-input-row" id="manual-input-row" style="display: none;">
+            <input type="text" id="manual-answer-input" class="manual-answer-input" placeholder="语音不可用，请手动输入回答...">
+            <button class="manual-submit-btn" id="manual-submit-btn">提交</button>
+        </div>
+    </div>
+
+    <!-- Voice Console (Left Bottom) -->
+    <div class="voice-console" id="voice-console">
+        <div class="voice-selector" id="voice-selector">
+            <button class="voice-btn" id="voice-btn" title="选择音色">
+                <svg class="voice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                </svg>
+            </button>
+            <div class="voice-dropdown hidden" id="voice-dropdown">
+                <div class="voice-option selected" data-voice="0">晓雅</div>
+                <div class="voice-option" data-voice="1">云起</div>
+                <div class="voice-option" data-voice="2">雨辰</div>
+                <div class="voice-option" data-voice="3">苏格拉底</div>
+                <div class="voice-option" data-voice="4">雅典娜</div>
+            </div>
+        </div>
+        <div class="auto-play-toggle">
+            <label class="toggle-switch">
+                <input type="checkbox" id="auto-play-toggle" checked>
+                <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label">自动朗读</span>
         </div>
     </div>
 

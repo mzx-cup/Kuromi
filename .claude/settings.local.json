@@ -18,7 +18,25 @@
       "Bash(del xingshi.db)",
       "Bash(node --check js/hub.js)",
       "Bash(node -e \"const css = require\\('fs'\\).readFileSync\\('css/hub.css', 'utf8'\\); console.log\\('CSS file is readable'\\);\")",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(curl -s http://localhost:8000/api/socratic/voices)",
+      "Bash(curl -s -X POST http://localhost:8000/api/socratic/role -H \"Content-Type: application/json\" -d '{\"role\":\"teacher\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/socratic/tts -H \"Content-Type: application/json\" -d '{\"text\":\"这是一个测试语音\",\"voice_id\":0}')",
+      "Bash(curl *)",
+      "Bash(netstat -ano)",
+      "WebFetch(domain:www.minimaxi.com)",
+      "WebFetch(domain:www.minimax.io)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3)",
+      "Bash(pip3 install *)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/**)",
+      "Bash(\"/c/Python/python.exe\" --version)",
+      "Bash(\"/c/Python/python.exe\" -c \"import httpx; print\\('httpx ok'\\)\")",
+      "Bash(/c/Python/python.exe *)",
+      "Bash(xxd \"C:/Users/22821/PycharmProjects/Hachiware/星识/audio/tts_1777350645_0.mp3\")",
+      "Bash(xxd -l 100 \"C:/Users/22821/PycharmProjects/Hachiware/星识/audio/tts_1777357009_0.mp3\")",
+      "WebSearch"
     ]
   }
 }

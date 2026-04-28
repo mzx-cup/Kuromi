@@ -3432,8 +3432,15 @@ async function handleSendStream() {
                         const label = item.querySelector('.agent-status-label');
                         if (dot) dot.className = 'agent-status-dot agent-dot-idle';
                         if (label) { label.textContent = '待命'; label.className = 'agent-status-label'; }
-                    });
+});
                     renderMessages();
+
+                    // 更新学生画像
+                    StarData.updatePortrait('index', {
+                        user_input: userMsg,
+                        response_length: currentAssistantContent.length,
+                        agents: Array.from(activeAgents)
+                    });
                     saveProgress();
                 } else if (event.type === 'error') {
                     const logEntry = {

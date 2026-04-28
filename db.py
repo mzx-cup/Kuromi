@@ -515,6 +515,8 @@ def save_learning_path(user_id, path_json):
 
 def save_user_profile(user_id, profile_json, evaluation_json, last_grade_record=None):
     grade_str = json.dumps(last_grade_record, ensure_ascii=False) if last_grade_record else None
+    profile_str = json.dumps(profile_json, ensure_ascii=False) if isinstance(profile_json, dict) else profile_json
+    eval_str = json.dumps(evaluation_json, ensure_ascii=False) if isinstance(evaluation_json, dict) else evaluation_json
     with get_db() as conn:
         if conn is not None:
             try:
@@ -527,15 +529,15 @@ def save_user_profile(user_id, profile_json, evaluation_json, last_grade_record=
                                profile_json=excluded.profile_json,
                                evaluation_json=excluded.evaluation_json,
                                last_grade_record=excluded.last_grade_record""",
-                        (user_id, profile_json, evaluation_json, grade_str))
+                        (user_id, profile_str, eval_str, grade_str))
                 else:
                     cursor.execute(
                         """INSERT INTO user_profile (user_id, profile_json, evaluation_json, last_grade_record)
                            VALUES (%s, %s, %s, %s)
                            ON DUPLICATE KEY UPDATE
                                profile_json=%s, evaluation_json=%s, last_grade_record=%s""",
-                        (user_id, profile_json, evaluation_json, grade_str,
-                         profile_json, evaluation_json, grade_str))
+                        (user_id, profile_str, eval_str, grade_str,
+                         profile_str, eval_str, grade_str))
                 conn.commit()
                 cursor.close()
                 return
@@ -588,6 +590,56 @@ def get_user_profile(user_id):
                 print(f"数据库查询失败: {e}")
 
         return _get_json_record(load_local_storage(), 'user_profiles', user_id)
+
+
+# ============================================================
+# 学生画像（6维度）
+# ============================================================
+
+def get_student_portrait(user_id: int) -> dict | None:
+    """获取学生的6维画像，从 user_profile.profile_json.learning_portrait 读取"""
+    profile = get_user_profile(user_id)
+    if not profile:
+        return None
+    profile_json = profile.get('profile_json', {})
+    if isinstance(profile_json, str):
+        try:
+            profile_json = json.loads(profile_json)
+        except (json.JSONDecodeError, TypeError):
+            return None
+    portrait = profile_json.get('learning_portrait')
+    if portrait:
+        return portrait
+    return None
+
+
+def save_student_portrait(user_id: int, portrait: dict) -> bool:
+    """保存学生的6维画像到 user_profile.profile_json.learning_portrait"""
+    from datetime import datetime
+    portrait['last_synced'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    profile = get_user_profile(user_id)
+    if profile:
+        profile_json = profile.get('profile_json', {})
+        if isinstance(profile_json, str):
+            try:
+                profile_json = json.loads(profile_json)
+            except (json.JSONDecodeError, TypeError):
+                profile_json = {}
+    else:
+        profile_json = {}
+
+    profile_json['learning_portrait'] = portrait
+
+    evaluation_json = profile.get('evaluation_json', {})
+    if isinstance(evaluation_json, str):
+        try:
+            evaluation_json = json.loads(evaluation_json)
+        except (json.JSONDecodeError, TypeError):
+            evaluation_json = {}
+
+    save_user_profile(user_id, profile_json, evaluation_json)
+    return True
 
 
 # ============================================================

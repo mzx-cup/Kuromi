@@ -269,3 +269,68 @@ class DebateRequest(BaseModel):
         if not v.strip():
             raise ValueError("用户输入不能为空白")
         return v.strip()
+
+
+# ============================================================
+# 学生画像（6维度）
+# ============================================================
+
+class TopicMastery(BaseModel):
+    """知识点掌握情况"""
+    name: str = ""
+    level: float = Field(default=0.0, ge=0.0, le=1.0)
+    last_updated: str = ""
+
+
+class KnowledgeMasteryPortrait(BaseModel):
+    """知识掌握画像"""
+    topics: list[TopicMastery] = Field(default_factory=list)
+    overall: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class CodeSkillPortrait(BaseModel):
+    """编程能力画像"""
+    level: str = "beginner"  # beginner, intermediate, advanced
+    strong_areas: list[str] = Field(default_factory=list)
+    weak_areas: list[str] = Field(default_factory=list)
+    last_updated: str = ""
+
+
+class CognitiveStylePortrait(BaseModel):
+    """认知风格画像"""
+    type: str = "实践型"  # 视觉型, 文字型, 实践型
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    last_updated: str = ""
+
+
+class LearningGoalPortrait(BaseModel):
+    """学习目标画像"""
+    current: str = ""
+    target_positions: list[str] = Field(default_factory=list)
+    timeframe: str = ""
+    last_updated: str = ""
+
+
+class WeaknessPortrait(BaseModel):
+    """知识短板画像"""
+    areas: list[str] = Field(default_factory=list)
+    last_detected: str = ""
+    last_updated: str = ""
+
+
+class FocusLevelPortrait(BaseModel):
+    """专注度画像"""
+    current: str = "中等专注"  # 高专注, 中等专注, 需要引导
+    trend: str = "stable"  # stable, improving, declining
+    last_updated: str = ""
+
+
+class LearningPortrait(BaseModel):
+    """6维学生画像"""
+    knowledge_mastery: KnowledgeMasteryPortrait = Field(default_factory=KnowledgeMasteryPortrait)
+    code_skill: CodeSkillPortrait = Field(default_factory=CodeSkillPortrait)
+    cognitive_style: CognitiveStylePortrait = Field(default_factory=CognitiveStylePortrait)
+    learning_goal: LearningGoalPortrait = Field(default_factory=LearningGoalPortrait)
+    weakness: WeaknessPortrait = Field(default_factory=WeaknessPortrait)
+    focus_level: FocusLevelPortrait = Field(default_factory=FocusLevelPortrait)
+    last_synced: str = ""  # 最后同步时间

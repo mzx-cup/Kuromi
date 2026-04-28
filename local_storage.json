@@ -147,6 +147,74 @@
       "completed": [],
       "generated_at": "2026-04-27T12:10:13.255147",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "编程入门课程",
+          "description": "学习编程基础概念和第一门语言入门",
+          "type": "study",
+          "duration": 30,
+          "subject": "编程基础",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "编写第一个程序",
+          "description": "完成Hello World输出和基础语法练习",
+          "type": "practice",
+          "duration": 35,
+          "subject": "编程实践",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "专注力训练",
+          "description": "使用番茄钟完成专注学习训练",
+          "type": "study",
+          "duration": 25,
+          "subject": "学习能力",
+          "difficulty": "easy",
+          "taskUrl": "/flow-meter.html"
+        },
+        {
+          "id": 4,
+          "title": "AI问答初体验",
+          "description": "体验苏格拉底式AI辅导，学习提问技巧",
+          "type": "study",
+          "duration": 20,
+          "subject": "学习方法",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 5,
+          "title": "概念图谱梳理",
+          "description": "梳理今日学习内容，建立知识框架",
+          "type": "review",
+          "duration": 25,
+          "subject": "知识管理",
+          "difficulty": "easy",
+          "taskUrl": "/concept-analyzer.html"
+        },
+        {
+          "id": 6,
+          "title": "虚拟宠物互动",
+          "description": "喂养宠物放松一下，保持学习动力",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-04-28",
+      "completed": [],
+      "generated_at": "2026-04-28T12:00:38.768312",
+      "user_id": 1
     }
   ]
 }

@@ -644,6 +644,52 @@ window.StarData = (function () {
         sessionStorage.removeItem("currentLearningContext");
       } catch (e) {}
     },
+
+    // ========================================
+    // 学生画像（6维度）
+    // ========================================
+
+    /**
+     * 更新学生画像
+     * @param {string} source - 交互来源：socratic, code, chat, index, other
+     * @param {object} interactionData - 交互数据
+     */
+    async updatePortrait(source, interactionData) {
+      const uid = _getUserId();
+      if (!uid) return null;
+      try {
+        const res = await fetch(`${API_URL}/api/profile/portrait/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: uid,
+            source: source,
+            interaction_data: interactionData
+          }),
+        });
+        return await res.json();
+      } catch (e) {
+        console.warn("[StarData] Portrait update failed:", e.message);
+        return null;
+      }
+    },
+
+    /**
+     * 获取学生画像
+     */
+    async getPortrait() {
+      const uid = _getUserId();
+      if (!uid) return null;
+      try {
+        const res = await fetch(`${API_URL}/api/profile/portrait/${uid}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.portrait || null;
+      } catch (e) {
+        console.warn("[StarData] Portrait get failed:", e.message);
+        return null;
+      }
+    },
   };
 
   return api;

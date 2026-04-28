@@ -1504,6 +1504,16 @@ async function submitFixReview() {
         refreshMasteryCard(task.learningFocus);
         updateTerminalState(passed ? 'success' : 'error', passed ? '修复完成' : '仍有遗漏');
         accumulateTokenUsage(JSON.stringify(report).length);
+
+        // 更新学生画像
+        StarData.updatePortrait('code', {
+            task_id: task.id,
+            topic: task.learningFocus || task.topic,
+            mode: 'fix',
+            passed: passed,
+            score: report.summary?.score || 0,
+            wrong_count: report.summary?.wrong_count || 0
+        });
     } catch (error) {
         setOutput('error', `AI 批阅失败：${error.message}`);
         updateTerminalState('error', '批阅失败');
@@ -1575,6 +1585,15 @@ async function submitCompletionEvaluation() {
         refreshMasteryCard(task.learningFocus);
         updateTerminalState(passed ? 'success' : 'error', passed ? '评估达标' : '建议继续巩固');
         accumulateTokenUsage(JSON.stringify(report).length);
+
+        // 更新学生画像
+        StarData.updatePortrait('code', {
+            task_id: task.id,
+            topic: task.learningFocus || task.topic,
+            mode: 'complete',
+            passed: passed,
+            score: score
+        });
     } catch (error) {
         setOutput('error', `学习评估失败：${error.message}`);
         updateTerminalState('error', '评估失败');

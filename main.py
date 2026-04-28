@@ -14,11 +14,12 @@ import uvicorn
 import logging
 from datetime import datetime, timedelta
 import time
+import httpx
 import db as database
 import pymysql
 import asyncio
 
-from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest
+from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest, LearningPortrait
 from proactive_tutor import (
     get_connection_manager, get_proactive_tutor,
     ProactiveMessage, ProactiveMessageType, MessagePriority,
@@ -620,7 +621,7 @@ def serve_js(filename: str):
 
 @app.get("/audio/{filename}")
 def serve_audio(filename: str):
-    audio_dir = os.path.join(STATIC_DIR, "audio")
+    audio_dir = os.path.join(BASE_DIR, "audio")
     file_path = os.path.join(audio_dir, filename)
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="audio/mpeg")
@@ -925,6 +926,440 @@ def serve_architecture_blueprint():
     if os.path.exists(path):
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="架构蓝图页面未找到")
+
+
+# ========== Socratic AI API ==========
+
+class SocraticRoleRequest(BaseModel):
+    role: str = Field(default="teacher", description="角色类型: teacher 或 interviewer")
+    user_id: Optional[int] = Field(default=None, description="用户ID")
+
+
+class SocraticQuestionRequest(BaseModel):
+    role: str = Field(default="teacher", description="角色类型: teacher 或 interviewer")
+    user_id: Optional[int] = Field(default=None, description="用户ID")
+
+
+class SocraticScoreRequest(BaseModel):
+    role: str = Field(default="teacher", description="角色类型: teacher 或 interviewer")
+    question: str = Field(description="问题内容")
+    answer: str = Field(description="用户回答")
+    user_id: Optional[int] = Field(default=None, description="用户ID")
+
+
+class SocraticTTSRequest(BaseModel):
+    text: str = Field(description="要转换的文本")
+    voice_id: int = Field(default=0, ge=0, le=4, description="音色ID: 0-4")
+
+
+class SocraticTTSResponse(BaseModel):
+    success: bool
+    audio_url: Optional[str] = None
+    error: Optional[str] = None
+
+
+# 音色配置 (MiniMax speech-2.8-hd 模型)
+VOICE_CONFIGS = [
+    {"name": "晓雅", "id": "female-shaonv-jingpin", "description": "女声，少女清品"},
+    {"name": "云起", "id": "male-qn-qingse", "description": "男声，青年清色"},
+    {"name": "雨辰", "id": "female-yujie", "description": "女声，御姐风采"},
+    {"name": "苏格拉底", "id": "male-qn-qingse", "description": "男声，睿智深邃"},
+    {"name": "雅典娜", "id": "female-chengshu", "description": "女声，成熟知性"},
+]
+
+
+def get_user_profile_for_socratic(user_id: int = None) -> dict:
+    """获取用户画像用于生成个性化问题"""
+    if user_id:
+        profile = database.get_user_profile(user_id)
+        if profile and profile.get("profile_json"):
+            try:
+                return json.loads(profile["profile_json"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+    return {}
+
+
+def generate_socratic_question(role: str, user_profile: dict = None) -> dict:
+    """使用 AI 生成苏格拉底问题"""
+    profile_context = ""
+    if user_profile:
+        learning_direction = user_profile.get("learningDirection", "编程与技术")
+        languages = user_profile.get("languages", ["Python"])
+        code_skill = user_profile.get("codeSkill", "intermediate")
+        profile_context = f"用户学习方向: {learning_direction}，擅长语言: {', '.join(languages)}，代码水平: {code_skill}。"
+
+    if role == "interviewer":
+        system_prompt = f"""你是一位专业的技术面试官。你需要根据用户的背景生成一个合适的技术面试问题。
+
+{profile_context}
+
+要求：
+1. 问题应该考察用户对核心概念的理解，而非死记硬背
+2. 问题应该有深度，能引发思考和讨论
+3. 同时给出一个简短的提示，帮助用户组织答案
+4. 返回格式：{{"question": "问题", "hint": "提示"}}
+
+请生成一个面试问题："""
+    else:
+        system_prompt = f"""你是一位循循善诱的老师。你需要根据用户的背景生成一个苏格拉底式的问题，通过提问引导用户深入理解知识点。
+
+{profile_context}
+
+要求：
+1. 问题应该从简单到复杂，逐步引导
+2. 问题应该联系实际应用场景
+3. 同时给出一个简短的提示，帮助用户思考
+4. 返回格式：{{"question": "问题", "hint": "提示"}}
+
+请生成一个问题："""
+
+    try:
+        question_text = asyncio.run(call_llm_async(system_prompt, "请生成一个问题", temperature=0.7))
+        import re
+        match = re.search(r'"question":\s*"([^"]+)"', question_text)
+        hint_match = re.search(r'"hint":\s*"([^"]+)"', question_text)
+        if match and hint_match:
+            return {
+                "question": match.group(1),
+                "hint": hint_match.group(1)
+            }
+    except Exception as e:
+        logger.error(f"生成苏格拉底问题失败: {e}")
+
+    return {
+        "question": "请解释一下你对这个主题的理解？",
+        "hint": "可以从定义、原理、应用场景三个方面来回答"
+    }
+
+
+def score_socratic_answer(role: str, question: str, answer: str, user_profile: dict = None) -> dict:
+    """使用 AI 对用户回答进行评分和反馈（直接使用 MiniMax API 避免编码问题）"""
+    profile_context = ""
+    if user_profile:
+        learning_direction = user_profile.get("learningDirection", "编程与技术")
+        languages = user_profile.get("languages", ["Python"])
+        profile_context = f"用户学习方向: {learning_direction}，擅长语言: {', '.join(languages)}。"
+
+    if role == "interviewer":
+        system_prompt = f"""你是一位专业的技术面试官，正在评估候选人的回答。
+
+背景：{profile_context}
+问题：{question}
+用户回答：{answer}
+
+请评估用户回答的质量，从以下几个方面打分（满分100）：
+1. 答案准确性 (0-30)
+2. 回答深度 (0-30)
+3. 表达清晰度 (0-20)
+4. 思考逻辑性 (0-20)
+
+同时给出简短的反馈和建议。
+
+返回格式：
+{{"score": 分数, "feedback": "反馈内容"}}
+"""
+    else:
+        system_prompt = f"""你是一位循循善诱的老师，正在评估学生的回答。
+
+背景：{profile_context}
+问题：{question}
+学生回答：{answer}
+
+请评估学生回答的质量，从以下几个方面打分（满分100）：
+1. 理解准确性 (0-30)
+2. 思考深度 (0-30)
+3. 表达清晰度 (0-20)
+4. 联系实际 (0-20)
+
+同时给出简短的鼓励和建议。
+
+返回格式：
+{{"score": 分数, "feedback": "反馈内容"}}
+"""
+
+    try:
+        # 直接使用 MiniMax API 避免 Xunfei 的编码问题
+        import httpx
+        import json as json_module
+
+        minimax_headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {settings.minimax_api_key}"
+        }
+        minimax_payload = {
+            "model": settings.minimax_model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": "请评估回答"}
+            ],
+            "temperature": 0.3
+        }
+
+        client = httpx.Client(timeout=30.0)
+        response = client.post(
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=minimax_headers,
+            json=minimax_payload,
+        )
+        client.close()
+
+        if response.status_code != 200:
+            raise RuntimeError(f"MiniMax API 返回 HTTP {response.status_code}")
+
+        body = response.json()
+        result_text = body["choices"][0]["message"]["content"]
+
+        import re
+        score_match = re.search(r'"score":\s*(\d+)', result_text)
+        feedback_match = re.search(r'"feedback":\s*"([^"]+)"', result_text)
+        if score_match and feedback_match:
+            return {
+                "score": int(score_match.group(1)),
+                "feedback": feedback_match.group(1)
+            }
+    except Exception as e:
+        logger.error(f"评分失败: {e}")
+
+    return {
+        "score": 75,
+        "feedback": "回答已记录，感谢你的参与！"
+    }
+
+
+@app.post("/api/socratic/role")
+def set_socratic_role(request: SocraticRoleRequest):
+    """设置AI角色并返回第一个问题"""
+    try:
+        role = request.role if request.role in ["teacher", "interviewer"] else "teacher"
+        user_profile = get_user_profile_for_socratic(request.user_id)
+        question_data = generate_socratic_question(role, user_profile)
+
+        return {
+            "success": True,
+            "role": role,
+            "question": {
+                "number": "Q1",
+                "text": question_data["question"],
+                "hint": question_data["hint"]
+            }
+        }
+    except Exception as e:
+        logger.error(f"设置角色失败: {e}")
+        raise HTTPException(status_code=500, detail=f"设置角色失败: {str(e)}")
+
+
+@app.post("/api/socratic/question")
+def get_socratic_question(request: SocraticQuestionRequest):
+    """获取新的苏格拉底问题"""
+    try:
+        role = request.role if request.role in ["teacher", "interviewer"] else "teacher"
+        user_profile = get_user_profile_for_socratic(request.user_id)
+        question_data = generate_socratic_question(role, user_profile)
+
+        return {
+            "success": True,
+            "question": {
+                "number": "Q1",
+                "text": question_data["question"],
+                "hint": question_data["hint"]
+            }
+        }
+    except Exception as e:
+        logger.error(f"获取问题失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取问题失败: {str(e)}")
+
+
+@app.post("/api/socratic/score")
+def score_answer(request: SocraticScoreRequest):
+    """对用户回答进行评分"""
+    try:
+        role = request.role if request.role in ["teacher", "interviewer"] else "teacher"
+        user_profile = get_user_profile_for_socratic(request.user_id)
+        result = score_socratic_answer(role, request.question, request.answer, user_profile)
+
+        return {
+            "success": True,
+            "score": result["score"],
+            "feedback": result["feedback"]
+        }
+    except Exception as e:
+        logger.error(f"评分失败: {e}")
+        raise HTTPException(status_code=500, detail=f"评分失败: {str(e)}")
+
+
+@app.post("/api/socratic/tts")
+def text_to_speech(request: SocraticTTSRequest) -> SocraticTTSResponse:
+    """使用 MiniMax TTS 将文本转换为语音"""
+    try:
+        voice_id = max(0, min(4, request.voice_id))
+        voice = VOICE_CONFIGS[voice_id]
+        logger.info(f"TTS 请求: text长度={len(request.text)}, voice_id={voice_id}, voice.id={voice['id']}")
+
+        # 使用 t2a_v2 接口，speech-2.8-hd 模型
+        tts_url = f"{settings.minimax_api_url}/t2a_v2"
+
+        headers = {
+            "Authorization": f"Bearer {settings.minimax_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        # 使用 JSON 格式发送请求
+        # 注意：voice_id 需要嵌套在 voice_setting 对象中（MiniMax TTS API v2 格式）
+        payload = {
+            "model": "speech-2.8-hd",
+            "text": request.text,
+            "voice_setting": {
+                "voice_id": voice["id"]
+            }
+        }
+
+        logger.info(f"TTS payload: model={payload['model']}, voice_id={payload['voice_id']}, text={request.text[:50]}...")
+        client = httpx.Client(timeout=30.0)
+        response = client.post(tts_url, headers=headers, json=payload)
+
+        if response.status_code != 200:
+            logger.error(f"TTS API 返回错误: {response.status_code}, body: {response.text[:500]}")
+            return SocraticTTSResponse(
+                success=False,
+                error=f"TTS API 返回错误: {response.status_code}, {response.text[:200]}"
+            )
+
+        # 判断响应格式：application/json 为 JSON 格式，否则为二进制音频
+        content_type = response.headers.get("content-type", "")
+        logger.info(f"TTS 响应类型: {content_type}, 内容长度: {len(response.content)}")
+        if "application/json" in content_type:
+            result = response.json()
+            logger.info(f"TTS JSON响应: {result}")
+            # 检查 API 错误
+            if result.get("base_resp", {}).get("status_code") != 0:
+                err_msg = result.get("base_resp", {}).get("status_msg", "TTS API 错误")
+                logger.error(f"TTS API错误: {err_msg}, 完整响应: {result}")
+                return SocraticTTSResponse(
+                    success=False,
+                    error=f"TTS API错误: {err_msg}"
+                )
+            # 解析 base64 音频数据
+            audio_base64 = result.get("data", {}).get("audio", "")
+            if not audio_base64:
+                logger.error(f"TTS API未返回audio字段, 响应: {result}")
+                return SocraticTTSResponse(
+                    success=False,
+                    error="TTS API 未返回音频数据"
+                )
+            import base64
+            audio_bytes = base64.b64decode(audio_base64)
+        else:
+            # 直接使用二进制音频数据
+            audio_bytes = response.content
+            if not audio_bytes:
+                return SocraticTTSResponse(
+                    success=False,
+                    error="TTS API 未返回音频数据"
+                )
+
+        # 保存音频文件
+        audio_dir = os.path.join(BASE_DIR, "audio")
+        if not os.path.exists(audio_dir):
+            os.makedirs(audio_dir)
+
+        filename = f"tts_{int(time.time())}_{voice_id}.mp3"
+        audio_path = os.path.join(audio_dir, filename)
+
+        with open(audio_path, "wb") as f:
+            f.write(audio_bytes)
+
+        return SocraticTTSResponse(
+            success=True,
+            audio_url=f"/audio/{filename}"
+        )
+
+    except Exception as e:
+        logger.error(f"TTS 生成失败: {e}")
+        return SocraticTTSResponse(
+            success=False,
+            error=f"TTS 生成失败: {str(e)}"
+        )
+
+
+@app.get("/api/socratic/voices")
+def get_voice_list():
+    """获取音色列表"""
+    return {
+        "success": True,
+        "voices": [
+            {"id": i, "name": v["name"], "description": v["description"]}
+            for i, v in enumerate(VOICE_CONFIGS)
+        ]
+    }
+
+
+# ============================================================
+# 学生画像 API（6维度）
+# ============================================================
+
+class PortraitUpdateRequest(BaseModel):
+    user_id: int
+    source: str = "socratic"  # socratic, code, chat, index, other
+    interaction_data: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.post("/api/profile/portrait/update")
+def update_portrait(request: PortraitUpdateRequest):
+    """基于交互数据更新学生的6维画像"""
+    try:
+        existing_portrait = database.get_student_portrait(request.user_id)
+
+        if existing_portrait is None:
+            existing_portrait = {
+                "knowledge_mastery": {"topics": [], "overall": 0.0},
+                "code_skill": {"level": "beginner", "strong_areas": [], "weak_areas": [], "last_updated": ""},
+                "cognitive_style": {"type": "实践型", "confidence": 0.0, "last_updated": ""},
+                "learning_goal": {"current": "", "target_positions": [], "timeframe": "", "last_updated": ""},
+                "weakness": {"areas": [], "last_detected": "", "last_updated": ""},
+                "focus_level": {"current": "中等专注", "trend": "stable", "last_updated": ""},
+                "last_synced": ""
+            }
+
+        system_prompt = """你是一个教育数据分析智能体。分析学生交互数据，更新6维动态画像。
+当前画像：{existing_portrait}
+交互数据：{interaction_data}
+交互来源：{source}
+
+只输出纯JSON格式的更新内容，不要任何其他文字。输出格式：
+{{"knowledge_mastery": {{"topics": [{{"name": "知识点名", "level": 0.0-1.0, "last_updated": "日期"}}], "overall": 0.0-1.0}}, "code_skill": {{"level": "beginner/intermediate/advanced", "strong_areas": [], "weak_areas": [], "last_updated": "日期"}}, "cognitive_style": {{"type": "视觉型/文字型/实践型", "confidence": 0.0-1.0, "last_updated": "日期"}}, "learning_goal": {{"current": "目标", "target_positions": [], "timeframe": "", "last_updated": "日期"}}, "weakness": {{"areas": [], "last_detected": "日期", "last_updated": "日期"}}, "focus_level": {{"current": "高专注/中等专注/需要引导", "trend": "stable/improving/declining", "last_updated": "日期"}}}}"""
+
+        user_prompt = f"当前画像：{json.dumps(existing_portrait, ensure_ascii=False)}\n交互数据：{json.dumps(request.interaction_data, ensure_ascii=False)}\n交互来源：{request.source}"
+
+        try:
+            llm_response = call_llm(system_prompt, user_prompt, temperature=0.3)
+            updated_portrait = extract_json(llm_response)
+            if not updated_portrait:
+                return {"success": False, "error": "AI解析失败"}
+        except Exception as e:
+            logger.error(f"画像更新失败: {e}")
+            return {"success": False, "error": str(e)}
+
+        database.save_student_portrait(request.user_id, updated_portrait)
+        return {"success": True, "portrait": updated_portrait}
+
+    except Exception as e:
+        logger.error(f"画像更新异常: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/profile/portrait/{user_id}")
+def get_portrait(user_id: int):
+    """获取学生的6维画像"""
+    try:
+        portrait = database.get_student_portrait(user_id)
+        if portrait is None:
+            return {"success": True, "portrait": None, "message": "暂无画像数据"}
+        return {"success": True, "portrait": portrait}
+    except Exception as e:
+        logger.error(f"获取画像失败: {e}")
+        return {"success": False, "error": str(e)}
+
 
 @app.post("/api/assessment/submit")
 def submit_assessment(request: AssessmentRequest):
@@ -3226,240 +3661,100 @@ async def get_textbook_chapter(req: TextbookChapterRequest):
 async def get_today_news():
     """
     获取今日要闻，覆盖多个领域：AI科技、民生、生活、国际形势等
-    通过实时抓取多个新闻源，获取真正的实时新闻
+    通过抓取国内新闻源获取实时新闻
     """
-    import feedparser
+    import httpx
     from bs4 import BeautifulSoup
     import re
-    import time
 
     today = datetime.now().strftime("%Y年%m月%d日")
-    today_english = datetime.now().strftime("%Y-%m-%d")
 
-    # 多个新闻 RSS 源（使用国内可访问的源）
-    RSS_SOURCES = [
-        # 国际新闻源（相对稳定）
-        ("https://feeds.bbci.co.uk/news/world/rss.xml", "BBC World", "国际形势"),
-        ("https://feeds.bbci.co.uk/news/technology/rss.xml", "BBC Tech", "AI科技"),
-        ("https://www.aljazeera.com/xml/rss.xml", "Al Jazeera", "国际形势"),
-        # 科技新闻
-        ("https://techcrunch.com/feed/", "TechCrunch", "AI科技"),
-        ("https://36kr.com/feed", "36氪", "AI科技"),
-        ("https://feeds.arstechnica.com/arstechnica/index", "Ars Technica", "AI科技"),
-        # 商业/民生
-        ("https://feeds.reuters.com/reuters/businessNews", "Reuters", "民生"),
-        ("https://feeds.reuters.com/reuters/technologyNews", "Reuters Tech", "AI科技"),
-    ]
-
-    # 默认降级新闻数据（恰好8条，每个领域2条）
+    # 默认降级新闻数据
     fallback_news = [
-        {
-            "title": "AI大模型技术持续突破，应用场景不断拓展",
-            "category": "AI科技",
-            "description": "大模型应用深入发展，技术赋能千行百业",
-            "source": "AI前哨",
-            "timestamp": "今日"
-        },
-        {
-            "title": "神舟飞船成功着陆，航天员平安归来",
-            "category": "国际形势",
-            "description": "中国航天事业取得重大突破，太空探索再创佳绩",
-            "source": "人民日报",
-            "timestamp": "今日"
-        },
-        {
-            "title": "就业政策再加力，青年群体获重点帮扶",
-            "category": "民生",
-            "description": "多项就业扶持政策出台，助力青年高质量就业",
-            "source": "新华社",
-            "timestamp": "今日"
-        },
-        {
-            "title": "春季旅游市场火热，文化消费持续升温",
-            "category": "生活",
-            "description": "文旅融合深入发展，居民文化消费需求旺盛",
-            "source": "经济日报",
-            "timestamp": "今日"
-        },
-        {
-            "title": "人工智能掀起新一轮科技革命浪潮",
-            "category": "AI科技",
-            "description": "生成式AI快速发展，各行业加速智能化转型",
-            "source": "科技日报",
-            "timestamp": "今日"
-        },
-        {
-            "title": "全球数字经济蓬勃发展，合作共赢成主流",
-            "category": "国际形势",
-            "description": "数字经济成为全球经济增长新引擎",
-            "source": "光明日报",
-            "timestamp": "今日"
-        },
-        {
-            "title": "教育公平持续推进，优质资源下沉基层",
-            "category": "民生",
-            "description": "教育资源均衡配置，更多孩子享受优质教育",
-            "source": "中国教育报",
-            "timestamp": "今日"
-        },
-        {
-            "title": "健康生活方式受追捧，健身运动成新时尚",
-            "category": "生活",
-            "description": "全民健身热情高涨，健康意识不断增强",
-            "source": "健康时报",
-            "timestamp": "今日"
-        }
+        {"title": "AI大模型技术持续突破，应用场景不断拓展", "category": "AI科技", "description": "大模型应用深入发展，技术赋能千行百业", "source": "AI前哨", "timestamp": "今日"},
+        {"title": "神舟飞船成功着陆，航天员平安归来", "category": "国际形势", "description": "中国航天事业取得重大突破，太空探索再创佳绩", "source": "人民日报", "timestamp": "今日"},
+        {"title": "就业政策再加力，青年群体获重点帮扶", "category": "民生", "description": "多项就业扶持政策出台，助力青年高质量就业", "source": "新华社", "timestamp": "今日"},
+        {"title": "春季旅游市场火热，文化消费持续升温", "category": "生活", "description": "文旅融合深入发展，居民文化消费需求旺盛", "source": "经济日报", "timestamp": "今日"},
+        {"title": "人工智能掀起新一轮科技革命浪潮", "category": "AI科技", "description": "生成式AI快速发展，各行业加速智能化转型", "source": "科技日报", "timestamp": "今日"},
+        {"title": "全球数字经济蓬勃发展，合作共赢成主流", "category": "国际形势", "description": "数字经济成为全球经济增长新引擎", "source": "光明日报", "timestamp": "今日"},
+        {"title": "教育公平持续推进，优质资源下沉基层", "category": "民生", "description": "教育资源均衡配置，更多孩子享受优质教育", "source": "中国教育报", "timestamp": "今日"},
+        {"title": "健康生活方式受追捧，健身运动成新时尚", "category": "生活", "description": "全民健身热情高涨，健康意识不断增强", "source": "健康时报", "timestamp": "今日"}
     ]
 
-    collected_news = []
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
-    # 抓取各 RSS 源新闻
-    for rss_url, source_name, default_category in RSS_SOURCES:
-        try:
-            resp = requests.get(rss_url, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                continue
+    collected_news = []
 
-            # 尝试解析 RSS
+    # 国内新闻源列表（只需1个可靠的源）
+    NEWS_SOURCES = [
+        ("https://36kr.com/feed", "36氪", "AI科技"),
+    ]
+
+    async with httpx.AsyncClient(timeout=1.5, follow_redirects=True) as client:
+        for url, source_name, default_category in NEWS_SOURCES:
             try:
-                feed = feedparser.parse(resp.text)
-                for entry in feed.entries[:8]:  # 每个源最多取8条
-                    title = getattr(entry, 'title', '') or ''
-                    summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '') or ''
-                    published = getattr(entry, 'published', '') or getattr(entry, 'updated', '') or ''
+                resp = await client.get(url, headers=headers)
+                if resp.status_code != 200:
+                    continue
 
-                    # 清理 HTML 标签
-                    if summary:
-                        soup = BeautifulSoup(summary, 'html.parser')
-                        summary = soup.get_text(separator=' ', strip=True)[:200]
+                content = resp.text
+                soup = BeautifulSoup(content, 'html.parser')
+
+                items = soup.find_all('item')
+                if not items:
+                    items = soup.find_all('entry')
+
+                for item in items[:15]:
+                    title = item.find('title')
+                    title = title.get_text(strip=True) if title else ''
+                    desc = item.find('description') or item.find('summary') or item.find('content')
+                    desc = desc.get_text(strip=True)[:80] if desc else ''
 
                     if title and len(title) > 5:
-                        # 判断分类
                         category = default_category
                         title_lower = title.lower()
-                        if any(k in title_lower for k in ['ai', 'artificial', 'tech', 'technology', 'digital', 'software', 'app', 'robot', '模型', '科技', '技术', '互联网']):
+                        if any(k in title_lower for k in ['ai', '人工智能', '模型', '科技', '技术', '大模型', 'chatgpt', 'gpt', '软件', '互联网']):
                             category = "AI科技"
-                        elif any(k in title_lower for k in ['economy', 'market', 'business', 'stock', 'trade', '经济', '股市', '贸易', '就业', '民生']):
+                        elif any(k in title_lower for k in ['经济', '股市', '就业', '民生', '政策', '社会', '企业', '商业']):
                             category = "民生"
-                        elif any(k in title_lower for k in ['sport', 'movie', 'music', 'entertainment', 'culture', 'life', '文化', '体育', '娱乐', '生活']):
+                        elif any(k in title_lower for k in ['文化', '体育', '娱乐', '生活', '健康', '旅游']):
                             category = "生活"
+                        elif any(k in title_lower for k in ['国际', '美国', '欧洲', '外交', '全球', '世界', '国家']):
+                            category = "国际形势"
 
                         collected_news.append({
-                            "title": re.sub(r'[^\w\s一-鿿]', '', title)[:40],
+                            "title": title[:40],
                             "category": category,
-                            "description": summary[:80] if summary else '点击查看详情',
+                            "description": desc[:80] if desc else '点击查看详情',
                             "source": source_name,
-                            "timestamp": published[:16] if published else '今日',
-                            "raw_title": title
+                            "timestamp": "今日"
                         })
             except Exception as e:
-                logger.warning(f"[get_today_news] RSS parse error for {source_name}: {e}")
+                logger.warning(f"[get_today_news] Fetch error for {source_name}: {e}")
                 continue
 
-            time.sleep(0.3)  # 避免请求过快
+    # 按类别分组返回
+    if len(collected_news) >= 4:
+        category_groups = {"AI科技": [], "民生": [], "生活": [], "国际形势": []}
+        for n in collected_news[:20]:
+            cat = n['category']
+            if cat in category_groups:
+                category_groups[cat].append(n)
 
-        except Exception as e:
-            logger.warning(f"[get_today_news] Failed to fetch {source_name}: {e}")
-            continue
+        selected = []
+        for cat in ["AI科技", "民生", "生活", "国际形势"]:
+            selected.extend(category_groups.get(cat, [])[:3])
 
-    # 如果没有获取到新闻，使用 fallback
-    if len(collected_news) < 3:
-        logger.warning(f"[get_today_news] Only got {len(collected_news)} news items, using fallback")
-        return {"success": True, "date": today, "news": fallback_news}
+        remaining = [n for n in collected_news[:20] if n not in selected]
+        while len(selected) < 8 and remaining:
+            selected.append(remaining.pop(0))
 
-    # 去重（基于标题相似度）
-    unique_news = []
-    seen_titles = set()
-    for news in collected_news:
-        title_key = news['raw_title'].lower()[:30]
-        is_duplicate = False
-        for seen in seen_titles:
-            # 简单相似度判断
-            if sum(c1 == c2 for c1, c2 in zip(title_key, seen)) > len(seen) * 0.7:
-                is_duplicate = True
-                break
-        if not is_duplicate:
-            seen_titles.add(title_key)
-            unique_news.append(news)
-        if len(unique_news) >= 12:  # 最多保留12条
-            break
+        if len(selected) >= 4:
+            return {"success": True, "date": today, "news": selected[:8]}
 
-    # 使用 LLM 总结和整理新闻
-    if len(unique_news) >= 3:
-        news_context = "\n".join([
-            f"[{i+1}] {n['title']} | {n['source']} | {n['category']} | {n['description']}"
-            for i, n in enumerate(unique_news[:12])
-        ])
-
-        system_prompt = """你是一个新闻资讯聚合助手，专门为用户提供当日重点新闻摘要。
-你的任务是从提供的实时新闻列表中，筛选出当日最重要的新闻资讯，涵盖以下领域：
-1. AI科技 - 人工智能、大模型、互联网技术等
-2. 民生 - 就业、收入、教育、医疗、住房等民生热点
-3. 生活 - 消费、文化、娱乐、体育等生活资讯
-4. 国际形势 - 国际政治、经济、外交等重大事件
-
-请以JSON数组格式返回，每条新闻包含以下字段：
-- title: 新闻标题（简洁有力，25字以内，优先使用原文标题）
-- category: 分类（AI科技/民生/生活/国际形势）
-- description: 简短描述（40字以内，从原文描述中提取关键信息）
-- source: 新闻来源（如：BBC、Reuters、CNN 等）
-- timestamp: 发布时间描述（如：今日、刚刚、几小时前等，基于原文时间推断）
-
-【重要】请务必返回恰好8条新闻，且必须均匀覆盖4个不同领域（AI科技、民生、生活、国际形势），每个领域恰好2条。
-确保8条新闻的标题和内容都不一样，避免重复。
-只返回JSON数组，不要包含任何其他文字说明。"""
-
-        user_prompt = f"""请从以下实时新闻中筛选出今日最重要的新闻（日期：{today}）：
-
-{news_context}
-
-【重要】请返回恰好8条新闻，且必须均匀覆盖4个不同领域，每个领域恰好2条。确保8条新闻的标题和内容都不一样。"""
-
-        try:
-            news_content = call_llm(system_prompt, user_prompt, temperature=0.3)
-
-            if news_content and isinstance(news_content, str):
-                json_match = re.search(r'\[.*\]', news_content, re.DOTALL)
-                if json_match:
-                    try:
-                        news_list = json.loads(json_match.group())
-                        if isinstance(news_list, list) and len(news_list) > 0:
-                            return {"success": True, "date": today, "news": news_list}
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"[get_today_news] JSON decode error: {e}")
-        except Exception as e:
-            logger.warning(f"[get_today_news] LLM summary failed: {e}")
-
-    # 如果 LLM 处理失败，返回原始新闻（确保类别均衡）
-    # 先按类别分组
-    category_groups = {"AI科技": [], "民生": [], "生活": [], "国际形势": []}
-    for n in unique_news[:12]:
-        cat = n['category']
-        if cat in category_groups:
-            category_groups[cat].append(n)
-
-    # 每个类别取2条，不够的用其他类别补充
-    selected = []
-    for cat in ["AI科技", "民生", "生活", "国际形势"]:
-        selected.extend(category_groups.get(cat, [])[:2])
-
-    # 如果还不够8条，从剩余新闻中补充
-    remaining = [n for n in unique_news[:12] if n not in selected]
-    while len(selected) < 8 and remaining:
-        selected.append(remaining.pop(0))
-
-    simple_news = [{
-        "title": n['title'][:25],
-        "category": n['category'],
-        "description": n['description'][:40] if n['description'] else '点击查看详情',
-        "source": n['source'],
-        "timestamp": n.get('timestamp', '今日') or '今日'
-    } for n in selected[:8]]
-
-    return {"success": True, "date": today, "news": simple_news if len(simple_news) >= 4 else fallback_news}
+    return {"success": True, "date": today, "news": fallback_news}
 
 
 # ============================================
@@ -3847,15 +4142,11 @@ async def get_more_news():
         (datetime.now() - _more_news_cache_time).total_seconds() < cache_duration):
         return {"success": True, "news": _more_news_cache, "cached": True}
 
-    # 减少 RSS 源数量，只保留最可靠的，提高并发
+    # 使用国内可访问的新闻源
     RSS_SOURCES = [
-        ("https://feeds.bbci.co.uk/news/world/rss.xml", "BBC World", "国际形势"),
-        ("https://feeds.bbci.co.uk/news/technology/rss.xml", "BBC Tech", "AI科技"),
-        ("https://www.aljazeera.com/xml/rss.xml", "Al Jazeera", "国际形势"),
-        ("https://techcrunch.com/feed/", "TechCrunch", "AI科技"),
         ("https://36kr.com/feed", "36氪", "AI科技"),
-        ("https://feeds.reuters.com/reuters/businessNews", "Reuters Business", "民生"),
-        ("https://feeds.reuters.com/reuters/technologyNews", "Reuters Tech", "AI科技"),
+        ("https://www.zhihu.com/api/v4/act/topic/19550347/items?limit=20", "知乎", "民生"),
+        ("https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=2517&k=&num=20&page=1", "新浪", "民生"),
     ]
 
     collected_news = []
@@ -3866,7 +4157,7 @@ async def get_more_news():
     # 并发获取所有 RSS 源
     async def fetch_single_feed(session, rss_url, source_name, default_category):
         try:
-            timeout = aiohttp.ClientTimeout(total=8)  # 减少超时到8秒
+            timeout = aiohttp.ClientTimeout(total=2)  # 减少超时到2秒
             async with session.get(rss_url, headers=headers, timeout=timeout) as resp:
                 if resp.status != 200:
                     return []
@@ -3927,13 +4218,41 @@ async def get_more_news():
             logger.warning(f"[get_more_news] Error fetching {source_name}: {e}")
             return []
 
+    async def fetch_zhihu_feed(session, url, source_name, default_category):
+        """获取知乎热榜"""
+        try:
+            timeout = aiohttp.ClientTimeout(total=2)
+            async with session.get(url, headers=headers, timeout=timeout) as resp:
+                if resp.status != 200:
+                    return []
+                data = await resp.json()
+
+            results = []
+            for item in data.get('data', [])[:15]:
+                title = item.get('target', {}).get('title', '') or item.get('title', '')
+                if title and len(title) > 5:
+                    results.append({
+                        "title": title[:50],
+                        "category": "民生",
+                        "description": "知乎热榜话题",
+                        "source": "知乎",
+                        "timestamp": "今日",
+                        "link": item.get('target', {}).get('url', '') or ''
+                    })
+            return results
+        except Exception as e:
+            logger.warning(f"[get_more_news] Zhihu fetch error: {e}")
+            return []
+
     # 使用 aiohttp 并发请求所有源
     connector = aiohttp.TCPConnector(limit=10, force_close=True)
     async with aiohttp.ClientSession(connector=connector) as session:
-        tasks = [
-            fetch_single_feed(session, url, name, cat)
-            for url, name, cat in RSS_SOURCES
-        ]
+        tasks = []
+        for url, name, cat in RSS_SOURCES:
+            if 'zhihu' in url and 'api' in url:
+                tasks.append(fetch_zhihu_feed(session, url, name, cat))
+            else:
+                tasks.append(fetch_single_feed(session, url, name, cat))
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
     for result in results:
@@ -5181,6 +5500,6 @@ def login_v2(request: LoginRequestV2):
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("星识 (Star-Learn) 伴学系统正在启动...")
-    print("请直接在浏览器打开链接: http://127.0.0.1:8000/hub.html")
+    print("请直接在浏览器打开链接: http://localhost:8000/hub.html")
     print("="*50 + "\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

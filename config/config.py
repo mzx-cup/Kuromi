@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     minimax_api_url: str = "https://api.minimax.chat/v1"
     minimax_api_key: str = "sk-cp-NVJBfQDPdzQCtzIJoXOXamJ1L-hNMTDyweOV_1KsePGk9FnSLBvRejIDDpbjMe67O0aiZEIkMd267a2zNutthLjnUF5rxOU65dzMsYNXeWMcGOoQ7WCGX4I"
+    minimax_group_id: str = Field(default="", description="MiniMax API Group ID for TTS")
     minimax_model_name: str = "MiniMax-M2.7"
 
     # Use app-specific env names so a global DEBUG variable does not override us.
