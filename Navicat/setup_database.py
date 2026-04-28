@@ -359,6 +359,61 @@ MYSQL_TABLES = [
         INDEX idx_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 22. study_sessions - 学习时段记录
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS study_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_date DATE NOT NULL,
+        duration_minutes INT DEFAULT 0,
+        start_time TEXT,
+        end_time TEXT,
+        subject VARCHAR(100) DEFAULT '',
+        node_id VARCHAR(255) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_user_date (user_id, session_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 23. learning_goals - 学习目标
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS learning_goals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        goal_type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) DEFAULT '',
+        target_value INT DEFAULT 0,
+        current_value INT DEFAULT 0,
+        unit VARCHAR(20) DEFAULT 'minutes',
+        start_date DATE,
+        end_date DATE,
+        is_active TINYINT DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 24. weekly_summary - 周学习总结
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS weekly_summary (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        week_start_date DATE NOT NULL,
+        daily_minutes TEXT,
+        hourly_distribution TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_user_week (user_id, week_start_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -384,6 +439,9 @@ TABLE_NAMES = [
     "knowledge_nodes",
     "review_records",
     "telemetry_data",
+    "study_sessions",
+    "learning_goals",
+    "weekly_summary",
 ]
 
 

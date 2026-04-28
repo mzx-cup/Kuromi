@@ -293,6 +293,7 @@ async function syncLearningMinute() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId }),
         });
+        localStorage.setItem('starlearn_learning_update', String(Date.now()));
     } catch (e) { /* silent */ }
 }
 

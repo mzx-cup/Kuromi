@@ -2447,6 +2447,480 @@ def get_user_daily_routes(user_id, limit=30):
 
 
 # ============================================================
+# 学习时段记录 (study_sessions)
+# ============================================================
+
+def save_study_session(user_id, session_data):
+    """保存学习时段记录"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                import pymysql
+                cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+                # 尝试更新已存在的记录（同一用户、同一日期、同一科目）
+                session_date = session_data.get('session_date')
+                subject = session_data.get('subject', '')
+                start_time = session_data.get('start_time', '')
+                end_time = session_data.get('end_time', '')
+                duration = session_data.get('duration_minutes', 0)
+                node_id = session_data.get('node_id', '')
+
+                cursor.execute("""
+                    SELECT id FROM study_sessions
+                    WHERE user_id = %s AND session_date = %s AND subject = %s
+                    LIMIT 1
+                """, (user_id, session_date, subject))
+
+                existing = cursor.fetchone()
+
+                if existing:
+                    # 更新已有记录，累加时长
+                    cursor.execute("""
+                        UPDATE study_sessions
+                        SET duration_minutes = duration_minutes + %s,
+                            end_time = %s
+                        WHERE id = %s
+                    """, (duration, end_time, existing['id']))
+                else:
+                    # 新增记录
+                    cursor.execute("""
+                        INSERT INTO study_sessions
+                        (user_id, session_date, duration_minutes, start_time, end_time, subject, node_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """, (user_id, session_date, duration, start_time, end_time, subject, node_id))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存学习时段失败: {e}")
+                return False
+    return False
+
+
+def get_study_sessions(user_id, start_date=None, end_date=None):
+    """获取学习时段记录"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                if start_date and end_date:
+                    if is_sql:
+                        cursor.execute(f"""
+                            SELECT * FROM study_sessions
+                            WHERE user_id = ? AND session_date >= ? AND session_date <= ?
+                            ORDER BY session_date DESC, start_time DESC
+                        """, (user_id, start_date, end_date))
+                    else:
+                        import pymysql
+                        cursor = conn.cursor(pymysql.cursors.DictCursor)
+                        cursor.execute(f"""
+                            SELECT * FROM study_sessions
+                            WHERE user_id = {ph} AND session_date >= {ph} AND session_date <= {ph}
+                            ORDER BY session_date DESC, start_time DESC
+                        """, (user_id, start_date, end_date))
+                else:
+                    if is_sql:
+                        cursor.execute(f"""
+                            SELECT * FROM study_sessions
+                            WHERE user_id = ?
+                            ORDER BY session_date DESC, start_time DESC
+                        """, (user_id,))
+                    else:
+                        import pymysql
+                        cursor = conn.cursor(pymysql.cursors.DictCursor)
+                        cursor.execute(f"""
+                            SELECT * FROM study_sessions
+                            WHERE user_id = {ph}
+                            ORDER BY session_date DESC, start_time DESC
+                        """, (user_id,))
+
+                rows = cursor.fetchall()
+                cursor.close()
+                return rows if rows else []
+            except Exception as e:
+                print(f"获取学习时段失败: {e}")
+                return []
+    return []
+
+
+def get_study_sessions_by_date(user_id, date):
+    """获取指定日期的学习时段"""
+    return get_study_sessions(user_id, date, date)
+
+
+def get_total_study_minutes(user_id, start_date=None, end_date=None):
+    """获取指定日期范围的总学习时长（分钟）"""
+    sessions = get_study_sessions(user_id, start_date, end_date)
+    total = 0
+    for session in sessions:
+        duration = session.get('duration_minutes', 0) if isinstance(session, dict) else session[3]
+        total += duration
+    return total
+
+
+# ============================================================
+# 学习目标 (learning_goals)
+# ============================================================
+
+def save_learning_goal(user_id, goal_data):
+    """创建或更新学习目标"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                goal_type = goal_data.get('goal_type', 'daily')
+                title = goal_data.get('title', '')
+                target = goal_data.get('target_value', 60)
+                current = goal_data.get('current_value', 0)
+                unit = goal_data.get('unit', 'minutes')
+                start_date = goal_data.get('start_date', '')
+                end_date = goal_data.get('end_date', '')
+
+                if is_sql:
+                    cursor.execute(f"""
+                        INSERT INTO learning_goals
+                        (user_id, goal_type, title, target_value, current_value, unit, start_date, end_date, is_active)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    """, (user_id, goal_type, title, target, current, unit, start_date, end_date))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        INSERT INTO learning_goals
+                        (user_id, goal_type, title, target_value, current_value, unit, start_date, end_date, is_active)
+                        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph}, 1)
+                    """, (user_id, goal_type, title, target, current, unit, start_date, end_date))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存学习目标失败: {e}")
+                return False
+    return False
+
+
+def get_learning_goals(user_id, active_only=True):
+    """获取用户的学习目标"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                if active_only:
+                    if is_sql:
+                        cursor.execute(f"""
+                            SELECT * FROM learning_goals
+                            WHERE user_id = ? AND is_active = 1
+                            ORDER BY created_at DESC
+                        """, (user_id,))
+                    else:
+                        import pymysql
+                        cursor = conn.cursor(pymysql.cursors.DictCursor)
+                        cursor.execute(f"""
+                            SELECT * FROM learning_goals
+                            WHERE user_id = {ph} AND is_active = 1
+                            ORDER BY created_at DESC
+                        """, (user_id,))
+                else:
+                    if is_sql:
+                        cursor.execute(f"""
+                            SELECT * FROM learning_goals
+                            WHERE user_id = ?
+                            ORDER BY created_at DESC
+                        """, (user_id,))
+                    else:
+                        import pymysql
+                        cursor = conn.cursor(pymysql.cursors.DictCursor)
+                        cursor.execute(f"""
+                            SELECT * FROM learning_goals
+                            WHERE user_id = {ph}
+                            ORDER BY created_at DESC
+                        """, (user_id,))
+
+                rows = cursor.fetchall()
+                cursor.close()
+                return rows if rows else []
+            except Exception as e:
+                print(f"获取学习目标失败: {e}")
+                return []
+    return []
+
+
+def update_learning_goal(goal_id, current_value):
+    """更新目标当前进度"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                if is_sql:
+                    cursor.execute(f"""
+                        UPDATE learning_goals
+                        SET current_value = ?
+                        WHERE id = ?
+                    """, (current_value, goal_id))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        UPDATE learning_goals
+                        SET current_value = {ph}
+                        WHERE id = {ph}
+                    """, (current_value, goal_id))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"更新学习目标失败: {e}")
+                return False
+    return False
+
+
+def deactivate_learning_goal(goal_id):
+    """停用学习目标"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                if is_sql:
+                    cursor.execute(f"""
+                        UPDATE learning_goals
+                        SET is_active = 0
+                        WHERE id = ?
+                    """, (goal_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        UPDATE learning_goals
+                        SET is_active = 0
+                        WHERE id = {ph}
+                    """, (goal_id,))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"停用学习目标失败: {e}")
+                return False
+    return False
+
+
+# ============================================================
+# 周学习总结 (weekly_summary)
+# ============================================================
+
+def save_weekly_summary(user_id, week_start_date, daily_minutes, hourly_distribution):
+    """保存周学习总结"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                # 转换为 JSON 字符串
+                daily_json = json.dumps(daily_minutes) if isinstance(daily_minutes, list) else daily_minutes
+                hourly_json = json.dumps(hourly_distribution) if isinstance(hourly_distribution, dict) else hourly_distribution
+
+                if is_sql:
+                    cursor.execute(f"""
+                        INSERT OR REPLACE INTO weekly_summary
+                        (user_id, week_start_date, daily_minutes, hourly_distribution)
+                        VALUES (?, ?, ?, ?)
+                    """, (user_id, week_start_date, daily_json, hourly_json))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        INSERT INTO weekly_summary
+                        (user_id, week_start_date, daily_minutes, hourly_distribution)
+                        VALUES ({ph}, {ph}, {ph}, {ph})
+                        ON DUPLICATE KEY UPDATE
+                        daily_minutes = {ph},
+                        hourly_distribution = {ph}
+                    """, (user_id, week_start_date, daily_json, hourly_json,
+                          daily_json, hourly_json))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存周总结失败: {e}")
+                return False
+    return False
+
+
+def get_weekly_summary(user_id, week_start_date):
+    """获取指定周的总结数据"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                if is_sql:
+                    cursor.execute(f"""
+                        SELECT * FROM weekly_summary
+                        WHERE user_id = ? AND week_start_date = ?
+                    """, (user_id, week_start_date))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        SELECT * FROM weekly_summary
+                        WHERE user_id = {ph} AND week_start_date = {ph}
+                    """, (user_id, week_start_date))
+
+                row = cursor.fetchone()
+                cursor.close()
+
+                if row:
+                    result = dict(row) if not isinstance(row, dict) else row
+                    # 解析 JSON 字段
+                    for field in ('daily_minutes', 'hourly_distribution'):
+                        if field in result and isinstance(result[field], str):
+                            try:
+                                result[field] = json.loads(result[field])
+                            except Exception:
+                                pass
+                    return result
+                return None
+            except Exception as e:
+                print(f"获取周总结失败: {e}")
+                return None
+    return None
+
+
+def get_recent_weekly_summaries(user_id, weeks=4):
+    """获取最近几周的总结数据"""
+    summaries = []
+    today = datetime.now()
+    for i in range(weeks):
+        # 计算周一日期
+        week_start = today - timedelta(days=today.weekday() + 7 * i)
+        week_start_str = week_start.strftime('%Y-%m-%d')
+        summary = get_weekly_summary(user_id, week_start_str)
+        if summary:
+            summaries.append(summary)
+    return summaries
+
+
+# ============================================================
+# 知识点掌握度计算
+# ============================================================
+
+def get_user_knowledge_mastery(user_id):
+    """计算用户的知识点掌握度"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+
+                # 获取所有知识点及其 SM2 数据
+                if is_sql:
+                    cursor.execute(f"""
+                        SELECT node_id, name, sm2_data_json, stats_json
+                        FROM knowledge_nodes
+                        WHERE user_id = ?
+                    """, (user_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(f"""
+                        SELECT node_id, name, sm2_data_json, stats_json
+                        FROM knowledge_nodes
+                        WHERE user_id = {ph}
+                    """, (user_id,))
+
+                nodes = cursor.fetchall()
+                cursor.close()
+
+                mastery_data = []
+                for node in nodes:
+                    if isinstance(node, tuple):
+                        node = {
+                            'node_id': node[0],
+                            'name': node[1],
+                            'sm2_data_json': node[2],
+                            'stats_json': node[3]
+                        }
+                    else:
+                        node = dict(node)
+
+                    # 解析 SM2 数据
+                    sm2_data = {}
+                    if node.get('sm2_data_json'):
+                        try:
+                            sm2_data = json.loads(node['sm2_data_json'])
+                        except Exception:
+                            pass
+
+                    # 解析统计数据
+                    stats = {}
+                    if node.get('stats_json'):
+                        try:
+                            stats = json.loads(node['stats_json'])
+                        except Exception:
+                            pass
+
+                    # 计算掌握度 (0-100)
+                    mastery = 0
+
+                    # 1. 基于 EF (easiness factor): 1.3-2.5 => 0-100
+                    ef = sm2_data.get('easiness_factor', 2.5)
+                    if ef:
+                        mastery += min(100, (ef - 1.3) / 1.2 * 100) * 0.3
+
+                    # 2. 基于复习间隔 (interval): 1-30天 => 0-100
+                    interval = sm2_data.get('interval', 1)
+                    if interval:
+                        mastery += min(100, interval / 30 * 100) * 0.3
+
+                    # 3. 基于正确率: correct/total => 0-100
+                    total = stats.get('total_reviews', 0)
+                    correct = stats.get('correct_count', 0)
+                    if total > 0:
+                        accuracy = correct / total * 100
+                        mastery += accuracy * 0.4
+
+                    mastery_data.append({
+                        'node_id': node.get('node_id', ''),
+                        'name': node.get('name', '未知知识点'),
+                        'mastery': min(100, max(0, int(mastery))),
+                        'sm2_data': sm2_data,
+                        'stats': stats
+                    })
+
+                return mastery_data
+            except Exception as e:
+                print(f"计算知识点掌握度失败: {e}")
+                return []
+    return []
+
+
+# ============================================================
 # 批量加载
 # ============================================================
 

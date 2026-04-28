@@ -1247,61 +1247,67 @@ async function initHeatmap(period = 'week') {
         });
 
     } else if (period === 'week') {
-        // 本周7天 - 每天一行
+        // 本周7天 - 柱状图
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay() + 1); // 周一
 
         // 找到本周最大分钟数用于渐变计算
         let maxMinutes = 0;
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(weekStart);
-            d.setDate(weekStart.getDate() + i);
-            const dateStr = d.toISOString().split('T')[0];
-            maxMinutes = Math.max(maxMinutes, dailyMinutes[dateStr] || 0);
-        }
-
-        // 添加星期标签行
-        const labelRow = document.createElement('div');
-        labelRow.className = 'heatmap-days';
-        dayLabels.forEach(label => {
-            const span = document.createElement('span');
-            span.className = 'heat-day';
-            span.textContent = label;
-            labelRow.appendChild(span);
-        });
-        hoursContainer.appendChild(labelRow);
-
+        const weekMinutesArr = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(weekStart);
             d.setDate(weekStart.getDate() + i);
             const dateStr = d.toISOString().split('T')[0];
             const minutes = dailyMinutes[dateStr] || 0;
-
-            const row = document.createElement('div');
-            row.className = 'heatmap-row';
-
-            // 每天一个格子，用渐变颜色
-            const cell = document.createElement('div');
-            cell.className = 'heatmap-hour';
-            cell.style.flex = '1';
-
-            // 根据相对强度计算渐变（传入maxMinutes）
-            const intensity = getIntensityLevel(minutes, maxMinutes);
-            if (intensity > 0) cell.classList.add(`level-${intensity}`);
-            cell.title = `${dayLabels[i]} - ${minutes}分钟`;
-            row.appendChild(cell);
-            hoursContainer.appendChild(row);
+            weekMinutesArr.push(minutes);
+            maxMinutes = Math.max(maxMinutes, minutes);
         }
 
+        // 创建柱状图容器
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'heatmap-year-chart';
+
+        // 每天一根柱
+        for (let i = 0; i < 7; i++) {
+            const intensity = getIntensityLevel(weekMinutesArr[i], maxMinutes);
+            const heightPercent = maxMinutes > 0 ? (weekMinutesArr[i] / maxMinutes) * 100 : 0;
+
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'heatmap-year-bar';
+
+            const barFill = document.createElement('div');
+            barFill.className = 'heatmap-year-bar-fill';
+            if (intensity > 0) {
+                barFill.classList.add(`level-${intensity}`);
+            } else {
+                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+            barFill.style.height = `${Math.max(heightPercent, 4)}%`;
+            barFill.title = `${dayLabels[i]} - ${weekMinutesArr[i]}分钟`;
+
+            const label = document.createElement('div');
+            label.className = 'heatmap-year-bar-label';
+            label.textContent = dayLabels[i];
+
+            barWrapper.appendChild(barFill);
+            barWrapper.appendChild(label);
+            chartContainer.appendChild(barWrapper);
+        }
+        hoursContainer.appendChild(chartContainer);
+
     } else if (period === 'month') {
-        // 本月视图 - 显示4周
+        // 本月视图 - 柱状图（每周一根）
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay() + 1);
+
+        // 计算本月有几周
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        const weeksInMonth = Math.ceil((today.getDate() + new Date(today.getFullYear(), today.getMonth(), 1).getDay()) / 7);
 
         // 找到本月最大周分钟数
         let maxWeekMinutes = 0;
         const weekMinutesArr = [];
-        for (let w = 0; w < 4; w++) {
+        for (let w = 0; w < weeksInMonth; w++) {
             let weekMinutes = 0;
             for (let d = 0; d < 7; d++) {
                 const dayDate = new Date(weekStart);
@@ -1313,30 +1319,37 @@ async function initHeatmap(period = 'week') {
             maxWeekMinutes = Math.max(maxWeekMinutes, weekMinutes);
         }
 
-        // 添加周标签行
-        const labelRow = document.createElement('div');
-        labelRow.className = 'heatmap-days';
-        for (let w = 0; w < 4; w++) {
-            const span = document.createElement('span');
-            span.className = 'heat-day';
-            span.textContent = `第${w + 1}周`;
-            labelRow.appendChild(span);
-        }
-        hoursContainer.appendChild(labelRow);
+        // 创建柱状图容器
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'heatmap-year-chart';
 
-        for (let w = 0; w < 4; w++) {
+        // 每周一根柱
+        for (let w = 0; w < weeksInMonth; w++) {
             const intensity = getIntensityLevel(weekMinutesArr[w], maxWeekMinutes);
+            const heightPercent = maxWeekMinutes > 0 ? (weekMinutesArr[w] / maxWeekMinutes) * 100 : 0;
 
-            const row = document.createElement('div');
-            row.className = 'heatmap-row';
-            const cell = document.createElement('div');
-            cell.className = 'heatmap-hour';
-            cell.style.flex = '1';
-            if (intensity > 0) cell.classList.add(`level-${intensity}`);
-            cell.title = `第${w + 1}周 - ${weekMinutesArr[w]}分钟`;
-            row.appendChild(cell);
-            hoursContainer.appendChild(row);
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'heatmap-year-bar';
+
+            const barFill = document.createElement('div');
+            barFill.className = 'heatmap-year-bar-fill';
+            if (intensity > 0) {
+                barFill.classList.add(`level-${intensity}`);
+            } else {
+                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+            }
+            barFill.style.height = `${Math.max(heightPercent, 4)}%`;
+            barFill.title = `第${w + 1}周 - ${weekMinutesArr[w]}分钟`;
+
+            const label = document.createElement('div');
+            label.className = 'heatmap-year-bar-label';
+            label.textContent = `第${w + 1}周`;
+
+            barWrapper.appendChild(barFill);
+            barWrapper.appendChild(label);
+            chartContainer.appendChild(barWrapper);
         }
+        hoursContainer.appendChild(chartContainer);
 
     } else if (period === 'year') {
         // 全年12个月 - 柱状图
@@ -1355,17 +1368,6 @@ async function initHeatmap(period = 'week') {
             monthMinutesArr.push(monthMinutes);
             maxMonthMinutes = Math.max(maxMonthMinutes, monthMinutes);
         }
-
-        // 添加月份标签行
-        const labelRow = document.createElement('div');
-        labelRow.className = 'heatmap-days';
-        monthLabels.forEach(label => {
-            const span = document.createElement('span');
-            span.className = 'heat-day';
-            span.textContent = label;
-            labelRow.appendChild(span);
-        });
-        hoursContainer.appendChild(labelRow);
 
         // 创建柱状图容器
         const chartContainer = document.createElement('div');

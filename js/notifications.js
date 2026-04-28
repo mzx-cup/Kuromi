@@ -55,11 +55,11 @@
                 0 1px 0 rgba(255, 255, 255, 0.1) inset;
             overflow: hidden;
             cursor: default;
-            animation: sl-slide-in 0.4s cubic-bezier(.22,1,.36,1) forwards;
+            animation: sl-slide-in 0.6s cubic-bezier(.22,1,.36,1) forwards;
         }
 
         .sl-notif.exiting {
-            animation: sl-slide-out 0.35s cubic-bezier(.22,1,.36,1) forwards;
+            animation: sl-slide-out 0.5s cubic-bezier(.22,1,.36,1) forwards;
         }
 
         /* 进度条 */

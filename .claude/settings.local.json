@@ -15,7 +15,10 @@
       "Bash(python -c \"import main\")",
       "Bash(python -m py_compile /c/Users/22821/PycharmProjects/Hachiware/星识/main.py)",
       "Bash(python *)",
-      "Bash(del xingshi.db)"
+      "Bash(del xingshi.db)",
+      "Bash(node --check js/hub.js)",
+      "Bash(node -e \"const css = require\\('fs'\\).readFileSync\\('css/hub.css', 'utf8'\\); console.log\\('CSS file is readable'\\);\")",
+      "Bash(git push *)"
     ]
   }
 }

@@ -1,290 +1,220 @@
-# 全息知识生态 UI 重设计 + 智能过滤计划
+# 学习概览卡片排版重设计计划
 
 ## Context
 
-用户反馈全息知识生态存在以下问题：
-1. **节点是硬编码的** - 不管学生是否在学这门课都会显示
-2. **没有根据学习数据过滤** - 不是学生要学的课或还没学的课都显示"遗忘"
-3. 需要调用数据库中学生的学习记录来分析，只显示**真正需要复习**的知识点
+用户反馈当前"学习概览"（Learning Dashboard）的卡片排版存在以下问题：
+1. **排版不人性化** - 现有的左右分栏布局不够直观
+2. **廉价卡片感** - `glass-card` 样式过于普通，缺乏设计感
+3. **图表单调** - 现有的环形图和柱状图比较基础
 
 设计目标：
-- 根据用户学习记录动态生成知识节点
-- 只显示学生正在学/学过的课程
-- 基于 SM2 复习数据计算遗忘度
+- 采用更人性化的信息层级设计
+- 重新设计卡片样式，提升质感
+- 重绘学习数据可视化图表
+- **不影响其他功能模块**
 
 ---
 
-## Phase 1: 数据层改造
+## 设计理念
 
-### 1.1 新增字段到 knowledge_nodes
+### 信息层级重构
 
-```sql
-ALTER TABLE knowledge_nodes ADD COLUMN subject VARCHAR(100) DEFAULT '';
-ALTER TABLE knowledge_nodes ADD COLUMN is_active BOOLEAN DEFAULT FALSE;
-ALTER TABLE knowledge_nodes ADD COLUMN first_studied_at TIMESTAMP NULL;
-ALTER TABLE knowledge_nodes ADD COLUMN last_studied_at TIMESTAMP NULL;
+采用 **"一眼可见 → 重点关注 → 细节可探"** 的信息架构：
+
 ```
-
-### 1.2 知识节点来源 - 评估驱动
-
-用户完成能力评估后，系统根据评估结果中的：
-- 强项/弱项领域
-- 推荐的课程
-- difficulty_level
-
-自动激活对应的知识节点
-
-```python
-def activate_nodes_from_assessment(user_id, assessment_result):
-    """根据评估结果激活知识节点"""
-    strong_areas = assessment_result.get('strong_areas', [])
-    weak_areas = assessment_result.get('weak_areas', [])
-    recommended_courses = assessment_result.get('recommended_courses', [])
-
-    # 激活相关领域的所有节点
-    areas = set(strong_areas + weak_areas + recommended_courses)
-    for area in areas:
-        activate_nodes_by_subject(area)
-```
-
-### 1.3 预设知识领域模板
-
-```python
-KNOWLEDGE_TEMPLATES = {
-    "计算机科学": {
-        "python-core": {"name": "Python核心", "icon": "🐍", "children": ["math", "web-dev", "database", "english"]},
-        "math": {"name": "数学基础", "icon": "📐"},
-        "web-dev": {"name": "Web开发", "icon": "🌐"},
-        "database": {"name": "数据库", "icon": "🗄️"},
-        "english": {"name": "专业英语", "icon": "📚"}
-    },
-    "大数据": {...},
-    "人工智能": {...}
-}
-```
-
-### 1.4 获取激活节点 API
-
-```python
-# GET /api/knowledge/nodes/{user_id}?active=true
-def get_active_knowledge_nodes(user_id):
-    """只返回学生正在学习的知识节点"""
-    # 1. 获取用户学习记录
-    learning_record = get_learning_record(user_id)
-    # 2. 获取评估结果中的课程信息
-    profile = json.loads(learning_record.get('profile_json', '{}'))
-    studied_subjects = profile.get('subjects', [])
-
-    # 3. 获取用户的知识节点
-    all_nodes = get_knowledge_nodes(user_id)
-
-    # 4. 过滤：只保留激活的且属于已学课程的节点
-    active_nodes = [n for n in all_nodes if n.get('is_active') and n.get('subject') in studied_subjects]
-
-    return active_nodes
+┌──────────────────────────────────────────────────────────────┐
+│  学习概览 · 今天                                              │
+│  2026年4月27日 星期一                                        │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │  今日学习状态卡 (Hero Card)                           │     │
+│  │  ┌─────┐  主标题  副标题                             │     │
+│  │  │图标 │  数据指标  趋势箭头                         │     │
+│  │  └─────┘                                          │     │
+│  └─────────────────────────────────────────────────────┘     │
+│                                                              │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐    │
+│  │ 专注时长卡片  │  │ 完成任务卡片  │  │ 连续天数卡片  │    │
+│  └───────────────┘  └───────────────┘  └───────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐     │
+│  │  学习趋势图 (流光风格)                               │     │
+│  │  ～～～～～～～～～～～～～～～～～～～              │     │
+│  └─────────────────────────────────────────────────────┘     │
+│                                                              │
+│  ┌────────────────────────┐  ┌────────────────────────┐     │
+│  │ 本周学习热力图          │  │ 专注任务列表           │     │
+│  │ ░░▒▒▓▓██░░▒▒         │  │ · 任务1 ✓            │     │
+│  │                      │  │ · 任务2 ●             │     │
+│  └────────────────────────┘  └────────────────────────┘     │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Phase 2: 节点状态计算逻辑
+## 设计风格
 
-### 2.1 状态判定规则
-
-| 状态 | 条件 | 颜色 | 显示 |
-|------|------|------|------|
-| `not-started` | `first_studied_at == NULL` | 灰色 | "未开始" |
-| `in-progress` | `repetitions == 0 && first_studied_at != NULL` | 蓝色 | "学习中" |
-| `healthy` | `综合评分 >= 70` | 绿色 | "掌握良好" |
-| `warning` | `40 <= 综合评分 < 70` | 橙色 | "需复习" |
-| `danger` | `综合评分 < 40 或 已过复习时间` | 红色 | "濒临遗忘" |
-
-### 2.2 状态计算流程图
-
-```
-获取节点数据
-    ↓
-first_studied_at == NULL? → 是 → "未开始" (灰色，不提醒)
-    ↓ 否
-repetitions == 0? → 是 → "学习中" (蓝色，呼吸动画)
-    ↓ 否
-检查 next_review 是否过期 → 过期 → "濒临遗忘" (红色，抖动)
-    ↓ 否
-计算综合评分 → >=70 → "掌握良好"
-    ↓ <70
-    → >=40 → "需复习"
-    ↓ <40
-    → "濒临遗忘"
-```
-
-### 2.3 JavaScript 状态计算实现
-
-```javascript
-function getNodeDynamicStatus(nodeData) {
-    const sm2 = nodeData.sm2_data || {};
-    const stats = nodeData.stats || {};
-
-    // 未开始学习
-    if (!nodeData.first_studied_at && !sm2.repetitions) {
-        return 'not-started';
-    }
-
-    // 开始学习但无复习记录
-    if (sm2.repetitions === 0) {
-        return 'in-progress';
-    }
-
-    // 检查是否过期
-    const nextReview = new Date(sm2.next_review);
-    if (nextReview < new Date()) {
-        return 'danger';
-    }
-
-    // 计算综合评分
-    const score = calculateComprehensiveScore(nodeData);
-    if (score >= 70) return 'healthy';
-    if (score >= 40) return 'warning';
-    return 'danger';
-}
-```
-
----
-
-## Phase 3: UI 改造
-
-### 3.1 节点状态样式扩展
+### 配色方案 (沿用现有变量)
 
 ```css
-/* 未开始 - 灰色，无动画 */
-.holo-node.not-started .node-sphere {
-    background: radial-gradient(circle at 30% 30%, #f3f4f6, #d1d5db);
-    border: 2px solid #9CA3AF;
-    box-shadow: none;
-}
-.holo-node.not-started .node-icon { opacity: 0.5; }
-
-/* 学习中 - 蓝色，呼吸动画 */
-.holo-node.in-progress .node-sphere {
-    background: radial-gradient(circle at 30% 30%, #dbeafe, #93c5fd);
-    border: 2px solid #3B82F6;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
-    animation: breathe 2s ease-in-out infinite;
-}
-
-@keyframes breathe {
-    0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-    50% { box-shadow: 0 0 25px rgba(59, 130, 246, 0.5); }
-}
+--neon-purple: #a855f7;
+--neon-blue: #3b82f6;
+--neon-green: #10b981;
+--neon-orange: #f97316;
+--neon-pink: #ec4899;
+--neon-cyan: #06b6d4;
 ```
 
-### 3.2 节点悬停信息 (Tooltip)
+### 新卡片样式
 
-Hover 时显示浮动信息卡：
-```
-┌─────────────────────────┐
-│ 📐 数学基础              │
-│ ─────────────────────── │
-│ 状态: 需复习             │
-│ 正确率: 75%             │
-│ 下次复习: 明天            │
-│ 复习次数: 5             │
-└─────────────────────────┘
-```
+**1. Hero 状态卡**
+- 大尺寸渐变背景 + 微光动画
+- 左侧图标 + 右侧数据
+- 顶部有装饰性光效条
 
-### 3.3 节点点击行为
+**2. 指标卡 (Stat Cards)**
+- 玻璃拟态 + 细边框
+- 顶部彩色光效条
+- 悬浮时有上浮 + 光晕效果
 
-| 状态 | 点击行为 |
-|------|----------|
-| `not-started` | 模态框"开始学习？" + 跳转到对应课程 |
-| `in-progress` | 引导完成首次复习 |
-| `healthy/warning/danger` | 复习面板 |
+**3. 图表卡**
+- 标题区 + 图表区分离
+- 图表区有渐变填充
+- 支持深色/浅色主题
 
-### 3.4 空状态 - 混合模式
+### 新图表设计
 
-**情况A: 无学习记录**
-```
-┌────────────────────────────────────────────┐
-│                                            │
-│    🌟 欢迎来到全息知识生态                  │
-│                                            │
-│    还没有你的学习记录                       │
-│                                            │
-│    [完成能力评估]  →  系统为你生成知识图谱   │
-│    [选择学习领域]  →  自主选择要学的领域      │
-│                                            │
-└────────────────────────────────────────────┘
-```
+**学习趋势图 (替代原有 SVG)**
+- 流光曲线 + 渐变填充
+- 网格背景
+- 悬停显示具体数值
 
-**情况B: 有学习记录但无激活节点**
-```
-┌────────────────────────────────────────────┐
-│                                            │
-│    📚 知识图谱待生成                        │
-│                                            │
-│    根据你的评估结果，系统将为你规划学习路径   │
-│                                            │
-│    [查看评估结果]    [重新评估]             │
-│                                            │
-└────────────────────────────────────────────┘
-```
-
-### 3.5 连接线样式
-
-根据子节点状态动态变化：
-- 子节点全 healthy → 连接线绿色
-- 任一子节点 warning → 连接线橙色
-- 任一子节点 danger → 连接线红色
+**本周学习热力图 (新增)**
+- 7x24 网格显示每日学习时段
+- 颜色深浅表示学习强度
 
 ---
 
-## Phase 4: 每日路线整合
+## 实现方案
 
-### 4.1 复习任务生成逻辑
+### Phase 1: HTML 结构改造
 
-```python
-def generate_review_tasks(user_id):
-    # 1. 获取用户学习记录，确定学生正在学习的课程
-    learning_record = get_learning_record(user_id)
-    profile = json.loads(learning_record.get('profile_json', '{}'))
-    active_subjects = profile.get('subjects', [])
+**文件**: `html/hub.html`
 
-    # 2. 获取所有到期的知识节点
-    pending = get_pending_reviews(user_id)
+修改 `dashboard-section` 结构：
 
-    # 3. 过滤：只包含学生正在学习的课程
-    active_pending = [
-        p for p in pending
-        if get_node_subject(p['node_id']) in active_subjects
-    ]
+```html
+<section class="dashboard-section" id="section-dashboard">
+    <!-- 概览头部 -->
+    <div class="overview-header">
+        <div class="overview-title-row">
+            <span class="overview-icon">📊</span>
+            <h2 class="overview-title">学习概览</h2>
+        </div>
+        <div class="overview-meta">
+            <span class="overview-date" id="overview-date"></span>
+        </div>
+    </div>
 
-    # 4. 按紧急程度排序（已过期 > 24小时内 > 3天内）
-    active_pending.sort(key=lambda x: x['next_review'])
+    <!-- Hero 状态卡 -->
+    <div class="hero-status-card" id="hero-status-card">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <div class="hero-icon-wrapper">
+                <span class="hero-icon">🚀</span>
+            </div>
+            <div class="hero-info">
+                <h3 class="hero-title">今日学习进行中</h3>
+                <p class="hero-subtitle">已专注 45 分钟，继续保持！</p>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-value">5.2</span>
+                    <span class="hero-stat-label">小时</span>
+                </div>
+                <div class="hero-stat-trend up">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                    </svg>
+                    <span>+12%</span>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    # 5. 转换为每日路线任务格式
-    return [create_review_task(p) for p in active_pending]
+    <!-- 指标卡片网格 -->
+    <div class="stat-cards-grid">
+        <div class="stat-card">
+            <div class="stat-card-accent purple"></div>
+            <div class="stat-card-icon">
+                <svg>...</svg>
+            </div>
+            <div class="stat-card-content">
+                <span class="stat-card-value">207</span>
+                <span class="stat-card-unit">小时</span>
+            </div>
+            <span class="stat-card-label">累计学习</span>
+        </div>
+        <!-- 类似结构... -->
+    </div>
+
+    <!-- 趋势 + 热力图 -->
+    <div class="dashboard-charts-row">
+        <div class="chart-card trend-chart-card">
+            <div class="chart-header">
+                <h4>学习趋势</h4>
+                <span class="chart-badge">近7天</span>
+            </div>
+            <div class="trend-chart-wrapper">
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card heatmap-card">
+            <div class="chart-header">
+                <h4>学习时段</h4>
+                <span class="chart-badge">本周</span>
+            </div>
+            <div class="heatmap-wrapper" id="heatmap-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- 任务 + 日历 -->
+    <div class="dashboard-bottom-row">
+        <div class="task-list-card">
+            <!-- 任务列表 -->
+        </div>
+        <div class="mini-calendar-card">
+            <!-- 专注日历 -->
+        </div>
+        <div class="tags-card">
+            <!-- 学习标签 -->
+        </div>
+    </div>
+</section>
 ```
 
-### 4.2 复习任务格式
+### Phase 2: CSS 样式重写
 
-```javascript
-{
-    id: 'review-math-001',
-    title: '复习: 数学基础',
-    description: '距离上次复习已过去5天',
-    type: 'review',
-    subject: '数学基础',
-    node_id: 'math',
-    priority: 'high', // high/medium/low
-    duration: 15,     // 分钟
-    taskUrl: `/review/${node_id}`
-}
-```
+**文件**: `css/hub.css`
 
-### 4.3 复习提醒整合
+重写以下样式：
 
-当生成每日路线时：
-- 优先插入到期的复习任务
-- 在路线卡片中显示为"复习任务"类型
-- 完成复习后自动更新节点状态
+1. `.dashboard-section` → `.overview-section` (避免冲突)
+2. 新增 Hero Card 样式
+3. 新增 Stat Cards 样式
+4. 新增 Chart Card 样式
+5. 新增 Heatmap 样式
+6. 新增 Animations
+
+### Phase 3: JavaScript 图表
+
+**文件**: `js/hub.js`
+
+1. 趋势图：使用 Canvas 绑定真实数据
+2. 热力图：动态生成 7x24 网格
+3. 数据从 `data-layer.js` 获取
 
 ---
 
@@ -292,31 +222,25 @@ def generate_review_tasks(user_id):
 
 | 文件 | 修改内容 |
 |------|----------|
-| `db.py` | 新增 `activate_nodes_from_assessment()`, `get_active_knowledge_nodes()`, 新增字段 |
-| `main.py` | `GET /api/knowledge/nodes/{user_id}?active=true` 只返回激活节点 |
-| `js/hub.js` | 动态加载、状态计算、空状态处理、tooltip |
-| `css/hub.css` | 新增 `.not-started`, `.in-progress` 样式，tooltip 样式 |
-| `html/hub.html` | 空状态模板，tooltip 结构 |
-| `setup_database.py` | 新增字段 SQL |
+| `html/hub.html` | 重写 `dashboard-section` HTML 结构 |
+| `css/hub.css` | 新增/重写 dashboard 相关样式 |
+| `js/hub.js` | 图表初始化和数据绑定 |
 
 ---
 
-## Implementation Order
+## 不影响范围
 
-1. **db.py** - 新增字段和过滤函数
-2. **setup_database.py** - 更新建表SQL
-3. **main.py** - 新增 `active` 参数的API
-4. **js/hub.js** - 状态计算逻辑 + 空状态
-5. **css/hub.css** - 新状态样式
-6. **html/hub.html** - 空状态模板
+以下模块**保持不变**：
+- `daily-highlights-section` (今日要闻) ✅
+- `daily-route-section` (今日航线) ✅
+- `module-section` (心流共振、星际自习等) ✅
+- `holo-tree` (全息知识树) ✅
 
 ---
 
 ## Verification
 
-1. **空状态测试**: 新用户（无学习记录）→ 显示引导界面
-2. **节点过滤测试**: 有学习记录但未评估 → 只显示部分节点
-3. **状态显示测试**: 不同状态的节点颜色/动画正确
-4. **复习流程测试**: 点击节点 → 复习面板 → 提交 → 状态更新
-5. **每日路线测试**: 复习任务正确插入路线
-6. **主题测试**: 浅色/深色主题下样式正确
+1. **视觉检查**: 打开 hub 页面，确认学习概览区域已更新
+2. **功能检查**: 确认其他模块（今日要闻、航线、知识树等）功能正常
+3. **主题检查**: 深色/浅色主题切换正常
+4. **响应式检查**: 不同分辨率下布局正常
