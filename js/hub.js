@@ -206,23 +206,58 @@ function renderDailyRoute() {
 
     if (launchEngine) launchEngine.style.display = 'none';
     if (progressIndicator) progressIndicator.style.display = 'none';
+    pathTimeline.classList.add('route-generated');
 
     const total = dailyRouteState.tasks.length;
     const completed = dailyRouteState.completed.length;
     const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const totalMinutes = dailyRouteState.tasks.reduce((sum, task) => sum + (Number(task.duration) || 0), 0);
+    const remainingTasks = Math.max(total - completed, 0);
 
     let html = `
-        <div class="daily-route-header">
-            <div class="route-date">${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</div>
-            <div class="route-summary">
-                <span class="route-progress-badge">${progress}%</span>
-                <span class="route-status-text">${completed}/${total} 任务完成</span>
+        <div class="route-dashboard">
+            <div class="daily-route-header">
+                <div>
+                    <span class="route-eyebrow">今日航线</span>
+                    <div class="route-date">${new Date().toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' })}</div>
+                </div>
+                <div class="route-summary">
+                    <span class="route-progress-badge">${progress}%</span>
+                    <span class="route-status-text">${completed}/${total} 任务完成</span>
+                </div>
             </div>
-        </div>
-        <div class="route-progress-bar">
-            <div class="route-progress-fill" style="width: ${progress}%"></div>
-        </div>
-        <div class="route-tasks">
+            <div class="route-shell">
+                <aside class="route-overview-card">
+                    <span class="route-overview-label">学习流程</span>
+                    <strong>${remainingTasks} 个待完成节点</strong>
+                    <p>预计 ${totalMinutes} 分钟，按顺序推进，也可以左右滑动查看完整路线。</p>
+                    <div class="route-progress-bar">
+                        <div class="route-progress-fill" id="route-progress" style="width: ${progress}%"></div>
+                    </div>
+                    <div class="route-overview-stats">
+                        <span><span id="completed-count">${completed}</span> 已完成</span>
+                        <span><span id="total-count">${total}</span> 总任务</span>
+                    </div>
+                </aside>
+                <div class="route-flow-panel">
+                    <div class="route-flow-toolbar">
+                        <div>
+                            <span class="route-flow-kicker">今日学习流程</span>
+                            <span class="route-flow-hint">拖动卡片或使用按钮横向浏览</span>
+                        </div>
+                        <div class="route-scroll-actions" aria-label="学习流程滑动控制">
+                            <button class="route-scroll-btn" id="route-scroll-left" type="button" aria-label="向左查看">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                            </button>
+                            <button class="route-scroll-btn" id="route-scroll-right" type="button" aria-label="向右查看">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="route-viewport-frame">
+                        <div class="route-edge route-edge-left"></div>
+                        <div class="route-edge route-edge-right"></div>
+                        <div class="route-tasks" id="route-task-scroll" tabindex="0" aria-label="今日学习流程">
     `;
 
     dailyRouteState.tasks.forEach((task, index) => {
@@ -240,6 +275,7 @@ function renderDailyRoute() {
                  data-task-url="${task.taskUrl || 'courses.html'}"
                  onclick="handleNodeClick(${task.id})">
                 <div class="task-card-header">
+                    <span class="task-step">${String(index + 1).padStart(2, '0')}</span>
                     <div class="task-subject-icon" style="background: ${typeConfig.color}20; color: ${typeConfig.color}">
                         ${typeConfig.emoji}
                     </div>
@@ -262,10 +298,107 @@ function renderDailyRoute() {
         `;
     });
 
-    html += '</div>';
+    html += `
+                        </div>
+                    </div>
+                    <div class="route-scrollbar" aria-hidden="true">
+                        <span class="route-scroll-thumb" id="route-scroll-thumb"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
     pathTimeline.innerHTML = html;
 
+    setupRouteScroller();
     updateRouteProgress();
+}
+
+function setupRouteScroller() {
+    const scroller = document.getElementById('route-task-scroll');
+    const leftBtn = document.getElementById('route-scroll-left');
+    const rightBtn = document.getElementById('route-scroll-right');
+    const thumb = document.getElementById('route-scroll-thumb');
+
+    if (!scroller) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startScrollLeft = 0;
+    let movedDuringDrag = false;
+
+    const scrollAmount = () => Math.max(280, Math.floor(scroller.clientWidth * 0.82));
+
+    const updateControls = () => {
+        const maxScroll = Math.max(scroller.scrollWidth - scroller.clientWidth, 0);
+        const atStart = scroller.scrollLeft <= 2;
+        const atEnd = scroller.scrollLeft >= maxScroll - 2;
+
+        if (leftBtn) leftBtn.disabled = atStart;
+        if (rightBtn) rightBtn.disabled = atEnd || maxScroll === 0;
+
+        if (thumb) {
+            const visibleRatio = maxScroll > 0 ? scroller.clientWidth / scroller.scrollWidth : 1;
+            const thumbWidth = Math.max(18, Math.min(100, visibleRatio * 100));
+            const travel = 100 - thumbWidth;
+            const left = maxScroll > 0 ? (scroller.scrollLeft / maxScroll) * travel : 0;
+            thumb.style.width = `${thumbWidth}%`;
+            thumb.style.left = `${left}%`;
+        }
+    };
+
+    leftBtn?.addEventListener('click', () => {
+        scroller.scrollBy({ left: -scrollAmount(), behavior: 'smooth' });
+    });
+
+    rightBtn?.addEventListener('click', () => {
+        scroller.scrollBy({ left: scrollAmount(), behavior: 'smooth' });
+    });
+
+    scroller.addEventListener('scroll', () => {
+        window.requestAnimationFrame(updateControls);
+    }, { passive: true });
+
+    scroller.addEventListener('wheel', (event) => {
+        if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+        event.preventDefault();
+        scroller.scrollLeft += event.deltaY;
+    }, { passive: false });
+
+    scroller.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        isDragging = true;
+        movedDuringDrag = false;
+        startX = event.clientX;
+        startScrollLeft = scroller.scrollLeft;
+        scroller.classList.add('is-dragging');
+        scroller.setPointerCapture?.(event.pointerId);
+    });
+
+    scroller.addEventListener('pointermove', (event) => {
+        if (!isDragging) return;
+        const delta = event.clientX - startX;
+        if (Math.abs(delta) > 4) movedDuringDrag = true;
+        scroller.scrollLeft = startScrollLeft - delta;
+    });
+
+    const stopDrag = (event) => {
+        if (!isDragging) return;
+        isDragging = false;
+        scroller.classList.remove('is-dragging');
+        scroller.releasePointerCapture?.(event.pointerId);
+    };
+
+    scroller.addEventListener('pointerup', stopDrag);
+    scroller.addEventListener('pointercancel', stopDrag);
+    scroller.addEventListener('click', (event) => {
+        if (!movedDuringDrag) return;
+        event.preventDefault();
+        event.stopPropagation();
+        movedDuringDrag = false;
+    }, true);
+
+    setTimeout(updateControls, 0);
 }
 
 function updateRouteProgress() {
@@ -603,6 +736,33 @@ function initOverviewDate() {
     dateEl.textContent = now.toLocaleDateString('zh-CN', options);
 }
 
+function formatStudyDuration(minutes) {
+    const value = Number(minutes) || 0;
+    if (value >= 60) {
+        return {
+            value: (value / 60).toFixed(1),
+            unit: '小时',
+            text: `${(value / 60).toFixed(1)} 小时`
+        };
+    }
+
+    return {
+        value: String(value),
+        unit: '分钟',
+        text: `${value} 分钟`
+    };
+}
+
+function updateOverviewAction(type, value, desc) {
+    const card = document.querySelector(`.overview-action-card[data-overview-action="${type}"]`);
+    if (!card) return;
+
+    const valueEl = card.querySelector('.overview-action-value');
+    const descEl = card.querySelector('.overview-action-desc');
+    if (valueEl) valueEl.textContent = value;
+    if (descEl) descEl.textContent = desc;
+}
+
 // 加载学习概览数据 (从API)
 async function loadStudyOverviewData() {
     const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
@@ -621,16 +781,22 @@ async function loadStudyOverviewData() {
             const heroSubtitle = document.querySelector('.hero-subtitle');
             const heroValue = document.querySelector('.hero-stat-value');
             const heroUnit = document.querySelector('.hero-stat-unit');
+            const todayDuration = formatStudyDuration(o.today_minutes || 0);
+            const weekDuration = formatStudyDuration(o.week_minutes || 0);
 
+            if (heroTitle) {
+                heroTitle.textContent = (o.today_minutes || 0) > 0 ? '今天的学习状态' : '今天还没开始';
+            }
             if (heroSubtitle) {
-                const todayHours = o.today_minutes >= 60
-                    ? (o.today_minutes / 60).toFixed(1) + ' 小时'
-                    : o.today_minutes + ' 分钟';
-                heroSubtitle.textContent = `已专注 ${todayHours}，继续保持！`;
+                heroSubtitle.textContent = (o.today_minutes || 0) > 0
+                    ? `本周累计 ${weekDuration.text}，继续保持当前节奏。`
+                    : `本周累计 ${weekDuration.text}，先从一个小任务开始。`;
             }
             if (heroValue) {
-                const weekHours = (o.week_minutes / 60).toFixed(1);
-                heroValue.textContent = weekHours;
+                heroValue.textContent = todayDuration.value;
+            }
+            if (heroUnit) {
+                heroUnit.textContent = todayDuration.unit;
             }
 
             // 更新趋势显示
@@ -638,49 +804,43 @@ async function loadStudyOverviewData() {
             const trendSpan = trendEl?.querySelector('span');
             if (trendEl && trendSpan) {
                 const trend = o.week_trend || 0;
-                const isUp = trend >= 0;
-                trendEl.className = `hero-stat-trend ${isUp ? 'up' : 'down'}`;
-                trendSpan.textContent = `${isUp ? '+' : ''}${trend}%`;
+                const isUp = trend > 0;
+                const isDown = trend < 0;
+                trendEl.className = `hero-stat-trend ${isUp ? 'up' : isDown ? 'down' : 'neutral'}`;
+                trendSpan.textContent = trend === 0 ? '持平' : `${isUp ? '+' : ''}${trend}%`;
                 // 更新箭头方向
                 const svg = trendEl.querySelector('svg');
                 if (svg) {
                     svg.innerHTML = isUp
                         ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>'
-                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>';
+                        : isDown
+                            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>'
+                            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16"/>';
                 }
             }
 
-            // 更新指标卡片
-            const statCards = document.querySelectorAll('.stat-card');
-            statCards.forEach(card => {
-                const type = card.dataset.type;
-                const valueEl = card.querySelector('.stat-card-value');
-                const unitEl = card.querySelector('.stat-card-unit');
-                const labelEl = card.querySelector('.stat-card-label');
+            const goalCount = o.total_goals || 0;
+            const mastery = o.avg_mastery || 0;
+            const knowledgeCount = o.knowledge_count || 0;
+            const trend = o.week_trend || 0;
+            const trendText = trend > 0 ? `+${trend}%` : trend < 0 ? `${trend}%` : '持平';
+            const trendDesc = trend > 0
+                ? '比上周更投入'
+                : trend < 0
+                    ? '比上周少一些，适合补一个短时段'
+                    : '和上周相比暂无变化';
 
-                if (type === 'time' && valueEl) {
-                    // 累计学习时间
-                    const totalHours = o.week_minutes || 0;
-                    valueEl.textContent = (totalHours / 60).toFixed(1);
-                    if (unitEl) unitEl.textContent = '小时';
-                    if (labelEl) labelEl.textContent = '本周学习';
-                } else if (type === 'tasks' && valueEl) {
-                    // 活跃目标数
-                    valueEl.textContent = o.total_goals || 0;
-                    if (unitEl) unitEl.textContent = '个';
-                    if (labelEl) labelEl.textContent = '学习目标';
-                } else if (type === 'streak' && valueEl) {
-                    // 知识点掌握度
-                    valueEl.textContent = o.avg_mastery || 0;
-                    if (unitEl) unitEl.textContent = '%';
-                    if (labelEl) labelEl.textContent = '平均掌握度';
-                } else if (type === 'goal' && valueEl) {
-                    // 知识点数量
-                    valueEl.textContent = o.knowledge_count || 0;
-                    if (unitEl) unitEl.textContent = '个';
-                    if (labelEl) labelEl.textContent = '已学知识点';
-                }
-            });
+            updateOverviewAction(
+                'focus',
+                `${goalCount} 个目标`,
+                goalCount > 0 ? '从专注任务里挑一个继续' : '暂无目标，可以先去选课'
+            );
+            updateOverviewAction(
+                'mastery',
+                `${mastery}%`,
+                knowledgeCount > 0 ? `已学 ${knowledgeCount} 个知识点` : '暂无已学知识点'
+            );
+            updateOverviewAction('rhythm', trendText, trendDesc);
         }
     } catch (e) {
         console.log('[StudyOverview] 加载失败，使用默认数据');
@@ -1691,13 +1851,14 @@ function updateHoloEcosystemUI() {
             }
 
             // 更新节点样式
-            nodeEl.classList.remove('healthy', 'warning', 'danger');
+            nodeEl.classList.remove('not-started', 'in-progress', 'healthy', 'warning', 'danger');
             nodeEl.classList.add(status);
         }
     });
 
     // 更新统计栏
     updateHoloStats();
+    updateHoloPrioritySummary();
     drawTreeConnections();
 }
 
@@ -1721,6 +1882,61 @@ function updateHoloStats() {
         if (warningEl) warningEl.textContent = warningCount;
         if (dangerEl) dangerEl.textContent = dangerCount;
         if (percentEl) percentEl.textContent = healthPercent + '%';
+    }
+}
+
+function getNodeDisplayName(nodeData) {
+    return nodeData?.name || nodeData?.title || nodeData?.node_name || nodeData?.node_id || '知识节点';
+}
+
+function updateHoloPrioritySummary() {
+    const urgentChip = document.querySelector('.priority-chip.urgent');
+    const reviewChip = document.querySelector('.priority-chip.review');
+    const stableChip = document.querySelector('.priority-chip.stable');
+    const briefTitle = document.querySelector('.brief-copy strong');
+    const briefText = document.querySelector('.brief-copy span:last-child');
+    const reviewLink = document.querySelector('.holo-review-link');
+
+    if (!urgentChip || !reviewChip || !stableChip || !briefTitle || !briefText) return;
+
+    let urgentName = '机器学习';
+    let reviewName = '算法设计';
+    let stableName = 'Python核心';
+    let helperText = '记忆风险最高，建议先复习 12 分钟';
+
+    if (knowledgeNodesCache.length > 0) {
+        const enriched = knowledgeNodesCache.map(node => {
+            const urgency = calculateNodeUrgency(node);
+            return {
+                node,
+                urgency,
+                status: getNodeDynamicStatus(node)
+            };
+        }).sort((a, b) => b.urgency.score - a.urgency.score);
+
+        const urgent = enriched[0];
+        const review = enriched.find(item => ['danger', 'warning', 'in-progress'].includes(item.status) && item !== urgent) || enriched[1] || urgent;
+        const stable = enriched.find(item => item.status === 'healthy') || enriched[enriched.length - 1] || urgent;
+
+        if (urgent) {
+            urgentName = getNodeDisplayName(urgent.node);
+            const timeText = urgent.urgency.timeStr && urgent.urgency.timeStr !== '未安排'
+                ? `距复习点 ${urgent.urgency.timeStr}`
+                : '建议安排一次短复习';
+            helperText = `${getStatusText(urgent.status)}，${timeText}`;
+        }
+        if (review) reviewName = getNodeDisplayName(review.node);
+        if (stable) stableName = getNodeDisplayName(stable.node);
+    }
+
+    urgentChip.textContent = urgentName;
+    reviewChip.textContent = reviewName;
+    stableChip.textContent = stableName;
+    briefTitle.textContent = urgentName;
+    briefText.textContent = helperText;
+
+    if (reviewLink) {
+        reviewLink.setAttribute('aria-label', `开始复习${urgentName}`);
     }
 }
 
@@ -1755,6 +1971,7 @@ async function initHoloEcosystem() {
     } else {
         drawTreeConnections();
     }
+    updateHoloPrioritySummary();
 
     let resizeTimeout;
     window.addEventListener('resize', () => {
@@ -1993,7 +2210,7 @@ function drawTreeConnections() {
 
 // 基于紧迫性的布局配置
 const URGENCY_CONFIG = {
-    // X轴: 紧迫性 (0=最紧迫在左边, 100=最不紧迫在右边)
+    // X轴: 复习优先级 (0=最紧迫在左边, 100=最稳定在右边)
     // Y轴: 知识层级 (10=root, 35=branch, 60=leaf)
     levelY: { 'root': 10, 'branch': 35, 'leaf': 60 },
     // 紧迫性颜色
@@ -2053,9 +2270,10 @@ function calculateNodePosition(nodeData, totalNodes) {
     const y = levelY[level] || 60;
 
     const { score: urgency } = calculateNodeUrgency(nodeData);
+    const x = Math.min(92, Math.max(8, 100 - urgency));
 
     return {
-        x: urgency,  // 0-100, 左边=紧迫
+        x,
         y: y,
         urgency: urgency
     };
@@ -2065,11 +2283,11 @@ function calculateNodePosition(nodeData, totalNodes) {
 function getUrgencyColor(urgency, opacity = 1) {
     let color;
     if (urgency >= 70) {
-        color = URGENCY_CONFIG.urgencyColors.healthy;
+        color = URGENCY_CONFIG.urgencyColors.critical;
     } else if (urgency >= 30) {
         color = URGENCY_CONFIG.urgencyColors.warning;
     } else {
-        color = URGENCY_CONFIG.urgencyColors.critical;
+        color = URGENCY_CONFIG.urgencyColors.healthy;
     }
 
     // 根据紧迫性在颜色范围内插值
@@ -2085,10 +2303,10 @@ function getUrgencyColor(urgency, opacity = 1) {
         g = Math.round(parseInt(color.from.slice(3, 5), 16) + (parseInt(color.to.slice(3, 5), 16) - parseInt(color.from.slice(3, 5), 16)) * t);
         b = Math.round(parseInt(color.from.slice(5, 7), 16) + (parseInt(color.to.slice(5, 7), 16) - parseInt(color.from.slice(5, 7), 16)) * t);
     } else {
-        const t = urgency / 30;
-        r = Math.round(parseInt(color.from.slice(1, 3), 16) * t + 255 * (1 - t));
-        g = Math.round(parseInt(color.from.slice(3, 5), 16) * t + 255 * (1 - t));
-        b = Math.round(parseInt(color.from.slice(5, 7), 16) * t + 255 * (1 - t));
+        const t = Math.max(0, urgency / 30);
+        r = Math.round(parseInt(color.to.slice(1, 3), 16) + (parseInt(color.from.slice(1, 3), 16) - parseInt(color.to.slice(1, 3), 16)) * t);
+        g = Math.round(parseInt(color.to.slice(3, 5), 16) + (parseInt(color.from.slice(3, 5), 16) - parseInt(color.to.slice(3, 5), 16)) * t);
+        b = Math.round(parseInt(color.to.slice(5, 7), 16) + (parseInt(color.from.slice(5, 7), 16) - parseInt(color.to.slice(5, 7), 16)) * t);
     }
 
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
@@ -2164,7 +2382,7 @@ function drawEbbinghausLayout() {
         nodeEl.style.left = `${pos.x}%`;
         nodeEl.style.top = `${pos.y}%`;
         nodeEl.style.transform = 'translate(-50%, -50%)';
-        nodeEl.style.zIndex = Math.round(100 - pos.urgency); // 紧迫的节点在上层
+        nodeEl.style.zIndex = Math.round(100 + pos.urgency);
 
         // 更新紧迫性颜色
         updateNodeUrgencyStyle(nodeEl, pos.urgency);
@@ -2217,6 +2435,8 @@ function updateNodeUrgencyStyle(nodeEl, urgency) {
 
     // 更新边框颜色
     nodeEl.style.borderColor = color;
+    nodeEl.style.setProperty('--node-accent', getUrgencyColor(urgency, 1));
+    nodeEl.style.setProperty('--node-soft', getUrgencyColor(urgency, 0.12));
 
     // 更新光晕
     const glowEl = nodeEl.querySelector('.node-glow');

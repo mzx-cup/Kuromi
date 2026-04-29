@@ -17,7 +17,7 @@ MYSQL_CONFIG = {
     'host': os.environ.get('MYSQL_HOST', '127.0.0.1'),
     'port': int(os.environ.get('MYSQL_PORT', 3306)),
     'user': os.environ.get('MYSQL_USER', 'root'),
-    'password': os.environ.get('MYSQL_PASSWORD', 'root'),
+    'password': os.environ.get('MYSQL_PASSWORD', '123456'),
     'charset': 'utf8mb4',
 }
 DATABASE_NAME = 'xingshi'
