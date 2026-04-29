@@ -1000,6 +1000,9 @@ body {
 .avatar-wrapper {
     position: relative;
     flex-shrink: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    outline: none;
 }
 
 .avatar {
@@ -1023,6 +1026,15 @@ body {
 .avatar:hover {
     transform: scale(1.05);
     border-color: var(--primary);
+}
+
+.avatar-wrapper:focus-visible .avatar,
+.avatar-wrapper.is-picker-open .avatar {
+    transform: scale(1.04);
+    border-color: var(--primary);
+    box-shadow:
+        0 0 0 5px var(--primary-glow),
+        0 12px 30px rgba(59, 130, 246, 0.25);
 }
 
 .avatar-edit {
@@ -1051,6 +1063,52 @@ body {
 .avatar-edit i {
     width: 16px;
     height: 16px;
+}
+
+.avatar-style-panel {
+    flex: 1 0 100%;
+    width: 100%;
+    margin-top: 4px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(241, 245, 249, 0.68));
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    animation: avatarStylePanelIn 0.24s var(--ease-out-expo);
+}
+
+.avatar-style-panel[hidden] {
+    display: none;
+}
+
+.avatar-style-panel-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 14px;
+}
+
+.avatar-style-panel-head span {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.avatar-style-panel-head small {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+
+@keyframes avatarStylePanelIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .identity-info {
@@ -2579,6 +2637,11 @@ body {
     gap: 16px;
 }
 
+.avatar-grid-inline {
+    gap: 14px;
+    align-items: center;
+}
+
 .avatar-option {
     width: 64px;
     height: 64px;
@@ -2599,6 +2662,12 @@ body {
 .avatar-option.selected {
     border-color: var(--primary);
     box-shadow: 0 0 0 4px var(--primary-glow), 0 8px 24px var(--primary-glow);
+}
+
+.avatar-grid-inline .avatar-option {
+    width: 58px;
+    height: 58px;
+    background: rgba(255, 255, 255, 0.88);
 }
 
 /* ============================================

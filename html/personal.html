@@ -87,9 +87,9 @@
                 </div>
 
                 <div class="identity-card">
-                    <div class="avatar-wrapper">
+                    <div class="avatar-wrapper" id="avatar-style-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="avatar-style-panel" onclick="toggleAvatarStylePanel(event)" onkeydown="handleAvatarStyleToggleKeydown(event)">
                         <img id="current-avatar" src="" alt="头像" class="avatar">
-                        <button class="avatar-edit" onclick="document.getElementById('avatar-upload').click()">
+                        <button class="avatar-edit" onclick="event.stopPropagation(); document.getElementById('avatar-upload').click()" title="上传头像">
                             <i data-lucide="camera"></i>
                         </button>
                         <input type="file" id="avatar-upload" accept="image/*" class="hidden" onchange="handleAvatarUpload(event)">
@@ -118,6 +118,14 @@
                             <i data-lucide="trash-2"></i>
                             清除
                         </button>
+                    </div>
+
+                    <div class="avatar-style-panel" id="avatar-style-panel" hidden>
+                        <div class="avatar-style-panel-head">
+                            <span>头像风格</span>
+                            <small>选择你喜欢的头像样式</small>
+                        </div>
+                        <div class="avatar-grid avatar-grid-inline" id="avatar-grid"></div>
                     </div>
                 </div>
             </section>
@@ -635,20 +643,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <section class="personal-section">
-                <div class="section-header">
-                    <div class="section-header-icon">
-                        <i data-lucide="smile"></i>
-                    </div>
-                    <div>
-                        <div class="section-title">头像风格</div>
-                        <div class="section-subtitle">选择你喜欢的头像样式</div>
-                    </div>
-                </div>
-
-                <div class="avatar-grid" id="avatar-grid"></div>
             </section>
 
             <section class="personal-section">

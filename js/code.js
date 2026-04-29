@@ -1242,6 +1242,12 @@ function showTypingOverlay() {
         return;
     }
 
+    if (state.mode === 'fix') {
+        elements.generationPanel.classList.remove('compact');
+        elements.generationPanel.hidden = true;
+        return;
+    }
+
     elements.generationPanel.hidden = false;
     elements.generationPanel.classList.add('compact');
     elements.generationTitle.textContent = state.mode === 'fix'
