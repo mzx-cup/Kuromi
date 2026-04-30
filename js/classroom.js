@@ -7,6 +7,60 @@
 (function() {
     'use strict';
 
+    // Animation types
+    const ANIMATION_TYPES = {
+        ENTER: 'enter',
+        EXIT: 'exit',
+        ATTENTION: 'attention'
+    };
+
+    // Enter animations
+    const ENTER_ANIMATIONS = {
+        fade: 'elem-enter-fade',
+        fadeUp: 'elem-enter-up',
+        fadeDown: 'elem-enter-down',
+        zoom: 'elem-enter-zoom',
+        bounce: 'elem-enter-bounce',
+        slideLeft: 'elem-enter-slide-left',
+        slideRight: 'elem-enter-slide-right'
+    };
+
+    // Attention animations
+    const ATTENTION_ANIMATIONS = {
+        pulse: 'elem-attention-pulse',
+        shake: 'elem-attention-shake',
+        wobble: 'elem-attention-wobble',
+        heartbeat: 'elem-attention-heartbeat'
+    };
+
+    // MiniMax TTS voice mapping
+    const MINIMAX_VOICES = {
+        'female-shaonv': { voice_id: 'female_shaonv', name: '青春少女', description: '活泼可爱的年轻女声' },
+        'female-yujie': { voice_id: 'female_yujie', name: '温柔御姐', description: '成熟温柔的姐姐声音' },
+        'female-danyun': { voice_id: 'female_danyun', name: '知性女声', description: '知性优雅的女性声音' },
+        'male-qingshu': { voice_id: 'male_qingshu', name: '青涩少年', description: '清新自然的年轻男声' },
+        'male-shaoshuai': { voice_id: 'male_shaoshuai', name: '磁性男声', description: '沉稳磁性的成熟男声' }
+    };
+
+    // Default TTS config
+    const TTS_CONFIG = {
+        provider: 'minimax',
+        voice: 'female-yujie',
+        speed: 1.0,
+        pitch: 1.0,
+        volume: 1.0,
+        speedOptions: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
+    };
+
+    // Slide transition effects
+    const SLIDE_TRANSITIONS = {
+        none: 'none',
+        fade: 'fade',
+        slideLeft: 'slide-left',
+        slideRight: 'slide-right',
+        zoom: 'zoom'
+    };
+
     class ClassroomController {
         constructor() {
             this.courseData = null;
@@ -29,6 +83,15 @@
             this.spotlightOverlay = null;
             this.laserOverlay = null;
             this.whiteboardVisible = false;
+
+            // Animation state
+            this.currentAnimationEffects = [];
+            this.isTransitioning = false;
+            this.animationQueue = [];
+
+            // Spotlight/laser state
+            this.spotlightElement = null;
+            this.laserElements = [];
 
             // DOM refs
             this.courseTitle = document.getElementById('course-title')?.querySelector('span');
@@ -80,9 +143,11 @@
                 window.location.href = '/index.html';
                 return;
             }
+            this.loadVoicePreference();
             this.buildScenes();
             this.setupUI();
             this.bindEvents();
+            this.initVoiceSelector();
             this.renderSceneSidebar();
             this.renderScene(0);
             this.updateNav();
@@ -156,6 +221,9 @@
             this.voiceBtn?.addEventListener('click', () => this.toggleVoice());
             document.getElementById('replay-btn')?.addEventListener('click', () => this.replaySpeech());
             document.getElementById('pause-btn')?.addEventListener('click', () => this.pauseSpeech());
+            document.getElementById('speed-btn')?.addEventListener('click', () => {
+                this.cycleSpeed();
+            });
             this.sendChat?.addEventListener('click', () => this.sendMessage());
             this.chatInput?.addEventListener('keypress', e => { if (e.key === 'Enter') this.sendMessage(); });
             document.getElementById('exit-btn')?.addEventListener('click', () => this.showExitModal());
@@ -231,13 +299,22 @@
         renderSlideScene(scene) {
             if (!this.slideContainer) return;
             this.slideContainer.style.display = 'block';
+
+            // Add transition animation
+            this.slideContainer.style.animation = 'slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
             const slide = scene.slide;
             if (!slide) {
-                this.slideContainer.innerHTML = `<div class="slide-content"><h1>${scene.title}</h1><p>${scene.description}</p></div>`;
+                this.slideContainer.innerHTML = `
+                    <div class="slide-content slide-enter">
+                        <h1 class="slide-title animate-in">${scene.title}</h1>
+                        <p class="slide-description animate-in" style="animation-delay:0.2s">${scene.description}</p>
+                    </div>
+                `;
                 return;
             }
 
-            // Apply slide background
+            // Apply slide background with gradient animation
             if (slide.background && this.slideContainer) {
                 const bg = slide.background;
                 if (bg.type === 'gradient' && bg.gradient?.colors) {
@@ -247,44 +324,53 @@
                 } else if (bg.type === 'solid' && bg.color) {
                     this.slideContainer.style.backgroundColor = bg.color;
                 }
+                if (bg.type === 'image' && bg.image?.src) {
+                    this.slideContainer.style.backgroundImage = `url(${bg.image.src})`;
+                    this.slideContainer.style.backgroundSize = 'cover';
+                    this.slideContainer.style.backgroundPosition = 'center';
+                }
             }
 
-            let html = `<div class="slide-content slide-enter"><h1 class="slide-title animate-in">${slide.title || scene.title}</h1><div class="slide-body">`;
+            let html = `<div class="slide-header-bar"></div>`;
+            html += `<div class="slide-content slide-enter">`;
+            html += `<h1 class="slide-title animate-in">${slide.title || scene.title}</h1>`;
+            html += `<div class="slide-body">`;
+
             if (slide.content?.elements) {
                 slide.content.elements.forEach((el, idx) => {
                     const elemId = el.id ? `id="elem-${el.id}"` : '';
-                    const animDelay = `animation-delay:${idx * 0.1}s`;
+                    const animDelay = `animation-delay:${idx * 0.12 + 0.1}s`;
+                    const animClass = el.animation?.effect
+                        ? ENTER_ANIMATIONS[el.animation.effect] || ENTER_ANIMATIONS.fadeUp
+                        : ENTER_ANIMATIONS.fadeUp;
+
                     if (el.type === 'text') {
                         const style = this._buildElementStyle(el);
                         const textStyle = el.default_font_name ? `font-family:${el.default_font_name},sans-serif;` : '';
-                        html += `<div class="slide-text animate-in" ${elemId} style="${style};${textStyle}${animDelay}">${(el.content || '').replace(/\n/g, '<br>')}</div>`;
+                        html += `<div class="slide-text ${animClass}" ${elemId} style="${style};${textStyle}${animDelay}">${(el.content || '').replace(/\n/g, '<br>')}</div>`;
                     } else if (el.type === 'code') {
                         const style = this._buildElementStyle(el);
-                        html += `<pre class="slide-code animate-in" ${elemId} style="${style};${animDelay}"><code>${this.escapeHtml(el.content || '')}</code></pre>`;
-                    } else if (el.type === 'image' && el.image_url) {
+                        html += `<pre class="slide-code ${animClass}" ${elemId} style="${style};${animDelay}"><code>${this.escapeHtml(el.content || '')}</code></pre>`;
+                    } else if (el.type === 'image' && el.src) {
                         const style = this._buildElementStyle(el);
-                        html += `<img class="slide-image animate-in" ${elemId} src="${el.image_url}" alt="" style="${style};${animDelay}">`;
+                        html += `<img class="slide-image ${animClass}" ${elemId} src="${el.src}" alt="" style="${style};${animDelay}" loading="lazy">`;
                     } else if (el.type === 'shape') {
                         const style = this._buildShapeStyle(el);
-                        html += `<div class="slide-shape animate-in" ${elemId} style="${style};${animDelay}">${this._renderShapeContent(el)}</div>`;
+                        html += `<div class="slide-shape ${animClass}" ${elemId} style="${style};${animDelay}">${this._renderShapeContent(el)}</div>`;
                     } else if (el.type === 'chart' && el.chart_type) {
-                        html += `<div class="slide-chart animate-in" ${elemId} data-chart-type="${el.chart_type}" style="height:200px;${animDelay}">${this._renderChartPlaceholder(el)}</div>`;
+                        html += `<div class="slide-chart ${animClass}" ${elemId} data-chart-type="${el.chart_type}" style="height:220px;${animDelay}">${this._renderChartPlaceholder(el)}</div>`;
                     } else if (el.type === 'latex' && el.latex) {
-                        html += `<div class="slide-latex animate-in" ${elemId} style="font-size:18px;${animDelay}">${this._renderLatex(el.latex)}</div>`;
+                        html += `<div class="slide-latex ${animClass}" ${elemId} style="font-size:18px;${animDelay}">${this._renderLatex(el.latex)}</div>`;
                     } else if (el.type === 'table' && el.table_data) {
-                        html += `<div class="slide-table animate-in" ${elemId} style="${animDelay}">${this._renderTable(el.table_data)}</div>`;
-                    } else if (el.type === 'line' && el.points) {
-                        html += `<svg class="slide-line animate-in" ${elemId} style="${animDelay}" ${this._buildLineStyle(el)}><line ${this._buildLineAttrs(el)}/></svg>`;
+                        html += `<div class="slide-table ${animClass}" ${elemId} style="${animDelay}">${this._renderTable(el.table_data)}</div>`;
                     }
                 });
             }
-            if (scene.imageUrl && !html.includes('slide-image')) {
-                html += `<img class="slide-image animate-in" src="${scene.imageUrl}" alt="" style="max-width:60%;margin:1rem auto;display:block;">`;
-            }
+
             html += '</div></div>';
             this.slideContainer.innerHTML = html;
 
-            // Load scene actions and process them
+            // Load and process scene actions after render
             this.loadSceneActions(scene);
         }
 
@@ -464,7 +550,11 @@
 
         loadSceneActions(scene) {
             const sceneActions = this.courseData.scene_actions || [];
-            const actionData = sceneActions.find(a => a.scene_id === scene.id || a.scene_id === scene.slide?.id);
+            const actionData = sceneActions.find(a =>
+                a.scene_id === scene.id ||
+                a.scene_id === scene.slide?.id ||
+                a.scene_index === this.currentIndex
+            );
             if (actionData?.actions?.length > 0) {
                 this.actionQueue = [...actionData.actions];
                 this.processActionQueue();
@@ -493,23 +583,31 @@
 
             switch (action.type) {
                 case 'spotlight':
-                    this.renderSpotlight(action.element_id);
+                    this.renderSpotlight(action.element_id, action.options);
                     await this._sleep(duration * 1000);
-                    this.clearSpotlight();
+                    if (!action.persist) this.clearSpotlight();
                     break;
 
                 case 'laser':
-                    this.renderLaser(action.element_id, action.color || '#ff6b6b');
+                    this.renderLaser(action.element_id, action.color || '#ff6b6b', action.options);
                     await this._sleep(duration * 1000);
-                    this.clearLaser();
+                    if (!action.persist) this.clearLaser();
                     break;
 
                 case 'speech':
-                    await this.playSpeechAction(action.text);
+                    await this.playSpeechAction(action.text, action.voice, action.speed);
+                    break;
+
+                case 'highlight':
+                    this.highlightElement(action.element_id, action.color || 'var(--primary)');
+                    break;
+
+                case 'attention':
+                    this.applyAttentionAnimation(action.element_id, action.effect || 'pulse');
                     break;
 
                 case 'wb_open':
-                    this.showWhiteboard();
+                    this.showWhiteboard(action.options);
                     break;
 
                 case 'wb_close':
@@ -517,11 +615,19 @@
                     break;
 
                 case 'wb_draw_text':
-                    this.drawOnWhiteboard(action.wb_content);
+                    this.drawTextOnWhiteboard(action.text, action.x, action.y, action.style);
                     break;
 
                 case 'wb_draw_shape':
-                    this.drawShapeOnWhiteboard(action.wb_shape || 'rectangle');
+                    this.drawShapeOnWhiteboard(action.shape || 'rectangle', action.x, action.y, action.size);
+                    break;
+
+                case 'wb_draw_line':
+                    this.drawLineOnWhiteboard(action.start, action.end, action.color, action.width);
+                    break;
+
+                case 'transition':
+                    this.executeSlideTransition(action.direction || 'next', action.effect || 'fade');
                     break;
 
                 default:
@@ -529,189 +635,524 @@
             }
         }
 
-        renderSpotlight(elementId) {
+        renderSpotlight(elementId, options = {}) {
             this.clearSpotlight();
-            const elem = elementId ? document.getElementById(`elem-${elementId}`) : null;
-            if (!elem || !this.actionOverlay) return;
 
-            const rect = elem.getBoundingClientRect();
+            const targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
             const overlay = document.createElement('div');
             overlay.id = 'spotlight-overlay';
-            overlay.style.cssText = `
-                position:fixed;
-                top:0;left:0;width:100%;height:100%;
-                background:rgba(0,0,0,0.6);
-                z-index:9998;
-                pointer-events:none;
-            `;
+            overlay.className = 'spotlight-overlay';
 
-            // Create a "hole" in the overlay for the target element
+            let holeStyle = '';
+
+            if (targetElem) {
+                const rect = targetElem.getBoundingClientRect();
+                const padding = 20;
+                holeStyle = `
+                    position: absolute;
+                    left: ${rect.left - padding}px;
+                    top: ${rect.top - padding}px;
+                    width: ${rect.width + padding * 2}px;
+                    height: ${rect.height + padding * 2}px;
+                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+                    border-radius: 12px;
+                    animation: spotlightPulse 2s ease-in-out infinite;
+                `;
+
+                // Highlight the element
+                targetElem.style.transition = 'filter 0.4s ease, transform 0.4s ease';
+                targetElem.style.filter = 'brightness(1.3) drop-shadow(0 0 20px var(--primary-glow))';
+                targetElem.style.transform = 'scale(1.02)';
+
+                this.spotlightElement = targetElem;
+            }
+
             const hole = document.createElement('div');
-            hole.style.cssText = `
-                position:absolute;
-                left:${rect.left - 10}px;
-                top:${rect.top - 10}px;
-                width:${rect.width + 20}px;
-                height:${rect.height + 20}px;
-                box-shadow:0 0 0 9999px rgba(0,0,0,0.6);
-                border-radius:8px;
-            `;
+            hole.style.cssText = holeStyle;
             overlay.appendChild(hole);
             this.actionOverlay.appendChild(overlay);
-            this.spotlightOverlay = overlay;
-
-            // Highlight the element itself
-            elem.style.transition = 'filter 0.3s, transform 0.3s';
-            elem.style.filter = 'brightness(1.2)';
-            elem.style.transform = 'scale(1.02)';
         }
 
         clearSpotlight() {
-            if (this.spotlightOverlay) {
-                this.spotlightOverlay.remove();
-                this.spotlightOverlay = null;
+            const overlay = document.getElementById('spotlight-overlay');
+            if (overlay) overlay.remove();
+
+            if (this.spotlightElement) {
+                this.spotlightElement.style.filter = '';
+                this.spotlightElement.style.transform = '';
+                this.spotlightElement = null;
             }
-            // Restore all elements
-            document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex').forEach(el => {
+
+            // Clear all element highlights
+            document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex, .slide-table').forEach(el => {
                 el.style.filter = '';
                 el.style.transform = '';
             });
         }
 
-        renderLaser(elementId, color) {
+        renderLaser(elementId, color, options = {}) {
             this.clearLaser();
-            const elem = elementId ? document.getElementById(`elem-${elementId}`) : null;
-            if (!elem || !this.actionOverlay) return;
 
-            const rect = elem.getBoundingClientRect();
-            const laser = document.createElement('div');
-            laser.id = 'laser-overlay';
-            laser.innerHTML = `
-                <svg width="${window.innerWidth}" height="${window.innerHeight}" style="position:fixed;top:0;left:0;pointer-events:none;z-index:9999;">
-                    <circle cx="${rect.left + rect.width / 2}" cy="${rect.top + rect.height / 2}" r="8" fill="${color}" opacity="0.8">
-                        <animate attributeName="r" values="8;12;8" dur="0.5s" repeatCount="indefinite"/>
-                        <animate attributeName="opacity" values="0.8;0.4;0.8" dur="0.5s" repeatCount="indefinite"/>
-                    </circle>
-                    <circle cx="${rect.left + rect.width / 2}" cy="${rect.top + rect.height / 2}" r="20" fill="none" stroke="${color}" stroke-width="2" opacity="0.5">
-                        <animate attributeName="r" values="20;30;20" dur="0.8s" repeatCount="indefinite"/>
-                        <animate attributeName="opacity" values="0.5;0.2;0.5" dur="0.8s" repeatCount="indefinite"/>
-                    </circle>
+            const targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+            const laserContainer = document.createElement('div');
+            laserContainer.id = 'laser-overlay';
+            laserContainer.className = 'laser-overlay';
+
+            let cx = window.innerWidth / 2;
+            let cy = window.innerHeight / 2;
+
+            if (targetElem) {
+                const rect = targetElem.getBoundingClientRect();
+                cx = rect.left + rect.width / 2;
+                cy = rect.top + rect.height / 2;
+
+                // Highlight element with glow
+                targetElem.style.transition = 'filter 0.3s ease';
+                targetElem.style.filter = `brightness(1.2) drop-shadow(0 0 15px ${color})`;
+            }
+
+            laserContainer.innerHTML = `
+                <div class="laser-dot" style="left:${cx}px;top:${cy}px;background:radial-gradient(circle, ${color} 0%, transparent 70%);"></div>
+                <div class="laser-ring" style="left:${cx}px;top:${cy}px;border-color:${color};"></div>
+                <svg width="100%" height="100%" style="position:absolute;top:0;left:0;pointer-events:none;">
+                    <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy}"
+                          stroke="${color}" stroke-width="2" stroke-dasharray="5,5"
+                          style="animation: laserTrace 0.5s ease forwards;">
+                        <animate attributeName="x2" values="${cx};${cx + 50}" dur="0.5s" fill="freeze"/>
+                        <animate attributeName="y2" values="${cy};${cy - 30}" dur="0.5s" fill="freeze"/>
+                    </line>
                 </svg>
             `;
-            this.actionOverlay.appendChild(laser);
-            this.laserOverlay = laser;
+
+            this.actionOverlay.appendChild(laserContainer);
         }
 
         clearLaser() {
-            if (this.laserOverlay) {
-                this.laserOverlay.remove();
-                this.laserOverlay = null;
+            const laser = document.getElementById('laser-overlay');
+            if (laser) laser.remove();
+
+            document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex, .slide-table').forEach(el => {
+                el.style.filter = '';
+            });
+        }
+
+        highlightElement(elementId, color) {
+            const elem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+            if (!elem) return;
+
+            elem.style.transition = 'all 0.3s ease';
+            elem.style.boxShadow = `0 0 30px ${color}, inset 0 0 20px ${color}`;
+            elem.style.borderColor = color;
+
+            setTimeout(() => {
+                elem.style.boxShadow = '';
+                elem.style.borderColor = '';
+            }, 2000);
+        }
+
+        applyAttentionAnimation(elementId, effect) {
+            const elem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+            if (!elem) return;
+
+            const animClass = ATTENTION_ANIMATIONS[effect] || ATTENTION_ANIMATIONS.pulse;
+
+            // Remove any existing attention animations
+            Object.values(ATTENTION_ANIMATIONS).forEach(cls => {
+                elem.classList.remove(cls);
+            });
+
+            // Force reflow to restart animation
+            void elem.offsetWidth;
+            elem.classList.add(animClass);
+
+            // Remove after animation completes (except pulse which loops)
+            if (effect !== 'pulse' && effect !== 'heartbeat') {
+                setTimeout(() => {
+                    elem.classList.remove(animClass);
+                }, 2000);
             }
         }
 
-        async playSpeechAction(text) {
+        async executeSlideTransition(direction, effect) {
+            if (this.isTransitioning) return;
+            this.isTransitioning = true;
+
+            const oldContainer = this.slideContainer;
+
+            if (effect === 'fade') {
+                oldContainer.style.animation = 'fadeOut 0.3s ease forwards';
+                await this._sleep(300);
+                this.renderScene(this.currentIndex);
+                this.slideContainer.style.animation = 'fadeIn 0.4s ease forwards';
+            } else if (effect === 'slideLeft') {
+                oldContainer.style.animation = 'slideOutLeft 0.4s ease forwards';
+                await this._sleep(400);
+                this.renderScene(this.currentIndex);
+                this.slideContainer.style.animation = 'slideInRight 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            } else if (effect === 'slideRight') {
+                oldContainer.style.animation = 'slideOutRight 0.4s ease forwards';
+                await this._sleep(400);
+                this.renderScene(this.currentIndex);
+                this.slideContainer.style.animation = 'slideInLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            } else if (effect === 'zoom') {
+                oldContainer.style.animation = 'zoomOut 0.4s ease forwards';
+                await this._sleep(400);
+                this.renderScene(this.currentIndex);
+                this.slideContainer.style.animation = 'zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            }
+
+            await this._sleep(500);
+            this.isTransitioning = false;
+        }
+
+        async playSpeechAction(text, voiceId = null, speed = 1.0) {
             if (!text) return;
+
             this.speechText.textContent = text;
+            this.showSpeechSyncIndicator(true);
 
-            // Show speaking indicator
-            if (this.speechSync) this.speechSync.style.display = 'flex';
+            // Update teacher avatar to speaking state
+            if (this.teacherAvatar) {
+                this.teacherAvatar.classList.add('speaking');
+            }
 
-            // Try MiniMax TTS API first
-            try {
-                const voiceId = this.courseData.teacher?.voice_id || 0;
-                const response = await fetch('/api/socratic/tts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, voice_id: voiceId })
-                });
-                const data = await response.json();
-                if (data.success && data.audio_url) {
-                    // Play generated audio
-                    if (this.audioPlayer) {
-                        this.audioPlayer.src = data.audio_url;
-                        await this.audioPlayer.play().catch(() => this._speakText(text));
-                        this.audioPlayer.onended = () => {
-                            if (this.speechSync) this.speechSync.style.display = 'none';
-                        };
-                    } else {
-                        await this._speakText(text);
+            // Try MiniMax TTS first
+            const ttsResult = await this.generateTTS(text, voiceId, speed);
+
+            if (ttsResult.success && this.audioPlayer) {
+                // Play generated audio with sync
+                this.audioPlayer.src = ttsResult.audioUrl;
+
+                this.audioPlayer.onloadedmetadata = () => {
+                    // Update speech progress
+                    this.updateSpeechProgress();
+                };
+
+                this.audioPlayer.onended = () => {
+                    this.showSpeechSyncIndicator(false);
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
                     }
-                } else {
-                    await this._speakText(text);
-                }
-            } catch (e) {
+                };
+
+                this.audioPlayer.onerror = () => {
+                    // Fallback to browser TTS
+                    this._speakText(text, voiceId, speed);
+                };
+
+                await this.audioPlayer.play().catch(() => {
+                    this._speakText(text, voiceId, speed);
+                });
+            } else {
                 // Fallback to browser TTS
-                await this._speakText(text);
+                await this._speakText(text, voiceId, speed);
             }
         }
 
-        _speakText(text) {
+        _speakText(text, voiceId = null, speed = 1.0) {
             return new Promise((resolve) => {
                 if (!window.speechSynthesis) {
                     resolve();
                     return;
                 }
+
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'zh-CN';
-                utterance.rate = 1.0;
-                utterance.onend = () => resolve();
-                utterance.onerror = () => resolve();
+                utterance.rate = speed;
+
+                // Map to browser voice if available
+                if (voiceId && window.speechSynthesis.getVoices) {
+                    const voices = window.speechSynthesis.getVoices();
+                    const targetVoice = voices.find(v => v.lang.includes('zh'));
+                    if (targetVoice) {
+                        utterance.voice = targetVoice;
+                    }
+                }
+
+                utterance.onstart = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.add('speaking');
+                    }
+                    this.showSpeechSyncIndicator(true);
+                };
+
+                utterance.onend = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.showSpeechSyncIndicator(false);
+                    resolve();
+                };
+
+                utterance.onerror = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.showSpeechSyncIndicator(false);
+                    resolve();
+                };
+
                 window.speechSynthesis.speak(utterance);
             });
         }
 
-        showWhiteboard() {
+        async generateTTS(text, voiceId = null, speed = 1.0) {
+            const voice = voiceId || TTS_CONFIG.voice;
+            const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
+
+            try {
+                const response = await fetch('/api/socratic/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice_id: voiceConfig.voice_id,
+                        speed: speed,
+                        provider: 'minimax'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.audio_url) {
+                    return { success: true, audioUrl: data.audio_url };
+                }
+                return { success: false, error: 'TTS generation failed' };
+            } catch (e) {
+                console.error('TTS API error:', e);
+                return { success: false, error: e.message };
+            }
+        }
+
+        showSpeechSyncIndicator(show) {
+            if (this.speechSync) {
+                this.speechSync.style.display = show ? 'flex' : 'none';
+                if (show) {
+                    this.speechSync.classList.add('syncing');
+                } else {
+                    this.speechSync.classList.remove('syncing');
+                }
+            }
+        }
+
+        updateSpeechProgress() {
+            if (!this.audioPlayer || !this.speechSync) return;
+
+            const progress = (this.audioPlayer.currentTime / this.audioPlayer.duration) * 100;
+            const progressBar = this.speechSync.querySelector('.sync-progress');
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+        }
+
+        showWhiteboard(options = {}) {
             let wb = document.getElementById('whiteboard-overlay');
+
+            const colors = options.colors || ['#6366f1', '#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#000000'];
+            const tools = options.tools || ['pen', 'rectangle', 'circle', 'line', 'text', 'eraser'];
+
             if (!wb) {
                 wb = document.createElement('div');
                 wb.id = 'whiteboard-overlay';
                 wb.style.cssText = `
                     position:fixed;top:0;left:0;width:100%;height:100%;
-                    background:rgba(255,255,255,0.95);z-index:10000;
+                    background:rgba(0,0,0,0.85);z-index:10000;
                     display:flex;align-items:center;justify-content:center;
+                    animation: fadeIn 0.3s ease;
                 `;
+
                 wb.innerHTML = `
-                    <div style="width:90%;max-width:800px;height:80%;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:24px;position:relative;">
-                        <button onclick="classroomController.hideWhiteboard()" style="position:absolute;top:12px;right:12px;background:#ff6b6b;color:#fff;border:none;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:18px;">×</button>
-                        <canvas id="whiteboard-canvas" width="700" height="450" style="border:2px solid #e0e0e0;border-radius:8px;cursor:crosshair;"></canvas>
+                    <div class="whiteboard-container" style="
+                        width:90%;max-width:1000px;height:85%;
+                        background:#fff;border-radius:20px;
+                        box-shadow:0 25px 80px rgba(0,0,0,0.5);
+                        display:flex;flex-direction:column;overflow:hidden;
+                    ">
+                        <div class="wb-header" style="
+                            display:flex;align-items:center;justify-content:space-between;
+                            padding:12px 20px;background:linear-gradient(135deg,var(--primary),var(--accent));
+                            color:white;
+                        ">
+                            <div class="wb-title" style="font-size:16px;font-weight:600;">
+                                <i class="fas fa-chalkboard"></i> 电子白板
+                            </div>
+                            <div class="wb-tools" style="display:flex;gap:8px;">
+                                ${tools.map(t => `
+                                    <button class="wb-tool-btn" data-tool="${t}" style="
+                                        width:36px;height:36px;border:none;border-radius:8px;
+                                        background:rgba(255,255,255,0.2);color:white;
+                                        cursor:pointer;font-size:14px;transition:all 0.2s;
+                                    " title="${t}">
+                                        <i class="fas fa-${this._getToolIcon(t)}"></i>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <div class="wb-colors" style="display:flex;gap:6px;">
+                                ${colors.map(c => `
+                                    <button class="wb-color-btn" data-color="${c}" style="
+                                        width:24px;height:24px;border-radius:50%;
+                                        background:${c};border:2px solid transparent;
+                                        cursor:pointer;transition:all 0.2s;
+                                    "></button>
+                                `).join('')}
+                            </div>
+                            <button class="wb-close-btn" style="
+                                width:36px;height:36px;border:none;border-radius:50%;
+                                background:rgba(255,255,255,0.2);color:white;
+                                cursor:pointer;font-size:18px;transition:all 0.2s;
+                            ">×</button>
+                        </div>
+                        <canvas id="whiteboard-canvas" style="
+                            flex:1;cursor:crosshair;
+                        "></canvas>
                     </div>
                 `;
+
                 document.body.appendChild(wb);
 
-                // Initialize canvas drawing
-                const canvas = document.getElementById('whiteboard-canvas');
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.strokeStyle = '#6366f1';
-                    ctx.lineWidth = 3;
-                    ctx.lineCap = 'round';
+                // Initialize canvas after DOM insert
+                this._initWhiteboardCanvas(wb, options);
 
-                    let drawing = false;
-                    let lastX = 0, lastY = 0;
-
-                    canvas.addEventListener('mousedown', (e) => {
-                        drawing = true;
-                        const rect = canvas.getBoundingClientRect();
-                        lastX = e.clientX - rect.left;
-                        lastY = e.clientY - rect.top;
-                    });
-                    canvas.addEventListener('mousemove', (e) => {
-                        if (!drawing) return;
-                        const rect = canvas.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const y = e.clientY - rect.top;
-                        ctx.beginPath();
-                        ctx.moveTo(lastX, lastY);
-                        ctx.lineTo(x, y);
-                        ctx.stroke();
-                        lastX = x; lastY = y;
-                    });
-                    canvas.addEventListener('mouseup', () => drawing = false);
-                    canvas.addEventListener('mouseleave', () => drawing = false);
-                }
+                // Event listeners
+                wb.querySelector('.wb-close-btn').addEventListener('click', () => this.hideWhiteboard());
+                wb.querySelectorAll('.wb-tool-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this._selectWhiteboardTool(btn.dataset.tool));
+                });
+                wb.querySelectorAll('.wb-color-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this._selectWhiteboardColor(btn.dataset.color));
+                });
             }
+
             wb.style.display = 'flex';
             this.whiteboardVisible = true;
+        }
+
+        _initWhiteboardCanvas(wb, options) {
+            const canvas = wb.querySelector('#whiteboard-canvas');
+            if (!canvas) return;
+
+            const ctx = canvas.getContext('2d');
+            const rect = wb.querySelector('.whiteboard-container').getBoundingClientRect();
+
+            canvas.width = rect.width;
+            canvas.height = rect.height - 56; // minus header
+
+            // Drawing state
+            let drawing = false;
+            let lastX = 0, lastY = 0;
+            let currentTool = 'pen';
+            let currentColor = options.colors?.[0] || '#6366f1';
+            let lineWidth = 3;
+
+            const startDraw = (e) => {
+                drawing = true;
+                const pos = this._getCanvasPos(canvas, e);
+                lastX = pos.x;
+                lastY = pos.y;
+
+                if (currentTool === 'rectangle' || currentTool === 'circle') {
+                    // Store start for shape drawing
+                    canvas.dataset.startX = lastX;
+                    canvas.dataset.startY = lastY;
+                }
+            };
+
+            const draw = (e) => {
+                if (!drawing) return;
+                const pos = this._getCanvasPos(canvas, e);
+
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                if (currentTool === 'pen') {
+                    ctx.beginPath();
+                    ctx.moveTo(lastX, lastY);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                }
+
+                lastX = pos.x;
+                lastY = pos.y;
+            };
+
+            const endDraw = (e) => {
+                if (!drawing) return;
+                drawing = false;
+
+                if (currentTool === 'rectangle' || currentTool === 'circle') {
+                    const startX = parseFloat(canvas.dataset.startX);
+                    const startY = parseFloat(canvas.dataset.startY);
+                    const pos = this._getCanvasPos(canvas, e);
+
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = lineWidth;
+
+                    if (currentTool === 'rectangle') {
+                        ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY);
+                    } else if (currentTool === 'circle') {
+                        const r = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
+                        ctx.beginPath();
+                        ctx.arc(startX, startY, r, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+            };
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', endDraw);
+            canvas.addEventListener('mouseleave', () => drawing = false);
+
+            // Touch support
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startDraw(e.touches[0]);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                draw(e.touches[0]);
+            });
+            canvas.addEventListener('touchend', endDraw);
+        }
+
+        _getCanvasPos(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        _getToolIcon(tool) {
+            const icons = {
+                pen: 'pen',
+                rectangle: 'square-o',
+                circle: 'circle-o',
+                line: 'minus',
+                text: 'font',
+                eraser: 'eraser'
+            };
+            return icons[tool] || 'pen';
+        }
+
+        _selectWhiteboardTool(tool) {
+            document.querySelectorAll('.wb-tool-btn').forEach(btn => {
+                btn.style.background = btn.dataset.tool === tool
+                    ? 'rgba(255,255,255,0.4)'
+                    : 'rgba(255,255,255,0.2)';
+            });
+            this.currentWhiteboardTool = tool;
+        }
+
+        _selectWhiteboardColor(color) {
+            document.querySelectorAll('.wb-color-btn').forEach(btn => {
+                btn.style.borderColor = btn.dataset.color === color ? 'white' : 'transparent';
+            });
+            this.currentWhiteboardColor = color;
         }
 
         hideWhiteboard() {
@@ -727,6 +1168,28 @@
             ctx.font = '20px Microsoft YaHei';
             ctx.fillStyle = '#333';
             ctx.fillText(content, 50, 50);
+        }
+
+        drawTextOnWhiteboard(text, x = 50, y = 50, style = {}) {
+            const canvas = document.getElementById('whiteboard-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${style.fontSize || 20}px ${style.fontFamily || 'Microsoft YaHei'}`;
+            ctx.fillStyle = style.color || '#333';
+            ctx.fillText(text, x, y);
+        }
+
+        drawLineOnWhiteboard(start, end, color = '#6366f1', width = 3) {
+            const canvas = document.getElementById('whiteboard-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(start.x || start[0], start.y || start[1]);
+            ctx.lineTo(end.x || end[0], end.y || end[1]);
+            ctx.stroke();
         }
 
         drawShapeOnWhiteboard(shapeType) {
@@ -758,13 +1221,21 @@
         renderQuizScene(scene) {
             if (!this.quizContainer) return;
             this.quizContainer.style.display = 'block';
+            this.quizContainer.style.animation = 'fadeInUp 0.5s ease';
+
             const quiz = scene.quiz;
             const header = document.getElementById('quiz-header');
             const questions = document.getElementById('quiz-questions');
             const submitBtn = document.getElementById('quiz-submit-btn');
             const result = document.getElementById('quiz-result');
 
-            if (header) header.innerHTML = `<i class="fas fa-pencil-alt"></i> ${quiz?.title || scene.title}`;
+            if (header) {
+                header.innerHTML = `
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>${quiz?.title || scene.title}</span>
+                    <span class="quiz-progress">(${this.currentIndex + 1}/${this.scenes.length})</span>
+                `;
+            }
             if (result) result.style.display = 'none';
 
             if (!quiz?.questions?.length) {
@@ -774,22 +1245,48 @@
 
             if (questions) {
                 questions.innerHTML = quiz.questions.map((q, qi) => `
-                    <div class="quiz-question">
-                        <div class="quiz-question-text">${qi + 1}. ${q.question || ''}</div>
+                    <div class="quiz-question" data-question="${qi}" style="animation-delay:${qi * 0.1}s">
+                        <div class="quiz-question-text">
+                            <span class="question-number">${qi + 1}</span>
+                            <span class="question-content">${q.question || ''}</span>
+                        </div>
                         <div class="quiz-options">
                             ${(q.options || []).map((opt, oi) => `
                                 <label class="quiz-option" data-q="${qi}" data-opt="${oi}">
                                     <input type="radio" name="q_${qi}" value="${oi}">
-                                    <span>${String.fromCharCode(65 + oi)}. ${opt.label || opt}</span>
+                                    <span class="option-letter">${String.fromCharCode(65 + oi)}</span>
+                                    <span class="option-text">${opt.label || opt}</span>
                                 </label>
                             `).join('')}
                         </div>
                     </div>
                 `).join('');
+
+                // Add click handlers with animation
+                questions.querySelectorAll('.quiz-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        const qIdx = option.dataset.q;
+                        const options = document.querySelectorAll(`.quiz-option[data-q="${qIdx}"]`);
+
+                        // Remove selected from siblings
+                        options.forEach(opt => opt.classList.remove('selected'));
+
+                        // Add selected to clicked
+                        option.classList.add('selected');
+
+                        // Update radio
+                        const radio = option.querySelector('input[type="radio"]');
+                        if (radio) radio.checked = true;
+
+                        // Animate selection
+                        option.style.animation = 'bounceIn 0.3s ease';
+                    });
+                });
             }
+
             if (submitBtn) {
                 submitBtn.style.display = 'block';
-                submitBtn.textContent = '提交答案';
+                submitBtn.innerHTML = '<span>提交答案</span><i class="fas fa-arrow-right"></i>';
                 submitBtn.onclick = () => this.submitQuiz(scene);
             }
         }
@@ -941,57 +1438,93 @@
         async submitQuiz(scene) {
             const quiz = scene.quiz;
             if (!quiz?.questions) return;
+
             const answers = [];
+            let hasAnswer = false;
+
             quiz.questions.forEach((q, qi) => {
                 const sel = document.querySelector(`input[name="q_${qi}"]:checked`);
                 answers.push({ question_index: qi, selected_option: sel ? parseInt(sel.value) : -1 });
+                if (sel) hasAnswer = true;
             });
 
-            // Highlight correct/wrong locally first
+            if (!hasAnswer) {
+                // Shake the quiz container
+                this.quizContainer.style.animation = 'shake 0.5s ease';
+                setTimeout(() => {
+                    this.quizContainer.style.animation = '';
+                }, 500);
+                return;
+            }
+
+            // Animate checking
+            const questions = document.querySelectorAll('.quiz-question');
+            questions.forEach((q, i) => {
+                setTimeout(() => {
+                    q.style.animation = 'pulse 0.5s ease';
+                }, i * 150);
+            });
+
+            await this._sleep(questions.length * 150 + 300);
+
+            // Show correct/wrong with animations
             quiz.questions.forEach((q, qi) => {
                 const options = document.querySelectorAll(`.quiz-option[data-q="${qi}"]`);
+                const correctOpt = options[parseInt(q.correct_answer)];
+
+                // First show wrong answers
                 options.forEach((opt, oi) => {
-                    opt.classList.remove('correct', 'wrong');
-                    if (oi === q.correct_answer) opt.classList.add('correct');
+                    if (oi !== q.correct_answer) {
+                        const sel = opt.querySelector('input[type="radio"]');
+                        if (sel && sel.checked) {
+                            opt.classList.add('wrong');
+                            opt.style.animation = 'shake 0.5s ease';
+                        }
+                    }
                 });
-                const sel = document.querySelector(`input[name="q_${qi}"]:checked`);
-                if (sel && parseInt(sel.value) !== q.correct_answer) {
-                    options[parseInt(sel.value)]?.classList.add('wrong');
-                }
+
+                // Then highlight correct
+                setTimeout(() => {
+                    if (correctOpt) {
+                        correctOpt.classList.add('correct');
+                        correctOpt.style.animation = 'bounceIn 0.5s ease';
+                    }
+                }, 500);
             });
 
-            // Try server grading
-            let result;
-            try {
-                const resp = await fetch('/api/v2/course/quiz/grade', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ questions: quiz.questions, student_answers: answers })
-                });
-                result = await resp.json();
-            } catch (e) {
-                // Local grading fallback
-                const correct = answers.filter((a, i) => a.selected_option === (quiz.questions[i]?.correct_answer || 0)).length;
-                result = {
-                    total: Math.round(correct / quiz.questions.length * 100),
-                    passed: correct / quiz.questions.length >= 0.6,
-                    correct_count: correct,
-                    total_count: quiz.questions.length,
-                };
-            }
+            await this._sleep(800);
+
+            // Calculate and show result
+            const correct = answers.filter((a, i) =>
+                a.selected_option === (quiz.questions[i]?.correct_answer || 0)
+            ).length;
+            const total = quiz.questions.length;
+            const percentage = Math.round((correct / total) * 100);
+            const passed = percentage >= 60;
 
             const resultEl = document.getElementById('quiz-result');
             const submitBtn = document.getElementById('quiz-submit-btn');
+
             if (resultEl) {
                 resultEl.style.display = 'block';
+                resultEl.style.animation = 'zoomIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
                 resultEl.innerHTML = `
-                    <div class="quiz-score ${result.passed ? 'passed' : 'failed'}">${result.total}%</div>
-                    <div class="quiz-score-label">答对 ${result.correct_count}/${result.total_count} 题 ${result.passed ? '通过' : '未通过'}</div>
+                    <div class="quiz-score ${passed ? 'passed' : 'failed'}">${percentage}%</div>
+                    <div class="quiz-score-label">
+                        ${passed ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+                        答对 ${correct}/${total} 题 ${passed ? '通过' : '未通过'}
+                    </div>
+                    <div class="quiz-feedback">
+                        ${passed ? '太棒了！继续加油！' : '别灰心，再试试看！'}
+                    </div>
                 `;
             }
+
             if (submitBtn) {
-                submitBtn.textContent = result.passed ? '继续学习' : '重新答题';
-                submitBtn.onclick = result.passed ? () => this.nextScene() : () => this.renderScene(this.currentIndex);
+                submitBtn.innerHTML = passed
+                    ? '<span>继续学习</span><i class="fas fa-forward"></i>'
+                    : '<span>重新答题</span><i class="fas fa-redo"></i>';
+                submitBtn.onclick = passed ? () => this.nextScene() : () => this.renderScene(this.currentIndex);
             }
 
             this.quizAnswers[scene.id] = answers;
@@ -1322,6 +1855,91 @@
         }
 
         // ---- Utils ----
+
+        initVoiceSelector() {
+            const teacherArea = document.getElementById('teacher-area');
+            if (!teacherArea) return;
+
+            // Create voice selector dropdown
+            const voiceSelector = document.createElement('div');
+            voiceSelector.className = 'voice-selector';
+            voiceSelector.innerHTML = `
+                <select id="voice-select" class="voice-select">
+                    ${Object.entries(MINIMAX_VOICES).map(([id, v]) =>
+                        `<option value="${id}" ${id === TTS_CONFIG.voice ? 'selected' : ''}>${v.name}</option>`
+                    ).join('')}
+                </select>
+            `;
+
+            // Style the selector
+            voiceSelector.style.cssText = `
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                z-index: 10;
+            `;
+
+            const select = voiceSelector.querySelector('select');
+            select.style.cssText = `
+                background: var(--surface-glass);
+                border: 1px solid var(--glass-border);
+                border-radius: 8px;
+                padding: 6px 12px;
+                color: var(--text-primary);
+                font-size: 12px;
+                cursor: pointer;
+                outline: none;
+            `;
+
+            select.addEventListener('change', (e) => {
+                TTS_CONFIG.voice = e.target.value;
+                this.saveVoicePreference(e.target.value);
+            });
+
+            teacherArea.appendChild(voiceSelector);
+        }
+
+        saveVoicePreference(voiceId) {
+            localStorage.setItem('classroom_voice', voiceId);
+        }
+
+        loadVoicePreference() {
+            const saved = localStorage.getItem('classroom_voice');
+            if (saved && MINIMAX_VOICES[saved]) {
+                TTS_CONFIG.voice = saved;
+            }
+        }
+
+        setVoice(voiceId) {
+            if (MINIMAX_VOICES[voiceId]) {
+                TTS_CONFIG.voice = voiceId;
+                this.saveVoicePreference(voiceId);
+            }
+        }
+
+        setSpeed(speed) {
+            if (TTS_CONFIG.speedOptions.includes(speed)) {
+                TTS_CONFIG.speed = speed;
+                if (this.audioPlayer) {
+                    this.audioPlayer.playbackRate = speed;
+                }
+                this.updateSpeedDisplay(speed);
+            }
+        }
+
+        updateSpeedDisplay(speed) {
+            const speedBtn = document.getElementById('speed-btn');
+            const speedLabel = speedBtn?.querySelector('.speed-label');
+            if (speedLabel) {
+                speedLabel.textContent = `${speed}x`;
+            }
+        }
+
+        cycleSpeed() {
+            const currentIndex = TTS_CONFIG.speedOptions.indexOf(TTS_CONFIG.speed);
+            const nextIndex = (currentIndex + 1) % TTS_CONFIG.speedOptions.length;
+            this.setSpeed(TTS_CONFIG.speedOptions[nextIndex]);
+        }
 
         escapeHtml(text) {
             const div = document.createElement('div');

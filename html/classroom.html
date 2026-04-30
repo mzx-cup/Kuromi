@@ -6,6 +6,68 @@
     <title>课堂学习 - 星识</title>
     <link rel="stylesheet" href="../css/classroom.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    .sync-progress-container {
+        width: 60px;
+        height: 4px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .sync-progress {
+        height: 100%;
+        background: linear-gradient(90deg, var(--success), var(--success-light));
+        transition: width 0.1s linear;
+        border-radius: 2px;
+    }
+
+    .teacher-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .teacher-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .teacher-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+        animation: pulse 2s infinite;
+    }
+
+    .status-text {
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    .header-voice-select {
+        background: var(--surface-glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        color: var(--text-primary);
+        font-size: 12px;
+        cursor: pointer;
+        outline: none;
+    }
+
+    .header-voice-select:hover {
+        border-color: var(--primary);
+    }
+    </style>
 </head>
 <body>
     <!-- Animated Background -->
@@ -25,12 +87,24 @@
             </div>
             <div class="header-right">
                 <div class="speech-sync-indicator" id="speech-sync" style="display:none;">
-                    <span class="sync-dot"></span>
+                    <div class="sync-dot"></div>
                     <span class="sync-text">讲解中...</span>
+                    <div class="sync-progress-container">
+                        <div class="sync-progress" style="width:0%"></div>
+                    </div>
                 </div>
                 <button id="voice-btn" class="icon-btn voice-btn" title="语音播放">
                     <i class="fas fa-volume-up"></i>
                 </button>
+                <div class="voice-select-wrapper" id="voice-select-wrapper" style="display:none;">
+                    <select id="header-voice-select" class="header-voice-select">
+                        <option value="female-shaonv">青春少女</option>
+                        <option value="female-yujie" selected>温柔御姐</option>
+                        <option value="female-danyun">知性女声</option>
+                        <option value="male-qingshu">青涩少年</option>
+                        <option value="male-shaoshuai">磁性男声</option>
+                    </select>
+                </div>
                 <button id="settings-btn" class="icon-btn" title="设置">
                     <i class="fas fa-cog"></i>
                 </button>
@@ -87,6 +161,13 @@
                         <div class="teacher-avatar" id="teacher-avatar">
                             <i class="fas fa-chalkboard-teacher" style="color:white;font-size:1.8rem;"></i>
                         </div>
+                        <div class="teacher-info">
+                            <span class="teacher-name" id="teacher-name">AI教师</span>
+                            <div class="teacher-status" id="teacher-status">
+                                <span class="status-dot"></span>
+                                <span class="status-text">待机中</span>
+                            </div>
+                        </div>
                         <div class="teacher-speech">
                             <div class="speech-bubble">
                                 <p id="speech-text">正在加载课程内容...</p>
@@ -97,6 +178,9 @@
                                 </button>
                                 <button class="speech-btn pause-btn" id="pause-btn" title="暂停">
                                     <i class="fas fa-pause"></i>
+                                </button>
+                                <button class="speech-btn speed-btn" id="speed-btn" title="语速调节">
+                                    <span class="speed-label">1x</span>
                                 </button>
                             </div>
                         </div>
@@ -203,6 +287,14 @@
         </div>
     </div>
 
-    <script src="../js/classroom.js"></script>
+    <script>
+// Voice select change handler
+document.getElementById('header-voice-select')?.addEventListener('change', function() {
+    if (window.classroomController) {
+        window.classroomController.setVoice(this.value);
+    }
+});
+</script>
+<script src="../js/classroom.js"></script>
 </body>
 </html>
