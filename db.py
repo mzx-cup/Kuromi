@@ -114,6 +114,7 @@ def load_local_storage():
         'user_notifications': [], 'user_settings': [], 'user_coding_states': [],
         'user_weather_caches': [], 'user_focus_histories': [], 'user_eco_data': [],
         'user_projects': [], 'user_calendar_events': [], 'daily_routes': [],
+        'user_login_records': [],
     }
 
 
@@ -295,6 +296,99 @@ def update_last_login(user_id):
                 user['last_login'] = 'local'
                 save_local_storage(storage)
                 break
+
+
+def ensure_login_records_table(conn):
+    """Create the login audit table when the active database supports SQL."""
+    if conn is None:
+        return
+
+    cursor = conn.cursor()
+    if _is_sqlite(conn):
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_login_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                username TEXT NOT NULL,
+                success INTEGER DEFAULT 0,
+                failure_reason TEXT DEFAULT '',
+                ip_address TEXT DEFAULT '',
+                user_agent TEXT DEFAULT '',
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_user_login_records_user ON user_login_records (user_id, created_at)"
+        )
+    else:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_login_records (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                username VARCHAR(50) NOT NULL,
+                success TINYINT DEFAULT 0,
+                failure_reason VARCHAR(255) DEFAULT '',
+                ip_address VARCHAR(64) DEFAULT '',
+                user_agent VARCHAR(512) DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_login_user (user_id, created_at),
+                CONSTRAINT fk_login_user FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        """)
+    conn.commit()
+    cursor.close()
+
+
+def record_login_event(user_id, username, success, failure_reason='', ip_address='', user_agent=''):
+    """Persist a login attempt without storing raw credentials."""
+    username = username or ''
+    failure_reason = failure_reason or ''
+    ip_address = ip_address or ''
+    user_agent = (user_agent or '')[:512]
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                ensure_login_records_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """
+                        INSERT INTO user_login_records
+                            (user_id, username, success, failure_reason, ip_address, user_agent)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (user_id, username, 1 if success else 0, failure_reason, ip_address, user_agent)
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        INSERT INTO user_login_records
+                            (user_id, username, success, failure_reason, ip_address, user_agent)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        """,
+                        (user_id, username, 1 if success else 0, failure_reason, ip_address, user_agent)
+                    )
+                conn.commit()
+                cursor.close()
+                return
+            except Exception as e:
+                print(f"登录记录写入失败: {e}")
+
+        storage = load_local_storage()
+        records = storage.get('user_login_records', [])
+        records.append({
+            'id': len(records) + 1,
+            'user_id': user_id,
+            'username': username,
+            'success': bool(success),
+            'failure_reason': failure_reason,
+            'ip_address': ip_address,
+            'user_agent': user_agent,
+            'created_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        })
+        storage['user_login_records'] = records
+        save_local_storage(storage)
 
 
 def update_user_meta(user_id, preferred_language=None, theme=None, last_agent_id=None):

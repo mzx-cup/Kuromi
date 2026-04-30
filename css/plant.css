@@ -2908,3 +2908,694 @@ input, textarea, select {
     backdrop-filter: blur(8px);
     animation: weatherTipFade 0.4s ease-out;
 }
+
+/* Consistent planting slots and collection tiles */
+:root {
+    --plant-frame-width: min(calc(100% - 40px), 1200px);
+    --plant-grid-cell: clamp(86px, 7.2vw, 132px);
+    --plant-grid-gap: clamp(8px, 0.8vw, 14px);
+}
+
+.plant-main-card,
+.plant-collection-section {
+    width: var(--plant-frame-width);
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.plant-main-card {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.plant-collection-section {
+    padding: 20px;
+}
+
+.plant-plot-grid,
+.plant-collection-grid {
+    display: grid;
+    justify-content: center;
+    align-items: start;
+    gap: var(--plant-grid-gap);
+}
+
+.plant-plot-grid {
+    grid-template-columns: repeat(3, var(--plant-grid-cell));
+}
+
+.plant-collection-grid {
+    grid-template-columns: repeat(auto-fit, var(--plant-grid-cell));
+}
+
+.plant-pot-wrapper,
+.plant-collection-item {
+    width: var(--plant-grid-cell);
+    height: var(--plant-grid-cell);
+    min-width: var(--plant-grid-cell);
+    min-height: var(--plant-grid-cell);
+    max-width: var(--plant-grid-cell);
+    max-height: var(--plant-grid-cell);
+}
+
+.plant-pot-wrapper {
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 4px 7px;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.12));
+}
+
+.plant-pot-wrapper:hover,
+.plant-pot-wrapper.selected {
+    transform: translateY(-4px);
+}
+
+.plant-collection-item:hover {
+    transform: translateY(-4px);
+}
+
+.plant-pot-3d {
+    width: 100%;
+    height: calc(var(--plant-grid-cell) * 0.64);
+    min-height: 0;
+    flex: 0 0 auto;
+}
+
+.pot-body {
+    width: calc(var(--plant-grid-cell) * 0.72);
+    height: calc(var(--plant-grid-cell) * 0.48);
+}
+
+.pot-body::before {
+    height: calc(var(--plant-grid-cell) * 0.1);
+}
+
+.pot-body::after {
+    top: calc(var(--plant-grid-cell) * 0.12);
+    left: calc(var(--plant-grid-cell) * 0.07);
+    right: calc(var(--plant-grid-cell) * 0.07);
+    height: max(2px, calc(var(--plant-grid-cell) * 0.03));
+    box-shadow:
+        0 calc(var(--plant-grid-cell) * 0.09) 0 rgba(140, 100, 70, 0.18),
+        0 calc(var(--plant-grid-cell) * 0.18) 0 rgba(140, 100, 70, 0.12);
+}
+
+.pot-soil {
+    bottom: calc(var(--plant-grid-cell) * 0.08);
+    width: calc(var(--plant-grid-cell) * 0.58);
+    height: calc(var(--plant-grid-cell) * 0.11);
+}
+
+.plant-in-pot {
+    bottom: calc(var(--plant-grid-cell) * 0.2);
+    font-size: clamp(28px, calc(var(--plant-grid-cell) * 0.33), 44px);
+}
+
+.plant-in-pot.stage-0,
+.plant-pot-wrapper.empty .plant-in-pot {
+    font-size: clamp(18px, calc(var(--plant-grid-cell) * 0.21), 28px) !important;
+}
+
+.plant-in-pot.stage-1 {
+    font-size: clamp(24px, calc(var(--plant-grid-cell) * 0.28), 36px);
+}
+
+.plant-in-pot.stage-2 {
+    font-size: clamp(32px, calc(var(--plant-grid-cell) * 0.36), 48px);
+}
+
+.plant-in-pot.stage-3 {
+    font-size: clamp(38px, calc(var(--plant-grid-cell) * 0.42), 56px);
+}
+
+.slot-label {
+    margin-top: 0;
+    max-width: calc(100% - 8px);
+    padding: 3px 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plant-collection-item {
+    justify-content: center;
+    gap: 3px;
+    padding: 8px 6px;
+    overflow: hidden;
+}
+
+.plant-collection-item .item-emoji {
+    margin-bottom: 2px;
+    font-size: clamp(22px, calc(var(--plant-grid-cell) * 0.24), 30px);
+    line-height: 1;
+    flex: 0 0 auto;
+}
+
+.plant-collection-item .item-name {
+    width: 100%;
+    max-height: 2.6em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    word-break: break-all;
+}
+
+.plant-collection-item .item-owned-tag,
+.variant-badges-row {
+    flex: 0 0 auto;
+    max-width: 100%;
+}
+
+.plant-collection-item .item-owned-tag {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (min-width: 1920px) {
+    :root {
+        --plant-frame-width: min(calc(100% - 64px), 1400px);
+        --plant-grid-cell: 136px;
+        --plant-grid-gap: 14px;
+    }
+}
+
+@media (min-width: 1600px) and (max-width: 1919px) {
+    :root {
+        --plant-frame-width: min(calc(100% - 40px), 1300px);
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    :root {
+        --plant-frame-width: min(calc(100% - 48px), 1100px);
+    }
+}
+
+@media (max-width: 1199px) {
+    :root {
+        --plant-frame-width: calc(100% - 40px);
+    }
+}
+
+@media (max-width: 767px) {
+    :root {
+        --plant-frame-width: calc(100% - 24px);
+        --plant-grid-cell: clamp(74px, 18vw, 96px);
+        --plant-grid-gap: 8px;
+    }
+
+    .plant-collection-section {
+        padding: 14px;
+    }
+}
+
+@media (max-width: 420px) {
+    :root {
+        --plant-frame-width: calc(100% - 12px);
+        --plant-grid-cell: clamp(64px, 21vw, 78px);
+        --plant-grid-gap: 6px;
+    }
+
+    .plant-collection-section {
+        padding: 8px;
+    }
+
+    .plant-collection-item {
+        padding: 6px 4px;
+    }
+
+    .plant-collection-item .item-name {
+        font-size: 7px;
+    }
+
+    .plant-collection-item .item-owned-tag,
+    .variant-badge {
+        font-size: 7px;
+    }
+}
+
+/* Collection variant cards */
+.plant-variant-art {
+    --variant-hue: 0deg;
+    --variant-accent: #8b5cf6;
+    --variant-accent-2: #22d3ee;
+    --variant-accent-3: #f59e0b;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(44px, calc(var(--plant-grid-cell) * 0.54), 72px);
+    height: clamp(44px, calc(var(--plant-grid-cell) * 0.54), 72px);
+    flex: 0 0 auto;
+    isolation: isolate;
+    line-height: 1;
+    overflow: visible;
+}
+
+.plant-variant-art .variant-aura {
+    position: absolute;
+    inset: 4%;
+    border-radius: 50%;
+    opacity: 0;
+    transform: rotate(-18deg);
+    filter: blur(8px);
+    z-index: -1;
+}
+
+.plant-variant-art .variant-emoji-main,
+.plant-variant-art .variant-emoji-echo {
+    position: relative;
+    display: block;
+    line-height: 1;
+    transition: transform 0.3s var(--ease-spring), filter 0.3s ease;
+}
+
+.plant-variant-art .variant-emoji-main {
+    font-size: clamp(30px, calc(var(--plant-grid-cell) * 0.34), 48px);
+    transform: translate(8%, -8%) rotate(-12deg);
+    filter: drop-shadow(0 5px 10px rgba(90, 110, 130, 0.2));
+}
+
+.plant-variant-art .variant-emoji-echo {
+    position: absolute;
+    left: 1%;
+    bottom: 1%;
+    font-size: clamp(10px, calc(var(--plant-grid-cell) * 0.11), 15px);
+    transform: translate(-16%, 10%) rotate(-18deg);
+    filter: drop-shadow(0 2px 4px rgba(90, 110, 130, 0.18));
+}
+
+.plant-variant-art.variant-altcolor .variant-emoji-main,
+.plant-variant-art.variant-altcolor .variant-emoji-echo,
+.variant-badge.variant-altcolor span {
+    filter:
+        hue-rotate(var(--variant-hue))
+        saturate(1.75)
+        brightness(1.08)
+        drop-shadow(0 5px 11px color-mix(in srgb, var(--variant-accent) 42%, transparent));
+}
+
+.plant-variant-art.variant-shiny .variant-aura,
+.plant-variant-art.variant-alt-shiny .variant-aura {
+    opacity: 0.82;
+    background:
+        conic-gradient(
+            from 45deg,
+            rgba(255, 255, 255, 0),
+            var(--variant-accent),
+            #fff9b0,
+            #80f7ff,
+            #ff8bd2,
+            rgba(255, 255, 255, 0)
+        );
+    animation: variantAuraSpin 3.4s linear infinite;
+}
+
+.plant-variant-art.variant-shiny .variant-emoji-main,
+.plant-variant-art.variant-shiny .variant-emoji-echo,
+.variant-badge.variant-shiny span {
+    filter:
+        saturate(1.45)
+        brightness(1.12)
+        drop-shadow(0 0 8px rgba(255, 230, 120, 0.9))
+        drop-shadow(0 0 14px rgba(80, 210, 255, 0.52));
+}
+
+.plant-variant-art.variant-alt-shiny .variant-emoji-main,
+.plant-variant-art.variant-alt-shiny .variant-emoji-echo,
+.variant-badge.variant-alt-shiny span {
+    filter:
+        hue-rotate(var(--variant-hue))
+        saturate(2)
+        brightness(1.18)
+        drop-shadow(0 0 8px color-mix(in srgb, var(--variant-accent) 75%, white))
+        drop-shadow(0 0 16px rgba(255, 128, 220, 0.58));
+}
+
+.plant-variant-art.variant-shiny::before,
+.plant-variant-art.variant-alt-shiny::before,
+.plant-variant-art.variant-shiny::after,
+.plant-variant-art.variant-alt-shiny::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+    z-index: 2;
+}
+
+.plant-variant-art.variant-shiny::before,
+.plant-variant-art.variant-alt-shiny::before {
+    width: 78%;
+    height: 2px;
+    top: 28%;
+    left: 12%;
+    transform: rotate(-32deg);
+}
+
+.plant-variant-art.variant-shiny::after,
+.plant-variant-art.variant-alt-shiny::after {
+    width: 42%;
+    height: 1.5px;
+    right: 8%;
+    bottom: 28%;
+    transform: rotate(-32deg);
+}
+
+.plant-variant-art.is-locked {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+
+.plant-collection-item {
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.72) 62%, rgba(246, 248, 250, 0.64)),
+        rgba(255, 255, 255, 0.62);
+    border-radius: 12px;
+}
+
+.plant-collection-item.has-special-variant {
+    border-color: color-mix(in srgb, var(--variant-accent) 38%, rgba(255, 255, 255, 0.72));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.72),
+        0 8px 20px color-mix(in srgb, var(--variant-accent) 18%, transparent);
+}
+
+.plant-collection-item.collection-variant-shiny,
+.plant-collection-item.collection-variant-alt-shiny {
+    background:
+        radial-gradient(circle at 48% 42%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.78) 48%, rgba(255, 248, 226, 0.5)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), color-mix(in srgb, var(--variant-accent-2) 14%, white));
+}
+
+.plant-collection-item .plant-variant-art {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+.plant-collection-item:hover .plant-variant-art .variant-emoji-main {
+    transform: translate(8%, -8%) rotate(-12deg) scale(1.08);
+}
+
+.plant-collection-item:hover .plant-variant-art .variant-emoji-echo {
+    transform: translate(-18%, 12%) rotate(-18deg) scale(1.04);
+}
+
+.plant-collection-item .item-variant-label {
+    position: absolute;
+    left: 7px;
+    top: 7px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--variant-accent) 18%, rgba(255, 255, 255, 0.82));
+    color: color-mix(in srgb, var(--variant-accent) 72%, #45505f);
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.plant-collection-item .item-owned-tag {
+    position: absolute;
+    right: 6px;
+    bottom: 5px;
+    margin-top: 0;
+}
+
+.plant-collection-item .variant-badges-row {
+    position: absolute;
+    left: 6px;
+    bottom: 5px;
+    margin-top: 0;
+}
+
+.variant-badge {
+    overflow: hidden;
+}
+
+.variant-badge span {
+    display: block;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.plant-detail-emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    min-height: 72px;
+}
+
+.plant-detail-emoji .plant-variant-art {
+    width: 82px;
+    height: 82px;
+}
+
+.plant-detail-emoji .plant-variant-art .variant-emoji-main {
+    font-size: 56px;
+}
+
+.plant-detail-emoji .plant-variant-art .variant-emoji-echo {
+    font-size: 17px;
+    left: 2%;
+    bottom: 2%;
+}
+
+.variant-item {
+    min-height: 104px;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.variant-item .plant-variant-art {
+    width: 52px;
+    height: 52px;
+}
+
+.variant-item .plant-variant-art .variant-emoji-main {
+    font-size: 32px;
+}
+
+.variant-item .plant-variant-art .variant-emoji-echo {
+    font-size: 10px;
+}
+
+.variant-item.obtained {
+    background:
+        radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.9), color-mix(in srgb, var(--variant-accent) 10%, rgba(255, 255, 255, 0.78))),
+        rgba(255, 255, 255, 0.76);
+    border-color: color-mix(in srgb, var(--variant-accent) 34%, rgba(255, 255, 255, 0.62));
+}
+
+.variant-item.variant-shiny.obtained,
+.variant-item.variant-alt-shiny.obtained {
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--variant-accent) 18%, transparent);
+}
+
+@keyframes variantAuraSpin {
+    from { transform: rotate(-18deg); }
+    to { transform: rotate(342deg); }
+}
+
+@media (max-width: 767px) {
+    .plant-collection-item .item-variant-label,
+    .plant-collection-item .item-owned-tag {
+        font-size: 7px;
+        padding: 2px 5px;
+    }
+
+    .variant-badge {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* Harvest reveal modal */
+.plant-harvest-reveal {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(54, 66, 78, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.28s var(--ease-smooth),
+        background 0.28s var(--ease-smooth),
+        backdrop-filter 0.28s var(--ease-smooth);
+}
+
+.plant-harvest-reveal.active {
+    opacity: 1;
+    pointer-events: auto;
+    background: rgba(54, 66, 78, 0.24);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.plant-harvest-reveal-card {
+    width: min(360px, calc(100vw - 48px));
+    min-height: 360px;
+    border-radius: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.78);
+    background:
+        radial-gradient(circle at 50% 34%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.88) 54%, color-mix(in srgb, var(--variant-accent) 9%, rgba(248, 250, 252, 0.92))),
+        rgba(255, 255, 255, 0.9);
+    box-shadow:
+        0 26px 70px rgba(35, 45, 58, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 34px 30px 30px;
+    cursor: pointer;
+    transform: translateY(18px) scale(0.94);
+    transition: transform 0.34s var(--ease-spring), box-shadow 0.3s ease;
+    outline: none;
+}
+
+.plant-harvest-reveal.active .plant-harvest-reveal-card {
+    transform: translateY(0) scale(1);
+}
+
+.plant-harvest-reveal-card:focus-visible {
+    box-shadow:
+        0 0 0 4px rgba(255, 255, 255, 0.9),
+        0 0 0 7px color-mix(in srgb, var(--variant-accent) 48%, transparent),
+        0 26px 70px rgba(35, 45, 58, 0.24);
+}
+
+.plant-harvest-reveal-card:hover {
+    transform: translateY(-2px) scale(1.01);
+}
+
+.harvest-reveal-kicker {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--variant-accent) 16%, rgba(255, 255, 255, 0.9));
+    color: color-mix(in srgb, var(--variant-accent) 74%, #44515f);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.harvest-reveal-art-wrap {
+    width: 148px;
+    height: 148px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.harvest-reveal-art-wrap .plant-variant-art {
+    width: 138px;
+    height: 138px;
+}
+
+.harvest-reveal-art-wrap .plant-variant-art .variant-aura {
+    filter: blur(13px);
+}
+
+.harvest-reveal-art-wrap .plant-variant-art .variant-emoji-main {
+    font-size: 104px;
+    transform: translate(7%, -7%) rotate(-12deg);
+}
+
+.harvest-reveal-art-wrap .plant-variant-art .variant-emoji-echo {
+    font-size: 28px;
+    left: 2%;
+    bottom: 4%;
+    transform: translate(-12%, 12%) rotate(-18deg);
+}
+
+.harvest-reveal-name {
+    max-width: 100%;
+    color: #3e4a59;
+    font-size: 26px;
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.18;
+    overflow-wrap: anywhere;
+}
+
+.harvest-reveal-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.harvest-reveal-meta span {
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(70, 82, 96, 0.08);
+    color: #667485;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.plant-collection-item.collection-focus {
+    animation: collectionFocusPulse 2.2s ease-out;
+}
+
+@keyframes collectionFocusPulse {
+    0% {
+        box-shadow:
+            0 0 0 0 color-mix(in srgb, var(--variant-accent) 64%, transparent),
+            0 12px 26px rgba(35, 45, 58, 0.16);
+        transform: translateY(-4px) scale(1.04);
+    }
+    55% {
+        box-shadow:
+            0 0 0 12px color-mix(in srgb, var(--variant-accent) 0%, transparent),
+            0 12px 26px rgba(35, 45, 58, 0.14);
+    }
+    100% {
+        box-shadow:
+            0 0 0 0 transparent,
+            0 8px 20px color-mix(in srgb, var(--variant-accent) 18%, transparent);
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 520px) {
+    .plant-harvest-reveal-card {
+        width: min(300px, calc(100vw - 32px));
+        min-height: 312px;
+        border-radius: 24px;
+        padding: 28px 22px 24px;
+    }
+
+    .harvest-reveal-art-wrap {
+        width: 122px;
+        height: 122px;
+    }
+
+    .harvest-reveal-art-wrap .plant-variant-art {
+        width: 116px;
+        height: 116px;
+    }
+
+    .harvest-reveal-art-wrap .plant-variant-art .variant-emoji-main {
+        font-size: 86px;
+    }
+
+    .harvest-reveal-art-wrap .plant-variant-art .variant-emoji-echo {
+        font-size: 28px;
+    }
+
+    .harvest-reveal-name {
+        font-size: 22px;
+    }
+}

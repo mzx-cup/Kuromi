@@ -179,6 +179,14 @@ class UpdateProfileRequest(BaseModel):
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
+def get_login_request_meta(request: Request) -> tuple[str, str]:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else ""
+    if not ip_address and request.client:
+        ip_address = request.client.host or ""
+    user_agent = request.headers.get("user-agent", "")
+    return ip_address, user_agent
+
 TEXTBOOK_DEEP_LINKS = {
     "大数据处理技术": {
         "platform": "hep",
@@ -656,16 +664,21 @@ def register(request: RegisterRequest):
         raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
 
 @app.post("/api/login")
-def login(request: LoginRequest):
-    if not request.username or not request.password:
+def login(body: LoginRequest, http_request: Request):
+    ip_address, user_agent = get_login_request_meta(http_request)
+    if not body.username or not body.password:
+        database.record_login_event(None, body.username, False, "用户名和密码不能为空", ip_address, user_agent)
         raise HTTPException(status_code=400, detail="用户名和密码不能为空")
-    user = database.get_user_by_username(request.username)
+    user = database.get_user_by_username(body.username)
     if not user:
+        database.record_login_event(None, body.username, False, "用户不存在", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    if user['password'] != hash_password(request.password):
+    if user['password'] != hash_password(body.password):
+        database.record_login_event(user.get('id'), body.username, False, "密码错误", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     database.update_last_login(user['id'])
-    avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={request.username}&backgroundColor=b6e3f4"
+    database.record_login_event(user['id'], user['username'], True, "", ip_address, user_agent)
+    avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={body.username}&backgroundColor=b6e3f4"
     nickname = user['nickname'] or (user['username'] + "同学")
 
     # 检查用户是否已完成评估
@@ -5596,8 +5609,9 @@ def load_daily_route_db(user_id: int, route_date: str):
 # ── 游客登录 ──
 
 @app.post("/api/login/guest")
-def guest_login():
+def guest_login(http_request: Request):
     """游客快速登录 - 生成临时账号"""
+    ip_address, user_agent = get_login_request_meta(http_request)
     import random
     import string
     guest_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
@@ -5613,6 +5627,7 @@ def guest_login():
         user_id = database.create_user(guest_username, hashed, avatar, f"游客_{guest_id[:4]}")
 
     database.update_last_login(user_id)
+    database.record_login_event(user_id, guest_username, True, "访客登录", ip_address, user_agent)
     return {
         "success": True,
         "userId": user_id,
@@ -5638,17 +5653,22 @@ class LoginRequestV2(BaseModel):
 
 
 @app.post("/api/login-v2")
-def login_v2(request: LoginRequestV2):
+def login_v2(body: LoginRequestV2, http_request: Request):
     """增强版登录：返回完整用户状态 + 认证信息"""
-    if not request.username or not request.password:
+    ip_address, user_agent = get_login_request_meta(http_request)
+    if not body.username or not body.password:
+        database.record_login_event(None, body.username, False, "用户名和密码不能为空", ip_address, user_agent)
         raise HTTPException(status_code=400, detail="用户名和密码不能为空")
-    user = database.get_user_by_username(request.username)
+    user = database.get_user_by_username(body.username)
     if not user:
+        database.record_login_event(None, body.username, False, "用户不存在", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    if user['password'] != hash_password(request.password):
+    if user['password'] != hash_password(body.password):
+        database.record_login_event(user.get('id'), body.username, False, "密码错误", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     database.update_last_login(user['id'])
-    avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={request.username}&backgroundColor=b6e3f4"
+    database.record_login_event(user['id'], user['username'], True, "", ip_address, user_agent)
+    avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={body.username}&backgroundColor=b6e3f4"
     nickname = user['nickname'] or (user['username'] + "同学")
     profile = database.get_user_profile(user['id'])
     has_completed_assessment = profile is not None and profile.get('profile_json') is not None

@@ -57,6 +57,7 @@ function init() {
     document.getElementById('edit-name').value = currentUser.name;
 
     renderAvatarGrid();
+    initAvatarStylePanel();
     renderTaskGrid();
     renderGoalTags();
     initToggleGlowDots();
@@ -131,6 +132,46 @@ function renderAvatarGrid() {
         const isSelected = currentUser.avatar.includes(style);
         return `<img src="${url}" alt="${style}" class="avatar-option ${isSelected ? 'selected' : ''}" onclick="selectAvatar('${style}', this)">`;
     }).join('');
+}
+
+function setAvatarStylePanelOpen(open) {
+    const panel = document.getElementById('avatar-style-panel');
+    const toggle = document.getElementById('avatar-style-toggle');
+    if (!panel || !toggle) return;
+
+    panel.hidden = !open;
+    panel.classList.toggle('active', open);
+    toggle.classList.toggle('is-picker-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function toggleAvatarStylePanel(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    const panel = document.getElementById('avatar-style-panel');
+    setAvatarStylePanelOpen(!panel || panel.hidden);
+}
+
+function handleAvatarStyleToggleKeydown(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    toggleAvatarStylePanel(event);
+}
+
+function initAvatarStylePanel() {
+    const panel = document.getElementById('avatar-style-panel');
+    const toggle = document.getElementById('avatar-style-toggle');
+    if (!panel || !toggle || initAvatarStylePanel._ready) return;
+
+    initAvatarStylePanel._ready = true;
+    document.addEventListener('click', function(e) {
+        if (panel.hidden) return;
+        if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+            setAvatarStylePanelOpen(false);
+        }
+    });
 }
 
 function renderTaskGrid() {
@@ -1305,6 +1346,7 @@ function selectAvatar(style, el) {
     el.classList.add('selected');
 
     saveUser();
+    setAvatarStylePanelOpen(false);
     showToast('头像已更新');
 }
 
@@ -1397,6 +1439,7 @@ function confirmCrop() {
 
     pendingAvatarData = null;
     document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
+    setAvatarStylePanelOpen(false);
     showToast('头像已更新');
 }
 
@@ -1635,9 +1678,39 @@ function initCustomDropdowns() {
         // Store trigger reference for portal positioning
         menu._triggerRef = trigger;
         menu._wrapRef = wrap;
+        wrap._menuRef = menu;
+        wrap._arrowRef = arrowSvg;
 
         // Initially hide via CSS (no inline style needed)
         wrap.appendChild(menu);
+
+        function resetMenuPortal(targetWrap, targetMenu, targetArrow) {
+            targetMenu = targetMenu || (targetWrap && targetWrap._menuRef);
+            targetArrow = targetArrow || (targetWrap && targetWrap._arrowRef);
+
+            if (targetWrap) targetWrap.classList.remove('open');
+            if (targetArrow) targetArrow.style.transform = 'rotate(0deg)';
+
+            if (targetMenu && targetMenu._isPortal && targetWrap) {
+                targetWrap.appendChild(targetMenu);
+                targetMenu._isPortal = false;
+            }
+
+            if (targetMenu) {
+                targetMenu.style.position = '';
+                targetMenu.style.left = '';
+                targetMenu.style.top = '';
+                targetMenu.style.right = '';
+                targetMenu.style.zIndex = '';
+                targetMenu.style.opacity = '';
+                targetMenu.style.visibility = '';
+                targetMenu.style.pointerEvents = '';
+                targetMenu.style.minWidth = '';
+                targetMenu.style.width = '';
+                targetMenu.style.maxHeight = '';
+                targetMenu.style.transform = '';
+            }
+        }
 
         // Portal positioning function
         function positionMenuAsPortal() {
@@ -1646,24 +1719,29 @@ function initCustomDropdowns() {
             var viewportHeight = window.innerHeight;
             var viewportWidth = window.innerWidth;
 
-            // Position below trigger (viewport-relative for fixed positioning)
-            var top = triggerRect.bottom + 4;
-            var left = triggerRect.left;
+            var margin = 8;
+            var gap = 6;
+            var maxMenuHeight = 280;
+            var maxViewportWidth = Math.max(160, viewportWidth - margin * 2);
+            var menuWidth = Math.min(Math.max(200, triggerRect.width), maxViewportWidth);
+            var naturalHeight = Math.min(menu.scrollHeight || maxMenuHeight, maxMenuHeight);
+            var spaceBelow = viewportHeight - triggerRect.bottom - margin - gap;
+            var spaceAbove = triggerRect.top - margin - gap;
+            var shouldOpenAbove = spaceBelow < naturalHeight && spaceAbove > spaceBelow;
+            var availableHeight = Math.max(80, Math.min(maxMenuHeight, shouldOpenAbove ? spaceAbove : spaceBelow));
+            var menuHeight = Math.min(naturalHeight, availableHeight);
+            var top = shouldOpenAbove ? triggerRect.top - menuHeight - gap : triggerRect.bottom + gap;
+            var maxLeft = viewportWidth - menuWidth - margin;
+            var left = Math.max(margin, Math.min(triggerRect.left, maxLeft));
 
-            // Check if menu would go below viewport - flip above
-            if (triggerRect.bottom + 280 > viewportHeight) {
-                top = triggerRect.top - 280 - 4;
-            }
-
-            // Ensure menu doesn't overflow right edge
-            if (left + 200 > viewportWidth) {
-                left = viewportWidth - 220;
-            }
+            top = Math.max(margin, Math.min(top, viewportHeight - menuHeight - margin));
 
             menu.style.setProperty('top', top + 'px', 'important');
             menu.style.setProperty('left', left + 'px', 'important');
             menu.style.setProperty('right', 'auto', 'important');
-            menu.style.setProperty('min-width', Math.max(200, triggerRect.width) + 'px', 'important');
+            menu.style.setProperty('min-width', menuWidth + 'px', 'important');
+            menu.style.setProperty('width', menuWidth + 'px', 'important');
+            menu.style.setProperty('max-height', menuHeight + 'px', 'important');
         }
 
         // Update value display
@@ -1683,24 +1761,7 @@ function initCustomDropdowns() {
             // Close other dropdowns
             document.querySelectorAll('.pref-select-wrap.open').forEach(function(otherWrap) {
                 if (otherWrap !== wrap) {
-                    otherWrap.classList.remove('open');
-                    // Return their menus back
-                    var otherMenu = otherWrap.querySelector('.pref-select-menu');
-                    if (otherMenu && otherMenu._isPortal) {
-                        otherWrap.appendChild(otherMenu);
-                        otherMenu._isPortal = false;
-                        // Reset all portal-related inline styles
-                        otherMenu.style.position = '';
-                        otherMenu.style.left = '';
-                        otherMenu.style.top = '';
-                        otherMenu.style.right = '';
-                        otherMenu.style.zIndex = '';
-                        otherMenu.style.opacity = '';
-                        otherMenu.style.visibility = '';
-                        otherMenu.style.pointerEvents = '';
-                        otherMenu.style.minWidth = '';
-                        otherMenu.style.transform = '';
-                    }
+                    resetMenuPortal(otherWrap, otherWrap._menuRef, otherWrap._arrowRef);
                 }
             });
 
@@ -1723,23 +1784,7 @@ function initCustomDropdowns() {
                 // Position it
                 positionMenuAsPortal();
             } else {
-                arrowSvg.style.transform = 'rotate(0deg)';
-                // Return menu to wrapper
-                if (menu._isPortal) {
-                    wrap.appendChild(menu);
-                    menu._isPortal = false;
-                    // Reset all portal-related inline styles
-                    menu.style.position = '';
-                    menu.style.left = '';
-                    menu.style.top = '';
-                    menu.style.right = '';
-                    menu.style.zIndex = '';
-                    menu.style.opacity = '';
-                    menu.style.visibility = '';
-                    menu.style.pointerEvents = '';
-                    menu.style.minWidth = '';
-                    menu.style.transform = '';
-                }
+                resetMenuPortal(wrap, menu, arrowSvg);
             }
         });
 
@@ -1756,25 +1801,7 @@ function initCustomDropdowns() {
                 if (o.dataset.value === item.dataset.value) o.classList.add('active');
             });
 
-            wrap.classList.remove('open');
-            arrowSvg.style.transform = 'rotate(0deg)';
-
-            // Return menu to wrapper
-            if (menu._isPortal) {
-                wrap.appendChild(menu);
-                menu._isPortal = false;
-                // Reset all portal-related inline styles
-                menu.style.position = '';
-                menu.style.left = '';
-                menu.style.top = '';
-                menu.style.right = '';
-                menu.style.zIndex = '';
-                menu.style.opacity = '';
-                menu.style.visibility = '';
-                menu.style.pointerEvents = '';
-                menu.style.minWidth = '';
-                menu.style.transform = '';
-            }
+            resetMenuPortal(wrap, menu, arrowSvg);
 
             // Trigger native change event for savePreferences()
             var changeEvent = new Event('change', { bubbles: true });
@@ -1785,24 +1812,7 @@ function initCustomDropdowns() {
         document.addEventListener('click', function(e) {
             if (!wrap.contains(e.target) && !menu.contains(e.target)) {
                 if (wrap.classList.contains('open')) {
-                    wrap.classList.remove('open');
-                    arrowSvg.style.transform = 'rotate(0deg)';
-                    // Return menu to wrapper
-                    if (menu._isPortal) {
-                        wrap.appendChild(menu);
-                        menu._isPortal = false;
-                        // Reset all portal-related inline styles
-                        menu.style.position = '';
-                        menu.style.left = '';
-                        menu.style.top = '';
-                        menu.style.right = '';
-                        menu.style.zIndex = '';
-                        menu.style.opacity = '';
-                        menu.style.visibility = '';
-                        menu.style.pointerEvents = '';
-                        menu.style.minWidth = '';
-                        menu.style.transform = '';
-                    }
+                    resetMenuPortal(wrap, menu, arrowSvg);
                 }
             }
         });
@@ -1814,24 +1824,7 @@ function initCustomDropdowns() {
         // Close on escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && wrap.classList.contains('open')) {
-                wrap.classList.remove('open');
-                arrowSvg.style.transform = 'rotate(0deg)';
-                // Return menu to wrapper
-                if (menu._isPortal) {
-                    wrap.appendChild(menu);
-                    menu._isPortal = false;
-                    // Reset all portal-related inline styles
-                    menu.style.position = '';
-                    menu.style.left = '';
-                    menu.style.top = '';
-                    menu.style.right = '';
-                    menu.style.zIndex = '';
-                    menu.style.opacity = '';
-                    menu.style.visibility = '';
-                    menu.style.pointerEvents = '';
-                    menu.style.minWidth = '';
-                    menu.style.transform = '';
-                }
+                resetMenuPortal(wrap, menu, arrowSvg);
             }
         });
 

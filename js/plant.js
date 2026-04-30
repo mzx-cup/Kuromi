@@ -172,7 +172,122 @@ function getVariantEmoji(baseEmoji, variantType) {
         [VARIANT_TYPES.SHINY]: '✨',
         [VARIANT_TYPES.ALT_SHINY]: '💎'
     };
-    return suffixMap[variantType] || baseEmoji;
+    return baseEmoji + (suffixMap[variantType] || '');
+}
+
+const VARIANT_DISPLAY_ORDER = [
+    VARIANT_TYPES.ALT_SHINY,
+    VARIANT_TYPES.SHINY,
+    VARIANT_TYPES.ALT_COLOR,
+    VARIANT_TYPES.NORMAL
+];
+
+const VARIANT_CLASS_NAMES = {
+    [VARIANT_TYPES.NORMAL]: 'variant-normal',
+    [VARIANT_TYPES.ALT_COLOR]: 'variant-altcolor',
+    [VARIANT_TYPES.SHINY]: 'variant-shiny',
+    [VARIANT_TYPES.ALT_SHINY]: 'variant-alt-shiny'
+};
+
+const PLANT_ALT_HUE_OVERRIDES = {
+    carrot: 242
+};
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[char]));
+}
+
+function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
+function hashText(value) {
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) {
+        hash = ((hash << 5) - hash) + value.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash);
+}
+
+function getPlantAltHue(plant) {
+    if (Object.prototype.hasOwnProperty.call(PLANT_ALT_HUE_OVERRIDES, plant.id)) {
+        return PLANT_ALT_HUE_OVERRIDES[plant.id];
+    }
+    const rarityOffset = { common: 12, rare: 58, fine: 116, epic: 202, legendary: 284 };
+    return (hashText(plant.id) * 37 + (rarityOffset[plant.rarity] || 0)) % 360;
+}
+
+function getVariantClass(variantType) {
+    return VARIANT_CLASS_NAMES[variantType] || VARIANT_CLASS_NAMES[VARIANT_TYPES.NORMAL];
+}
+
+function getVariantLabel(variantType) {
+    return (VARIANT_CONFIG[variantType] && VARIANT_CONFIG[variantType].label) || '普通';
+}
+
+function getVariantCssVars(plant, variantType) {
+    const hue = getPlantAltHue(plant);
+    const hue2 = (hue + 48) % 360;
+    const hue3 = (hue + 128) % 360;
+    return [
+        `--variant-hue:${hue}deg`,
+        `--variant-accent:hsl(${hue}, 82%, 56%)`,
+        `--variant-accent-2:hsl(${hue2}, 88%, 60%)`,
+        `--variant-accent-3:hsl(${hue3}, 92%, 66%)`
+    ].join(';');
+}
+
+function hasVariant(ownedEntry, variantType) {
+    if (!ownedEntry) return false;
+    if (variantType === VARIANT_TYPES.NORMAL) return true;
+    return !!((ownedEntry.variants || {})[variantType]);
+}
+
+function getVariantCount(ownedEntry, variantType) {
+    if (!ownedEntry) return 0;
+    const variants = ownedEntry.variants || {};
+    if (variantType === VARIANT_TYPES.NORMAL) {
+        return (variants[VARIANT_TYPES.NORMAL] && variants[VARIANT_TYPES.NORMAL].count) || ownedEntry.harvestCount || 1;
+    }
+    return (variants[variantType] && variants[variantType].count) || 0;
+}
+
+function getDisplayVariant(ownedEntry) {
+    if (!ownedEntry) return VARIANT_TYPES.NORMAL;
+    const variants = ownedEntry.variants || {};
+    return VARIANT_DISPLAY_ORDER.find(type => type === VARIANT_TYPES.NORMAL || variants[type]) || VARIANT_TYPES.NORMAL;
+}
+
+function renderVariantArt(plant, variantType, options = {}) {
+    const classes = [
+        'plant-variant-art',
+        getVariantClass(variantType),
+        options.locked ? 'is-locked' : '',
+        options.compact ? 'is-compact' : ''
+    ].filter(Boolean).join(' ');
+
+    return `
+        <span class="${classes}" style="${getVariantCssVars(plant, variantType)}" aria-hidden="true">
+            <span class="variant-aura"></span>
+            <span class="variant-emoji-main">${escapeHtml(plant.emoji)}</span>
+            <span class="variant-emoji-echo">${escapeHtml(plant.emoji)}</span>
+        </span>
+    `;
+}
+
+function renderVariantBadge(plant, variantType) {
+    return `
+        <span class="variant-badge ${getVariantClass(variantType)}" style="${getVariantCssVars(plant, variantType)}" title="${escapeAttr(getVariantLabel(variantType))}已收集">
+            <span>${escapeHtml(plant.emoji)}</span>
+        </span>
+    `;
 }
 
 // ============================================================
@@ -246,14 +361,72 @@ let weatherState = {
    保温罩: false  // 雪天保温
 };
 
+const WEATHER_CITY_STORAGE_KEY = 'starlearn_weather_city';
+const WEATHER_MANUAL_STORAGE_KEY = 'starlearn_weather_manual';
+const WEATHER_LAST_CITY_STORAGE_KEY = 'starlearn_weather_last_city';
+const WEATHER_CITY_PLACEHOLDERS = new Set(['定位中', '当前位置', '请点击设置城市', '未知', '定位不支持', '自动定位失败']);
+
+function isValidWeatherCity(cityName) {
+    return Boolean(cityName && !WEATHER_CITY_PLACEHOLDERS.has(cityName));
+}
+
+function getStoredWeatherCity() {
+    const cityName = localStorage.getItem(WEATHER_CITY_STORAGE_KEY) || '';
+    if (!cityName) return '';
+    if (!isValidWeatherCity(cityName)) {
+        localStorage.removeItem(WEATHER_CITY_STORAGE_KEY);
+        return '';
+    }
+    return cityName;
+}
+
+function getLastWeatherCity() {
+    const cityName = localStorage.getItem(WEATHER_LAST_CITY_STORAGE_KEY) || '';
+    return isValidWeatherCity(cityName) ? cityName : '';
+}
+
+function rememberWeatherCity(cityName, displayName = cityName) {
+    if (!isValidWeatherCity(cityName)) return;
+    localStorage.setItem(WEATHER_CITY_STORAGE_KEY, cityName);
+    const displayCity = isValidWeatherCity(displayName) ? displayName : cityName;
+    localStorage.setItem(WEATHER_LAST_CITY_STORAGE_KEY, displayCity);
+}
+
+function getWeatherFallbackCity(defaultLabel = '自动定位失败', preferredCity = '') {
+    if (isValidWeatherCity(preferredCity)) return preferredCity;
+    return getStoredWeatherCity() || getLastWeatherCity() || defaultLabel;
+}
+
+async function fallbackWeatherAfterLocationFailure(defaultLabel = '自动定位失败', preferredCity = '') {
+    const networkLocated = await fetchWeatherByNetworkLocation();
+    if (networkLocated) return;
+
+    const fallbackCity = getWeatherFallbackCity(defaultLabel, preferredCity);
+    if (isValidWeatherCity(fallbackCity)) {
+        await fetchWeatherByCity(fallbackCity, { silentFallback: true });
+    } else {
+        setDefaultWeatherWithCity(defaultLabel);
+    }
+}
+
 // ============================================================
 // 天气系统
 // ============================================================
 async function initWeather() {
     console.log('Initializing weather...');
 
-    // 强制清除旧缓存，重新获取
-    localStorage.removeItem('starlearn_weather');
+    const cachedWeather = localStorage.getItem('starlearn_weather');
+    if (cachedWeather) {
+        try {
+            weatherState = { ...weatherState, ...JSON.parse(cachedWeather) };
+            if (!isValidWeatherCity(weatherState.city)) {
+                weatherState.city = getStoredWeatherCity() || getLastWeatherCity() || '定位中';
+            }
+            updateWeatherDisplay();
+        } catch (e) {
+            console.warn('Weather cache invalid, refreshing:', e);
+        }
+    }
 
     await fetchWeather();
 
@@ -263,8 +436,8 @@ async function initWeather() {
 }
 
 async function fetchWeather() {
-    const city = localStorage.getItem('starlearn_weather_city');
-    const isManual = localStorage.getItem('starlearn_weather_manual') === '1';
+    const city = getStoredWeatherCity();
+    const isManual = localStorage.getItem(WEATHER_MANUAL_STORAGE_KEY) === '1';
     if (!city) {
         await fetchWeatherByIP();
         return;
@@ -274,15 +447,15 @@ async function fetchWeather() {
         await fetchWeatherByCity(city);
     } else {
         // 自动定位的场景，优先用 IP 重新定位（可能已移动）
-        await fetchWeatherByIP();
+        await fetchWeatherByIP(city);
     }
 }
 
-async function fetchWeatherByIP() {
+async function fetchWeatherByIP(fallbackCity = '') {
     // 首先检查浏览器是否支持 Geolocation API
     if (!navigator.geolocation) {
         console.warn('Geolocation not supported, using default');
-        setDefaultWeatherWithCity('定位不支持');
+        await fallbackWeatherAfterLocationFailure('定位不支持', fallbackCity);
         return;
     }
 
@@ -334,7 +507,7 @@ async function fetchWeatherByIP() {
 
                         if (cityName) {
                             console.log('BigDataCloud reverse geocoded city:', cityName, 'display:', weatherState.city);
-                            localStorage.setItem('starlearn_weather_city', cityName);
+                            rememberWeatherCity(cityName, weatherState.city);
                             await fetchWeatherByCity(cityName);
                             resolve();
                             return;
@@ -352,7 +525,7 @@ async function fetchWeatherByIP() {
                                 const cityName = reverseGeoData.results[0].name;
                                 console.log('Open-Meteo reverse geocoded city:', cityName);
                                 weatherState.city = cityName;
-                                localStorage.setItem('starlearn_weather_city', cityName);
+                                rememberWeatherCity(cityName);
                                 await fetchWeatherByCity(cityName);
                                 resolve();
                                 return;
@@ -387,7 +560,7 @@ async function fetchWeatherByIP() {
                                 }
                                 if (city) {
                                     console.log('Nominatim reverse geocoded city:', city, 'display:', weatherState.city);
-                                    localStorage.setItem('starlearn_weather_city', city);
+                                    rememberWeatherCity(city, weatherState.city);
                                     await fetchWeatherByCity(city);
                                     resolve();
                                     return;
@@ -399,22 +572,20 @@ async function fetchWeatherByIP() {
                     }
 
                     // 如果所有逆地理编码都失败，直接用坐标获取天气
-                    weatherState.city = '定位中';
-                    localStorage.setItem('starlearn_weather_city', '定位中');
+                    weatherState.city = getWeatherFallbackCity('当前位置', fallbackCity);
                     await fetchWeatherByCoordinates(lat, lon);
                     resolve();
                 } catch (e) {
                     console.error('All reverse geocoding failed:', e);
-                    weatherState.city = '定位中';
-                    localStorage.setItem('starlearn_weather_city', '定位中');
+                    weatherState.city = getWeatherFallbackCity('当前位置', fallbackCity);
                     await fetchWeatherByCoordinates(lat, lon);
                     resolve();
                 }
             },
             async (error) => {
                 console.warn('Geolocation error:', error.message);
-                // 定位被拒绝或失败时，使用默认城市让用户手动设置
-                setDefaultWeatherWithCity('请点击设置城市');
+                // 定位被拒绝或失败时，先尝试网络定位，再回退到上次成功城市
+                await fallbackWeatherAfterLocationFailure('自动定位失败', fallbackCity);
                 resolve();
             },
             {
@@ -424,6 +595,36 @@ async function fetchWeatherByIP() {
             }
         );
     });
+}
+
+// 浏览器定位不可用时，用 IP 粗定位做兜底
+async function fetchWeatherByNetworkLocation() {
+    try {
+        const locationRes = await fetch('https://ipapi.co/json/');
+        if (!locationRes.ok) throw new Error('IP location lookup failed');
+        const locationData = await locationRes.json();
+        const cityName = locationData.city || locationData.region || locationData.country_name || '';
+        const lat = Number(locationData.latitude);
+        const lon = Number(locationData.longitude);
+
+        if (!cityName && (!Number.isFinite(lat) || !Number.isFinite(lon))) {
+            return false;
+        }
+
+        weatherState.city = cityName || '当前位置';
+        if (cityName) rememberWeatherCity(cityName);
+
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+            await fetchWeatherByCoordinates(lat, lon);
+            return true;
+        }
+
+        await fetchWeatherByCity(cityName, { silentFallback: true });
+        return true;
+    } catch (e) {
+        console.warn('IP location fallback failed:', e);
+        return false;
+    }
 }
 
 // 通过坐标获取天气（不通过城市名）
@@ -451,9 +652,9 @@ async function fetchWeatherByCoordinates(lat, lon) {
 }
 
 // 使用 Open-Meteo 免费天气 API
-async function fetchWeatherByCity(cityName) {
+async function fetchWeatherByCity(cityName, options = {}) {
     // 过滤无效或占位的城市名称
-    if (!cityName || cityName === '定位中' || cityName === '请点击设置城市' || cityName === '未知') {
+    if (!isValidWeatherCity(cityName)) {
         console.warn('Invalid city name, falling back to IP-based weather');
         await fetchWeatherByIP();
         return;
@@ -473,6 +674,7 @@ async function fetchWeatherByCity(cityName) {
 
         const { latitude, longitude, name, country } = geoData.results[0];
         weatherState.city = name;
+        rememberWeatherCity(cityName, name);
 
         // 2. 用坐标获取天气
         const weatherRes = await fetch(
@@ -493,9 +695,14 @@ async function fetchWeatherByCity(cityName) {
     } catch (e) {
         console.error('Weather fetch by city failed:', e);
         // 城市无法识别，清除无效的城市缓存，切换到自动定位
-        localStorage.removeItem('starlearn_weather_city');
-        showTip('🌍 城市未找到，已切换为自动定位');
-        setDefaultWeatherWithCity('请点击设置城市');
+        localStorage.removeItem(WEATHER_CITY_STORAGE_KEY);
+        if (localStorage.getItem(WEATHER_LAST_CITY_STORAGE_KEY) === cityName) {
+            localStorage.removeItem(WEATHER_LAST_CITY_STORAGE_KEY);
+        }
+        if (!options.silentFallback) {
+            showTip('🌍 城市未找到，已切换为自动定位');
+        }
+        setDefaultWeatherWithCity(options.silentFallback ? '自动定位失败' : '请点击设置城市');
     }
 }
 
@@ -880,19 +1087,19 @@ function renderWeatherUI() {
 
 // 天气设置弹窗
 function openWeatherSettings() {
-    const currentCity = localStorage.getItem('starlearn_weather_city') || '';
+    const currentCity = getStoredWeatherCity() || getLastWeatherCity();
     const input = prompt('请输入城市名称（如：重庆、北京、巴南区）:\n输入精确区县名称可获得更准确定位\n留空则使用自动定位', currentCity);
     if (input === null) return; // 用户取消
 
     const city = input.trim();
     if (city) {
-        localStorage.setItem('starlearn_weather_city', city);
-        localStorage.setItem('starlearn_weather_manual', '1');
+        localStorage.setItem(WEATHER_CITY_STORAGE_KEY, city);
+        localStorage.setItem(WEATHER_MANUAL_STORAGE_KEY, '1');
         showTip(`🌍 已设置城市为：${city}，正在获取天气...`);
         fetchWeatherByCity(city);
     } else {
-        localStorage.removeItem('starlearn_weather_city');
-        localStorage.removeItem('starlearn_weather_manual');
+        localStorage.removeItem(WEATHER_CITY_STORAGE_KEY);
+        localStorage.removeItem(WEATHER_MANUAL_STORAGE_KEY);
         showTip('🌍 已切换为自动定位，正在获取天气...');
         fetchWeatherByIP();
     }
@@ -1128,35 +1335,36 @@ function renderPlantCollection() {
     const grid = document.getElementById('plant-collection');
     if (!grid) return;
 
-    // 构建变体映射
-    const variantMap = {};
-    plantState.ownedPlants.forEach(o => {
-        variantMap[o.id] = o.variants || {};
-    });
-
     grid.innerHTML = PLANT_DATA.map(plant => {
         const ownedEntry = plantState.ownedPlants.find(o => o.id === plant.id);
         const owned = !!ownedEntry;
         const rarityColor = RARITY_COLORS[plant.rarity];
         const rarityBg = RARITY_BG[plant.rarity];
-        const variants = variantMap[plant.id] || {};
+        const variants = (ownedEntry && ownedEntry.variants) || {};
+        const displayVariant = getDisplayVariant(ownedEntry);
+        const displayVariantClass = getVariantClass(displayVariant);
+        const displayVariantLabel = getVariantLabel(displayVariant);
+        const cardTitle = `${plant.name} · ${plant.desc}${displayVariant !== VARIANT_TYPES.NORMAL ? ` · ${displayVariantLabel}` : ''}`;
 
-        // 检查各变体是否拥有
-        const has异色 = variants[VARIANT_TYPES.ALT_COLOR];
-        const hasShiny = variants[VARIANT_TYPES.SHINY];
-        const hasAltShiny = variants[VARIANT_TYPES.ALT_SHINY];
+        const variantBadges = [
+            VARIANT_TYPES.ALT_COLOR,
+            VARIANT_TYPES.SHINY,
+            VARIANT_TYPES.ALT_SHINY
+        ].filter(type => variants[type]).map(type => renderVariantBadge(plant, type)).join('');
 
-        // 变体标记徽章
-        let variantBadges = '';
-        if (has异色) variantBadges += `<span class="variant-badge variant-altcolor" title="异色已收集">🌈</span>`;
-        if (hasShiny) variantBadges += `<span class="variant-badge variant-shiny" title="炫彩已收集">✨</span>`;
-        if (hasAltShiny) variantBadges += `<span class="variant-badge variant-alt-shiny" title="异色炫彩已收集">💎</span>`;
+        const itemClasses = [
+            'plant-collection-item',
+            owned ? 'owned' : '',
+            `collection-${displayVariantClass}`,
+            displayVariant !== VARIANT_TYPES.NORMAL ? 'has-special-variant' : ''
+        ].filter(Boolean).join(' ');
 
         return `
-            <div class="plant-collection-item ${owned ? 'owned' : ''}" onclick="showPlantDetail('${plant.id}')" title="${plant.desc}">
+            <div class="${itemClasses}" data-plant-id="${escapeAttr(plant.id)}" style="${getVariantCssVars(plant, displayVariant)}" onclick="showPlantDetail('${escapeAttr(plant.id)}')" title="${escapeAttr(cardTitle)}">
                 <div class="item-rarity-dot" style="background:${rarityColor}"></div>
-                <span class="item-emoji">${plant.emoji}</span>
-                <span class="item-name">${plant.name}</span>
+                ${renderVariantArt(plant, displayVariant, { compact: true })}
+                <span class="item-name">${escapeHtml(plant.name)}</span>
+                ${displayVariant !== VARIANT_TYPES.NORMAL ? `<span class="item-variant-label">${escapeHtml(displayVariantLabel)}</span>` : ''}
                 ${owned ? `<span class="item-owned-tag" style="color:${rarityColor};background:${rarityBg}">${RARITY_NAMES[plant.rarity]}</span>` : ''}
                 ${variantBadges ? `<div class="variant-badges-row">${variantBadges}</div>` : ''}
             </div>
@@ -1170,6 +1378,98 @@ function renderPlantCollection() {
     }
 }
 
+function bindHarvestRevealEvents(modal) {
+    if (!modal || modal.dataset.eventsBound === '1') return;
+    modal.addEventListener('click', handleHarvestRevealJump);
+    modal.addEventListener('pointerup', handleHarvestRevealJump);
+    modal.dataset.eventsBound = '1';
+}
+
+function getHarvestRevealModal() {
+    let modal = document.getElementById('plant-harvest-reveal');
+    if (modal) {
+        bindHarvestRevealEvents(modal);
+        return modal;
+    }
+
+    modal = document.createElement('div');
+    modal.id = 'plant-harvest-reveal';
+    modal.className = 'plant-harvest-reveal';
+    modal.innerHTML = '<div class="plant-harvest-reveal-card" role="button" tabindex="0"></div>';
+    bindHarvestRevealEvents(modal);
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function closeHarvestReveal() {
+    const modal = document.getElementById('plant-harvest-reveal');
+    if (modal) {
+        modal.classList.remove('active');
+        delete modal.dataset.jumping;
+    }
+}
+
+function scrollToCollectionPlant(plantId) {
+    closeHarvestReveal();
+    const target = document.querySelector(`.plant-collection-item[data-plant-id="${plantId}"]`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    target.classList.remove('collection-focus');
+    void target.offsetWidth;
+    target.classList.add('collection-focus');
+    setTimeout(() => target.classList.remove('collection-focus'), 2200);
+}
+
+function handleHarvestRevealJump(event) {
+    const modal = document.getElementById('plant-harvest-reveal');
+    if (!modal || !modal.classList.contains('active') || modal.dataset.jumping === '1') return;
+
+    const plantId = modal.dataset.plantId;
+    modal.dataset.jumping = '1';
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    scrollToCollectionPlant(plantId);
+}
+
+function showHarvestReveal(plant, variantType, rarityName) {
+    const modal = getHarvestRevealModal();
+    const card = modal.querySelector('.plant-harvest-reveal-card');
+    if (!card) return;
+
+    const variantLabel = getVariantLabel(variantType);
+    const variantText = variantType === VARIANT_TYPES.NORMAL ? '原色' : variantLabel;
+    card.style.cssText = getVariantCssVars(plant, variantType);
+    card.innerHTML = `
+        <div class="harvest-reveal-kicker">收获成功</div>
+        <div class="harvest-reveal-art-wrap">
+            ${renderVariantArt(plant, variantType)}
+        </div>
+        <div class="harvest-reveal-name">${escapeHtml(plant.name)}</div>
+        <div class="harvest-reveal-meta">
+            <span>${escapeHtml(rarityName)}</span>
+            <span>${escapeHtml(variantText)}</span>
+        </div>
+    `;
+
+    modal.dataset.plantId = plant.id;
+    delete modal.dataset.jumping;
+    modal.onclick = null;
+    modal.onpointerup = null;
+    card.onclick = null;
+    card.onpointerup = null;
+    card.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            handleHarvestRevealJump(event);
+        }
+    };
+
+    modal.classList.add('active');
+    card.focus({ preventScroll: true });
+}
+
 // 显示植物详情弹窗
 function showPlantDetail(plantId) {
     const plant = PLANT_DATA.find(p => p.id === plantId);
@@ -1181,7 +1481,11 @@ function showPlantDetail(plantId) {
     const rarityBg = RARITY_BG[plant.rarity];
 
     // 更新弹窗内容
-    document.getElementById('detail-emoji').textContent = plant.emoji;
+    const detailVariant = getDisplayVariant(ownedEntry);
+    const detailEmojiEl = document.getElementById('detail-emoji');
+    if (detailEmojiEl) {
+        detailEmojiEl.innerHTML = renderVariantArt(plant, detailVariant, { compact: true, locked: !owned });
+    }
     document.getElementById('detail-name').textContent = plant.name;
     document.getElementById('detail-desc').textContent = plant.desc;
 
@@ -1221,34 +1525,29 @@ function showPlantDetail(plantId) {
     }
 
     // 更新变体收集进度
-    const variants = (ownedEntry && ownedEntry.variants) || {};
     const variantTypes = [VARIANT_TYPES.NORMAL, VARIANT_TYPES.ALT_COLOR, VARIANT_TYPES.SHINY, VARIANT_TYPES.ALT_SHINY];
-    variantTypes.forEach(vType => {
-        const el = document.getElementById(`variant-${vType}-status`);
-        if (!el) return;
-        const itemEl = document.getElementById(`variant-${vType}`);
-        const vData = variants[vType];
-        if (vType === VARIANT_TYPES.NORMAL) {
-            // 普通变体：只要拥有该植物就算已获取
-            if (owned) {
-                el.textContent = `✓ ${ownedEntry.harvestCount || 1}次`;
-                el.className = 'variant-status obtained';
-                if (itemEl) itemEl.className = 'variant-item obtained';
-            } else {
-                el.textContent = '未获取';
-                el.className = 'variant-status';
-                if (itemEl) itemEl.className = 'variant-item';
-            }
-        } else if (vData) {
-            el.textContent = `✓ ${vData.count}次`;
-            el.className = 'variant-status obtained';
-            if (itemEl) itemEl.className = 'variant-item obtained';
-        } else {
-            el.textContent = '未获取';
-            el.className = 'variant-status';
-            if (itemEl) itemEl.className = 'variant-item';
-        }
-    });
+    const variantsGrid = document.querySelector('#plant-detail-modal .variants-grid');
+    if (variantsGrid) {
+        variantsGrid.innerHTML = variantTypes.map(vType => {
+            const obtained = hasVariant(ownedEntry, vType);
+            const count = getVariantCount(ownedEntry, vType);
+            const statusText = obtained ? `✓ ${count}次` : '未获取';
+            const statusClass = obtained ? 'variant-status obtained' : 'variant-status';
+            const itemClasses = [
+                'variant-item',
+                getVariantClass(vType),
+                obtained ? 'obtained' : ''
+            ].filter(Boolean).join(' ');
+
+            return `
+                <div class="${itemClasses}" id="variant-${escapeAttr(vType)}" style="${getVariantCssVars(plant, vType)}">
+                    ${renderVariantArt(plant, vType, { compact: true, locked: !obtained })}
+                    <span class="variant-label">${escapeHtml(getVariantLabel(vType))}</span>
+                    <span class="${statusClass}" id="variant-${escapeAttr(vType)}-status">${statusText}</span>
+                </div>
+            `;
+        }).join('');
+    }
 
     // 显示弹窗
     document.getElementById('plant-detail-modal').classList.add('active');
@@ -1659,6 +1958,13 @@ function plantAction(action) {
 
         const rarityName = RARITY_NAMES[slot.plantRarity] || '普通';
         const rarityColor = RARITY_COLORS[slot.plantRarity] || '#9CA3AF';
+        const harvestedPlant = PLANT_DATA.find(p => p.id === slot.plantId) || {
+            id: slot.plantId,
+            name: slot.plantName,
+            emoji: slot.plantEmoji,
+            rarity: slot.plantRarity,
+            desc: ''
+        };
 
         // 收获动画 - 先播放粒子
         try { triggerHarvestEffect(false); } catch(e) { console.warn('Harvest effect error:', e); }
@@ -1690,8 +1996,6 @@ function plantAction(action) {
             window.starlearnNotifications.showNotification({
                 title: notifTitle,
                 content: notifContent,
-                actionLabel: '查看林场',
-                actionUrl: '/html/plant.html',
                 type: 'achievement'
             });
         }
@@ -1733,6 +2037,7 @@ function plantAction(action) {
             renderPlantPots();
             renderCurrentPlant();
             renderPlantCollection();
+            showHarvestReveal(harvestedPlant, variantType, rarityName);
         }, 300);
 
         // 成就触发：收获
@@ -1818,6 +2123,7 @@ document.addEventListener('DOMContentLoaded', init);
 // ESC 键关闭详情弹窗
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+        closeHarvestReveal();
         closePlantDetail();
     }
 });
