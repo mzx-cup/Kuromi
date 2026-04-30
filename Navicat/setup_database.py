@@ -414,6 +414,24 @@ MYSQL_TABLES = [
         UNIQUE KEY uq_user_week (user_id, week_start_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 25. classroom_records - 课堂记录
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS classroom_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        course_id VARCHAR(100) NOT NULL UNIQUE,
+        title VARCHAR(255) NOT NULL DEFAULT '',
+        full_data LONGTEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -442,6 +460,7 @@ TABLE_NAMES = [
     "study_sessions",
     "learning_goals",
     "weekly_summary",
+    "classroom_records",
 ]
 
 
