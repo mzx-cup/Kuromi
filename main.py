@@ -15,11 +15,19 @@ import logging
 from datetime import datetime, timedelta
 import time
 import httpx
+import numpy as np
 import db as database
 import pymysql
+from db import (
+    save_classroom_record,
+    get_classroom_records,
+    get_classroom_record,
+    update_classroom_record,
+    delete_classroom_record,
+)
 import asyncio
 
-from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest, LearningPortrait
+from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest, LearningPortrait, CourseGenerationRequest, CourseData, SceneOutline, Slide, SlideContent, SlideElement, TeacherInfo, GenerateImageRequest, GenerateImageResponse, GenerateTTSRequest, GenerateTTSResponse, CourseSaveRequest, CourseListResponse, CourseChatRequest
 from proactive_tutor import (
     get_connection_manager, get_proactive_tutor,
     ProactiveMessage, ProactiveMessageType, MessagePriority,
@@ -927,6 +935,19 @@ def serve_architecture_blueprint():
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="架构蓝图页面未找到")
 
+@app.get("/generation-preview.html")
+def serve_generation_preview():
+    path = os.path.join(HTML_DIR, "generation-preview.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="课程生成预览页面未找到")
+
+@app.get("/classroom.html")
+def serve_classroom():
+    path = os.path.join(HTML_DIR, "classroom.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="课堂页面未找到")
 
 # ========== Socratic AI API ==========
 
@@ -960,10 +981,10 @@ class SocraticTTSResponse(BaseModel):
 
 # 音色配置 (MiniMax speech-2.8-hd 模型)
 VOICE_CONFIGS = [
-    {"name": "晓雅", "id": "female-shaonv-jingpin", "description": "女声，少女清品"},
-    {"name": "云起", "id": "male-qn-qingse", "description": "男声，青年清色"},
-    {"name": "雨辰", "id": "female-yujie", "description": "女声，御姐风采"},
-    {"name": "苏格拉底", "id": "male-qn-qingse", "description": "男声，睿智深邃"},
+    {"name": "晓雅", "id": "female-tianmei", "description": "女声，甜美清脆"},
+    {"name": "云起", "id": "male-qn-qingse", "description": "男声，青年清朗"},
+    {"name": "雨辰", "id": "male-qn-jingying", "description": "男声，青年精英"},
+    {"name": "苏格拉底", "id": "female-tianmei", "description": "女声，甜美清脆"},
     {"name": "雅典娜", "id": "female-chengshu", "description": "女声，成熟知性"},
 ]
 
@@ -1192,31 +1213,41 @@ def score_answer(request: SocraticScoreRequest):
 def text_to_speech(request: SocraticTTSRequest) -> SocraticTTSResponse:
     """使用 MiniMax TTS 将文本转换为语音"""
     try:
+        # 验证文本不为空
+        if not request.text or not request.text.strip():
+            logger.error("TTS 请求文本为空")
+            return SocraticTTSResponse(
+                success=False,
+                error="请求文本不能为空"
+            )
+
         voice_id = max(0, min(4, request.voice_id))
         voice = VOICE_CONFIGS[voice_id]
         logger.info(f"TTS 请求: text长度={len(request.text)}, voice_id={voice_id}, voice.id={voice['id']}")
 
-        # 使用 t2a_v2 接口，speech-2.8-hd 模型
-        tts_url = f"{settings.minimax_api_url}/t2a_v2"
+        # 使用 t2a_v2 接口，speech-2.8-hd 模型，group_id 作为 URL 参数
+        tts_url = f"{settings.minimax_api_url}/t2a_v2?GroupId={settings.minimax_group_id}"
 
         headers = {
             "Authorization": f"Bearer {settings.minimax_api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
-        # 使用 JSON 格式发送请求
-        # 注意：voice_id 需要嵌套在 voice_setting 对象中（MiniMax TTS API v2 格式）
-        payload = {
+        # MiniMax TTS API v2 格式（form-data）
+        data = {
             "model": "speech-2.8-hd",
-            "text": request.text,
-            "voice_setting": {
-                "voice_id": voice["id"]
-            }
+            "text": request.text.strip(),
+            "voice_id": voice["id"],
+            "output_format": "hex",
+            "sample_rate": 32000,
+            "speed": 1.0,
+            "volume": 1.0,
+            "pitch": 0
         }
 
-        logger.info(f"TTS payload: model={payload['model']}, voice_id={payload['voice_id']}, text={request.text[:50]}...")
+        logger.info(f"TTS 完整data: {data}")
         client = httpx.Client(timeout=30.0)
-        response = client.post(tts_url, headers=headers, json=payload)
+        response = client.post(tts_url, headers=headers, data=data)
 
         if response.status_code != 200:
             logger.error(f"TTS API 返回错误: {response.status_code}, body: {response.text[:500]}")
@@ -1228,35 +1259,37 @@ def text_to_speech(request: SocraticTTSRequest) -> SocraticTTSResponse:
         # 判断响应格式：application/json 为 JSON 格式，否则为二进制音频
         content_type = response.headers.get("content-type", "")
         logger.info(f"TTS 响应类型: {content_type}, 内容长度: {len(response.content)}")
-        if "application/json" in content_type:
-            result = response.json()
-            logger.info(f"TTS JSON响应: {result}")
-            # 检查 API 错误
-            if result.get("base_resp", {}).get("status_code") != 0:
-                err_msg = result.get("base_resp", {}).get("status_msg", "TTS API 错误")
-                logger.error(f"TTS API错误: {err_msg}, 完整响应: {result}")
-                return SocraticTTSResponse(
-                    success=False,
-                    error=f"TTS API错误: {err_msg}"
-                )
-            # 解析 base64 音频数据
-            audio_base64 = result.get("data", {}).get("audio", "")
-            if not audio_base64:
-                logger.error(f"TTS API未返回audio字段, 响应: {result}")
-                return SocraticTTSResponse(
-                    success=False,
-                    error="TTS API 未返回音频数据"
-                )
-            import base64
-            audio_bytes = base64.b64decode(audio_base64)
-        else:
-            # 直接使用二进制音频数据
-            audio_bytes = response.content
-            if not audio_bytes:
-                return SocraticTTSResponse(
-                    success=False,
-                    error="TTS API 未返回音频数据"
-                )
+        result = response.json()
+        logger.info(f"TTS JSON响应: {result}")
+
+        # 检查 API 错误
+        if result.get("base_resp", {}).get("status_code") != 0:
+            err_msg = result.get("base_resp", {}).get("status_msg", "TTS API 错误")
+            logger.error(f"TTS API错误: {err_msg}, 完整响应: {result}")
+            return SocraticTTSResponse(
+                success=False,
+                error=f"TTS API错误: {err_msg}"
+            )
+
+        # 获取音频数据（hex 格式）
+        audio_hex = result.get("data", {}).get("audio", "")
+        if not audio_hex:
+            logger.error(f"TTS API未返回audio字段, 响应: {result}")
+            return SocraticTTSResponse(
+                success=False,
+                error="TTS API 未返回音频数据"
+            )
+
+        # 解码 hex 音频数据
+        import binascii
+        try:
+            audio_bytes = binascii.unhexlify(audio_hex)
+        except Exception as e:
+            logger.error(f"音频 hex 解码失败: {e}")
+            return SocraticTTSResponse(
+                success=False,
+                error=f"音频解码失败"
+            )
 
         # 保存音频文件
         audio_dir = os.path.join(BASE_DIR, "audio")
@@ -1280,6 +1313,159 @@ def text_to_speech(request: SocraticTTSRequest) -> SocraticTTSResponse:
             success=False,
             error=f"TTS 生成失败: {str(e)}"
         )
+
+
+@app.post("/api/socratic/asr")
+async def speech_to_text(request: Request):
+    """使用百度语音识别将音频转换为文字"""
+    try:
+        # 获取上传的音频文件
+        form_data = await request.form()
+        audio_file = form_data.get("audio")
+
+        if not audio_file:
+            return {"success": False, "error": "未找到音频文件"}
+
+        # 读取音频数据
+        audio_data = await audio_file.read()
+        if not audio_data:
+            return {"success": False, "error": "音频数据为空"}
+
+        # 检查百度 ASR 配置
+        if not settings.baidu_asr_api_key or not settings.baidu_asr_secret_key:
+            logger.error("百度 ASR API 密钥未配置")
+            return {"success": False, "error": "语音识别服务未配置"}
+
+        # 保存临时文件
+        import tempfile
+        import uuid
+        import subprocess
+
+        temp_dir = tempfile.gettempdir()
+        input_file = os.path.join(temp_dir, f"asr_input_{uuid.uuid4().hex}")
+        output_file = os.path.join(temp_dir, f"asr_output_{uuid.uuid4().hex}.wav")
+
+        # 根据文件头判断格式
+        file_sig = audio_data[:12]
+        is_wav = b'RIFF' in audio_data[:12] and b'WAVE' in audio_data[:12]
+        is_webm = b'\x1A\x45\xDF\xA3' in audio_data[:4] or b'webm' in audio_data[:12]
+
+        ext = '.wav' if is_wav else '.webm'
+        input_file = input_file + ext
+
+        with open(input_file, "wb") as f:
+            f.write(audio_data)
+
+        try:
+            # 获取百度 access token
+            token_url = "https://aip.baidubce.com/oauth/2.0/token"
+            token_params = {
+                "grant_type": "client_credentials",
+                "client_id": settings.baidu_asr_api_key,
+                "client_secret": settings.baidu_asr_secret_key
+            }
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                token_response = await client.post(token_url, data=token_params)
+                token_result = token_response.json()
+                access_token = token_result.get("access_token")
+
+                if not access_token:
+                    logger.error(f"获取百度 access token 失败: {token_result}")
+                    return {"success": False, "error": "获取访问令牌失败"}
+
+                # 尝试转换音频格式
+                pcm_data = None
+
+                if is_wav:
+                    # WAV 文件：尝试直接读取并重采样
+                    try:
+                        from scipy.io import wavfile
+                        from scipy import signal
+                        sample_rate, wav_data = wavfile.read(input_file)
+                        # 重采样到 16kHz
+                        if sample_rate != 16000:
+                            num_samples = int(len(wav_data) * 16000 / sample_rate)
+                            wav_data = signal.resample(wav_data, num_samples)
+                        # 转换为单声道 16bit PCM
+                        if len(wav_data.shape) > 1:
+                            wav_data = wav_data[:, 0]
+                        wav_data = wav_data.astype(np.int16)
+                        pcm_data = wav_data.tobytes()
+                        logger.info(f"WAV 转换成功: 采样率=16000, 长度={len(pcm_data)}")
+                    except Exception as e:
+                        logger.error(f"WAV 处理失败: {e}")
+
+                # 如果 pcm_data 为空，尝试用 ffmpeg 转换
+                if pcm_data is None:
+                    # 查找 ffmpeg
+                    ffmpeg_paths = ['ffmpeg', 'ffmpeg.exe',
+                                   r"C:\Apps\Anaconda3\Library\bin\ffmpeg.exe",
+                                   r"C:\Apps\ffmpeg\bin\ffmpeg.exe",
+                                   os.path.join(os.path.dirname(__file__), "ffmpeg.exe")]
+                    ffmpeg_cmd = None
+                    for fp in ffmpeg_paths:
+                        if os.path.exists(fp) or fp == 'ffmpeg' or fp == 'ffmpeg.exe':
+                            try:
+                                result = subprocess.run([fp, '-version'], capture_output=True, timeout=5)
+                                if result.returncode == 0:
+                                    ffmpeg_cmd = fp
+                                    break
+                            except:
+                                pass
+
+                    if ffmpeg_cmd:
+                        # 使用 ffmpeg 转换
+                        cmd = [ffmpeg_cmd, "-y", "-i", input_file,
+                               "-ar", "16000", "-ac", "1", "-acodec", "pcm_s16le",
+                               "-f", "s16le", "pipe:1"]
+                        result = subprocess.run(cmd, capture_output=True, timeout=60)
+                        if result.returncode == 0:
+                            pcm_data = result.stdout
+                            logger.info(f"ffmpeg 转换成功: 长度={len(pcm_data)}")
+                        else:
+                            logger.error(f"ffmpeg 转换失败: {result.stderr.decode()}")
+                    else:
+                        logger.error("未找到 ffmpeg，无法转换音频格式")
+                        return {"success": False, "error": "音频格式转换工具未安装（请安装 ffmpeg）"}
+
+                if not pcm_data:
+                    return {"success": False, "error": "音频转换失败"}
+
+                # 调用百度 ASR
+                asr_url = f"https://vop.baidu.com/server_api?dev_pid=1537&token={access_token}"
+                asr_response = await client.post(
+                    asr_url,
+                    data=pcm_data,
+                    params={"dev_pid": 1537},
+                    headers={"Content-Type": "audio/pcm; rate=16000"}
+                )
+
+                asr_result = asr_response.json()
+                logger.info(f"百度 ASR 响应: {asr_result}")
+
+                if asr_result.get("err_no") == 0:
+                    result_list = asr_result.get("result", [])
+                    if result_list:
+                        text = result_list[0]
+                        return {"success": True, "text": text}
+                    else:
+                        return {"success": True, "text": ""}
+                else:
+                    err_msg = asr_result.get("err_msg", "语音识别失败")
+                    logger.error(f"百度 ASR 错误: {err_msg}")
+                    return {"success": False, "error": err_msg}
+
+        finally:
+            # 清理临时文件
+            if os.path.exists(input_file):
+                os.remove(input_file)
+            if os.path.exists(output_file):
+                os.remove(output_file)
+
+    except Exception as e:
+        logger.error(f"ASR 处理失败: {e}")
+        return {"success": False, "error": f"语音识别失败: {str(e)}"}
 
 
 @app.get("/api/socratic/voices")
@@ -5495,6 +5681,584 @@ def login_v2(request: LoginRequestV2):
         "learningPath": full_state.get('learning_path'),
         "learningRecord": full_state.get('learning_record'),
     }
+
+
+# ============================================================
+# 课程生成API (OpenMAIC风格)
+# ============================================================
+
+@app.post("/api/v2/course/generate/stream")
+async def generate_course_stream(request: CourseGenerationRequest):
+    """
+    流式生成课程（LLM驱动版）
+    使用 CourseGenerator 进行真实的大模型调用，通过SSE返回进度
+    """
+    async def event_generator():
+        from course_generator import get_course_generator
+        generator = get_course_generator()
+
+        async for event in generator.generate_course(
+            requirement=request.requirement,
+            student_id=request.student_id or "",
+            enable_image=request.enable_image,
+            enable_tts=request.enable_tts,
+            voice_id=request.voice_id,
+            agent_mode=request.agent_mode,
+            interactive_mode=request.interactive_mode,
+        ):
+            event_type = event.pop("type", "message")
+            yield sse_event(event_type, event)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
+@app.post("/api/v2/course/export/pptx")
+async def export_course_pptx(data: dict[str, Any] = {}):
+    """
+    导出课程为PPTX文件
+    接收前端传过来的 CourseData JSON，返回 .pptx 文件
+    """
+    try:
+        from pptx_export import PPTXExporter
+        course_data = CourseData(**data)
+        exporter = PPTXExporter()
+        pptx_bytes = exporter.export(course_data)
+        filename = f"{course_data.title or '课程'}.pptx"
+        encoded_filename = requests.utils.quote(filename)
+
+        return Response(
+            content=pptx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers={
+                "Content-Disposition": f"attachment; filename*=utf-8''{encoded_filename}"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PPTX导出失败: {str(e)}")
+
+
+# ============================================================
+# 课堂聊天 API (基于当前课程上下文)
+# ============================================================
+
+
+async def _sse_event_chat(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@app.post("/api/v2/course/chat")
+async def course_chat(request: CourseChatRequest):
+    """课堂内AI问答（基于当前课程上下文，支持多教师角色）"""
+    from llm_stream import call_llm_async
+    from prompts import build_prompt
+
+    # 尝试构建完整的课程上下文
+    agent_role = getattr(request, 'agent_role', 'AI助教') if hasattr(request, 'agent_role') else 'AI助教'
+    course_title = request.course_id  # fallback
+
+    # 加载课程数据以获取更多上下文
+    filepath = _get_course_path(request.course_id)
+    course_context = ""
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                course = json.load(f)
+            course_title = course.get("title", request.course_id)
+            # 构建课程大纲摘要
+            outlines = course.get("outlines", [])
+            if outlines:
+                course_context = "\n".join(
+                    f"  - {o.get('title', '')} ({o.get('type', 'slide')})"
+                    for o in outlines[:8]
+                )
+            # 获取教师团队
+            agent_team = course.get("agent_team", [])
+            if agent_team and not hasattr(request, 'agent_role'):
+                agent_role = agent_team[0].get("role", "课程导师") if isinstance(agent_team[0], dict) else "课程导师"
+        except Exception:
+            pass
+
+    # 使用增强提示词模板
+    try:
+        if hasattr(request, 'agent_role') and request.agent_role:
+            persona = getattr(request, 'persona', '专业、耐心') if hasattr(request, 'persona') else '专业、耐心'
+            system_prompt = build_prompt(
+                "classroom_chat_contextual",
+                course_title=course_title,
+                agent_role=agent_role,
+                persona=persona,
+                scene_title=request.slide_title,
+                scene_content=request.slide_content[:500],
+                speech=request.speech[:300],
+                course_context=course_context[:500],
+                user_input=request.user_input,
+            )
+            user_prompt = request.user_input
+        else:
+            system_prompt = f"""你是一个课堂AI助教，正在辅助学生学习课程。
+
+当前课程: {course_title}
+当前幻灯片: {request.slide_title}
+幻灯片内容: {request.slide_content[:500]}
+教师台词: {request.speech[:300]}
+课程大纲: {course_context[:500]}
+
+请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
+
+            history_str = "\n".join(
+                f"{'学生' if m.get('role') == 'user' else '教师'}: {m.get('content', '')}"
+                for m in request.history[-6:]
+            )
+            user_prompt = f"历史对话：\n{history_str}\n\n学生提问：{request.user_input}"
+    except Exception:
+        system_prompt = f"""你是课堂AI助教。当前课程: {course_title}
+当前讲解: {request.slide_title}
+请回答学生问题，简洁有教育意义。"""
+        user_prompt = request.user_input
+
+    try:
+        result = await call_llm_async(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.7,
+        )
+        return {"success": True, "content": result.strip()}
+    except Exception as e:
+        return {"success": False, "content": "抱歉，我暂时无法回答这个问题。"}
+
+
+@app.post("/api/v2/course/chat/stream")
+async def course_chat_stream(request: CourseChatRequest):
+    """课堂内AI问答（流式SSE）"""
+    from llm_stream import call_llm_stream
+
+    system_prompt = f"""你是一个课堂AI助教，正在辅助学生学习课程。
+
+当前课程: {request.course_id}
+当前幻灯片: {request.slide_title}
+幻灯片内容: {request.slide_content[:500]}
+教师台词: {request.speech[:300]}
+
+请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
+
+    history_str = "\n".join(
+        f"{'学生' if m.get('role') == 'user' else '教师'}: {m.get('content', '')}"
+        for m in request.history[-6:]
+    )
+    user_prompt = f"历史对话：\n{history_str}\n\n学生提问：{request.user_input}"
+
+    async def event_generator():
+        full_content = ""
+        async for chunk in call_llm_stream(system_prompt, user_prompt):
+            if chunk:
+                full_content += chunk
+                yield _sse_event_chat("chat_chunk", {"content": chunk})
+        yield _sse_event_chat("chat_done", {"content": full_content})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ============================================================
+# 媒体生成 API (OpenMAIC风格)
+# ============================================================
+
+
+@app.post("/api/v2/generate/image")
+async def generate_image_api(request: GenerateImageRequest):
+    """调用 MiniMax image-01 生成图片"""
+    from media_generation import generate_image
+    try:
+        url = await generate_image(request.prompt, request.aspect_ratio)
+        return GenerateImageResponse(url=url)
+    except Exception as e:
+        return GenerateImageResponse(success=False, error=str(e))
+
+
+@app.post("/api/v2/generate/tts")
+async def generate_tts_api(request: GenerateTTSRequest):
+    """调用 MiniMax speech-02 TTS 生成语音，保存为MP3文件"""
+    from media_generation import generate_tts
+    import uuid
+    try:
+        audio_bytes = await generate_tts(request.text, request.voice_id, request.speed)
+
+        audio_dir = os.path.join(STORAGE_DIR, "audio")
+        os.makedirs(audio_dir, exist_ok=True)
+        filename = f"tts_{uuid.uuid4().hex}.mp3"
+        filepath = os.path.join(audio_dir, filename)
+        with open(filepath, "wb") as f:
+            f.write(audio_bytes)
+
+        url = f"/storage/audio/{filename}"
+        return GenerateTTSResponse(url=url)
+    except Exception as e:
+        return GenerateTTSResponse(success=False, error=str(e))
+
+
+# Serve generated audio files
+@app.get("/storage/audio/{filename}")
+async def serve_audio(filename: str):
+    filepath = os.path.join(STORAGE_DIR, "audio", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+    return FileResponse(filepath, media_type="audio/mpeg")
+
+
+# ============================================================
+# 课程持久化 API (服务端存储)
+# ============================================================
+
+
+def _get_course_path(course_id: str) -> str:
+    courses_dir = os.path.join(STORAGE_DIR, "courses")
+    os.makedirs(courses_dir, exist_ok=True)
+    return os.path.join(courses_dir, f"{course_id}.json")
+
+
+@app.post("/api/v2/course/save")
+async def save_course(request: CourseSaveRequest):
+    """保存课程数据到服务端"""
+    course = request.course_data
+    if request.student_id:
+        course.metadata["student_id"] = request.student_id
+    filepath = _get_course_path(course.courseId)
+
+    # 保存到JSON文件
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(course.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
+
+    # 同步到数据库
+    try:
+        user_id = int(request.student_id) if request.student_id else 0
+        if user_id and course.courseId:
+            full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
+            save_classroom_record(user_id, course.courseId, course.title, full_data)
+    except Exception as e:
+        print(f"数据库保存失败（非致命）: {e}")
+
+    return {"success": True, "course_id": course.courseId}
+
+
+@app.get("/api/v2/course/{course_id}")
+async def get_course(course_id: str):
+    """获取指定课程"""
+    filepath = _get_course_path(course_id)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Course not found")
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.get("/api/v2/course/list/{student_id}")
+async def list_courses(student_id: str):
+    """列出学生的课程列表，按时间倒序"""
+    courses_dir = os.path.join(STORAGE_DIR, "courses")
+    courses = []
+    if os.path.exists(courses_dir):
+        for fname in sorted(os.listdir(courses_dir), reverse=True):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                with open(os.path.join(courses_dir, fname), "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                meta = data.get("metadata", {})
+                if meta.get("student_id") == student_id or not student_id:
+                    courses.append(data)
+            except Exception:
+                continue
+    return CourseListResponse(courses=courses)
+
+
+@app.delete("/api/v2/course/{course_id}")
+async def delete_course(course_id: str):
+    """删除指定课程"""
+    filepath = _get_course_path(course_id)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Course not found")
+    os.remove(filepath)
+    return {"success": True}
+
+
+# ============================================================
+# 新增: AI教师团队生成 API
+# ============================================================
+
+@app.post("/api/v2/course/generate/agent-team")
+async def generate_agent_team(data: dict[str, Any] = {}):
+    """生成AI教师团队（自动模式）"""
+    from course_generator import get_course_generator
+    from llm_stream import call_llm_async
+    from prompts import build_prompt
+
+    generator = get_course_generator()
+    course_title = data.get("course_title", "")
+    outlines = data.get("outlines", [])
+    requirement = data.get("requirement", "")
+
+    try:
+        agent_team = await generator._generate_agent_team(
+            course_title, outlines, requirement
+        )
+        return {"success": True, "agents": agent_team}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# 新增: Quiz 评分 API
+# ============================================================
+
+@app.post("/api/v2/course/quiz/grade")
+async def grade_quiz(data: dict[str, Any] = {}):
+    """批改Quiz答案"""
+    from course_generator import get_course_generator
+
+    generator = get_course_generator()
+    questions = data.get("questions", [])
+    student_answers = data.get("student_answers", [])
+
+    try:
+        result = await generator.grade_quiz_answers(questions, student_answers)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# 新增: 课程完成 API
+# ============================================================
+
+@app.post("/api/v2/course/complete")
+async def complete_course(data: dict[str, Any] = {}):
+    """课堂完成总结"""
+    from course_generator import CourseGenerator
+    from prompts import build_prompt
+
+    course_id = data.get("course_id", "")
+    quiz_score = data.get("quiz_score", 0)
+    time_spent = data.get("time_spent", 0)
+    scenes_visited = data.get("scenes_visited", [])
+    total_scenes = data.get("total_scenes", 0)
+
+    # 加载课程数据
+    course_data = None
+    filepath = _get_course_path(course_id)
+    if os.path.exists(filepath):
+        with open(filepath, "r", encoding="utf-8") as f:
+            course_data = json.load(f)
+
+    course_title = course_data.get("title", "课程") if course_data else "课程"
+    outlines = course_data.get("outlines", []) if course_data else []
+
+    try:
+        # 使用规则生成 + LLM生成个性化总结
+        badges: list[str] = []
+        if quiz_score >= 90:
+            badges.append("知识达人")
+        if quiz_score >= 70:
+            badges.append("学有所成")
+        if len(scenes_visited) >= total_scenes:
+            badges.append("全勤学霸")
+        if time_spent > 1800:
+            badges.append("专注之星")
+        badges.append("课堂参与者")
+
+        next_steps: list[str] = [
+            "回顾课程重点内容，巩固所学知识",
+            "尝试相关练习，提升实践能力",
+            "探索更深层次的相关主题",
+        ]
+
+        summary_text = f"你完成了《{course_title}》的{len(scenes_visited)}个学习场景"
+
+        # 尝试使用LLM生成更个性化的总结
+        try:
+            from llm_stream import call_llm_async
+            outlines_summary = json.dumps(
+                [{"title": o.get("title", ""), "type": o.get("type", "slide")}
+                 for o in outlines[:5]],
+                ensure_ascii=False,
+            )
+            prompt = build_prompt(
+                "completion_summary",
+                course_title=course_title,
+                total_scenes=str(total_scenes),
+                completed_scenes=str(len(scenes_visited)),
+                quiz_score=str(quiz_score),
+                time_spent=str(time_spent // 60),
+                outlines_summary=outlines_summary,
+            )
+            llm_raw = await call_llm_async(
+                "你是一位学习总结专家，严格按JSON格式输出。",
+                prompt,
+                temperature=0.5,
+            )
+            from course_generator import CourseGenerator
+            llm_data = CourseGenerator._extract_json(llm_raw)
+            if isinstance(llm_data, dict):
+                if llm_data.get("summary"):
+                    summary_text = llm_data["summary"]
+                if llm_data.get("badges"):
+                    badges = llm_data["badges"]
+                if llm_data.get("next_steps"):
+                    next_steps = llm_data["next_steps"]
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "total_scenes": total_scenes,
+            "completed_scenes": len(scenes_visited),
+            "quiz_score": quiz_score,
+            "time_spent": time_spent,
+            "badges": badges,
+            "next_steps": next_steps,
+            "summary": summary_text,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# 新增: 视频生成 API
+# ============================================================
+
+@app.post("/api/v2/generate/video")
+async def generate_video_endpoint(data: dict[str, Any] = {}):
+    """视频生成（MiniMax video-01）"""
+    from media_generation import generate_video
+
+    prompt = data.get("prompt", "")
+    if not prompt:
+        raise HTTPException(status_code=400, detail="缺少prompt参数")
+
+    duration = data.get("duration", 5)
+    resolution = data.get("resolution", "720p")
+
+    try:
+        video_url = await generate_video(
+            prompt=prompt,
+            duration=duration,
+            resolution=resolution,
+        )
+        return {"success": True, "url": video_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# 新增: 所有课程列表 (首页课堂网格)
+# ============================================================
+
+@app.get("/api/v2/course/list/all")
+async def list_all_courses():
+    """列出所有课程（按时间倒序，最多返回20个）"""
+    courses_dir = os.path.join(STORAGE_DIR, "courses")
+    courses = []
+    if os.path.exists(courses_dir):
+        for fname in sorted(os.listdir(courses_dir), reverse=True)[:20]:
+            if not fname.endswith(".json"):
+                continue
+            try:
+                with open(os.path.join(courses_dir, fname), "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                courses.append(data)
+            except Exception:
+                continue
+    return {"courses": courses}
+
+
+# ============================================================
+# 新增: 重命名课程
+# ============================================================
+
+@app.put("/api/v2/course/{course_id}/rename")
+async def rename_course(course_id: str, data: dict[str, Any] = {}):
+    """重命名课程"""
+    filepath = _get_course_path(course_id)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    new_title = data.get("title", "")
+    if not new_title:
+        raise HTTPException(status_code=400, detail="缺少title参数")
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        course = json.load(f)
+    course["title"] = new_title
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(course, f, ensure_ascii=False, indent=2)
+
+    return {"success": True, "course_id": course_id, "title": new_title}
+
+
+# ============================================================
+# 课堂记录 CRUD API（数据库）
+# ============================================================
+
+@app.get("/api/v2/classroom/list/{user_id}")
+async def get_classrooms(user_id: int):
+    """获取指定学生的所有课堂记录列表"""
+    records = get_classroom_records(user_id)
+    return {"success": True, "records": records}
+
+
+@app.get("/api/v2/classroom/{course_id}")
+async def get_classroom(course_id: str):
+    """获取单个课堂的完整数据"""
+    record = get_classroom_record(course_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+    return {"success": True, "record": record}
+
+
+@app.put("/api/v2/classroom/{course_id}")
+async def update_classroom(course_id: str, data: dict[str, Any]):
+    """更新课堂标题"""
+    title = data.get("title", "")
+    if not title:
+        raise HTTPException(status_code=400, detail="缺少title参数")
+
+    success = update_classroom_record(course_id, title)
+    if not success:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+
+    return {"success": True, "course_id": course_id, "title": title}
+
+
+@app.delete("/api/v2/classroom/{course_id}")
+async def delete_classroom(course_id: str):
+    """删除课堂记录"""
+    success = delete_classroom_record(course_id)
+
+    # 同时删除JSON文件
+    filepath = _get_course_path(course_id)
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
+
+    if not success:
+        raise HTTPException(status_code=404, detail="Classroom not found")
+
+    return {"success": True, "course_id": course_id}
 
 
 if __name__ == "__main__":
