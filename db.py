@@ -3153,6 +3153,187 @@ def get_full_user_state(user_id):
 
 
 # ============================================================
+# 课堂记录 CRUD
+# ============================================================
+
+def save_classroom_record(user_id: int, course_id: str, title: str, full_data: str) -> bool:
+    """保存课堂记录到数据库"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO classroom_records (user_id, course_id, title, full_data)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(course_id) DO UPDATE SET
+                            title=excluded.title,
+                            full_data=excluded.full_data,
+                            updated_at=datetime('now','localtime')
+                    """, (user_id, course_id, title, full_data))
+                else:
+                    cursor.execute("""
+                        INSERT INTO classroom_records (user_id, course_id, title, full_data)
+                        VALUES (%s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            title=%s, full_data=%s
+                    """, (user_id, course_id, title, full_data, title, full_data))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存课堂记录失败: {e}")
+
+        # JSON fallback
+        storage = load_local_storage()
+        records = storage.get('classroom_records', [])
+        for record in records:
+            if record.get('course_id') == course_id:
+                record.update({'user_id': user_id, 'title': title, 'full_data': full_data})
+                save_local_storage(storage)
+                return True
+        records.append({
+            'id': len(records) + 1,
+            'user_id': user_id,
+            'course_id': course_id,
+            'title': title,
+            'full_data': full_data,
+            'created_at': 'local',
+            'updated_at': 'local',
+        })
+        storage['classroom_records'] = records
+        save_local_storage(storage)
+        return True
+
+
+def get_classroom_records(user_id: int) -> list:
+    """获取指定学生的所有课堂记录（不含full_data）"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        SELECT id, user_id, course_id, title, created_at, updated_at
+                        FROM classroom_records WHERE user_id = ?
+                        ORDER BY created_at DESC
+                    """, (user_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute("""
+                        SELECT id, user_id, course_id, title, created_at, updated_at
+                        FROM classroom_records WHERE user_id = %s
+                        ORDER BY created_at DESC
+                    """, (user_id,))
+                rows = cursor.fetchall()
+                cursor.close()
+                return [dict(row) for row in rows] if _is_sqlite(conn) else rows
+            except Exception as e:
+                print(f"查询课堂记录失败: {e}")
+
+        storage = load_local_storage()
+        records = storage.get('classroom_records', [])
+        result = []
+        for r in records:
+            if r.get('user_id') == user_id:
+                result.append({
+                    'id': r.get('id'),
+                    'user_id': r.get('user_id'),
+                    'course_id': r.get('course_id'),
+                    'title': r.get('title'),
+                    'created_at': r.get('created_at'),
+                    'updated_at': r.get('updated_at'),
+                })
+        return sorted(result, key=lambda x: x.get('created_at', ''), reverse=True)
+
+
+def get_classroom_record(course_id: str) -> Optional[dict]:
+    """获取单个课堂记录的完整数据"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("SELECT * FROM classroom_records WHERE course_id = ?", (course_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute("SELECT * FROM classroom_records WHERE course_id = %s", (course_id,))
+                row = cursor.fetchone()
+                cursor.close()
+                return dict(row) if row and _is_sqlite(conn) else row
+            except Exception as e:
+                print(f"查询课堂记录失败: {e}")
+
+        storage = load_local_storage()
+        for r in storage.get('classroom_records', []):
+            if r.get('course_id') == course_id:
+                return r
+        return None
+
+
+def update_classroom_record(course_id: str, title: str) -> bool:
+    """更新课堂标题"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        UPDATE classroom_records SET title = ?,
+                            updated_at = datetime('now','localtime')
+                        WHERE course_id = ?
+                    """, (title, course_id))
+                else:
+                    cursor.execute("""
+                        UPDATE classroom_records SET title = %s
+                        WHERE course_id = %s
+                    """, (title, course_id))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"更新课堂记录失败: {e}")
+
+        storage = load_local_storage()
+        for r in storage.get('classroom_records', []):
+            if r.get('course_id') == course_id:
+                r['title'] = title
+                r['updated_at'] = 'local'
+                save_local_storage(storage)
+                return True
+        return False
+
+
+def delete_classroom_record(course_id: str) -> bool:
+    """删除课堂记录"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("DELETE FROM classroom_records WHERE course_id = ?", (course_id,))
+                else:
+                    cursor.execute("DELETE FROM classroom_records WHERE course_id = %s", (course_id,))
+                conn.commit()
+                affected = cursor.rowcount
+                cursor.close()
+                return affected > 0
+            except Exception as e:
+                print(f"删除课堂记录失败: {e}")
+
+        storage = load_local_storage()
+        original_len = len(storage.get('classroom_records', []))
+        storage['classroom_records'] = [
+            r for r in storage.get('classroom_records', [])
+            if r.get('course_id') != course_id
+        ]
+        save_local_storage(storage)
+        return len(storage['classroom_records']) < original_len
+
+
+# ============================================================
 # 辅助函数
 # ============================================================
 
