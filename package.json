@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@picovoice/picovoice-web": "^3.0.3",
+    "@timur00kh/whisper.wasm": "^0.1.0"
+  }
+}

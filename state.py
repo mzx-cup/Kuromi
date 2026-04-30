@@ -334,3 +334,453 @@ class LearningPortrait(BaseModel):
     weakness: WeaknessPortrait = Field(default_factory=WeaknessPortrait)
     focus_level: FocusLevelPortrait = Field(default_factory=FocusLevelPortrait)
     last_synced: str = ""  # 最后同步时间
+
+
+# ============================================================
+# 课程生成数据模型
+# ============================================================
+
+class SlideElement(BaseModel):
+    """幻灯片元素（增强版：支持多种类型）"""
+    type: str = "text"  # text, code, image, shape, line, chart, latex, table, audio, video
+    content: str = ""
+    left: float = 0
+    top: float = 0
+    width: float = 0
+    height: float = 0
+    style: dict[str, Any] = Field(default_factory=dict)  # 字体、颜色等样式
+    image_url: str = ""  # 图片元素URL
+    audio_url: str = ""  # TTS音频URL
+    # 样式增强
+    default_font_name: str = "Microsoft YaHei"
+    default_color: str = "#333333"
+    fill: str = ""  # 背景填充色
+    opacity: float = 1.0
+    rotate: float = 0
+    word_space: float = 0  # 字间距
+    line_height: float = 0  # 行高
+    # Shape专用
+    shape_name: str = ""  # rectangle, circle, triangle, etc.
+    path: str = ""  # SVG路径数据
+    view_box: list[float] = [0, 0, 100, 100]
+    gradient: dict[str, Any] = Field(default_factory=dict)  # 渐变填充
+    pattern: str = ""  # 图案填充
+    # Line专用
+    line_color: str = "#333333"
+    line_style: str = "solid"  # solid, dashed, dotted
+    points: list[list[float]] = Field(default_factory=list)  # 线条端点 [[x1,y1],[x2,y2]]
+    # Chart专用
+    chart_type: str = ""  # bar, column, line, pie, ring, area, radar, scatter
+    chart_data: dict[str, Any] = Field(default_factory=dict)  # {labels:[], series:[[val1,val2]]}
+    theme_colors: list[str] = Field(default_factory=list)
+    # LaTeX专用
+    latex: str = ""  # LaTeX公式字符串
+    # Table专用
+    table_data: list[list[dict[str, Any]]] = Field(default_factory=list)  # 表格数据
+    col_widths: list[float] = Field(default_factory=list)  # 列宽比例
+    # Video专用
+    video_url: str = ""
+    poster: str = ""  # 视频封面
+    # 链接
+    link: dict[str, Any] = Field(default_factory=dict)  # {type:"web"/"slide", target:"url"/"slide_id"}
+    # 阴影/边框
+    shadow: dict[str, Any] = Field(default_factory=dict)  # {h, v, blur, color}
+    outline: dict[str, Any] = Field(default_factory=dict)  # {color, width, style}
+    id: str = ""  # 元素唯一ID（用于spotlight引用）
+
+
+class SlideBackground(BaseModel):
+    """幻灯片背景"""
+    type: str = "solid"  # solid, gradient, image
+    color: str = "#ffffff"
+    gradient: dict[str, Any] = Field(default_factory=dict)  # {colors:[...], type:"linear"/"radial"}
+    image: dict[str, Any] = Field(default_factory=dict)  # {src:"url", ...}
+
+
+class SlideContent(BaseModel):
+    """幻灯片内容"""
+    elements: list[SlideElement] = Field(default_factory=list)
+
+
+class Slide(BaseModel):
+    """单个幻灯片"""
+    id: int = 0
+    title: str = ""
+    content: SlideContent = Field(default_factory=SlideContent)
+    speech: str = ""  # AI老师讲解文本
+    image_prompt: str = ""  # 配图生成提示词(用于image-01模型)
+    background: SlideBackground = Field(default_factory=SlideBackground)  # 背景设置
+    remark: str = ""  # 教师备注/讲解要点摘要
+
+
+class SceneOutline(BaseModel):
+    """场景大纲"""
+    id: int = 0
+    title: str = ""
+    type: str = "slide"  # slide, quiz, exercise
+    points: int = 0  # 包含的要点数
+    key_points: list[str] = Field(default_factory=list)  # LLM生成的关键知识点列表
+    description: str = ""  # 场景详细描述
+
+
+class TeacherInfo(BaseModel):
+    """AI教师信息"""
+    name: str = "星识教师"
+    avatar: str = ""  # 头像URL或emoji
+    role: str = "课程导师"
+    voice_id: int = 0  # 音色ID 0-4
+
+
+class TeacherAction(BaseModel):
+    """AI教师动作（用于课堂演示）"""
+    id: str = ""
+    type: str = ""  # spotlight, laser, speech, wb_open, wb_close, wb_draw_text, wb_draw_shape
+    element_id: str = ""  # spotlight/laser指向的元素ID
+    text: str = ""  # speech动作的讲解文本
+    # Whiteboard动作
+    wb_content: str = ""  # 白板绘制的HTML内容
+    wb_shape: str = ""  # 白板绘制的形状类型
+    # Widget动作
+    widget_target: str = ""
+    widget_state: dict[str, Any] = Field(default_factory=dict)
+    # 动画参数
+    duration: float = 0  # 动作持续时间（秒）
+    delay: float = 0  # 动作延迟时间（秒）
+    color: str = "#ff6b6b"  # laser颜色
+
+
+class SceneActions(BaseModel):
+    """场景动作集合"""
+    scene_id: int = 0
+    actions: list[TeacherAction] = Field(default_factory=list)
+
+
+# ============================================================
+# Quiz / 交互数据模型
+# ============================================================
+
+class QuizQuestion(BaseModel):
+    """测验题目"""
+    id: int = 0
+    question: str = ""
+    options: list[str] = Field(default_factory=list)
+    correct_answer: int = 0  # 正确答案索引
+    explanation: str = ""  # 答案解析
+
+
+class QuizData(BaseModel):
+    """测验数据"""
+    title: str = ""
+    questions: list[QuizQuestion] = Field(default_factory=list)
+    passing_score: int = 60  # 及格分数
+
+
+class InteractiveData(BaseModel):
+    """交互式内容数据"""
+    instruction: str = ""
+    hints: list[str] = Field(default_factory=list)
+    expected_answer: str = ""
+
+
+# ============================================================
+# 课堂聊天 API 模型
+# ============================================================
+
+class CourseChatRequest(BaseModel):
+    """课堂聊天请求"""
+    student_id: str = ""
+    course_id: str = ""
+    slide_index: int = 0
+    slide_title: str = ""
+    slide_content: str = ""
+    speech: str = ""
+    user_input: str = Field(..., min_length=1)
+    history: list[dict[str, str]] = Field(default_factory=list)
+
+
+class CourseData(BaseModel):
+    """生成的课程数据"""
+    courseId: str = ""
+    title: str = ""
+    outlines: list[SceneOutline] = Field(default_factory=list)
+    slides: list[Slide] = Field(default_factory=list)
+    teacher: TeacherInfo = Field(default_factory=TeacherInfo)
+    agent_team: list[dict[str, Any]] = Field(default_factory=list)
+    quiz_data: list[dict[str, Any]] = Field(default_factory=list)
+    exercise_data: list[dict[str, Any]] = Field(default_factory=list)
+    interactive_data: list[dict[str, Any]] = Field(default_factory=list)
+    tts_audio_urls: dict[str, str] = Field(default_factory=dict)  # scene_id -> audio_url
+    scene_actions: list[SceneActions] = Field(default_factory=list)  # 每场景的动作列表
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class CourseGenerationRequest(BaseModel):
+    """课程生成请求"""
+    student_id: str = ""
+    requirement: str = Field(..., min_length=1)
+    enable_web_search: bool = True
+    enable_image: bool = True
+    enable_tts: bool = True
+    enable_video: bool = False
+    voice_id: str = "female-shaonv"
+    agent_mode: str = "preset"  # preset / auto
+    interactive_mode: bool = False
+    enable_pdf_upload: bool = False
+
+
+class CourseGenerationSession(BaseModel):
+    """课程生成会话"""
+    session_id: str = ""
+    student_id: str = ""
+    requirement: str = ""
+    status: str = "pending"  # pending, generating, completed, failed
+    progress: float = 0.0
+    course_data: Optional[CourseData] = None
+    error_message: str = ""
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
+
+# ============================================================
+# 媒体生成 API 模型
+# ============================================================
+
+class GenerateImageRequest(BaseModel):
+    """图片生成请求"""
+    prompt: str = Field(..., min_length=1)
+    aspect_ratio: str = "16:9"
+
+
+class GenerateImageResponse(BaseModel):
+    """图片生成响应"""
+    success: bool = True
+    url: str = ""
+    error: str = ""
+
+
+class GenerateTTSRequest(BaseModel):
+    """TTS生成请求"""
+    text: str = Field(..., min_length=1)
+    voice_id: str = "female-shaonv"
+    speed: float = 1.0
+
+
+class GenerateTTSResponse(BaseModel):
+    """TTS生成响应"""
+    success: bool = True
+    url: str = ""
+    error: str = ""
+
+
+# ============================================================
+# 课程持久化 API 模型
+# ============================================================
+
+class CourseSaveRequest(BaseModel):
+    """课程保存请求"""
+    course_data: CourseData
+    student_id: str = ""
+
+
+class CourseListResponse(BaseModel):
+    """课程列表响应"""
+    courses: list[CourseData] = Field(default_factory=list)
+
+
+# ============================================================
+# 提供者配置 API 模型
+# ============================================================
+
+class ProviderConfig(BaseModel):
+    """提供者配置"""
+    provider_type: str = ""  # llm, tts, image, video, asr
+    provider_id: str = ""  # xunfei, minimax, baidu
+    config: dict[str, Any] = Field(default_factory=dict)
+    enabled: bool = True
+
+
+class ProviderConfigRequest(BaseModel):
+    """提供者配置请求"""
+    provider_type: str = Field(..., min_length=1)
+    provider_id: str = Field(..., min_length=1)
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProviderVerifyRequest(BaseModel):
+    """提供者验证请求"""
+    provider_type: str = Field(..., min_length=1)
+    provider_id: str = Field(..., min_length=1)
+    config: dict[str, Any] = Field(default_factory=dict)
+
+
+# ============================================================
+# AI 教师团队数据模型
+# ============================================================
+
+class GeneratedAgent(BaseModel):
+    """AI教师角色（LLM自动生成）"""
+    id: str = ""
+    name: str = ""
+    role: str = ""
+    persona: str = ""  # 教学风格/性格描述
+    avatar: str = ""  # emoji头像
+    color: str = "#6366f1"  # 主题色
+    voice_id: str = "female-shaonv"  # TTS声音ID
+    priority: int = 0  # 出场优先级（0=主讲）
+
+
+class AgentTeam(BaseModel):
+    """AI教师团队"""
+    agents: list[GeneratedAgent] = Field(default_factory=list)
+    voice_assignments: dict[str, str] = Field(default_factory=dict)  # agent_id -> voice_id
+
+
+class GenerateAgentTeamRequest(BaseModel):
+    """教师团队生成请求"""
+    course_title: str = ""
+    outlines: list[dict[str, Any]] = Field(default_factory=list)
+    requirement: str = ""
+    available_voices: list[str] = Field(default_factory=lambda: [
+        "female-shaonv", "female-yujie", "female-danyun",
+        "male-qingshu", "male-shaoshuai"
+    ])
+
+
+# ============================================================
+# Quiz 评分 API 模型
+# ============================================================
+
+class QuizAnswer(BaseModel):
+    """学生单个答案"""
+    question_index: int = 0
+    selected_option: int = -1  # -1 表示未作答
+
+
+class QuizGradeRequest(BaseModel):
+    """Quiz评分请求"""
+    questions: list[dict[str, Any]] = Field(default_factory=list)
+    student_answers: list[QuizAnswer] = Field(default_factory=list)
+
+
+class QuizFeedback(BaseModel):
+    """单题反馈"""
+    question_index: int = 0
+    is_correct: bool = False
+    feedback: str = ""
+    correct_option: int = 0
+
+
+class QuizGradeResponse(BaseModel):
+    """Quiz评分响应"""
+    scores: list[int] = Field(default_factory=list)  # 每题得分（0/1）
+    total: float = 0.0  # 总分百分比
+    passed: bool = False
+    correct_count: int = 0
+    total_count: int = 0
+    feedback_per_question: list[QuizFeedback] = Field(default_factory=list)
+
+
+# ============================================================
+# 课程完成 / 庆祝数据模型
+# ============================================================
+
+class CompletionData(BaseModel):
+    """课程完成庆祝数据"""
+    total_scenes: int = 0
+    completed_scenes: int = 0
+    quiz_score: float = 0.0
+    time_spent_seconds: int = 0
+    badges: list[str] = Field(default_factory=list)  # 获得徽章
+    next_steps: list[str] = Field(default_factory=list)  # 学习建议
+    summary: str = ""  # AI生成的学习总结
+
+
+class CourseCompleteRequest(BaseModel):
+    """课程完成请求"""
+    course_id: str = ""
+    student_id: str = ""
+    quiz_scores: dict[str, Any] = Field(default_factory=dict)
+    time_spent: int = 0
+    scenes_visited: list[int] = Field(default_factory=list)
+
+
+# ============================================================
+# 增强场景类型数据模型
+# ============================================================
+
+class SceneType(str, Enum):
+    """场景类型扩展"""
+    SLIDE = "slide"
+    QUIZ = "quiz"
+    EXERCISE = "exercise"
+    INTERACTIVE = "interactive"
+    PBL = "pbl"
+    DIAGRAM = "diagram"
+    CODE_EDITOR = "code"
+    VIDEO = "video"
+
+
+class PBLData(BaseModel):
+    """PBL（项目制学习）场景数据"""
+    scenario: str = ""  # 问题场景描述
+    issue_board: list[dict[str, Any]] = Field(default_factory=list)  # 议题列表
+    workspace: dict[str, Any] = Field(default_factory=dict)  # 工作区配置
+    resources: list[dict[str, Any]] = Field(default_factory=list)  # 学习资源
+    facilitator_prompt: str = ""  # 引导员提示词
+
+
+class InteractiveSceneData(BaseModel):
+    """交互场景数据"""
+    widget_type: str = "simulation"  # simulation, diagram, code, game, visualization3d
+    html_content: str = ""  # iframe渲染的HTML内容
+    config: dict[str, Any] = Field(default_factory=dict)
+    teacher_actions: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ExerciseData(BaseModel):
+    """练习场景数据"""
+    title: str = ""
+    exercises: list[dict[str, Any]] = Field(default_factory=list)
+    speech: str = ""
+    image_prompt: str = ""
+
+
+class SceneOutlineV2(BaseModel):
+    """增强版场景大纲（支持8种类型）"""
+    id: int = 0
+    title: str = ""
+    type: str = "slide"  # slide/quiz/exercise/interactive/pbl/diagram/code/video
+    description: str = ""
+    key_points: list[str] = Field(default_factory=list)
+    difficulty: str = "basic"  # basic/medium/advanced
+    estimated_minutes: int = 5
+    teacher_index: int = 0  # 负责该场景的教师索引
+    media_required: list[str] = Field(default_factory=list)  # image/tts/video
+
+
+# ============================================================
+# 增强课堂聊天 API 模型
+# ============================================================
+
+class CourseChatRequestV2(BaseModel):
+    """增强课堂聊天请求（支持多教师角色）"""
+    student_id: str = ""
+    course_id: str = ""
+    scene_index: int = 0
+    scene_title: str = ""
+    scene_content: str = ""
+    speech: str = ""
+    user_input: str = Field(..., min_length=1)
+    history: list[dict[str, str]] = Field(default_factory=list)
+    agent_role: str = ""  # 回答教师的角色
+    interactive_mode: bool = False
+
+
+class ClassroomSessionState(BaseModel):
+    """课堂会话状态（本地持久化）"""
+    classroom_id: str = ""
+    current_scene_index: int = 0
+    visited_scenes: list[int] = Field(default_factory=list)
+    quiz_answers: dict[str, list[QuizAnswer]] = Field(default_factory=dict)
+    chat_history: list[dict[str, str]] = Field(default_factory=list)
+    time_spent: int = 0

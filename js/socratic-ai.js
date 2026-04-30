@@ -20,6 +20,8 @@ let isRecording = false;
 let recordingTimer = null;
 let speechRecognizer = null;
 let conversationHistory = [];
+let mediaRecorder = null;
+let audioChunks = [];
 let autoPlayEnabled = true;
 let finalTranscript = '';
 
@@ -254,6 +256,7 @@ function startRecording() {
 
     finalTranscript = '';
     isRecording = true;
+    audioChunks = [];
     document.body.classList.add('recording');
 
     const micLabel = document.getElementById('mic-label');
@@ -263,13 +266,9 @@ function startRecording() {
 
     updateOrbStatus('聆听中');
 
-    // 开始语音识别
-    if (speechRecognizer) {
-        try {
-            speechRecognizer.start();
-        } catch (e) {
-            console.error('语音识别启动失败:', e);
-        }
+    // 开始 MediaRecorder 录音
+    if (mediaRecorder && mediaRecorder.state === 'inactive') {
+        mediaRecorder.start();
     }
 
     showToast('🎙️ 开始录音，请回答问题', 'info');
@@ -279,7 +278,7 @@ function startRecording() {
     }, 60000); // 60秒超时
 }
 
-function stopRecording() {
+async function stopRecording() {
     if (!isRecording) return;
 
     isRecording = false;
@@ -295,25 +294,48 @@ function stopRecording() {
         micLabel.innerHTML = '<span class="label-text">长按说话</span>';
     }
 
-    // 停止语音识别
-    if (speechRecognizer) {
-        try {
-            speechRecognizer.stop();
-        } catch (e) {}
+    // 停止 MediaRecorder 录音
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
     }
 
-    // 延迟一点确保 finalTranscript 已收集完毕
-    setTimeout(() => {
+    // 等待录音数据合并后发送
+    setTimeout(async () => {
+        if (audioChunks.length === 0) {
+            showToast('未检测到语音，请重试', 'warning');
+            updateTranscriptionDisplay('（未识别到语音）');
+            processAnswer('');
+            return;
+        }
+
         showResponseIndicator();
         updateOrbStatus('AI 评分中...');
         showToast('🎙️ 录音结束，AI 正在分析...', 'info');
 
-        // 将识别结果传给 AI 评分
-        const recognizedText = finalTranscript.trim() || '';
-        updateTranscriptionDisplay(recognizedText);
-        processAnswer(recognizedText);
-        finalTranscript = '';
-    }, 300);
+        // 将音频发送给后端进行 ASR
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        try {
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.webm');
+
+            const response = await fetch('/api/socratic/asr', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            const recognizedText = data.text || '';
+            updateTranscriptionDisplay(recognizedText);
+            processAnswer(recognizedText);
+        } catch (error) {
+            console.error('ASR 请求失败:', error);
+            showToast('语音识别失败，请手动输入', 'error');
+            updateTranscriptionDisplay('（语音识别失败）');
+            processAnswer('');
+        }
+
+        audioChunks = [];
+    }, 500);
 }
 
 function showResponseIndicator() {
@@ -353,54 +375,44 @@ function updateTranscriptionDisplay(text) {
     }, 5000);
 }
 
-// ========== 语音识别 ==========
+// ========== 语音识别（使用 MediaRecorder + 后端 ASR） ==========
 
-function initSpeechRecognition() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        console.warn('浏览器不支持语音识别');
+async function initSpeechRecognition() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('浏览器不支持录音');
         return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    speechRecognizer = new SpeechRecognition();
-    speechRecognizer.lang = 'zh-CN';
-    speechRecognizer.continuous = true;
-    speechRecognizer.interimResults = true;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-    speechRecognizer.onresult = (event) => {
-        let interimTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-                finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
+        // 尝试使用 wav 格式（Chrome 支持），否则回退到 webm
+        let mimeType = 'audio/webm;codecs=opus';
+        if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/wav')) {
+            mimeType = 'audio/wav';
+        } else if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+        }
+
+        console.log('使用录音格式:', mimeType);
+        mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0) {
+                audioChunks.push(event.data);
             }
-        }
+        };
 
-        // 更新录音标签显示
-        const micLabel = document.getElementById('mic-label');
-        if (micLabel && interimTranscript) {
-            micLabel.innerHTML = `<span class="label-text" style="color: #22d3ee;">${interimTranscript}</span>`;
-        }
-    };
+        mediaRecorder.onerror = (event) => {
+            console.error('录音错误:', event);
+            showToast('录音出错，请重试', 'error');
+        };
 
-    speechRecognizer.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
-        if (event.error === 'network') {
-            showToast('语音识别服务不可用(网络问题)，请检查网络或使用手动输入', 'warning');
-            updateTranscriptionDisplay('（网络不可用，请手动输入）');
-            showManualInput();
-        } else if (event.error === 'no-speech') {
-            // 没有检测到语音
-        } else {
-            showToast(`语音识别错误: ${event.error}`, 'error');
-        }
-    };
-
-    speechRecognizer.onend = () => {
-        // 语音识别结束
-    };
+    } catch (e) {
+        console.error('获取麦克风权限失败:', e);
+        showToast('无法访问麦克风，请检查权限设置', 'error');
+    }
 }
 
 // ========== 手动输入降级 ==========

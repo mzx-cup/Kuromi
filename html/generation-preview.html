@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程生成中 - 星识</title>
+    <link rel="stylesheet" href="../css/generation-preview.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="preview-bg"></div>
+
+    <div id="generation-preview" class="preview-page">
+        <!-- Back Button -->
+        <button id="back-btn" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+            <span>返回首页</span>
+        </button>
+
+        <!-- Abort Button -->
+        <button id="abort-btn" class="abort-button">
+            <i class="fas fa-stop"></i>
+            <span>停止生成</span>
+        </button>
+
+        <!-- Central Card -->
+        <div class="preview-card">
+            <!-- Progress Dots -->
+            <div class="progress-dots" id="progress-dots">
+                <div class="dot" data-step="0"></div>
+                <div class="dot" data-step="1"></div>
+                <div class="dot" data-step="2"></div>
+                <div class="dot" data-step="3"></div>
+                <div class="dot" data-step="4"></div>
+                <div class="dot" data-step="5"></div>
+            </div>
+
+            <!-- Visualizer Area -->
+            <div class="visualizer-area" id="visualizer-area">
+                <!-- PDF Analysis - Document Scan -->
+                <div class="viz viz-pdf" id="viz-pdf">
+                    <div class="doc-icon">
+                        <i class="fas fa-file-pdf"></i>
+                        <div class="scan-line"></div>
+                    </div>
+                    <div class="doc-title">分析需求中...</div>
+                </div>
+
+                <!-- Web Search -->
+                <div class="viz viz-search" id="viz-search">
+                    <div class="search-box">
+                        <div class="search-header">
+                            <i class="fas fa-search"></i>
+                            <div class="search-bar">
+                                <div class="search-bar-fill"></div>
+                            </div>
+                        </div>
+                        <div class="search-results">
+                            <div class="result-item">
+                                <div class="result-title" style="width: 80%"></div>
+                                <div class="result-title" style="width: 60%"></div>
+                                <div class="result-title" style="width: 70%"></div>
+                            </div>
+                        </div>
+                        <div class="source-badge">
+                            <i class="fas fa-globe"></i>
+                            <span>0</span>
+                        </div>
+                    </div>
+                    <div class="search-title">网络搜索...</div>
+                </div>
+
+                <!-- Outline Generation - Streaming Notes -->
+                <div class="viz viz-outline" id="viz-outline">
+                    <div class="notepad">
+                        <div class="notepad-header">
+                            <i class="fas fa-list-ul"></i>
+                            <span>课程大纲</span>
+                        </div>
+                        <div class="outline-list" id="outline-list-preview">
+                            <div class="outline-item">
+                                <div class="outline-bullet"></div>
+                                <div class="outline-text main" style="width: 85%"></div>
+                            </div>
+                            <div class="outline-item">
+                                <div class="outline-bullet"></div>
+                                <div class="outline-text sub" style="width: 65%"></div>
+                            </div>
+                            <div class="outline-item">
+                                <div class="outline-bullet"></div>
+                                <div class="outline-text sub" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="live-dot"></div>
+                    <div class="outline-title">生成大纲中...</div>
+                </div>
+
+                <!-- AI Agent Team -->
+                <div class="viz viz-ai" id="viz-ai">
+                    <div class="float-card"><i class="fas fa-robot"></i></div>
+                    <div class="float-card"><i class="fas fa-brain"></i></div>
+                    <div class="float-card"><i class="fas fa-lightbulb"></i></div>
+                    <div class="ai-title">配置AI教师团队...</div>
+                </div>
+
+                <!-- Content Generation -->
+                <div class="viz viz-content" id="viz-content">
+                    <div class="content-card">
+                        <div class="type-badge">SLIDE</div>
+                        <i class="fas fa-file-powerpoint content-icon" style="color: var(--primary-light);"></i>
+                        <div class="content-lines">
+                            <div class="content-line"></div>
+                            <div class="content-line"></div>
+                            <div class="content-line"></div>
+                            <div class="content-line"></div>
+                        </div>
+                    </div>
+                    <div class="content-title">生成幻灯片...</div>
+                </div>
+
+                <!-- Actions - TTS & Images -->
+                <div class="viz viz-actions" id="viz-actions">
+                    <div class="actions-header">
+                        <i class="fas fa-magic"></i>
+                        <div class="actions-title">
+                            <div class="actions-title-fill"></div>
+                        </div>
+                    </div>
+                    <div class="actions-list">
+                        <div class="action-item">
+                            <div class="action-icon"><i class="fas fa-image"></i></div>
+                            <div class="action-label"></div>
+                            <div class="action-dot"></div>
+                        </div>
+                        <div class="action-item">
+                            <div class="action-icon"><i class="fas fa-volume-up"></i></div>
+                            <div class="action-label"></div>
+                            <div class="action-dot"></div>
+                        </div>
+                        <div class="action-item">
+                            <div class="action-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="action-label"></div>
+                            <div class="action-dot"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Text -->
+            <div class="status-text">
+                <h2 id="status-title" class="status-title">正在分析需求...</h2>
+                <p id="status-desc" class="status-desc">星识AI正在为你准备个性化的课程内容</p>
+            </div>
+
+            <!-- Warning Badge -->
+            <div class="warning-badge" id="warning-badge">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="warning-text"></span>
+            </div>
+
+            <!-- Retry Button -->
+            <button id="retry-btn" class="retry-button">
+                <i class="fas fa-redo"></i>
+                <span>重试</span>
+            </button>
+
+            <!-- Footer Hint -->
+            <div class="footer-hint">
+                <i class="fas fa-sparkles"></i>
+                <span>AI工作中</span>
+            </div>
+        </div>
+
+        <!-- Agent Reveal Modal - 3D Card Flip -->
+        <div class="agent-reveal-modal" id="agent-reveal-modal">
+            <div class="agent-reveal-card">
+                <div class="agent-reveal-card-inner" id="agent-reveal-card-inner">
+                    <!-- Front -->
+                    <div class="agent-reveal-front">
+                        <i class="fas fa-user-graduate front-icon"></i>
+                        <h2>你的AI教师团队已就绪</h2>
+                        <p>星识为你配置了专业的教学团队，准备开始一段奇妙的学习之旅</p>
+                        <button class="reveal-btn" id="reveal-btn">
+                            <i class="fas fa-eye"></i> 查看团队
+                        </button>
+                    </div>
+                    <!-- Back -->
+                    <div class="agent-reveal-back" id="agent-reveal-back">
+                        <h3>教师团队</h3>
+                        <div class="agent-reveal-list" id="agent-reveal-list">
+                            <!-- Dynamic JS generation -->
+                        </div>
+                        <button class="reveal-continue-btn" id="agent-reveal-close">
+                            <i class="fas fa-arrow-right"></i> 进入课堂
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/generation-preview.js"></script>
+</body>
+</html>

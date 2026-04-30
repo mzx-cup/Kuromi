@@ -5944,13 +5944,19 @@ async def save_course(request: CourseSaveRequest):
         json.dump(course.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
 
     # 同步到数据库
-    try:
-        user_id = int(request.student_id) if request.student_id else 0
-        if user_id and course.courseId:
+    user_id = 0
+    if request.student_id:
+        try:
+            user_id = int(request.student_id)
+        except ValueError:
+            print(f"警告: student_id '{request.student_id}' 不是有效数字，无法保存到数据库课堂记录")
+
+    if user_id and course.courseId:
+        try:
             full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
             save_classroom_record(user_id, course.courseId, course.title, full_data)
-    except Exception as e:
-        print(f"数据库保存失败（非致命）: {e}")
+        except Exception as e:
+            print(f"数据库保存失败（非致命）: {e}")
 
     return {"success": True, "course_id": course.courseId}
 

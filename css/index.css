@@ -5939,3 +5939,1384 @@ input, textarea, select {
         height: 65vh;
     }
 }
+
+/* ============================================
+   OpenMAIC风格课程生成模式样式
+   ============================================ */
+
+/* 模式切换Pill按钮 */
+.mode-toggle-pills {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: var(--surface-glass);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-glass);
+}
+
+.mode-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.875rem;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.mode-pill:hover {
+    color: var(--text-secondary);
+}
+
+.mode-pill.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 2px 8px rgba(114, 46, 209, 0.3);
+}
+
+.mode-pill i {
+    width: 14px;
+    height: 14px;
+}
+
+/* 课程输入卡片 - OpenMAIC风格 */
+#course-input-section {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    padding-bottom: 1rem;
+}
+
+.course-input-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-2xl);
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
+    padding: 1.25rem;
+    transition: all var(--transition-base);
+}
+
+@media (prefers-color-scheme: dark) {
+    .course-input-card {
+        background: rgba(15, 23, 42, 0.85);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.course-input-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+}
+
+.course-input-header i {
+    color: var(--primary);
+}
+
+.course-textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    font-size: 0.9375rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    resize: none;
+    outline: none;
+    transition: all var(--transition-fast);
+    min-height: 100px;
+    max-height: 200px;
+}
+
+.course-textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(114, 46, 209, 0.1);
+}
+
+.course-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+@media (prefers-color-scheme: dark) {
+    .course-textarea {
+        background: rgba(30, 41, 59, 0.8);
+        color: var(--text-primary);
+    }
+}
+
+.course-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.875rem;
+    gap: 1rem;
+}
+
+.course-pills {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.course-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.course-pill:hover {
+    background: rgba(114, 46, 209, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.course-pill.active {
+    background: rgba(114, 46, 209, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(114, 46, 209, 0.1);
+}
+
+.course-pill i {
+    width: 14px;
+    height: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .course-pill {
+        background: rgba(30, 41, 59, 0.8);
+        color: var(--text-secondary);
+    }
+}
+
+.enter-classroom-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border: none;
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: 0 4px 12px rgba(114, 46, 209, 0.3);
+    white-space: nowrap;
+}
+
+.enter-classroom-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(114, 46, 209, 0.4);
+}
+
+.enter-classroom-btn:active {
+    transform: translateY(0);
+}
+
+.enter-classroom-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+/* 隐藏默认输入区域当课程模式时 */
+body.course-mode .composer-glass-bar {
+    display: none;
+}
+
+body.course-mode #course-input-section {
+    display: block !important;
+}
+
+/* ============================================
+   OpenMAIC全屏课程生成覆盖层样式 - 新设计
+   ============================================ */
+
+.openmaic-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    overflow-y: auto;
+    overflow-x: hidden;
+    opacity: 1;
+    transition: opacity 0.4s ease-out;
+}
+
+.openmaic-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-overlay {
+        background: linear-gradient(to bottom, #020617, #0f172a);
+    }
+}
+
+/* 背景装饰 */
+.openmaic-bg-decor {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.openmaic-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    animation: openmaic-pulse 6s ease-in-out infinite;
+}
+
+.openmaic-orb-blue {
+    top: -10rem;
+    left: 20%;
+    width: 40rem;
+    height: 40rem;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+    animation-delay: 0s;
+}
+
+.openmaic-orb-purple {
+    bottom: -10rem;
+    right: 20%;
+    width: 40rem;
+    height: 40rem;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
+    animation-delay: 3s;
+}
+
+@keyframes openmaic-pulse {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+    50% { transform: translateY(-30px) scale(1.05); opacity: 0.7; }
+}
+
+/* 右上角工具栏 */
+.openmaic-toolbar {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.openmaic-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+}
+
+.openmaic-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--foreground);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.openmaic-toolbar-btn span {
+    font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-toolbar-btn {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-tertiary);
+    }
+
+    .openmaic-toolbar-btn:hover {
+        background: rgba(30, 41, 59, 0.95);
+        color: var(--foreground);
+    }
+}
+
+/* 主内容区域 - OpenMAIC风格 */
+.openmaic-main {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Hero区域 */
+.openmaic-hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fade-in-up 0.6s ease-out;
+}
+
+.openmaic-hero .openmaic-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+}
+
+.openmaic-hero .openmaic-logo i {
+    color: var(--primary);
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.1) rotate(5deg); opacity: 0.8; }
+}
+
+.openmaic-hero .openmaic-slogan {
+    font-size: 1rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* 统一输入卡片容器 */
+.openmaic-input-container {
+    width: 100%;
+    animation: fade-in-up 0.6s ease-out 0.1s both;
+}
+
+/* 输入卡片 */
+.openmaic-input-card {
+    position: relative;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 1.5rem;
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(0, 0, 0, 0.03);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.openmaic-input-card:focus-within {
+    box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(114, 46, 209, 0.15),
+        0 0 0 4px rgba(114, 46, 209, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-input-card {
+        background: rgba(15, 23, 42, 0.9);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* 顶部栏 */
+.openmaic-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.openmaic-user-greeting {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-user-greeting:hover {
+    background: rgba(241, 245, 249, 0.9);
+    transform: scale(1.02);
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-user-greeting {
+        background: rgba(30, 41, 59, 0.8);
+    }
+
+    .openmaic-user-greeting:hover {
+        background: rgba(30, 41, 59, 0.95);
+    }
+}
+
+.openmaic-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--border);
+}
+
+.openmaic-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.openmaic-username {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* 文本输入框 */
+.openmaic-textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    font-family: inherit;
+    color: var(--text-primary);
+    resize: none;
+    outline: none;
+    min-height: 7rem;
+    max-height: 14rem;
+}
+
+.openmaic-textarea:focus {
+    outline: none;
+}
+
+.openmaic-textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-textarea {
+        color: var(--text-primary);
+    }
+}
+
+/* 工具栏行 */
+.openmaic-toolbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    gap: 1rem;
+}
+
+.openmaic-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* 媒体设置按钮 */
+.openmaic-media-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(114, 46, 209, 0.1);
+    border: 1px solid rgba(114, 46, 209, 0.2);
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-media-btn:hover {
+    background: rgba(114, 46, 209, 0.15);
+    transform: translateY(-1px);
+}
+
+/* 工具按钮 */
+.openmaic-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-tool-btn:hover {
+    background: rgba(114, 46, 209, 0.1);
+    border-color: rgba(114, 46, 209, 0.2);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-tool-btn {
+        background: rgba(30, 41, 59, 0.8);
+    }
+
+    .openmaic-tool-btn:hover {
+        background: rgba(114, 46, 209, 0.2);
+    }
+}
+
+/* 分隔线 */
+.openmaic-toolbar-divider {
+    width: 1px;
+    height: 1.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 0 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-toolbar-divider {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* 功能开关药丸按钮 */
+.openmaic-pill-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.875rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-pill-toggle:hover {
+    background: rgba(114, 46, 209, 0.08);
+    border-color: rgba(114, 46, 209, 0.2);
+    color: var(--primary);
+}
+
+.openmaic-pill-toggle.active {
+    background: rgba(114, 46, 209, 0.12);
+    border-color: rgba(114, 46, 209, 0.3);
+    color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(114, 46, 209, 0.08);
+}
+
+.openmaic-pill-toggle[data-feature="interactive"].active i {
+    animation: spin 3s linear infinite;
+}
+
+.openmaic-pill-toggle[data-feature="websearch"].active i {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-pill-toggle {
+        background: rgba(30, 41, 59, 0.8);
+        color: var(--text-tertiary);
+    }
+
+    .openmaic-pill-toggle:hover {
+        background: rgba(114, 46, 209, 0.15);
+    }
+
+    .openmaic-pill-toggle.active {
+        background: rgba(114, 46, 209, 0.2);
+    }
+}
+
+/* 进入课堂按钮 */
+.openmaic-enter-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(114, 46, 209, 0.3);
+    white-space: nowrap;
+}
+
+.openmaic-enter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(114, 46, 209, 0.4);
+}
+
+.openmaic-enter-btn:active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: 0 2px 8px rgba(114, 46, 209, 0.3);
+}
+
+/* 语音输入按钮 */
+.openmaic-voice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid var(--border-glass);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.openmaic-voice-btn:hover {
+    background: rgba(114, 46, 209, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.openmaic-voice-btn.recording {
+    background: rgba(114, 46, 209, 0.2);
+    border-color: var(--primary);
+    color: var(--primary);
+    animation: voice-pulse 2s ease-in-out infinite;
+}
+
+.openmaic-voice-btn.recording::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--primary);
+    border-radius: 9999px;
+    opacity: 0.4;
+    animation: voice-ring 2s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes voice-ring {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.08); }
+}
+
+/* 语音动画条 */
+.voice-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 14px;
+}
+
+.voice-bars span {
+    width: 2.5px;
+    background: var(--primary);
+    border-radius: 2px;
+    animation: voice-bar 0.4s ease-in-out infinite alternate;
+}
+
+.voice-bars span:nth-child(1) { animation-delay: 0s; height: 3px; }
+.voice-bars span:nth-child(2) { animation-delay: 0.15s; height: 8px; }
+.voice-bars span:nth-child(3) { animation-delay: 0.3s; height: 5px; }
+
+@keyframes voice-bar {
+    0% { height: 3px; }
+    100% { height: 14px; }
+}
+
+/* 媒体设置弹窗 - 通过Portal渲染到body */
+.openmaic-media-popup {
+    width: 320px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    display: none;
+    transition: opacity 0.25s ease-out, visibility 0.25s ease-out, transform 0.25s ease-out;
+    z-index: 99999;
+}
+
+.openmaic-media-popup.show {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    display: block;
+    transform: translateY(0) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-media-popup {
+        background: rgba(15, 23, 42, 0.98);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.media-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.media-popup-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.media-popup-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.media-popup-close:hover {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.media-popup-content {
+    padding: 0.75rem 1rem;
+}
+
+/* 媒体选项 */
+.media-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+}
+
+.media-option + .media-option {
+    border-top: 1px solid var(--border-glass);
+}
+
+.media-option-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.media-option-info i {
+    color: var(--primary);
+}
+
+.media-option-info div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.media-option-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.media-option-desc {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* 开关 */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 2.75rem;
+    height: 1.5rem;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--muted);
+    border-radius: 9999px;
+    transition: all 0.2s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 1.125rem;
+    width: 1.125rem;
+    left: 0.1875rem;
+    bottom: 0.1875rem;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(1.25rem);
+}
+
+/* 附件预览 */
+.openmaic-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(114, 46, 209, 0.1);
+    border: 1px solid rgba(114, 46, 209, 0.2);
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--primary);
+    animation: attachment-in 0.2s ease-out;
+}
+
+@keyframes attachment-in {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.attachment-item i {
+    font-size: 0.875rem;
+}
+
+.attachment-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    color: var(--primary);
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 0.25rem;
+}
+
+.attachment-remove:hover {
+    background: rgba(114, 46, 209, 0.2);
+}
+
+/* 媒体徽章 */
+.media-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.25rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 9999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+}
+
+/* 语音输入按钮 - 深色模式 */
+@media (prefers-color-scheme: dark) {
+    .openmaic-voice-btn {
+        background: rgba(30, 41, 59, 0.8);
+        color: var(--text-tertiary);
+    }
+
+    .openmaic-voice-btn:hover {
+        background: rgba(114, 46, 209, 0.2);
+        color: var(--primary);
+    }
+
+    .openmaic-voice-btn.recording {
+        background: rgba(114, 46, 209, 0.3);
+    }
+
+    .voice-bars span {
+        background: var(--primary);
+    }
+}
+
+/* 附件 - 深色模式 */
+@media (prefers-color-scheme: dark) {
+    .attachment-item {
+        background: rgba(114, 46, 209, 0.2);
+        border-color: rgba(114, 46, 209, 0.3);
+    }
+
+    .attachment-remove:hover {
+        background: rgba(114, 46, 209, 0.3);
+    }
+}
+
+/* 最近课堂区域 - 紧凑样式 */
+.openmaic-recent-section {
+    width: 100%;
+    margin-top: 2.5rem;
+    animation: fade-in-up 0.6s ease-out 0.2s both;
+}
+
+.openmaic-recent-trigger {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.openmaic-recent-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.08), transparent);
+}
+
+.openmaic-recent-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.875rem;
+    background: transparent;
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-recent-btn:hover {
+    background: rgba(114, 46, 209, 0.08);
+    color: var(--primary);
+}
+
+.openmaic-recent-btn i {
+    color: var(--primary);
+}
+
+.openmaic-chevron {
+    transition: transform 0.3s ease;
+}
+
+.openmaic-recent-btn.collapsed .openmaic-chevron {
+    transform: rotate(-90deg);
+}
+
+.openmaic-recent-count {
+    font-size: 0.6875rem;
+    padding: 0.0625rem 0.375rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 9999px;
+    font-weight: 700;
+}
+
+.openmaic-import-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background: transparent;
+    border: none;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-import-btn:hover {
+    color: var(--primary);
+    background: rgba(114, 46, 209, 0.05);
+}
+
+/* 最近课堂内容区域 */
+.openmaic-recent-content {
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.openmaic-recent-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* 最近课堂网格 - 紧凑 */
+.openmaic-recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 1rem;
+    padding-top: 1.5rem;
+}
+
+/* 课程卡片 - 紧凑 */
+.openmaic-course-card {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 0.875rem;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.openmaic-course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+    .openmaic-course-card {
+        background: rgba(30, 41, 59, 0.9);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.openmaic-card-thumbnail {
+    aspect-ratio: 16 / 9;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.openmaic-card-thumbnail i {
+    font-size: 2.5rem;
+    opacity: 0.3;
+}
+
+.openmaic-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 50%);
+}
+
+.openmaic-card-actions {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.openmaic-course-card:hover .openmaic-card-actions {
+    opacity: 1;
+}
+
+.openmaic-card-action-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.openmaic-card-action-btn:hover {
+    background: rgba(239, 68, 68, 0.8);
+}
+
+.openmaic-card-action-btn.edit:hover {
+    background: rgba(59, 130, 246, 0.8);
+}
+
+.openmaic-card-info {
+    padding: 0.75rem;
+}
+
+.openmaic-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.625rem;
+    color: var(--text-tertiary);
+    margin-bottom: 0.25rem;
+}
+
+.openmaic-card-meta span {
+    padding: 0.0625rem 0.3125rem;
+    background: rgba(114, 46, 209, 0.1);
+    color: var(--primary);
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+.openmaic-card-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 底部 */
+.openmaic-footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    opacity: 0.6;
+    padding: 2rem 0 1rem;
+}
+
+/* 动画 */
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 隐藏原有界面当OpenMAIC模式时 */
+body.openmaic-mode #left-col,
+body.openmaic-mode #right-col,
+body.openmaic-mode .main-glass-surface,
+body.openmaic-mode #agent-menu-wrapper,
+body.openmaic-mode #music-panel,
+body.openmaic-mode #music-toggle-btn,
+body.openmaic-mode #focus-duration-panel,
+body.openmaic-mode #focus-duration-toggle-btn,
+body.openmaic-mode #mini-player,
+body.openmaic-mode #flow-dynamic-island,
+body.openmaic-mode #flow-overlay,
+body.openmaic-mode #lightbox-overlay,
+body.openmaic-mode #plant-reward-modal,
+body.openmaic-mode .sidebar-expand-btn,
+body.openmaic-mode .agent-fab-main {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+/* OpenMAIC模式过渡动画 */
+body.openmaic-mode {
+    overflow: hidden;
+}
+
+body.openmaic-mode #left-col,
+body.openmaic-mode #right-col,
+body.openmaic-mode .main-glass-surface {
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+    transform: scale(0.98);
+}
+
+/* 空状态提示 */
+.openmaic-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+}
+
+/* ============================================================
+   OpenMAIC Agent Bar & Voice Selector Styles
+   ============================================================ */
+
+.openmaic-agent-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+.openmaic-agent-select {
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 2rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.openmaic-agent-select:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 2px rgba(114,46,209,0.15);
+}
+
+/* --- Breathing border animation for interactive mode pill --- */
+@keyframes breathing-border {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(6,182,212,0.6);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(6,182,212,0);
+    }
+}
+
+.openmaic-pill-toggle[data-feature="interactive"].active {
+    position: relative;
+    animation: breathing-border 2s ease-in-out infinite;
+    border-color: rgba(6,182,212,0.5);
+}
+
+/* --- Classroom card grid improvements --- */
+.openmaic-recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.classroom-card-thumb {
+    aspect-ratio: 16 / 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--surface-glass);
+}
+.classroom-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.classroom-card-actions {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.classroom-card-wrap:hover .classroom-card-actions {
+    opacity: 1;
+}
+
+.classroom-card-badge {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    background: rgba(6,182,212,0.9);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 2rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+}
+
+/* 智能对话语音按钮 */
+#chat-voice-btn.recording {
+    background: var(--danger, #ef4444) !important;
+    color: white !important;
+    animation: voice-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voice-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}

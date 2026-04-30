@@ -27,6 +27,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "@timur00kh/whisper.wasm": "https://cdn.jsdelivr.net/npm/@timur00kh/whisper.wasm@0.1.0/dist/index.es.js"
+        }
+    }
+    </script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/learning-monitor.js"></script>
     <script src="/js/data-layer.js"></script>
@@ -38,6 +45,7 @@
     <script src="/js/data-layer.js"></script>
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/data-layer.js"></script>
+    <script src="/js/voice-input.js"></script>
     <script src="/js/index.js"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
@@ -156,6 +164,15 @@
                 <button class="tab-btn px-4 py-4 text-sm font-semibold rounded-t" data-tab="code" onclick="switchTab('code')">
                     <span class="flex items-center gap-1.5"><i data-lucide="terminal" class="w-4 h-4"></i> 代码控制台</span>
                 </button>
+                <div class="w-px h-5" style="background: var(--border-glass);"></div>
+                <div class="mode-toggle-pills">
+                    <button class="mode-pill active" data-mode="chat" onclick="switchMode('chat')">
+                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> 智能对话
+                    </button>
+                    <button class="mode-pill" data-mode="course" onclick="switchMode('course')">
+                        <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> 课程生成
+                    </button>
+                </div>
             </div>
             <div class="flex items-center gap-4">
                 <button id="flow-enter-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border);" onclick="window.flowMode.enter()" aria-label="进入心流模式">
@@ -297,6 +314,34 @@
 
                     <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
 
+                    <!-- OpenMAIC风格课程生成输入区 -->
+                    <div id="course-input-section" class="hidden px-6 pb-4">
+                        <div class="course-input-card">
+                            <div class="course-input-header">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>AI课程生成</span>
+                            </div>
+                            <textarea id="course-requirement" class="course-textarea" placeholder="描述你想学习的主题，例如：Python基础语法、机器学习入门..." rows="4"></textarea>
+                            <div class="course-toolbar">
+                                <div class="course-pills">
+                                    <button class="course-pill active" id="web-search-pill">
+                                        <i data-lucide="globe" class="w-3.5 h-3.5"></i> 网络搜索
+                                    </button>
+                                    <button class="course-pill" id="pdf-upload-pill">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i> 上传PDF
+                                    </button>
+                                    <button class="course-pill" id="interactive-pill">
+                                        <i data-lucide="atoms" class="w-3.5 h-3.5"></i> 深度交互
+                                    </button>
+                                </div>
+                                <button id="enter-classroom-btn" class="enter-classroom-btn">
+                                    <span>进入课堂</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
                         <div class="flex items-center gap-2 mb-2 px-1">
                             <i data-lucide="layout-grid" class="w-3.5 h-3.5" style="color: var(--primary-light);"></i>
@@ -346,7 +391,12 @@
                             <div id="notion-input" class="notion-input" contenteditable="true" role="textbox" aria-label="输入消息" aria-multiline="true" data-placeholder="试试问我 HDFS 的工作原理，或说'我不太懂MapReduce'触发苏格拉底诊断..." style="width: 100%;"></div>
                             <div class="flex items-center justify-between mt-2">
                                 <div class="flex items-center gap-2 text-[10px]" style="color: var(--text-tertiary);"><span>Enter 发送 · Shift+Enter 换行</span></div>
-                                <button id="send-btn" class="send-fab p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg" style="background: var(--accent); color: var(--text-on-accent);" onmouseover="this.style.background='var(--accent-hover)'" onmouseout="this.style.background='var(--accent)'" aria-label="发送消息"><i data-lucide="send" class="w-4 h-4"></i></button>
+                                <div class="flex items-center gap-2">
+                                    <button id="chat-voice-btn" class="p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95" style="background: var(--accent-bg); color: var(--text-secondary);" aria-label="语音输入">
+                                        <i data-lucide="mic" class="w-4 h-4"></i>
+                                    </button>
+                                    <button id="send-btn" class="send-fab p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg" style="background: var(--accent); color: var(--text-on-accent);" onmouseover="this.style.background='var(--accent-hover)'" onmouseout="this.style.background='var(--accent)'" aria-label="发送消息"><i data-lucide="send" class="w-4 h-4"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -726,6 +776,197 @@
             <button class="plant-reward-btn" onclick="goToPlantFarm()">
                 🌱 前往林场种植
             </button>
+        </div>
+    </div>
+
+    <!-- ============================================
+         OpenMAIC风格课程生成全屏覆盖层
+         ============================================ -->
+    <div id="openmaic-overlay" class="openmaic-overlay hidden">
+        <!-- 背景装饰 -->
+        <div class="openmaic-bg-decor">
+            <div class="openmaic-orb openmaic-orb-blue"></div>
+            <div class="openmaic-orb openmaic-orb-purple"></div>
+        </div>
+
+        <!-- 右上角工具栏 -->
+        <div class="openmaic-toolbar">
+            <button class="openmaic-toolbar-btn" id="openmaic-back-chat-btn" title="返回聊天">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>返回聊天</span>
+            </button>
+            <button class="openmaic-toolbar-btn" id="openmaic-settings-btn" title="设置">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- 主内容区域 - OpenMAIC风格 -->
+        <div class="openmaic-main">
+            <!-- Logo区域 -->
+            <div class="openmaic-hero">
+                <div class="openmaic-logo">
+                    <i data-lucide="sparkles" class="w-10 h-10"></i>
+                    <span>星识 Star-Learn</span>
+                </div>
+                <p class="openmaic-slogan">AI智能课程生成平台</p>
+            </div>
+
+            <!-- 统一输入卡片 -->
+            <div class="openmaic-input-container">
+                <div class="openmaic-input-card">
+                    <!-- 顶部栏：用户信息 + Agent/语音选择 -->
+                    <div class="openmaic-top-bar">
+                        <div class="openmaic-user-greeting" id="openmaic-user-greeting">
+                            <div class="openmaic-avatar" id="openmaic-avatar">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="avatar">
+                            </div>
+                            <span class="openmaic-username" id="openmaic-username">同学</span>
+                        </div>
+                        <div class="openmaic-agent-bar">
+                            <select id="openmaic-agent-mode" class="openmaic-agent-select">
+                                <option value="preset">预设教师</option>
+                                <option value="auto">AI自动生成教师</option>
+                            </select>
+                            <select id="openmaic-voice-select" class="openmaic-agent-select">
+                                <option value="female-shaonv">青春少女</option>
+                                <option value="female-yujie">温柔御姐</option>
+                                <option value="female-danyun">知性女声</option>
+                                <option value="male-qingshu">青涩少年</option>
+                                <option value="male-shaoshuai">磁性男声</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 文本输入区 -->
+                    <textarea id="openmaic-course-input" class="openmaic-textarea" placeholder="描述你想学习的主题，让AI为你生成一堂精彩的课程..." rows="4"></textarea>
+
+                    <!-- 附件预览区域 -->
+                    <div class="openmaic-attachments" id="openmaic-attachments"></div>
+
+                    <!-- 工具栏 -->
+                    <div class="openmaic-toolbar-row">
+                        <div class="openmaic-toolbar-left">
+                            <!-- 媒体设置按钮 -->
+                            <button class="openmaic-media-btn" id="openmaic-media-btn">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                                <span>媒体设置</span>
+                                <span class="media-badge" id="media-badge" style="display:none;">0</span>
+                            </button>
+
+                            <!-- 附件上传按钮 -->
+                            <button class="openmaic-tool-btn" id="openmaic-attach-btn" title="添加附件">
+                                <i data-lucide="paperclip" class="w-4 h-4"></i>
+                            </button>
+                            <input type="file" id="openmaic-file-input" multiple accept=".pdf,.doc,.docx,.txt,.md" style="display:none;">
+
+                            <!-- 语音输入按钮 -->
+                            <button class="openmaic-voice-btn" id="openmaic-voice-btn" title="语音输入">
+                                <span class="voice-icon"><i data-lucide="mic" class="w-4 h-4"></i></span>
+                                <span class="voice-bars" style="display:none;">
+                                    <span></span><span></span><span></span>
+                                </span>
+                            </button>
+
+                            <!-- 分隔线 -->
+                            <div class="openmaic-toolbar-divider"></div>
+
+                            <!-- 功能开关 -->
+                            <button class="openmaic-pill-toggle active" id="openmaic-websearch-pill" data-feature="websearch">
+                                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                                <span>网络搜索</span>
+                            </button>
+                            <button class="openmaic-pill-toggle" id="openmaic-pdf-pill" data-feature="pdf">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                <span>PDF解析</span>
+                            </button>
+                            <button class="openmaic-pill-toggle" id="openmaic-interactive-pill" data-feature="interactive">
+                                <i data-lucide="atoms" class="w-3.5 h-3.5"></i>
+                                <span>深度交互</span>
+                            </button>
+                        </div>
+
+                        <button id="openmaic-enter-btn" class="openmaic-enter-btn">
+                            <span>进入课堂</span>
+                            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- 媒体设置弹窗 -->
+                    <div class="openmaic-media-popup" id="openmaic-media-popup">
+                        <div class="media-popup-header">
+                            <span class="media-popup-title">媒体生成设置</span>
+                            <button class="media-popup-close" id="openmaic-media-close">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="media-popup-content">
+                            <div class="media-option">
+                                <div class="media-option-info">
+                                    <div class="media-option-icon">
+                                        <i data-lucide="image" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="media-option-text">
+                                        <span class="media-option-label">生成图片</span>
+                                        <span class="media-option-desc">使用AI为课程生成精美插图</span>
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="openmaic-image-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="media-option">
+                                <div class="media-option-info">
+                                    <div class="media-option-icon video">
+                                        <i data-lucide="video" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="media-option-text">
+                                        <span class="media-option-label">生成视频</span>
+                                        <span class="media-option-desc">使用AI为课程生成动态视频</span>
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="openmaic-video-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="media-provider-info">
+                                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                                <span>当前使用 <strong>Minimax</strong> 媒体生成模型</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最近课堂区域 - 紧凑样式 -->
+            <div class="openmaic-recent-section" id="openmaic-recent-section">
+                <div class="openmaic-recent-trigger">
+                    <div class="openmaic-recent-line"></div>
+                    <button class="openmaic-recent-btn" id="openmaic-recent-toggle">
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                        <span>最近课堂</span>
+                        <span class="openmaic-recent-count" id="openmaic-recent-count">0</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 openmaic-chevron"></i>
+                    </button>
+                    <div class="openmaic-recent-line"></div>
+                    <button class="openmaic-import-btn" id="openmaic-import-btn">
+                        <i data-lucide="upload" class="w-3 h-3"></i>
+                        <span>导入</span>
+                    </button>
+                    <div class="openmaic-recent-line"></div>
+                </div>
+                <div class="openmaic-recent-content" id="openmaic-recent-content">
+                    <div class="openmaic-recent-grid" id="openmaic-recent-grid">
+                        <!-- 动态生成课程卡片 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="openmaic-footer">
+            星识 Star-Learn 智能课程生成系统
         </div>
     </div>
 

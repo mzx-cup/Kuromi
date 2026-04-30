@@ -19,8 +19,18 @@ class Settings(BaseSettings):
 
     minimax_api_url: str = "https://api.minimax.chat/v1"
     minimax_api_key: str = "sk-cp-NVJBfQDPdzQCtzIJoXOXamJ1L-hNMTDyweOV_1KsePGk9FnSLBvRejIDDpbjMe67O0aiZEIkMd267a2zNutthLjnUF5rxOU65dzMsYNXeWMcGOoQ7WCGX4I"
-    minimax_group_id: str = Field(default="", description="MiniMax API Group ID for TTS")
+    minimax_group_id: str = Field(default="2041507423801320239", description="MiniMax API Group ID for TTS")
     minimax_model_name: str = "MiniMax-M2.7"
+
+    # MiniMax 媒体生成模型
+    minimax_image_model: str = Field(default="image-01", description="MiniMax image generation model")
+    minimax_video_model: str = Field(default="video-01", description="MiniMax video generation model")
+    minimax_tts_model: str = Field(default="speech-02", description="MiniMax TTS model for voice generation")
+
+    # 百度语音识别 API（用于语音转文字）
+    baidu_asr_app_id: str = Field(default="", description="百度语音识别 App ID")
+    baidu_asr_api_key: str = Field(default="eymy6AqdEbhI676lonzRF9ux", description="百度语音识别 API Key")
+    baidu_asr_secret_key: str = Field(default="qcSs7d5xEKJyPIxK9fXJqeEel95XFi8F", description="百度语音识别 Secret Key")
 
     # Use app-specific env names so a global DEBUG variable does not override us.
     debug: bool = Field(

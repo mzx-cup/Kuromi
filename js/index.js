@@ -1299,6 +1299,641 @@ function switchTab(tab) {
     });
 }
 
+// 模式切换：Chat模式 / 课程生成模式
+let currentMode = 'chat';
+
+function switchMode(mode) {
+    currentMode = mode;
+    const body = document.body;
+    const openmaicOverlay = document.getElementById('openmaic-overlay');
+
+    // 更新Pill按钮状态
+    document.querySelectorAll('.mode-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    if (mode === 'course') {
+        // 显示OpenMAIC覆盖层
+        body.classList.add('openmaic-mode', 'course-mode');
+        if (openmaicOverlay) {
+            openmaicOverlay.classList.remove('hidden');
+            initOpenMAICOverlay();
+            if (window.lucide) lucide.createIcons();
+        }
+    } else {
+        body.classList.remove('openmaic-mode', 'course-mode');
+        if (openmaicOverlay) {
+            openmaicOverlay.classList.add('hidden');
+        }
+    }
+}
+
+// 初始化OpenMAIC覆盖层
+function initOpenMAICOverlay() {
+    // 更新用户信息
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const usernameEl = document.getElementById('openmaic-username');
+    if (usernameEl && user.nickname) {
+        usernameEl.textContent = user.nickname;
+    }
+    const avatarImg = document.querySelector('#openmaic-avatar img');
+    if (avatarImg && user.avatar) {
+        avatarImg.src = user.avatar;
+    }
+
+    // 加载最近课堂历史
+    loadRecentCourses();
+}
+
+// 加载最近课堂历史
+async function loadRecentCourses() {
+    const grid = document.getElementById('openmaic-recent-grid');
+    const countEl = document.getElementById('openmaic-recent-count');
+    if (!grid) return;
+
+    // 获取当前登录用户
+    const currentUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const isLoggedIn = currentUser && currentUser.id && currentUser.id !== 'anonymous';
+
+    // 优先从数据库API获取课堂列表（仅针对已登录用户）
+    let history = [];
+    if (isLoggedIn) {
+        try {
+            const resp = await fetch(`/api/v2/classroom/list/${currentUser.id}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.success && data.records && data.records.length > 0) {
+                    // 将数据库记录转换为前端需要的格式
+                    history = data.records.map(record => ({
+                        courseId: record.course_id,
+                        title: record.title,
+                        createdAt: new Date(record.created_at).getTime(),
+                        slideCount: 0, // 数据库中暂无该字段
+                        // 保留完整数据供后续使用
+                        _dbRecord: record
+                    }));
+                    // 按时间倒序（数据库查询已排序，但确保一致）
+                    history.sort((a, b) => b.createdAt - a.createdAt);
+                }
+            }
+        } catch (e) {
+            console.warn('从数据库获取课堂列表失败，回退到本地存储:', e);
+        }
+    }
+
+    // 如果数据库没有记录或用户未登录，回退到localStorage
+    if (history.length === 0) {
+        history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    }
+
+    if (countEl) {
+        countEl.textContent = history.length;
+    }
+
+    if (history.length === 0) {
+        grid.innerHTML = '<div class="openmaic-empty-state">暂无生成记录</div>';
+        return;
+    }
+
+    grid.innerHTML = history.map((course, index) => `
+        <div class="openmaic-course-card" data-course-id="${course.courseId}" onclick="openCourse('${course.courseId}')">
+            <div class="openmaic-card-thumbnail">
+                <i data-lucide="book-open" class="w-12 h-12"></i>
+                <div class="openmaic-card-overlay"></div>
+                <div class="openmaic-card-actions">
+                    <button class="openmaic-card-action-btn edit" onclick="event.stopPropagation(); editCourse('${course.courseId}')" title="重命名">
+                        <i data-lucide="pencil" class="w-3 h-3"></i>
+                    </button>
+                    <button class="openmaic-card-action-btn" onclick="event.stopPropagation(); deleteCourse('${course.courseId}')" title="删除">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="openmaic-card-info">
+                <div class="openmaic-card-meta">
+                    <span>${course.slideCount || 0} 页</span>
+                    <span>${formatTimeAgo(course.createdAt)}</span>
+                </div>
+                <div class="openmaic-card-title">${course.title}</div>
+            </div>
+        </div>
+    `).join('');
+
+    // 重新初始化lucide图标
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+// 格式化时间
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return '';
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return new Date(timestamp).toLocaleDateString();
+}
+
+// 打开课程（优先数据库，支持断点续学）
+async function openCourse(courseId) {
+    // 1. 先尝试从localStorage获取
+    let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    let course = history.find(c => c.courseId === courseId);
+
+    // 2. 如果localStorage没有，尝试从数据库API获取完整数据
+    if (!course) {
+        try {
+            const resp = await fetch(`/api/v2/classroom/${courseId}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.success && data.record && data.record.full_data) {
+                    course = JSON.parse(data.record.full_data);
+                }
+            }
+        } catch (e) {
+            console.warn('从数据库获取课堂详情失败:', e);
+        }
+    }
+
+    if (course) {
+        // 如果是从数据库获取的完整数据，同步到localStorage（保持兼容性）
+        if (!history.find(c => c.courseId === courseId)) {
+            history.unshift(course);
+            localStorage.setItem('courseHistory', JSON.stringify(history.slice(0, 20)));
+        }
+        sessionStorage.setItem('classroomData', JSON.stringify(course));
+        window.location.href = 'classroom.html';
+    } else {
+        alert('未找到该课程');
+    }
+}
+
+// 编辑课程
+function editCourse(courseId) {
+    const history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    const course = history.find(c => c.courseId === courseId);
+    if (course) {
+        const newTitle = prompt('请输入新课程名称:', course.title);
+        if (newTitle && newTitle.trim()) {
+            course.title = newTitle.trim();
+            localStorage.setItem('courseHistory', JSON.stringify(history));
+            loadRecentCourses();
+        }
+    }
+}
+
+// 删除课程
+function deleteCourse(courseId) {
+    if (confirm('确定要删除这个课程吗?')) {
+        let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+        history = history.filter(c => c.courseId !== courseId);
+        localStorage.setItem('courseHistory', JSON.stringify(history));
+        loadRecentCourses();
+    }
+}
+
+// 进入课堂按钮点击处理
+document.addEventListener('DOMContentLoaded', function() {
+    // 原有首页的进入课堂按钮
+    const enterClassroomBtn = document.getElementById('enter-classroom-btn');
+    if (enterClassroomBtn) {
+        enterClassroomBtn.addEventListener('click', function() {
+            const requirement = document.getElementById('course-requirement')?.value.trim();
+            if (!requirement) {
+                alert('请输入课程主题');
+                return;
+            }
+            startCourseGeneration(requirement);
+        });
+    }
+
+    // OpenMAIC覆盖层的进入课堂按钮
+    const openmaicEnterBtn = document.getElementById('openmaic-enter-btn');
+    if (openmaicEnterBtn) {
+        openmaicEnterBtn.addEventListener('click', function() {
+            const input = document.getElementById('openmaic-course-input');
+            const requirement = input?.value.trim();
+            if (!requirement) {
+                alert('请输入课程主题');
+                return;
+            }
+            startCourseGeneration(requirement);
+        });
+    }
+
+    // OpenMAIC返回聊天按钮
+    const backChatBtn = document.getElementById('openmaic-back-chat-btn');
+    if (backChatBtn) {
+        backChatBtn.addEventListener('click', function() {
+            switchMode('chat');
+        });
+    }
+
+    // OpenMAIC设置按钮 - 跳转到设置页面
+    const settingsBtn = document.getElementById('openmaic-settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', function() {
+            window.location.href = 'settings.html';
+        });
+    }
+
+    // OpenMAIC功能开关按钮
+    const pillToggles = document.querySelectorAll('.openmaic-pill-toggle');
+    pillToggles.forEach(pill => {
+        pill.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+    });
+
+    // OpenMAIC最近课堂折叠
+    const recentToggle = document.getElementById('openmaic-recent-toggle');
+    const recentContent = document.getElementById('openmaic-recent-content');
+
+    if (recentToggle && recentContent) {
+        recentToggle.addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+            recentContent.classList.toggle('collapsed');
+        });
+    }
+
+    // OpenMAIC媒体设置弹窗 - Portal弹出避免被遮挡
+    const mediaBtn = document.getElementById('openmaic-media-btn');
+    const mediaPopup = document.getElementById('openmaic-media-popup');
+    const mediaClose = document.getElementById('openmaic-media-close');
+    const imageToggle = document.getElementById('openmaic-image-toggle');
+    const videoToggle = document.getElementById('openmaic-video-toggle');
+    const mediaBadge = document.getElementById('media-badge');
+    let mediaPopupParent = null;
+
+    if (mediaBtn && mediaPopup) {
+        // 保存原始父节点
+        mediaPopupParent = mediaPopup.parentNode;
+
+        function openMediaPopup() {
+            // 计算按钮位置
+            const btnRect = mediaBtn.getBoundingClientRect();
+
+            // 确保可见后移动到body
+            mediaPopup.style.display = '';
+            document.body.appendChild(mediaPopup);
+            mediaPopup.style.position = 'fixed';
+            mediaPopup.style.top = (btnRect.bottom + 8) + 'px';
+            mediaPopup.style.left = Math.min(btnRect.left, window.innerWidth - 340) + 'px';
+            mediaPopup.style.transform = 'translateY(-8px)';
+
+            // 触发重排后显示
+            requestAnimationFrame(() => {
+                mediaPopup.classList.add('show');
+            });
+        }
+
+        function closeMediaPopup() {
+            mediaPopup.classList.remove('show');
+            // 等待动画完成后移回原位并隐藏
+            setTimeout(() => {
+                mediaPopup.style.display = 'none';
+                if (mediaPopupParent) {
+                    mediaPopupParent.appendChild(mediaPopup);
+                    mediaPopup.style.position = '';
+                    mediaPopup.style.top = '';
+                    mediaPopup.style.left = '';
+                    mediaPopup.style.transform = '';
+                }
+            }, 250);
+        }
+
+        mediaBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (mediaPopup.classList.contains('show')) {
+                closeMediaPopup();
+            } else {
+                // 关闭其他可能的弹窗
+                mediaPopup.classList.remove('show');
+                openMediaPopup();
+            }
+        });
+
+        mediaClose?.addEventListener('click', function() {
+            closeMediaPopup();
+        });
+
+        // 更新媒体徽章
+        function updateMediaBadge() {
+            let count = 0;
+            if (imageToggle?.checked) count++;
+            if (videoToggle?.checked) count++;
+            if (mediaBadge) {
+                if (count > 0) {
+                    mediaBadge.textContent = count;
+                    mediaBadge.style.display = 'inline-flex';
+                } else {
+                    mediaBadge.style.display = 'none';
+                }
+            }
+        }
+
+        imageToggle?.addEventListener('change', updateMediaBadge);
+        videoToggle?.addEventListener('change', updateMediaBadge);
+
+        // 点击外部关闭弹窗
+        document.addEventListener('click', function(e) {
+            if (mediaPopup.classList.contains('show') && !mediaPopup.contains(e.target) && e.target !== mediaBtn) {
+                closeMediaPopup();
+            }
+        });
+
+        // 窗口滚动和resize时关闭弹窗
+        window.addEventListener('scroll', function() {
+            if (mediaPopup.classList.contains('show')) {
+                closeMediaPopup();
+            }
+        }, { passive: true });
+
+        window.addEventListener('resize', function() {
+            if (mediaPopup.classList.contains('show')) {
+                closeMediaPopup();
+            }
+        });
+    }
+
+    // OpenMAIC附件上传
+    const attachBtn = document.getElementById('openmaic-attach-btn');
+    const fileInput = document.getElementById('openmaic-file-input');
+    const attachmentsContainer = document.getElementById('openmaic-attachments');
+
+    if (attachBtn && fileInput) {
+        attachBtn.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            const files = Array.from(this.files || []);
+            files.forEach(file => {
+                addAttachmentItem(file);
+            });
+            this.value = ''; // 清空以便重复选择
+        });
+    }
+
+    // 添加附件项
+    function addAttachmentItem(file) {
+        if (!attachmentsContainer) return;
+
+        const item = document.createElement('div');
+        item.className = 'attachment-item';
+        item.innerHTML = `
+            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <span>${file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
+            <button class="attachment-remove">
+                <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+        `;
+
+        // 移除按钮
+        item.querySelector('.attachment-remove')?.addEventListener('click', function() {
+            item.style.animation = 'attachment-in 0.2s ease-out reverse';
+            setTimeout(() => item.remove(), 200);
+        });
+
+        attachmentsContainer.appendChild(item);
+        lucide.createIcons();
+    }
+
+    // OpenMAIC语音输入（使用 Whisper 本地识别）
+    const voiceBtn = document.getElementById('openmaic-voice-btn');
+    let openmaicIsRecording = false;
+    let openmaicWhisperReady = false;
+
+    // 初始化 Whisper
+    window.WhisperVoice?.init(
+        () => { openmaicWhisperReady = true; console.log('[Voice] Whisper ready'); },
+        (err) => { console.error('[Voice] Whisper init failed:', err); openmaicWhisperReady = false; }
+    );
+
+    voiceBtn?.addEventListener('click', function() {
+        if (!window.WhisperVoice) {
+            console.error('[Voice] WhisperVoice not loaded');
+            return;
+        }
+
+        if (openmaicIsRecording) {
+            // 停止
+            window.WhisperVoice.stop();
+            openmaicIsRecording = false;
+            voiceBtn.classList.remove('recording');
+            const voiceBars = voiceBtn.querySelector('.voice-bars');
+            const micIcon = voiceBtn.querySelector('.voice-icon');
+            if (voiceBars) voiceBars.style.display = 'none';
+            if (micIcon) micIcon.style.display = 'inline';
+        } else {
+            // 开始录音
+            openmaicIsRecording = true;
+            voiceBtn.classList.add('recording');
+            const voiceBars = voiceBtn.querySelector('.voice-bars');
+            const micIcon = voiceBtn.querySelector('.voice-icon');
+            if (voiceBars) voiceBars.style.display = 'flex';
+            if (micIcon) micIcon.style.display = 'none';
+
+            const textarea = document.getElementById('openmaic-course-input');
+
+            window.WhisperVoice.start({
+                onTranscription: (text) => {
+                    if (textarea && text) {
+                        textarea.value += text;
+                    }
+                },
+                onError: (err) => {
+                    console.error('[Voice] OpenMAIC Whisper error:', err);
+                    openmaicIsRecording = false;
+                    voiceBtn.classList.remove('recording');
+                    const vb = voiceBtn.querySelector('.voice-bars');
+                    const mi = voiceBtn.querySelector('.voice-icon');
+                    if (vb) vb.style.display = 'none';
+                    if (mi) mi.style.display = 'inline';
+                },
+                onStart: () => { console.log('[Voice] OpenMAIC recording start'); },
+                onEnd: () => {
+                    console.log('[Voice] OpenMAIC recording end');
+                    openmaicIsRecording = false;
+                    voiceBtn.classList.remove('recording');
+                    const vb = voiceBtn.querySelector('.voice-bars');
+                    const mi = voiceBtn.querySelector('.voice-icon');
+                    if (vb) vb.style.display = 'none';
+                    if (mi) mi.style.display = 'inline';
+                }
+            });
+        }
+    });
+
+    // notion-input 语音输入（使用 Whisper 本地识别）
+    const chatVoiceBtn = document.getElementById('chat-voice-btn');
+    let chatIsRecording = false;
+    let chatWhisperReady = false;
+
+    // 初始化 Whisper（已初始化则直接用）
+    if (window.WhisperVoice?.isReady()) {
+        chatWhisperReady = true;
+    } else {
+        window.WhisperVoice?.init(
+            () => { chatWhisperReady = true; },
+            () => { chatWhisperReady = false; }
+        );
+    }
+
+    chatVoiceBtn?.addEventListener('click', function() {
+        if (!window.WhisperVoice) {
+            console.error('[Voice] WhisperVoice not loaded');
+            return;
+        }
+
+        if (chatIsRecording) {
+            window.WhisperVoice.stop();
+            chatIsRecording = false;
+            chatVoiceBtn.classList.remove('recording');
+            chatVoiceBtn.style.background = '';
+            chatVoiceBtn.style.color = '';
+        } else {
+            chatIsRecording = true;
+            chatVoiceBtn.classList.add('recording');
+            chatVoiceBtn.style.background = 'var(--danger)';
+            chatVoiceBtn.style.color = 'white';
+
+            const notionInput = document.getElementById('notion-input');
+
+            window.WhisperVoice.start({
+                onTranscription: (text) => {
+                    if (notionInput && text) {
+                        notionInput.textContent += text;
+                    }
+                },
+                onError: (err) => {
+                    console.error('[Voice] Chat Whisper error:', err);
+                    chatIsRecording = false;
+                    chatVoiceBtn.classList.remove('recording');
+                    chatVoiceBtn.style.background = '';
+                    chatVoiceBtn.style.color = '';
+                },
+                onStart: () => { console.log('[Voice] Chat recording start'); },
+                onEnd: () => {
+                    console.log('[Voice] Chat recording end');
+                    chatIsRecording = false;
+                    chatVoiceBtn.classList.remove('recording');
+                    chatVoiceBtn.style.background = '';
+                    chatVoiceBtn.style.color = '';
+                }
+            });
+        }
+    });
+
+    // OpenMAIC导入按钮
+    const importBtn = document.getElementById('openmaic-import-btn');
+    if (importBtn) {
+        importBtn.addEventListener('click', function() {
+            // 触发文件上传
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        try {
+                            const courseData = JSON.parse(event.target.result);
+                            // 保存到历史
+                            let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+                            history.unshift(courseData);
+                            localStorage.setItem('courseHistory', JSON.stringify(history));
+                            loadRecentCourses();
+                            alert('导入成功!');
+                        } catch (err) {
+                            alert('导入失败: 无效的文件格式');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            fileInput.click();
+        });
+    }
+
+    // 课程模式Pill按钮切换
+    const coursePills = document.querySelectorAll('.course-pill');
+    coursePills.forEach(pill => {
+        pill.addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+    });
+});
+
+// 开始课程生成
+function startCourseGeneration(requirement) {
+    // 检查用户是否已登录（有有效ID）
+    const storedUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!storedUser || !storedUser.id || storedUser.id === 'anonymous') {
+        alert('请先登录后再生成课程');
+        // 触发登录弹窗（如果有login-modal的话）
+        const loginModal = document.getElementById('login-modal') || document.querySelector('.login-modal');
+        if (loginModal) loginModal.style.display = 'flex';
+        return;
+    }
+
+    // 获取媒体设置
+    const imageToggle = document.getElementById('openmaic-image-toggle');
+    const videoToggle = document.getElementById('openmaic-video-toggle');
+    const webSearchPill = document.getElementById('openmaic-websearch-pill');
+    const interactivePill = document.getElementById('openmaic-interactive-pill');
+    const agentMode = document.getElementById('openmaic-agent-mode')?.value || 'preset';
+    const voiceId = document.getElementById('openmaic-voice-select')?.value || 'female-shaonv';
+
+    // 保存生成会话数据
+    const sessionData = {
+        requirements: {
+            requirement: requirement,
+            enable_image: imageToggle?.checked || false,
+            enable_tts: true,    // 默认开启语音
+            enable_video: videoToggle?.checked || false,
+            enable_web_search: webSearchPill?.classList.contains('active') ?? true,
+            interactive_mode: interactivePill?.classList.contains('active') ?? false,
+            voice_id: voiceId,
+            agent_mode: agentMode,
+        },
+        student_id: storedUser.id,
+        timestamp: Date.now()
+    };
+    sessionStorage.setItem('generationSession', JSON.stringify(sessionData));
+
+    // 跳转到生成预览页面
+    window.location.href = '/generation-preview.html';
+}
+
+// 保存课程到历史
+function saveCourseToHistory(courseData) {
+    let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    // 检查是否已存在
+    const existingIndex = history.findIndex(c => c.courseId === courseData.courseId);
+    if (existingIndex >= 0) {
+        history.splice(existingIndex, 1);
+    }
+    // 添加到开头
+    history.unshift({
+        ...courseData,
+        createdAt: Date.now()
+    });
+    // 只保留最近20条
+    if (history.length > 20) {
+        history = history.slice(0, 20);
+    }
+    localStorage.setItem('courseHistory', JSON.stringify(history));
+}
+
 function switchOutputTab(tab) {
     document.querySelectorAll('.output-tab').forEach(btn => {
         const isActive = btn.dataset.outputTab === tab;

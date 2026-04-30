@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂学习 - 星识</title>
+    <link rel="stylesheet" href="../css/classroom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="classroom-bg"></div>
+
+    <div id="classroom-page" class="classroom">
+        <!-- Header -->
+        <header class="classroom-header">
+            <div class="header-left">
+                <button id="toggle-sidebar" class="icon-btn" title="切换侧边栏">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="course-title" id="course-title">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>课程加载中...</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="speech-sync-indicator" id="speech-sync" style="display:none;">
+                    <span class="sync-dot"></span>
+                    <span class="sync-text">讲解中...</span>
+                </div>
+                <button id="voice-btn" class="icon-btn voice-btn" title="语音播放">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+                <button id="settings-btn" class="icon-btn" title="设置">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="exit-btn" class="icon-btn exit-btn" title="退出课堂">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Body -->
+        <div class="classroom-body">
+            <!-- Scene Sidebar -->
+            <aside class="scene-sidebar" id="scene-sidebar">
+                <div class="scene-thumbnails" id="scene-thumbnails"></div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="slide-viewer">
+                    <!-- Slide Container -->
+                    <div class="slide-container" id="slide-container"></div>
+
+                    <!-- Quiz Container -->
+                    <div class="quiz-container" id="quiz-container" style="display:none;">
+                        <div class="quiz-header" id="quiz-header"></div>
+                        <div class="quiz-options" id="quiz-questions"></div>
+                        <div class="quiz-result" id="quiz-result" style="display:none;"></div>
+                        <button class="quiz-submit-btn" id="quiz-submit-btn" style="display:none;">
+                            <span>提交答案</span>
+                        </button>
+                    </div>
+
+                    <!-- Exercise Container -->
+                    <div class="exercise-container" id="exercise-container" style="display:none;">
+                        <div class="exercise-content" id="exercise-content"></div>
+                        <div class="exercise-hints" id="exercise-hints" style="display:none;"></div>
+                        <textarea class="exercise-answer" id="exercise-answer" placeholder="在此输入你的答案..."></textarea>
+                        <button class="exercise-submit-btn" id="exercise-submit-btn">提交答案</button>
+                    </div>
+
+                    <!-- Interactive Container -->
+                    <div class="interactive-container" id="interactive-container" style="display:none;">
+                        <iframe id="interactive-iframe" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                    </div>
+
+                    <!-- Action Overlay -->
+                    <div class="action-overlay" id="action-overlay">
+                        <div class="spotlight-beam" id="spotlight-beam" style="display:none;"></div>
+                        <div class="laser-dot" id="laser-dot" style="display:none;"></div>
+                    </div>
+
+                    <!-- AI Teacher Area -->
+                    <div class="teacher-area" id="teacher-area">
+                        <div class="teacher-avatar" id="teacher-avatar">
+                            <i class="fas fa-chalkboard-teacher" style="color:white;font-size:1.8rem;"></i>
+                        </div>
+                        <div class="teacher-speech">
+                            <div class="speech-bubble">
+                                <p id="speech-text">正在加载课程内容...</p>
+                            </div>
+                            <div class="speech-controls">
+                                <button class="speech-btn replay-btn" id="replay-btn" title="重新播放">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="speech-btn pause-btn" id="pause-btn" title="暂停">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide Controls -->
+                <div class="slide-controls">
+                    <button class="nav-btn" id="prev-slide">
+                        <i class="fas fa-chevron-left"></i>
+                        <span>上一页</span>
+                    </button>
+                    <div class="slide-indicator">
+                        <span id="current-slide">1</span>
+                        <span class="separator">/</span>
+                        <span id="total-slides">0</span>
+                    </div>
+                    <button class="nav-btn" id="next-slide">
+                        <span>下一页</span>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </main>
+
+            <!-- Chat Panel -->
+            <aside class="chat-panel" id="chat-panel">
+                <div class="chat-header">
+                    <i class="fas fa-comments"></i>
+                    <span>课堂讨论</span>
+                    <select id="chat-agent-select" class="chat-agent-select">
+                        <option value="">AI助教</option>
+                    </select>
+                </div>
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <button class="voice-input-btn" id="chat-voice-btn" title="语音输入">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <input type="text" id="chat-input" placeholder="向老师提问..." autocomplete="off">
+                    <button class="send-btn" id="send-chat">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Audio Player -->
+        <audio id="tts-audio-player" preload="auto" style="display:none;"></audio>
+
+        <!-- Completion Overlay -->
+        <div class="completion-overlay" id="completion-overlay" style="display:none;">
+            <canvas id="confetti-canvas"></canvas>
+            <div class="completion-card">
+                <div class="completion-trophy">
+                    <svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#fef3c7"/>
+                                <stop offset="35%" stop-color="#fbbf24"/>
+                                <stop offset="75%" stop-color="#d97706"/>
+                                <stop offset="100%" stop-color="#92400e"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M 28 32 Q 6 32 8 60 Q 10 82 32 86" fill="none" stroke="url(#gold-grad)" stroke-width="7" stroke-linecap="round"/>
+                        <path d="M 92 32 Q 114 32 112 60 Q 110 82 88 86" fill="none" stroke="url(#gold-grad)" stroke-width="7" stroke-linecap="round"/>
+                        <path d="M 25 18 L 95 18 L 95 50 Q 95 90 60 100 Q 25 90 25 50 Z" fill="url(#gold-grad)"/>
+                        <ellipse cx="60" cy="19" rx="36" ry="4.5" fill="#fde68a"/>
+                        <path d="M 60 42 L 63.6 52.3 L 74.5 52.3 L 65.7 58.7 L 69 69 L 60 62.7 L 51 69 L 54.3 58.7 L 45.5 52.3 L 56.4 52.3 Z" fill="#ffffff" opacity="0.92"/>
+                        <path d="M 52 100 L 68 100 L 66 116 L 54 116 Z" fill="url(#gold-grad)"/>
+                        <rect x="40" y="116" width="40" height="7" rx="2" fill="#fbbf24"/>
+                        <rect x="32" y="123" width="56" height="9" rx="2" fill="url(#gold-grad)"/>
+                        <rect x="28" y="132" width="64" height="6" rx="3" fill="#fbbf24"/>
+                    </svg>
+                </div>
+                <h2 class="completion-title">课堂完成！</h2>
+                <p class="completion-subtitle" id="completion-subtitle"></p>
+                <div class="completion-stats" id="completion-stats"></div>
+                <div class="completion-badges" id="completion-badges"></div>
+                <div class="completion-next" id="completion-next"></div>
+                <button class="completion-back-btn" onclick="location.href='/index.html'">
+                    <i class="fas fa-home"></i> 返回首页
+                </button>
+            </div>
+        </div>
+
+        <!-- Exit Modal -->
+        <div class="modal" id="exit-modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>退出课堂</span>
+                </div>
+                <p class="modal-text">确定要退出课堂吗？学习进度将会保存。</p>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-exit">取消</button>
+                    <button class="btn btn-primary" id="confirm-exit">确定退出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/classroom.js"></script>
+</body>
+</html>
