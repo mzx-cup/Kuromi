@@ -36,7 +36,13 @@
       "Bash(/c/Python/python.exe *)",
       "Bash(xxd \"C:/Users/22821/PycharmProjects/Hachiware/星识/audio/tts_1777350645_0.mp3\")",
       "Bash(xxd -l 100 \"C:/Users/22821/PycharmProjects/Hachiware/星识/audio/tts_1777357009_0.mp3\")",
-      "WebSearch"
+      "WebSearch",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Bash(pnpm *)",
+      "Bash(node *)",
+      "Bash(npx *)"
     ]
   }
 }

@@ -1,0 +1,1138 @@
+{
+  "courseId": "course_1777560824_625a07a5",
+  "title": "<think>用户要求根据学习需求生成一个简短有力的课程标题，要求10字以内。\n\n需求是：学习Java\n\n我需要生成一个简洁的课程标题，10字以内。\n\n可能的选项：\n- Java入门指南\n- Java基础教程\n- 轻松学Java\n- Java编程入门\n- Java核心实战\n\n让我选择一个简短有力的：\n- Java入门 (4字)\n- Java基础 (4字)\n- Java实战 (4字)\n- 学Java (3字)\n- Java从零 (4字)\n\n我觉得\"Java入门\"或者\"Java基础\"都很合适。但用户说\"学习java\"，所以\"Java入门\"更贴切。\n\n不过用户要求10字以内，而且要简短有力，所以我选择\"Java入门指南\"（6个字）。\n\n或者：\n- Java基础教程 (6字)\n- Java编程入门 (6字)\n\n我认为\"Java基础教程\"比较合适，既简洁又能准确表达学习Java的需求。\n</think>\n\nJava基础教程",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Java初识",
+      "type": "slide",
+      "points": 5,
+      "key_points": [
+        "Java发展历程：1995年诞生至今的版本演进",
+        "Java虚拟机JVM实现跨平台运行的核心原理",
+        "三大平台Edition：Java SE、Java EE、Java ME",
+        "面向对象特性：封装、继承、多态的核心理念",
+        "Java应用领域：企业级应用、Android开发、大数据"
+      ],
+      "description": "介绍Java语言的发展历程、三大平台版本特性及其在企业开发中的广泛应用，帮助学生建立对Java的整体认知框架"
+    },
+    {
+      "id": 2,
+      "title": "数据类型检验",
+      "type": "quiz",
+      "points": 5,
+      "key_points": [
+        "八种基本数据类型及其取值范围：byte、short、int、long、float、double、char、boolean",
+        "变量命名规范：字母、下划线、美元符号开头，不能用数字和关键字",
+        "自动类型转换与强制类型转换的规则与风险",
+        "运算符优先级：算术>关系>逻辑>赋值",
+        "控制流程语句：if-else、switch、for、while、do-while"
+      ],
+      "description": "通过选择题和判断题，系统检验学生对Java数据类型、变量声明、类型转换等核心概念的理解与掌握程度"
+    },
+    {
+      "id": 3,
+      "title": "变量练习营",
+      "type": "exercise",
+      "points": 5,
+      "key_points": [
+        "正确声明各种基本数据类型变量的语法规范",
+        "掌握变量初始化与赋值的最佳实践",
+        "实现整数、浮点数、字符的基本算术运算",
+        "理解变量作用域对代码的影响",
+        "学会使用IDE进行代码调试与错误修复"
+      ],
+      "description": "学生在在线编程环境中完成数据类型声明、变量赋值、简单运算等练习任务，系统实时反馈代码正确性"
+    },
+    {
+      "id": 4,
+      "title": "代码模拟器",
+      "type": "interactive",
+      "points": 5,
+      "key_points": [
+        "在模拟器中编写和运行Java代码片段",
+        "观察变量在内存中的存储与变化过程",
+        "单步执行理解程序的控制流程",
+        "识别并修正常见语法错误和逻辑错误",
+        "体验不同数据类型运算的边界情况"
+      ],
+      "description": "学生使用交互式Java代码模拟器，编写代码片段并观察即时输出结果，支持单步执行查看变量变化"
+    },
+    {
+      "id": 5,
+      "title": "图书馆管理系统",
+      "type": "pbl",
+      "points": 5,
+      "key_points": [
+        "需求分析：图书检索、借阅、归还、逾期处理等功能模块划分",
+        "类设计：Book、Reader、Library类的属性与方法设计",
+        "面向对象实现：继承、封装、多态的实际应用",
+        "数据持久化：使用文件存储图书和读者信息",
+        "异常处理：处理借书已满、图书不存在等边界情况"
+      ],
+      "description": "为社区图书馆开发图书借阅管理系统，学生需分析需求、设计类结构、实现借还书功能并处理异常情况"
+    },
+    {
+      "id": 6,
+      "title": "OOP概念图解",
+      "type": "diagram",
+      "points": 5,
+      "key_points": [
+        "类作为蓝图的抽象概念与对象的实例化过程",
+        "类继承与接口实现的区别和使用场景",
+        "四种访问修饰符的可见性范围：private、default、protected、public",
+        "抽象类与接口的选择原则与最佳实践",
+        "组合与聚合的语义区别在代码中的体现"
+      ],
+      "description": "通过动态图表展示类与对象、继承与接口、封装与访问修饰符等面向对象核心概念的关系与交互"
+    },
+    {
+      "id": 7,
+      "title": "编写HelloWorld",
+      "type": "code",
+      "points": 5,
+      "key_points": [
+        "编写包含完整类定义和方法声明的Java源文件",
+        "理解public static void main方法的程序入口作用",
+        "使用System.out.println输出信息到控制台",
+        "掌握Java代码的注释风格：单行、多行、文档注释",
+        "完成代码编写、编译 javac、执行 java 的完整流程"
+      ],
+      "description": "学生在专业IDE环境中编写、编译并运行第一个完整的Java程序，掌握基本的代码结构和程序执行流程"
+    }
+  ],
+  "slides": [
+    {
+      "id": 2,
+      "title": "数据类型检验",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "数据类型检验",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 八种基本数据类型及其取值范围：byte、short、int、long、float、double、char、boolean\n• 变量命名规范：字母、下划线、美元符号开头，不能用数字和关键字\n• 自动类型转换与强制类型转换的规则与风险\n• 运算符优先级：算术>关系>逻辑>赋值\n• 控制流程语句：if-else、switch、for、while、do-while",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习数据类型检验的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 3,
+      "title": "变量声明与运算实战",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "✏️ 练习1: 请声明一个名为'score'的整型变量并初始化为90，再声明一个名为'average'的双精度浮点型变量并初始化为85.5。",
+            "left": 100.0,
+            "top": 80.0,
+            "width": 750.0,
+            "height": 70.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "✏️ 练习2: 已有变量int a = 10和int b = 3，请编写代码计算a除以b的商（整数除法）并将结果存储在新变量result中。",
+            "left": 100.0,
+            "top": 160.0,
+            "width": 750.0,
+            "height": 70.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "同学们，变量是Java程序的基础单元，就像一个个贴着标签的盒子，用来存储不同类型的数据。首先，我们要掌握声明变量的规范，明确数据类型和变量名。其次，要注意赋值运算符'='的使用，它是将右边的值赋给左边的变量。在运算时，整数除法会直接舍弃小数部分，这点需要特别留意。现在请大家动手完成练习，体会变量声明与运算的过程。",
+      "image_prompt": "A clean digital illustration of Java variable concept, showing colorful labeled boxes representing different data types (int, double, char) with values inside, connected by arrows showing assignment operations, modern flat design style with blue and orange color scheme, educational diagram aesthetic",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 4,
+      "title": "代码模拟器",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "代码模拟器",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 在模拟器中编写和运行Java代码片段\n• 观察变量在内存中的存储与变化过程\n• 单步执行理解程序的控制流程\n• 识别并修正常见语法错误和逻辑错误\n• 体验不同数据类型运算的边界情况",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习代码模拟器的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 2,
+      "title": "数据类型检验",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "数据类型检验",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 八种基本数据类型及其取值范围：byte、short、int、long、float、double、char、boolean\n• 变量命名规范：字母、下划线、美元符号开头，不能用数字和关键字\n• 自动类型转换与强制类型转换的规则与风险\n• 运算符优先级：算术>关系>逻辑>赋值\n• 控制流程语句：if-else、switch、for、while、do-while",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习数据类型检验的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 3,
+      "title": "变量声明与运算实战",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "✏️ 练习1: 请声明一个名为'score'的整型变量并初始化为90，再声明一个名为'average'的双精度浮点型变量并初始化为85.5。",
+            "left": 100.0,
+            "top": 80.0,
+            "width": 750.0,
+            "height": 70.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "✏️ 练习2: 已有变量int a = 10和int b = 3，请编写代码计算a除以b的商（整数除法）并将结果存储在新变量result中。",
+            "left": 100.0,
+            "top": 160.0,
+            "width": 750.0,
+            "height": 70.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "同学们，变量是Java程序的基础单元，就像一个个贴着标签的盒子，用来存储不同类型的数据。首先，我们要掌握声明变量的规范，明确数据类型和变量名。其次，要注意赋值运算符'='的使用，它是将右边的值赋给左边的变量。在运算时，整数除法会直接舍弃小数部分，这点需要特别留意。现在请大家动手完成练习，体会变量声明与运算的过程。",
+      "image_prompt": "A clean digital illustration of Java variable concept, showing colorful labeled boxes representing different data types (int, double, char) with values inside, connected by arrows showing assignment operations, modern flat design style with blue and orange color scheme, educational diagram aesthetic",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 4,
+      "title": "代码模拟器",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "代码模拟器",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 在模拟器中编写和运行Java代码片段\n• 观察变量在内存中的存储与变化过程\n• 单步执行理解程序的控制流程\n• 识别并修正常见语法错误和逻辑错误\n• 体验不同数据类型运算的边界情况",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习代码模拟器的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 5,
+      "title": "智慧图书馆管理系统开发",
+      "content": {
+        "elements": []
+      },
+      "speech": "现在我们来学习图书馆管理系统的内容。",
+      "image_prompt": "A modern library interior with wooden bookshelves filled with colorful books, a digital terminal screen displaying Java code structure diagrams in the foreground, soft warm lighting, photorealistic, 4K resolution, cinematic composition",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 6,
+      "title": "OOP概念图解",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "OOP概念图解",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 类作为蓝图的抽象概念与对象的实例化过程\n• 类继承与接口实现的区别和使用场景\n• 四种访问修饰符的可见性范围：private、default、protected、public\n• 抽象类与接口的选择原则与最佳实践\n• 组合与聚合的语义区别在代码中的体现",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习OOP概念图解的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    },
+    {
+      "id": 7,
+      "title": "编写HelloWorld",
+      "content": {
+        "elements": [
+          {
+            "type": "text",
+            "content": "编写HelloWorld",
+            "left": 100.0,
+            "top": 100.0,
+            "width": 600.0,
+            "height": 60.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          },
+          {
+            "type": "text",
+            "content": "• 编写包含完整类定义和方法声明的Java源文件\n• 理解public static void main方法的程序入口作用\n• 使用System.out.println输出信息到控制台\n• 掌握Java代码的注释风格：单行、多行、文档注释\n• 完成代码编写、编译 javac、执行 java 的完整流程",
+            "left": 100.0,
+            "top": 180.0,
+            "width": 500.0,
+            "height": 250.0,
+            "style": {},
+            "image_url": "",
+            "audio_url": "",
+            "default_font_name": "Microsoft YaHei",
+            "default_color": "#333333",
+            "fill": "",
+            "opacity": 1.0,
+            "rotate": 0.0,
+            "word_space": 0.0,
+            "line_height": 0.0,
+            "shape_name": "",
+            "path": "",
+            "view_box": [
+              0.0,
+              0.0,
+              100.0,
+              100.0
+            ],
+            "gradient": {},
+            "pattern": "",
+            "line_color": "#333333",
+            "line_style": "solid",
+            "points": [],
+            "chart_type": "",
+            "chart_data": {},
+            "theme_colors": [],
+            "latex": "",
+            "table_data": [],
+            "col_widths": [],
+            "video_url": "",
+            "poster": "",
+            "link": {},
+            "shadow": {},
+            "outline": {},
+            "id": ""
+          }
+        ]
+      },
+      "speech": "现在我们来学习编写HelloWorld的内容。",
+      "image_prompt": "",
+      "background": {
+        "type": "solid",
+        "color": "#ffffff",
+        "gradient": {},
+        "image": {}
+      },
+      "remark": ""
+    }
+  ],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "Java语言初识",
+      "content": [
+        {
+          "sub_title": "发展历程",
+          "text": "1995年由Sun公司发布，2009年被Oracle收购。历经JDK 1.0到JDK 21的演进，每半年发布新版本，LTS版本提供长期支持。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "跨平台原理",
+          "text": "Java程序编译生成字节码，运行在JVM（Java虚拟机）上。不同操作系统安装对应JVM，实现一次编写，到处运行。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ]
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "Java三大平台版本",
+      "content": [
+        {
+          "sub_title": "Java SE",
+          "text": "标准版，核心基础。包含语法、集合、IO、多线程等，是学习其他版本的前提。",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Java EE",
+          "text": "企业版，专注企业级开发。提供Web服务、分布式计算等技术规范。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Java ME",
+          "text": "微型版，针对嵌入式设备。应用于移动终端、智能卡等资源受限环境。",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心特性",
+          "text": "面向对象三大特征：封装隐藏细节、继承复用代码、多态灵活扩展。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ]
+    },
+    {
+      "layout_type": "two-column",
+      "title": "第一个Java程序",
+      "content": [
+        {
+          "sub_title": "代码示例",
+          "text": "每个Java程序必须有一个主类，包含main方法作为程序入口。文件名必须与public类名一致。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, Java!\");\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "执行流程",
+          "text": "源文件.java → 编译器 → 字节码.class → JVM → 机器码执行。使用javac编译，java运行。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ]
+    },
+    {
+      "layout_type": "header-content",
+      "title": "Java应用领域",
+      "content": [
+        {
+          "sub_title": "企业级应用",
+          "text": "银行系统、电商平台、ERP系统等大型后台服务，Spring框架生态占据主导地位。",
+          "icon": "check",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Android开发",
+          "text": "Android应用层主要使用Java开发，Kotlin出现后仍保持重要地位，大量项目仍在使用。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "大数据领域",
+          "text": "Hadoop、Spark等主流大数据框架基于Java/Scala开发，Java是大数据工程师必备技能。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ]
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "学习路径建议",
+      "content": [
+        {
+          "sub_title": "核心路线",
+          "text": "Java基础语法 → 面向对象编程 → 核心API（集合、异常、IO、多线程） → 数据库与JDBC → Web开发（Servlet、Spring） → 项目实战",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "学习要点",
+          "text": "多动手实践，理解面向对象思想，掌握调试技巧，阅读官方文档，参与开源项目积累经验。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ]
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [],
+  "exercise_data": [
+    {
+      "id": 3,
+      "title": "变量声明与运算实战",
+      "exercises": [
+        {
+          "instruction": "请声明一个名为'score'的整型变量并初始化为90，再声明一个名为'average'的双精度浮点型变量并初始化为85.5。",
+          "hints": [
+            "整型使用关键字int，双精度浮点型使用关键字double",
+            "变量声明格式：数据类型 变量名 = 初始值;"
+          ],
+          "expected_answer": "int score = 90;\ndouble average = 85.5;"
+        },
+        {
+          "instruction": "已有变量int a = 10和int b = 3，请编写代码计算a除以b的商（整数除法）并将结果存储在新变量result中。",
+          "hints": [
+            "整数除法会舍弃小数部分",
+            "声明新变量存储计算结果"
+          ],
+          "expected_answer": "int result = a / b;"
+        }
+      ],
+      "speech": "同学们，变量是Java程序的基础单元，就像一个个贴着标签的盒子，用来存储不同类型的数据。首先，我们要掌握声明变量的规范，明确数据类型和变量名。其次，要注意赋值运算符'='的使用，它是将右边的值赋给左边的变量。在运算时，整数除法会直接舍弃小数部分，这点需要特别留意。现在请大家动手完成练习，体会变量声明与运算的过程。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想要学习java",
+    "student_id": "1",
+    "session_id": "884ce18c-f75a-4e88-a46c-cdc8f3120c43",
+    "generated_at": "2026-04-30 22:53:44",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

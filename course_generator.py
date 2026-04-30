@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional, AsyncGenerator
 
-from state import CourseData, SceneOutline, Slide, SlideContent, SlideElement, SlideBackground, TeacherInfo
+from state import CourseData, SceneOutline, Slide, SlideContent, SlideElement, SlideBackground, TeacherInfo, SlideV2, SlideContentItemV2
 from llm_stream import call_llm_async
 from prompts import build_prompt
 
@@ -35,6 +35,7 @@ class CourseGeneratorConfig:
     enable_tts: bool = False
     enable_video: bool = False
     first_batch_size: int = 4  # 首次生成的幻灯片数量
+    use_v2_slides: bool = True  # 使用 V2 结构化布局格式
 
 
 class CourseGenerator:
@@ -171,6 +172,7 @@ class CourseGenerator:
                 }
 
                 slides: list[Slide] = []
+                slides_v2: list[SlideV2] = []
                 quiz_data: list[dict[str, Any]] = []
                 exercise_data: list[dict[str, Any]] = []
                 total = len(outlines)
@@ -178,35 +180,58 @@ class CourseGenerator:
 
                 # --- 4a: 生成首批幻灯片（供前端立即展示）---
                 first_batch_slides: list[Slide] = []
+                slides_v2_batch: list[SlideV2] = []
                 for i in range(first_batch_size):
                     outline = outlines[i]
-                    result = await self._generate_scene_content(course_title, outline, i + 1)
-                    slide = result["slide"]
-                    slides.append(slide)
-                    first_batch_slides.append(slide)
-                    if result.get("quiz_data"):
-                        quiz_data.append(result["quiz_data"])
-                    if result.get("exercise_data"):
-                        exercise_data.append(result["exercise_data"])
+                    slide = None
+                    slides_v2_batch = []
+                    try:
+                        if self.config.use_v2_slides and outline.type == "slide":
+                            logger.info(f"[generate] 4a V2 outline[{i}] type={outline.type} title={outline.title}")
+                            result = await self._generate_scene_content_v2(course_title, outline, i + 1)
+                            slides_v2_batch = result.get("slides_v2", [])
+                            logger.info(f"[generate] 4a V2 got slides_v2_batch len={len(slides_v2_batch)}")
+                            slides_v2.extend(slides_v2_batch)
+                        else:
+                            logger.info(f"[generate] 4a V1 outline[{i}] type={outline.type} title={outline.title}")
+                            result = await self._generate_scene_content(course_title, outline, i + 1)
+                            slide = result["slide"]
+                            slides.append(slide)
+                            first_batch_slides.append(slide)
+                            if result.get("quiz_data"):
+                                quiz_data.append(result["quiz_data"])
+                            if result.get("exercise_data"):
+                                exercise_data.append(result["exercise_data"])
+                    except Exception as e:
+                        logger.exception(f"[generate] 4a CRASH at outline[{i}] type={outline.type}: {e}")
+                        raise
 
                     yield {
                         "type": "slide_content",
                         "progress": 45 + int(((i + 1) / total) * 10),
                         "data": {
-                            "slide_id": slide.id,
-                            "title": slide.title,
-                            "speech_preview": slide.speech[:60] + "..." if len(slide.speech) > 60 else slide.speech,
+                            "slide_id": slides_v2_batch[0].title[:8] if slides_v2_batch else (slide.id if slide else outline.title[:8]),
+                            "title": slides_v2_batch[0].title if slides_v2_batch else (slide.title if slide else outline.title),
+                            "speech_preview": slides_v2_batch[0].content[0].text[:60] if slides_v2_batch and slides_v2_batch[0].content else "",
                             "scene_type": outline.type,
                         }
                     }
 
                 # --- 首批完成：立即yield progressive_batch，前端可开始展示 ---
+                try:
+                    logger.info(f"[generate] yielding progressive_batch: slides_v2 len={len(slides_v2)}, first_batch_slides len={len(first_batch_slides)}")
+                    slides_v2_dumps = [s.model_dump() for s in slides_v2]
+                    logger.info(f"[generate] slides_v2 dumps OK, first dump keys: {list(slides_v2_dumps[0].keys()) if slides_v2_dumps else 'empty'}")
+                except Exception as e:
+                    logger.exception(f"[generate] slides_v2 model_dump failed: {e}, slides_v2 contents: {slides_v2}")
+                    slides_v2_dumps = []
                 yield {
                     "type": "progressive_batch",
                     "progress": 55,
                     "data": {
                         "batch_index": 0,
                         "slides": [s.model_dump() for s in first_batch_slides],
+                        "slides_v2": slides_v2_dumps,
                         "quiz_data": quiz_data.copy(),
                         "exercise_data": exercise_data.copy(),
                         "is_first_batch": True,
@@ -217,24 +242,46 @@ class CourseGenerator:
                 # --- 4b: 继续生成剩余幻灯片 ---
                 for i in range(first_batch_size, total):
                     outline = outlines[i]
-                    result = await self._generate_scene_content(course_title, outline, i + 1)
-                    slide = result["slide"]
-                    slides.append(slide)
-                    if result.get("quiz_data"):
-                        quiz_data.append(result["quiz_data"])
-                    if result.get("exercise_data"):
-                        exercise_data.append(result["exercise_data"])
+                    try:
+                        if self.config.use_v2_slides and outline.type == "slide":
+                            logger.info(f"[generate] 4b V2 outline[{i}] type={outline.type}")
+                            result = await self._generate_scene_content_v2(course_title, outline, i + 1)
+                            new_v2 = result.get("slides_v2", [])
+                            slides_v2.extend(new_v2)
+                            if new_v2:
+                                yield {
+                                    "type": "slide_content",
+                                    "progress": 55 + int(((i + 1 - first_batch_size) / max(total - first_batch_size, 1)) * 17),
+                                    "data": {
+                                        "slide_id": new_v2[0].title[:8],
+                                        "title": new_v2[0].title,
+                                        "speech_preview": new_v2[0].content[0].text[:60] if new_v2[0].content else "",
+                                        "scene_type": outline.type,
+                                    }
+                                }
+                        else:
+                            logger.info(f"[generate] 4b V1 outline[{i}] type={outline.type}")
+                            result = await self._generate_scene_content(course_title, outline, i + 1)
+                            slide = result["slide"]
+                            slides.append(slide)
+                            if result.get("quiz_data"):
+                                quiz_data.append(result["quiz_data"])
+                            if result.get("exercise_data"):
+                                exercise_data.append(result["exercise_data"])
 
-                    yield {
-                        "type": "slide_content",
-                        "progress": 55 + int(((i + 1 - first_batch_size) / max(total - first_batch_size, 1)) * 17),
-                        "data": {
-                            "slide_id": slide.id,
-                            "title": slide.title,
-                            "speech_preview": slide.speech[:60] + "..." if len(slide.speech) > 60 else slide.speech,
-                            "scene_type": outline.type,
-                        }
-                    }
+                            yield {
+                                "type": "slide_content",
+                                "progress": 55 + int(((i + 1 - first_batch_size) / max(total - first_batch_size, 1)) * 17),
+                                "data": {
+                                    "slide_id": slide.id,
+                                    "title": slide.title,
+                                    "speech_preview": slide.speech[:60] + "..." if len(slide.speech) > 60 else slide.speech,
+                                    "scene_type": outline.type,
+                                }
+                            }
+                    except Exception as e:
+                        logger.exception(f"[generate] 4b CRASH at outline[{i}] type={outline.type}: {e}")
+                        raise
 
                 # ---- Phase 5: 配图生成 ----
                 if enable_image:
@@ -294,6 +341,7 @@ class CourseGenerator:
                     title=course_title,
                     outlines=outlines,
                     slides=slides,
+                    slides_v2=slides_v2,
                     teacher=teacher,
                     agent_team=agent_team,
                     quiz_data=quiz_data,
@@ -374,7 +422,7 @@ class CourseGenerator:
         """用LLM生成课程大纲"""
         raw = await self._call_llm_with_retry(
             "你是一位课程设计专家，严格按JSON格式输出。",
-            build_prompt("outline_generation", requirement=requirement),
+            build_prompt("outline_generation_v3", requirement=requirement, course_type="general"),
             temperature=0.7,
         )
         items = self._extract_json(raw)
@@ -414,6 +462,12 @@ class CourseGenerator:
         elif outline.type == "exercise":
             prompt_id = "exercise_content"
             system_prompt = "你是一位练习设计专家，严格按JSON格式输出。"
+        elif outline.type == "interactive":
+            prompt_id = "interactive_content"
+            system_prompt = "你是一位交互式学习内容设计专家，严格按JSON格式输出。"
+        elif outline.type == "pbl":
+            prompt_id = "pbl_content"
+            system_prompt = "你是一位PBL项目制学习设计专家，严格按JSON格式输出。"
 
         try:
             raw = await self._call_llm_with_retry(
@@ -524,9 +578,140 @@ class CourseGenerator:
         )
         return {"slide": slide, "quiz_data": quiz_result, "exercise_data": exercise_result}
 
-    # ----------------------------------------------------------------
-    # AI教师团队生成
-    # ----------------------------------------------------------------
+    async def _generate_scene_content_v2(
+        self,
+        course_title: str,
+        outline: SceneOutline,
+        slide_index: int,
+    ) -> dict[str, Any]:
+        """用LLM生成V2格式幻灯片内容（结构化布局）—— 强容错版本"""
+        try:
+            raw = await self._call_llm_with_retry(
+                "你是一位课程内容专家，严格按JSON格式输出。",
+                build_prompt(
+                    "slide_content_v2",
+                    course_title=course_title,
+                    outline_title=outline.title,
+                    outline_description=outline.description,
+                    key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
+                ),
+                temperature=0.6,
+            )
+        except Exception as e:
+            logger.error(f"[_generate_scene_content_v2] LLM调用失败 outline={outline.title}: {e}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        # --- 第一层：JSON解析容错 ---
+        try:
+            data = self._extract_json(raw)
+        except Exception as e:
+            logger.error(f"[_generate_scene_content_v2] JSON解析失败，原始响应前500字符: {repr(raw[:500])}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        # 确保 data 是字典且包含 slides 字段
+        if not isinstance(data, dict):
+            logger.error(f"[_generate_scene_content_v2] data 不是字典类型，是 {type(data)}，原始响应前300字符: {repr(str(data)[:300])}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        slides_data = data.get("slides")
+        if not slides_data:
+            logger.error(f"[_generate_scene_content_v2] data 中缺少 slides 字段或为空，data keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        if not isinstance(slides_data, list):
+            logger.error(f"[_generate_scene_content_v2] slides 不是列表，是 {type(slides_data)}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        # --- 第二层：逐页解析容错 ---
+        slides_v2: list[SlideV2] = []
+        for idx, slide_data in enumerate(slides_data):
+            try:
+                if not isinstance(slide_data, dict):
+                    logger.warning(f"[_generate_scene_content_v2] slides[{idx}] 不是字典，是 {type(slide_data)}，跳过")
+                    continue
+
+                # 安全提取字段，缺失则用默认值
+                slide_title = slide_data.get("title") or outline.title or f"知识点讲解 {idx + 1}"
+                layout_type = slide_data.get("layoutType") or "two-column"
+
+                # 校验 layout_type 合法性
+                allowed_layouts = {"title-only", "two-column", "grid-cards", "header-content", "quote-highlight"}
+                if layout_type not in allowed_layouts:
+                    logger.warning(f"[_generate_scene_content_v2] slides[{idx}] layoutType={layout_type} invalid, forcing two-column")
+                    layout_type = "two-column"
+
+                # --- 第三层：逐卡片解析容错 ---
+                content_items: list[SlideContentItemV2] = []
+                raw_content = slide_data.get("content") or []
+
+                if not isinstance(raw_content, list):
+                    logger.warning(f"[_generate_scene_content_v2] slides[{idx}] content 不是列表，是 {type(raw_content)}，设为空")
+                    raw_content = []
+
+                for cidx, item_data in enumerate(raw_content):
+                    try:
+                        if not isinstance(item_data, dict):
+                            logger.warning(f"[_generate_scene_content_v2] slides[{idx}].content[{cidx}] 不是字典，跳过")
+                            continue
+
+                        icon = item_data.get("icon", "book")
+                        if icon not in {"book", "lightbulb", "code", "check", "star", "question", "warning", "info"}:
+                            icon = "book"
+
+                        color_theme = item_data.get("colorTheme", "blue")
+                        if color_theme not in {"blue", "yellow", "green", "purple", "orange"}:
+                            color_theme = "blue"
+
+                        content_item = SlideContentItemV2(
+                            sub_title=item_data.get("subTitle") or "",
+                            text=item_data.get("text") or "",
+                            icon=icon,
+                            color_theme=color_theme,
+                            code_snippet=item_data.get("codeSnippet") or "",
+                            image_url=item_data.get("imageUrl") or "",
+                        )
+                        content_items.append(content_item)
+                    except Exception as e:
+                        logger.warning(f"[_generate_scene_content_v2] slides[{idx}].content[{cidx}] 解析异常: {e}，跳过该卡片")
+                        continue
+
+                slide_v2 = SlideV2(
+                    layout_type=layout_type,
+                    title=slide_title,
+                    content=content_items,
+                )
+                slides_v2.append(slide_v2)
+            except Exception as e:
+                logger.warning(f"[_generate_scene_content_v2] slides[{idx}] 解析异常: {e}，跳过该页")
+                continue
+
+        # --- 最终兜底：没有任何有效幻灯片时 ---
+        if not slides_v2:
+            logger.error(f"[_generate_scene_content_v2] 所有幻灯片解析均失败，使用兜底页，原始 slides_data: {repr(str(slides_data)[:500])}")
+            fallback = self._fallback_slide_v2(outline)
+            return {"slides_v2": [fallback]}
+
+        return {"slides_v2": slides_v2}
+
+    def _fallback_slide_v2(self, outline: SceneOutline) -> SlideV2:
+        """V2格式降级幻灯片"""
+        return SlideV2(
+            layout_type="two-column",
+            title=outline.title,
+            content=[
+                SlideContentItemV2(
+                    sub_title="概述",
+                    text=f"本节将介绍{outline.title}的相关概念和应用",
+                    icon="book",
+                    color_theme="blue",
+                )
+            ],
+        )
 
     async def _generate_agent_team(
         self,

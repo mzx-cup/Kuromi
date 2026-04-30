@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -413,6 +413,41 @@ class Slide(BaseModel):
     remark: str = ""  # 教师备注/讲解要点摘要
 
 
+class SlideContentItemV2(BaseModel):
+    """幻灯片内容项 V2（结构化布局）"""
+    sub_title: str = ""
+    text: str = ""
+    icon: str = "book"  # book, lightbulb, code, check, star, question, warning, info
+    color_theme: str = "blue"  # blue, yellow, green, purple, orange
+    code_snippet: str = ""  # 可选代码块
+    image_url: str = ""  # 可选配图
+
+    @field_validator('icon')
+    @classmethod
+    def validate_icon(cls, v):
+        allowed = {'book', 'lightbulb', 'code', 'check', 'star', 'question', 'warning', 'info'}
+        return v if v in allowed else 'book'
+
+    @field_validator('color_theme')
+    @classmethod
+    def validate_color_theme(cls, v):
+        allowed = {'blue', 'yellow', 'green', 'purple', 'orange'}
+        return v if v in allowed else 'blue'
+
+
+class SlideV2(BaseModel):
+    """幻灯片 V2 版本（结构化布局）"""
+    layout_type: str = "two-column"  # title-only, two-column, grid-cards, header-content, quote-highlight
+    title: str = ""
+    content: list[SlideContentItemV2] = Field(default_factory=list)
+
+    @field_validator('layout_type')
+    @classmethod
+    def validate_layout_type(cls, v):
+        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'quote-highlight'}
+        return v if v in allowed else 'two-column'
+
+
 class SceneOutline(BaseModel):
     """场景大纲"""
     id: int = 0
@@ -504,6 +539,7 @@ class CourseData(BaseModel):
     title: str = ""
     outlines: list[SceneOutline] = Field(default_factory=list)
     slides: list[Slide] = Field(default_factory=list)
+    slides_v2: list[SlideV2] = Field(default_factory=list)  # V2 结构化布局格式
     teacher: TeacherInfo = Field(default_factory=TeacherInfo)
     agent_team: list[dict[str, Any]] = Field(default_factory=list)
     quiz_data: list[dict[str, Any]] = Field(default_factory=list)
@@ -784,3 +820,161 @@ class ClassroomSessionState(BaseModel):
     quiz_answers: dict[str, list[QuizAnswer]] = Field(default_factory=dict)
     chat_history: list[dict[str, str]] = Field(default_factory=list)
     time_spent: int = 0
+
+
+# ============================================================
+# 沉浸式互动教学引擎 - 组件模型
+# ============================================================
+
+class TextCardComponent(BaseModel):
+    """基础图文卡片组件"""
+    type: Literal["text_card"] = "text_card"
+    id: str = ""
+    title: str = ""
+    content: str = ""  # 支持 Markdown
+    icon: str = "book"
+    color_theme: str = "blue"
+
+    @field_validator('icon')
+    @classmethod
+    def validate_icon(cls, v):
+        allowed = {'book', 'lightbulb', 'code', 'check', 'star', 'question', 'warning', 'info'}
+        return v if v in allowed else 'book'
+
+    @field_validator('color_theme')
+    @classmethod
+    def validate_color_theme(cls, v):
+        allowed = {'blue', 'yellow', 'green', 'purple', 'orange'}
+        return v if v in allowed else 'blue'
+
+
+class QuizOption(BaseModel):
+    """测验选项（安全设计：不含 is_correct，前端不暴露）"""
+    key: str = ""  # A/B/C/D
+    text: str = ""
+
+
+class QuizComponent(BaseModel):
+    """互动测验组件"""
+    type: Literal["quiz"] = "quiz"
+    id: str = ""
+    question: str = ""
+    options: list[QuizOption] = Field(default_factory=list)
+    explanation: str = ""  # 用户提交后从后端获取
+    quiz_type: str = "single"  # single/multiple/short_answer
+
+
+class CodeEditorComponent(BaseModel):
+    """代码练习沙箱组件"""
+    type: Literal["code_editor"] = "code_editor"
+    id: str = ""
+    title: str = ""
+    instruction: str = ""
+    starter_code: str = ""
+    language: str = "python"  # python/javascript/html/sql
+    expected_output: str = ""  # 仅在后端比对
+    hints: list[str] = Field(default_factory=list)
+
+
+class SimulationComponent(BaseModel):
+    """HTML/JS 实验载体组件"""
+    type: Literal["simulation"] = "simulation"
+    id: str = ""
+    title: str = ""
+    description: str = ""
+    html_content: str = ""  # 可运行的 HTML/JS 代码
+    height: int = 400
+
+
+# 允许的组件类型
+ALLOWED_COMPONENT_TYPES = {"text_card", "quiz", "code_editor", "simulation"}
+
+
+def parse_interactive_scene(data: dict) -> "InteractiveScene":
+    """安全解析 InteractiveScene，拒绝未知组件类型"""
+    if "components" in data:
+        for i, comp in enumerate(data.get("components", [])):
+            comp_type = comp.get("type", "")
+            if comp_type not in ALLOWED_COMPONENT_TYPES:
+                raise ValueError(
+                    f"组件[{i}]类型 '{comp_type}' 不被支持，仅支持: {list(ALLOWED_COMPONENT_TYPES)}"
+                )
+    return InteractiveScene.model_validate(data)
+
+
+class InteractiveScene(BaseModel):
+    """互动场景（核心数据结构）"""
+    id: str = ""
+    title: str = ""
+    audio_script: str = ""  # AI 语音旁白脚本文本
+    components: list["InteractiveComponent"] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def text_cards(self) -> list[TextCardComponent]:
+        return [c for c in self.components if c.type == "text_card"]
+
+    @property
+    def quiz_components(self) -> list[QuizComponent]:
+        return [c for c in self.components if c.type == "quiz"]
+
+    @property
+    def code_components(self) -> list[CodeEditorComponent]:
+        return [c for c in self.components if c.type == "code_editor"]
+
+    @property
+    def simulation_components(self) -> list[SimulationComponent]:
+        return [c for c in self.components if c.type == "simulation"]
+
+
+# 前向引用解决
+InteractiveComponent = Union[
+    TextCardComponent,
+    QuizComponent,
+    CodeEditorComponent,
+    SimulationComponent
+]
+
+
+class QuizSubmission(BaseModel):
+    """学生提交答案"""
+    quiz_id: str = ""
+    selected_key: str = ""  # A/B/C/D
+
+
+class QuizGradeRequest(BaseModel):
+    """Quiz 评分请求"""
+    quiz_id: str = ""
+    selected_key: str = ""
+    question: str = ""
+    options: list[QuizOption] = Field(default_factory=list)  # 完整选项（供后端比对）
+
+
+class QuizGradeResponse(BaseModel):
+    """Quiz 评分响应（安全设计）"""
+    is_correct: bool = False
+    explanation: str = ""  # 提交后才返回
+    correct_key: str = ""  # 提交后才返回
+
+
+class RunCodeRequest(BaseModel):
+    """代码执行请求"""
+    code: str = ""
+    language: str = "python"
+    expected_output: str = ""
+
+
+class RunCodeResponse(BaseModel):
+    """代码执行响应"""
+    success: bool = True
+    passed: bool = False
+    actual_output: str = ""
+    error: str = ""
+
+
+class InteractiveCourseData(BaseModel):
+    """支持互动场景的课程数据"""
+    course_id: str = ""
+    title: str = ""
+    scenes: list[InteractiveScene] = Field(default_factory=list)
+    teacher: TeacherInfo = Field(default_factory=TeacherInfo)

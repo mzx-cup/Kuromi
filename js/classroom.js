@@ -148,6 +148,7 @@
             this.setupUI();
             this.bindEvents();
             this.initVoiceSelector();
+            this.initTTS();
             this.renderSceneSidebar();
             this.renderScene(0);
             this.updateNav();
@@ -169,6 +170,7 @@
             const slides = this.courseData.slides || [];
             const quizData = this.courseData.quiz_data || [];
             const exerciseData = this.courseData.exercise_data || [];
+            const slidesV2 = this.courseData.slides_v2 || [];
 
             this.scenes = outlines.map((outline, i) => ({
                 id: outline.id || i + 1,
@@ -177,6 +179,7 @@
                 description: outline.description || '',
                 keyPoints: outline.key_points || [],
                 slide: slides[i] || null,
+                slides_v2: slidesV2[i] ? [slidesV2[i]] : [],  // 按场景顺序对应
                 quiz: quizData.find(q => q.id === i + 1) || null,
                 exercise: exerciseData.find(e => e.id === i + 1) || null,
                 audioUrl: this.courseData.tts_audio_urls?.[String(i + 1)] || null,
@@ -277,7 +280,14 @@
                 case 'quiz': this.renderQuizScene(scene); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
                 case 'interactive': case 'pbl': this.renderInteractiveScene(scene); break;
-                default: this.renderSlideScene(scene);
+                default: {
+                    // Check if V2 slides are available
+                    if (scene.slides_v2 && scene.slides_v2.length > 0) {
+                        this.renderSlideV2Scene(scene);
+                    } else {
+                        this.renderSlideScene(scene);
+                    }
+                }
             }
 
             this.updateTeacherSpeech(scene);
@@ -294,6 +304,592 @@
             const quizResult = document.getElementById('quiz-result');
             if (quizSubmit) quizSubmit.style.display = 'none';
             if (quizResult) quizResult.style.display = 'none';
+        }
+
+        // ============================================================
+        // SlideV2 渲染器（结构化布局）
+        // ============================================================
+
+        SlideRenderer = {
+            ICON_MAP: {
+                'book': '📖', 'lightbulb': '💡', 'code': '💻',
+                'check': '✅', 'star': '⭐', 'question': '❓',
+                'warning': '⚠️', 'info': 'ℹ️'
+            },
+            COLOR_THEMES: ['blue', 'yellow', 'green', 'purple', 'orange'],
+
+            render(slideV2, container) {
+                if (!slideV2 || !container) return;
+                const layoutType = slideV2.layoutType || 'two-column';
+                const renderer = this._getRenderer(layoutType);
+                const html = renderer(slideV2);
+                container.innerHTML = html;
+            },
+
+            _getRenderer(layoutType) {
+                const renderers = {
+                    'title-only': this._renderTitleOnly.bind(this),
+                    'two-column': this._renderTwoColumn.bind(this),
+                    'grid-cards': this._renderGridCards.bind(this),
+                    'header-content': this._renderHeaderContent.bind(this),
+                    'quote-highlight': this._renderQuoteHighlight.bind(this),
+                };
+                return renderers[layoutType] || this._renderTwoColumn.bind(this);
+            },
+
+            _renderTitleOnly(slide) {
+                return `
+                    <div class="slide-v2-container layout-title-only">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderTwoColumn(slide) {
+                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-two-column">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderGridCards(slide) {
+                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-grid-cards">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderHeaderContent(slide) {
+                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-header-content">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderQuoteHighlight(slide) {
+                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-quote-highlight">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderContentCard(item) {
+                const icon = this._getIcon(item.icon);
+                const theme = this._validateTheme(item.colorTheme);
+                const subTitle = this._escapeHtml(item.subTitle || '');
+                const textHtml = this._parseMarkdown(item.text || '');
+                const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
+                const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
+
+                return `
+                    <div class="content-card theme-${theme}">
+                        ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
+                        ${textHtml ? `<div class="card-text">${textHtml}</div>` : ''}
+                        ${codeHtml}
+                        ${imageHtml}
+                    </div>
+                `;
+            },
+
+            _renderCodeSnippet(code) {
+                return `<div class="card-code"><code>${this._escapeHtml(code)}</code></div>`;
+            },
+
+            _renderImage(url) {
+                return `<div class="card-image"><img src="${url}" alt="" loading="lazy"></div>`;
+            },
+
+            _getIcon(iconName) {
+                return this.ICON_MAP[iconName] || this.ICON_MAP['book'];
+            },
+
+            _validateTheme(theme) {
+                return this.COLOR_THEMES.includes(theme) ? theme : 'blue';
+            },
+
+            _parseMarkdown(text) {
+                if (!text) return '';
+                // Bold: **text** → <strong>text</strong>
+                let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                // Inline code: `code` → <code>code</code>
+                html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+                // Unordered lists: - item → <li>item</li>
+                const lines = html.split('\n');
+                const processed = [];
+                let inList = false;
+                for (const line of lines) {
+                    const m = line.match(/^-\s+(.+)/);
+                    if (m) {
+                        if (!inList) { processed.push('<ul>'); inList = true; }
+                        processed.push(`<li>${m[1]}</li>`);
+                    } else {
+                        if (inList) { processed.push('</ul>'); inList = false; }
+                        processed.push(line);
+                    }
+                }
+                if (inList) processed.push('</ul>');
+                html = processed.join('\n');
+                // Convert newlines to <br>
+                html = html.replace(/\n/g, '<br>');
+                return html;
+            },
+
+            _escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(/"/g, '&quot;')
+                          .replace(/'/g, '&#039;');
+            }
+        };
+
+        renderSlideV2Scene(scene) {
+            if (!this.slideContainer) return;
+            this.slideContainer.style.display = 'flex';
+            this.slideContainer.style.flexDirection = 'column';
+            this.slideContainer.style.animation = 'slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+            const slides_v2 = scene.slides_v2 || [];
+            if (slides_v2.length === 0) {
+                this.renderSlideScene(scene);
+                return;
+            }
+
+            // Render the first slide of the V2 array
+            const slideV2 = slides_v2[0];
+            this.SlideRenderer.render(slideV2, this.slideContainer);
+        }
+
+        // ============================================================
+        // 沉浸式互动场景渲染器
+        // ============================================================
+
+        InteractiveRenderer = {
+            // 组件渲染器映射
+            _renderers: {
+                text_card: '_renderTextCard',
+                quiz: '_renderQuiz',
+                code_editor: '_renderCodeEditor',
+                simulation: '_renderSimulation'
+            },
+
+            // 主渲染入口
+            render(scene, container) {
+                if (!scene || !container) return;
+
+                // 停止上一个场景的 TTS
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+
+                // 渲染 audio_script（需要用户点击播放）
+                this._renderAudioNarration(scene, container);
+
+                // 渲染 components
+                const body = container.querySelector('.interactive-body') || container;
+                body.innerHTML = '';
+
+                (scene.components || []).forEach(component => {
+                    const renderer = this._renderers[component.type];
+                    if (renderer && typeof this[renderer] === 'function') {
+                        const html = this[renderer](component);
+                        if (html) {
+                            body.innerHTML += html;
+                            this._bindComponentEvents(component, body.lastElementChild);
+                        }
+                    }
+                });
+            },
+
+            // 渲染语音旁白控制按钮
+            _renderAudioNarration(scene, container) {
+                if (!scene.audio_script) return;
+
+                const script = encodeURIComponent(scene.audio_script);
+                const ttsHtml = `
+                    <div class="tts-control">
+                        <button class="tts-play-btn" data-script="${script}">
+                            <span class="tts-icon">🔊</span>
+                            <span class="tts-label">播放旁白</span>
+                        </button>
+                        <div class="tts-progress" style="display:none">
+                            <div class="tts-wave"></div>
+                        </div>
+                    </div>
+                `;
+
+                // 在容器顶部添加 TTS 控制
+                let existingHeader = container.querySelector('.interactive-header');
+                if (!existingHeader) {
+                    container.innerHTML = `
+                        <div class="interactive-header">
+                            <h1 class="interactive-title">${this._escapeHtml(scene.title || '')}</h1>
+                            ${ttsHtml}
+                        </div>
+                        <div class="interactive-body"></div>
+                    `;
+                } else {
+                    existingHeader.querySelector('.tts-control')?.remove();
+                    existingHeader.innerHTML += ttsHtml;
+                }
+            },
+
+            // 绑定组件事件
+            _bindComponentEvents(component, element) {
+                if (!element) return;
+
+                switch (component.type) {
+                    case 'quiz':
+                        this._bindQuizEvents(component, element);
+                        break;
+                    case 'code_editor':
+                        this._bindCodeEditorEvents(component, element);
+                        break;
+                    case 'simulation':
+                        this._bindSimulationEvents(component, element);
+                        break;
+                }
+            },
+
+            // 渲染 TextCard 组件
+            _renderTextCard(comp) {
+                const icon = this._getIcon(comp.icon);
+                const theme = this._validateTheme(comp.color_theme);
+                const title = this._escapeHtml(comp.title || '');
+                const textHtml = this._parseMarkdown(comp.content || '');
+
+                return `
+                    <div class="content-card theme-${theme}">
+                        ${title ? `<div class="card-title">${icon} ${title}</div>` : ''}
+                        ${textHtml ? `<div class="card-text">${textHtml}</div>` : ''}
+                    </div>
+                `;
+            },
+
+            // 渲染 Quiz 组件（防作弊设计）
+            _renderQuiz(comp) {
+                // 安全设计：options 不包含 is_correct，explanation 为空
+                const optionsHtml = (comp.options || []).map(opt => `
+                    <div class="quiz-option" data-key="${this._escapeHtml(opt.key)}">
+                        <span class="option-key">${this._escapeHtml(opt.key)}</span>
+                        <span class="option-text">${this._escapeHtml(opt.text)}</span>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="quiz-container" data-quiz-id="${this._escapeHtml(comp.id)}">
+                        <div class="quiz-question">${this._escapeHtml(comp.question || '')}</div>
+                        <div class="quiz-options">${optionsHtml}</div>
+                        <button class="quiz-submit-btn" disabled>请先选择答案</button>
+                        <div class="quiz-feedback" style="display:none"></div>
+                    </div>
+                `;
+            },
+
+            // Quiz 事件绑定（防作弊）
+            _bindQuizEvents(comp, element) {
+                const container = element;
+                const options = container.querySelectorAll('.quiz-option');
+                const submitBtn = container.querySelector('.quiz-submit-btn');
+
+                // 选项点击
+                options.forEach(opt => {
+                    opt.addEventListener('click', () => {
+                        options.forEach(o => o.classList.remove('selected'));
+                        opt.classList.add('selected');
+                        submitBtn.disabled = false;
+                    });
+                });
+
+                // 提交答案
+                submitBtn.addEventListener('click', async () => {
+                    const selected = container.querySelector('.quiz-option.selected')?.dataset.key;
+                    if (!selected) return;
+
+                    submitBtn.textContent = '提交中...';
+                    submitBtn.disabled = true;
+
+                    try {
+                        const response = await fetch('/api/quiz/grade', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                quiz_id: comp.id,
+                                selected_key: selected,
+                                question: comp.question,
+                                options: comp.options  // 不含 is_correct
+                            })
+                        });
+                        const result = await response.json();
+                        this._showQuizFeedback(container, selected, result);
+                    } catch (e) {
+                        container.querySelector('.quiz-feedback').innerHTML =
+                            `<div class="feedback-error">提交失败: ${e.message}</div>`;
+                        container.querySelector('.quiz-feedback').style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '重新提交';
+                    }
+                });
+            },
+
+            // 显示 Quiz 反馈
+            _showQuizFeedback(container, selected, result) {
+                const feedback = container.querySelector('.quiz-feedback');
+                const submitBtn = container.querySelector('.quiz-submit-btn');
+
+                // 显示正确/错误状态
+                const isCorrect = result.is_correct;
+                const correctKey = result.correct_key || '';
+
+                // 高亮正确选项
+                container.querySelectorAll('.quiz-option').forEach(opt => {
+                    if (opt.dataset.key === correctKey) {
+                        opt.classList.add(isCorrect ? 'correct' : 'show-correct');
+                    }
+                    if (opt.dataset.key === selected && !isCorrect) {
+                        opt.classList.add('wrong');
+                    }
+                });
+
+                // 显示反馈
+                feedback.innerHTML = `
+                    <div class="feedback-result ${isCorrect ? 'correct' : 'wrong'}">
+                        ${isCorrect ? '✓ 回答正确！' : '✗ 回答错误'}
+                    </div>
+                    <div class="feedback-explanation">${this._escapeHtml(result.explanation || '')}</div>
+                `;
+                feedback.style.display = 'block';
+                submitBtn.textContent = isCorrect ? '已通过' : '继续学习';
+            },
+
+            // 渲染 CodeEditor 组件
+            _renderCodeEditor(comp) {
+                return `
+                    <div class="code-editor-container" data-lang="${this._escapeHtml(comp.language)}">
+                        <div class="code-header">
+                            <span class="code-title">${this._escapeHtml(comp.title || '')}</span>
+                            <span class="code-lang-badge">${(comp.language || 'TEXT').toUpperCase()}</span>
+                        </div>
+                        <div class="code-instruction">${this._escapeHtml(comp.instruction || '')}</div>
+                        <div class="code-editor-area">
+                            <textarea class="code-input">${this._escapeHtml(comp.starter_code || '')}</textarea>
+                        </div>
+                        <div class="code-actions">
+                            <button class="code-run-btn">运行代码</button>
+                            <button class="code-hint-btn">查看提示</button>
+                        </div>
+                        <div class="code-output" style="display:none"></div>
+                        <div class="code-hints" style="display:none">
+                            ${(comp.hints || []).map((h, i) => `<div class="hint-item">提示${i+1}: ${this._escapeHtml(h)}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            },
+
+            // CodeEditor 事件绑定
+            _bindCodeEditorEvents(comp, element) {
+                const runBtn = element.querySelector('.code-run-btn');
+                const hintBtn = element.querySelector('.code-hint-btn');
+                const output = element.querySelector('.code-output');
+                const hints = element.querySelector('.code-hints');
+
+                // 运行代码
+                runBtn.addEventListener('click', async () => {
+                    const code = element.querySelector('.code-input').value;
+                    output.style.display = 'block';
+                    output.innerHTML = '<div class="code-running">执行中...</div>';
+
+                    try {
+                        const response = await fetch('/api/run_code', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                code: code,
+                                language: comp.language,
+                                expected_output: comp.expected_output || ''
+                            })
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            const statusClass = result.passed ? 'success' : 'error';
+                            const statusBadge = result.passed
+                                ? '<div class="pass-badge">✓ 通过</div>'
+                                : '<div class="fail-badge">✗ 未通过</div>';
+                            output.innerHTML = `
+                                <div class="output-result ${statusClass}">
+                                    <div class="output-label">输出:</div>
+                                    <pre class="output-text">${this._escapeHtml(result.actual_output || '(无输出)')}</pre>
+                                    ${statusBadge}
+                                </div>
+                            `;
+                        } else {
+                            output.innerHTML = `<div class="code-error">错误: ${this._escapeHtml(result.error || '未知错误')}</div>`;
+                        }
+                    } catch (e) {
+                        output.innerHTML = `<div class="code-error">执行失败: ${e.message}</div>`;
+                    }
+                });
+
+                // 显示/隐藏提示
+                hintBtn.addEventListener('click', () => {
+                    const isVisible = hints.style.display !== 'none';
+                    hints.style.display = isVisible ? 'none' : 'block';
+                    hintBtn.textContent = isVisible ? '查看提示' : '隐藏提示';
+                });
+            },
+
+            // 渲染 Simulation 组件
+            _renderSimulation(comp) {
+                return `
+                    <div class="simulation-container">
+                        <div class="simulation-header">
+                            <span class="simulation-title">${this._escapeHtml(comp.title || '')}</span>
+                        </div>
+                        <div class="simulation-description">${this._escapeHtml(comp.description || '')}</div>
+                        <div class="simulation-frame">
+                            <iframe srcdoc="${this._escapeHtml(comp.html_content || '<p>无可用内容</p>')}"
+                                    sandbox="allow-scripts"
+                                    height="${comp.height || 400}">
+                            </iframe>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // Simulation 事件绑定（暂无特殊交互）
+            _bindSimulationEvents(comp, element) {
+                // iframe sandbox 不需要额外绑定
+            },
+
+            // 辅助函数
+            _getIcon(iconName) {
+                const icons = {
+                    'book': '📖', 'lightbulb': '💡', 'code': '💻',
+                    'check': '✅', 'star': '⭐', 'question': '❓',
+                    'warning': '⚠️', 'info': 'ℹ️'
+                };
+                return icons[iconName] || icons['book'];
+            },
+
+            _validateTheme(theme) {
+                const themes = ['blue', 'yellow', 'green', 'purple', 'orange'];
+                return themes.includes(theme) ? theme : 'blue';
+            },
+
+            _parseMarkdown(text) {
+                if (!text) return '';
+                let html = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+                const lines = html.split('\n');
+                const processed = [];
+                let inList = false;
+                for (const line of lines) {
+                    const m = line.match(/^-\s+(.+)/);
+                    if (m) {
+                        if (!inList) { processed.push('<ul>'); inList = true; }
+                        processed.push(`<li>${m[1]}</li>`);
+                    } else {
+                        if (inList) { processed.push('</ul>'); inList = false; }
+                        processed.push(line);
+                    }
+                }
+                if (inList) processed.push('</ul>');
+                html = processed.join('\n');
+                html = html.replace(/\n/g, '<br>');
+                return html;
+            },
+
+            _escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/&/g, '&amp;')
+                          .replace(/</g, '&lt;')
+                          .replace(/>/g, '&gt;')
+                          .replace(/"/g, '&quot;')
+                          .replace(/'/g, '&#039;');
+            }
+        };
+
+        // TTS 播放控制（全局）
+        initTTS() {
+            window.ttsIsPlaying = false;
+            document.addEventListener('click', (e) => {
+                const ttsBtn = e.target.closest('.tts-play-btn');
+                if (!ttsBtn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (window.ttsIsPlaying) {
+                    window.speechSynthesis.cancel();
+                    window.ttsIsPlaying = false;
+                    const icon = ttsBtn.querySelector('.tts-icon');
+                    const label = ttsBtn.querySelector('.tts-label');
+                    if (icon) icon.textContent = '🔊';
+                    if (label) label.textContent = '播放旁白';
+                } else {
+                    const script = decodeURIComponent(ttsBtn.dataset.script || '');
+                    if (!script) return;
+
+                    const utterance = new SpeechSynthesisUtterance(script);
+                    utterance.lang = 'zh-CN';
+                    utterance.rate = 1.0;
+
+                    utterance.onstart = () => {
+                        window.ttsIsPlaying = true;
+                        const icon = ttsBtn.querySelector('.tts-icon');
+                        const label = ttsBtn.querySelector('.tts-label');
+                        if (icon) icon.textContent = '⏸';
+                        if (label) label.textContent = '暂停';
+                    };
+                    utterance.onend = utterance.onerror = () => {
+                        window.ttsIsPlaying = false;
+                        const icon = ttsBtn.querySelector('.tts-icon');
+                        const label = ttsBtn.querySelector('.tts-label');
+                        if (icon) icon.textContent = '🔊';
+                        if (label) label.textContent = '播放旁白';
+                    };
+
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
+                }
+            }, true);
+
+            window.addEventListener('beforeunload', () => window.speechSynthesis?.cancel());
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) window.speechSynthesis?.cancel();
+            });
         }
 
         renderSlideScene(scene) {
@@ -314,27 +910,18 @@
                 return;
             }
 
-            // Apply slide background with gradient animation
-            if (slide.background && this.slideContainer) {
-                const bg = slide.background;
-                if (bg.type === 'gradient' && bg.gradient?.colors) {
-                    const colors = bg.gradient.colors.map(c => typeof c === 'string' ? c : c.color).join(', ');
-                    const angle = bg.gradient.rotate || 135;
-                    this.slideContainer.style.background = `linear-gradient(${angle}deg, ${colors})`;
-                } else if (bg.type === 'solid' && bg.color) {
-                    this.slideContainer.style.backgroundColor = bg.color;
-                }
-                if (bg.type === 'image' && bg.image?.src) {
-                    this.slideContainer.style.backgroundImage = `url(${bg.image.src})`;
-                    this.slideContainer.style.backgroundSize = 'cover';
-                    this.slideContainer.style.backgroundPosition = 'center';
-                }
-            }
+            // Apply slide background with gradient/solid from theme
+            this._applySlideBackground(slide);
 
             let html = `<div class="slide-header-bar"></div>`;
             html += `<div class="slide-content slide-enter">`;
             html += `<h1 class="slide-title animate-in">${slide.title || scene.title}</h1>`;
             html += `<div class="slide-body">`;
+
+            // Get theme colors for styling
+            const themeColors = slide.theme?.themeColors || ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#818cf8'];
+            const fontColor = slide.theme?.fontColor || '#e2e8f0';
+            const bgColor = slide.background?.color || slide.theme?.backgroundColor || '#1a1a2e';
 
             if (slide.content?.elements) {
                 slide.content.elements.forEach((el, idx) => {
@@ -345,18 +932,41 @@
                         : ENTER_ANIMATIONS.fadeUp;
 
                     if (el.type === 'text') {
-                        const style = this._buildElementStyle(el);
-                        const textStyle = el.default_font_name ? `font-family:${el.default_font_name},sans-serif;` : '';
-                        html += `<div class="slide-text ${animClass}" ${elemId} style="${style};${textStyle}${animDelay}">${(el.content || '').replace(/\n/g, '<br>')}</div>`;
+                        // Text elements: use absolute positioning for proper card layout
+                        const textStyle = this._buildElementStyle(el);
+                        // Determine background: transparent = no bg, otherwise use fill color
+                        const hasBg = el.fill && el.fill !== 'transparent';
+                        const bgStyle = hasBg ? `background:${el.fill};` : '';
+                        // Text-specific styling (no glass effect for infographic style)
+                        const textStyleStr = [
+                            bgStyle,
+                            `color:${el.default_color || fontColor || '#1E293B'}`,
+                            `font-family:${el.default_font_name || 'Microsoft YaHei'}, sans-serif`,
+                            `font-size:${el.font_size ? el.font_size * 0.1 : 15}px`,
+                            `line-height:${el.line_height || 1.8}`,
+                            `padding:${el.fill && el.fill !== 'transparent' ? '0.75rem 1rem' : '0'}`,
+                            `word-wrap:break-word`,
+                            `white-space:normal`,
+                            `box-sizing:border-box`,
+                        ].join(';');
+                        // Parse markdown if content contains markdown syntax
+                        let textContent = el.content || '';
+                        if (textContent.includes('##') || textContent.includes('**') || textContent.includes('```') || textContent.includes('- ')) {
+                            textContent = this.parseSimpleMarkdown(textContent);
+                        } else {
+                            textContent = textContent.replace(/\n/g, '<br>');
+                        }
+                        html += `<div class="slide-text ${animClass}" ${elemId} style="${textStyle};${textStyleStr};${animDelay}">${textContent}</div>`;
                     } else if (el.type === 'code') {
-                        const style = this._buildElementStyle(el);
-                        html += `<pre class="slide-code ${animClass}" ${elemId} style="${style};${animDelay}"><code>${this.escapeHtml(el.content || '')}</code></pre>`;
+                        // Code elements: use absolute positioning for proper layout
+                        const codeStyle = this._buildElementStyle(el);
+                        html += `<pre class="slide-code ${animClass}" ${elemId} style="${codeStyle};${animDelay}"><code>${this.escapeHtml(el.content || '')}</code></pre>`;
                     } else if (el.type === 'image' && el.src) {
-                        const style = this._buildElementStyle(el);
-                        html += `<img class="slide-image ${animClass}" ${elemId} src="${el.src}" alt="" style="${style};${animDelay}" loading="lazy">`;
+                        const imgStyle = this._buildElementStyle(el);
+                        html += `<img class="slide-image ${animClass}" ${elemId} src="${el.src}" alt="" style="${imgStyle};${animDelay}" loading="lazy">`;
                     } else if (el.type === 'shape') {
-                        const style = this._buildShapeStyle(el);
-                        html += `<div class="slide-shape ${animClass}" ${elemId} style="${style};${animDelay}">${this._renderShapeContent(el)}</div>`;
+                        const shapeStyle = this._buildShapeStyle(el);
+                        html += `<div class="slide-shape ${animClass}" ${elemId} style="${shapeStyle};${animDelay}">${this._renderShapeContent(el)}</div>`;
                     } else if (el.type === 'chart' && el.chart_type) {
                         html += `<div class="slide-chart ${animClass}" ${elemId} data-chart-type="${el.chart_type}" style="height:220px;${animDelay}">${this._renderChartPlaceholder(el)}</div>`;
                     } else if (el.type === 'latex' && el.latex) {
@@ -372,6 +982,78 @@
 
             // Load and process scene actions after render
             this.loadSceneActions(scene);
+        }
+
+        _applySlideBackground(slide) {
+            if (!slide || !this.slideContainer) return;
+
+            const bg = slide.background || {};
+            const theme = slide.theme || {};
+
+            // Priority: explicit background > theme backgroundColor
+            if (bg.type === 'gradient' && bg.gradient?.colors) {
+                const colors = bg.gradient.colors.map(c => typeof c === 'string' ? c : c.color).join(', ');
+                const angle = bg.gradient.rotate || 135;
+                this.slideContainer.style.background = `linear-gradient(${angle}deg, ${colors})`;
+            } else if (bg.type === 'solid' && bg.color) {
+                this.slideContainer.style.backgroundColor = bg.color;
+            } else if (theme.backgroundColor) {
+                // Use theme background color
+                this.slideContainer.style.backgroundColor = theme.backgroundColor;
+            } else {
+                // Default: use light background for infographic-style cards
+                this.slideContainer.style.backgroundColor = '#FFFFFF';
+            }
+        }
+
+        _buildTextElementStyle(el, themeColors, defaultFontColor) {
+            const styles = [];
+
+            // Width and height
+            if (el.width !== undefined) styles.push(`width:${el.width * 0.1}px`);
+            if (el.height !== undefined) styles.push(`height:${el.height * 0.1}px`);
+            if (el.min_width) styles.push(`min-width:${el.min_width * 0.1}px`);
+            if (el.min_height) styles.push(`min-height:${el.min_height * 0.1}px`);
+
+            // Font styling - use theme colors if not specified
+            const textColor = el.default_color || el.color || defaultFontColor || '#e2e8f0';
+            styles.push(`color:${textColor}`);
+
+            const fontName = el.default_font_name || 'Microsoft YaHei';
+            styles.push(`font-family:${fontName}, sans-serif`);
+
+            if (el.font_size) {
+                styles.push(`font-size:${el.font_size * 0.1}px`);
+            } else {
+                styles.push(`font-size:16px`); // Default font size
+            }
+
+            if (el.font_weight) styles.push(`font-weight:${el.font_weight}`);
+            if (el.line_height) styles.push(`line-height:${el.line_height}`);
+            else styles.push(`line-height:1.7`); // Default line height for readability
+
+            if (el.text_align) styles.push(`text-align:${el.text_align}`);
+
+            // Background with subtle gradient or glass effect
+            if (el.fill && el.fill !== 'transparent') {
+                styles.push(`background:${el.fill}`);
+            } else {
+                // Default text card background - semi-transparent with blur
+                styles.push(`background:rgba(99, 102, 241, 0.08)`);
+                styles.push(`backdrop-filter:blur(10px)`);
+            }
+
+            // Border for cards
+            styles.push(`border:1px solid rgba(255, 255, 255, 0.1)`);
+            styles.push(`border-radius:12px`);
+
+            // Padding for card content
+            styles.push(`padding:1rem 1.25rem`);
+
+            // Text shadow for better readability on dark backgrounds
+            styles.push(`text-shadow:0 1px 2px rgba(0,0,0,0.3)`);
+
+            return styles.join(';');
         }
 
         _renderShapeContent(el) {
@@ -409,7 +1091,56 @@
 
         _renderLatex(latex) {
             // Simple LaTeX rendering - in production would use KaTeX or MathJax
-            return `<span style="font-family:'Cambria Math','STIX Two Math',serif;font-size:1.2em;color:#e2e8f0;background:rgba(99,102,241,0.1);padding:8px 16px;border-radius:8px;display:inline-block;">${this.escapeHtml(latex)}</span>`;
+            return `<span style="font-family:'Cambria Math','STIX Two Math',serif;font-size:1.2em;color:#1E293B;background:rgba(99,102,241,0.1);padding:8px 16px;border-radius:8px;display:inline-block;">${this.escapeHtml(latex)}</span>`;
+        }
+
+        /**
+         * Simple markdown parser for slide text content.
+         * Supports: ## headings, **bold**, - lists, ```code blocks```, > blockquote, `inline code`
+         */
+        parseSimpleMarkdown(text) {
+            if (!text) return '';
+            // Escape HTML first
+            let html = this.escapeHtml(text);
+            // Code blocks: ```lang\ncode\n``` → <pre><code>code</code></pre>
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+                return `<pre class="slide-md-code"><code>${code.trim()}</code></pre>`;
+            });
+            // Headings: ## text → <h2>text</h2>
+            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+            // Bold: **text** → <strong>text</strong>
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // Italic: *text* → <em>text</em>
+            html = html.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em>$1</em>');
+            // Inline code: `code` → <code class="slide-md-inline-code">code</code>
+            html = html.replace(/`([^`\n]+)`/g, '<code class="slide-md-inline-code">$1</code>');
+            // Blockquote: > text → <blockquote>text</blockquote>
+            html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+            // Unordered lists: lines starting with - space → <li> items wrapped in <ul>
+            const lines = html.split('\n');
+            const processedLines = [];
+            let inList = false;
+            for (const line of lines) {
+                const listMatch = line.match(/^(\s*)-\s+(.+)/);
+                if (listMatch) {
+                    if (!inList) {
+                        processedLines.push('<ul class="slide-md-list">');
+                        inList = true;
+                    }
+                    processedLines.push(`<li>${listMatch[2]}</li>`);
+                } else {
+                    if (inList) {
+                        processedLines.push('</ul>');
+                        inList = false;
+                    }
+                    processedLines.push(line);
+                }
+            }
+            if (inList) processedLines.push('</ul>');
+            html = processedLines.join('\n');
+            // Convert remaining newlines to <br> (but not inside tags)
+            html = html.replace(/\n/g, '<br>');
+            return html;
         }
 
         _renderTable(tableData) {
@@ -446,11 +1177,24 @@
 
         _buildElementStyle(el) {
             const styles = [];
+            // Use position absolute for code/shape/image elements, but NOT text
+            // Text elements should flow in document flow to prevent vertical stacking issues
+            // Only use position:absolute for text when it has a fill (card background)
+            if (el.type === 'code' || el.type === 'shape' || el.type === 'image') {
+                styles.push(`position:absolute`);
+            }
+            if (el.type === 'text' && el.fill && el.fill !== 'transparent') {
+                styles.push(`position:absolute`);
+            }
             // Position and size (scaled for CSS)
             if (el.left !== undefined) styles.push(`left:${el.left * 0.1}px`);
             if (el.top !== undefined) styles.push(`top:${el.top * 0.1}px`);
             if (el.width !== undefined) styles.push(`width:${el.width * 0.1}px`);
-            if (el.height !== undefined) styles.push(`height:${el.height * 0.1}px`);
+            // For code elements, ensure minimum height for scrolling, scale height by 0.1
+            if (el.height !== undefined) {
+                const scaledHeight = Math.max(el.height * 0.1, 150); // Minimum 150px for code blocks
+                styles.push(`height:${scaledHeight}px`);
+            }
             if (el.min_width) styles.push(`min-width:${el.min_width * 0.1}px`);
             if (el.min_height) styles.push(`min-height:${el.min_height * 0.1}px`);
 
@@ -544,6 +1288,10 @@
                 styles.push('border-radius:50%');
             } else if (shapeName === 'triangle') {
                 styles.push('width:0;height:0;border-left:50px solid transparent;border-right:50px solid transparent;border-bottom:100px solid #6366f1;');
+            } else {
+                // Rectangle: apply fill and border-radius
+                if (el.fill) styles.push(`background:${el.fill}`);
+                if (el.border_radius !== undefined) styles.push(`border-radius:${el.border_radius}px`);
             }
             return styles.join(';');
         }

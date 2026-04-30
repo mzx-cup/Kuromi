@@ -158,21 +158,17 @@
                     <span class="hidden sm:inline">首页</span>
                 </a>
                 <div class="w-px h-5" style="background: var(--border-glass);"></div>
-                <button class="tab-btn active px-4 py-4 text-sm font-semibold rounded-t" data-tab="chat" onclick="switchTab('chat')">
-                    <span class="flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> 智能对话</span>
-                </button>
+                <div class="segmented-btn-group flex items-center rounded-lg overflow-hidden" style="border: 1px solid var(--border-glass);">
+                    <button class="tab-btn active px-4 py-2 text-sm font-semibold" data-tab="chat" onclick="switchTab('chat')">
+                        <span class="flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> 智能对话</span>
+                    </button>
+                    <button class="tab-btn px-4 py-2 text-sm font-semibold" data-tab="course" onclick="switchTab('course')">
+                        <span class="flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-4 h-4"></i> 课程生成</span>
+                    </button>
+                </div>
                 <button class="tab-btn px-4 py-4 text-sm font-semibold rounded-t" data-tab="code" onclick="switchTab('code')">
                     <span class="flex items-center gap-1.5"><i data-lucide="terminal" class="w-4 h-4"></i> 代码控制台</span>
                 </button>
-                <div class="w-px h-5" style="background: var(--border-glass);"></div>
-                <div class="mode-toggle-pills">
-                    <button class="mode-pill active" data-mode="chat" onclick="switchMode('chat')">
-                        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i> 智能对话
-                    </button>
-                    <button class="mode-pill" data-mode="course" onclick="switchMode('course')">
-                        <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i> 课程生成
-                    </button>
-                </div>
             </div>
             <div class="flex items-center gap-4">
                 <button id="flow-enter-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border);" onclick="window.flowMode.enter()" aria-label="进入心流模式">

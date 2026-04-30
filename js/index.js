@@ -1271,6 +1271,8 @@ function updateUserUI() {
 function switchTab(tab) {
     const chatView = document.getElementById('chat-view');
     const codeView = document.getElementById('code-view');
+    const openmaicOverlay = document.getElementById('openmaic-overlay');
+    const body = document.body;
 
     if (tab === 'chat') {
         if (codeView && !codeView.classList.contains('hidden')) {
@@ -1278,6 +1280,11 @@ function switchTab(tab) {
         }
         if (chatView) {
             chatView.classList.remove('hidden');
+        }
+        // 关闭课程生成overlay
+        body.classList.remove('openmaic-mode', 'course-mode');
+        if (openmaicOverlay) {
+            openmaicOverlay.classList.add('hidden');
         }
     } else if (tab === 'code') {
         if (chatView && !chatView.classList.contains('hidden')) {
@@ -1291,7 +1298,27 @@ function switchTab(tab) {
                 setTimeout(() => codeEditor.refresh(), 50);
             }
         }
+        // 关闭课程生成overlay
+        body.classList.remove('openmaic-mode', 'course-mode');
+        if (openmaicOverlay) {
+            openmaicOverlay.classList.add('hidden');
+        }
         startCodePracticeTimer();
+    } else if (tab === 'course') {
+        // 隐藏chat和code视图
+        if (chatView && !chatView.classList.contains('hidden')) {
+            chatView.classList.add('hidden');
+        }
+        if (codeView && !codeView.classList.contains('hidden')) {
+            codeView.classList.add('hidden');
+        }
+        // 显示课程生成overlay
+        body.classList.add('openmaic-mode', 'course-mode');
+        if (openmaicOverlay) {
+            openmaicOverlay.classList.remove('hidden');
+            initOpenMAICOverlay();
+            if (window.lucide) lucide.createIcons();
+        }
     }
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1532,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const backChatBtn = document.getElementById('openmaic-back-chat-btn');
     if (backChatBtn) {
         backChatBtn.addEventListener('click', function() {
-            switchMode('chat');
+            switchTab('chat');
         });
     }
 

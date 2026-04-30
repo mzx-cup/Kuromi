@@ -44,6 +44,12 @@
         'actions': document.getElementById('viz-actions')
     };
 
+    // Mini preview elements
+    const miniPreviewCard = document.getElementById('mini-preview-card');
+    const previewTypeBadge = document.getElementById('preview-type-badge');
+    const previewTitle = document.getElementById('preview-title');
+    const previewContent = document.getElementById('preview-content');
+
     function init() {
         loadSession();
         setupEventListeners();
@@ -316,8 +322,9 @@
 
     // ---- Completion ----
 
-    function completeGeneration(data) {
+    async function completeGeneration(data) {
         courseData = data;
+        console.log('[DEBUG] completeGeneration called, courseId:', courseData?.courseId, 'student_id:', sessionData?.student_id, 'type:', typeof sessionData?.student_id);
         abortBtn.style.display = 'none';
 
         // Merge progressive batch slides into final course data if present
@@ -345,12 +352,24 @@
         updateStep(STEPS.length, STEPS[STEPS.length - 1]);
 
         // Save to server
-        const studentId = sessionData?.student_id || '';
-        fetch('/api/v2/course/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ course_data: courseData, student_id: studentId })
-        }).catch(err => console.warn('Save failed:', err));
+        const studentId = String(sessionData?.student_id || '');
+        console.log('[DEBUG] Saving course, studentId:', studentId, 'type:', typeof studentId);
+        try {
+            const response = await fetch('/api/v2/course/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_data: courseData, student_id: studentId })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error('[DEBUG] Save failed with status:', response.status, 'body:', errText);
+            } else {
+                const result = await response.json();
+                console.log('[DEBUG] Save succeeded:', result);
+            }
+        } catch (err) {
+            console.warn('Save failed:', err);
+        }
 
         // Store for classroom
         sessionStorage.setItem('classroomData', JSON.stringify(courseData));
@@ -421,6 +440,12 @@
 
                 case 'progressive_batch':
                     // Store progressive batch data for classroom
+                    // Show mini preview for batch content
+                    if (miniPreviewCard && msg.type) {
+                        miniPreviewCard.classList.add('active');
+                        previewTypeBadge.textContent = (msg.type || 'SLIDE').toUpperCase();
+                        previewTitle.textContent = msg.title?.slice(0, 20) || '生成中...';
+                    }
                     if (msg.slides) {
                         sessionStorage.setItem('progressiveSlides', JSON.stringify(msg.slides));
                         sessionStorage.setItem('progressiveQuizData', JSON.stringify(msg.quiz_data || []));
@@ -430,7 +455,21 @@
 
                 case 'slide_content':
                     updateStep(4, STEPS[4]);
-                    statusDesc.textContent = msg.title || msg.speech_preview || '正在生成内容...';
+                    // Update mini preview with actual content
+                    if (miniPreviewCard) {
+                        miniPreviewCard.classList.add('active');
+                        if (msg.title) {
+                            previewTitle.textContent = msg.title.slice(0, 20) || '课程内容';
+                        }
+                        if (msg.type) {
+                            previewTypeBadge.textContent = msg.type.toUpperCase() || 'SLIDE';
+                        }
+                    }
+                    if (msg.speech_preview) {
+                        statusDesc.textContent = msg.speech_preview.slice(0, 30) + '...';
+                    } else {
+                        statusDesc.textContent = msg.title || '正在生成内容...';
+                    }
                     break;
 
                 case 'image_progress':

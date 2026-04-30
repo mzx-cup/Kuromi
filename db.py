@@ -3251,8 +3251,51 @@ def get_full_user_state(user_id):
 # 课堂记录 CRUD
 # ============================================================
 
+def init_classroom_tables():
+    """初始化课堂记录表"""
+    with get_db() as conn:
+        if conn is None:
+            return
+        try:
+            cursor = conn.cursor()
+            if _is_sqlite(conn):
+                # SQLite: use CURRENT_TIMESTAMP instead of datetime() for defaults
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS classroom_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        course_id TEXT NOT NULL UNIQUE,
+                        title TEXT NOT NULL DEFAULT '',
+                        full_data TEXT NOT NULL,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS classroom_records (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        course_id VARCHAR(100) NOT NULL UNIQUE,
+                        title VARCHAR(255) NOT NULL DEFAULT '',
+                        full_data LONGTEXT NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_user_id (user_id),
+                        INDEX idx_created_at (created_at)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            print(f"初始化课堂记录表失败: {e}")
+
+
 def save_classroom_record(user_id: int, course_id: str, title: str, full_data: str) -> bool:
     """保存课堂记录到数据库"""
+    # 先初始化表（使用独立连接，不依赖contextmanager）
+    init_classroom_tables()
+
     with get_db() as conn:
         if conn is not None:
             try:
@@ -3264,7 +3307,7 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
                         ON CONFLICT(course_id) DO UPDATE SET
                             title=excluded.title,
                             full_data=excluded.full_data,
-                            updated_at=datetime('now','localtime')
+                            updated_at=datetime('now')
                     """, (user_id, course_id, title, full_data))
                 else:
                     cursor.execute("""
@@ -3285,6 +3328,7 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
         for record in records:
             if record.get('course_id') == course_id:
                 record.update({'user_id': user_id, 'title': title, 'full_data': full_data})
+                record.update({'user_id': user_id, 'title': title, 'full_data': full_data})
                 save_local_storage(storage)
                 return True
         records.append({
@@ -3303,6 +3347,7 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
 
 def get_classroom_records(user_id: int) -> list:
     """获取指定学生的所有课堂记录（不含full_data）"""
+    init_classroom_tables()  # 确保表已创建
     with get_db() as conn:
         if conn is not None:
             try:
@@ -3345,6 +3390,7 @@ def get_classroom_records(user_id: int) -> list:
 
 def get_classroom_record(course_id: str) -> Optional[dict]:
     """获取单个课堂记录的完整数据"""
+    init_classroom_tables()  # 确保表已创建
     with get_db() as conn:
         if conn is not None:
             try:
@@ -3370,6 +3416,7 @@ def get_classroom_record(course_id: str) -> Optional[dict]:
 
 def update_classroom_record(course_id: str, title: str) -> bool:
     """更新课堂标题"""
+    init_classroom_tables()  # 确保表已创建
     with get_db() as conn:
         if conn is not None:
             try:
@@ -3403,6 +3450,7 @@ def update_classroom_record(course_id: str, title: str) -> bool:
 
 def delete_classroom_record(course_id: str) -> bool:
     """删除课堂记录"""
+    init_classroom_tables()  # 确保表已创建
     with get_db() as conn:
         if conn is not None:
             try:

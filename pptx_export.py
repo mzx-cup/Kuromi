@@ -19,7 +19,7 @@ from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
 from pptx.chart.data import CategoryChartData
 
-from state import CourseData, Slide, SlideElement, SlideBackground
+from state import CourseData, Slide, SlideElement, SlideBackground, SlideV2, SlideContentItemV2
 
 
 class PPTXExporter:
@@ -69,6 +69,211 @@ class PPTXExporter:
         with open(output_path, 'wb') as f:
             f.write(pptx_bytes)
         return output_path
+
+    def export_v2(self, course_data: CourseData) -> bytes:
+        """导出 V2 结构化布局的课程数据为 PPTX 字节流"""
+        # 添加标题页
+        self._add_title_slide(course_data.title, course_data.teacher.name)
+
+        # 添加 V2 幻灯片
+        for slide_v2 in course_data.slides_v2:
+            self._add_slide_v2(slide_v2)
+
+        # 添加传统幻灯片（如果有）
+        for slide in course_data.slides:
+            self._add_slide(slide)
+
+        # 添加结束页
+        self._add_end_slide()
+
+        # 保存到字节流
+        pptx_stream = io.BytesIO()
+        self.prs.save(pptx_stream)
+        pptx_stream.seek(0)
+        return pptx_stream.read()
+
+    def export_v2_to_file(self, course_data: CourseData, output_path: str) -> str:
+        """导出 V2 课程数据到文件，返回文件路径"""
+        pptx_bytes = self.export_v2(course_data)
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'wb') as f:
+            f.write(pptx_bytes)
+        return output_path
+
+    def _add_slide_v2(self, slide_v2: SlideV2):
+        """添加 V2 结构化布局幻灯片"""
+        slide_layout = self.prs.slide_layouts[6]
+        pptx_slide = self.prs.slides.add_slide(slide_layout)
+
+        # 设置白色背景
+        pptx_slide.background.fill.solid()
+        pptx_slide.background.fill.fore_color.rgb = RgbColor(255, 255, 255)
+
+        # 添加顶部深蓝色标题条
+        header_shape = pptx_slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE,
+            Inches(0), Inches(0),
+            self.prs.slide_width, Inches(0.8)
+        )
+        header_shape.fill.solid()
+        header_shape.fill.fore_color.rgb = RgbColor(30, 64, 175)  # #1E40AF
+        header_shape.line.fill.background()
+
+        # 添加标题文字
+        title_box = pptx_slide.shapes.add_textbox(
+            Inches(0.5), Inches(0.15),
+            Inches(10), Inches(0.5)
+        )
+        tf = title_box.text_frame
+        tf.paragraphs[0].text = slide_v2.title
+        tf.paragraphs[0].font.size = Pt(28)
+        tf.paragraphs[0].font.bold = True
+        tf.paragraphs[0].font.color.rgb = RgbColor(255, 255, 255)
+
+        # 根据 layoutType 计算卡片布局
+        layout_type = slide_v2.layout_type or 'two-column'
+        cards = slide_v2.content or []
+
+        if layout_type == 'title-only':
+            pass  # 只显示标题，无内容卡片
+        elif layout_type == 'two-column':
+            self._add_v2_cards_two_column(pptx_slide, cards)
+        elif layout_type == 'grid-cards':
+            self._add_v2_cards_grid(pptx_slide, cards)
+        elif layout_type in ('header-content', 'quote-highlight'):
+            self._add_v2_cards_vertical(pptx_slide, cards)
+
+    def _add_v2_cards_two_column(self, slide, cards):
+        """添加两栏布局的卡片"""
+        col_width = 5.5
+        row_height = 2.5
+        start_y = 1.2
+
+        for idx, card in enumerate(cards[:2]):  # 最多2列
+            left = Inches(0.5) if idx == 0 else Inches(6.8)
+            self._add_v2_card(slide, card, left, Inches(start_y), Inches(col_width), Inches(row_height))
+
+    def _add_v2_cards_grid(self, slide, cards):
+        """添加网格布局的卡片"""
+        col_width = 5.5
+        row_height = 2.5
+        start_x = [0.5, 6.8]
+        start_y = [1.2, 3.9]
+
+        for idx, card in enumerate(cards[:4]):  # 最多2x2网格
+            col = idx % 2
+            row = idx // 2
+            left = Inches(start_x[col])
+            top = Inches(start_y[row])
+            self._add_v2_card(slide, card, left, top, Inches(col_width), Inches(row_height))
+
+    def _add_v2_cards_vertical(self, slide, cards):
+        """添加垂直布局的卡片"""
+        col_width = 11.5
+        row_height = 1.8
+        start_y = 1.2
+
+        for idx, card in enumerate(cards[:3]):  # 最多3个
+            self._add_v2_card(slide, card, Inches(0.5), Inches(start_y + idx * 2), Inches(col_width), Inches(row_height))
+
+    def _add_v2_card(self, slide, card: SlideContentItemV2, left, top, width, height):
+        """添加单个 V2 内容卡片"""
+        # 卡片背景
+        bg_color = self._parse_v2_color(card.color_theme or 'blue')
+        bg_shape = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE,
+            left, top, width, height
+        )
+        bg_shape.fill.solid()
+        bg_shape.fill.fore_color.rgb = bg_color
+        bg_shape.line.fill.background()
+
+        # 内边距区域
+        text_left = left + Inches(0.15)
+        text_top = top + Inches(0.1)
+        text_width = width - Inches(0.3)
+        text_height = height - Inches(0.2)
+
+        # 添加小标题
+        if card.sub_title:
+            title_box = slide.shapes.add_textbox(text_left, text_top, text_width, Inches(0.4))
+            tf = title_box.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.text = f"📖 {card.sub_title}"
+            p.font.size = Pt(14)
+            p.font.bold = True
+            p.font.color.rgb = self._get_text_color(card.color_theme or 'blue')
+
+        # 添加正文
+        if card.text:
+            text_box = slide.shapes.add_textbox(
+                text_left,
+                text_top + Inches(0.4),
+                text_width,
+                Inches(height.pt - Inches(0.5).pt)
+            )
+            tf = text_box.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.text = card.text[:200]  # 限制长度
+            p.font.size = Pt(11)
+            p.font.color.rgb = RgbColor(30, 41, 59)  # #1E293B
+
+        # 添加代码块
+        if card.code_snippet:
+            code_box = slide.shapes.add_textbox(
+                text_left,
+                text_top + Inches(height.pt - Inches(0.8).pt),
+                text_width,
+                Inches(0.7)
+            )
+            tf = code_box.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.text = card.code_snippet[:100]
+            p.font.name = 'Consolas'
+            p.font.size = Pt(9)
+            p.font.color.rgb = RgbColor(255, 255, 255)
+
+        # 添加配图
+        if card.image_url:
+            img_data = self._fetch_image_data(card.image_url)
+            if img_data:
+                try:
+                    from pptx.util import Inches as I
+                    pic = slide.shapes.add_picture(
+                        io.BytesIO(img_data),
+                        left + Inches(0.1),
+                        top + Inches(height.pt - Inches(1.2).pt),
+                        width - Inches(0.2),
+                        Inches(1)
+                    )
+                except Exception:
+                    pass
+
+    def _parse_v2_color(self, color_theme: str) -> RgbColor:
+        """将 V2 色系转换为 RgbColor"""
+        color_map = {
+            'blue': (0xDB, 0xEA, 0xFE),      # #DBEAFE
+            'yellow': (0xFE, 0xF3, 0xC7),     # #FEF3C7
+            'green': (0xD1, 0xFA, 0xE5),      # #D1FAE5
+            'purple': (0xED, 0xE9, 0xFE),     # #EDE9FE
+            'orange': (0xFF, 0xED, 0xD5),      # #FFEDD5
+        }
+        rgb = color_map.get(color_theme, (0xDB, 0xEA, 0xFE))
+        return RgbColor(*rgb)
+
+    def _get_text_color(self, color_theme: str) -> RgbColor:
+        """获取 V2 色系对应的文字颜色"""
+        color_map = {
+            'blue': RgbColor(30, 64, 175),    # #1E40AF
+            'yellow': RgbColor(146, 64, 14),  # #92400E
+            'green': RgbColor(6, 95, 70),     # #065F46
+            'purple': RgbColor(109, 40, 217),  # #6D28D9
+            'orange': RgbColor(194, 65, 12),   # #C2410C
+        }
+        return color_map.get(color_theme, RgbColor(30, 64, 175))
 
     def _px(self, value: float) -> Inches:
         """将像素值转换为英寸"""
