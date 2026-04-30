@@ -2,6 +2,7 @@ import json
 import os
 from contextlib import contextmanager
 from datetime import datetime
+from typing import Optional
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
