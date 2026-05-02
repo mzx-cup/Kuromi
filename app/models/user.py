@@ -33,5 +33,9 @@ class StudentProfile(Base):
     interaction_count: Mapped[int] = mapped_column(Integer, default=0)
     socratic_pass_rate: Mapped[float] = mapped_column(Float, default=0.0)
     code_practice_time: Mapped[int] = mapped_column(Integer, default=0)
+    preferred_persona: Mapped[Optional[str]] = mapped_column(
+        String(32), default=None, nullable=True,
+        comment="学生偏好的教学风格(可选，为空则由系统根据画像自动选择)"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

@@ -23,6 +23,10 @@ class ClassroomSession(Base):
     chat_history: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     time_spent: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[str] = mapped_column(String(20), default="active")
+    teacher_persona: Mapped[str] = mapped_column(
+        String(32), default="expert_mentor", nullable=False,
+        comment="AI教师角色: patient_tutor|socratic_questioner|energetic_lecturer|expert_mentor"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

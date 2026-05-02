@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # MiniMax 媒体生成模型
     minimax_image_model: str = Field(default="image-01", description="MiniMax image generation model")
     minimax_video_model: str = Field(default="video-01", description="MiniMax video generation model")
-    minimax_tts_model: str = Field(default="speech-02", description="MiniMax TTS model for voice generation")
+    minimax_tts_model: str = Field(default="speech-2.8-hd", description="MiniMax TTS model for voice generation")
 
     # 百度语音识别 API（用于语音转文字）
     baidu_asr_app_id: str = Field(default="", description="百度语音识别 App ID")
