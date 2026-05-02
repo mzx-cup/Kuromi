@@ -6,3 +6,6 @@ __pycache__/
 .pytest_cache/
 storage/state_storage/
 storage/task_storage/
+starlearn_v2.db
+starlearn_v2.db-shm
+starlearn_v2.db-wal

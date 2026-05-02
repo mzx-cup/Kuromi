@@ -415,9 +415,20 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
     "slide_content_v2": """你是一位课程内容专家。根据以下大纲生成幻灯片内容。
 
 课程主题：{course_title}
+场景类型：{scene_type}
 场景标题：{outline_title}
 场景描述：{outline_description}
 关键知识点：{key_points}
+
+【场景类型适配】
+- slide: 标准讲授型幻灯片，图文并茂
+- diagram: 重点展示图表/流程图/架构图，每卡片含图表描述与解读
+- code: 重点展示代码示例和编程实践，每卡片必须包含codeSnippet
+- video: 重点展示视频讲解要点
+- quiz: 测验引导页，展示测验主题和说明
+- exercise: 练习引导页，展示练习任务和要求
+- pbl: 项目引导页，展示项目背景和目标
+- interactive: 互动环节引导页
 
 【输出格式 - 必须严格遵循】
 你必须生成一个JSON对象，包含slides数组。每页幻灯片必须包含：

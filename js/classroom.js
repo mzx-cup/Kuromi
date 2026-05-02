@@ -118,6 +118,22 @@
             this.completionOverlay = document.getElementById('completion-overlay');
             this.audioPlayer = document.getElementById('tts-audio-player');
 
+            // OpenMAIC slide player initialization
+            this.openmaicDeck = null;
+            this.openmaicPlayer = null;
+            if (window.OpenMAICSlidePlayer) {
+                this.openmaicPlayer = new window.OpenMAICSlidePlayer({
+                    container: this.slideContainer,
+                    stage: this.slideStage,
+                    overlay: this.actionOverlay,
+                    audioElement: this.audioPlayer,
+                    speechText: this.speechText,
+                    syncElement: this.speechSync,
+                    teacherAvatar: this.teacherAvatar,
+                    getSpeed: function() { return 1.0; },
+                });
+            }
+
             // Action overlays (create if not exist)
             this.actionOverlay = document.getElementById('action-overlay');
             if (!this.actionOverlay) {
@@ -172,19 +188,51 @@
             const exerciseData = this.courseData.exercise_data || [];
             const slidesV2 = this.courseData.slides_v2 || [];
 
-            this.scenes = outlines.map((outline, i) => ({
-                id: outline.id || i + 1,
-                title: outline.title || `场景 ${i + 1}`,
-                type: outline.type || 'slide',
-                description: outline.description || '',
-                keyPoints: outline.key_points || [],
-                slide: slides[i] || null,
-                slides_v2: slidesV2[i] ? [slidesV2[i]] : [],  // 按场景顺序对应
-                quiz: quizData.find(q => q.id === i + 1) || null,
-                exercise: exerciseData.find(e => e.id === i + 1) || null,
-                audioUrl: this.courseData.tts_audio_urls?.[String(i + 1)] || null,
-                imageUrl: slides[i]?.content?.elements?.[0]?.image_url || null,
-            }));
+            const sameId = function(a, b) {
+                return String(a != null ? a : '') !== '' && String(a != null ? a : '') === String(b != null ? b : '');
+            };
+            const sameTitle = function(item, outline) {
+                return item && item.title && outline && outline.title && String(item.title).trim() === String(outline.title).trim();
+            };
+            const matchesScene = function(item, outline) {
+                var sceneId = outline && outline.id;
+                if (sceneId == null || sceneId === '') return false;
+                // Strategy 1 (best): strict scene_id match (new courses)
+                if (sameId(item && item.scene_id, sceneId)) return true;
+                if (sameId(item && item.sceneId, sceneId)) return true;
+                // Strategy 2: direct id match
+                if (sameId(item && item.id, sceneId)) return true;
+                // Strategy 3 (legacy fallback): title match for old courses where scene_id is undefined
+                if ((item && item.scene_id == null) && (item && item.sceneId == null)) {
+                    return sameTitle(item, outline);
+                }
+                return false;
+            };
+            const findSceneData = function(items, outline) {
+                return (items || []).find(function(item) { return matchesScene(item, outline); }) || null;
+            };
+
+            this.scenes = outlines.map(function(outline, i) {
+                var sceneId = outline.id || i + 1;
+                var matchedSlide = findSceneData(slides, outline);
+                var matchedSlideV2 = findSceneData(slidesV2, outline);
+                var matchedQuiz = findSceneData(quizData, outline);
+                var matchedExercise = findSceneData(exerciseData, outline);
+
+                return {
+                    id: sceneId,
+                    title: outline.title || ('Scene ' + sceneId),
+                    type: outline.type || 'slide',
+                    description: outline.description || '',
+                    keyPoints: outline.key_points || outline.keyPoints || [],
+                    slide: matchedSlide,
+                    slides_v2: matchedSlideV2 ? [matchedSlideV2] : [],
+                    quiz: matchedQuiz,
+                    exercise: matchedExercise,
+                    audioUrl: (this.courseData.tts_audio_urls || {})[String(sceneId)] || null,
+                    imageUrl: (matchedSlide && matchedSlide.content && matchedSlide.content.elements && matchedSlide.content.elements[0] && matchedSlide.content.elements[0].image_url) || null,
+                };
+            }, this);
         }
 
         setupUI() {
@@ -476,9 +524,9 @@
 
         renderSlideV2Scene(scene) {
             if (!this.slideContainer) return;
-            this.slideContainer.style.display = 'flex';
-            this.slideContainer.style.flexDirection = 'column';
+            this.slideContainer.style.display = 'block';
             this.slideContainer.style.animation = 'slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            this.slideContainer.className = 'slide-container openmaic-slide-host';
 
             const slides_v2 = scene.slides_v2 || [];
             if (slides_v2.length === 0) {
@@ -486,9 +534,24 @@
                 return;
             }
 
-            // Render the first slide of the V2 array
-            const slideV2 = slides_v2[0];
-            this.SlideRenderer.render(slideV2, this.slideContainer);
+            const adapter = window.SlideV2ToOpenMAICAdapter;
+            if (!adapter) {
+                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
+                return;
+            }
+
+            const openmaicSlide = adapter.convert(slides_v2[0], scene.id);
+            // Graceful degradation: if adapter returns null or empty elements, fallback
+            if (!openmaicSlide || !openmaicSlide.elements || openmaicSlide.elements.length === 0) {
+                console.warn('[Classroom] Adapter produced invalid slide, falling back to SlideRenderer');
+                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
+                return;
+            }
+            if (this.openmaicPlayer) {
+                this.openmaicPlayer.render(openmaicSlide);
+            } else {
+                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
+            }
         }
 
         // ============================================================

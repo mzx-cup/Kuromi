@@ -78,6 +78,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---- V2 API routes (Star-Learn 2.0) ----
+from app.api import router as v2_router
+app.include_router(v2_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -6232,6 +6236,19 @@ async def rename_course(course_id: str, data: dict[str, Any] = {}):
         json.dump(course, f, ensure_ascii=False, indent=2)
 
     return {"success": True, "course_id": course_id, "title": new_title}
+
+
+# ============================================================
+# V2.0 SSE 课堂流式端点（必须在 {course_id} 前注册，避免路径冲突）
+# ============================================================
+
+from app.core.sse import sse_event, sse_done, sse_heartbeat
+from app.api.classroom import classroom_stream, StreamRequest
+
+
+@app.post("/api/v2/classroom/stream")
+async def v2_classroom_stream(req: StreamRequest):
+    return await classroom_stream(req)
 
 
 # ============================================================
