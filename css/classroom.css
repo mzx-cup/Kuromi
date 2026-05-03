@@ -2678,6 +2678,70 @@ body {
     opacity: 0.6;
 }
 
+/* 13. Bullets 列表样式（结构化 bullets 数组渲染） */
+.content-card .card-bullets {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+    list-style: none;
+    flex: 1;
+    width: 100%;
+}
+
+.content-card .card-bullets li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.7;
+    font-size: 0.9375rem;
+}
+
+.content-card .card-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+}
+
+/* Simplified bullets in legacy renderSlideScene */
+.slide-body .simplified-bullets {
+    margin: 0.75rem 1.5rem;
+    padding-left: 1.5rem;
+    list-style: none;
+}
+
+.slide-body .simplified-bullets li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.7;
+    font-size: 1rem;
+    color: #e2e8f0;
+}
+
+.slide-body .simplified-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+}
+
+.slide-body .simplified-card-title {
+    margin: 0.75rem 1.5rem 0.25rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
 /* 13. 交错入场动画 */
 .layout-grid-cards .content-card:nth-child(1) { animation-delay: 0.1s; }
 .layout-grid-cards .content-card:nth-child(2) { animation-delay: 0.2s; }

@@ -1234,6 +1234,27 @@
             const bgColor = slide.background?.color || slide.theme?.backgroundColor || '#1a1a2e';
 
             if (slide.content?.elements) {
+                // Detect simplified {bullets} format: elements without type but with bullets
+                var hasSimplifiedFormat = slide.content.elements.length > 0 &&
+                    !slide.content.elements[0].type &&
+                    slide.content.elements[0].bullets &&
+                    Array.isArray(slide.content.elements[0].bullets);
+
+                if (hasSimplifiedFormat) {
+                    for (var si = 0; si < slide.content.elements.length; si++) {
+                        var se = slide.content.elements[si];
+                        if (se.title) {
+                            html += `<h3 class="simplified-card-title">${this.escapeHtml(se.title)}</h3>`;
+                        }
+                        if (se.bullets && se.bullets.length) {
+                            html += '<ul class="card-bullets simplified-bullets">';
+                            for (var bi = 0; bi < se.bullets.length; bi++) {
+                                html += `<li>${this.escapeHtml(String(se.bullets[bi]))}</li>`;
+                            }
+                            html += '</ul>';
+                        }
+                    }
+                } else {
                 slide.content.elements.forEach((el, idx) => {
                     const elemId = el.id ? `id="elem-${el.id}"` : '';
                     const animDelay = `animation-delay:${idx * 0.12 + 0.1}s`;
@@ -1285,6 +1306,7 @@
                         html += `<div class="slide-table ${animClass}" ${elemId} style="${animDelay}">${this._renderTable(el.table_data)}</div>`;
                     }
                 });
+                } // end else (not simplified format)
             }
 
             html += '</div></div>';

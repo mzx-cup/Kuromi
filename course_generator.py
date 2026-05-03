@@ -756,6 +756,8 @@ class CourseGenerator:
             content=[
                 SlideContentItemV2(
                     sub_title="概述",
+                    bullets=[f"本节将介绍{outline.title}的相关概念和应用"],
+                    narration=f"同学们好，本节我们来学习{outline.title}的相关内容。",
                     text=f"本节将介绍{outline.title}的相关概念和应用",
                     icon="book",
                     color_theme="blue",
