@@ -142,12 +142,19 @@ async def generate_tts(
     payload = {
         "model": model_name,
         "text": text.strip(),
-        "voice_id": voice_id,
-        "speed": speed,
-        "volume": 1.0,
-        "pitch": 0,
-        "response_format": "mp3",
-        "sample_rate": 32000,
+        "stream": False,
+        "voice_setting": {
+            "voice_id": voice_id,
+            "speed": speed,
+            "vol": 1.0,
+            "pitch": 0,
+        },
+        "audio_setting": {
+            "sample_rate": 32000,
+            "bitrate": 128000,
+            "format": "mp3",
+            "channel": 1,
+        },
     }
 
     logger.info(f"Generating TTS: model={model_name}, voice={voice_id}, text_len={len(text)}")

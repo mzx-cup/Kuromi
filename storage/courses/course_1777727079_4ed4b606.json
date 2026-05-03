@@ -1,0 +1,957 @@
+{
+  "courseId": "course_1777727079_4ed4b606",
+  "title": "Python快速入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Python初识",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Python语言的发展历程与主要版本迭代",
+        "Python在数据科学与Web开发中的应用",
+        "Anaconda或PyCharm开发环境的安装配置"
+      ],
+      "description": "通过生动的幻灯片介绍Python的发展历史、应用领域及开发环境搭建，引导学习者进入编程世界。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "变量的命名规则与赋值操作原理",
+        "字符串、整数、浮点数等基础数据类型",
+        "不同数据类型之间的强制类型转换"
+      ],
+      "description": "在交互式编程环境中，通过实际操作理解变量的定义与赋值，探索不同的数据类型及其转换方法。"
+    },
+    {
+      "id": 3,
+      "title": "基础语法测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "Python标识符的合法命名规则判断",
+        "print函数与input函数的使用区别",
+        "常用数据类型的分类与辨析"
+      ],
+      "description": "针对变量命名规范、数据类型分类及输入输出函数进行综合测验，巩固Python基础语法知识。"
+    },
+    {
+      "id": 4,
+      "title": "流程控制逻辑",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "if-elif-else条件判断语句的执行逻辑",
+        "for循环与while循环的区别与应用",
+        "break与continue关键字在循环中的作用"
+      ],
+      "description": "利用流程图直观展示if条件分支与for/while循环的执行逻辑，帮助理解程序控制流走向。"
+    },
+    {
+      "id": 5,
+      "title": "函数编程实战",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "函数的定义规范与文档字符串编写",
+        "位置参数与关键字参数的传递方式",
+        "return语句的作用与返回值的接收"
+      ],
+      "description": "通过编写计算圆面积和判断奇偶数的函数，练习函数的定义、参数传递及返回值处理。"
+    },
+    {
+      "id": 6,
+      "title": "数据结构操作",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "列表的索引访问、切片与常用方法",
+        "字典的键值对操作与遍历方法",
+        "元组的不可变特性与应用场景"
+      ],
+      "description": "在集成开发环境中编写代码，实践列表、元组与字典的增删改查操作，掌握数据管理技巧。"
+    },
+    {
+      "id": 7,
+      "title": "文件操作分析",
+      "type": "video",
+      "points": 3,
+      "key_points": [
+        "open函数的不同模式与文件打开方式",
+        "read、write与readlines方法的使用",
+        "try-except异常处理机制捕获文件错误"
+      ],
+      "description": "观看演示视频，学习如何使用Python进行文件的读写操作，理解异常处理在文件操作中的重要性。"
+    },
+    {
+      "id": 8,
+      "title": "数据分析项目",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "读取CSV文件并进行数据清洗",
+        "利用循环与条件语句处理数据逻辑",
+        "格式化输出统计结果与报告生成"
+      ],
+      "description": "运用Python基础知识，编写脚本读取销售数据文件，计算总销售额并生成简单的统计报告。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "header-content",
+      "title": "Python初识：开启编程之旅",
+      "content": [
+        {
+          "sub_title": "为什么选择Python？",
+          "text": "Python是一门优雅、简洁且强大的编程语言。它以其极高的可读性和丰富的生态系统，成为了人工智能、数据分析及Web开发领域的首选语言。让我们一起揭开它的神秘面纱。",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/python-logo.png"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "Python的发展历程与应用领域",
+      "content": [
+        {
+          "sub_title": "发展历程与版本迭代",
+          "text": "Python由Guido van Rossum于1989年发明。2000年发布Python 2.0，引入内存回收机制；2008年发布Python 3.0，重构核心库使其更规范。目前Python 3已成为主流标准。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "数据科学领域",
+          "text": "凭借NumPy、Pandas、Matplotlib等强大的第三方库，Python在数据处理、可视化及机器学习领域占据统治地位，是数据科学家的必备工具。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Web开发领域",
+          "text": "Django和Flask等成熟框架让Web开发变得高效快捷。从初创公司到大型企业，Python支撑了Instagram、Pinterest等知名网站的运行。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "开发环境搭建：工欲善其事",
+      "content": [
+        {
+          "sub_title": "Anaconda环境配置",
+          "text": "推荐新手使用Anaconda。它集成了Python解释器、常用科学计算库及Jupyter Notebook编辑器，安装后即可直接使用，避免了复杂的库依赖管理问题。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/anaconda-install.png"
+        },
+        {
+          "sub_title": "PyCharm IDE安装",
+          "text": "PyCharm是专业的Python集成开发环境。它提供智能代码补全、调试功能和项目管理工具，适合开发大型项目。建议下载免费的Community社区版。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/pycharm-welcome.png"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "课程总结与下一步",
+      "content": [
+        {
+          "sub_title": "核心要点回顾",
+          "text": "今天我们了解了Python从诞生到流行的历程，探索了它在数据科学与Web开发中的强大应用，并完成了开发环境的搭建。环境搭建是编程的第一步，务必确保安装成功。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "行动指南",
+          "text": "请尝试在命令行输入 python --version 检查安装结果。下一节课，我们将编写第一行Python代码，正式开始编程实战。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型：数据的容器",
+      "content": [
+        {
+          "sub_title": "什么是变量？",
+          "text": "在Python中，变量就像是一个贴在数据上的“标签”。通过赋值操作，我们可以将数据存储在变量中，以便后续使用。交互式环境让我们能立即看到变量存储的内容。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/variable-box.png"
+        },
+        {
+          "sub_title": "赋值操作原理",
+          "text": "赋值运算符“=”并非数学中的相等，而是将右边的值绑定到左边的变量名上。例如：name = 'Python'，就是将字符串'Python'贴上了name这个标签。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点概览",
+      "content": [
+        {
+          "sub_title": "命名规则",
+          "text": "只能包含字母、数字和下划线，且不能以数字开头。区分大小写，建议使用小写字母与下划线组合（snake_case）。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "字符串",
+          "text": "由引号（单引号或双引号）包裹的文本数据。如：'Hello' 或 \"World\"。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "整数与浮点数",
+          "text": "整数：不带小数点的数字，如 10。浮点数：带小数点的数字，如 3.14。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "类型转换",
+          "text": "使用 int(), float(), str() 等函数可实现数据类型的强制转换，是数据处理的关键技能。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码实战：类型转换",
+      "content": [
+        {
+          "sub_title": "交互式演示",
+          "text": "观察下方代码，我们定义了一个字符串类型的数字，并尝试将其转换为整数进行数学运算。请在交互环境中尝试修改变量的值。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 定义字符串变量\nnum_str = \"100\"\nprint(f\"原始类型: {type(num_str)}\")\n\n# 强制类型转换\nnum_int = int(num_str)\nresult = num_int + 50\n\nprint(f\"转换后类型: {type(num_int)}\")\nprint(f\"计算结果: {result}\") # 输出 150",
+          "image_url": ""
+        },
+        {
+          "sub_title": "代码解析",
+          "text": "1. type() 函数用于查看变量的数据类型。\n2. int() 函数将合法的数字字符串转为整数。\n3. 只有相同类型的数据才能进行运算，转换是连接不同数据的桥梁。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "动手练习：变量侦探",
+      "content": [
+        {
+          "sub_title": "练习任务",
+          "text": "在右侧的交互式代码编辑器中完成以下挑战：\n1. 创建一个名为 price 的变量，赋值为浮点数 19.99。\n2. 创建一个名为 count 的变量，赋值为字符串 \"5\"。\n3. 将 count 转换为整数，并计算 total = price * count_int。\n4. 打印 total 的结果。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "目标达成",
+          "text": "通过这个练习，你将掌握变量的定义、赋值以及不同数据类型间的转换技巧。点击“运行”按钮查看你的代码是否正确！",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "基础语法测验",
+      "content": [
+        {
+          "sub_title": "测验说明",
+          "text": "本次测验旨在检验你对Python基础语法的掌握程度，涵盖变量命名规范、数据类型分类及输入输出函数的使用。请仔细审题，运用所学知识进行作答。",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "考察范围",
+          "text": "1. Python标识符的合法命名规则判断\n2. print函数与input函数的使用区别\n3. 常用数据类型的分类与辨析",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心考点回顾",
+      "content": [
+        {
+          "sub_title": "标识符命名规则",
+          "text": "只能包含字母、数字和下划线，且不能以数字开头。严格区分大小写，避开Python保留关键字。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "输入输出函数",
+          "text": "print()用于将信息输出到控制台。input()用于接收用户输入，且返回值始终为字符串类型。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "数据类型辨析",
+          "text": "整数、浮点数、字符串、布尔值是四大基础类型。使用type()函数可查看变量具体类型。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "典型示例解析",
+      "content": [
+        {
+          "sub_title": "标识符判断示例",
+          "text": "合法命名：my_var, _count, UserName\n非法命名：2nd_place (数字开头), user-name (含连字符), class (关键字)",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "输入输出代码演示",
+          "text": "注意input接收的数据类型转换问题。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 输入输出示例\nname = input(\"请输入姓名: \")\nprint(f\"Hello, {name}\")\n\n# 类型转换示例\nage = int(input(\"请输入年龄: \"))\nprint(f\"明年你将 {age + 1} 岁\")",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "测验须知",
+      "content": [
+        {
+          "sub_title": "作答要求",
+          "text": "本环节包含选择题与代码分析题。请根据题目描述，判断命名合法性、区分数据类型或指出函数执行结果。准备好了吗？让我们开始挑战！",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "程序的大脑：流程控制逻辑",
+      "content": [
+        {
+          "sub_title": "什么是流程控制",
+          "text": "流程控制是程序设计的核心，它决定了代码执行的顺序。通过条件判断和循环结构，程序才能拥有“判断力”和“持久力”，从而解决复杂问题。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "diagram_flow_control_overview.png"
+        },
+        {
+          "sub_title": "三大控制结构",
+          "text": "1. 顺序结构：从上到下依次执行\n2. 分支结构：根据条件选择执行路径\n3. 循环结构：重复执行特定代码块",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "条件判断：if-elif-else 执行逻辑",
+      "content": [
+        {
+          "sub_title": "逻辑流程图解",
+          "text": "程序从上至下判断条件，一旦某个条件为True，执行该分支代码块后跳出整个if结构；若所有条件均为False，则执行else分支（如果有）。",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "diagram_if_elif_else_flow.png"
+        },
+        {
+          "sub_title": "互斥与覆盖",
+          "text": "多个elif分支之间是互斥的，不会重复执行。利用这一特性可以实现多级菜单、成绩评级等分段逻辑。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "注意事项",
+          "text": "注意缩进对齐，Python依靠缩进区分代码块。条件表达式后必须跟随冒号(:)。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "循环结构：for 与 while 的对决",
+      "content": [
+        {
+          "sub_title": "for循环：遍历序列",
+          "text": "适用场景：明确知道循环次数或需要遍历一个集合（如列表、字符串）时。\n逻辑：依次取出序列中的每个元素，执行代码块，直到序列末尾自动结束。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "diagram_for_loop.png"
+        },
+        {
+          "sub_title": "while循环：条件驱动",
+          "text": "适用场景：不确定循环次数，只关心何时满足特定条件时。\n逻辑：只要条件为True，就不断重复执行代码块；条件为False时停止。需警惕死循环。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "diagram_while_loop.png"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "header-content",
+      "title": "循环控制：break 与 continue",
+      "content": [
+        {
+          "sub_title": "break：彻底终止",
+          "text": "在循环中遇到break，立即跳出整个循环，不再执行后续迭代。常用于找到特定结果后提前结束搜索。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "diagram_break_logic.png"
+        },
+        {
+          "sub_title": "continue：跳过当前",
+          "text": "在循环中遇到continue，跳过本次循环剩余的代码，直接进入下一次迭代。常用于过滤不符合条件的数据。",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "diagram_continue_logic.png"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "实战演练：构建逻辑思维",
+      "content": [
+        {
+          "sub_title": "练习任务",
+          "text": "请尝试编写一个简单的用户登录验证程序：\n1. 设置预设密码。\n2. 使用while循环给用户最多3次输入机会。\n3. 输入正确打印“登录成功”并break退出。\n4. 3次均错误打印“账户锁定”。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "思维提示",
+          "text": "思考一下，在哪里使用if判断输入是否正确？在哪里使用break停止循环？计数器变量应该放在循环的什么位置？",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数编程实战",
+      "content": [
+        {
+          "sub_title": "概述",
+          "text": "本节将介绍函数编程实战的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "Python核心数据结构概览",
+      "content": [
+        {
+          "sub_title": "列表",
+          "text": "有序可变容器，可以随时添加或删除元素。适合存储需要动态变化的数据序列，支持索引和切片操作。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "元组",
+          "text": "有序不可变容器，一旦初始化就不能修改。适合存储固定的数据集，如配置信息或函数返回值。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "字典",
+          "text": "无序键值对集合，通过键快速查找值。适合存储具有映射关系的数据，查询效率极高。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "数据结构操作要点解析",
+      "content": [
+        {
+          "sub_title": "列表：索引与切片",
+          "text": "使用下标访问元素（从0开始）；切片语法 [start:end:step] 可灵活获取子列表。常用方法：append(), pop(), sort()。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "字典：键值对管理",
+          "text": "通过 Key 访问 Value；使用 items() 遍历键值对，keys() 遍历键，values() 遍历值。注意键的唯一性。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "元组：不可变特性",
+          "text": "元组没有 append/insert 等方法。不可变性保证了数据安全，常用于多变量赋值和作为字典的键。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战演练：列表与字典操作",
+      "content": [
+        {
+          "sub_title": "列表操作示例",
+          "text": "演示列表的创建、索引访问、切片操作以及增删改方法的具体应用。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 列表操作\nfruits = ['apple', 'banana', 'cherry']\nprint(fruits[0])      # 索引访问: apple\nprint(fruits[1:])     # 切片: ['banana', 'cherry']\n\nfruits.append('orange')  # 增加元素\nfruits[1] = 'blueberry'  # 修改元素\nfruits.remove('apple')   # 删除元素\nprint(fruits)",
+          "image_url": ""
+        },
+        {
+          "sub_title": "字典操作示例",
+          "text": "演示字典的键值对增删改查及遍历方法。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 字典操作\nstudent = {'name': 'Tom', 'age': 20}\nprint(student['name'])    # 查: Tom\n\nstudent['grade'] = 'A'    # 增/改\nstudent['age'] = 21       # 修改\n\ndel student['grade']      # 删除\n\n# 遍历键值对\nfor key, value in student.items():\n    print(f\"{key}: {value}\")",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "元组的安全性与应用",
+      "content": [
+        {
+          "sub_title": "代码演示：不可变的威力",
+          "text": "元组因其不可变性，提供了数据完整性保护。尝试修改元组会引发 TypeError，这在调试中能有效防止意外篡改。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 元组操作示例\ncoordinates = (10, 20, 30)\n\n# 索引访问\nprint(f\"X坐标: {coordinates[0]}\")\n\n# 解包操作\nx, y, z = coordinates\nprint(f\"位置: ({x}, {y}, {z})\")\n\n# 尝试修改会报错\n# coordinates[0] = 15  # TypeError",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "课程总结与最佳实践",
+      "content": [
+        {
+          "sub_title": "核心回顾",
+          "text": "列表适合动态数据管理，字典适合映射关系处理，元组适合固定数据存储。选择合适的数据结构是编写高效代码的关键。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "最佳实践建议",
+          "text": "1. 需要修改数据时首选列表；\n2. 需要快速查找时首选字典；\n3. 数据不应被改变时首选元组；\n4. 遍历字典时优先使用 items() 方法。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "文件操作基础与安全",
+      "content": [
+        {
+          "sub_title": "文件读写流程",
+          "text": "文件操作通常遵循“打开-读写-关闭”的标准流程。在Python中，使用open()函数打开文件会返回一个文件对象，通过该对象可以进行读写操作，最后必须调用close()方法释放系统资源。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "异常处理的重要性",
+          "text": "文件操作极易发生意外，如文件不存在、权限不足或磁盘已满。若不处理异常，程序会直接崩溃。使用try-except结构可以优雅地捕获错误，保证程序的健壮性。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点详解",
+      "content": [
+        {
+          "sub_title": "open函数模式",
+          "text": "'r': 只读模式（默认）\n'w': 写入模式（覆盖）\n'a': 追加模式\n'b': 二进制模式\n'+': 读写模式",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "常用读写方法",
+          "text": "read(): 读取全部内容\nreadlines(): 按行读取返回列表\nwrite(): 写入字符串\nwritelines(): 写入行列表",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "异常处理机制",
+          "text": "try: 包裹可能出错的代码\nexcept: 捕获特定错误类型\nfinally: 无论是否出错都执行（常用于关闭文件）",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码实战：安全读写文件",
+      "content": [
+        {
+          "sub_title": "演示代码解析",
+          "text": "视频演示了如何安全地读取文件。代码使用了try-except块来捕获FileNotFoundError，并在finally块中确保文件对象被正确关闭，这是文件操作的最佳实践。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "try:\n    # 以只读模式打开文件\n    file = open('demo.txt', 'r', encoding='utf-8')\n    content = file.read()\n    print(content)\nexcept FileNotFoundError:\n    print(\"错误：找不到指定文件\")\nfinally:\n    # 确保文件被关闭\n    if 'file' in locals():\n        file.close()",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "header-content",
+      "title": "练习与思考",
+      "content": [
+        {
+          "sub_title": "动手试一试",
+          "text": "请尝试编写一个程序，实现以下功能：\n1. 尝试打开一个名为 'data.txt' 的文件。\n2. 如果文件存在，读取内容并打印行数。\n3. 如果文件不存在，使用 'w' 模式创建该文件，并写入 'Hello Python'。\n4. 使用 try-except 结构处理可能的异常。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "header-content",
+      "title": "项目背景：销售数据自动化分析",
+      "content": [
+        {
+          "sub_title": "项目情境",
+          "text": "你是一家零售公司的数据分析师。月底需要处理数千条销售记录，手动计算不仅耗时而且容易出错。本项目中，我们将运用Python编写脚本，自动化完成数据读取、清洗与统计工作。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "项目目标",
+          "text": "编写Python脚本读取CSV销售数据文件，清洗缺失或异常数据，计算总销售额与平均客单价，并生成一份格式化的统计报告文件。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 8
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点拆解",
+      "content": [
+        {
+          "sub_title": "CSV文件读取与清洗",
+          "text": "使用csv模块或pandas库打开文件。处理数据时需跳过空行，识别并处理'NA'或异常数值，确保计算准确性。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "循环与条件逻辑",
+          "text": "利用for循环遍历每一行数据。结合if条件语句判断数据有效性（如销售额是否为数字），并累加有效数据。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "格式化输出报告",
+          "text": "使用f-string格式化字符串，保留两位小数。将统计结果写入新的文本文件，生成最终的分析报告。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 8
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码实现：从读取到统计",
+      "content": [
+        {
+          "sub_title": "核心代码示例",
+          "text": "以下代码展示了如何打开CSV文件，逐行读取并进行基础的数据清洗与累加计算。请注意异常处理的使用。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "import csv\n\ntotal_sales = 0\nvalid_count = 0\n\nwith open('sales_data.csv', 'r') as file:\n    reader = csv.reader(file)\n    next(reader)  # 跳过表头\n    for row in reader:\n        try:\n            amount = float(row[2])  # 假设金额在第3列\n            if amount > 0:\n                total_sales += amount\n                valid_count += 1\n        except ValueError:\n            continue  # 跳过非数字行\n\nprint(f'总销售额: {total_sales:.2f}')",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 8
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "实战任务与要求",
+      "content": [
+        {
+          "sub_title": "动手练习",
+          "text": "请在本地IDE中完成以下任务：\n1. 下载提供的 'sales_2023.csv' 数据文件。\n2. 编写脚本计算总销售额、平均销售额及最高单笔销售额。\n3. 将结果输出为 'report.txt' 文件。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "进阶挑战",
+          "text": "尝试在报告中增加一项统计：统计销售额大于1000元的订单数量，并计算其占总订单的比例。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 8
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 3,
+      "scene_id": 3,
+      "title": "Python基础语法综合测验",
+      "questions": [
+        {
+          "question": "下列哪个选项是合法的Python变量名？",
+          "options": [
+            "1_variable",
+            "print",
+            "_count",
+            "my-var"
+          ],
+          "correct_answer": 2,
+          "explanation": "Python变量名必须以字母或下划线开头，不能以数字开头（排除A），不能包含连字符-（排除D）。虽然print是内置函数名，但在语法上可以作为变量名（不推荐），而_count完全符合命名规则，是最佳答案。"
+        },
+        {
+          "question": "关于input()函数，下列说法正确的是？",
+          "options": [
+            "input()函数接收到的数据默认是整数类型",
+            "input('提示信息')会在控制台输出提示信息并等待用户输入",
+            "input()函数不需要参数就可以运行，且不返回任何内容",
+            "input()和print()函数的功能完全一样"
+          ],
+          "correct_answer": 1,
+          "explanation": "input()函数接收的用户输入默认为字符串类型（A错）；它可以接受一个字符串参数作为提示信息（B对）；该函数会返回用户输入的内容（C错）；input用于接收输入，print用于输出，功能不同（D错）。"
+        },
+        {
+          "question": "执行代码 `x = 3.14` 后，变量x属于哪种数据类型？",
+          "options": [
+            "int",
+            "str",
+            "float",
+            "bool"
+          ],
+          "correct_answer": 2,
+          "explanation": "3.14是一个带有小数点的数值，Python中将其识别为浮点数，因此变量x的数据类型是float。int是整数，str是字符串，bool是布尔类型。"
+        },
+        {
+          "question": "下列代码的输出结果是什么？\n`print(type(10 // 3))`",
+          "options": [
+            "<class 'float'>",
+            "<class 'int'>",
+            "<class 'str'>",
+            "<class 'double'>"
+          ],
+          "correct_answer": 1,
+          "explanation": "// 是整除运算符，10除以3的整数部分是3，结果为整数3，因此类型是int。如果是 / 运算符，结果才是浮点数。Python中没有double类型。"
+        },
+        {
+          "question": "若要从用户输入的字符串中获取一个整数并进行计算，正确的操作是？",
+          "options": [
+            "num = input() + 10",
+            "num = int(input()) + 10",
+            "num = str(input()) + 10",
+            "num = float(input()) + 10"
+          ],
+          "correct_answer": 1,
+          "explanation": "input()返回的是字符串，不能直接与整数相加（会报错）。需要先用int()函数将字符串转换为整数，然后才能进行数学运算。选项D转换为浮点数虽然能计算，但题目要求获取整数，选项B最为准确。"
+        }
+      ],
+      "speech": "同学们，这次测验主要考察了Python的变量命名规则、基本数据类型以及输入输出函数的用法。大家要注意input()返回的是字符串，进行数值运算前必须类型转换。错题要及时整理哦！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 5,
+      "scene_id": 5,
+      "title": "Python函数编程实战：从定义到调用",
+      "exercises": [
+        {
+          "instruction": "定义一个名为 calculate_circle_area 的函数，该函数接收一个位置参数 radius（半径）。请在函数内部使用 return 语句返回圆的面积（公式：3.14 * radius * radius）。",
+          "hints": [
+            "Python中使用 def 关键字来定义函数。",
+            "记得在函数名后加上圆括号和冒号。",
+            "使用 return 关键字可以将计算结果返回给调用者。"
+          ],
+          "expected_answer": "def calculate_circle_area(radius):\n    return 3.14 * radius * radius"
+        },
+        {
+          "instruction": "定义一个名为 check_number 的函数，包含两个参数：num（数字）和 is_even（布尔值，默认为True）。如果 is_even 为True，函数返回 num 是否为偶数的布尔值；如果 is_even 为False，返回 num 是否为奇数的布尔值。请使用关键字参数调用该函数判断数字 7 是否为奇数。",
+          "hints": [
+            "函数参数可以使用 '参数名=默认值' 的格式设置默认值。",
+            "取模运算符 % 可以用于判断奇偶性（num % 2 == 0 为偶数）。",
+            "调用函数时，使用 '参数名=值' 的形式即为关键字参数传递。"
+          ],
+          "expected_answer": "def check_number(num, is_even=True):\n    if is_even:\n        return num % 2 == 0\n    else:\n        return num % 2 != 0\n\nresult = check_number(num=7, is_even=False)"
+        }
+      ],
+      "speech": "同学们，现在我们进入实战环节。第一个练习旨在巩固函数的定义与返回值处理，大家要注意return语句一旦执行，函数即结束运行。第二个练习重点在于参数的灵活性，请大家尝试使用关键字参数来调用函数，这能让代码的可读性大幅提升。编写时，别忘了给函数加上文档字符串，养成良好习惯。动手试一试，感受封装代码的魅力吧！"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习python",
+    "student_id": "1",
+    "session_id": "7579e278-5b52-4f81-ad8a-5c41da66a415",
+    "generated_at": "2026-05-02 21:04:39",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

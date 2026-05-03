@@ -177,8 +177,8 @@
                 <button id="flashcard-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border);" onclick="window.flashcardUI.open()" aria-label="知识胶囊">
                     <i data-lucide="layers" class="w-3.5 h-3.5"></i> 胶囊
                 </button>
-                <div id="dispatch-badge" class="text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1" style="background: var(--primary-50); color: var(--primary); border-color: var(--primary-200);">
-                    <i data-lucide="sparkles" class="w-3 h-3"></i> <span id="dispatch-label">等待调度</span>
+                <div id="dispatch-badge" class="dispatch-indicator dispatch-idle" title="AI 调度状态">
+                    <div class="dispatch-light"></div>
                 </div>
                 <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleLeftCol()" aria-label="切换左栏">
                     <i data-lucide="panel-left" class="w-4 h-4"></i>
@@ -791,6 +791,14 @@
                 <i data-lucide="message-circle" class="w-4 h-4"></i>
                 <span>返回聊天</span>
             </button>
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="切换主题">
+                <svg class="w-4 h-4 sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <svg class="w-4 h-4 moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                </svg>
+            </button>
             <button class="openmaic-toolbar-btn" id="openmaic-settings-btn" title="设置">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
@@ -963,6 +971,57 @@
         <!-- 底部 -->
         <div class="openmaic-footer">
             星识 Star-Learn 智能课程生成系统
+        </div>
+    </div>
+
+    <!-- 编辑课程弹窗 -->
+    <div class="custom-modal" id="edit-course-modal">
+        <div class="modal-backdrop" id="edit-modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">编辑课程名称</h3>
+                <button class="modal-close-btn" id="edit-modal-close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label class="modal-label">课程名称</label>
+                <input type="text" class="modal-input" id="edit-course-input" placeholder="请输入课程名称">
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="edit-cancel-btn">取消</button>
+                <button class="modal-btn modal-btn-primary" id="edit-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除课程确认弹窗 -->
+    <div class="custom-modal" id="delete-course-modal">
+        <div class="modal-backdrop" id="delete-modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">删除课程</h3>
+                <button class="modal-close-btn" id="delete-modal-close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="delete-warning-icon">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <p class="delete-warning-text">确定要删除这个课程吗？</p>
+                <p class="delete-warning-sub">此操作不可撤销，课程的所有内容将被永久删除</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn modal-btn-secondary" id="delete-cancel-btn">取消</button>
+                <button class="modal-btn modal-btn-danger" id="delete-confirm-btn">删除</button>
+            </div>
         </div>
     </div>
 

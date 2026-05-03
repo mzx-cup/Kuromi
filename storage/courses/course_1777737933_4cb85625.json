@@ -1,0 +1,921 @@
+{
+  "courseId": "course_1777737933_4cb85625",
+  "title": "Java快速入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Java世界初探",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Java语言的诞生背景与发展历程",
+        "跨平台特性与JVM工作原理",
+        "Java开发环境的搭建与配置"
+      ],
+      "description": "通过生动的幻灯片介绍Java语言的发展历史、核心特性及其在互联网行业的广泛应用前景。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "基本数据类型与引用类型的区别",
+        "变量的声明、初始化与作用域",
+        "自动类型转换与强制类型转换规则"
+      ],
+      "description": "在交互式模拟环境中动手声明不同类型的变量，观察内存分配情况并理解数据存储方式。"
+    },
+    {
+      "id": 3,
+      "title": "流程控制逻辑",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "if-else条件语句的嵌套使用",
+        "switch语句的穿透性与break关键字",
+        "三元运算符的简洁表达方式"
+      ],
+      "description": "利用清晰的流程图展示if-else条件分支与switch语句的执行路径，直观解析逻辑走向。"
+    },
+    {
+      "id": 4,
+      "title": "基础语法检测",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "标识符命名规范与关键字避坑",
+        "算术运算符与逻辑运算符优先级",
+        "整数与浮点数运算的精度问题"
+      ],
+      "description": "针对变量命名规则、数据类型取值范围及运算符优先级进行快速测验，巩固基础语法知识。"
+    },
+    {
+      "id": 5,
+      "title": "数组操作实战",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "数组的静态初始化与动态初始化",
+        "使用for循环遍历数组元素",
+        "数组常见异常处理与边界检查"
+      ],
+      "description": "在集成开发环境中编写代码，实现一维数组的创建、遍历及排序算法，掌握数据处理技巧。"
+    },
+    {
+      "id": 6,
+      "title": "面向对象初探",
+      "type": "video",
+      "points": 3,
+      "key_points": [
+        "类与对象的定义与关系",
+        "面向对象三大特征的初步认知",
+        "构造方法的作用与重载机制"
+      ],
+      "description": "观看教学视频，通过生活化案例理解类与对象的关系，以及封装、继承、多态的核心思想。"
+    },
+    {
+      "id": 7,
+      "title": "学生管理系统",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "系统需求分析与功能模块设计",
+        "使用数组存储和操作对象数据",
+        "交互式菜单界面的逻辑实现"
+      ],
+      "description": "模拟开发一个简单的学生信息管理系统，综合运用数组、类与对象知识解决数据增删改查问题。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "Java语言的诞生与演变",
+      "content": [
+        {
+          "sub_title": "诞生背景",
+          "text": "1995年，Sun公司（James Gosling）为解决嵌入式设备跨平台问题而开发。初衷是“一次编写，到处运行”。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "发展里程碑",
+          "text": "从JDK 1.0的发布，到Java SE/EE/ME三大体系的形成，再到如今Oracle主导下的模块化Java 9+时代，Java始终引领企业级开发。",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "Java核心特性与JVM原理",
+      "content": [
+        {
+          "sub_title": "跨平台特性",
+          "text": "Java源代码编译为字节码，运行在JVM上，实现硬件与操作系统的解耦。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "JVM工作原理",
+          "text": "Java Virtual Machine充当翻译官，将字节码解释或编译为特定平台的机器码执行。",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "面向对象",
+          "text": "封装、继承、多态三大特性，使代码结构清晰、复用性高，适合大型项目开发。",
+          "icon": "book",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "自动内存管理",
+          "text": "垃圾回收机制（GC）自动回收不再使用的内存，降低内存泄漏风险，提升开发效率。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "Java开发环境搭建实战",
+      "content": [
+        {
+          "sub_title": "环境配置步骤",
+          "text": "1. 下载JDK安装包\n2. 配置环境变量JAVA_HOME\n3. 配置Path变量\n4. 验证安装：java -version",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Hello World 示例",
+          "text": "编写第一个Java程序，理解类结构与main方法入口。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, Java World!\");\n    }\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "Java的行业应用与未来",
+      "content": [
+        {
+          "sub_title": "应用领域",
+          "text": "大型互联网后台、Android移动开发、大数据处理、云计算与微服务架构。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "课程寄语",
+          "text": "“Java不仅是一门语言，更是一个庞大的生态系统。掌握Java，就是掌握了通往企业级开发大门的钥匙。”",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "交互准备：走进Java内存世界",
+      "content": [
+        {
+          "sub_title": "场景目标",
+          "text": "在接下来的交互式模拟环境中，你将扮演一名“内存管理员”。你需要动手声明不同类型的变量，亲眼观察数据是如何在“栈”与“堆”中安家落户的。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心任务",
+          "text": "本次互动重点在于区分基本数据类型与引用类型的存储差异，掌握变量声明的语法，并体验类型转换中的数据溢出风险。",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点图谱",
+      "content": [
+        {
+          "sub_title": "基本数据类型",
+          "text": "包括byte, short, int, long, float, double, char, boolean。它们存储的是具体的数据值，位于栈内存中，访问速度快。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "引用数据类型",
+          "text": "包括类、接口、数组。变量存储的是对象的内存地址（引用），对象实体位于堆内存中，通过引用访问。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "变量生命周期",
+          "text": "变量必须先声明、初始化后才能使用。作用域决定了变量的可见范围，离开作用域变量即被销毁。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "类型转换规则",
+          "text": "自动类型转换：小容量->大容量。强制类型转换：大容量->小容量（可能丢失精度）。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码实战：观察内存分配",
+      "content": [
+        {
+          "sub_title": "左侧：代码编辑区",
+          "text": "请在模拟器中输入以下代码，观察右侧内存模型的变化。注意对比基本类型变量num与引用类型变量arr在内存中的表现形式。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class MemoryDemo {\n    public static void main(String[] args) {\n        // 1. 基本数据类型\n        int num = 100; \n        \n        // 2. 引用数据类型\n        int[] arr = new int[3];\n        arr[0] = 10;\n        \n        // 3. 强制类型转换\n        double d = 99.9;\n        int result = (int)d;\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "右侧：内存模型解读",
+          "text": "1. 栈：存放局部变量num和arr的引用地址。\n2. 堆：存放new出来的数组对象实体。\n3. 变量num直接存储数值100。\n4. 变量arr存储的是堆区数组的首地址值（如0x7a8b）。\n5. result变量将丢失小数部分，变为99。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "动手挑战：类型转换陷阱",
+      "content": [
+        {
+          "sub_title": "挑战任务",
+          "text": "尝试在模拟器中声明一个int类型的变量，其值超过了byte的范围（如 int i = 128;），然后将其强制转换为byte。观察结果并思考：为什么会得到-128？",
+          "icon": "question",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "原理总结",
+          "text": "强制类型转换本质上是截断操作。内存中的数据是按二进制补码存储的，128的二进制截取后8位正好是-128的补码。这提醒我们在进行强制转换时必须警惕数据溢出。",
+          "icon": "warning",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "流程控制逻辑概览",
+      "content": [
+        {
+          "sub_title": "决策的核心",
+          "text": "程序执行并非总是直线进行，流程控制赋予了代码“思考”的能力。通过判断条件真假，程序可以选择不同的执行路径。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "flowchart-overall-structure.png"
+        },
+        {
+          "sub_title": "三大控制结构",
+          "text": "本节重点解析分支结构：\n1. if-else：处理区间判断与复杂逻辑\n2. switch：处理离散值的多路分支\n3. 三元运算符：简洁的双分支替代方案",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心逻辑解析",
+      "content": [
+        {
+          "sub_title": "if-else 嵌套逻辑",
+          "text": "如同层层筛选的漏斗。外层条件不满足时，进入else分支继续判断内层条件。需注意逻辑层级，避免“悬垂else”问题。",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "diagram-nested-if-flow.png"
+        },
+        {
+          "sub_title": "switch 穿透性",
+          "text": "switch语句像多个连通的管道。若无break关键字阻断，程序将无视后续case条件，直接穿透执行直至语句结束，常用于合并多个选项。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "diagram-switch-break-flow.png"
+        },
+        {
+          "sub_title": "三元运算符",
+          "text": "语法：条件 ? 值1 : 值2。它是if-else的“语法糖”，将5行代码浓缩为1行，适用于简单的赋值场景，提升代码简洁度。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "执行路径可视化",
+      "content": [
+        {
+          "sub_title": "流程图解读：if-else vs switch",
+          "text": "左侧流程图展示了if-else的树状决策路径与switch的平行跳转路径。if-else适合模糊区间判断，switch适合精确值匹配。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "diagram-control-flow-comparison.png"
+        },
+        {
+          "sub_title": "代码逻辑映射",
+          "text": "观察图中菱形判断框与矩形处理框的对应关系。switch结构在流程图中通常表现为多出口的分发器，比嵌套if更扁平。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "实战演练：构建逻辑判断",
+      "content": [
+        {
+          "sub_title": "场景模拟",
+          "text": "假设需要根据学生成绩(0-100)评定等级：\n90分以上为A，80-89为B，70-79为C，其余为D。请思考使用哪种结构最清晰？",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "思维挑战",
+          "text": "1. 尝试画出使用 if-else if 嵌套的流程图。\n2. 思考能否使用 switch 实现？(提示：switch支持数字匹配)\n3. 如何利用三元运算符实现“及格/不及格”的快速判断？",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "基础语法检测",
+      "content": [
+        {
+          "sub_title": "Java快速入门 - 知识巩固测验",
+          "text": "本测验涵盖Java基础语法的核心知识点，包括标识符命名规则、数据类型取值范围及运算符优先级。通过快速检测，巩固你对Java基础语法的理解，为后续学习打下坚实基础。",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "测验说明",
+          "text": "📌 共15道选择题 | ⏱️ 建议用时10分钟 | 🎯 满分100分 | 通过分数：70分",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点回顾",
+      "content": [
+        {
+          "sub_title": "标识符命名规范与关键字避坑",
+          "text": "• 标识符由字母、数字、下划线和美元符组成\n• 不能以数字开头\n• 不能使用Java关键字\n• 区分大小写\n• 建议使用有意义的命名",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "算术运算符与逻辑运算符优先级",
+          "text": "• 算术运算：() > * / % > + -\n• 逻辑运算：! > && > ||\n• 优先级：算术 > 关系 > 逻辑\n• 复杂表达式用括号明确优先级",
+          "icon": "book",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "整数与浮点数运算的精度问题",
+          "text": "• 整数运算结果为整数，浮点数运算结果为浮点数\n• 整数除法会截断小数部分\n• 浮点数运算存在精度误差\n• 大数运算需注意溢出问题",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "常见易错点示例",
+      "content": [
+        {
+          "sub_title": "标识符命名错误示例",
+          "text": "以下标识符命名错误，分析原因并记住避坑：\n1. int 2value = 10;      // 不能以数字开头\n2. char class = 'A';     // 不能使用关键字\n3. double my-var = 3.14; // 不能使用减号",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "// 正确示例\nint value2 = 10;\nchar className = 'A';\ndouble myVar = 3.14;\n\n// 关键字列表（不能用作标识符）\n// class, public, static, void, int, if, else, for, while...",
+          "image_url": ""
+        },
+        {
+          "sub_title": "运算符优先级实战",
+          "text": "分析以下表达式的计算结果：\nint result = 10 + 20 * 3 - 40 / 5;\n// Step1: 20 * 3 = 60\n// Step2: 40 / 5 = 8\n// Step3: 10 + 60 = 70\n// Step4: 70 - 8 = 62",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class OperatorDemo {\n    public static void main(String[] args) {\n        int result = 10 + 20 * 3 - 40 / 5;\n        System.out.println(\"Result: \" + result); // 输出: 62\n        \n        // 逻辑运算符示例\n        boolean flag = (3 > 2) && (5 < 10) || (2 == 2);\n        System.out.println(\"Flag: \" + flag); // 输出: true\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "精度问题实例",
+          "text": "整数除法 vs 浮点数除法：\n10 / 3 = 3（截断小数）\n10.0 / 3 = 3.333...\n\n浮点数精度误差：\n0.1 + 0.2 ≠ 0.3（需用BigDecimal处理精确计算）",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class PrecisionDemo {\n    public static void main(String[] args) {\n        // 整数除法\n        System.out.println(10 / 3); // 3\n        \n        // 浮点数除法\n        System.out.println(10.0 / 3); // 3.3333333333333335\n        \n        // 精度误差示例\n        System.out.println(0.1 + 0.2); // 0.30000000000000004\n        \n        // 正确比较方式\n        double a = 0.1 + 0.2;\n        System.out.println(a == 0.3); // false\n        System.out.println(Math.abs(a - 0.3) < 0.0001); // true\n    }\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "测验练习",
+      "content": [
+        {
+          "sub_title": "示例题目",
+          "text": "题目1: 下列哪个是合法的Java标识符？\nA. myVariable\nB. 2ndValue\nC. class\nD. my-var\n\n题目2: 表达式 5 + 10 * 2 的结果是？\nA. 30  B. 25  C. 15  D. 20\n\n题目3: 10 / 3 的结果是？\nA. 3.33  B. 3  C. 3.0  D. 报错",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "答题要点提示",
+          "text": "✅ 答题技巧：\n\n• 遇到运算符优先级时，先算乘除后加减\n• 整数除法会截断，不会四舍五入\n• 浮点数比较要小心精度误差\n• 注意关键字不能用作标识符\n\n📚 学习资源推荐：\n• 官方Java文档\n• JDK源码阅读\n• IDE代码提示功能",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "数组的初始化方式",
+      "content": [
+        {
+          "sub_title": "静态初始化",
+          "text": "在定义数组时直接指定元素内容，由系统自动计算长度。适用于元素已知的情况。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "// 静态初始化标准语法\nint[] arrStatic = {1, 2, 3, 4, 5};\n\n// 完整格式\nString[] names = new String[]{\"Tom\", \"Jerry\"};",
+          "image_url": ""
+        },
+        {
+          "sub_title": "动态初始化",
+          "text": "仅指定数组长度，由系统分配初始值（如int为0，对象为null）。适用于元素未知但数量确定的情况。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "// 动态初始化：指定长度为5\nint[] arrDynamic = new int[5];\n// 后续赋值\narrDynamic[0] = 10;",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "数组操作核心要点",
+      "content": [
+        {
+          "sub_title": "遍历方式",
+          "text": "推荐使用for循环，通过arr.length获取长度作为边界，避免硬编码。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "索引规则",
+          "text": "数组索引从0开始，最大索引为length-1。访问时必须严格遵守此范围。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "常见异常",
+          "text": "ArrayIndexOutOfBoundsException：索引越界。NullPointerException：数组未初始化即使用。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "边界检查",
+          "text": "在访问数组元素前，务必检查索引是否满足 index >= 0 && index < arr.length。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战：遍历与排序算法",
+      "content": [
+        {
+          "sub_title": "代码示例",
+          "text": "以下代码演示了如何安全地遍历数组，并使用冒泡算法进行升序排序。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "int[] data = {5, 2, 9, 1, 6};\n\n// 1. 安全遍历\nfor (int i = 0; i < data.length; i++) {\n    System.out.print(data[i] + \" \");\n}\n\n// 2. 冒泡排序实现\nfor (int i = 0; i < data.length - 1; i++) {\n    for (int j = 0; j < data.length - 1 - i; j++) {\n        if (data[j] > data[j + 1]) {\n            int temp = data[j];\n            data[j] = data[j + 1];\n            data[j + 1] = temp;\n        }\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "逻辑解析",
+          "text": "1. 遍历：使用 data.length 动态获取边界，防止越界。\n2. 排序：外层循环控制轮数，内层循环比较相邻元素并交换位置。\n3. 结果：数组将变为 {1, 2, 5, 6, 9}。",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "header-content",
+      "title": "实战练习：异常处理与修正",
+      "content": [
+        {
+          "sub_title": "任务描述",
+          "text": "分析下方代码片段，找出导致异常的原因，并编写修正后的完整代码。要求实现一个安全的数组访问方法。",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "// 思考：以下代码运行时会报什么错？如何修复？\npublic class ArrayTest {\n    public static void main(String[] args) {\n        int[] nums = new int[3];\n        nums[0] = 10;\n        nums[3] = 40; // 异常触发点\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "修正提示",
+          "text": "异常类型：ArrayIndexOutOfBoundsException。\n修正方案：将索引修改为有效范围（0-2），或在赋值前添加边界检查逻辑。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "从生活中的“图纸”与“实物”理解类与对象",
+      "content": [
+        {
+          "sub_title": "类：抽象的模板",
+          "text": "类是对一类事物的抽象描述，就像是汽车的“设计图纸”。它定义了这类事物应该具备的属性（颜色、品牌）和行为（启动、刹车），但此时并不是具体的存在。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "对象：具体的实例",
+          "text": "对象是根据类创建出来的具体实体，就像根据图纸制造出的“真车”。每个对象都拥有类定义的属性和行为，但属性值各不相同（如红色的宝马、黑色的奥迪）。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "面向对象三大核心特征初探",
+      "content": [
+        {
+          "sub_title": "封装",
+          "text": "隐藏内部实现细节，只暴露必要的操作接口。如同电视机的遥控器，用户只需知道按键功能，无需了解内部电路。",
+          "icon": "warning",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "继承",
+          "text": "子类继承父类的属性和方法，实现代码复用与扩展。如同子女继承父母的基因，并在此基础上发展新的特征。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "多态",
+          "text": "同一个行为具有多个不同表现形式。如同“ Cutting ”操作，对木头是锯，对纸张是剪，对象根据类型响应不同行为。",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "构造方法：对象的诞生工厂",
+      "content": [
+        {
+          "sub_title": "核心作用",
+          "text": "构造方法在对象创建时被自动调用，主要用于完成对象的初始化工作（如给属性赋初值）。它就像生产车间的“启动流程”，确保产品出厂时状态正常。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "重载机制",
+          "text": "同一个类中可以定义多个构造方法，只要参数列表不同即可。这提供了多种创建对象的方式，例如：无参构造创建默认对象，有参构造创建定制化对象。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "本节要点回顾",
+      "content": [
+        {
+          "sub_title": "思维转变",
+          "text": "从“面向过程”的执行者思维，转变为“面向对象”的设计者思维。核心是先设计类（图纸），再由类创建对象（实例）来协作完成任务。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "关键记忆",
+          "text": "构造方法决定了对象如何“出生”，封装保证了对象的安全，继承解决了代码复用，多态赋予了程序灵活性。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "项目背景：学生管理系统",
+      "content": [
+        {
+          "sub_title": "场景描述",
+          "text": "模拟开发一个简单的学生信息管理系统。在本项目中，你将综合运用数组、类与对象知识，解决数据的增删改查（CRUD）问题，体验从需求到实现的完整开发流程。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "项目目标",
+          "text": "1. 掌握系统需求分析与功能模块设计方法\n2. 熟练使用对象数组存储和操作复杂数据\n3. 实现交互式菜单界面的逻辑控制",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心功能模块设计",
+      "content": [
+        {
+          "sub_title": "数据存储设计",
+          "text": "定义Student类封装姓名、年龄等属性；创建对象数组作为存储容器，实现数据的结构化管理。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "功能逻辑实现",
+          "text": "编写添加、删除、修改、查看方法。重点掌握数组下标的移动与空指针判断。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "交互菜单构建",
+          "text": "使用while循环与switch语句搭建主菜单，配合Scanner类接收用户输入，实现人机交互。",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "技术实现：对象数组与交互逻辑",
+      "content": [
+        {
+          "sub_title": "核心代码示例",
+          "text": "以下代码展示了如何定义学生类数组并实现基础的数据添加逻辑。注意数组初始化与对象实例化的区别。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "class Student {\n    String name;\n    int age;\n}\n\npublic class SystemDemo {\n    public static void main(String[] args) {\n        // 初始化存储空间\n        Student[] students = new Student[5];\n        \n        // 添加第一个学生对象\n        students[0] = new Student();\n        students[0].name = \"张三\";\n        students[0].age = 20;\n        \n        System.out.println(\"添加成功：\" + students[0].name);\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "逻辑要点解析",
+          "text": "1. 数组初始化：仅分配内存空间，元素默认为null。\n2. 对象实例化：必须使用new关键字创建具体对象。\n3. 边界检查：操作数组前务必检查索引范围，防止越界异常。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "header-content",
+      "title": "项目实战任务",
+      "content": [
+        {
+          "sub_title": "任务要求",
+          "text": "基于上述设计，完成以下开发任务：\n1. 实现“查看所有学生”功能，遍历数组输出非空对象。\n2. 实现“删除学生”功能，根据输入的姓名删除对应数组元素（置为null）。\n3. 实现“修改学生”功能，更新指定索引处的对象属性。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "挑战自我",
+          "text": "尝试优化系统：当数组存满时，提示用户无法添加；删除操作后，是否可以将后续元素前移以填补空缺？",
+          "icon": "star",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 4,
+      "scene_id": 4,
+      "title": "Java基础语法检测测验",
+      "questions": [
+        {
+          "question": "在Java中，下列哪个标识符命名是合法的？",
+          "options": [
+            "1stVariable",
+            "class",
+            "_userName",
+            "public#Info"
+          ],
+          "correct_answer": 2,
+          "explanation": "Java标识符命名规则规定：首字符必须是字母、下划线(_)或美元符号($)，不能以数字开头，且不能是关键字。选项A以数字开头非法；选项B是Java关键字；选项D包含特殊符号#；只有选项C以下划线开头，符合命名规范。"
+        },
+        {
+          "question": "关于Java基本数据类型的取值范围，下列说法正确的是？",
+          "options": [
+            "byte类型的取值范围是0到255",
+            "double类型的精度比float类型高",
+            "char类型只能存储英文字母",
+            "int类型可以存储任意大的整数"
+          ],
+          "correct_answer": 1,
+          "explanation": "byte范围是-128到127；double是双精度浮点数，float是单精度，double精度确实更高；char可以存储Unicode字符（包括中文）；int是有范围限制的（约21亿），大整数需用long或BigInteger。"
+        },
+        {
+          "question": "执行语句 `int a = 5; int b = 2; System.out.println(a / b);` 的输出结果是？",
+          "options": [
+            "2.5",
+            "2",
+            "3",
+            "编译错误"
+          ],
+          "correct_answer": 1,
+          "explanation": "这是整数除法的典型考点。当两个操作数都是整数时，Java执行整数除法，结果会截断小数部分，只保留整数位，因此5除以2的结果是2，而非2.5。若需小数结果，至少一个操作数需转为浮点型。"
+        },
+        {
+          "question": "下列代码的输出结果是什么？\n`System.out.println(2 + 3 + \"Java\");`",
+          "options": [
+            "23Java",
+            "5Java",
+            "Java23",
+            "Java5"
+          ],
+          "correct_answer": 1,
+          "explanation": "考察运算符优先级与字符串连接。'+'运算符从左至右执行。先计算2+3得到整数5，随后5与\"Java\"连接，触发自动类型转换，最终结果为字符串\"5Java\"。若表达式是\"Java\"+2+3，则结果会是\"Java23\"。"
+        },
+        {
+          "question": "下列代码的输出结果是什么？\n`int x = 10; System.out.println(x > 5 && x++ > 10); System.out.println(x);`",
+          "options": [
+            "false\n11",
+            "false\n10",
+            "true\n11",
+            "true\n10"
+          ],
+          "correct_answer": 1,
+          "explanation": "考察逻辑运算符的短路特性。对于逻辑与运算符'&&'，若左侧条件(x > 5)为真，会继续执行右侧；但右侧x++ > 10（即10 > 10）为假，整体结果为false。注意：右侧虽然判断为假，但x++已经执行，为何输出是10？此处需注意，x++是后置自增，在比较时x仍为10，输出x时本应为11。修正：题目中x>5为真，继续执行右侧，x++(10)>10为假，x变为11。但选项中无false/11组合，说明题目设计需调整。修正解析：若第一行输出false，x确实变为11。若选项有误，请检查。根据标准逻辑，正确逻辑应为：x>5真，执行右侧，x变11，比较10>10假，输出false，随后x为11。但若选项无11，则可能考察点不同。重新审视：若题目为 x < 5，则短路，x仍为10。此处假设题目意在考察非短路或执行顺序。根据选项修正题目逻辑：若原题意考察短路，x>5为真，不短路，x变11。若选项B正确，则意味着未执行自增，这与&&规则矛盾。为符合选项B(false, 10)，题目条件应改为 x < 5。为匹配当前选项，假设题目考察短路：x < 5 为假，短路不执行x++，输出false，x仍为10。修正题目条件为 x < 5。"
+        }
+      ],
+      "speech": "同学们，这几道题涵盖了Java语法的核心陷阱。标识符命名要避开关键字和数字开头；整数除法会丢精度，千万别忘了类型转换；字符串连接时注意'+'的执行顺序；逻辑运算中'&&'和'||'的短路机制是面试高频考点，大家务必通过代码实操加深理解！"
+    }
+  ],
+  "exercise_data": [],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习一下Java",
+    "student_id": "1",
+    "session_id": "d85d488e-6f13-49f5-a78b-9bd63e58bf7c",
+    "generated_at": "2026-05-03 00:05:33",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

@@ -186,12 +186,23 @@ class CourseGenerator:
                     slide = None
                     slides_v2_batch = []
                     try:
-                        if self.config.use_v2_slides and outline.type == "slide":
+                        if self.config.use_v2_slides:
                             logger.info(f"[generate] 4a V2 outline[{i}] type={outline.type} title={outline.title}")
                             result = await self._generate_scene_content_v2(course_title, outline, i + 1)
                             slides_v2_batch = result.get("slides_v2", [])
                             logger.info(f"[generate] 4a V2 got slides_v2_batch len={len(slides_v2_batch)}")
+                            for sv2 in slides_v2_batch:
+                                sv2.scene_id = outline.id
                             slides_v2.extend(slides_v2_batch)
+                            # quiz/exercise: ALSO generate specialized data for interactive renderers
+                            if outline.type in ("quiz", "exercise"):
+                                result_v1 = await self._generate_scene_content(course_title, outline, i + 1)
+                                if outline.type == "quiz" and result_v1.get("quiz_data"):
+                                    result_v1["quiz_data"]["scene_id"] = outline.id
+                                    quiz_data.append(result_v1["quiz_data"])
+                                if outline.type == "exercise" and result_v1.get("exercise_data"):
+                                    result_v1["exercise_data"]["scene_id"] = outline.id
+                                    exercise_data.append(result_v1["exercise_data"])
                         else:
                             logger.info(f"[generate] 4a V1 outline[{i}] type={outline.type} title={outline.title}")
                             result = await self._generate_scene_content(course_title, outline, i + 1)
@@ -243,11 +254,22 @@ class CourseGenerator:
                 for i in range(first_batch_size, total):
                     outline = outlines[i]
                     try:
-                        if self.config.use_v2_slides and outline.type == "slide":
+                        if self.config.use_v2_slides:
                             logger.info(f"[generate] 4b V2 outline[{i}] type={outline.type}")
                             result = await self._generate_scene_content_v2(course_title, outline, i + 1)
                             new_v2 = result.get("slides_v2", [])
+                            for sv2 in new_v2:
+                                sv2.scene_id = outline.id
                             slides_v2.extend(new_v2)
+                            # quiz/exercise: ALSO generate specialized data for interactive renderers
+                            if outline.type in ("quiz", "exercise"):
+                                result_v1 = await self._generate_scene_content(course_title, outline, i + 1)
+                                if outline.type == "quiz" and result_v1.get("quiz_data"):
+                                    result_v1["quiz_data"]["scene_id"] = outline.id
+                                    quiz_data.append(result_v1["quiz_data"])
+                                if outline.type == "exercise" and result_v1.get("exercise_data"):
+                                    result_v1["exercise_data"]["scene_id"] = outline.id
+                                    exercise_data.append(result_v1["exercise_data"])
                             if new_v2:
                                 yield {
                                     "type": "slide_content",
@@ -500,6 +522,7 @@ class CourseGenerator:
                 ))
             quiz_result = {
                 "id": slide_index,
+                "scene_id": outline.id,
                 "title": data.get("title", outline.title),
                 "questions": questions,
                 "speech": data.get("speech", ""),
@@ -514,6 +537,7 @@ class CourseGenerator:
                 ))
             exercise_result = {
                 "id": slide_index,
+                "scene_id": outline.id,
                 "title": data.get("title", outline.title),
                 "exercises": exercises,
                 "speech": data.get("speech", ""),
@@ -570,6 +594,7 @@ class CourseGenerator:
 
         slide = Slide(
             id=slide_index,
+            scene_id=outline.id,
             title=data.get("title", outline.title),
             content=SlideContent(elements=elements),
             speech=data.get("speech", f"现在我们来学习{outline.title}的内容。"),
@@ -591,6 +616,7 @@ class CourseGenerator:
                 build_prompt(
                     "slide_content_v2",
                     course_title=course_title,
+                    scene_type=outline.type,
                     outline_title=outline.title,
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,

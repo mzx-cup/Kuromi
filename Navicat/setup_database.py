@@ -17,7 +17,7 @@ MYSQL_CONFIG = {
     'host': os.environ.get('MYSQL_HOST', '127.0.0.1'),
     'port': int(os.environ.get('MYSQL_PORT', 3306)),
     'user': os.environ.get('MYSQL_USER', 'root'),
-    'password': os.environ.get('MYSQL_PASSWORD', '123456'),
+    'password': os.environ.get('MYSQL_PASSWORD', 'root'),
     'charset': 'utf8mb4',
 }
 DATABASE_NAME = 'xingshi'
@@ -424,6 +424,7 @@ MYSQL_TABLES = [
         user_id INT NOT NULL,
         course_id VARCHAR(100) NOT NULL UNIQUE,
         title VARCHAR(255) NOT NULL DEFAULT '',
+        ppt_pages INT DEFAULT 0,
         full_data LONGTEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

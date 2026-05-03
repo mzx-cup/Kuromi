@@ -697,6 +697,7 @@ window.StarData = (function () {
 
 console.log("[StarData] Data layer initialized");
 
+<<<<<<< HEAD
 // ========================================
 // 页面访问追踪（全站通用）
 // 每次页面加载时记录时间戳到 localStorage
@@ -719,3 +720,69 @@ console.log("[StarData] Data layer initialized");
     if (visits.length > 50) visits = visits.slice(-50);
     localStorage.setItem('page_visits', JSON.stringify(visits));
 })();
+=======
+/**
+ * fetchSSEStream — POST-based SSE stream reader.
+ *
+ * Uses fetch + ReadableStream to handle POST SSE endpoints.
+ * Native EventSource is NOT used because it only supports GET
+ * and cannot carry complex JSON payloads or custom headers.
+ *
+ * @param {Object} options
+ * @param {string} options.url — POST endpoint URL
+ * @param {Object} options.body — JSON-serializable request body
+ * @param {function} options.onEvent — callback(eventType, data)
+ * @param {function} [options.onError] — callback(error)
+ * @param {function} [options.onDone] — callback()
+ * @returns {{ abort: function }} — controller to abort the stream
+ */
+window.fetchSSEStream = function ({ url, body, onEvent, onError, onDone }) {
+  const controller = new AbortController();
+  const parser = new SSEParser();
+  parser.onEvent = onEvent;
+
+  (async () => {
+    let reader;
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`SSE stream failed: HTTP ${response.status}`);
+      }
+
+      reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          parser.flush();
+          if (onDone) onDone();
+          break;
+        }
+        // CRITICAL: feed decoded text to parser which accumulates
+        // and splits by \n\n before JSON.parse. Never parse chunks directly.
+        parser.feed(decoder.decode(value, { stream: true }));
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('[fetchSSEStream] Error:', err);
+      if (onError) onError(err);
+    } finally {
+      if (reader) {
+        try { reader.releaseLock(); } catch (_) {}
+      }
+    }
+  })();
+
+  return {
+    abort: () => controller.abort(),
+  };
+};
+
+>>>>>>> 1b9d4fbb6fc7de3a6dd9ce17a87b251cb39d8f16

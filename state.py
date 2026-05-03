@@ -411,6 +411,7 @@ class Slide(BaseModel):
     image_prompt: str = ""  # 配图生成提示词(用于image-01模型)
     background: SlideBackground = Field(default_factory=SlideBackground)  # 背景设置
     remark: str = ""  # 教师备注/讲解要点摘要
+    scene_id: Optional[int] = None  # strict FK → SceneOutline.id
 
 
 class SlideContentItemV2(BaseModel):
@@ -440,6 +441,7 @@ class SlideV2(BaseModel):
     layout_type: str = "two-column"  # title-only, two-column, grid-cards, header-content, quote-highlight
     title: str = ""
     content: list[SlideContentItemV2] = Field(default_factory=list)
+    scene_id: Optional[int] = None  # strict FK → SceneOutline.id
 
     @field_validator('layout_type')
     @classmethod
