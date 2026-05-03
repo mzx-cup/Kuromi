@@ -3266,11 +3266,17 @@ def init_classroom_tables():
                         user_id INTEGER NOT NULL,
                         course_id TEXT NOT NULL UNIQUE,
                         title TEXT NOT NULL DEFAULT '',
+                        ppt_pages INTEGER DEFAULT 0,
                         full_data TEXT NOT NULL,
                         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                try:
+                    cursor.execute("ALTER TABLE classroom_records ADD COLUMN ppt_pages INTEGER DEFAULT 0")
+                    conn.commit()
+                except:
+                    pass
             else:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS classroom_records (
@@ -3278,6 +3284,7 @@ def init_classroom_tables():
                         user_id INT NOT NULL,
                         course_id VARCHAR(100) NOT NULL UNIQUE,
                         title VARCHAR(255) NOT NULL DEFAULT '',
+                        ppt_pages INT DEFAULT 0,
                         full_data LONGTEXT NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -3285,13 +3292,18 @@ def init_classroom_tables():
                         INDEX idx_created_at (created_at)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """)
+                try:
+                    cursor.execute("ALTER TABLE classroom_records ADD COLUMN IF NOT EXISTS ppt_pages INT DEFAULT 0")
+                    conn.commit()
+                except:
+                    pass
             conn.commit()
             cursor.close()
         except Exception as e:
             print(f"初始化课堂记录表失败: {e}")
 
 
-def save_classroom_record(user_id: int, course_id: str, title: str, full_data: str) -> bool:
+def save_classroom_record(user_id: int, course_id: str, title: str, full_data: str, ppt_pages: int = 0) -> bool:
     """保存课堂记录到数据库"""
     # 先初始化表（使用独立连接，不依赖contextmanager）
     init_classroom_tables()
@@ -3302,20 +3314,21 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute("""
-                        INSERT INTO classroom_records (user_id, course_id, title, full_data)
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO classroom_records (user_id, course_id, title, ppt_pages, full_data)
+                        VALUES (?, ?, ?, ?, ?)
                         ON CONFLICT(course_id) DO UPDATE SET
                             title=excluded.title,
+                            ppt_pages=excluded.ppt_pages,
                             full_data=excluded.full_data,
                             updated_at=datetime('now')
-                    """, (user_id, course_id, title, full_data))
+                    """, (user_id, course_id, title, ppt_pages, full_data))
                 else:
                     cursor.execute("""
-                        INSERT INTO classroom_records (user_id, course_id, title, full_data)
-                        VALUES (%s, %s, %s, %s)
+                        INSERT INTO classroom_records (user_id, course_id, title, ppt_pages, full_data)
+                        VALUES (%s, %s, %s, %s, %s)
                         ON DUPLICATE KEY UPDATE
-                            title=%s, full_data=%s
-                    """, (user_id, course_id, title, full_data, title, full_data))
+                            title=%s, ppt_pages=%s, full_data=%s
+                    """, (user_id, course_id, title, ppt_pages, full_data, title, ppt_pages, full_data))
                 conn.commit()
                 cursor.close()
                 return True
@@ -3327,8 +3340,7 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
         records = storage.get('classroom_records', [])
         for record in records:
             if record.get('course_id') == course_id:
-                record.update({'user_id': user_id, 'title': title, 'full_data': full_data})
-                record.update({'user_id': user_id, 'title': title, 'full_data': full_data})
+                record.update({'user_id': user_id, 'title': title, 'full_data': full_data, 'ppt_pages': ppt_pages})
                 save_local_storage(storage)
                 return True
         records.append({
@@ -3336,6 +3348,7 @@ def save_classroom_record(user_id: int, course_id: str, title: str, full_data: s
             'user_id': user_id,
             'course_id': course_id,
             'title': title,
+            'ppt_pages': ppt_pages,
             'full_data': full_data,
             'created_at': 'local',
             'updated_at': 'local',
@@ -3354,7 +3367,7 @@ def get_classroom_records(user_id: int) -> list:
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute("""
-                        SELECT id, user_id, course_id, title, created_at, updated_at
+                        SELECT id, user_id, course_id, title, ppt_pages, created_at, updated_at
                         FROM classroom_records WHERE user_id = ?
                         ORDER BY created_at DESC
                     """, (user_id,))
@@ -3362,7 +3375,7 @@ def get_classroom_records(user_id: int) -> list:
                     import pymysql
                     cursor = conn.cursor(pymysql.cursors.DictCursor)
                     cursor.execute("""
-                        SELECT id, user_id, course_id, title, created_at, updated_at
+                        SELECT id, user_id, course_id, title, ppt_pages, created_at, updated_at
                         FROM classroom_records WHERE user_id = %s
                         ORDER BY created_at DESC
                     """, (user_id,))
@@ -3382,6 +3395,7 @@ def get_classroom_records(user_id: int) -> list:
                     'user_id': r.get('user_id'),
                     'course_id': r.get('course_id'),
                     'title': r.get('title'),
+                    'ppt_pages': r.get('ppt_pages', 0),
                     'created_at': r.get('created_at'),
                     'updated_at': r.get('updated_at'),
                 })

@@ -117,18 +117,50 @@ content字段可以使用以下markdown标记来组织富文本内容：
 关键知识点：{key_points}
 
 要求：
-1. 生成4-6道选择题
-2. 每题4个选项
-3. 包含正确答案索引和详细解析
-4. 题目难度递进
-5. 生成AI教师的讲解台词（50-100字）
-6. 生成配图提示词（英文）
+1. 生成4-6道题目，至少包含以下三类题型：
+   - single（单选题）：1-2道，每题4个选项，1个正确答案
+   - multiple（多选题）：1-2道，每题4个选项，1-3个正确答案
+   - short_answer（简答题）：1-2道，需学生输入文字回答
+2. 题目难度递进，从基础概念到综合应用
+3. 所有题目需包含详细解析(explanation)
+4. 简答题必须包含参考答案(answer)和评分标准(comment_prompt)，列出3-5个关键评分要点(key_points)
+5. 每道题注明分值(points)，单选题5分、多选题8分、简答题15分
+6. 生成AI教师的讲解台词speech（50-100字）
+7. 生成配图提示词image_prompt（英文）
 
 输出JSON格式：
-- title: 测验标题
-- questions: 数组，每个含 question, options(4项), correct_answer(0-3), explanation
-- speech: 教师引导语
-- image_prompt: 英文配图提示词
+{{
+  "title": "测验标题",
+  "questions": [
+    {{
+      "question": "题目内容",
+      "question_type": "single",
+      "options": ["A选项", "B选项", "C选项", "D选项"],
+      "correct_answer": 0,
+      "explanation": "答案解析",
+      "points": 5
+    }},
+    {{
+      "question": "多选题内容",
+      "question_type": "multiple",
+      "options": ["A选项", "B选项", "C选项", "D选项"],
+      "correct_answers": [0, 2],
+      "explanation": "答案解析",
+      "points": 8
+    }},
+    {{
+      "question": "简答题内容",
+      "question_type": "short_answer",
+      "answer": "参考答案",
+      "comment_prompt": "评分标准说明",
+      "key_points": ["要点1", "要点2", "要点3"],
+      "explanation": "答案解析",
+      "points": 15
+    }}
+  ],
+  "speech": "教师引导语",
+  "image_prompt": "英文配图提示词"
+}}
 
 只输出JSON，不要添加其他文字。""",
 
@@ -420,6 +452,35 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景描述：{outline_description}
 关键知识点：{key_points}
 
+【幻灯片设计原则 - 最重要，必须遵守】
+幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。如果一段文字读起来像是在"说"而不是在"展示"，它就不应该出现在幻灯片上。
+
+【核心字段说明 - 两个字段缺一不可】
+1. bullets（字符串数组）：屏幕展示用的简短要点，每条≤25中文字符，每卡3-5条
+2. narration（字符串）：AI教师口语化讲课台词，150-300字，TTS语音引擎用
+   - 必须是连贯的、自然的讲课语言（不能只是把bullets读一遍）
+   - 包含引入语、知识点讲解、过渡句
+   - 如"同学们好！今天我们来学习变量这个非常重要的概念。首先，变量就像是编程世界里的储物盒..."
+
+【bullets字段格式强制要求】
+- bullets 是 JSON 字符串数组，每个元素是一条简短要点
+- 每条 bullet 不超过25个中文字符或15个英文单词
+- 每个卡片3-5条 bullets，绝不超过6条
+- 不要在 bullet 里写 `- ` 前缀（JSON数组已经表达了列表结构）
+- 禁止将多个要点合并成长段落放入单个数组元素
+
+【正误示例】
+❌ 错误写法（一条超长bullet——这是长段落伪装）：
+"bullets": ["Python变量是编程中用于存储数据的基本容器，你可以把变量想象成一个带有标签的盒子，盒子上贴着变量的名字，盒子里装着具体的数据。在Python中创建变量非常简单，你只需要使用赋值语句即可完成创建。"]
+
+✅ 正确写法（精简短句数组）：
+"bullets": [
+  "变量是存储数据的容器，有变量名和值两部分",
+  "使用 = 赋值语句即可创建变量，如 name = \\"Alice\\"",
+  "同一变量可多次赋值，新值自动覆盖旧值",
+  "变量名区分大小写，age和Age是两个不同变量"
+]
+
 【场景类型适配】
 - slide: 标准讲授型幻灯片，图文并茂
 - diagram: 重点展示图表/流程图/架构图，每卡片含图表描述与解读
@@ -431,10 +492,17 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - interactive: 互动环节引导页
 
 【输出格式 - 必须严格遵循】
-你必须生成一个JSON对象，包含slides数组。每页幻灯片必须包含：
+生成一个JSON对象，包含slides数组。每页幻灯片包含：
 - layoutType: 布局类型（title-only/two-column/grid-cards/header-content/quote-highlight）
 - title: 幻灯片大标题
-- content: 内容数组，每个元素包含 subTitle（小标题）、text（正文）、icon（图标名：book|lightbulb|code|check|star|question|warning|info）、colorTheme（色系：blue|yellow|green|purple|orange）、codeSnippet（可选代码）、imageUrl（可选配图）
+- content: 内容数组，每个元素包含：
+  - subTitle: 卡片小标题（5-10字）
+  - bullets: 字符串数组（每条≤25中文字符，3-5条）
+  - narration: AI教师口语化讲课台词（150-300字，连贯自然的口语，供TTS语音引擎朗读）
+  - icon: 图标名（book|lightbulb|code|check|star|question|warning|info）
+  - colorTheme: 色系（blue|yellow|green|purple|orange）
+  - codeSnippet: 可选代码块
+  - imageUrl: 可选配图URL
 
 生成3-5页幻灯片，覆盖以下内容：
 1. 概念引入页（建议用 two-column 或 header-content）
@@ -443,6 +511,32 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 4. 练习巩固页（可用任意布局）
 
 色系分配：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调
+
+【完整输出示例】
+{{{{
+  "slides": [
+    {{{{
+      "layoutType": "grid-cards",
+      "title": "Python变量入门",
+      "content": [
+        {{{{
+          "subTitle": "什么是变量",
+          "bullets": [
+            "变量是存储数据的命名容器",
+            "变量名是标签，变量值是内容",
+            "使用 = 赋值语句创建和修改变量",
+            "Python变量无需声明类型，直接赋值即可"
+          ],
+          "narration": "同学们好！今天我们来学习Python中最基础的概念——变量。变量就像是一个带标签的储物盒，盒子的名字就是变量名，里面装的东西就是变量的值。在Python中创建一个变量非常简单，直接写等号就行了，不需要像其他语言那样先声明类型。",
+          "icon": "lightbulb",
+          "colorTheme": "blue",
+          "codeSnippet": "",
+          "imageUrl": ""
+        }}}}
+      ]
+    }}}}
+  ]
+}}}}
 
 只输出JSON，不要添加其他文字。""",
 

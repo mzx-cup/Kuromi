@@ -3,7 +3,6 @@
 
     var DEFAULT_VIEWPORT = 1000;
     var DEFAULT_RATIO = 0.5625;
-    var EFFECT_CLEAR_MS = 5000;
 
     function OpenMAICSlidePlayer(options) {
         options = options || {};
@@ -58,7 +57,6 @@
         this.slide = slide;
 
         var viewport = this.getViewport(slide);
-        var height = viewport.width * viewport.ratio;
         var bgStyle = this.buildSlideBackground(slide);
         var elementsHtml = (slide.elements || []).map(function(el, index) {
             return this.renderElement(el, index, viewport);
@@ -120,6 +118,8 @@
         if (!options.keepSlide) this.slide = null;
     };
 
+    // ---- Action Pipeline ----
+
     OpenMAICSlidePlayer.prototype.processNext = function() {
         if (this.mode !== 'playing') return;
         if (this.actionIndex >= this.queue.length) {
@@ -141,14 +141,15 @@
             self.removeTimer(timerId);
             switch (action.type) {
                 case 'spotlight':
-                    self.showSpotlight(action.targetId, action.duration || 3000);
+                    self.showSpotlight(action.targetId, action.duration || 4000);
                     self.processNext();
                     break;
                 case 'laser':
-                    self.showLaser(action.x, action.y, action.duration || 2000);
+                    self.showLaser(action.x, action.y, action.duration || 3000);
                     self.processNext();
                     break;
                 case 'speech':
+                    self.showSpeechText(action.text);
                     self.playSpeech(action.text).then(function() { self.processNext(); });
                     break;
                 default:
@@ -158,41 +159,161 @@
         this.timers.push(timerId);
     };
 
+    // ---- Spotlight: SVG Mask Implementation ----
+    // Full-screen dim overlay with a "hole" punched at the target element position,
+    // plus a glowing border. Matches OpenMAIC SpotlightOverlay.tsx behavior.
+
     OpenMAICSlidePlayer.prototype.showSpotlight = function(targetId, duration) {
         if (!this.overlay) return;
+        duration = duration || 4000;
         var target = targetId ? document.getElementById(targetId) : null;
         var rect = target ? target.getBoundingClientRect() : {left: 200, top: 150, width: 600, height: 300};
-        var el = document.createElement('div');
-        el.className = 'openmaic-spotlight';
-        el.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + rect.top + 'px;width:' + rect.width + 'px;height:' + rect.height + 'px;pointer-events:none;z-index:9999;border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.45),0 0 30px rgba(59,130,246,0.6);transition:opacity 0.5s;';
-        this.overlay.appendChild(el);
+        var pad = 10;
+
+        if (target) {
+            target.classList.add('spotlight-target');
+        }
+
+        var svgNS = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('class', 'openmaic-spotlight-svg');
+        svg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+
+        var maskId = 'spotlight-mask-' + Date.now();
+        var defs = document.createElementNS(svgNS, 'defs');
+        var mask = document.createElementNS(svgNS, 'mask');
+        mask.setAttribute('id', maskId);
+
+        // White = show dim overlay (visible through mask)
+        var whiteRect = document.createElementNS(svgNS, 'rect');
+        whiteRect.setAttribute('width', '100%');
+        whiteRect.setAttribute('height', '100%');
+        whiteRect.setAttribute('fill', 'white');
+        mask.appendChild(whiteRect);
+
+        // Black = punch hole at target (hidden through mask → transparent)
+        var hole = document.createElementNS(svgNS, 'rect');
+        hole.setAttribute('x', Math.max(0, rect.left - pad));
+        hole.setAttribute('y', Math.max(0, rect.top - pad));
+        hole.setAttribute('width', rect.width + pad * 2);
+        hole.setAttribute('height', rect.height + pad * 2);
+        hole.setAttribute('fill', 'black');
+        hole.setAttribute('rx', '14');
+        mask.appendChild(hole);
+
+        defs.appendChild(mask);
+        svg.appendChild(defs);
+
+        // Dim overlay with mask applied
+        var dimRect = document.createElementNS(svgNS, 'rect');
+        dimRect.setAttribute('width', '100%');
+        dimRect.setAttribute('height', '100%');
+        dimRect.setAttribute('fill', 'rgba(15, 23, 42, 0.6)');
+        dimRect.setAttribute('mask', 'url(#' + maskId + ')');
+        svg.appendChild(dimRect);
+
+        // Glow border around the hole
+        var glow = document.createElementNS(svgNS, 'rect');
+        glow.setAttribute('x', Math.max(0, rect.left - pad));
+        glow.setAttribute('y', Math.max(0, rect.top - pad));
+        glow.setAttribute('width', rect.width + pad * 2);
+        glow.setAttribute('height', rect.height + pad * 2);
+        glow.setAttribute('fill', 'none');
+        glow.setAttribute('stroke', 'rgba(99, 102, 241, 0.7)');
+        glow.setAttribute('stroke-width', '2.5');
+        glow.setAttribute('rx', '14');
+        glow.setAttribute('class', 'openmaic-spotlight-glow');
+        svg.appendChild(glow);
+
+        this.overlay.appendChild(svg);
+
         var self = this;
         var timerId = setTimeout(function() {
-            el.style.opacity = '0';
-            setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+            svg.style.opacity = '0';
+            svg.style.transition = 'opacity 0.4s ease';
+            if (target) target.classList.remove('spotlight-target');
+            setTimeout(function() {
+                if (svg.parentNode) svg.parentNode.removeChild(svg);
+            }, 400);
             self.removeTimer(timerId);
         }, duration);
         this.timers.push(timerId);
     };
+
+    // ---- Laser: Animated Fly-in + Pulse Ring ----
+    // Red dot flies in from the nearest viewport corner to the target position,
+    // with a pulsing ring. Matches OpenMAIC LaserOverlay.tsx behavior.
 
     OpenMAICSlidePlayer.prototype.showLaser = function(x, y, duration) {
         if (!this.overlay) return;
+        duration = duration || 3000;
+        x = x || 500;
+        y = y || 280;
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+
+        // Fly-in from nearest corner
+        var startX = x < vw / 2 ? -20 : vw + 20;
+        var startY = y < vh / 2 ? -20 : vh + 20;
+
+        var container = document.createElement('div');
+        container.className = 'openmaic-laser-container';
+        container.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10000;';
+
+        // Pulsing ring around the target
+        var ring = document.createElement('div');
+        ring.className = 'openmaic-laser-ring';
+        ring.style.cssText = 'position:fixed;left:' + (x - 20) + 'px;top:' + (y - 20) + 'px;width:40px;height:40px;';
+        container.appendChild(ring);
+
+        // Animated dot with CSS custom properties for fly-in trajectory
         var dot = document.createElement('div');
         dot.className = 'openmaic-laser-dot';
-        dot.style.cssText = 'position:fixed;left:' + (x || 500) + 'px;top:' + (y || 280) + 'px;width:12px;height:12px;border-radius:50%;background:rgba(239,68,68,0.9);box-shadow:0 0 16px rgba(239,68,68,0.7);pointer-events:none;z-index:10000;transition:opacity 0.3s;';
-        this.overlay.appendChild(dot);
+        dot.style.setProperty('--laser-start-x', startX + 'px');
+        dot.style.setProperty('--laser-start-y', startY + 'px');
+        dot.style.setProperty('--laser-end-x', x + 'px');
+        dot.style.setProperty('--laser-end-y', y + 'px');
+        container.appendChild(dot);
+
+        this.overlay.appendChild(container);
+
         var self = this;
         var timerId = setTimeout(function() {
-            dot.style.opacity = '0';
-            setTimeout(function() { if (dot.parentNode) dot.parentNode.removeChild(dot); }, 300);
+            container.style.opacity = '0';
+            container.style.transition = 'opacity 0.3s ease';
+            setTimeout(function() {
+                if (container.parentNode) container.parentNode.removeChild(container);
+            }, 300);
             self.removeTimer(timerId);
         }, duration);
         this.timers.push(timerId);
     };
 
+    // ---- Speech ----
+
+    OpenMAICSlidePlayer.prototype.showSpeechText = function(text) {
+        if (this.speechText && text) {
+            this.speechText.textContent = text;
+        }
+        if (this.syncElement) {
+            this.syncElement.style.display = 'flex';
+        }
+        if (this.teacherAvatar) {
+            this.teacherAvatar.classList.add('speaking');
+        }
+    };
+
+    OpenMAICSlidePlayer.prototype.hideSpeechText = function() {
+        if (this.syncElement) {
+            this.syncElement.style.display = 'none';
+        }
+        if (this.teacherAvatar) {
+            this.teacherAvatar.classList.remove('speaking');
+        }
+    };
+
     OpenMAICSlidePlayer.prototype.playSpeech = function(text) {
-        var self = this;
-        if (this.audioElement && text) {
+        if (text) {
             return this.playBrowserSpeech(text);
         }
         return Promise.resolve();
@@ -206,8 +327,16 @@
             var utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = self.getSpeed();
             utterance.lang = 'zh-CN';
-            utterance.onend = function() { self.currentUtterance = null; resolve(); };
-            utterance.onerror = function() { self.currentUtterance = null; resolve(); };
+            utterance.onend = function() {
+                self.currentUtterance = null;
+                self.hideSpeechText();
+                resolve();
+            };
+            utterance.onerror = function() {
+                self.currentUtterance = null;
+                self.hideSpeechText();
+                resolve();
+            };
             self.currentUtterance = utterance;
             window.speechSynthesis.speak(utterance);
         });
@@ -224,6 +353,7 @@
         this.pauseAudio();
         this.currentUtterance = null;
         this.pausedSpeech = null;
+        this.hideSpeechText();
     };
 
     OpenMAICSlidePlayer.prototype.clearTimers = function() {
@@ -240,6 +370,11 @@
 
     OpenMAICSlidePlayer.prototype.clearEffects = function() {
         if (this.overlay) this.overlay.innerHTML = '';
+        // Remove spotlight-target class from any elements
+        var targets = document.querySelectorAll('.spotlight-target');
+        for (var i = 0; i < targets.length; i++) {
+            targets[i].classList.remove('spotlight-target');
+        }
     };
 
     OpenMAICSlidePlayer.prototype.clearSpeechVisualSync = function() {
@@ -251,8 +386,24 @@
 
     OpenMAICSlidePlayer.prototype.normalizeActions = function(actions, slide) {
         if (!Array.isArray(actions)) return [];
-        return actions.filter(function(a) { return a && a.type; });
+        // Resolve elementId-based spotlight/laser to pixel coordinates if needed
+        return actions.filter(function(a) { return a && a.type; }).map(function(a) {
+            if (a.type === 'spotlight' && a.elementId && !a.targetId) {
+                a.targetId = a.elementId;
+            }
+            if (a.type === 'laser' && a.elementId && (a.x === undefined)) {
+                var el = document.getElementById(a.elementId);
+                if (el) {
+                    var r = el.getBoundingClientRect();
+                    a.x = r.left + r.width / 2;
+                    a.y = r.top + r.height / 2;
+                }
+            }
+            return a;
+        });
     };
+
+    // ---- Viewport & Background ----
 
     OpenMAICSlidePlayer.prototype.getViewport = function(slide) {
         var vs = (slide && slide.viewportSize) || {};
@@ -319,7 +470,7 @@
         var fill = gradient ? 'url(#' + gradient.id + ')' : this.escapeAttr(el.fill || '#5b9bd5');
         var textContent = '';
         if (el.text && el.text.content) {
-            textContent = '<foreignObject x="0" y="0" width="100%" height="100%"><div class="openmaic-shape-text">' + this.sanitizeRichText(el.text.content) + '</div></foreignObject>';
+            textContent = '<foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="openmaic-shape-text">' + this.sanitizeRichText(el.text.content) + '</div></foreignObject>';
         }
         return '<svg viewBox="' + viewBox + '" preserveAspectRatio="none">' + (gradient ? gradient.defs : '') + '<path d="' + this.escapeAttr(el.path || '') + '" fill="' + fill + '"></path>' + textContent + '</svg>';
     };

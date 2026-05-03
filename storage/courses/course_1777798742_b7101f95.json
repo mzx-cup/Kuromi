@@ -1,0 +1,897 @@
+{
+  "courseId": "course_1777798742_b7101f95",
+  "title": "掌握冒泡排序",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "冒泡排序初探",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "冒泡排序的核心是比较相邻元素并交换位置",
+        "每一轮遍历将最大元素移动到数组末端",
+        "算法名称源于大元素像气泡一样逐渐上浮"
+      ],
+      "description": "通过生活案例引入排序概念，讲解冒泡排序的基本原理与算法思想。"
+    },
+    {
+      "id": 2,
+      "title": "排序过程可视化",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "观察无序数组如何通过多轮遍历变为有序",
+        "直观理解内层循环与外层循环的配合关系",
+        "通过暂停和步进功能分析每一轮排序结果"
+      ],
+      "description": "交互式动态演示冒泡排序全过程，用户可控制速度并观察元素交换细节。"
+    },
+    {
+      "id": 3,
+      "title": "算法步骤拆解",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "理解双重嵌套循环的执行流程与边界条件",
+        "掌握元素交换逻辑所需的临时变量用法",
+        "分析算法中比较与交换操作的具体执行次数"
+      ],
+      "description": "使用流程图详细拆解冒泡排序的逻辑结构，清晰展示判断与交换过程。"
+    },
+    {
+      "id": 4,
+      "title": "代码实现实战",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "编写标准的双重循环结构实现冒泡排序",
+        "正确设置外层循环范围与内层循环边界",
+        "实现相邻元素比较与交换的核心代码逻辑"
+      ],
+      "description": "在编程环境中手动实现冒泡排序算法，并提供实时错误提示与修正建议。"
+    },
+    {
+      "id": 5,
+      "title": "基础知识测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "计算最坏和最好情况下的时间复杂度数值",
+        "判断给定数组在特定轮次后的排序状态",
+        "对比冒泡排序与其他基础排序算法的差异"
+      ],
+      "description": "通过选择题和判断题检验对冒泡排序原理、时间复杂度及过程的掌握。"
+    },
+    {
+      "id": 6,
+      "title": "算法优化进阶",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "识别数组已经有序的情况以提前结束排序",
+        "引入布尔标志位记录本轮是否发生交换",
+        "分析优化后算法在最好情况下的性能提升"
+      ],
+      "description": "练习优化冒泡排序，引入标志位减少不必要的比较轮次，提升算法效率。"
+    },
+    {
+      "id": 7,
+      "title": "成绩排序系统",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "设计合理的数据结构存储学生信息与成绩",
+        "修改比较逻辑以支持降序排列成绩数据",
+        "处理成绩相同情况下的并列排名显示逻辑"
+      ],
+      "description": "运用冒泡排序解决学生成绩排名问题，要求处理并列排名并输出结果。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "生活中的“冒泡”现象",
+      "content": [
+        {
+          "sub_title": "场景引入",
+          "text": "想象一下在泳池中，由于水压不同，水底的气泡会随着上升过程逐渐变大，并最终浮出水面。在这个过程中，最大的气泡总是最显眼的那个。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/bubble-pool.png"
+        },
+        {
+          "sub_title": "排序映射",
+          "text": "在计算机科学中，冒泡排序正是借鉴了这一物理现象：数据序列中较大的元素，就像大气泡一样，通过不断的比较与交换，一步步“浮”到数列的末端。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/sorting-concept.png"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "冒泡排序核心法则",
+      "content": [
+        {
+          "sub_title": "核心动作：比较与交换",
+          "text": "冒泡排序的基础是比较相邻的两个元素。如果前一个元素比后一个元素大，就交换它们的位置，确保大的元素在右侧。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "遍历规律：大元素后移",
+          "text": "每一轮完整的遍历，都会将当前未排序部分的最大元素移动到数组的最末端，该元素在后续排序中不再移动。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "命名由来：气泡上浮",
+          "text": "算法名称形象地描述了过程：大元素像气泡一样，经过一次次交换，逐渐从数组底部“上浮”到顶端（末尾）。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "算法演示：第一轮遍历",
+      "content": [
+        {
+          "sub_title": "执行流程",
+          "text": "假设数组为 [5, 3, 8, 4]：\n1. 比较5和3，交换 → [3, 5, 8, 4]\n2. 比较5和8，不动 → [3, 5, 8, 4]\n3. 比较8和4，交换 → [3, 5, 4, 8]\n结果：最大元素8已“浮”至末端。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "图解示意",
+          "text": "左侧展示了数组在第一轮排序中的变化过程。通过三次相邻比较，数字8像气泡一样最终沉底，确定了它的最终位置。",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/bubble-step1.png"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "课堂小结与思考",
+      "content": [
+        {
+          "sub_title": "核心思想总结",
+          "text": "冒泡排序通过“两两比较”和“位置交换”，利用多轮遍历实现数据的有序排列。它是最基础且直观的排序算法，虽然效率不是最高，但非常适合初学者理解排序的本质。",
+          "icon": "book",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "思考题",
+          "text": "如果一个数组已经是排好序的，冒泡排序还需要进行复杂的比较和交换吗？我们该如何优化它？",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "交互演示：排序过程可视化",
+      "content": [
+        {
+          "sub_title": "场景说明",
+          "text": "欢迎来到冒泡排序可视化实验室！这里你将亲自操控算法的运行。通过右侧的动态演示区，你可以直观地看到无序数组如何一步步变为有序。请利用控制面板调整排序速度，或使用步进功能深入分析每一个交换动作。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "学习目标",
+          "text": "1. 观察无序数组通过多轮遍历变为有序的完整过程。\n2. 直观理解内层循环（相邻比较）与外层循环（轮次迭代）的配合关系。\n3. 利用暂停功能分析每一轮排序后的中间结果。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心观察要点",
+      "content": [
+        {
+          "sub_title": "外层循环：轮次推进",
+          "text": "观察每一轮遍历如何将当前最大的元素“冒泡”到数组末尾。注意每轮结束后，已排序区域（数组尾部）的变化。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "内层循环：两两比较",
+          "text": "重点关注相邻元素的比较过程。当左侧元素大于右侧元素时，观察它们如何进行位置交换。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "控制台操作",
+          "text": "使用“暂停/继续”按钮定格关键时刻，使用“步进”按钮逐帧执行，精确分析算法逻辑。",
+          "icon": "check",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "效率思考",
+          "text": "在观察过程中思考：如果一个数组已经基本有序，冒泡排序还需要进行这么多轮比较吗？",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "算法逻辑与代码对照",
+      "content": [
+        {
+          "sub_title": "逻辑解析",
+          "text": "左侧代码展示了冒泡排序的核心逻辑。在可视化演示中，黄色高亮表示正在进行比较的元素，红色表示发生交换的操作。请尝试将代码行与可视化动画步骤一一对应，理解双重循环的边界条件。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "function bubbleSort(arr) {\n  for (let i = 0; i < arr.length - 1; i++) {\n    // 外层循环：控制排序轮数\n    for (let j = 0; j < arr.length - 1 - i; j++) {\n      // 内层循环：相邻比较\n      if (arr[j] > arr[j+1]) {\n        // 交换位置\n        [arr[j], arr[j+1]] = [arr[j+1], arr[j]];\n      }\n    }\n  }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "观察指引",
+          "text": "当代码执行到内层循环判断时，观察可视化区域中哪两个元素被选中。注意变量 j 的上限随着 i 的增加而减少，这在可视化中体现为每轮扫描范围的缩短。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "实践与总结",
+      "content": [
+        {
+          "sub_title": "互动任务",
+          "text": "现在，请点击下方的“开始排序”按钮。尝试在排序过程中点击“暂停”，预测下一个将被交换的元素是哪两个，然后点击“步进”验证你的猜想。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心总结",
+          "text": "冒泡排序的本质是通过不断的“比较与交换”，将无序元素逐步归位。它就像水底的气泡，大的元素会慢慢浮出水面。虽然它简单直观，但请注意观察它执行了多少次比较操作，这直接关系到算法的效率。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "冒泡排序算法逻辑全景",
+      "content": [
+        {
+          "sub_title": "核心思想",
+          "text": "冒泡排序通过重复地遍历待排序序列，依次比较相邻元素，若顺序错误则交换位置。如同气泡上浮，最大（或最小）元素逐渐“冒泡”至序列顶端。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "diagram_bubble_sort_overview.png"
+        },
+        {
+          "sub_title": "流程图解读",
+          "text": "右侧流程图展示了从“开始”到“结束”的完整路径。重点关注菱形判断框（是否需要交换）与矩形处理框（执行交换）的循环执行过程，直至无需交换为止。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "关键逻辑步骤拆解",
+      "content": [
+        {
+          "sub_title": "双重循环控制",
+          "text": "外层循环控制排序轮数，内层循环负责每轮的比较次数。需注意内层循环的边界条件会随着外层轮数的增加而递减。",
+          "icon": "book",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "相邻元素比较",
+          "text": "在每一次内层循环中，比较相邻的两个元素（如 arr[j] 和 arr[j+1]）。如果前一个元素大于后一个元素，则触发交换逻辑。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "交换逻辑实现",
+          "text": "利用临时变量 temp 暂存数据。标准三步走：temp = a; a = b; b = temp; 确保数据在交换过程中不丢失。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "执行次数分析",
+          "text": "对于n个元素，比较次数约为 n(n-1)/2 次。时间复杂度为 O(n²)，属于效率较低的排序算法，仅适用于小规模数据。",
+          "icon": "warning",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "单轮排序流程图详解",
+      "content": [
+        {
+          "sub_title": "流程图结构",
+          "text": "【图表描述】\n1. 开始节点 -> 初始化索引 j=0\n2. 判断节点：j < length-i-1 ?\n3. 分支Yes -> 比较节点：arr[j] > arr[j+1] ?\n4. 分支Yes -> 处理节点：Swap(arr[j], arr[j+1])\n5. 循环回归：j++，返回判断节点\n6. 分支No -> 结束本轮排序",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "diagram_single_pass_flow.png"
+        },
+        {
+          "sub_title": "逻辑要点解析",
+          "text": "流程图清晰地展示了算法的“判断-执行”闭环。菱形框代表布尔判断，决定了程序的分支走向；矩形框代表具体操作。通过此图可直观理解为何内层循环边界需减去 i（已排序好的轮数）。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "核心机制总结",
+      "content": [
+        {
+          "sub_title": "双重循环与边界",
+          "text": "外层循环决定排序趟数，内层循环确定比较终点。边界条件 length-i-1 是优化关键，避免了对已排序元素的重复比较。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "临时变量的必要性",
+          "text": "交换逻辑中，临时变量是数据安全的保障。没有 temp，直接赋值会导致原数据被覆盖，这是初学者最容易犯的逻辑错误。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "冒泡排序算法逻辑解析",
+      "content": [
+        {
+          "sub_title": "核心思想",
+          "text": "冒泡排序通过重复地遍历要排序的数列，一次比较两个相邻的元素，如果它们的顺序错误就把它们交换过来。遍历数列的工作是重复地进行直到没有再需要交换，这意味着该数列已经排序完成。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "双重循环结构",
+          "text": "算法实现需要嵌套两层循环：外层循环控制排序的轮数，内层循环负责每轮中相邻元素的比较与交换。这种结构确保了每一轮都能将当前未排序部分的最大值“冒泡”到正确位置。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "关键实现要点",
+      "content": [
+        {
+          "sub_title": "外层循环范围",
+          "text": "外层循环变量 i 从 0 开始，范围应小于数组长度减 1 (i < n-1)。因为最后一个元素不需要再进行比较，它已经在之前的轮次中被排序好了。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "内层循环边界",
+          "text": "内层循环变量 j 从 0 开始，关键在于上界设置为 j < n-1-i。随着外层循环进行，尾部已排序好的元素逐渐增多，内层比较范围相应减小，避免无效比较。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "相邻元素比较",
+          "text": "在内层循环中，使用条件语句 if (arr[j] > arr[j+1]) 判断相邻元素顺序。若前一个元素大于后一个元素，则触发交换逻辑，这是排序的核心判断。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "元素交换逻辑",
+          "text": "实现交换通常需要一个临时变量 temp。标准流程为：temp = arr[j]; arr[j] = arr[j+1]; arr[j+1] = temp; 确保两个元素的值正确互换，不丢失数据。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码实现实战",
+      "content": [
+        {
+          "sub_title": "标准实现示例",
+          "text": "以下代码展示了标准的冒泡排序实现。请注意观察内层循环的边界条件是如何随着外层循环变量的变化而动态调整的，这是优化算法效率的关键。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public void bubbleSort(int[] arr) {\n    int n = arr.length;\n    // 外层循环：控制排序轮数\n    for (int i = 0; i < n - 1; i++) {\n        // 内层循环：比较相邻元素\n        // 注意边界：n - 1 - i\n        for (int j = 0; j < n - 1 - i; j++) {\n            // 核心逻辑：相邻比较与交换\n            if (arr[j] > arr[j + 1]) {\n                // 交换元素\n                int temp = arr[j];\n                arr[j] = arr[j + 1];\n                arr[j + 1] = temp;\n            }\n        }\n    }\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "常见错误与修正",
+      "content": [
+        {
+          "sub_title": "易错点提示",
+          "text": "初学者常犯的错误是内层循环边界写死为 j < n-1，虽然代码能运行，但会产生不必要的比较操作。另一个常见错误是交换元素时未使用临时变量，导致数据覆盖丢失。",
+          "icon": "warning",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "最佳实践",
+          "text": "在编写代码时，建议先画出数组索引图，手动模拟一轮循环的过程，确认 i 和 j 的变化范围。理解 'n-1-i' 的数学含义是掌握冒泡排序的关键所在。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "header-content",
+      "title": "基础知识测验：冒泡排序",
+      "content": [
+        {
+          "sub_title": "测验说明",
+          "text": "本次测验包含选择题和判断题，旨在检验你对冒泡排序核心原理的掌握程度。请仔细审题，准备好计算时间复杂度并模拟排序过程。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "考察重点",
+          "text": "1. 时间复杂度分析（最好与最坏情况）\n2. 排序过程的推演与状态判断\n3. 与其他基础排序算法（如选择排序）的对比",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心考点回顾",
+      "content": [
+        {
+          "sub_title": "时间复杂度",
+          "text": "最坏情况（逆序）：$O(n^2)$，需进行 $n(n-1)/2$ 次比较。\n最好情况（正序）：$O(n)$，仅需一趟扫描。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "排序过程",
+          "text": "每一轮遍历将当前未排序部分的最大元素“冒泡”至右侧。经过 k 轮后，数组右侧 k 个元素必然有序。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "算法对比",
+          "text": "冒泡排序是稳定排序，而简单选择排序是不稳定的。两者平均时间复杂度相同，但冒泡排序在有序数组上效率更高。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "模拟演示：第一轮排序",
+      "content": [
+        {
+          "sub_title": "初始数组状态",
+          "text": "待排序数组：[5, 1, 4, 2, 8]\n目标：找出最大值并将其移动到最右侧。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "比较过程推演",
+          "text": "1. 比较 5 和 1 -> 交换 -> [1, 5, 4, 2, 8]\n2. 比较 5 和 4 -> 交换 -> [1, 4, 5, 2, 8]\n3. 比较 5 和 2 -> 交换 -> [1, 4, 2, 5, 8]\n4. 比较 5 和 8 -> 不交换 -> [1, 4, 2, 5, 8]\n结果：第一轮结束，最大值 8 已就位。",
+          "icon": "check",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "header-content",
+      "title": "测验开始",
+      "content": [
+        {
+          "sub_title": "注意事项",
+          "text": "本环节包含 5 道题目。请根据刚才回顾的知识点，在脑海中模拟排序过程或计算比较次数。准备好了吗？让我们开始挑战！",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "为什么需要优化冒泡排序？",
+      "content": [
+        {
+          "sub_title": "传统冒泡排序的痛点",
+          "text": "在传统实现中，即使数组在第一轮比较后就已经完全有序，算法依然会固执地执行完所有 N-1 轮比较。这产生了大量不必要的计算开销。",
+          "icon": "warning",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "优化的核心思路",
+          "text": "引入一个“哨兵”——布尔标志位。在每一轮排序开始前，我们假设数组已经有序；一旦发生交换，就修改标志位。如果一轮结束标志位未变，说明数组已经有序，可以立即终止排序。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "优化算法的关键步骤",
+      "content": [
+        {
+          "sub_title": "1. 初始化标志位",
+          "text": "在每一轮外层循环开始时，将布尔标志位（如 isSorted）初始化为 true，表示当前假设数组已经有序。",
+          "icon": "book",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "2. 监测交换行为",
+          "text": "在内层循环中，一旦执行了元素交换操作，立即将 isSorted 设置为 false，证明数组尚未完全有序。",
+          "icon": "code",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "3. 提前终止判断",
+          "text": "内层循环结束后，检查 isSorted 的值。如果仍为 true，说明本轮未发生任何交换，数组已有序，使用 break 关键字跳出外层循环。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "代码实现：引入标志位",
+      "content": [
+        {
+          "sub_title": "优化后的冒泡排序实现",
+          "text": "注意观察外层循环中 isSorted 变量的定义与判断逻辑。这是提升效率的关键所在。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "function bubbleSortOptimized(arr) {\n  let n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    // 1. 假设本轮已经有序\n    let isSorted = true;\n\n    for (let j = 0; j < n - 1 - i; j++) {\n      if (arr[j] > arr[j + 1]) {\n        // 2. 发生交换，说明假设不成立\n        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];\n        isSorted = false;\n      }\n    }\n\n    // 3. 如果本轮未发生交换，提前结束\n    if (isSorted) {\n      break;\n    }\n  }\n  return arr;\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "练习任务：实战优化",
+      "content": [
+        {
+          "sub_title": "任务背景",
+          "text": "假设我们正在处理一个实时传感器数据流，数据大部分时间是有序的，偶尔会有乱序。我们需要一个高效的排序算法来减少延迟。",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "练习要求",
+          "text": "1. 定义一个包含100个元素的已排序数组。\n2. 分别使用传统冒泡排序和优化后的冒泡排序处理该数组。\n3. 打印两种方法实际执行的外层循环次数，对比效率差异。\n4. 尝试将数组中间的两个元素交换位置，再次运行优化算法，观察循环次数的变化。",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "项目背景：成绩排序系统",
+      "content": [
+        {
+          "sub_title": "项目情境",
+          "text": "某班级期末考试结束，老师需要根据学生的总成绩进行排名。你需要开发一个小型系统，能够输入学生信息与成绩，并输出排名后的名单。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心挑战",
+          "text": "不仅需要将成绩从高到低排序，还必须正确处理“并列排名”的情况（例如：两人分数相同，则排名相同，下一名次顺延）。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "学习目标",
+          "text": "掌握冒泡排序算法原理，灵活运用数据结构存储信息，并设计逻辑处理并列排名问题。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点拆解",
+      "content": [
+        {
+          "sub_title": "数据结构设计",
+          "text": "使用结构体或类封装学生信息。建议包含：学号、姓名、成绩、排名。将多个学生对象存储在数组或列表中以便遍历。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "降序排列逻辑",
+          "text": "冒泡排序默认为升序。需修改比较逻辑：若 前一个元素成绩 < 后一个元素成绩，则交换位置，确保最大值“冒泡”至数组顶端。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "并列排名处理",
+          "text": "排序完成后进行遍历赋值。规则：第一名排名为1；若当前学生成绩等于前一名，则排名相同；否则，排名等于当前数组索引+1。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "算法实现：排序与排名",
+      "content": [
+        {
+          "sub_title": "冒泡排序与排名逻辑",
+          "text": "左侧代码展示了两个关键步骤：首先使用冒泡排序对成绩进行降序排列，随后通过一次遍历处理并列排名逻辑。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "// 定义学生结构体\nstruct Student {\n    string name;\n    int score;\n    int rank;\n};\n\n// 1. 冒泡排序（降序）\nfor(int i=0; i<n-1; i++) {\n    for(int j=0; j<n-1-i; j++) {\n        if(stu[j].score < stu[j+1].score) {\n            swap(stu[j], stu[j+1]);\n        }\n    }\n}\n\n// 2. 处理并列排名\nstu[0].rank = 1; // 第一名\nfor(int i=1; i<n; i++) {\n    if(stu[i].score == stu[i-1].score) {\n        // 成绩相同，排名相同\n        stu[i].rank = stu[i-1].rank;\n    } else {\n        // 成绩不同，排名等于数组下标+1\n        stu[i].rank = i + 1;\n    }\n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "代码解析",
+          "text": "1. 比较运算符使用 '<' 实现降序。\n2. 交换操作直接交换整个结构体，保证数据完整性。\n3. 排名逻辑独立于排序执行，避免在排序过程中处理复杂的名次计算。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "项目总结与拓展",
+      "content": [
+        {
+          "sub_title": "关键回顾",
+          "text": "本项目通过冒泡排序解决了成绩排序问题。核心在于理解排序的稳定性以及如何通过后处理逻辑解决实际业务中的“并列排名”需求。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "思考题",
+          "text": "如果使用选择排序替代冒泡排序，是否会影响并列排名的处理逻辑？为什么？",
+          "icon": "question",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 5,
+      "scene_id": 5,
+      "title": "冒泡排序基础知识测验",
+      "questions": [
+        {
+          "question": "冒泡排序算法之所以得名，主要是因为什么原因？",
+          "options": [
+            "算法的发明者姓冒泡",
+            "排序过程中最小（或最大）的元素会像气泡一样逐渐“浮”到数组的一端",
+            "算法运行时会产生大量内存气泡",
+            "排序过程像煮开水一样剧烈翻滚"
+          ],
+          "correct_answer": 1,
+          "explanation": "冒泡排序的命名源于其可视化过程：在每一轮比较中，较小（或较大）的元素会经由交换慢慢“浮”到数组的顶端（末端），就像水中的气泡最终会上浮到水面一样。"
+        },
+        {
+          "question": "在对包含n个元素的数组进行冒泡排序时，最坏情况下的时间复杂度是多少？",
+          "options": [
+            "O(n)",
+            "O(log n)",
+            "O(n^2)",
+            "O(n log n)"
+          ],
+          "correct_answer": 2,
+          "explanation": "在最坏情况下（例如数组完全逆序），冒泡排序需要进行n-1轮比较，每轮比较次数递减但总和约为n(n-1)/2，因此时间复杂度为O(n^2)。"
+        },
+        {
+          "question": "假设我们使用冒泡排序对数组 [5, 1, 4, 2, 8] 进行升序排列。第一轮排序结束后，数组的状态是什么？",
+          "options": [
+            "[1, 5, 4, 2, 8]",
+            "[1, 4, 2, 5, 8]",
+            "[1, 2, 4, 5, 8]",
+            "[5, 1, 4, 2, 8]"
+          ],
+          "correct_answer": 1,
+          "explanation": "第一轮过程：比较5和1，交换得[1,5,4,2,8]；比较5和4，交换得[1,4,5,2,8]；比较5和2，交换得[1,4,2,5,8]；比较5和8，不交换。最终结果为[1, 4, 2, 5, 8]，最大元素8已'浮'至末尾。"
+        },
+        {
+          "question": "关于冒泡排序与选择排序的主要区别，以下说法正确的是？",
+          "options": [
+            "冒泡排序每轮选出最小值直接放到前面，选择排序则通过相邻交换移动元素",
+            "冒泡排序通过相邻元素交换来移动元素，选择排序每轮找到最值后仅进行一次交换",
+            "两者时间复杂度不同，冒泡排序一定比选择排序快",
+            "选择排序是不稳定排序，而冒泡排序一定是不稳定的"
+          ],
+          "correct_answer": 1,
+          "explanation": "冒泡排序通过不断的相邻元素交换将最值“冒泡”到一端，交换次数多；选择排序则是每轮遍历记录最值位置，仅在每轮结束时进行一次交换。选项A描述反了，选项D错误因为冒泡排序是稳定排序。"
+        },
+        {
+          "question": "若使用优化后的冒泡排序（加入标志位判断是否发生交换）处理一个已经有序的数组 [1, 2, 3, 4, 5]，其最好情况下的时间复杂度是？",
+          "options": [
+            "O(n^2)",
+            "O(n log n)",
+            "O(n)",
+            "O(1)"
+          ],
+          "correct_answer": 2,
+          "explanation": "在最好情况下（数组已有序），优化后的冒泡排序只需进行一轮遍历。在第一轮中，标志位判断没有发生任何交换，算法直接结束。总共进行了n-1次比较，因此时间复杂度为O(n)。"
+        }
+      ],
+      "speech": "同学们好！欢迎来到冒泡排序的小测验。前面的课程中我们详细拆解了冒泡排序的原理与实现。这组题目将从基本概念出发，逐步深入到时间复杂度计算和实际推演。请大家仔细思考每一轮比较后的数据变化，相信你们一定能通过考验！"
+    }
+  ],
+  "exercise_data": [],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习冒泡排序",
+    "student_id": "1",
+    "session_id": "d708ff2f-8dbd-4265-952b-d7d753df42b9",
+    "generated_at": "2026-05-03 16:59:02",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

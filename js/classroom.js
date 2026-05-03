@@ -84,6 +84,20 @@
             this.laserOverlay = null;
             this.whiteboardVisible = false;
 
+            // Quiz state
+            this.quizPhase = 'not_started';  // not_started | answering | grading | reviewing
+            this.currentQuizScene = null;
+            this.quizUserAnswers = {};       // {index: {type, value/values}}
+            this.quizResults = [];
+            this._wasSpeakingBeforeQuiz = false;
+
+            // Whiteboard state
+            this.whiteboardRenderer = null;
+            this.whiteboardContainer = document.getElementById('whiteboard-container');
+            this.whiteboardStage = document.getElementById('whiteboard-stage');
+            this.whiteboardToggleBtn = document.getElementById('whiteboard-toggle-btn');
+            this.whiteboardClearBtn = document.getElementById('wb-clear-btn');
+
             // Animation state
             this.currentAnimationEffects = [];
             this.isTransitioning = false;
@@ -91,7 +105,9 @@
 
             // Spotlight/laser state
             this.spotlightElement = null;
+            this.laserTargetElem = null;
             this.laserElements = [];
+            this._currentElemToCard = null;
 
             // DOM refs
             this.courseTitle = document.getElementById('course-title')?.querySelector('span');
@@ -117,22 +133,26 @@
             this.sceneSidebar = document.getElementById('scene-sidebar');
             this.completionOverlay = document.getElementById('completion-overlay');
             this.audioPlayer = document.getElementById('tts-audio-player');
+            this.slideControls = document.querySelector('.slide-controls');
+            this.progressBar = document.querySelector('.progress-bar');
 
-            // OpenMAIC slide player initialization
-            this.openmaicDeck = null;
-            this.openmaicPlayer = null;
-            if (window.OpenMAICSlidePlayer) {
-                this.openmaicPlayer = new window.OpenMAICSlidePlayer({
-                    container: this.slideContainer,
-                    stage: this.slideStage,
-                    overlay: this.actionOverlay,
-                    audioElement: this.audioPlayer,
-                    speechText: this.speechText,
-                    syncElement: this.speechSync,
-                    teacherAvatar: this.teacherAvatar,
-                    getSpeed: function() { return 1.0; },
-                });
-            }
+            // Quiz popup DOM refs
+            this.quizPopupOverlay = document.getElementById('quiz-popup-overlay');
+            this.quizCover = document.getElementById('quiz-cover');
+            this.quizQuestionsArea = document.getElementById('quiz-questions-area');
+            this.quizGrading = document.getElementById('quiz-grading');
+            this.quizReviewArea = document.getElementById('quiz-review-area');
+            this.quizPopupFooter = document.getElementById('quiz-popup-footer');
+            this.quizCoverTitle = document.getElementById('quiz-cover-title');
+            this.quizCoverMeta = document.getElementById('quiz-cover-meta');
+            this.quizToggleBtn = document.getElementById('quiz-toggle-btn');
+            this.quizStartBtn = document.getElementById('quiz-start-btn');
+            this.quizSubmitBtn = document.getElementById('quiz-popup-submit-btn');
+            this.quizRetryBtn = document.getElementById('quiz-popup-retry-btn');
+            this.quizCloseBtn = document.getElementById('quiz-popup-close');
+            this.gradingProgressList = document.getElementById('grading-progress-list');
+            this.gradingText = document.getElementById('quiz-grading-text');
+            this.slideViewer = document.querySelector('.slide-viewer');
 
             // Action overlays (create if not exist)
             this.actionOverlay = document.getElementById('action-overlay');
@@ -141,6 +161,35 @@
                 this.actionOverlay.id = 'action-overlay';
                 this.actionOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
                 document.body.appendChild(this.actionOverlay);
+            }
+
+            // OpenMAIC slide player initialization
+            this.openmaicDeck = null;
+            this.openmaicPlayer = null;
+            if (window.OpenMAICSlidePlayer) {
+                var self = this;
+                this.openmaicPlayer = new window.OpenMAICSlidePlayer({
+                    container: this.slideContainer,
+                    overlay: this.actionOverlay,
+                    audioElement: this.audioPlayer,
+                    speechText: this.speechText,
+                    syncElement: this.speechSync,
+                    teacherAvatar: this.teacherAvatar,
+                    getSpeed: function() { return self.ttsConfig ? self.ttsConfig.speed : 1.0; },
+                    onSlideEnd: function() {
+                        self.speechSync.style.display = 'none';
+                        if (self.isPlaying && self.currentIndex < self.scenes.length - 1) {
+                            setTimeout(function() { self.nextScene(); }, 800);
+                        } else if (self.currentIndex >= self.scenes.length - 1) {
+                            // Last scene finished — stop playback
+                            self.isPlaying = false;
+                            self.stopAudio();
+                            self.voiceBtn?.classList.remove('playing');
+                            var vi = self.voiceBtn?.querySelector('i');
+                            if (vi) vi.className = 'fas fa-volume-up';
+                        }
+                    },
+                });
             }
 
             // Speech recognition for chat
@@ -212,10 +261,12 @@
                 return (items || []).find(function(item) { return matchesScene(item, outline); }) || null;
             };
 
+            // slides_v2 now includes scene_id from MiniMax PPT provider
+            // Use findSceneData for scene_id matching (Strategy 1), fallback to index for legacy
             this.scenes = outlines.map(function(outline, i) {
                 var sceneId = outline.id || i + 1;
                 var matchedSlide = findSceneData(slides, outline);
-                var matchedSlideV2 = findSceneData(slidesV2, outline);
+                var matchedSlideV2 = findSceneData(slidesV2, outline) || slidesV2[i] || null;
                 var matchedQuiz = findSceneData(quizData, outline);
                 var matchedExercise = findSceneData(exerciseData, outline);
 
@@ -271,25 +322,49 @@
             this.nextBtn?.addEventListener('click', () => this.nextScene());
             this.voiceBtn?.addEventListener('click', () => this.toggleVoice());
             document.getElementById('replay-btn')?.addEventListener('click', () => this.replaySpeech());
-            document.getElementById('pause-btn')?.addEventListener('click', () => this.pauseSpeech());
-            document.getElementById('speed-btn')?.addEventListener('click', () => {
-                this.cycleSpeed();
+            document.getElementById('playback-play-btn')?.addEventListener('click', () => this.toggleVoice());
+            document.getElementById('speed-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleSpeedMenu();
+            });
+            // Close speed menu on outside click
+            document.addEventListener('click', () => this.closeSpeedMenu());
+            // Speed menu option clicks
+            document.getElementById('speed-menu')?.addEventListener('click', (e) => {
+                var opt = e.target.closest('.speed-option');
+                if (opt) {
+                    var speed = parseFloat(opt.dataset.speed);
+                    if (!isNaN(speed)) this.setSpeed(speed);
+                    this.closeSpeedMenu();
+                }
             });
             this.sendChat?.addEventListener('click', () => this.sendMessage());
             this.chatInput?.addEventListener('keypress', e => { if (e.key === 'Enter') this.sendMessage(); });
             document.getElementById('exit-btn')?.addEventListener('click', () => this.showExitModal());
             document.getElementById('cancel-exit')?.addEventListener('click', () => this.hideExitModal());
             document.getElementById('confirm-exit')?.addEventListener('click', () => this.confirmExit());
+            // Whiteboard toggle
+            this.whiteboardToggleBtn?.addEventListener('click', () => this.toggleWhiteboard());
+            this.whiteboardClearBtn?.addEventListener('click', () => this.clearWhiteboard());
+            // Quiz popup buttons
+            this.quizToggleBtn?.addEventListener('click', () => this._onQuizToggleClick());
+            this.quizCloseBtn?.addEventListener('click', () => this.closeQuizPopup());
+            this.quizStartBtn?.addEventListener('click', () => this.startQuiz());
+            this.quizSubmitBtn?.addEventListener('click', () => this._submitForGrading());
+            this.quizRetryBtn?.addEventListener('click', () => this.retryQuiz());
             document.addEventListener('keydown', e => this.onKey(e));
             this.initChatVoiceInput();
         }
 
         onKey(e) {
-            if (e.target === this.chatInput) return;
+            if (e.target === this.chatInput || e.target === document.getElementById('exercise-answer')) return;
+            // Block navigation when quiz popup is open
+            var quizOpen = this.quizPopupOverlay && this.quizPopupOverlay.style.display === 'flex';
             switch (e.key) {
-                case 'ArrowLeft': this.prevScene(); break;
-                case 'ArrowRight': this.nextScene(); break;
+                case 'ArrowLeft': if (!this.whiteboardVisible && !quizOpen) this.prevScene(); break;
+                case 'ArrowRight': if (!this.whiteboardVisible && !quizOpen) this.nextScene(); break;
                 case ' ': e.preventDefault(); this.toggleVoice(); break;
+                case 'w': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); this.toggleWhiteboard(); } break;
             }
         }
 
@@ -325,7 +400,7 @@
             this.hideAllSceneContainers();
 
             switch (scene.type) {
-                case 'quiz': this.renderQuizScene(scene); break;
+                case 'quiz': this.openQuizPopup(scene); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
                 case 'interactive': case 'pbl': this.renderInteractiveScene(scene); break;
                 default: {
@@ -348,6 +423,10 @@
         hideAllSceneContainers() {
             [this.slideContainer, this.quizContainer, this.exerciseContainer, this.interactiveContainer]
                 .forEach(el => { if (el) el.style.display = 'none'; });
+            // Hide whiteboard if visible, but don't toggle state
+            if (this.whiteboardContainer) this.whiteboardContainer.style.display = 'none';
+            // Hide quiz popup
+            if (this.quizPopupOverlay) this.quizPopupOverlay.style.display = 'none';
             const quizSubmit = document.getElementById('quiz-submit-btn');
             const quizResult = document.getElementById('quiz-result');
             if (quizSubmit) quizSubmit.style.display = 'none';
@@ -365,6 +444,17 @@
                 'warning': '⚠️', 'info': 'ℹ️'
             },
             COLOR_THEMES: ['blue', 'yellow', 'green', 'purple', 'orange'],
+
+            _cycleCardThemes(cards) {
+                if (!cards || cards.length <= 1) return cards;
+                const themes = new Set(cards.map(c => c.colorTheme));
+                const needsCycle = themes.size <= 1 || cards.some(c => !c.colorTheme);
+                if (!needsCycle) return cards;
+                for (let i = 0; i < cards.length; i++) {
+                    cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
+                }
+                return cards;
+            },
 
             render(slideV2, container) {
                 if (!slideV2 || !container) return;
@@ -396,7 +486,7 @@
             },
 
             _renderTwoColumn(slide) {
-                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
                     <div class="slide-v2-container">
                         <div class="slide-header">
@@ -410,7 +500,7 @@
             },
 
             _renderGridCards(slide) {
-                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
                     <div class="slide-v2-container">
                         <div class="slide-header">
@@ -424,7 +514,7 @@
             },
 
             _renderHeaderContent(slide) {
-                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
                     <div class="slide-v2-container">
                         <div class="slide-header">
@@ -438,7 +528,7 @@
             },
 
             _renderQuoteHighlight(slide) {
-                const cards = (slide.content || []).map(item => this._renderContentCard(item)).join('');
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
                     <div class="slide-v2-container">
                         <div class="slide-header">
@@ -451,22 +541,35 @@
                 `;
             },
 
-            _renderContentCard(item) {
+            _renderContentCard(item, cardIndex) {
                 const icon = this._getIcon(item.icon);
                 const theme = this._validateTheme(item.colorTheme);
                 const subTitle = this._escapeHtml(item.subTitle || '');
-                const textHtml = this._parseMarkdown(item.text || '');
+                const textHtml = this._renderBulletsOrText(item);
+                const isBullets = textHtml.startsWith('<ul');
                 const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
                 const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
+                const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
 
                 return `
-                    <div class="content-card theme-${theme}">
+                    <div class="content-card theme-${theme}"${idxAttr}>
                         ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
-                        ${textHtml ? `<div class="card-text">${textHtml}</div>` : ''}
+                        ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
+                        ${textHtml && isBullets ? textHtml : ''}
                         ${codeHtml}
                         ${imageHtml}
                     </div>
                 `;
+            },
+
+            _renderBulletsOrText(item) {
+                if (item.bullets && Array.isArray(item.bullets) && item.bullets.length > 0) {
+                    const items = item.bullets
+                        .map(b => `<li>${this._escapeHtml(String(b))}</li>`)
+                        .join('');
+                    return `<ul class="card-bullets">${items}</ul>`;
+                }
+                return this._parseMarkdown(item.text || '');
             },
 
             _renderCodeSnippet(code) {
@@ -525,8 +628,7 @@
         renderSlideV2Scene(scene) {
             if (!this.slideContainer) return;
             this.slideContainer.style.display = 'block';
-            this.slideContainer.style.animation = 'slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-            this.slideContainer.className = 'slide-container openmaic-slide-host';
+            this.slideContainer.className = 'slide-container';
 
             const slides_v2 = scene.slides_v2 || [];
             if (slides_v2.length === 0) {
@@ -534,24 +636,169 @@
                 return;
             }
 
-            const adapter = window.SlideV2ToOpenMAICAdapter;
-            if (!adapter) {
-                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
+            const firstSlide = slides_v2[0];
+
+            // Determine card data from either format, route to SlideRenderer for consistent UI
+            var cardData;
+            if (firstSlide.elements && Array.isArray(firstSlide.elements) && firstSlide.elements.length > 0) {
+                // OpenMAIC format: group elements into cards by ID prefix
+                cardData = this._groupOpenMAICElementsToCards(firstSlide);
+            } else if (firstSlide.content && Array.isArray(firstSlide.content)) {
+                // SlideV2 format: use content + layout_type directly
+                cardData = {
+                    title: firstSlide.title || scene.title || '',
+                    content: SlideRenderer._cycleCardThemes(firstSlide.content),
+                    layoutType: firstSlide.layoutType || firstSlide.layout_type || 'two-column'
+                };
+            } else {
+                this.renderSlideScene(scene);
                 return;
             }
 
-            const openmaicSlide = adapter.convert(slides_v2[0], scene.id);
-            // Graceful degradation: if adapter returns null or empty elements, fallback
-            if (!openmaicSlide || !openmaicSlide.elements || openmaicSlide.elements.length === 0) {
-                console.warn('[Classroom] Adapter produced invalid slide, falling back to SlideRenderer');
-                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
-                return;
+            this.SlideRenderer.render(cardData, this.slideContainer);
+
+            // Store actions for playback pipeline (spotlight/laser use element IDs)
+            this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
+            // Store element-to-card mapping for spotlight/laser targeting
+            this._currentElemToCard = cardData._elemToCard || null;
+        }
+
+        // ---- OpenMAIC Elements → Card Data Converter ----
+        // Groups absolutely-positioned elements into semantic cards by ID prefix.
+        // OpenMAIC/MiniMax elements follow naming: el-card-{N} (shape bg),
+        // el-card-{N}-title, el-card-{N}-content, el-card-{N}-code, etc.
+
+        _groupOpenMAICElementsToCards(slide) {
+            var elements = slide.elements || [];
+            var slideTitle = slide.title || '';
+
+            // Extract title from header element
+            var headerText = null;
+            for (var i = 0; i < elements.length; i++) {
+                var id = elements[i].id || '';
+                if (id.indexOf('header-title') >= 0 || (id.indexOf('-title') >= 0 && elements[i].top < 30)) {
+                    headerText = elements[i];
+                    break;
+                }
             }
-            if (this.openmaicPlayer) {
-                this.openmaicPlayer.render(openmaicSlide);
-            } else {
-                this.SlideRenderer.render(slides_v2[0], this.slideContainer);
+            if (headerText && headerText.content) {
+                var m = headerText.content.match(/<h1[^>]*>([\s\S]+?)<\/h1>/i);
+                if (m) slideTitle = m[1].replace(/<[^>]+>/g, '').trim();
             }
+
+            // Group elements by card prefix: "card-1", "card-2", etc.
+            var cardGroups = {};
+            for (var i = 0; i < elements.length; i++) {
+                var el = elements[i];
+                var elId = el.id || '';
+                var cardMatch = elId.match(/card-(\d+)/);
+                if (cardMatch) {
+                    var idx = parseInt(cardMatch[1], 10) - 1;
+                    if (!cardGroups[idx]) cardGroups[idx] = { shape: null, texts: [], code: null, image: null };
+                    if (el.type === 'shape') cardGroups[idx].shape = el;
+                    else if (el.type === 'code') cardGroups[idx].code = el;
+                    else if (el.type === 'image') cardGroups[idx].image = el;
+                    else cardGroups[idx].texts.push(el);
+                }
+            }
+
+            // Build card data from groups
+            var cards = [];
+            var indices = Object.keys(cardGroups).sort(function(a, b) { return a - b; });
+            for (var gi = 0; gi < indices.length; gi++) {
+                var group = cardGroups[indices[gi]];
+                if (!group.shape) continue;
+
+                // Infer theme color from shape fill
+                var fill = (group.shape.fill || '').toUpperCase();
+                var theme = 'blue';
+                if (fill.indexOf('FFFBEB') >= 0 || fill.indexOf('FEF3C7') >= 0 || fill.indexOf('FDE68A') >= 0) theme = 'yellow';
+                else if (fill.indexOf('ECFDF5') >= 0 || fill.indexOf('D1FAE5') >= 0 || fill.indexOf('A7F3D0') >= 0) theme = 'green';
+                else if (fill.indexOf('EDE9FE') >= 0 || fill.indexOf('DDD6FE') >= 0) theme = 'purple';
+                else if (fill.indexOf('FFF7ED') >= 0 || fill.indexOf('FFEDD5') >= 0) theme = 'orange';
+
+                // Extract title (short text at top of card) and body (longer text below)
+                var subTitle = '';
+                var bodyText = '';
+                var icon = 'book';
+
+                for (var ti = 0; ti < group.texts.length; ti++) {
+                    var tel = group.texts[ti];
+                    var raw = (tel.content || '').replace(/<[^>]+>/g, '').trim();
+                    var isSmallText = (tel.height || 999) <= 42;
+                    var hasHeading = /<h[12]/i.test(tel.content || '');
+                    var hasStrong = /<strong/i.test(tel.content || '');
+                    var isShort = raw.length < 50;
+
+                    if (hasHeading || hasStrong || ((isSmallText || isShort) && !bodyText)) {
+                        subTitle = raw.replace(/^[📖💡💻✅⭐❓⚠ℹ️\s]+/, '').trim();
+                    } else {
+                        bodyText = tel.content || '';
+                    }
+                }
+
+                // Extract code snippet
+                var codeSnippet = '';
+                if (group.code) {
+                    codeSnippet = group.code.content ||
+                        (group.code.lines || []).map(function(l) { return l.content || ''; }).join('\n');
+                }
+
+                // Parse bullets from bodyText
+                var bullets = [];
+                if (bodyText) {
+                    var plainText = bodyText.replace(/<[^>]+>/g, '').trim();
+                    var lines = plainText.split('\n');
+                    for (var li = 0; li < lines.length; li++) {
+                        var line = lines[li].trim();
+                        var bm = line.match(/^[-*]\s+(.+)/);
+                        if (bm) {
+                            bullets.push(bm[1]);
+                        } else if (line && !bullets.length) {
+                            bullets.push(line.substring(0, 200));
+                        }
+                    }
+                }
+
+                cards.push({
+                    subTitle: subTitle || ('要点 ' + (parseInt(indices[gi], 10) + 1)),
+                    text: bodyText,
+                    bullets: bullets,
+                    narration: '',
+                    icon: icon,
+                    colorTheme: theme,
+                    codeSnippet: codeSnippet,
+                    imageUrl: group.image ? group.image.src || '' : ''
+                });
+            }
+
+            var layoutType = cards.length <= 1 ? 'title-only' :
+                             cards.length <= 2 ? 'two-column' : 'grid-cards';
+
+            // Build element-to-card-index mapping for spotlight/laser actions
+            var elemToCard = {};
+            var cardIndices = Object.keys(cardGroups);
+            for (var mi = 0; mi < cardIndices.length; mi++) {
+                var cgIdx = cardIndices[mi];
+                var cg = cardGroups[cgIdx];
+                // Map the shape element ID to card index
+                if (cg.shape && cg.shape.id) elemToCard[cg.shape.id] = mi;
+                // Also map text/code/image element IDs within this card group
+                for (var ei = 0; ei < cg.texts.length; ei++) {
+                    if (cg.texts[ei].id) elemToCard[cg.texts[ei].id] = mi;
+                }
+                if (cg.code && cg.code.id) elemToCard[cg.code.id] = mi;
+                if (cg.image && cg.image.id) elemToCard[cg.image.id] = mi;
+            }
+
+            SlideRenderer._cycleCardThemes(cards);
+
+            return {
+                title: slideTitle,
+                content: cards,
+                layoutType: layoutType,
+                _elemToCard: elemToCard
+            };
         }
 
         // ============================================================
@@ -1418,27 +1665,50 @@
                     break;
 
                 case 'wb_open':
-                    this.showWhiteboard(action.options);
+                    this.toggleWhiteboard();
                     break;
 
                 case 'wb_close':
-                    this.hideWhiteboard();
+                    if (this.whiteboardVisible) this.toggleWhiteboard();
+                    break;
+
+                case 'wb_clear':
+                    this.clearWhiteboard();
+                    break;
+
+                case 'wb_delete':
+                    this._getWhiteboardRenderer()?.delete(action.elementId || action.element_id);
                     break;
 
                 case 'wb_draw_text':
-                    this.drawTextOnWhiteboard(action.text, action.x, action.y, action.style);
-                    break;
-
                 case 'wb_draw_shape':
-                    this.drawShapeOnWhiteboard(action.shape || 'rectangle', action.x, action.y, action.size);
-                    break;
-
+                case 'wb_draw_svg':
+                case 'wb_draw_latex':
+                case 'wb_draw_chart':
+                case 'wb_draw_table':
                 case 'wb_draw_line':
-                    this.drawLineOnWhiteboard(action.start, action.end, action.color, action.width);
+                case 'wb_draw_code':
+                    this.executeWhiteboardAction({
+                        type: action.type,
+                        params: this._mapWbActionParams(action)
+                    });
                     break;
 
                 case 'transition':
                     this.executeSlideTransition(action.direction || 'next', action.effect || 'fade');
+                    break;
+
+                case 'quiz_open':
+                    // Auto-open quiz for the first quiz scene
+                    var quizScene = this.scenes.find(function(s) { return s.type === 'quiz'; });
+                    if (quizScene) { this.openQuizPopup(quizScene); }
+                    else { console.warn('No quiz scene found in course'); }
+                    break;
+
+                case 'quiz_close':
+                    if (this.quizPopupOverlay && this.quizPopupOverlay.style.display === 'flex') {
+                        this.closeQuizPopup();
+                    }
                     break;
 
                 default:
@@ -1446,10 +1716,99 @@
             }
         }
 
+        /** Map flat action properties to WhiteboardRenderer params format */
+        _mapWbActionParams(action) {
+            const type = action.type || '';
+            const base = {};
+            // Copy common fields
+            if (action.elementId != null) base.elementId = action.elementId;
+            if (action.element_id != null) base.elementId = action.element_id;
+            if (action.x != null) base.x = action.x;
+            if (action.y != null) base.y = action.y;
+            if (action.color != null) base.color = action.color;
+            if (action.width != null) base.width = action.width;
+            if (action.height != null) base.height = action.height;
+            if (action.fontSize != null) base.fontSize = action.fontSize;
+
+            switch (type) {
+                case 'wb_draw_text':
+                    if (action.content != null) base.content = action.content;
+                    if (action.text != null) base.content = action.text;
+                    break;
+                case 'wb_draw_shape':
+                    if (action.shape != null) base.shape = action.shape;
+                    if (action.fillColor != null) base.fillColor = action.fillColor;
+                    if (action.strokeColor != null) base.strokeColor = action.strokeColor;
+                    break;
+                case 'wb_draw_svg':
+                    if (action.svg != null) base.svg = action.svg;
+                    break;
+                case 'wb_draw_latex':
+                    if (action.latex != null) base.latex = action.latex;
+                    break;
+                case 'wb_draw_chart':
+                    if (action.chartType != null) base.chartType = action.chartType;
+                    if (action.data != null) base.data = action.data;
+                    break;
+                case 'wb_draw_table':
+                    if (action.data != null) base.data = action.data;
+                    break;
+                case 'wb_draw_line':
+                    if (action.startX != null) base.startX = action.startX;
+                    if (action.startY != null) base.startY = action.startY;
+                    if (action.endX != null) base.endX = action.endX;
+                    if (action.endY != null) base.endY = action.endY;
+                    if (action.style != null) base.style = action.style;
+                    // Support old format: action.start, action.end
+                    if (action.start != null && base.startX == null) {
+                        base.startX = action.start.x || action.start[0] || 0;
+                        base.startY = action.start.y || action.start[1] || 0;
+                    }
+                    if (action.end != null && base.endX == null) {
+                        base.endX = action.end.x || action.end[0] || 0;
+                        base.endY = action.end.y || action.end[1] || 0;
+                    }
+                    break;
+                case 'wb_draw_code':
+                    if (action.code != null) base.code = action.code;
+                    if (action.language != null) base.language = action.language;
+                    if (action.fileName != null) base.fileName = action.fileName;
+                    break;
+            }
+            return base;
+        }
+
         renderSpotlight(elementId, options = {}) {
             this.clearSpotlight();
 
-            const targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+            // Try legacy element lookup first: #elem-{elementId}
+            var targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+
+            // Fallback: try card-based targeting via _currentElemToCard mapping
+            if (!targetElem && elementId && this._currentElemToCard) {
+                var cardIdx = this._currentElemToCard[elementId];
+                if (cardIdx !== undefined) {
+                    targetElem = this.slideContainer.querySelector(`.content-card[data-card-index="${cardIdx}"]`);
+                }
+            }
+            // Fallback: try matching card-{N} prefix directly
+            if (!targetElem && elementId) {
+                var cardMatch = elementId.match(/card-(\d+)/);
+                if (cardMatch) {
+                    var ci = parseInt(cardMatch[1], 10) - 1;
+                    targetElem = this.slideContainer.querySelector(`.content-card[data-card-index="${ci}"]`);
+                }
+            }
+
+            // Card-based spotlight: use CSS classes for dimming + highlight
+            if (targetElem && targetElem.classList.contains('content-card')) {
+                this.slideContainer.classList.add('spotlight-active');
+                targetElem.classList.add('spotlight-target');
+                this.spotlightElement = targetElem;
+                return;
+            }
+
+            // Legacy overlay-based spotlight
             const overlay = document.createElement('div');
             overlay.id = 'spotlight-overlay';
             overlay.className = 'spotlight-overlay';
@@ -1470,7 +1829,6 @@
                     animation: spotlightPulse 2s ease-in-out infinite;
                 `;
 
-                // Highlight the element
                 targetElem.style.transition = 'filter 0.4s ease, transform 0.4s ease';
                 targetElem.style.filter = 'brightness(1.3) drop-shadow(0 0 20px var(--primary-glow))';
                 targetElem.style.transform = 'scale(1.02)';
@@ -1488,7 +1846,12 @@
             const overlay = document.getElementById('spotlight-overlay');
             if (overlay) overlay.remove();
 
+            // Clear card-based spotlight classes
+            if (this.slideContainer) {
+                this.slideContainer.classList.remove('spotlight-active');
+            }
             if (this.spotlightElement) {
+                this.spotlightElement.classList.remove('spotlight-target');
                 this.spotlightElement.style.filter = '';
                 this.spotlightElement.style.transform = '';
                 this.spotlightElement = null;
@@ -1504,26 +1867,50 @@
         renderLaser(elementId, color, options = {}) {
             this.clearLaser();
 
-            const targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+            // Try legacy element lookup first: #elem-{elementId}
+            var targetElem = elementId ? document.getElementById(`elem-${elementId}`) : null;
+
+            // Fallback: try card-based targeting via _currentElemToCard mapping
+            if (!targetElem && elementId && this._currentElemToCard) {
+                var cardIdx = this._currentElemToCard[elementId];
+                if (cardIdx !== undefined) {
+                    targetElem = this.slideContainer.querySelector(`.content-card[data-card-index="${cardIdx}"]`);
+                }
+            }
+            // Fallback: try matching card-{N} prefix directly
+            if (!targetElem && elementId) {
+                var cardMatch = elementId.match(/card-(\d+)/);
+                if (cardMatch) {
+                    var ci = parseInt(cardMatch[1], 10) - 1;
+                    targetElem = this.slideContainer.querySelector(`.content-card[data-card-index="${ci}"]`);
+                }
+            }
+
             const laserContainer = document.createElement('div');
             laserContainer.id = 'laser-overlay';
             laserContainer.className = 'laser-overlay';
 
-            let cx = window.innerWidth / 2;
-            let cy = window.innerHeight / 2;
+            var cx = window.innerWidth / 2;
+            var cy = window.innerHeight / 2;
 
             if (targetElem) {
                 const rect = targetElem.getBoundingClientRect();
                 cx = rect.left + rect.width / 2;
                 cy = rect.top + rect.height / 2;
 
+                // Card-based: add laser-target class
+                if (targetElem.classList.contains('content-card')) {
+                    targetElem.classList.add('laser-target');
+                }
                 // Highlight element with glow
                 targetElem.style.transition = 'filter 0.3s ease';
                 targetElem.style.filter = `brightness(1.2) drop-shadow(0 0 15px ${color})`;
+
+                this.laserTargetElem = targetElem;
             }
 
             laserContainer.innerHTML = `
-                <div class="laser-dot" style="left:${cx}px;top:${cy}px;background:radial-gradient(circle, ${color} 0%, transparent 70%);"></div>
+                <div class="laser-dot" style="left:${cx}px;top:${cy}px;background:radial-gradient(circle, ${color} 0%, transparent 70%); animation: laserFlyIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);"></div>
                 <div class="laser-ring" style="left:${cx}px;top:${cy}px;border-color:${color};"></div>
                 <svg width="100%" height="100%" style="position:absolute;top:0;left:0;pointer-events:none;">
                     <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy}"
@@ -1541,10 +1928,27 @@
         clearLaser() {
             const laser = document.getElementById('laser-overlay');
             if (laser) laser.remove();
+            if (this.laserTargetElem) {
+                this.laserTargetElem.classList.remove('laser-target');
+                this.laserTargetElem.style.filter = '';
+                this.laserTargetElem = null;
+            }
 
             document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex, .slide-table').forEach(el => {
                 el.style.filter = '';
             });
+        }
+
+        clearEffects() {
+            this.clearSpotlight();
+            this.clearLaser();
+            if (this.slideContainer) {
+                this.slideContainer.classList.remove('spotlight-active');
+                var cards = this.slideContainer.querySelectorAll('.content-card');
+                cards.forEach(function(c) {
+                    c.classList.remove('spotlight-target', 'laser-target');
+                });
+            }
         }
 
         highlightElement(elementId, color) {
@@ -1759,270 +2163,49 @@
         }
 
         showWhiteboard(options = {}) {
-            let wb = document.getElementById('whiteboard-overlay');
-
-            const colors = options.colors || ['#6366f1', '#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#000000'];
-            const tools = options.tools || ['pen', 'rectangle', 'circle', 'line', 'text', 'eraser'];
-
-            if (!wb) {
-                wb = document.createElement('div');
-                wb.id = 'whiteboard-overlay';
-                wb.style.cssText = `
-                    position:fixed;top:0;left:0;width:100%;height:100%;
-                    background:rgba(0,0,0,0.85);z-index:10000;
-                    display:flex;align-items:center;justify-content:center;
-                    animation: fadeIn 0.3s ease;
-                `;
-
-                wb.innerHTML = `
-                    <div class="whiteboard-container" style="
-                        width:90%;max-width:1000px;height:85%;
-                        background:#fff;border-radius:20px;
-                        box-shadow:0 25px 80px rgba(0,0,0,0.5);
-                        display:flex;flex-direction:column;overflow:hidden;
-                    ">
-                        <div class="wb-header" style="
-                            display:flex;align-items:center;justify-content:space-between;
-                            padding:12px 20px;background:linear-gradient(135deg,var(--primary),var(--accent));
-                            color:white;
-                        ">
-                            <div class="wb-title" style="font-size:16px;font-weight:600;">
-                                <i class="fas fa-chalkboard"></i> 电子白板
-                            </div>
-                            <div class="wb-tools" style="display:flex;gap:8px;">
-                                ${tools.map(t => `
-                                    <button class="wb-tool-btn" data-tool="${t}" style="
-                                        width:36px;height:36px;border:none;border-radius:8px;
-                                        background:rgba(255,255,255,0.2);color:white;
-                                        cursor:pointer;font-size:14px;transition:all 0.2s;
-                                    " title="${t}">
-                                        <i class="fas fa-${this._getToolIcon(t)}"></i>
-                                    </button>
-                                `).join('')}
-                            </div>
-                            <div class="wb-colors" style="display:flex;gap:6px;">
-                                ${colors.map(c => `
-                                    <button class="wb-color-btn" data-color="${c}" style="
-                                        width:24px;height:24px;border-radius:50%;
-                                        background:${c};border:2px solid transparent;
-                                        cursor:pointer;transition:all 0.2s;
-                                    "></button>
-                                `).join('')}
-                            </div>
-                            <button class="wb-close-btn" style="
-                                width:36px;height:36px;border:none;border-radius:50%;
-                                background:rgba(255,255,255,0.2);color:white;
-                                cursor:pointer;font-size:18px;transition:all 0.2s;
-                            ">×</button>
-                        </div>
-                        <canvas id="whiteboard-canvas" style="
-                            flex:1;cursor:crosshair;
-                        "></canvas>
-                    </div>
-                `;
-
-                document.body.appendChild(wb);
-
-                // Initialize canvas after DOM insert
-                this._initWhiteboardCanvas(wb, options);
-
-                // Event listeners
-                wb.querySelector('.wb-close-btn').addEventListener('click', () => this.hideWhiteboard());
-                wb.querySelectorAll('.wb-tool-btn').forEach(btn => {
-                    btn.addEventListener('click', () => this._selectWhiteboardTool(btn.dataset.tool));
-                });
-                wb.querySelectorAll('.wb-color-btn').forEach(btn => {
-                    btn.addEventListener('click', () => this._selectWhiteboardColor(btn.dataset.color));
-                });
-            }
-
-            wb.style.display = 'flex';
-            this.whiteboardVisible = true;
-        }
-
-        _initWhiteboardCanvas(wb, options) {
-            const canvas = wb.querySelector('#whiteboard-canvas');
-            if (!canvas) return;
-
-            const ctx = canvas.getContext('2d');
-            const rect = wb.querySelector('.whiteboard-container').getBoundingClientRect();
-
-            canvas.width = rect.width;
-            canvas.height = rect.height - 56; // minus header
-
-            // Drawing state
-            let drawing = false;
-            let lastX = 0, lastY = 0;
-            let currentTool = 'pen';
-            let currentColor = options.colors?.[0] || '#6366f1';
-            let lineWidth = 3;
-
-            const startDraw = (e) => {
-                drawing = true;
-                const pos = this._getCanvasPos(canvas, e);
-                lastX = pos.x;
-                lastY = pos.y;
-
-                if (currentTool === 'rectangle' || currentTool === 'circle') {
-                    // Store start for shape drawing
-                    canvas.dataset.startX = lastX;
-                    canvas.dataset.startY = lastY;
-                }
-            };
-
-            const draw = (e) => {
-                if (!drawing) return;
-                const pos = this._getCanvasPos(canvas, e);
-
-                ctx.strokeStyle = currentColor;
-                ctx.lineWidth = lineWidth;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-                if (currentTool === 'pen') {
-                    ctx.beginPath();
-                    ctx.moveTo(lastX, lastY);
-                    ctx.lineTo(pos.x, pos.y);
-                    ctx.stroke();
-                }
-
-                lastX = pos.x;
-                lastY = pos.y;
-            };
-
-            const endDraw = (e) => {
-                if (!drawing) return;
-                drawing = false;
-
-                if (currentTool === 'rectangle' || currentTool === 'circle') {
-                    const startX = parseFloat(canvas.dataset.startX);
-                    const startY = parseFloat(canvas.dataset.startY);
-                    const pos = this._getCanvasPos(canvas, e);
-
-                    ctx.strokeStyle = currentColor;
-                    ctx.lineWidth = lineWidth;
-
-                    if (currentTool === 'rectangle') {
-                        ctx.strokeRect(startX, startY, pos.x - startX, pos.y - startY);
-                    } else if (currentTool === 'circle') {
-                        const r = Math.sqrt(Math.pow(pos.x - startX, 2) + Math.pow(pos.y - startY, 2));
-                        ctx.beginPath();
-                        ctx.arc(startX, startY, r, 0, Math.PI * 2);
-                        ctx.stroke();
-                    }
-                }
-            };
-
-            canvas.addEventListener('mousedown', startDraw);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('mouseup', endDraw);
-            canvas.addEventListener('mouseleave', () => drawing = false);
-
-            // Touch support
-            canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                startDraw(e.touches[0]);
-            });
-            canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                draw(e.touches[0]);
-            });
-            canvas.addEventListener('touchend', endDraw);
-        }
-
-        _getCanvasPos(canvas, e) {
-            const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
-        }
-
-        _getToolIcon(tool) {
-            const icons = {
-                pen: 'pen',
-                rectangle: 'square-o',
-                circle: 'circle-o',
-                line: 'minus',
-                text: 'font',
-                eraser: 'eraser'
-            };
-            return icons[tool] || 'pen';
-        }
-
-        _selectWhiteboardTool(tool) {
-            document.querySelectorAll('.wb-tool-btn').forEach(btn => {
-                btn.style.background = btn.dataset.tool === tool
-                    ? 'rgba(255,255,255,0.4)'
-                    : 'rgba(255,255,255,0.2)';
-            });
-            this.currentWhiteboardTool = tool;
-        }
-
-        _selectWhiteboardColor(color) {
-            document.querySelectorAll('.wb-color-btn').forEach(btn => {
-                btn.style.borderColor = btn.dataset.color === color ? 'white' : 'transparent';
-            });
-            this.currentWhiteboardColor = color;
+            if (!this.whiteboardVisible) this.toggleWhiteboard();
         }
 
         hideWhiteboard() {
-            const wb = document.getElementById('whiteboard-overlay');
-            if (wb) wb.style.display = 'none';
-            this.whiteboardVisible = false;
-        }
-
-        drawOnWhiteboard(content) {
-            const canvas = document.getElementById('whiteboard-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.font = '20px Microsoft YaHei';
-            ctx.fillStyle = '#333';
-            ctx.fillText(content, 50, 50);
+            if (this.whiteboardVisible) this.toggleWhiteboard();
         }
 
         drawTextOnWhiteboard(text, x = 50, y = 50, style = {}) {
-            const canvas = document.getElementById('whiteboard-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.font = `${style.fontSize || 20}px ${style.fontFamily || 'Microsoft YaHei'}`;
-            ctx.fillStyle = style.color || '#333';
-            ctx.fillText(text, x, y);
+            this.executeWhiteboardAction({
+                type: 'wb_draw_text',
+                params: {
+                    content: text,
+                    x: x,
+                    y: y,
+                    fontSize: style.fontSize || 20,
+                    color: style.color || '#333'
+                }
+            });
         }
 
         drawLineOnWhiteboard(start, end, color = '#6366f1', width = 3) {
-            const canvas = document.getElementById('whiteboard-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.strokeStyle = color;
-            ctx.lineWidth = width;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(start.x || start[0], start.y || start[1]);
-            ctx.lineTo(end.x || end[0], end.y || end[1]);
-            ctx.stroke();
+            this.executeWhiteboardAction({
+                type: 'wb_draw_line',
+                params: {
+                    startX: start?.x ?? start?.[0] ?? 0,
+                    startY: start?.y ?? start?.[1] ?? 0,
+                    endX: end?.x ?? end?.[0] ?? 100,
+                    endY: end?.y ?? end?.[1] ?? 100,
+                    color: color,
+                    width: width
+                }
+            });
         }
 
         drawShapeOnWhiteboard(shapeType) {
-            const canvas = document.getElementById('whiteboard-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            ctx.strokeStyle = '#8b5cf6';
-            ctx.lineWidth = 3;
-
-            const cx = 350, cy = 225, r = 60;
-            ctx.beginPath();
-            if (shapeType === 'circle') {
-                ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            } else if (shapeType === 'triangle') {
-                ctx.moveTo(cx, cy - r);
-                ctx.lineTo(cx - r, cy + r);
-                ctx.lineTo(cx + r, cy + r);
-                ctx.closePath();
-            } else {
-                ctx.rect(cx - r, cy - r, r * 2, r * 2);
-            }
-            ctx.stroke();
+            this.executeWhiteboardAction({
+                type: 'wb_draw_shape',
+                params: {
+                    shape: shapeType || 'rectangle',
+                    x: 100, y: 100,
+                    width: 200, height: 150
+                }
+            });
         }
 
         _sleep(ms) {
@@ -2162,6 +2345,100 @@
             }
         }
 
+        // ---- Whiteboard ----
+
+        _getWhiteboardRenderer() {
+            if (!this.whiteboardRenderer && window.WhiteboardRenderer) {
+                this.whiteboardRenderer = new window.WhiteboardRenderer({
+                    containerId: 'whiteboard-stage',
+                    width: 1000,
+                    height: 562.5
+                });
+            }
+            return this.whiteboardRenderer;
+        }
+
+        _initWhiteboard() {
+            if (!this.whiteboardStage) return;
+            const renderer = this._getWhiteboardRenderer();
+            if (renderer) renderer._initContainer();
+        }
+
+        toggleWhiteboard() {
+            this.whiteboardVisible = !this.whiteboardVisible;
+            this.whiteboardToggleBtn?.classList.toggle('active', this.whiteboardVisible);
+
+            if (this.whiteboardVisible) {
+                // Switch to whiteboard view
+                this.stopAudio();
+                this.hideAllSceneContainers();
+                if (this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'flex';
+                }
+                this._initWhiteboard();
+                // Hide slide navigation during whiteboard
+                if (this.slideControls) this.slideControls.style.display = 'none';
+                if (this.progressBar) this.progressBar.style.display = 'none';
+            } else {
+                // Switch back to slide view
+                if (this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'none';
+                }
+                if (this.slideControls) this.slideControls.style.display = '';
+                if (this.progressBar) this.progressBar.style.display = '';
+                this.renderScene(this.currentIndex);
+            }
+        }
+
+        clearWhiteboard() {
+            const renderer = this._getWhiteboardRenderer();
+            if (renderer) renderer.clear();
+        }
+
+        /** Execute a whiteboard action (wb_*) from the AI teacher pipeline */
+        executeWhiteboardAction(action) {
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) {
+                console.warn('[Classroom] WhiteboardRenderer not available');
+                return;
+            }
+            // Auto-open whiteboard on first draw action
+            var name = action.type || action.name || '';
+            if (!this.whiteboardVisible && name.startsWith('wb_draw_')) {
+                this.whiteboardVisible = true;
+                this.whiteboardToggleBtn?.classList.add('active');
+                this.stopAudio();
+                this.hideAllSceneContainers();
+                if (this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'flex';
+                }
+                this._initWhiteboard();
+                if (this.slideControls) this.slideControls.style.display = 'none';
+                if (this.progressBar) this.progressBar.style.display = 'none';
+            }
+            // Handle wb_close - switch back to slides
+            if (name === 'wb_close') {
+                this.whiteboardVisible = false;
+                this.whiteboardToggleBtn?.classList.remove('active');
+                if (this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'none';
+                }
+                if (this.slideControls) this.slideControls.style.display = '';
+                if (this.progressBar) this.progressBar.style.display = '';
+                this.renderScene(this.currentIndex);
+                return;
+            }
+            if (name === 'wb_clear') {
+                renderer.clear();
+                return;
+            }
+            if (name === 'wb_delete') {
+                renderer.delete(action.params?.elementId);
+                return;
+            }
+            renderer.execute(action);
+        }
+
         updateTeacherSpeech(scene) {
             if (!this.speechText) return;
             const speech = scene.slide?.speech || scene.quiz?.speech || scene.description || '';
@@ -2186,6 +2463,15 @@
 
         playSceneAudio(scene) {
             this.stopAudio();
+
+            // If OpenMAIC actions are available, use the action pipeline (speech + spotlight + laser)
+            if (this._currentOpenMAICActions && this._currentOpenMAICActions.length > 0 && this.openmaicPlayer) {
+                console.log('[Classroom] Starting OpenMAIC action pipeline with', this._currentOpenMAICActions.length, 'actions');
+                this.speechSync.style.display = 'flex';
+                this.openmaicPlayer.start(this._currentOpenMAICActions);
+                return;
+            }
+
             const url = scene.audioUrl
                 || scene.slide?.content?.elements?.find(el => el.audio_url)?.audio_url
                 || scene.slide?.content?.elements?.[0]?.audio_url;
@@ -2226,6 +2512,13 @@
             this.voiceBtn?.classList.toggle('playing', this.isPlaying);
             const icon = this.voiceBtn?.querySelector('i');
             if (icon) icon.className = this.isPlaying ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+
+            // Sync prominent play/pause button
+            const playBtn = document.getElementById('playback-play-btn');
+            const playIcon = playBtn?.querySelector('i');
+            if (playBtn) playBtn.classList.toggle('playing', this.isPlaying);
+            if (playIcon) playIcon.className = this.isPlaying ? 'fas fa-pause' : 'fas fa-play';
+
             if (this.isPlaying) this.playSceneAudio(this.scenes[this.currentIndex]);
             else this.stopAudio();
         }
@@ -2233,7 +2526,13 @@
         stopAudio() {
             if (this.audioPlayer) { this.audioPlayer.pause(); this.audioPlayer.src = ''; }
             if (window.speechSynthesis) window.speechSynthesis.cancel();
+            if (this.openmaicPlayer) this.openmaicPlayer.stop({ keepSlide: true });
             if (this.speechSync) this.speechSync.style.display = 'none';
+            // Reset play button state
+            const playBtn = document.getElementById('playback-play-btn');
+            const playIcon = playBtn?.querySelector('i');
+            if (playBtn) playBtn.classList.remove('playing');
+            if (playIcon) playIcon.className = 'fas fa-play';
         }
 
         replaySpeech() { this.playSceneAudio(this.scenes[this.currentIndex]); }
@@ -2340,6 +2639,761 @@
 
             this.quizAnswers[scene.id] = answers;
             this.checkCompletion();
+        }
+
+        // ============================================================
+        // Quiz Popup Lifecycle — Phase 5
+        // ============================================================
+
+        _onQuizToggleClick() {
+            // Find the first quiz scene in the course
+            var quizScene = this.scenes.find(function(s) { return s.type === 'quiz'; });
+            if (!quizScene) {
+                this.addChatMessage('teacher', '当前课程没有测验环节。');
+                return;
+            }
+            this.openQuizPopup(quizScene);
+        }
+
+        openQuizPopup(scene) {
+            if (!scene || scene.type !== 'quiz') return;
+            this.currentQuizScene = scene;
+            this.quizPhase = 'not_started';
+            this.quizUserAnswers = {};
+            this.quizResults = [];
+
+            // Pause AI speech if currently playing
+            this._wasSpeakingBeforeQuiz = this.isPlaying;
+            if (this.isPlaying) {
+                this.isPlaying = false;
+                this.stopAudio();
+                var vi = this.voiceBtn?.querySelector('i');
+                if (vi) vi.className = 'fas fa-volume-up';
+            }
+
+            // Dim slide viewer to block interaction
+            if (this.slideViewer) {
+                this.slideViewer.classList.add('slide-viewer-dimmed');
+            }
+
+            // Hide all phase containers
+            if (this.quizCover) this.quizCover.style.display = 'flex';
+            if (this.quizQuestionsArea) this.quizQuestionsArea.style.display = 'none';
+            if (this.quizGrading) this.quizGrading.style.display = 'none';
+            if (this.quizReviewArea) this.quizReviewArea.style.display = 'none';
+            if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'none';
+            if (this.quizCloseBtn) this.quizCloseBtn.style.display = 'block';
+            if (this.quizSubmitBtn) this.quizSubmitBtn.style.display = 'none';
+            if (this.quizRetryBtn) this.quizRetryBtn.style.display = 'none';
+
+            // Show overlay
+            if (this.quizPopupOverlay) {
+                this.quizPopupOverlay.style.display = 'flex';
+            }
+
+            // Render cover
+            this._renderQuizCover(scene);
+
+            // Update toggle button state
+            if (this.quizToggleBtn) this.quizToggleBtn.classList.add('active');
+        }
+
+        _renderQuizCover(scene) {
+            var quiz = scene.quiz_data || scene.quiz;
+            if (!quiz) return;
+
+            var questions = quiz.questions || [];
+            var totalPoints = questions.reduce(function(sum, q) { return sum + (q.points || 10); }, 0);
+            var passing = quiz.passing_score || 60;
+
+            if (this.quizCoverTitle) {
+                this.quizCoverTitle.textContent = quiz.title || '课堂测验';
+            }
+            if (this.quizCoverMeta) {
+                this.quizCoverMeta.innerHTML =
+                    '<span><i class="fas fa-question-circle"></i> ' + questions.length + ' 道题</span>' +
+                    '<span><i class="fas fa-star"></i> 总分 ' + totalPoints + '</span>' +
+                    '<span><i class="fas fa-check-circle"></i> 及格线 ' + passing + '%</span>';
+            }
+        }
+
+        startQuiz() {
+            if (this.quizPhase !== 'not_started') return;
+            this.quizPhase = 'answering';
+
+            if (this.quizCover) this.quizCover.style.display = 'none';
+            if (this.quizQuestionsArea) this.quizQuestionsArea.style.display = 'block';
+            if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'flex';
+            if (this.quizSubmitBtn) this.quizSubmitBtn.style.display = 'flex';
+            if (this.quizRetryBtn) this.quizRetryBtn.style.display = 'none';
+
+            this._renderAllQuestions(this.currentQuizScene);
+        }
+
+        _renderAllQuestions(scene) {
+            var self = this;
+            var quiz = scene.quiz_data || scene.quiz;
+            var questions = quiz.questions || [];
+
+            var html = '';
+            questions.forEach(function(q, i) {
+                html += self._renderQuestionCard(q, i);
+            });
+            if (this.quizQuestionsArea) {
+                this.quizQuestionsArea.innerHTML = html;
+            }
+
+            // Bind option click handlers
+            questions.forEach(function(q, i) {
+                var card = document.getElementById('question-card-' + i);
+                if (!card) return;
+                var type = q.question_type || 'single';
+
+                if (type === 'single') {
+                    card.querySelectorAll('.quiz-option').forEach(function(opt) {
+                        opt.addEventListener('click', function() {
+                            card.querySelectorAll('.quiz-option').forEach(function(o) { o.classList.remove('selected'); });
+                            opt.classList.add('selected');
+                            self.quizUserAnswers[i] = { type: 'single', value: parseInt(opt.dataset.optionIndex) };
+                        });
+                    });
+                } else if (type === 'multiple') {
+                    card.querySelectorAll('.quiz-option').forEach(function(opt) {
+                        opt.addEventListener('click', function() {
+                            opt.classList.toggle('selected');
+                            var idx = parseInt(opt.dataset.optionIndex);
+                            if (!self.quizUserAnswers[i]) {
+                                self.quizUserAnswers[i] = { type: 'multiple', values: [] };
+                            }
+                            var arr = self.quizUserAnswers[i].values;
+                            var pos = arr.indexOf(idx);
+                            if (pos >= 0) { arr.splice(pos, 1); }
+                            else { arr.push(idx); }
+                        });
+                    });
+                }
+            });
+
+            // Short answer voice input buttons
+            this.quizQuestionsArea.querySelectorAll('.sa-voice-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var qIdx = parseInt(btn.dataset.questionIndex);
+                    self._startShortAnswerVoice(qIdx, btn);
+                });
+            });
+        }
+
+        _renderQuestionCard(q, index) {
+            var type = q.question_type || 'single';
+            var points = q.points || 10;
+            var typeLabels = { single: '单选题', multiple: '多选题', short_answer: '简答题' };
+            var typeLabel = typeLabels[type] || '单选题';
+            var typeClass = type === 'multiple' ? 'tag-multiple' : (type === 'short_answer' ? 'tag-short' : 'tag-single');
+
+            var html = '<div class="question-card" id="question-card-' + index + '">';
+            html += '<div class="question-card-header">';
+            html += '<span class="question-card-num">第 ' + (index + 1) + ' 题</span>';
+            html += '<span class="question-type-tag ' + typeClass + '">' + typeLabel + '</span>';
+            html += '<span class="question-card-points">' + points + ' 分</span>';
+            html += '</div>';
+            html += '<div class="question-body">' + this._escapeHtml(q.question) + '</div>';
+
+            if (type === 'short_answer') {
+                html += this._renderShortAnswerQuestion(q, index);
+            } else {
+                html += this._renderChoiceOptions(q, index, type);
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        _renderChoiceOptions(q, index, type) {
+            var options = q.options || [];
+            var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            var isMulti = type === 'multiple';
+            var html = '<div class="question-options">';
+
+            options.forEach(function(opt, oi) {
+                html += '<div class="quiz-option' + (isMulti ? ' multi' : '') + '" data-option-index="' + oi + '">';
+                html += '<div class="quiz-option-radio' + (isMulti ? ' multi' : '') + '"></div>';
+                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + this._escapeHtml(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
+                html += '</div>';
+            }.bind(this));
+
+            html += '</div>';
+            return html;
+        }
+
+        _renderShortAnswerQuestion(q, index) {
+            var html = '<div class="sa-answer-area">';
+            html += '<textarea class="sa-textarea" id="sa-textarea-' + index + '" placeholder="请输入你的答案..."></textarea>';
+            html += '<button class="sa-voice-btn" data-question-index="' + index + '" type="button">';
+            html += '<i class="fas fa-microphone"></i> 语音输入';
+            html += '</button>';
+            html += '</div>';
+            return html;
+        }
+
+        _startShortAnswerVoice(qIndex, btn) {
+            var self = this;
+            var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                self.addChatMessage('teacher', '语音输入需要 Chrome 浏览器支持。');
+                return;
+            }
+            if (btn.classList.contains('recording')) {
+                // Already recording — stop handled by recognition.onend
+                return;
+            }
+
+            var recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            btn.classList.add('recording');
+            var icon = btn.querySelector('i');
+            if (icon) icon.className = 'fas fa-microphone-slash';
+
+            recognition.onresult = function(event) {
+                var transcript = event.results[0][0].transcript;
+                var textarea = document.getElementById('sa-textarea-' + qIndex);
+                if (textarea) {
+                    textarea.value = (textarea.value ? textarea.value + ' ' : '') + transcript;
+                }
+                self.quizUserAnswers[qIndex] = { type: 'short_answer', value: textarea ? textarea.value : transcript };
+            };
+
+            recognition.onerror = function() {
+                btn.classList.remove('recording');
+                if (icon) icon.className = 'fas fa-microphone';
+            };
+
+            recognition.onend = function() {
+                btn.classList.remove('recording');
+                if (icon) icon.className = 'fas fa-microphone';
+            };
+
+            recognition.start();
+        }
+
+        _collectQuizAnswers() {
+            var self = this;
+            var answers = [];
+            var quiz = this.currentQuizScene;
+            if (!quiz) return answers;
+            var questions = (quiz.quiz_data || quiz.quiz || {}).questions || [];
+
+            questions.forEach(function(q, i) {
+                var type = q.question_type || 'single';
+                var existing = self.quizUserAnswers[i];
+
+                if (type === 'short_answer') {
+                    var textarea = document.getElementById('sa-textarea-' + i);
+                    var value = textarea ? textarea.value : (existing ? existing.value : '');
+                    if (existing) existing.value = value;
+                    answers.push({
+                        question_index: i,
+                        answer_value: value,
+                        answer_values: []
+                    });
+                } else if (type === 'multiple') {
+                    var values = existing ? (existing.values || []) : [];
+                    answers.push({
+                        question_index: i,
+                        answer_value: values.join(','),
+                        answer_values: values
+                    });
+                } else {
+                    // single choice
+                    var val = existing ? existing.value : -1;
+                    answers.push({
+                        question_index: i,
+                        answer_value: val >= 0 ? String(val) : '',
+                        answer_values: []
+                    });
+                }
+            });
+
+            return answers;
+        }
+
+        async _submitForGrading() {
+            if (this.quizPhase !== 'answering') return;
+
+            // Validate: check if any question is answered
+            var answers = this._collectQuizAnswers();
+            var quiz = this.currentQuizScene;
+            var questions = (quiz.quiz_data || quiz.quiz || {}).questions || [];
+            var hasAnyAnswer = answers.some(function(a) {
+                return a.answer_value || (a.answer_values && a.answer_values.length > 0);
+            });
+
+            if (!hasAnyAnswer) {
+                // Shake the submit button
+                if (this.quizSubmitBtn) {
+                    this.quizSubmitBtn.style.animation = 'none';
+                    this.quizSubmitBtn.offsetHeight; // trigger reflow
+                    this.quizSubmitBtn.style.animation = 'shake 0.5s ease';
+                }
+                return;
+            }
+
+            this.quizPhase = 'grading';
+            if (this.quizQuestionsArea) this.quizQuestionsArea.style.display = 'none';
+            if (this.quizGrading) this.quizGrading.style.display = 'flex';
+            if (this.quizSubmitBtn) this.quizSubmitBtn.style.display = 'none';
+            if (this.gradingText) this.gradingText.textContent = 'AI 正在批改你的答案...';
+
+            // Build progress list
+            var shortAnswerCount = questions.filter(function(q) { return (q.question_type || 'single') === 'short_answer'; }).length;
+            this._buildGradingProgress(questions);
+
+            // Build request payload
+            var batchQuestions = questions.map(function(q, i) {
+                return {
+                    question_index: i,
+                    question: q.question,
+                    question_type: q.question_type || 'single',
+                    options: q.options || [],
+                    correct_answer: q.correct_answer || 0,
+                    correct_answers: q.correct_answers || [],
+                    answer: q.answer || '',
+                    comment_prompt: q.comment_prompt || '',
+                    points: q.points || 10,
+                    key_points: q.key_points || []
+                };
+            });
+
+            var self = this;
+
+            try {
+                // For short answer questions, show per-question progress
+                if (shortAnswerCount > 0 && this.gradingText) {
+                    this.gradingText.textContent = '正在批改选择题...';
+                }
+
+                // Simulate grading progress for choice questions first
+                for (var i = 0; i < questions.length; i++) {
+                    var qType = questions[i].question_type || 'single';
+                    if (qType === 'single' || qType === 'multiple') {
+                        this._updateGradingProgress(i, questions.length, 'choice', 'done');
+                    }
+                }
+
+                if (shortAnswerCount > 0 && this.gradingText) {
+                    this.gradingText.textContent = '正在批改简答题，这可能需要一些时间...';
+                }
+
+                // Make the batch API call
+                var resp = await fetch('/api/v2/grade/batch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        questions: batchQuestions,
+                        answers: answers,
+                        quiz_id: quiz.id || ''
+                    })
+                });
+
+                if (!resp.ok) {
+                    throw new Error('API returned ' + resp.status);
+                }
+
+                var data = await resp.json();
+
+                // Mark all progress items done
+                questions.forEach(function(_, i) {
+                    self._updateGradingProgress(i, questions.length, 'short_answer', 'done');
+                });
+
+                if (this.gradingText) {
+                    this.gradingText.textContent = '批改完成！';
+                }
+
+                // Short delay so user sees completion
+                await this._sleep(600);
+                this.showQuizResults(data);
+
+            } catch (e) {
+                console.error('Quiz grading failed:', e);
+                // Fallback: use local grading only
+                self._gradeLocallyAndShow(questions, answers, quiz);
+            }
+        }
+
+        _buildGradingProgress(questions) {
+            if (!this.gradingProgressList) return;
+            var html = '';
+            for (var i = 0; i < questions.length; i++) {
+                var q = questions[i];
+                var type = q.question_type || 'single';
+                var typeLabel = type === 'short_answer' ? '简答题' : (type === 'multiple' ? '多选题' : '单选题');
+                html += '<div class="grading-progress-item" id="grading-item-' + i + '">';
+                html += '<span class="progress-icon"><span class="mini-spinner"></span></span>';
+                html += '<span>第 ' + (i + 1) + ' 题 (' + typeLabel + ') 批改中...</span>';
+                html += '</div>';
+            }
+            this.gradingProgressList.innerHTML = html;
+        }
+
+        _updateGradingProgress(index, total, questionType, status) {
+            var item = document.getElementById('grading-item-' + index);
+            if (!item) return;
+            if (status === 'done') {
+                item.classList.add('done');
+                var icon = item.querySelector('.progress-icon');
+                if (icon) icon.innerHTML = '<i class="fas fa-check-circle" style="color:#34d399;font-size:14px;"></i>';
+                item.querySelector('span:last-child').textContent =
+                    '第 ' + (index + 1) + ' 题 批改完成';
+            }
+        }
+
+        showQuizResults(response) {
+            this.quizPhase = 'reviewing';
+            this.quizResults = response.results || [];
+
+            if (this.quizGrading) this.quizGrading.style.display = 'none';
+            if (this.quizReviewArea) this.quizReviewArea.style.display = 'block';
+            if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'flex';
+            if (this.quizRetryBtn) this.quizRetryBtn.style.display = 'flex';
+            if (this.quizCloseBtn) this.quizCloseBtn.style.display = 'block';
+
+            var self = this;
+            var results = this.quizResults;
+            var totalPoints = response.total_points || 0;
+            var totalScore = response.total_score || 0;
+            var percentage = response.percentage || 0;
+
+            // Render score banner
+            var reviewHtml = self._renderScoreBanner(results, totalPoints, percentage);
+
+            // Render each question with feedback
+            var quiz = this.currentQuizScene;
+            var questions = (quiz.quiz_data || quiz.quiz || {}).questions || [];
+
+            questions.forEach(function(q, i) {
+                var result = results[i] || {};
+                reviewHtml += self._renderQuestionReview(q, i, result);
+            });
+
+            if (this.quizReviewArea) {
+                this.quizReviewArea.innerHTML = reviewHtml;
+            }
+
+            // Animate score ring after render
+            var self_ = this;
+            setTimeout(function() {
+                self_._animateScoreRing(percentage);
+            }, 200);
+
+            // Start typewriter effect for short answer feedbacks (sequential)
+            var saResults = results.filter(function(r) {
+                var q = questions[r.question_index];
+                return q && (q.question_type || 'single') === 'short_answer' && r.feedback;
+            });
+            if (saResults.length > 0) {
+                self._typewriteAllFeedback(saResults, 0);
+            }
+
+            // Store answers for completion tracking
+            if (quiz && quiz.id) {
+                this.quizAnswers[quiz.id] = results;
+            }
+        }
+
+        _renderScoreBanner(results, totalPoints, percentage) {
+            var tierClass = percentage >= 80 ? 'score-emerald' : (percentage >= 60 ? 'score-amber' : 'score-red');
+            var passFailClass = percentage >= 60 ? 'passed' : 'failed';
+            var passFailText = percentage >= 60 ? '恭喜通过！' : '未通过，继续加油！';
+            var correctCount = results.filter(function(r) { return r.is_correct; }).length;
+            var totalCount = results.length;
+            var score = results.reduce(function(s, r) { return s + (r.score || 0); }, 0);
+
+            var circumference = 2 * Math.PI * 45; // r=45
+            var offset = circumference * (1 - percentage / 100);
+
+            var html = '<div class="score-banner ' + tierClass + '">';
+            html += '<div class="score-ring-wrap">';
+            html += '<svg class="score-ring-svg" width="120" height="120" viewBox="0 0 120 120">';
+            html += '<circle class="score-ring-bg" cx="60" cy="60" r="45"/>';
+            html += '<circle class="score-ring-fill" cx="60" cy="60" r="45"';
+            html += ' stroke-dasharray="' + circumference + '" stroke-dashoffset="' + circumference + '"';
+            html += ' id="score-ring-fill"/>';
+            html += '</svg>';
+            html += '<div class="score-ring-center">' + Math.round(percentage) + '%</div>';
+            html += '</div>';
+            html += '<div class="score-detail">';
+            html += '<span><i class="fas fa-check-circle"></i> 正确 ' + correctCount + '/' + totalCount + '</span>';
+            html += '<span><i class="fas fa-trophy"></i> 得分 ' + Math.round(score) + '/' + Math.round(totalPoints) + '</span>';
+            html += '</div>';
+            html += '<div class="score-pass-fail ' + passFailClass + '">' + passFailText + '</div>';
+            html += '</div>';
+            return html;
+        }
+
+        _animateScoreRing(percentage) {
+            var ring = document.getElementById('score-ring-fill');
+            if (!ring) return;
+            var circumference = 2 * Math.PI * 45;
+            var targetOffset = circumference * (1 - percentage / 100);
+            // Trigger animation
+            requestAnimationFrame(function() {
+                ring.style.strokeDashoffset = targetOffset;
+            });
+        }
+
+        _renderQuestionReview(q, index, result) {
+            var type = q.question_type || 'single';
+            var isCorrect = result.is_correct;
+            var correctClass = isCorrect ? 'review-correct' : 'review-incorrect';
+            var markIcon = isCorrect
+                ? '<i class="fas fa-check-circle question-review-correct-mark"></i>'
+                : '<i class="fas fa-times-circle question-review-incorrect-mark"></i>';
+
+            var html = '<div class="question-card ' + correctClass + '" id="review-card-' + index + '">';
+            html += '<div class="question-card-header">';
+            html += '<span class="question-card-num">第 ' + (index + 1) + ' 题</span>';
+            html += '<span class="question-card-points">' + Math.round(result.score || 0) + ' / ' + Math.round(result.total_points || q.points || 10) + ' 分</span>';
+            html += markIcon;
+            html += '</div>';
+            html += '<div class="question-body">' + this._escapeHtml(q.question) + '</div>';
+
+            if (type === 'short_answer') {
+                // Show user answer + AI feedback
+                var userAnswer = '';
+                var existing = this.quizUserAnswers[index];
+                if (existing) userAnswer = existing.value || '';
+                html += '<div class="sa-answer-area">';
+                html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">你的答案：</div>';
+                html += '<div style="font-size:13px;color:var(--text-primary);padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);margin-bottom:10px;">' + this._escapeHtml(userAnswer || '(未作答)') + '</div>';
+                if (result.feedback) {
+                    html += '<div class="sa-feedback-box" id="sa-feedback-' + index + '">';
+                    html += '<div class="sa-feedback-label"><i class="fas fa-robot"></i> AI 点评</div>';
+                    html += '<div class="sa-feedback-text" id="sa-feedback-text-' + index + '"></div>';
+                    html += '<span class="typing-cursor" id="sa-cursor-' + index + '"></span>';
+                    html += '</div>';
+                }
+                if (result.correct_answer) {
+                    html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:8px;">参考答案：' + this._escapeHtml(result.correct_answer) + '</div>';
+                }
+                html += '</div>';
+            } else {
+                // Show options in review mode
+                html += this._renderChoiceOptionsReview(q, index, result, type);
+                if (result.feedback) {
+                    html += '<div style="padding:8px 16px 14px;font-size:12px;color:var(--text-secondary);line-height:1.5;">';
+                    html += '<i class="fas fa-lightbulb" style="color:#fbbf24;margin-right:4px;"></i>';
+                    html += this._escapeHtml(result.feedback);
+                    html += '</div>';
+                }
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        _renderChoiceOptionsReview(q, index, result, type) {
+            var options = q.options || [];
+            var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            var correctAnswer = result.correct_answer || '';
+            var isMulti = type === 'multiple';
+            var userSet = new Set();
+            var correctSet = new Set();
+
+            if (isMulti) {
+                var existing = this.quizUserAnswers[index];
+                if (existing && existing.values) userSet = new Set(existing.values);
+                if (q.correct_answers) correctSet = new Set(q.correct_answers);
+            } else {
+                var existing = this.quizUserAnswers[index];
+                if (existing && existing.value >= 0) userSet = new Set([existing.value]);
+                correctSet = new Set([q.correct_answer]);
+            }
+
+            var html = '<div class="question-options">';
+            options.forEach(function(opt, oi) {
+                var isUserSelected = userSet.has(oi);
+                var isCorrectOption = correctSet.has(oi);
+                var cls = '';
+                if (isCorrectOption) cls = ' correct';
+                else if (isUserSelected && !isCorrectOption) cls = ' incorrect';
+
+                var iconHtml = '';
+                if (isCorrectOption) iconHtml = '<i class="fas fa-check" style="color:#34d399;font-size:12px;margin-left:auto;"></i>';
+                else if (isUserSelected && !isCorrectOption) iconHtml = '<i class="fas fa-times" style="color:#f87171;font-size:12px;margin-left:auto;"></i>';
+
+                html += '<div class="quiz-option' + cls + '">';
+                html += '<div class="quiz-option-radio' + (isMulti ? ' multi' : '') + ' review-icon">';
+                if (isUserSelected) html += '<i class="fas ' + (isCorrectOption ? 'fa-check' : 'fa-times') + '" style="font-size:12px;"></i>';
+                html += '</div>';
+                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + this._escapeHtml(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
+                html += iconHtml;
+                html += '</div>';
+            }.bind(this));
+            html += '</div>';
+            return html;
+        }
+
+        _typewriteAllFeedback(results, idx) {
+            if (idx >= results.length) return;
+            var self = this;
+            var r = results[idx];
+            var textEl = document.getElementById('sa-feedback-text-' + r.question_index);
+            var cursorEl = document.getElementById('sa-cursor-' + r.question_index);
+            if (!textEl) {
+                // No element — skip to next
+                this._typewriteAllFeedback(results, idx + 1);
+                return;
+            }
+            this._typewriteFeedback(textEl, cursorEl, r.feedback, 25, function() {
+                self._typewriteAllFeedback(results, idx + 1);
+            });
+        }
+
+        _typewriteFeedback(textEl, cursorEl, text, speed, onDone) {
+            var i = 0;
+            textEl.textContent = '';
+            var interval = setInterval(function() {
+                if (i < text.length) {
+                    textEl.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    if (cursorEl) cursorEl.style.display = 'none';
+                    if (onDone) onDone();
+                }
+            }, speed);
+        }
+
+        retryQuiz() {
+            this.quizPhase = 'not_started';
+            this.quizUserAnswers = {};
+            this.quizResults = [];
+
+            if (this.quizReviewArea) this.quizReviewArea.style.display = 'none';
+            if (this.quizRetryBtn) this.quizRetryBtn.style.display = 'none';
+            if (this.quizSubmitBtn) this.quizSubmitBtn.style.display = 'none';
+
+            // Reset question cards (remove review classes)
+            var allCards = this.quizQuestionsArea?.querySelectorAll('.question-card');
+            if (allCards) {
+                allCards.forEach(function(c) {
+                    c.classList.remove('review-correct', 'review-incorrect');
+                });
+            }
+
+            // Go back to cover
+            this._renderQuizCover(this.currentQuizScene);
+            if (this.quizCover) this.quizCover.style.display = 'flex';
+            if (this.quizQuestionsArea) this.quizQuestionsArea.style.display = 'none';
+            if (this.quizGrading) this.quizGrading.style.display = 'none';
+        }
+
+        closeQuizPopup() {
+            if (this.quizPopupOverlay) {
+                this.quizPopupOverlay.style.display = 'none';
+            }
+
+            // Remove dimming
+            if (this.slideViewer) {
+                this.slideViewer.classList.remove('slide-viewer-dimmed');
+            }
+
+            // Reset quiz state
+            this.quizPhase = 'not_started';
+            this.currentQuizScene = null;
+            this.quizUserAnswers = {};
+            this.quizResults = [];
+
+            // Hide all phase containers
+            if (this.quizCover) this.quizCover.style.display = 'none';
+            if (this.quizQuestionsArea) this.quizQuestionsArea.style.display = 'none';
+            if (this.quizGrading) this.quizGrading.style.display = 'none';
+            if (this.quizReviewArea) this.quizReviewArea.style.display = 'none';
+            if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'none';
+
+            // Update toggle button
+            if (this.quizToggleBtn) this.quizToggleBtn.classList.remove('active');
+
+            // Restore speech if it was playing before
+            if (this._wasSpeakingBeforeQuiz) {
+                this._wasSpeakingBeforeQuiz = false;
+                this.isPlaying = true;
+                this.voiceBtn?.classList.add('playing');
+                var vi = this.voiceBtn?.querySelector('i');
+                if (vi) vi.className = 'fas fa-volume-mute';
+                this.playSceneAudio(this.scenes[this.currentIndex]);
+            }
+
+            // Check completion (quiz answers were already stored)
+            this.checkCompletion();
+        }
+
+        _gradeLocallyAndShow(questions, answers, quiz) {
+            // Fallback: local-only grading when API is unavailable
+            var results = [];
+            var totalScore = 0;
+            var totalPoints = 0;
+
+            questions.forEach(function(q, i) {
+                var type = q.question_type || 'single';
+                var points = q.points || 10;
+                totalPoints += points;
+
+                var ans = answers[i];
+                var isCorrect = false;
+                var score = 0;
+                var feedback = '';
+
+                if (type === 'single') {
+                    var userVal = ans ? parseInt(ans.answer_value) : -1;
+                    isCorrect = (userVal === q.correct_answer) && userVal >= 0;
+                    score = isCorrect ? points : 0;
+                    var optLabel = q.options && q.options[q.correct_answer] ? q.options[q.correct_answer] : '';
+                    feedback = isCorrect
+                        ? '回答正确！'
+                        : '回答错误。正确答案是 ' + String.fromCharCode(65 + (q.correct_answer || 0)) + '. ' + (typeof optLabel === 'string' ? optLabel : '');
+                } else if (type === 'multiple') {
+                    var userVals = ans ? (ans.answer_values || []) : [];
+                    var correctVals = q.correct_answers || [];
+                    var userSet = new Set(userVals);
+                    var correctSet = new Set(correctVals);
+                    isCorrect = userSet.size === correctSet.size && Array.from(userSet).every(function(v) { return correctSet.has(v); });
+                    score = isCorrect ? points : 0;
+                    feedback = isCorrect
+                        ? '回答正确！'
+                        : '回答不完整或有误。';
+                } else {
+                    // Short answer — can't grade locally
+                    score = Math.round(points * 0.5);
+                    feedback = '已收到你的答案（本地评分无法评估简答题，请联网后重试）。';
+                }
+
+                totalScore += score;
+                results.push({
+                    question_index: i,
+                    is_correct: isCorrect,
+                    score: score,
+                    total_points: points,
+                    feedback: feedback,
+                    correct_answer: q.answer || (q.options && q.options[q.correct_answer]) || '',
+                    key_points_hit: [],
+                    key_points_missed: [],
+                    graded_by: 'local'
+                });
+            });
+
+            var percentage = totalPoints > 0 ? Math.round(totalScore / totalPoints * 100) : 0;
+            this.showQuizResults({
+                results: results,
+                total_score: totalScore,
+                total_points: totalPoints,
+                percentage: percentage,
+                passed: percentage >= 60,
+                graded_count: results.length
+            });
         }
 
         // ---- Exercise ----
@@ -2744,6 +3798,26 @@
             if (speedLabel) {
                 speedLabel.textContent = `${speed}x`;
             }
+            // Sync dropdown menu active state
+            const menu = document.getElementById('speed-menu');
+            if (menu) {
+                menu.querySelectorAll('.speed-option').forEach(opt => {
+                    var optSpeed = parseFloat(opt.dataset.speed);
+                    opt.classList.toggle('active', optSpeed === speed);
+                });
+            }
+        }
+
+        toggleSpeedMenu() {
+            const menu = document.getElementById('speed-menu');
+            if (!menu) return;
+            const isOpen = menu.style.display !== 'none';
+            menu.style.display = isOpen ? 'none' : 'block';
+        }
+
+        closeSpeedMenu() {
+            const menu = document.getElementById('speed-menu');
+            if (menu) menu.style.display = 'none';
         }
 
         cycleSpeed() {
@@ -2770,4 +3844,8 @@
         classroomController = new ClassroomController();
         classroomController.init();
     }
+
+    // Expose classroom as global alias for dynamically added methods
+    window.classroom = classroomController;
+    window.classroomController = classroomController;
 })();

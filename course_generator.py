@@ -693,9 +693,33 @@ class CourseGenerator:
                         if color_theme not in {"blue", "yellow", "green", "purple", "orange"}:
                             color_theme = "blue"
 
+                        # --- Extract bullets array ---
+                        bullets_raw = item_data.get("bullets", [])
+                        if not isinstance(bullets_raw, list):
+                            bullets_raw = []
+                        bullets = [str(b).strip() for b in bullets_raw if b and str(b).strip()]
+
+                        # --- Extract narration for TTS ---
+                        narration = str(item_data.get("narration") or "").strip()
+
+                        # --- Fallback text (backward compat) ---
+                        text_raw = str(item_data.get("text") or "").strip()
+
+                        # --- Auto-parse bullets from text if bullets is empty ---
+                        if not bullets and text_raw:
+                            for line in text_raw.strip().split('\n'):
+                                m = re.match(r'^[-*]\s+(.+)', line.strip())
+                                if m:
+                                    bullets.append(m.group(1).strip())
+                            # If still no bullets, treat first 200 chars as single bullet
+                            if not bullets and text_raw:
+                                bullets = [text_raw[:200]]
+
                         content_item = SlideContentItemV2(
                             sub_title=item_data.get("subTitle") or "",
-                            text=item_data.get("text") or "",
+                            bullets=bullets,
+                            narration=narration,
+                            text=text_raw,
                             icon=icon,
                             color_theme=color_theme,
                             code_snippet=item_data.get("codeSnippet") or "",

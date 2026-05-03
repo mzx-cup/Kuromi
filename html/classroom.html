@@ -118,6 +118,14 @@
         <div class="classroom-body">
             <!-- Scene Sidebar -->
             <aside class="scene-sidebar" id="scene-sidebar">
+                <button class="whiteboard-toggle-btn" id="whiteboard-toggle-btn" title="切换白板">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>白板</span>
+                </button>
+                <button class="quiz-toggle-btn" id="quiz-toggle-btn" title="课堂测验">
+                    <i class="fas fa-question-circle"></i>
+                    <span>测验</span>
+                </button>
                 <div class="scene-thumbnails" id="scene-thumbnails"></div>
             </aside>
 
@@ -126,6 +134,21 @@
                 <div class="slide-viewer">
                     <!-- Slide Container -->
                     <div class="slide-container" id="slide-container"></div>
+
+                    <!-- Whiteboard Container -->
+                    <div class="whiteboard-container" id="whiteboard-container" style="display:none;">
+                        <div class="whiteboard-toolbar" id="whiteboard-toolbar">
+                            <span class="whiteboard-label">
+                                <i class="fas fa-pencil-alt"></i> 白板
+                            </span>
+                            <div class="whiteboard-toolbar-actions">
+                                <button class="whiteboard-tool-btn" id="wb-clear-btn" title="清空白板">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="whiteboard-stage" id="whiteboard-stage"></div>
+                    </div>
 
                     <!-- Quiz Container -->
                     <div class="quiz-container" id="quiz-container" style="display:none;">
@@ -156,6 +179,51 @@
                         <div class="laser-dot" id="laser-dot" style="display:none;"></div>
                     </div>
 
+                    <!-- Quiz Popup Overlay -->
+                    <div class="quiz-popup-overlay" id="quiz-popup-overlay" style="display:none;">
+                        <div class="quiz-popup-backdrop"></div>
+                        <div class="quiz-popup-card">
+                            <button class="quiz-popup-close" id="quiz-popup-close">
+                                <i class="fas fa-times"></i>
+                            </button>
+
+                            <!-- Cover Phase -->
+                            <div class="quiz-cover" id="quiz-cover">
+                                <div class="quiz-cover-icon">
+                                    <i class="fas fa-question-circle"></i>
+                                </div>
+                                <h2 class="quiz-cover-title" id="quiz-cover-title">课堂测验</h2>
+                                <div class="quiz-cover-meta" id="quiz-cover-meta"></div>
+                                <button class="quiz-start-btn" id="quiz-start-btn">
+                                    <i class="fas fa-play"></i> 开始答题
+                                </button>
+                            </div>
+
+                            <!-- Answering Phase -->
+                            <div class="quiz-questions-area" id="quiz-questions-area" style="display:none;"></div>
+
+                            <!-- Grading Phase -->
+                            <div class="quiz-grading" id="quiz-grading" style="display:none;">
+                                <div class="quiz-grading-spinner"></div>
+                                <p class="quiz-grading-text" id="quiz-grading-text">AI 正在批改你的答案...</p>
+                                <div class="grading-progress-list" id="grading-progress-list"></div>
+                            </div>
+
+                            <!-- Reviewing Phase -->
+                            <div class="quiz-review-area" id="quiz-review-area" style="display:none;"></div>
+
+                            <!-- Footer -->
+                            <div class="quiz-popup-footer" id="quiz-popup-footer" style="display:none;">
+                                <button class="quiz-footer-btn quiz-submit-btn" id="quiz-popup-submit-btn">
+                                    <i class="fas fa-check"></i> 提交答案
+                                </button>
+                                <button class="quiz-footer-btn quiz-retry-btn" id="quiz-popup-retry-btn" style="display:none;">
+                                    <i class="fas fa-redo"></i> 重新作答
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- AI Teacher Area -->
                     <div class="teacher-area" id="teacher-area">
                         <div class="teacher-avatar" id="teacher-avatar">
@@ -172,16 +240,27 @@
                             <div class="speech-bubble">
                                 <p id="speech-text">正在加载课程内容...</p>
                             </div>
-                            <div class="speech-controls">
+                            <div class="speech-controls" id="speech-controls">
                                 <button class="speech-btn replay-btn" id="replay-btn" title="重新播放">
                                     <i class="fas fa-redo"></i>
                                 </button>
-                                <button class="speech-btn pause-btn" id="pause-btn" title="暂停">
-                                    <i class="fas fa-pause"></i>
+                                <button class="playback-play-btn" id="playback-play-btn" title="播放 / 暂停" data-shortcut="Space">
+                                    <i class="fas fa-play"></i>
                                 </button>
-                                <button class="speech-btn speed-btn" id="speed-btn" title="语速调节">
-                                    <span class="speed-label">1x</span>
-                                </button>
+                                <div class="playback-speed-wrap" id="playback-speed-wrap">
+                                    <button class="speech-btn speed-btn" id="speed-btn" title="语速调节">
+                                        <span class="speed-label">1x</span>
+                                        <i class="fas fa-caret-down speed-caret"></i>
+                                    </button>
+                                    <div class="speed-menu" id="speed-menu" style="display:none;">
+                                        <div class="speed-option" data-speed="0.5">0.5x</div>
+                                        <div class="speed-option" data-speed="0.75">0.75x</div>
+                                        <div class="speed-option active" data-speed="1.0">1x</div>
+                                        <div class="speed-option" data-speed="1.25">1.25x</div>
+                                        <div class="speed-option" data-speed="1.5">1.5x</div>
+                                        <div class="speed-option" data-speed="2.0">2x</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -297,6 +376,7 @@ document.getElementById('header-voice-select')?.addEventListener('change', funct
 </script>
 <script src="../js/slide-v2-adapter.js"></script>
 <script src="../js/openmaic-slide-player.js"></script>
+<script src="../js/whiteboard-renderer.js"></script>
 <script src="../js/classroom.js"></script>
 </body>
 </html>

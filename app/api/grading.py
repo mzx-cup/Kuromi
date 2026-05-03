@@ -255,3 +255,221 @@ async def enhanced_grade_quiz(questions: list[dict], student_answers: list[dict]
         "pass_rate": (total_score / total_possible * 100) if total_possible > 0 else 0,
         "graded_count": len(results),
     }
+
+
+# =============================================================================
+# 批量评分 API — Phase 2 新增
+# =============================================================================
+
+class BatchGradeQuestion(BaseModel):
+    """批量评分请求中的单道题目"""
+    question_index: int = Field(..., description="题目序号（0-based）")
+    question: str = Field(..., description="题目内容")
+    question_type: str = Field(default="single", description="single | multiple | short_answer")
+    options: list[str] = Field(default_factory=list, description="选项列表")
+    correct_answer: int = Field(default=0, description="单选题正确答案索引")
+    correct_answers: list[int] = Field(default_factory=list, description="多选题正确答案索引")
+    answer: str = Field(default="", description="简答题参考答案")
+    comment_prompt: str = Field(default="", description="简答题评分标准")
+    points: float = Field(default=10.0, description="分值")
+    key_points: list[str] = Field(default_factory=list, description="简答题评分要点")
+
+
+class BatchGradeAnswer(BaseModel):
+    """批量评分请求中的单道答案"""
+    question_index: int = Field(..., description="题目序号（0-based）")
+    answer_value: str = Field(default="", description="单选题: '0'; 多选题: '0,2'; 简答题: 文本")
+    answer_values: list[int] = Field(default_factory=list, description="多选题选中索引列表")
+
+
+class BatchGradeRequest(BaseModel):
+    """批量评分请求"""
+    questions: list[BatchGradeQuestion] = Field(..., min_length=1)
+    answers: list[BatchGradeAnswer] = Field(default_factory=list)
+    quiz_id: str = Field(default="", description="测验ID（可选，用于记录）")
+
+
+class BatchGradeItem(BaseModel):
+    """单题评分结果"""
+    question_index: int
+    is_correct: bool
+    score: float
+    total_points: float
+    feedback: str = ""
+    correct_answer: str = ""  # 简答题参考答案 / 选择题正确选项
+    key_points_hit: list[str] = Field(default_factory=list)
+    key_points_missed: list[str] = Field(default_factory=list)
+    graded_by: str = "local"  # local | llm
+
+
+class BatchGradeResponse(BaseModel):
+    """批量评分响应"""
+    results: list[BatchGradeItem]
+    total_score: float
+    total_points: float
+    percentage: float
+    passed: bool
+    graded_count: int
+
+
+@router.post("/batch", response_model=BatchGradeResponse)
+async def grade_batch(req: BatchGradeRequest):
+    """
+    批量评分端点 — 支持单选题、多选题、简答题混合批改。
+
+    - 单选: 本地精确匹配（correct_answer 索引比对）
+    - 多选: 本地集合比对（correct_answers 集合比对，顺序无关）
+    - 简答: LLM 评分（调用 Grader._grade_short_answer）
+    """
+    answers_by_index: dict[int, BatchGradeAnswer] = {
+        a.question_index: a for a in req.answers
+    }
+    results: list[BatchGradeItem] = []
+
+    for q in req.questions:
+        ans = answers_by_index.get(q.question_index)
+        idx = q.question_index
+
+        if q.question_type == "single":
+            results.append(_grade_single_choice(q, ans, idx))
+        elif q.question_type == "multiple":
+            results.append(_grade_multiple_choice(q, ans, idx))
+        elif q.question_type == "short_answer":
+            result = await _grade_short_answer_llm(q, ans, idx)
+            results.append(result)
+        else:
+            # Fallback: treat unknown type as single choice
+            results.append(_grade_single_choice(q, ans, idx))
+
+    total_score = sum(r.score for r in results)
+    total_points = sum(r.total_points for r in results)
+    percentage = (total_score / total_points * 100) if total_points > 0 else 0
+
+    return BatchGradeResponse(
+        results=results,
+        total_score=total_score,
+        total_points=total_points,
+        percentage=round(percentage, 1),
+        passed=percentage >= 60,
+        graded_count=len(results),
+    )
+
+
+# ---- 本地评分函数 ----
+
+def _grade_single_choice(
+    q: BatchGradeQuestion, ans: BatchGradeAnswer | None, idx: int
+) -> BatchGradeItem:
+    """评分单选题：精确匹配用户选择与正确答案索引"""
+    correct_idx = q.correct_answer
+    user_idx = int(ans.answer_value) if ans and ans.answer_value.isdigit() else -1
+    is_correct = (user_idx == correct_idx) and user_idx >= 0
+
+    correct_text = q.options[correct_idx] if 0 <= correct_idx < len(q.options) else str(correct_idx)
+    user_text = q.options[user_idx] if 0 <= user_idx < len(q.options) else "未作答"
+
+    score = q.points if is_correct else 0
+    feedback = (
+        f"回答正确！答案是 {chr(65 + correct_idx)}. {correct_text}"
+        if is_correct
+        else f"回答错误。正确答案是 {chr(65 + correct_idx)}. {correct_text}"
+        if user_idx >= 0
+        else f"未作答。正确答案是 {chr(65 + correct_idx)}. {correct_text}"
+    )
+
+    return BatchGradeItem(
+        question_index=idx,
+        is_correct=is_correct,
+        score=score,
+        total_points=q.points,
+        feedback=feedback,
+        correct_answer=correct_text,
+        graded_by="local",
+    )
+
+
+def _grade_multiple_choice(
+    q: BatchGradeQuestion, ans: BatchGradeAnswer | None, idx: int
+) -> BatchGradeItem:
+    """评分多选题：集合比对（顺序无关）"""
+    correct_set = set(q.correct_answers)
+    user_set = set(ans.answer_values) if ans else set()
+
+    is_correct = (user_set == correct_set) and len(user_set) > 0
+
+    correct_labels = ", ".join(
+        chr(65 + i) for i in sorted(correct_set) if 0 <= i < len(q.options)
+    )
+    user_labels = ", ".join(
+        chr(65 + i) for i in sorted(user_set) if 0 <= i < len(q.options)
+    ) if user_set else "未作答"
+
+    score = q.points if is_correct else 0
+
+    if is_correct:
+        feedback = f"回答正确！正确答案: {correct_labels}"
+    elif not user_set:
+        feedback = f"未作答。正确答案: {correct_labels}"
+    else:
+        feedback = f"回答不完整或有误。你的选择: {user_labels}，正确答案: {correct_labels}"
+
+    return BatchGradeItem(
+        question_index=idx,
+        is_correct=is_correct,
+        score=score,
+        total_points=q.points,
+        feedback=feedback,
+        correct_answer=correct_labels,
+        graded_by="local",
+    )
+
+
+async def _grade_short_answer_llm(
+    q: BatchGradeQuestion, ans: BatchGradeAnswer | None, idx: int
+) -> BatchGradeItem:
+    """评分简答题：调用 LLM Grader"""
+    user_text = ans.answer_value if ans else ""
+
+    if not user_text.strip():
+        return BatchGradeItem(
+            question_index=idx,
+            is_correct=False,
+            score=0,
+            total_points=q.points,
+            feedback="未作答。请尝试写下你的理解，即使不完全正确也能获得部分分数。",
+            correct_answer=q.answer,
+            graded_by="local",
+        )
+
+    try:
+        grader = get_grader()
+        result: GradeResult = await grader._grade_short_answer(
+            question=q.question,
+            standard_answer=q.answer or q.comment_prompt,
+            user_answer=user_text,
+            total_points=q.points,
+            key_points=q.key_points,
+        )
+
+        return BatchGradeItem(
+            question_index=idx,
+            is_correct=result.is_correct,
+            score=result.score,
+            total_points=result.total_points,
+            feedback=result.feedback,
+            correct_answer=q.answer,
+            key_points_hit=result.key_points_hit,
+            key_points_missed=result.key_points_missed,
+            graded_by="llm",
+        )
+    except Exception as e:
+        logger.error("Short answer LLM grading failed for question %d: %s", idx, e)
+        return BatchGradeItem(
+            question_index=idx,
+            is_correct=False,
+            score=q.points * 0.5,  # 50% fallback
+            total_points=q.points,
+            feedback="已收到你的答案，请参考标准答案进行对照学习。",
+            correct_answer=q.answer,
+            graded_by="local",
+        )

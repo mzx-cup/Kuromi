@@ -974,53 +974,66 @@
         </div>
     </div>
 
-    <!-- 编辑课程弹窗 -->
-    <div class="custom-modal" id="edit-course-modal">
-        <div class="modal-backdrop" id="edit-modal-backdrop"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">编辑课程名称</h3>
-                <button class="modal-close-btn" id="edit-modal-close">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+    <!-- 编辑课程弹窗 (OpenMAIC Glassmorphism) -->
+    <div class="openmaic-modal" id="edit-course-modal">
+        <div class="openmaic-modal-backdrop" id="edit-modal-backdrop"></div>
+        <div class="openmaic-modal-content">
+            <div class="openmaic-modal-header">
+                <div class="openmaic-modal-icon edit-icon">
+                    <i data-lucide="pencil"></i>
+                </div>
+                <div>
+                    <h3 class="openmaic-modal-title">编辑课程</h3>
+                    <p class="openmaic-modal-subtitle">修改课程名称</p>
+                </div>
+                <button class="openmaic-modal-close" id="edit-modal-close">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
-            <div class="modal-body">
-                <label class="modal-label">课程名称</label>
-                <input type="text" class="modal-input" id="edit-course-input" placeholder="请输入课程名称">
+            <div class="openmaic-modal-body">
+                <label class="openmaic-modal-label">课程名称</label>
+                <input type="text" class="openmaic-modal-input" id="edit-course-input"
+                       placeholder="请输入课程名称" autocomplete="off">
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-secondary" id="edit-cancel-btn">取消</button>
-                <button class="modal-btn modal-btn-primary" id="edit-confirm-btn">确定</button>
+            <div class="openmaic-modal-footer">
+                <button class="openmaic-btn openmaic-btn-ghost" id="edit-cancel-btn">取消</button>
+                <button class="openmaic-btn openmaic-btn-primary" id="edit-confirm-btn">
+                    <i data-lucide="check"></i>
+                    保存
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- 删除课程确认弹窗 -->
-    <div class="custom-modal" id="delete-course-modal">
-        <div class="modal-backdrop" id="delete-modal-backdrop"></div>
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">删除课程</h3>
-                <button class="modal-close-btn" id="delete-modal-close">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
+    <!-- 删除课程确认弹窗 (OpenMAIC Glassmorphism) -->
+    <div class="openmaic-modal" id="delete-course-modal">
+        <div class="openmaic-modal-backdrop" id="delete-modal-backdrop"></div>
+        <div class="openmaic-modal-content">
+            <div class="openmaic-modal-header">
+                <div class="openmaic-modal-icon danger-icon">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <div>
+                    <h3 class="openmaic-modal-title">删除课程</h3>
+                    <p class="openmaic-modal-subtitle">此操作不可撤销</p>
+                </div>
+                <button class="openmaic-modal-close" id="delete-modal-close">
+                    <i data-lucide="x"></i>
                 </button>
             </div>
-            <div class="modal-body">
-                <div class="delete-warning-icon">
-                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
+            <div class="openmaic-modal-body">
+                <div class="openmaic-delete-warning">
+                    <i data-lucide="trash-2" class="w-12 h-12"></i>
                 </div>
-                <p class="delete-warning-text">确定要删除这个课程吗？</p>
-                <p class="delete-warning-sub">此操作不可撤销，课程的所有内容将被永久删除</p>
+                <p class="openmaic-delete-title">确定要删除这个课程吗？</p>
+                <p class="openmaic-delete-desc">课程的所有内容（幻灯片、测验、AI互动数据）将被永久删除，且无法恢复。</p>
             </div>
-            <div class="modal-footer">
-                <button class="modal-btn modal-btn-secondary" id="delete-cancel-btn">取消</button>
-                <button class="modal-btn modal-btn-danger" id="delete-confirm-btn">删除</button>
+            <div class="openmaic-modal-footer">
+                <button class="openmaic-btn openmaic-btn-ghost" id="delete-cancel-btn">取消</button>
+                <button class="openmaic-btn openmaic-btn-danger" id="delete-confirm-btn">
+                    <i data-lucide="trash-2"></i>
+                    确认删除
+                </button>
             </div>
         </div>
     </div>

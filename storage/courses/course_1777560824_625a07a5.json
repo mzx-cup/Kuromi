@@ -945,138 +945,1248 @@
   ],
   "slides_v2": [
     {
-      "layout_type": "two-column",
-      "title": "Java语言初识",
-      "content": [
-        {
-          "sub_title": "发展历程",
-          "text": "1995年由Sun公司发布，2009年被Oracle收购。历经JDK 1.0到JDK 21的演进，每半年发布新版本，LTS版本提供长期支持。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "跨平台原理",
-          "text": "Java程序编译生成字节码，运行在JVM（Java虚拟机）上。不同操作系统安装对应JVM，实现一次编写，到处运行。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ]
+      "id": "slide-0",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     },
     {
-      "layout_type": "grid-cards",
-      "title": "Java三大平台版本",
-      "content": [
+      "id": "slide-java-basics-quiz",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "Java SE",
-          "text": "标准版，核心基础。包含语法、集合、IO、多线程等，是学习其他版本的前提。",
-          "icon": "star",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 80,
+          "path": "M 0 0 L 1000 0 L 1000 80 Q 1000 80 1000 80 L 0 80 Q 0 80 0 80 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            80
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          }
         },
         {
-          "sub_title": "Java EE",
-          "text": "企业版，专注企业级开发。提供Web服务、分布式计算等技术规范。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 15,
+          "width": 600,
+          "height": 50,
+          "content": "<h1 style='color:#FFFFFF;font-size:28px;font-weight:600;'>Java基础教程</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "Java ME",
-          "text": "微型版，针对嵌入式设备。应用于移动终端、智能卡等资源受限环境。",
-          "icon": "info",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 620,
+          "top": 20,
+          "width": 360,
+          "height": 40,
+          "content": "<span style='background:#10B981;color:#FFF;padding:6px 16px;border-radius:20px;font-size:14px;font-weight:500;'>数据类型检验</span>",
+          "fill": "transparent",
+          "defaultColor": "#10B981"
         },
         {
-          "sub_title": "核心特性",
-          "text": "面向对象三大特征：封装隐藏细节、继承复用代码、多态灵活扩展。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 20,
+          "top": 100,
+          "width": 470,
+          "height": 140,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 128 Q 470 140 458 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            140
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 510,
+          "top": 100,
+          "width": 470,
+          "height": 140,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 128 Q 470 140 458 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            140
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon",
+          "left": 35,
+          "top": 115,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#3B82F6;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'><span style='color:#FFF;font-size:18px;'>★</span></div>",
+          "fill": "transparent",
+          "defaultColor": "#3B82F6"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 85,
+          "top": 115,
+          "width": 390,
+          "height": 35,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon",
+          "left": 525,
+          "top": 115,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#8B5CF6;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'><span style='color:#FFF;font-size:18px;'>★</span></div>",
+          "fill": "transparent",
+          "defaultColor": "#8B5CF6"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 575,
+          "top": 115,
+          "width": 390,
+          "height": 35,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 85,
+          "top": 150,
+          "width": 390,
+          "height": 75,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>八种基本数据类型及其取值范围：byte、short、int、long、float、double、char、boolean...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 575,
+          "top": 150,
+          "width": 390,
+          "height": 75,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>变量命名规范：字母、下划线、美元符号开头，不能用数字和关键字...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 20,
+          "top": 260,
+          "width": 470,
+          "height": 140,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 128 Q 470 140 458 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            470,
+            140
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-bg",
+          "left": 510,
+          "top": 260,
+          "width": 470,
+          "height": 140,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 128 Q 470 140 458 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            140
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon",
+          "left": 35,
+          "top": 275,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#10B981;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'><span style='color:#FFF;font-size:18px;'>★</span></div>",
+          "fill": "transparent",
+          "defaultColor": "#10B981"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 85,
+          "top": 275,
+          "width": 390,
+          "height": 35,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-icon",
+          "left": 525,
+          "top": 275,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#8B5CF6;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'><span style='color:#FFF;font-size:18px;'>★</span></div>",
+          "fill": "transparent",
+          "defaultColor": "#8B5CF6"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 575,
+          "top": 275,
+          "width": 390,
+          "height": 35,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 85,
+          "top": 310,
+          "width": 390,
+          "height": 75,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>自动类型转换与强制类型转换的规则与风险...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 575,
+          "top": 310,
+          "width": 390,
+          "height": 75,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>运算符优先级：算术>关系>逻辑>赋值...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-5-bg",
+          "left": 265,
+          "top": 420,
+          "width": 470,
+          "height": 140,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 128 Q 470 140 458 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            470,
+            140
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-icon",
+          "left": 280,
+          "top": 435,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#F97316;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;'><span style='color:#FFF;font-size:18px;'>★</span></div>",
+          "fill": "transparent",
+          "defaultColor": "#F97316"
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-title",
+          "left": 330,
+          "top": 435,
+          "width": 390,
+          "height": 35,
+          "content": "<h2 style='color:#9A3412;font-size:18px;font-weight:600;'>要点 5</h2>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-content",
+          "left": 330,
+          "top": 470,
+          "width": 390,
+          "height": 75,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>控制流程语句：if-else、switch、for、while、do-while...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
         }
-      ]
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#8B5CF6",
+          "#F5F3FF",
+          "#10B981",
+          "#ECFDF5",
+          "#F97316",
+          "#FFF7ED"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "two-column",
-      "title": "第一个Java程序",
-      "content": [
+      "id": "slide-java-variables",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "gradient",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "代码示例",
-          "text": "每个Java程序必须有一个主类，包含main方法作为程序入口。文件名必须与public类名一致。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, Java!\");\n    }\n}",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "执行流程",
-          "text": "源文件.java → 编译器 → 字节码.class → JVM → 机器码执行。使用javac编译，java运行。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:24px;font-weight:600;text-align:center;'>Java基础教程 · 变量练习营</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-badge",
+          "left": 50,
+          "top": 80,
+          "width": 120,
+          "height": 32,
+          "content": "<div style='background:#3B82F6;color:#FFF;padding:6px 16px;border-radius:16px;font-size:13px;font-weight:500;text-align:center;'>🎯 练习场景</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 50,
+          "top": 130,
+          "width": 900,
+          "height": 50,
+          "content": "<h2 style='color:#1E40AF;font-size:28px;font-weight:700;'>变量声明与运算实战</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 50,
+          "top": 200,
+          "width": 440,
+          "height": 160,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 148 Q 440 160 428 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            440,
+            160
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 510,
+          "top": 200,
+          "width": 440,
+          "height": 160,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 148 Q 440 160 428 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            440,
+            160
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 70,
+          "top": 220,
+          "width": 400,
+          "height": 30,
+          "content": "<h3 style='color:#1E40AF;font-size:18px;font-weight:600;'>📝 练习要点</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 530,
+          "top": 220,
+          "width": 400,
+          "height": 30,
+          "content": "<h3 style='color:#065F46;font-size:18px;font-weight:600;'>💡 学习目标</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 70,
+          "top": 260,
+          "width": 400,
+          "height": 80,
+          "content": "<ul style='color:#1E293B;font-size:14px;line-height:1.8;'><li>掌握基本数据类型的声明</li><li>理解变量命名规则</li><li>学会算术运算符的使用</li></ul>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 530,
+          "top": 260,
+          "width": 400,
+          "height": 80,
+          "content": "<ul style='color:#1E293B;font-size:14px;line-height:1.8;'><li>熟练使用int、double等类型</li><li>完成变量赋值与运算练习</li><li>培养良好的编码习惯</li></ul>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "code",
+          "id": "el-code-block",
+          "left": 50,
+          "top": 385,
+          "width": 900,
+          "height": 140,
+          "content": "public class VariablePractice {\n    public static void main(String[] args) {\n        int num1 = 10;\n        int num2 = 20;\n        int sum = num1 + num2;\n        System.out.println(\"和为: \" + sum);\n    }\n}",
+          "language": "java",
+          "fill": "#1E293B",
+          "viewBox": [
+            0,
+            0,
+            900,
+            140
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-bottom-bar",
+          "left": 50,
+          "top": 540,
+          "width": 900,
+          "height": 4,
+          "path": "M 2 0 L 898 0 Q 900 0 900 2 L 900 4 Q 900 4 898 4 L 2 4 Q 0 4 0 2 L 0 0 Q 0 0 2 0 Z",
+          "fill": "#E2E8F0",
+          "viewBox": [
+            0,
+            0,
+            900,
+            4
+          ]
         }
-      ]
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "header-content",
-      "title": "Java应用领域",
-      "content": [
+      "id": "slide-java-basics",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "企业级应用",
-          "text": "银行系统、电商平台、ERP系统等大型后台服务，Spring框架生态占据主导地位。",
-          "icon": "check",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 80,
+          "path": "M 0 0 L 1000 0 L 1000 80 L 0 80 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            80
+          ]
         },
         {
-          "sub_title": "Android开发",
-          "text": "Android应用层主要使用Java开发，Kotlin出现后仍保持重要地位，大量项目仍在使用。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 30,
+          "top": 20,
+          "width": 600,
+          "height": 40,
+          "content": "<h1 style='color:#FFFFFF;font-size:28px;font-weight:700;'>Java基础教程</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "大数据领域",
-          "text": "Hadoop、Spark等主流大数据框架基于Java/Scala开发，Java是大数据工程师必备技能。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 630,
+          "top": 25,
+          "width": 340,
+          "height": 30,
+          "content": "<span style='color:#93C5FD;font-size:14px;'>📟 代码模拟器 · Interactive</span>",
+          "fill": "transparent",
+          "defaultColor": "#93C5FD",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 30,
+          "top": 110,
+          "width": 285,
+          "height": 130,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 118 Q 285 130 273 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            285,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 330,
+          "top": 110,
+          "width": 285,
+          "height": 130,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 118 Q 285 130 273 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            285,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 630,
+          "top": 110,
+          "width": 285,
+          "height": 130,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 118 Q 285 130 273 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            285,
+            130
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon",
+          "left": 45,
+          "top": 125,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#3B82F6;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;'>⭐</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 95,
+          "top": 125,
+          "width": 205,
+          "height": 30,
+          "content": "<h3 style='color:#1E40AF;font-size:16px;font-weight:600;margin:0;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon",
+          "left": 345,
+          "top": 125,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#F59E0B;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;'>⭐</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 395,
+          "top": 125,
+          "width": 205,
+          "height": 30,
+          "content": "<h3 style='color:#92400E;font-size:16px;font-weight:600;margin:0;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon",
+          "left": 645,
+          "top": 125,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#10B981;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;'>⭐</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 695,
+          "top": 125,
+          "width": 205,
+          "height": 30,
+          "content": "<h3 style='color:#065F46;font-size:16px;font-weight:600;margin:0;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-desc",
+          "left": 45,
+          "top": 170,
+          "width": 255,
+          "height": 60,
+          "content": "<p style='color:#3B82F6;font-size:13px;line-height:1.5;margin:0;'>在模拟器中编写和运行Java代码片段...</p>",
+          "fill": "transparent",
+          "defaultColor": "#3B82F6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-desc",
+          "left": 345,
+          "top": 170,
+          "width": 255,
+          "height": 60,
+          "content": "<p style='color:#D97706;font-size:13px;line-height:1.5;margin:0;'>观察变量在内存中的存储与变化过程...</p>",
+          "fill": "transparent",
+          "defaultColor": "#D97706",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-desc",
+          "left": 645,
+          "top": 170,
+          "width": 255,
+          "height": 60,
+          "content": "<p style='color:#059669;font-size:13px;line-height:1.5;margin:0;'>单步执行理解程序的控制流程...</p>",
+          "fill": "transparent",
+          "defaultColor": "#059669",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 180,
+          "top": 260,
+          "width": 285,
+          "height": 130,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 118 Q 285 130 273 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            285,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-5",
+          "left": 480,
+          "top": 260,
+          "width": 285,
+          "height": 130,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 118 Q 285 130 273 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            285,
+            130
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-icon",
+          "left": 195,
+          "top": 275,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#F97316;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;'>⭐</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 245,
+          "top": 275,
+          "width": 205,
+          "height": 30,
+          "content": "<h3 style='color:#9A3412;font-size:16px;font-weight:600;margin:0;'>要点 4</h3>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-icon",
+          "left": 495,
+          "top": 275,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#8B5CF6;width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;'>⭐</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-title",
+          "left": 545,
+          "top": 275,
+          "width": 205,
+          "height": 30,
+          "content": "<h3 style='color:#5B21B6;font-size:16px;font-weight:600;margin:0;'>要点 5</h3>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-desc",
+          "left": 195,
+          "top": 320,
+          "width": 255,
+          "height": 60,
+          "content": "<p style='color:#EA580C;font-size:13px;line-height:1.5;margin:0;'>识别并修正常见语法错误和逻辑错误...</p>",
+          "fill": "transparent",
+          "defaultColor": "#EA580C",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-5-desc",
+          "left": 495,
+          "top": 320,
+          "width": 255,
+          "height": 60,
+          "content": "<p style='color:#7C3AED;font-size:13px;line-height:1.5;margin:0;'>体验不同数据类型运算的边界情况...</p>",
+          "fill": "transparent",
+          "defaultColor": "#7C3AED",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-footer-decor",
+          "left": 0,
+          "top": 420,
+          "width": 1000,
+          "height": 142,
+          "path": "M 0 0 L 1000 0 L 1000 142 L 0 142 Z",
+          "fill": "#F1F5F9",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            142
+          ],
+          "opacity": 0.5
+        },
+        {
+          "type": "text",
+          "id": "el-footer-text",
+          "left": 30,
+          "top": 440,
+          "width": 940,
+          "height": 30,
+          "content": "<p style='color:#94A3B8;font-size:14px;text-align:center;margin:0;'>💡 通过代码模拟器，边学边练，掌握Java编程基础</p>",
+          "fill": "transparent",
+          "defaultColor": "#94A3B8",
+          "defaultFontName": "Microsoft YaHei"
         }
-      ]
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#F59E0B",
+          "#ECFDF5",
+          "#10B981",
+          "#FFF7ED",
+          "#F97316",
+          "#F5F3FF",
+          "#8B5CF6"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "quote-highlight",
-      "title": "学习路径建议",
-      "content": [
+      "id": "slide-4",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
+    },
+    {
+      "id": "slide-java-oop",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "核心路线",
-          "text": "Java基础语法 → 面向对象编程 → 核心API（集合、异常、IO、多线程） → 数据库与JDBC → Web开发（Servlet、Spring） → 项目实战",
-          "icon": "lightbulb",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "学习要点",
-          "text": "多动手实践，理解面向对象思想，掌握调试技巧，阅读官方文档，参与开源项目积累经验。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;'>Java基础教程 · OOP概念图解</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 32,
+          "top": 88,
+          "width": 296,
+          "height": 180,
+          "path": "M 12 0 L 284 0 Q 296 0 296 12 L 296 168 Q 296 180 284 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            296,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 352,
+          "top": 88,
+          "width": 296,
+          "height": 180,
+          "path": "M 12 0 L 284 0 Q 296 0 296 12 L 296 168 Q 296 180 284 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            296,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 672,
+          "top": 88,
+          "width": 296,
+          "height": 180,
+          "path": "M 12 0 L 284 0 Q 296 0 296 12 L 296 168 Q 296 180 284 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            296,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 48,
+          "top": 104,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 10 L 40 30 L 20 40 L 0 30 L 0 10 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 368,
+          "top": 104,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 10 L 40 30 L 20 40 L 0 30 L 0 10 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 688,
+          "top": 104,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 10 L 40 30 L 20 40 L 0 30 L 0 10 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-text-1",
+          "left": 48,
+          "top": 156,
+          "width": 264,
+          "height": 24,
+          "content": "<h2 style='color:#1E40AF;font-size:14px;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-text-2",
+          "left": 368,
+          "top": 156,
+          "width": 264,
+          "height": 24,
+          "content": "<h2 style='color:#92400E;font-size:14px;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-text-3",
+          "left": 688,
+          "top": 156,
+          "width": 264,
+          "height": 24,
+          "content": "<h2 style='color:#065F46;font-size:14px;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-1",
+          "left": 48,
+          "top": 184,
+          "width": 264,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.5;'>类作为蓝图的抽象概念与对象的实例化过程...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-2",
+          "left": 368,
+          "top": 184,
+          "width": 264,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.5;'>类继承与接口实现的区别和使用场景...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-3",
+          "left": 688,
+          "top": 184,
+          "width": 264,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.5;'>四种访问修饰符的可见性范围：private、default、protected、public...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 192,
+          "top": 296,
+          "width": 296,
+          "height": 180,
+          "path": "M 12 0 L 284 0 Q 296 0 296 12 L 296 168 Q 296 180 284 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            296,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-5",
+          "left": 512,
+          "top": 296,
+          "width": 296,
+          "height": 180,
+          "path": "M 12 0 L 284 0 Q 296 0 296 12 L 296 168 Q 296 180 284 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            296,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 208,
+          "top": 312,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 10 L 40 30 L 20 40 L 0 30 L 0 10 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-5",
+          "left": 528,
+          "top": 312,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 10 L 40 30 L 20 40 L 0 30 L 0 10 Z",
+          "fill": "#F97316",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-text-4",
+          "left": 208,
+          "top": 364,
+          "width": 264,
+          "height": 24,
+          "content": "<h2 style='color:#5B21B6;font-size:14px;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-text-5",
+          "left": 528,
+          "top": 364,
+          "width": 264,
+          "height": 24,
+          "content": "<h2 style='color:#9A3412;font-size:14px;'>要点 5</h2>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-4",
+          "left": 208,
+          "top": 392,
+          "width": 264,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.5;'>抽象类与接口的选择原则与最佳实践...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-5",
+          "left": 528,
+          "top": 392,
+          "width": 264,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.5;'>组合与聚合的语义区别在代码中的体现...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
         }
-      ]
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF",
+          "#F97316",
+          "#FFF7ED"
+        ],
+        "fontColor": "#475569",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-6",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     }
   ],
   "teacher": {

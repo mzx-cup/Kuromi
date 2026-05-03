@@ -417,7 +417,9 @@ class Slide(BaseModel):
 class SlideContentItemV2(BaseModel):
     """幻灯片内容项 V2（结构化布局）"""
     sub_title: str = ""
-    text: str = ""
+    bullets: list[str] = Field(default_factory=list)  # 结构化要点数组（屏幕显示用，每条≤25中文字符）
+    narration: str = ""  # AI教师口语化讲课台词（TTS语音引擎用，150-300字）
+    text: str = ""  # 向后兼容：旧版长段落文本
     icon: str = "book"  # book, lightbulb, code, check, star, question, warning, info
     color_theme: str = "blue"  # blue, yellow, green, purple, orange
     code_snippet: str = ""  # 可选代码块
@@ -497,12 +499,18 @@ class SceneActions(BaseModel):
 # ============================================================
 
 class QuizQuestion(BaseModel):
-    """测验题目"""
+    """测验题目 — 支持单选/多选/简答"""
     id: int = 0
     question: str = ""
     options: list[str] = Field(default_factory=list)
-    correct_answer: int = 0  # 正确答案索引
+    correct_answer: int = 0  # 正确答案索引（单选题）
     explanation: str = ""  # 答案解析
+    question_type: str = "single"  # single | multiple | short_answer
+    correct_answers: list[int] = Field(default_factory=list)  # 多选题正确答案索引
+    answer: str = ""  # 简答题参考答案
+    comment_prompt: str = ""  # 简答题评分标准
+    points: int = 10  # 分值
+    key_points: list[str] = Field(default_factory=list)  # 评分要点
 
 
 class QuizData(BaseModel):

@@ -7664,6 +7664,292 @@ body.openmaic-mode .main-glass-surface {
     color: var(--text-secondary);
 }
 
+/* ============================================================
+   OpenMAIC Premium Modals - Glassmorphism Design
+   ============================================================ */
+
+.openmaic-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.openmaic-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.openmaic-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.openmaic-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 440px;
+    background: var(--bg-card, rgba(30, 36, 48, 0.95));
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    transform: scale(0.92) translateY(16px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+}
+
+.openmaic-modal.active .openmaic-modal-content {
+    transform: scale(1) translateY(0);
+}
+
+/* Header */
+.openmaic-modal-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 1.5rem 1.5rem 0;
+}
+
+.openmaic-modal-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.openmaic-modal-icon.edit-icon {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.openmaic-modal-icon.danger-icon {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+.openmaic-modal-icon i {
+    width: 20px;
+    height: 20px;
+}
+
+.openmaic-modal-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.125rem;
+    line-height: 1.3;
+}
+
+.openmaic-modal-subtitle {
+    font-size: 0.8125rem;
+    color: var(--text-tertiary, #64748b);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.openmaic-modal-close {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary, #64748b);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.openmaic-modal-close i {
+    width: 18px;
+    height: 18px;
+}
+
+.openmaic-modal-close:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.06));
+    color: var(--text-primary);
+}
+
+/* Body */
+.openmaic-modal-body {
+    padding: 1.25rem 1.5rem 0.5rem;
+}
+
+.openmaic-modal-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.openmaic-modal-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    background: var(--input-bg, rgba(255, 255, 255, 0.04));
+    border: 1.5px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.openmaic-modal-input:focus {
+    border-color: var(--primary, #3b82f6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.openmaic-modal-input::placeholder {
+    color: var(--text-tertiary, #64748b);
+}
+
+/* Delete Warning */
+.openmaic-delete-warning {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0 1.25rem;
+    color: #f59e0b;
+}
+
+.openmaic-delete-warning i {
+    width: 44px;
+    height: 44px;
+}
+
+.openmaic-delete-title {
+    text-align: center;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.5rem;
+}
+
+.openmaic-delete-desc {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--text-tertiary, #64748b);
+    margin: 0 0 0.5rem;
+    line-height: 1.5;
+}
+
+/* Footer */
+.openmaic-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+/* Buttons */
+.openmaic-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.openmaic-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.openmaic-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-color, rgba(255, 255, 255, 0.08));
+}
+
+.openmaic-btn-ghost:hover {
+    background: var(--hover-bg, rgba(255, 255, 255, 0.06));
+    color: var(--text-primary);
+}
+
+.openmaic-btn-primary {
+    background: var(--primary, #3b82f6);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+.openmaic-btn-primary:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+    transform: translateY(-1px);
+}
+
+.openmaic-btn-danger {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+.openmaic-btn-danger:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Light Theme Overrides for OpenMAIC Modals */
+body.light-theme .openmaic-modal-content,
+[data-theme="ocean-light"] .openmaic-modal-content,
+[data-theme="sakura-falling"] .openmaic-modal-content {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+}
+
+body.light-theme .openmaic-modal-backdrop,
+[data-theme="ocean-light"] .openmaic-modal-backdrop,
+[data-theme="sakura-falling"] .openmaic-modal-backdrop {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+body.light-theme .openmaic-modal-input,
+[data-theme="ocean-light"] .openmaic-modal-input,
+[data-theme="sakura-falling"] .openmaic-modal-input {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .openmaic-btn-ghost,
+[data-theme="ocean-light"] .openmaic-btn-ghost,
+[data-theme="sakura-falling"] .openmaic-btn-ghost {
+    border-color: rgba(0, 0, 0, 0.1);
+    color: var(--text-secondary);
+}
+
+body.light-theme .openmaic-btn-ghost:hover,
+[data-theme="ocean-light"] .openmaic-btn-ghost:hover,
+[data-theme="sakura-falling"] .openmaic-btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
 /* 主题切换按钮 */
 .theme-toggle-btn {
     display: flex;

@@ -9,13 +9,13 @@ class WhiteboardRenderer {
   /**
    * @param {Object} options
    * @param {string} options.containerId - 白板容器元素 ID
-   * @param {number} options.width - 白板宽度 (默认 800)
-   * @param {number} options.height - 白板高度 (默认 600)
+   * @param {number} options.width - 白板宽度 (默认 1000)
+   * @param {number} options.height - 白板高度 (默认 562.5, 16:9)
    */
   constructor(options = {}) {
     this.containerId = options.containerId || 'whiteboard-container';
-    this.width = options.width || 800;
-    this.height = options.height || 600;
+    this.width = options.width || 1000;
+    this.height = options.height || 562.5;
     this.elements = new Map(); // elementId -> DOM element
 
     /** @type {SVGSVGElement|null} */
@@ -33,16 +33,18 @@ class WhiteboardRenderer {
       container.style.cssText = 'position:relative;overflow:hidden;background:#fff;border-radius:8px;';
       document.body.appendChild(container);
     }
-    container.style.width = this.width + 'px';
-    container.style.height = this.height + 'px';
+    // Responsive: container fills its parent, SVG viewBox handles scaling
+    container.style.width = '100%';
+    container.style.height = '100%';
     container.innerHTML = '';
 
     // SVG 层
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('width', this.width);
-    svg.setAttribute('height', this.height);
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
     svg.setAttribute('viewBox', `0 0 ${this.width} ${this.height}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
     container.appendChild(svg);
     this.svgRoot = svg;

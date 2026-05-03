@@ -1312,18 +1312,2203 @@
   ],
   "slides_v2": [
     {
-      "layout_type": "two-column",
-      "title": "Redis核心概念",
-      "content": [
+      "id": "slide-redis-concepts",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "概述",
-          "text": "本节将介绍Redis核心概念的相关概念和应用",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "title-text",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:500;text-align:center;line-height:56px;'>Redis核心概念</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "subtitle-text",
+          "left": 20,
+          "top": 64,
+          "width": 960,
+          "height": 24,
+          "content": "<p style='color:#64748B;font-size:14px;text-align:center;'>Redis核心实战</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "card-1-bg",
+          "left": 20,
+          "top": 100,
+          "width": 460,
+          "height": 160,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 148 Q 460 160 448 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            160
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "opacity": 0.95
+        },
+        {
+          "type": "shape",
+          "id": "card-2-bg",
+          "left": 520,
+          "top": 100,
+          "width": 460,
+          "height": 160,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 148 Q 460 160 448 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            460,
+            160
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#FFFBEB",
+                "pos": 0
+              },
+              {
+                "color": "#FEF3C7",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "opacity": 0.95
+        },
+        {
+          "type": "text",
+          "id": "card-1-icon",
+          "left": 40,
+          "top": 115,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:24px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#3B82F6"
+        },
+        {
+          "type": "text",
+          "id": "card-2-icon",
+          "left": 540,
+          "top": 115,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:24px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#F59E0B"
+        },
+        {
+          "type": "text",
+          "id": "card-1-title",
+          "left": 90,
+          "top": 120,
+          "width": 370,
+          "height": 30,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-2-title",
+          "left": 590,
+          "top": 120,
+          "width": 370,
+          "height": 30,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-1-content",
+          "left": 40,
+          "top": 160,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.7;'>Redis是基于内存运行的键值对存储数据库，其核心优势在于超高的读写性能</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-2-content",
+          "left": 540,
+          "top": 160,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.7;'>支持字符串、列表、哈希、集合、有序集合等多种数据结构，满足多样化的业务场景</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "card-3-bg",
+          "left": 20,
+          "top": 280,
+          "width": 460,
+          "height": 160,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 148 Q 460 160 448 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            460,
+            160
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#ECFDF5",
+                "pos": 0
+              },
+              {
+                "color": "#D1FAE5",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "opacity": 0.95
+        },
+        {
+          "type": "shape",
+          "id": "card-4-bg",
+          "left": 520,
+          "top": 280,
+          "width": 460,
+          "height": 160,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 148 Q 460 160 448 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            160
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#F5F3FF",
+                "pos": 0
+              },
+              {
+                "color": "#EDE9FE",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "opacity": 0.95
+        },
+        {
+          "type": "text",
+          "id": "card-3-icon",
+          "left": 40,
+          "top": 295,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:24px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#10B981"
+        },
+        {
+          "type": "text",
+          "id": "card-4-icon",
+          "left": 540,
+          "top": 295,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:24px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#8B5CF6"
+        },
+        {
+          "type": "text",
+          "id": "card-3-title",
+          "left": 90,
+          "top": 300,
+          "width": 370,
+          "height": 30,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-4-title",
+          "left": 590,
+          "top": 300,
+          "width": 370,
+          "height": 30,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-3-content",
+          "left": 40,
+          "top": 340,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.7;'>单线程模型保证了高并发下的原子性操作，避免了复杂的锁竞争问题</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-4-content",
+          "left": 540,
+          "top": 340,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.7;'>持久化机制RDB和AOF确保数据安全可靠，支持灵活的备份恢复策略</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
         }
-      ]
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#F59E0B",
+          "#ECFDF5",
+          "#10B981",
+          "#F5F3FF",
+          "#8B5CF6",
+          "#5B21B6"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-redis-basics",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-header-title",
+          "left": 24,
+          "top": 0,
+          "width": 700,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:22px;font-weight:600;line-height:56px;'>Redis核心实战 · 基础命令实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-header-badge",
+          "left": 850,
+          "top": 12,
+          "width": 126,
+          "height": 32,
+          "content": "<span style='background:#3B82F6;color:#FFF;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:500;'>Code 实战</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 24,
+          "top": 80,
+          "width": 464,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 198 Q 464 210 452 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            464,
+            210
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 512,
+          "top": 80,
+          "width": 464,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 198 Q 464 210 452 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            464,
+            210
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 40,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 6 0 L 34 0 Q 40 0 40 6 L 40 34 Q 40 40 34 40 L 6 40 Q 0 40 0 34 L 0 6 Q 0 0 6 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-star",
+          "left": 40,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFF;font-size:18px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 96,
+          "top": 100,
+          "width": 370,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;line-height:40px;margin:0;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 528,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 6 0 L 34 0 Q 40 0 40 6 L 40 34 Q 40 40 34 40 L 6 40 Q 0 40 0 34 L 0 6 Q 0 0 6 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-star",
+          "left": 528,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFF;font-size:18px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 584,
+          "top": 100,
+          "width": 370,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;line-height:40px;margin:0;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 156,
+          "width": 424,
+          "height": 110,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;margin:0;'>使用<code style='background:#DBEAFE;padding:2px 6px;border-radius:4px;color:#1E40AF;'>SET</code>和<code style='background:#DBEAFE;padding:2px 6px;border-radius:4px;color:#1E40AF;'>GET</code>命令进行字符串的存取操作，支持设置过期时间和覆盖更新。</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 528,
+          "top": 156,
+          "width": 424,
+          "height": 110,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;margin:0;'>掌握<code style='background:#FEF3C7;padding:2px 6px;border-radius:4px;color:#92400E;'>EXPIRE</code>命令设置键的自动过期时间，实现缓存数据的自动清理。</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 24,
+          "top": 314,
+          "width": 464,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 198 Q 464 210 452 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            464,
+            210
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-bg",
+          "left": 512,
+          "top": 314,
+          "width": 464,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 198 Q 464 210 452 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            464,
+            210
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 40,
+          "top": 334,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 6 0 L 34 0 Q 40 0 40 6 L 40 34 Q 40 40 34 40 L 6 40 Q 0 40 0 34 L 0 6 Q 0 0 6 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-star",
+          "left": 40,
+          "top": 334,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFF;font-size:18px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 96,
+          "top": 334,
+          "width": 370,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;line-height:40px;margin:0;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-icon",
+          "left": 528,
+          "top": 334,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 6 0 L 34 0 Q 40 0 40 6 L 40 34 Q 40 40 34 40 L 6 40 Q 0 40 0 34 L 0 6 Q 0 0 6 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-star",
+          "left": 528,
+          "top": 334,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFF;font-size:18px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 584,
+          "top": 334,
+          "width": 370,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;line-height:40px;margin:0;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 40,
+          "top": 390,
+          "width": 424,
+          "height": 110,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;margin:0;'>利用<code style='background:#DBEAFE;padding:2px 6px;border-radius:4px;color:#1E40AF;'>INCR</code>命令实现原子性的计数器功能，适用于访问统计、订单编号等场景。</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 528,
+          "top": 390,
+          "width": 424,
+          "height": 110,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;margin:0;'>通过<code style='background:#D1FAE5;padding:2px 6px;border-radius:4px;color:#065F46;'>KEYS</code>和<code style='background:#D1FAE5;padding:2px 6px;border-radius:4px;color:#065F46;'>SCAN</code>命令查找和管理键名，SCAN更适合大数据量的生产环境。</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#F59E0B",
+          "#ECFDF5",
+          "#10B981"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-redis-memory-structure",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 20,
+          "top": 76,
+          "width": 470,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 198 Q 470 210 458 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            210
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 510,
+          "top": 76,
+          "width": 470,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 198 Q 470 210 458 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            470,
+            210
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#FFFBEB",
+                "pos": 0
+              },
+              {
+                "color": "#FEF3C7",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 40,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 20 0 L 40 6.28 L 40 33.72 L 20 40 L 0 33.72 L 0 6.28 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-1-text",
+          "left": 40,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFFFFF;font-size:16px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 96,
+          "top": 100,
+          "width": 374,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;margin:0;line-height:40px;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 530,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 20 0 L 40 6.28 L 40 33.72 L 20 40 L 0 33.72 L 0 6.28 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-2-text",
+          "left": 530,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFFFFF;font-size:16px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 586,
+          "top": 100,
+          "width": 374,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;margin:0;line-height:40px;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 156,
+          "width": 430,
+          "height": 110,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:24px;margin:0;'>理解Redis内存中键值对的存储布局方式，掌握内部数据结构如何组织数据。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 530,
+          "top": 156,
+          "width": 430,
+          "height": 110,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:24px;margin:0;'>演示字典扩容时的渐进式Rehash过程，理解数据迁移机制。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 20,
+          "top": 306,
+          "width": 470,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 198 Q 470 210 458 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            470,
+            210
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#ECFDF5",
+                "pos": 0
+              },
+              {
+                "color": "#D1FAE5",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-bg",
+          "left": 510,
+          "top": 306,
+          "width": 470,
+          "height": 210,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 198 Q 470 210 458 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            210
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#F5F3FF",
+                "pos": 0
+              },
+              {
+                "color": "#EDE9FE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 40,
+          "top": 330,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 20 0 L 40 6.28 L 40 33.72 L 20 40 L 0 33.72 L 0 6.28 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-3-text",
+          "left": 40,
+          "top": 330,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFFFFF;font-size:16px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 96,
+          "top": 330,
+          "width": 374,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;margin:0;line-height:40px;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 530,
+          "top": 330,
+          "width": 40,
+          "height": 40,
+          "shape_name": "rectangle",
+          "path": "M 20 0 L 40 6.28 L 40 33.72 L 20 40 L 0 33.72 L 0 6.28 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-4-text",
+          "left": 530,
+          "top": 330,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='color:#FFFFFF;font-size:16px;line-height:40px;text-align:center;display:block;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 586,
+          "top": 330,
+          "width": 374,
+          "height": 40,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;margin:0;line-height:40px;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 40,
+          "top": 386,
+          "width": 430,
+          "height": 110,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:24px;margin:0;'>解析定期删除和惰性删除两种过期策略，了解内存回收机制。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 530,
+          "top": 386,
+          "width": 430,
+          "height": 110,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:24px;margin:0;'>对比不同数据类型在内存中的编码效率，优化存储性能。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-3",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
+    },
+    {
+      "id": "slide-redis-cache-penetration",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 600,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:22px;margin:0;line-height:56px;'>Redis核心实战 - 缓存穿透模拟</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-badge-interactive",
+          "left": 880,
+          "top": 12,
+          "width": 100,
+          "height": 32,
+          "path": "M 0 16 Q 0 0 16 0 L 84 0 Q 100 0 100 16 L 100 16 Q 100 32 84 32 L 16 32 Q 0 32 0 16 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            100,
+            32
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-badge-text",
+          "left": 880,
+          "top": 12,
+          "width": 100,
+          "height": 32,
+          "content": "<span style='color:#FFF;font-size:12px;font-weight:600;display:block;text-align:center;line-height:32px;'>interactive</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 50,
+          "top": 80,
+          "width": 442,
+          "height": 200,
+          "path": "M 12 0 L 430 0 Q 442 0 442 12 L 442 188 Q 442 200 430 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            442,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 508,
+          "top": 80,
+          "width": 442,
+          "height": 200,
+          "path": "M 12 0 L 430 0 Q 442 0 442 12 L 442 188 Q 442 200 430 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            442,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 70,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 40 48 L 24 36 L 8 48 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-1",
+          "left": 70,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFF;font-size:20px;display:block;text-align:center;line-height:48px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 130,
+          "top": 100,
+          "width": 340,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;margin:0;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 528,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 40 48 L 24 36 L 8 48 L 0 12 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-2",
+          "left": 528,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFF;font-size:20px;display:block;text-align:center;line-height:48px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 588,
+          "top": 100,
+          "width": 340,
+          "height": 36,
+          "content": "<h2 style='color:#92400E;font-size:18px;margin:0;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 70,
+          "top": 160,
+          "width": 402,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;margin:0;'>模拟高并发请求查询不存在数据的场景...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 528,
+          "top": 160,
+          "width": 402,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;margin:0;'>分析缓存穿透对数据库性能造成的压力...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 50,
+          "top": 296,
+          "width": 442,
+          "height": 200,
+          "path": "M 12 0 L 430 0 Q 442 0 442 12 L 442 188 Q 442 200 430 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            442,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 508,
+          "top": 296,
+          "width": 442,
+          "height": 200,
+          "path": "M 12 0 L 430 0 Q 442 0 442 12 L 442 188 Q 442 200 430 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            442,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 70,
+          "top": 316,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 40 48 L 24 36 L 8 48 L 0 12 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-3",
+          "left": 70,
+          "top": 316,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFF;font-size:20px;display:block;text-align:center;line-height:48px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 130,
+          "top": 316,
+          "width": 340,
+          "height": 36,
+          "content": "<h2 style='color:#065F46;font-size:18px;margin:0;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 528,
+          "top": 316,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 40 48 L 24 36 L 8 48 L 0 12 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-4",
+          "left": 528,
+          "top": 316,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFF;font-size:20px;display:block;text-align:center;line-height:48px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-4",
+          "left": 588,
+          "top": 316,
+          "width": 340,
+          "height": 36,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;margin:0;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 70,
+          "top": 376,
+          "width": 402,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;margin:0;'>演示布隆过滤器的初始化与判断逻辑...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-4",
+          "left": 528,
+          "top": 376,
+          "width": 402,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;margin:0;'>对比空值缓存与布隆过滤器的解决方案...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-1",
+          "left": 900,
+          "top": 500,
+          "width": 80,
+          "height": 62.5,
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "opacity": 0.5
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-2",
+          "left": 20,
+          "top": 520,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 A 20 20 0 1 1 20 40 A 20 20 0 1 1 20 0",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "opacity": 0.5
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-bg-main",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 562.5,
+          "path": "M 0 0 L 1000 0 L 1000 562.5 L 0 562.5 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            562.5
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-circle-1",
+          "left": 0,
+          "top": 0,
+          "width": 450,
+          "height": 450,
+          "path": "M 225 0 A 225 225 0 1 1 225 450 A 225 225 0 1 1 225 0",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            450,
+            450
+          ],
+          "opacity": 0.15
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-bg",
+          "left": 420,
+          "top": 120,
+          "width": 160,
+          "height": 160,
+          "path": "M 80 0 Q 160 0 160 80 Q 160 160 80 160 Q 0 160 0 80 Q 0 0 80 0 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            160,
+            160
+          ],
+          "opacity": 0.2
+        },
+        {
+          "type": "text",
+          "id": "el-icon-text",
+          "left": 420,
+          "top": 155,
+          "width": 160,
+          "height": 60,
+          "content": "<h1 style='color:#5B21B6;font-size:48px;text-align:center;'>📖</h1>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "text",
+          "id": "el-title-main",
+          "left": 50,
+          "top": 300,
+          "width": 900,
+          "height": 80,
+          "content": "<h1 style='color:#5B21B6;font-size:42px;text-align:center;font-weight:700;'>Redis核心实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-circle-2",
+          "left": 700,
+          "top": 350,
+          "width": 300,
+          "height": 212.5,
+          "path": "M 250 0 A 250 250 0 1 1 250 500 A 250 250 0 1 1 250 0",
+          "fill": "#5B21B6",
+          "viewBox": [
+            0,
+            0,
+            500,
+            500
+          ],
+          "opacity": 0.1
+        },
+        {
+          "type": "text",
+          "id": "el-title-sub",
+          "left": 50,
+          "top": 380,
+          "width": 900,
+          "height": 60,
+          "content": "<h2 style='color:#8B5CF6;font-size:28px;text-align:center;font-weight:500;'>缓存一致性策略</h2>",
+          "fill": "transparent",
+          "defaultColor": "#8B5CF6"
+        },
+        {
+          "type": "shape",
+          "id": "el-divider",
+          "left": 400,
+          "top": 460,
+          "width": 200,
+          "height": 4,
+          "path": "M 0 2 Q 100 0 200 2 Q 100 4 0 2",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            200,
+            4
+          ],
+          "opacity": 0.6
+        },
+        {
+          "type": "text",
+          "id": "el-type-badge",
+          "left": 430,
+          "top": 490,
+          "width": 140,
+          "height": 36,
+          "content": "<span style='background:#8B5CF6;color:#FFF;padding:6px 20px;border-radius:18px;font-size:14px;font-weight:600;'>练习场景</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#5B21B6",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-redis-seckill",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 40,
+          "top": 80,
+          "width": 450,
+          "height": 180,
+          "path": "M 12 0 L 438 0 Q 450 0 450 12 L 450 168 Q 450 180 438 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            450,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 510,
+          "top": 80,
+          "width": 450,
+          "height": 180,
+          "path": "M 12 0 L 438 0 Q 450 0 450 12 L 450 168 Q 450 180 438 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            450,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 140,
+          "top": 100,
+          "width": 320,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 610,
+          "top": 100,
+          "width": 320,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 70,
+          "top": 105,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 43 50 L 12 50 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon-text",
+          "left": 70,
+          "top": 105,
+          "width": 50,
+          "height": 50,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 540,
+          "top": 105,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 43 50 L 12 50 L 0 12 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon-text",
+          "left": 540,
+          "top": 105,
+          "width": 50,
+          "height": 50,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 70,
+          "top": 165,
+          "width": 400,
+          "height": 80,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>利用Redis预减库存减轻数据库访问压力...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 540,
+          "top": 165,
+          "width": 400,
+          "height": 80,
+          "content": "<p style='color:#78350F;font-size:14px;line-height:1.6;'>使用Lua脚本保证库存扣减的原子性操作...</p>",
+          "fill": "transparent",
+          "defaultColor": "#78350F",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 40,
+          "top": 280,
+          "width": 450,
+          "height": 180,
+          "path": "M 12 0 L 438 0 Q 450 0 450 12 L 450 168 Q 450 180 438 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            450,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-bg",
+          "left": 510,
+          "top": 280,
+          "width": 450,
+          "height": 180,
+          "path": "M 12 0 L 438 0 Q 450 0 450 12 L 450 168 Q 450 180 438 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            450,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 140,
+          "top": 300,
+          "width": 320,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 610,
+          "top": 300,
+          "width": 320,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 70,
+          "top": 305,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 43 50 L 12 50 L 0 12 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon-text",
+          "left": 70,
+          "top": 305,
+          "width": 50,
+          "height": 50,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-icon",
+          "left": 540,
+          "top": 305,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 43 50 L 12 50 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-icon-text",
+          "left": 540,
+          "top": 305,
+          "width": 50,
+          "height": 50,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 70,
+          "top": 365,
+          "width": 400,
+          "height": 80,
+          "content": "<p style='color:#78350F;font-size:14px;line-height:1.6;'>设计分布式锁解决并发环境下的超卖问题...</p>",
+          "fill": "transparent",
+          "defaultColor": "#78350F",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 540,
+          "top": 365,
+          "width": 400,
+          "height": 80,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>构建消息队列实现异步下单与流量削峰...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-redis-cluster",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 30,
+          "top": 80,
+          "width": 440,
+          "height": 180,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 168 Q 440 180 428 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            440,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 530,
+          "top": 80,
+          "width": 440,
+          "height": 180,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 168 Q 440 180 428 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            440,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 50,
+          "top": 100,
+          "width": 400,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 400,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 2 L 24.5 14 L 38 14.5 L 27.5 23 L 31 36 L 20 29 L 9 36 L 12.5 23 L 2 14.5 L 15.5 14 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 550,
+          "top": 100,
+          "width": 400,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 900,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 2 L 24.5 14 L 38 14.5 L 27.5 23 L 31 36 L 20 29 L 9 36 L 12.5 23 L 2 14.5 L 15.5 14 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 50,
+          "top": 140,
+          "width": 400,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>理解Redis Cluster采用的无中心化架构...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 550,
+          "top": 140,
+          "width": 400,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>学习基于哈希槽的数据分片分配算法...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 30,
+          "top": 290,
+          "width": 440,
+          "height": 180,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 168 Q 440 180 428 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            440,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 530,
+          "top": 290,
+          "width": 440,
+          "height": 180,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 168 Q 440 180 428 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            440,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 50,
+          "top": 310,
+          "width": 400,
+          "height": 32,
+          "content": "<h2 style='color:#065F46;font-size:16px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 400,
+          "top": 310,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 2 L 24.5 14 L 38 14.5 L 27.5 23 L 31 36 L 20 29 L 9 36 L 12.5 23 L 2 14.5 L 15.5 14 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 550,
+          "top": 310,
+          "width": 400,
+          "height": 32,
+          "content": "<h2 style='color:#5B21B6;font-size:16px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 900,
+          "top": 310,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 2 L 24.5 14 L 38 14.5 L 27.5 23 L 31 36 L 20 29 L 9 36 L 12.5 23 L 2 14.5 L 15.5 14 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 50,
+          "top": 350,
+          "width": 400,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>掌握主从复制与哨兵机制的故障转移...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 550,
+          "top": 350,
+          "width": 400,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>分析集群扩缩容时的数据迁移流程...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     }
   ],
   "teacher": {
@@ -1358,7 +3543,8 @@
             "Hash（哈希）"
           ],
           "correct_answer": 0,
-          "explanation": "String类型是Redis最基本的数据类型，且Redis为String提供了INCR和DECR等原子递增/递减操作，非常适合用于计数场景。虽然Hash也能存储数值，但String类型的计数操作更为直观和高效。"
+          "explanation": "String类型是Redis最基本的数据类型，且Redis为String提供了INCR和DECR等原子递增/递减操作，非常适合用于计数场景。虽然Hash也能存储数值，但String类型的计数操作更为直观和高效。",
+          "color_theme": "blue"
         },
         {
           "question": "Redis采用单线程模型却能处理高并发请求，以下哪项不是其高效的主要原因？",
@@ -1369,7 +3555,8 @@
             "避免了多线程上下文切换和锁竞争的开销"
           ],
           "correct_answer": 2,
-          "explanation": "Redis的核心处理流程（命令执行）主要是单线程的，因此无法直接利用多核CPU进行并行计算。其高性能主要得益于基于内存的操作、I/O多路复用技术以及避免了多线程的锁竞争和上下文切换开销。"
+          "explanation": "Redis的核心处理流程（命令执行）主要是单线程的，因此无法直接利用多核CPU进行并行计算。其高性能主要得益于基于内存的操作、I/O多路复用技术以及避免了多线程的锁竞争和上下文切换开销。",
+          "color_theme": "purple"
         },
         {
           "question": "关于Redis事务的特性，下列说法正确的是？",
@@ -1380,7 +3567,8 @@
             "Redis事务具有ACID特性，与关系型数据库的事务机制完全一致"
           ],
           "correct_answer": 2,
-          "explanation": "Redis事务不保证传统关系型数据库的原子性（Atomicity）。如果事务队列中某条命令执行失败（例如类型错误），Redis不会回滚之前已执行的命令，而是继续执行后续命令。此外，Redis事务在执行过程中不会被其他客户端打断，具有隔离性，但不具备传统ACID的所有特性。"
+          "explanation": "Redis事务不保证传统关系型数据库的原子性（Atomicity）。如果事务队列中某条命令执行失败（例如类型错误），Redis不会回滚之前已执行的命令，而是继续执行后续命令。此外，Redis事务在执行过程中不会被其他客户端打断，具有隔离性，但不具备传统ACID的所有特性。",
+          "color_theme": "green"
         },
         {
           "question": "在Redis持久化机制中，关于RDB快照和AOF日志的优缺点对比，下列描述错误的是？",
@@ -1391,7 +3579,8 @@
             "AOF采用追加写方式，在写入密集场景下可能出现文件过大问题"
           ],
           "correct_answer": 2,
-          "explanation": "RDB是二进制压缩文件，加载恢复速度通常比AOF快得多，而不是慢。AOF是文本格式日志，文件体积通常较大，加载时需要重放所有命令，速度较慢。因此选项C描述错误。AOF通过配置appendfsync策略（如everysec）可以做到较高的数据安全性。"
+          "explanation": "RDB是二进制压缩文件，加载恢复速度通常比AOF快得多，而不是慢。AOF是文本格式日志，文件体积通常较大，加载时需要重放所有命令，速度较慢。因此选项C描述错误。AOF通过配置appendfsync策略（如everysec）可以做到较高的数据安全性。",
+          "color_theme": "orange"
         },
         {
           "question": "某电商系统使用Redis存储用户购物车数据，为了节省内存并方便直接对商品数量进行增减操作，应优先选择哪种数据结构？",
@@ -1402,7 +3591,8 @@
             "使用Set类型，将商品ID作为元素存入，数量通过分数记录"
           ],
           "correct_answer": 2,
-          "explanation": "使用Hash类型存储购物车是最佳实践。Key绑定用户ID，Field绑定商品ID，Value绑定商品数量。这种结构不仅内存占用合理，而且可以非常方便地通过HINCRBY命令对特定商品的数量进行原子增减操作，也能通过HDEL删除商品，比String类型的JSON解析更高效。"
+          "explanation": "使用Hash类型存储购物车是最佳实践。Key绑定用户ID，Field绑定商品ID，Value绑定商品数量。这种结构不仅内存占用合理，而且可以非常方便地通过HINCRBY命令对特定商品的数量进行原子增减操作，也能通过HDEL删除商品，比String类型的JSON解析更高效。",
+          "color_theme": "yellow"
         }
       ],
       "speech": "各位同学，欢迎来到Redis核心知识测验环节。这五道题目从基础的数据类型应用入手，逐步深入到单线程模型原理、事务特性以及持久化机制的对比辨析。请大家认真审题，特别是关于RDB与AOF的性能差异以及Redis事务的非回滚特性，这些是面试和实战中的高频考点。准备好了吗？让我们开始挑战吧！"

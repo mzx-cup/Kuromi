@@ -1,0 +1,1942 @@
+{
+  "courseId": "course_1777789922_253d0041",
+  "title": "C语言入门精通",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "初识C语言结构",
+      "type": "slide",
+      "points": 4,
+      "key_points": [
+        "理解#include预处理指令的含义与作用",
+        "掌握main函数作为程序入口的意义",
+        "认识printf函数的基本输出功能",
+        "明确语句结束分号的重要性"
+      ],
+      "description": "通过剖析Hello World程序，系统讲解C语言的基本构成、头文件引用及主函数入口概念。"
+    },
+    {
+      "id": 2,
+      "title": "变量与内存图解",
+      "type": "diagram",
+      "points": 4,
+      "key_points": [
+        "区分int、float、char等基本数据类型",
+        "理解变量名与内存地址的对应关系",
+        "掌握不同数据类型的字节大小",
+        "识别变量命名规则与合法标识符"
+      ],
+      "description": "利用可视化内存布局图，深入剖析整型、浮点型变量的存储方式及字节占用情况。"
+    },
+    {
+      "id": 3,
+      "title": "基础语法大闯关",
+      "type": "quiz",
+      "points": 4,
+      "key_points": [
+        "考察变量声明与初始化的正确语法",
+        "辨析整型与浮点型的格式化占位符",
+        "判断变量命名是否合法规范",
+        "理解ASCII码与字符型的转换关系"
+      ],
+      "description": "针对变量定义、数据类型及格式化输出设计测验，检验对基础语法的掌握程度。"
+    },
+    {
+      "id": 4,
+      "title": "运算符优先级",
+      "type": "interactive",
+      "points": 4,
+      "key_points": [
+        "掌握算术运算符的加减乘除取余",
+        "理解自增自减运算符的前后置差异",
+        "熟悉关系运算符与逻辑运算符",
+        "明确运算符优先级与结合方向"
+      ],
+      "description": "在交互式模拟器中拖拽运算符组件，构建表达式并实时观察运算结果与执行顺序。"
+    },
+    {
+      "id": 5,
+      "title": "流程控制实战",
+      "type": "code",
+      "points": 4,
+      "key_points": [
+        "使用if-else语句实现分支逻辑",
+        "掌握for循环与while循环结构",
+        "学习break与continue控制流程",
+        "理解循环嵌套的执行逻辑"
+      ],
+      "description": "在在线编辑器中编写条件判断与循环语句，解决数学计算问题并调试运行代码。"
+    },
+    {
+      "id": 6,
+      "title": "数组与排序",
+      "type": "exercise",
+      "points": 4,
+      "key_points": [
+        "掌握一维数组的声明与初始化方法",
+        "理解数组下标从零开始的索引机制",
+        "实现数组元素的遍历与访问操作",
+        "运用双重循环实现冒泡排序"
+      ],
+      "description": "通过步骤引导式练习，完成一维数组的声明初始化及冒泡排序算法的代码填空。"
+    },
+    {
+      "id": 7,
+      "title": "学生成绩管理",
+      "type": "pbl",
+      "points": 4,
+      "key_points": [
+        "综合运用结构体组织复杂数据",
+        "使用函数模块化实现各项功能",
+        "利用文件操作持久化存储数据",
+        "应用指针优化参数传递效率"
+      ],
+      "description": "设计一个命令行学生成绩管理系统，实现录入、查询、修改及排序功能。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "id": "slide-c-language-intro",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 700,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;'>初识C语言结构</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-header-subtitle",
+          "left": 720,
+          "top": 0,
+          "width": 260,
+          "height": 56,
+          "content": "<h2 style='color:#FFFFFF;font-size:14px;opacity:0.85;text-align:right;'>C语言入门精通</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 30,
+          "top": 90,
+          "width": 460,
+          "height": 200,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 188 Q 460 200 448 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            200
+          ],
+          "shadow": {
+            "type": "outer",
+            "color": "#3B82F6",
+            "blur": 8,
+            "offset": 2,
+            "opacity": 0.15
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 510,
+          "top": 90,
+          "width": 460,
+          "height": 200,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 188 Q 460 200 448 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#DBEAFE",
+          "viewBox": [
+            0,
+            0,
+            460,
+            200
+          ],
+          "shadow": {
+            "type": "outer",
+            "color": "#2563EB",
+            "blur": 8,
+            "offset": 2,
+            "opacity": 0.12
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 55,
+          "top": 115,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 42 50 L 25 42 L 8 50 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 120,
+          "top": 115,
+          "width": 340,
+          "height": 35,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 535,
+          "top": 115,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 42 50 L 25 42 L 8 50 L 0 12 Z",
+          "fill": "#2563EB",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 600,
+          "top": 115,
+          "width": 340,
+          "height": 35,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 55,
+          "top": 175,
+          "width": 410,
+          "height": 90,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>理解 <code style='background:#DBEAFE;padding:2px 6px;border-radius:4px;color:#1E40AF;'>#include</code> 预处理指令的含义与作用</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 535,
+          "top": 175,
+          "width": 410,
+          "height": 90,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>掌握 <code style='background:#DBEAFE;padding:2px 6px;border-radius:4px;color:#1E40AF;'>main</code> 函数作为程序入口的意义</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 30,
+          "top": 315,
+          "width": 460,
+          "height": 200,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 188 Q 460 200 448 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            460,
+            200
+          ],
+          "shadow": {
+            "type": "outer",
+            "color": "#10B981",
+            "blur": 8,
+            "offset": 2,
+            "opacity": 0.15
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 510,
+          "top": 315,
+          "width": 460,
+          "height": 200,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 188 Q 460 200 448 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            200
+          ],
+          "shadow": {
+            "type": "outer",
+            "color": "#8B5CF6",
+            "blur": 8,
+            "offset": 2,
+            "opacity": 0.15
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 55,
+          "top": 340,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 42 50 L 25 42 L 8 50 L 0 12 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 120,
+          "top": 340,
+          "width": 340,
+          "height": 35,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 535,
+          "top": 340,
+          "width": 50,
+          "height": 50,
+          "path": "M 25 0 L 50 12 L 42 50 L 25 42 L 8 50 L 0 12 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            50,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-4",
+          "left": 600,
+          "top": 340,
+          "width": 340,
+          "height": 35,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 55,
+          "top": 400,
+          "width": 410,
+          "height": 90,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>认识 <code style='background:#D1FAE5;padding:2px 6px;border-radius:4px;color:#065F46;'>printf</code> 函数的基本输出功能</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155"
+        },
+        {
+          "type": "text",
+          "id": "el-content-4",
+          "left": 535,
+          "top": 400,
+          "width": 410,
+          "height": 90,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>明确语句结束 <code style='background:#EDE9FE;padding:2px 6px;border-radius:4px;color:#5B21B6;'>;</code> 的重要性</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155"
+        },
+        {
+          "type": "shape",
+          "id": "el-footer-line",
+          "left": 30,
+          "top": 540,
+          "width": 940,
+          "height": 2,
+          "path": "M 0 0 L 940 0 L 940 2 L 0 2 Z",
+          "fill": "#E2E8F0",
+          "viewBox": [
+            0,
+            0,
+            940,
+            2
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-footer-text",
+          "left": 30,
+          "top": 548,
+          "width": 940,
+          "height": 14,
+          "content": "<p style='color:#94A3B8;font-size:11px;'>学习目标：掌握C语言程序的基本结构，为后续深入学习打下坚实基础</p>",
+          "fill": "transparent",
+          "defaultColor": "#94A3B8"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#8B5CF6"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-c-language-variables",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 80,
+          "path": "M 0 0 L 1000 0 L 1000 80 Q 1000 100 980 100 L 20 100 Q 0 100 0 80 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            100
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 32,
+          "top": 16,
+          "width": 600,
+          "height": 32,
+          "content": "<h1 style='color:#FFFFFF;font-size:26px;font-weight:600;'>C语言入门精通</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-box",
+          "left": 700,
+          "top": 20,
+          "width": 280,
+          "height": 60,
+          "path": "M 0 8 Q 0 0 8 0 L 272 0 Q 280 0 280 8 L 280 52 Q 280 60 272 60 L 8 60 Q 0 60 0 52 Z",
+          "fill": "rgba(59,130,246,0.15)",
+          "viewBox": [
+            0,
+            0,
+            280,
+            60
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text",
+          "left": 700,
+          "top": 20,
+          "width": 280,
+          "height": 60,
+          "content": "<p style='color:#3B82F6;font-size:12px;text-align:center;line-height:60px;'>💻 diagram</p>",
+          "fill": "transparent",
+          "defaultColor": "#3B82F6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 32,
+          "top": 48,
+          "width": 600,
+          "height": 24,
+          "content": "<span style='color:#BFDBFE;font-size:14px;'>场景：变量与内存图解</span>",
+          "fill": "transparent",
+          "defaultColor": "#BFDBFE",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 24,
+          "top": 110,
+          "width": 468,
+          "height": 190,
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 178 Q 468 190 456 190 L 12 190 Q 0 190 0 178 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            468,
+            190
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 508,
+          "top": 110,
+          "width": 468,
+          "height": 190,
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 178 Q 468 190 456 190 L 12 190 Q 0 190 0 178 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            468,
+            190
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 40,
+          "top": 130,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 92,
+          "top": 130,
+          "width": 380,
+          "height": 28,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 524,
+          "top": 130,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 576,
+          "top": 130,
+          "width": 380,
+          "height": 28,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 180,
+          "width": 436,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>区分 <strong style='color:#1E40AF;'>int</strong>、<strong style='color:#1E40AF;'>float</strong>、<strong style='color:#1E40AF;'>char</strong> 等基本数据类型，掌握各类型表示的数值范围与精度差异。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 524,
+          "top": 180,
+          "width": 436,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>理解变量名与内存地址的对应关系，变量名是标识符，内存地址是数据存储位置。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 24,
+          "top": 320,
+          "width": 468,
+          "height": 190,
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 178 Q 468 190 456 190 L 12 190 Q 0 190 0 178 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            468,
+            190
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-bg",
+          "left": 508,
+          "top": 320,
+          "width": 468,
+          "height": 190,
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 178 Q 468 190 456 190 L 12 190 Q 0 190 0 178 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            468,
+            190
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 40,
+          "top": 340,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 92,
+          "top": 340,
+          "width": 380,
+          "height": 28,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-icon",
+          "left": 524,
+          "top": 340,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 576,
+          "top": 340,
+          "width": 380,
+          "height": 28,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 40,
+          "top": 390,
+          "width": 436,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>掌握不同数据类型的字节大小，如 <strong style='color:#065F46;'>int</strong> 占4字节、<strong style='color:#065F46;'>char</strong> 占1字节。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 524,
+          "top": 390,
+          "width": 436,
+          "height": 100,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>识别变量命名规则与合法标识符，变量名必须以字母或下划线开头，不能使用关键字。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-2",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
+    },
+    {
+      "id": "slide-3",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
+    },
+    {
+      "id": "slide-c-control-flow",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 Q 1000 0 1000 0 L 1000 56 Q 1000 56 1000 56 L 0 56 Q 0 56 0 56 L 0 0 Q 0 0 0 0 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;text-align:center;line-height:56px;'>C语言入门精通 · 流程控制实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 24,
+          "top": 80,
+          "width": 460,
+          "height": 180,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 168 Q 460 180 448 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            180
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 516,
+          "top": 80,
+          "width": 460,
+          "height": 180,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 168 Q 460 180 448 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            460,
+            180
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 40,
+          "top": 100,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 22 44 L 0 44 L 0 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            22,
+            44
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 100,
+          "top": 100,
+          "width": 360,
+          "height": 44,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;line-height:44px;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 532,
+          "top": 100,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 22 44 L 0 44 L 0 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            22,
+            44
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 592,
+          "top": 100,
+          "width": 360,
+          "height": 44,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;line-height:44px;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 156,
+          "width": 428,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>使用if-else语句实现分支逻辑，根据条件判断选择不同的执行路径。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 532,
+          "top": 156,
+          "width": 428,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>掌握for循环与while循环结构，实现重复执行的代码逻辑。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 24,
+          "top": 284,
+          "width": 460,
+          "height": 180,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 168 Q 460 180 448 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            460,
+            180
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 516,
+          "top": 284,
+          "width": 460,
+          "height": 180,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 168 Q 460 180 448 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            180
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 40,
+          "top": 304,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 22 44 L 0 44 L 0 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            22,
+            44
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 100,
+          "top": 304,
+          "width": 360,
+          "height": 44,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;line-height:44px;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4-icon",
+          "left": 532,
+          "top": 304,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 22 44 L 0 44 L 0 0 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            22,
+            44
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-title",
+          "left": 592,
+          "top": 304,
+          "width": 360,
+          "height": 44,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;line-height:44px;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 40,
+          "top": 360,
+          "width": 428,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>学习break与continue控制流程，跳出循环或跳过当前迭代。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-4-content",
+          "left": 532,
+          "top": 360,
+          "width": 428,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>理解循环嵌套的执行逻辑，掌握多层循环的控制技巧。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-1",
+          "left": 880,
+          "top": 480,
+          "width": 100,
+          "height": 82.5,
+          "path": "M 100 100 Q 100 0 0 0 L 0 100 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            100,
+            100
+          ],
+          "opacity": 0.1
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-2",
+          "left": 0,
+          "top": 500,
+          "width": 80,
+          "height": 62.5,
+          "path": "M 0 0 L 80 0 Q 80 80 0 80 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "opacity": 0.08
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#8B5CF6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#ECFDF5",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-c-array-sort",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-top-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 8,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 8 L 0 8 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            8
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-course-badge",
+          "left": 40,
+          "top": 30,
+          "width": 160,
+          "height": 36,
+          "shape_name": "roundRect",
+          "path": "M 0 8 Q 0 0 8 0 L 152 0 Q 160 0 160 8 L 160 28 Q 160 36 152 36 L 8 36 Q 0 36 0 28 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            160,
+            36
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-course-name",
+          "left": 40,
+          "top": 30,
+          "width": 160,
+          "height": 36,
+          "content": "<span style='color:#FFF;font-size:12px;font-weight:600;'>C语言入门精通</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-circle-2",
+          "left": 900,
+          "top": 80,
+          "width": 60,
+          "height": 60,
+          "shape_name": "ellipse",
+          "path": "M 30 0 A 30 30 0 1 1 30 60 A 30 60 0 1 1 30 0 Z",
+          "fill": "#BFDBFE",
+          "opacity": 0.4,
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-circle-1",
+          "left": 60,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "shape_name": "ellipse",
+          "path": "M 20 0 A 20 20 0 1 1 20 40 A 20 40 0 1 1 20 0 Z",
+          "fill": "#DBEAFE",
+          "opacity": 0.6,
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-main-card",
+          "left": 120,
+          "top": 140,
+          "width": 760,
+          "height": 280,
+          "shape_name": "roundRect",
+          "path": "M 20 0 L 740 0 Q 760 0 760 20 L 760 260 Q 760 280 740 280 L 20 280 Q 0 280 0 260 L 0 20 Q 0 0 20 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            760,
+            280
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-circle",
+          "left": 420,
+          "top": 160,
+          "width": 80,
+          "height": 80,
+          "shape_name": "ellipse",
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "shadow": {
+            "color": "#3B82F6",
+            "blur": 20,
+            "offsetX": 0,
+            "offsetY": 4
+          }
+        },
+        {
+          "type": "text",
+          "id": "el-icon-text",
+          "left": 420,
+          "top": 160,
+          "width": 80,
+          "height": 80,
+          "content": "<span style='color:#FFF;font-size:28px;'>📖</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "align": "center"
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-circle-3",
+          "left": 920,
+          "top": 200,
+          "width": 30,
+          "height": 30,
+          "shape_name": "ellipse",
+          "path": "M 15 0 A 15 15 0 1 1 15 30 A 15 30 0 1 1 15 0 Z",
+          "fill": "#93C5FD",
+          "opacity": 0.5,
+          "viewBox": [
+            0,
+            0,
+            30,
+            30
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-scene-label",
+          "left": 120,
+          "top": 255,
+          "width": 760,
+          "height": 30,
+          "content": "<span style='color:#64748B;font-size:14px;letter-spacing:2px;text-transform:uppercase;'>EXERCISE · 实战练习</span>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "align": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-scene-title",
+          "left": 120,
+          "top": 285,
+          "width": 760,
+          "height": 60,
+          "content": "<h1 style='color:#1E40AF;font-size:32px;font-weight:700;letter-spacing:1px;'>数组与排序实战练习</h1>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "align": "center"
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-dot-1",
+          "left": 210,
+          "top": 447,
+          "width": 10,
+          "height": 10,
+          "shape_name": "ellipse",
+          "path": "M 5 0 A 5 5 0 1 1 5 10 A 5 5 0 1 1 5 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            10,
+            10
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-dot-2",
+          "left": 780,
+          "top": 447,
+          "width": 10,
+          "height": 10,
+          "shape_name": "ellipse",
+          "path": "M 5 0 A 5 5 0 1 1 5 10 A 5 5 0 1 1 5 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            10,
+            10
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-line-1",
+          "left": 80,
+          "top": 450,
+          "width": 120,
+          "height": 3,
+          "shape_name": "rectangle",
+          "path": "M 0 1.5 L 120 1.5 L 120 1.5 L 0 1.5 Z",
+          "fill": "#93C5FD",
+          "viewBox": [
+            0,
+            0,
+            120,
+            3
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-line-2",
+          "left": 800,
+          "top": 450,
+          "width": 120,
+          "height": 3,
+          "shape_name": "rectangle",
+          "path": "M 0 1.5 L 120 1.5 L 120 1.5 L 0 1.5 Z",
+          "fill": "#93C5FD",
+          "viewBox": [
+            0,
+            0,
+            120,
+            3
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-bottom-bar",
+          "left": 0,
+          "top": 554,
+          "width": 1000,
+          "height": 8,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 8 L 0 8 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            8
+          ]
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#93C5FD",
+          "#EFF6FF",
+          "#DBEAFE"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    },
+    {
+      "id": "slide-pbl-student-grade",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-course-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:18px;'>C语言入门精通 · 学生成绩管理</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-pbl-badge",
+          "left": 880,
+          "top": 12,
+          "width": 96,
+          "height": 32,
+          "path": "M 0 16 Q 0 0 16 0 L 80 0 Q 96 0 96 16 L 96 32 Q 96 48 80 48 L 16 48 Q 0 48 0 32 Z",
+          "fill": "rgba(255,255,255,0.2)",
+          "viewBox": [
+            0,
+            0,
+            96,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-pbl-text",
+          "left": 880,
+          "top": 12,
+          "width": 96,
+          "height": 32,
+          "content": "<span style='color:#FFFFFF;font-size:12px;font-weight:600;'>PBL</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 20,
+          "top": 80,
+          "width": 465,
+          "height": 210,
+          "path": "M 12 0 L 453 0 Q 465 0 465 12 L 465 198 Q 465 210 453 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            465,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 515,
+          "top": 80,
+          "width": 465,
+          "height": 210,
+          "path": "M 12 0 L 453 0 Q 465 0 465 12 L 465 198 Q 465 210 453 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            465,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 40,
+          "top": 105,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 48 36 L 24 48 L 0 36 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-1",
+          "left": 40,
+          "top": 105,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 100,
+          "top": 105,
+          "width": 365,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:20px;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 535,
+          "top": 105,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 48 36 L 24 48 L 0 36 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-2",
+          "left": 535,
+          "top": 105,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 595,
+          "top": 105,
+          "width": 365,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:20px;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 40,
+          "top": 165,
+          "width": 425,
+          "height": 100,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>综合运用结构体组织复杂数据...</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 535,
+          "top": 165,
+          "width": 425,
+          "height": 100,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>使用函数模块化实现各项功能...</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 20,
+          "top": 310,
+          "width": 465,
+          "height": 210,
+          "path": "M 12 0 L 453 0 Q 465 0 465 12 L 465 198 Q 465 210 453 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            465,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 515,
+          "top": 310,
+          "width": 465,
+          "height": 210,
+          "path": "M 12 0 L 453 0 Q 465 0 465 12 L 465 198 Q 465 210 453 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            465,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 40,
+          "top": 335,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 48 36 L 24 48 L 0 36 L 0 12 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-3",
+          "left": 40,
+          "top": 335,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 100,
+          "top": 335,
+          "width": 365,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:20px;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 535,
+          "top": 335,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 48 12 L 48 36 L 24 48 L 0 36 L 0 12 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-4",
+          "left": 535,
+          "top": 335,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:20px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-4",
+          "left": 595,
+          "top": 335,
+          "width": 365,
+          "height": 40,
+          "content": "<h2 style='color:#5B21B6;font-size:20px;'>要点 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 40,
+          "top": 395,
+          "width": 425,
+          "height": 100,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>利用文件操作持久化存储数据...</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-4",
+          "left": 535,
+          "top": 395,
+          "width": 425,
+          "height": 100,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;'>应用指针优化参数传递效率...</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 3,
+      "scene_id": 3,
+      "title": "基础语法大闯关",
+      "questions": [
+        {
+          "question": "在C语言中，以下哪个是合法的变量名？",
+          "options": [
+            "int",
+            "3_name",
+            "_count",
+            "my-value"
+          ],
+          "correct_answer": 2,
+          "explanation": "C语言变量名必须以字母或下划线开头，不能包含除下划线外的特殊符号。'int'是关键字，'3_name'以数字开头，'my-value'包含连字符，均不合法。",
+          "color_theme": "blue"
+        },
+        {
+          "question": "若要定义一个存储小数价格的变量，应选择哪种数据类型最合适？",
+          "options": [
+            "int",
+            "char",
+            "float",
+            "double"
+          ],
+          "correct_answer": 2,
+          "explanation": "虽然double也可以存小数，但在一般精度要求下，float（单精度浮点型）是存储价格等小数最常用的类型。int用于整数，char用于字符。",
+          "color_theme": "purple"
+        },
+        {
+          "question": "执行代码 `printf(\"%d\", 3.14);` 后，输出结果最可能是？",
+          "options": [
+            "3.14",
+            "3",
+            "0 或 随机乱码",
+            "编译报错"
+          ],
+          "correct_answer": 2,
+          "explanation": "格式化占位符%d用于输出整型(int)，而3.14是浮点型。类型不匹配会导致未定义行为，通常输出0或内存中的随机整数值，不会正确输出小数。",
+          "color_theme": "green"
+        },
+        {
+          "question": "已知字符变量 `char c = 'A';`，则表达式 `c + 1` 的值是多少？",
+          "options": [
+            "'B'",
+            "66",
+            "A1",
+            "65"
+          ],
+          "correct_answer": 1,
+          "explanation": "'A'的ASCII码值是65。字符型变量参与运算时会自动转换为对应的ASCII整数。因此 c + 1 等价于 65 + 1，结果为整数66。",
+          "color_theme": "orange"
+        },
+        {
+          "question": "下列代码片段的输出结果是？\n`int a = 7; float b = 2.5; printf(\"%.1f\", a + b);`",
+          "options": [
+            "9",
+            "9.5",
+            "9.0",
+            "7.0"
+          ],
+          "correct_answer": 1,
+          "explanation": "当整型a与浮点型b运算时，a会自动提升为浮点型7.0。7.0 + 2.5 = 9.5。占位符%.1f表示保留1位小数输出，因此结果为9.5。",
+          "color_theme": "yellow"
+        }
+      ],
+      "speech": "同学们，这关主要考察大家对C语言基础语法的细节掌握。从变量命名规则到数据类型的精确选择，再到格式化输出的陷阱，每一题都是易错点。特别是整型与浮点型的转换逻辑，以及ASCII码的运算特性，大家一定要结合内存原理深刻理解，别被表面现象迷惑哦！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 6,
+      "scene_id": 6,
+      "title": "数组与排序实战练习",
+      "exercises": [
+        {
+          "instruction": "请补全代码，声明一个包含5个整数的一维数组arr，并将其元素依次初始化为10, 20, 30, 40, 50。",
+          "hints": [
+            "数组声明格式为：数据类型 数组名[元素个数];",
+            "初始化列表使用大括号 {} 包裹，元素间用逗号分隔。",
+            "注意元素个数要与初始化列表的数量匹配。"
+          ],
+          "expected_answer": "int arr[5] = {10, 20, 30, 40, 50};"
+        },
+        {
+          "instruction": "已知数组 int scores[5]，请写出一段代码，使用for循环遍历数组，将所有元素的值乘以2。要求：循环变量从0开始。",
+          "hints": [
+            "C语言数组下标从0开始，最大下标为 长度-1。",
+            "循环条件通常为 i < 5。",
+            "访问数组元素使用 数组名[下标] 的形式。"
+          ],
+          "expected_answer": "for(int i = 0; i < 5; i++) { scores[i] = scores[i] * 2; }"
+        },
+        {
+          "instruction": "补全冒泡排序的核心代码片段，实现相邻元素的比较与交换，使数组按升序排列。",
+          "hints": [
+            "外层循环控制排序轮数，内层循环控制每轮比较次数。",
+            "如果前一个元素大于后一个元素，则需要交换位置。",
+            "需要引入临时变量 temp 来完成数值交换。"
+          ],
+          "expected_answer": "if(arr[j] > arr[j+1]) { int temp = arr[j]; arr[j] = arr[j+1]; arr[j+1] = temp; }"
+        }
+      ],
+      "speech": "同学们，我们刚才学习了数组的基础与冒泡排序。现在请大家动手实践：首先练习数组的声明与初始化，这是操作数组的基础；接着通过遍历修改数组元素，深入理解下标索引机制；最后攻克冒泡排序的核心代码，重点体会双重循环的执行流程及交换逻辑。请大家打开编辑器，尝试补全代码，遇到困难可以查看提示，完成后运行验证结果。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习C语言",
+    "student_id": "1",
+    "session_id": "b7a05b34-f05f-480d-9b6b-235659d0b8b3",
+    "generated_at": "2026-05-03 14:32:02",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

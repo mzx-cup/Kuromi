@@ -102,733 +102,2482 @@
   "slides": [],
   "slides_v2": [
     {
-      "layout_type": "header-content",
-      "title": "Python初识：开启编程之旅",
-      "content": [
+      "id": "slide-python-intro",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F1F5F9"
+      },
+      "elements": [
         {
-          "sub_title": "为什么选择Python？",
-          "text": "Python是一门优雅、简洁且强大的编程语言。它以其极高的可读性和丰富的生态系统，成为了人工智能、数据分析及Web开发领域的首选语言。让我们一起揭开它的神秘面纱。",
-          "icon": "star",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/python-logo.png"
+          "type": "shape",
+          "id": "el-header-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;line-height:56px;margin:0;'>Python初识</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-subtitle-bar",
+          "left": 0,
+          "top": 56,
+          "width": 1000,
+          "height": 32,
+          "path": "M 0 0 L 1000 0 L 1000 32 L 0 32 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#2563EB",
+                "pos": 0
+              },
+              {
+                "color": "#60A5FA",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            32
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle-text",
+          "left": 20,
+          "top": 56,
+          "width": 960,
+          "height": 32,
+          "content": "<span style='color:#E0F2FE;font-size:13px;line-height:32px;margin:0;'>Python快速入门</span>",
+          "fill": "transparent",
+          "defaultColor": "#E0F2FE"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 24,
+          "top": 104,
+          "width": 464,
+          "height": 196,
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 184 Q 464 196 452 196 L 12 196 Q 0 196 0 184 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            464,
+            196
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 0.97
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 512,
+          "top": 104,
+          "width": 464,
+          "height": 196,
+          "path": "M 12 0 L 452 0 Q 464 0 464 12 L 464 184 Q 464 196 452 196 L 12 196 Q 0 196 0 184 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            464,
+            196
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 0.97
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 36,
+          "top": 120,
+          "width": 52,
+          "height": 52,
+          "path": "M 26 0 L 52 12 L 48 48 L 26 52 L 4 48 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon-text",
+          "left": 36,
+          "top": 120,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:24px;text-align:center;line-height:52px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 524,
+          "top": 120,
+          "width": 52,
+          "height": 52,
+          "path": "M 26 0 L 52 12 L 48 48 L 26 52 L 4 48 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon-text",
+          "left": 524,
+          "top": 120,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:24px;text-align:center;line-height:52px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 104,
+          "top": 124,
+          "width": 364,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;margin:0;line-height:36px;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 592,
+          "top": 124,
+          "width": 364,
+          "height": 36,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;margin:0;line-height:36px;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 104,
+          "top": 164,
+          "width": 364,
+          "height": 116,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>Python语言的发展历程与主要版本迭代。Python由Guido van Rossum于1989年发明，经历了2.x到3.x的重大变革，如今已发展至3.11+版本，在全球编程语言排名中稳居前列。</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 592,
+          "top": 164,
+          "width": 364,
+          "height": 116,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>Python在数据科学与Web开发中的应用。其简洁优雅的语法、强大的标准库和活跃的社区生态，使其成为数据科学、机器学习、Web开发等领域的首选语言。</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 24,
+          "top": 316,
+          "width": 952,
+          "height": 196,
+          "path": "M 12 0 L 940 0 Q 952 0 952 12 L 952 184 Q 952 196 940 196 L 12 196 Q 0 196 0 184 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            952,
+            196
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 0.97
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 36,
+          "top": 332,
+          "width": 52,
+          "height": 52,
+          "path": "M 26 0 L 52 12 L 48 48 L 26 52 L 4 48 L 0 12 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "gradient": {
+            "type": "solid"
+          },
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon-text",
+          "left": 36,
+          "top": 332,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:24px;text-align:center;line-height:52px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 104,
+          "top": 336,
+          "width": 852,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;margin:0;line-height:36px;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 104,
+          "top": 376,
+          "width": 852,
+          "height": 116,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>Anaconda或PyCharm开发环境的安装配置。Anaconda集成了Python解释器和大量科学计算库，适合数据科学学习；PyCharm是专业的Python IDE，提供智能代码补全和调试功能。建议初学者从Anaconda开始，它能自动配置开发环境，避免依赖冲突的困扰。</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F1F5F9"
+      }
     },
     {
-      "layout_type": "grid-cards",
-      "title": "Python的发展历程与应用领域",
-      "content": [
+      "id": "slide-python-variables",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "发展历程与版本迭代",
-          "text": "Python由Guido van Rossum于1989年发明。2000年发布Python 2.0，引入内存回收机制；2008年发布Python 3.0，重构核心库使其更规范。目前Python 3已成为主流标准。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "数据科学领域",
-          "text": "凭借NumPy、Pandas、Matplotlib等强大的第三方库，Python在数据处理、可视化及机器学习领域占据统治地位，是数据科学家的必备工具。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-course-title",
+          "left": 40,
+          "top": 0,
+          "width": 500,
+          "height": 56,
+          "content": "<h2 style='color:#FFFFFF;font-size:16px;font-weight:400;margin:0;'>Python快速入门</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
         },
         {
-          "sub_title": "Web开发领域",
-          "text": "Django和Flask等成熟框架让Web开发变得高效快捷。从初创公司到大型企业，Python支撑了Instagram、Pinterest等知名网站的运行。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-scene-title",
+          "left": 500,
+          "top": 0,
+          "width": 500,
+          "height": 56,
+          "content": "<h2 style='color:#FFFFFF;font-size:18px;font-weight:600;margin:0;text-align:right;'>变量与数据类型</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-intro",
+          "left": 40,
+          "top": 80,
+          "width": 920,
+          "height": 50,
+          "content": "<h1 style='color:#1E293B;font-size:28px;font-weight:700;margin:0;'>掌握Python变量与数据类型</h1>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 40,
+          "top": 150,
+          "width": 290,
+          "height": 320,
+          "shape_name": "roundRect",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 355,
+          "top": 150,
+          "width": 290,
+          "height": 320,
+          "shape_name": "roundRect",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#FFFBEB",
+                "pos": 0
+              },
+              {
+                "color": "#FEF3C7",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 670,
+          "top": 150,
+          "width": 290,
+          "height": 320,
+          "shape_name": "roundRect",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#ECFDF5",
+                "pos": 0
+              },
+              {
+                "color": "#D1FAE5",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 140,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 A 30 30 0 1 1 30 60 A 30 30 0 1 1 30 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-text-1",
+          "left": 140,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;margin:0;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 455,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 A 30 30 0 1 1 30 60 A 30 30 0 1 1 30 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-text-2",
+          "left": 455,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;margin:0;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 770,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 A 30 30 0 1 1 30 60 A 30 30 0 1 1 30 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-text-3",
+          "left": 770,
+          "top": 180,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;margin:0;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 60,
+          "top": 260,
+          "width": 250,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:20px;font-weight:600;text-align:center;margin:0;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 375,
+          "top": 260,
+          "width": 250,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:20px;font-weight:600;text-align:center;margin:0;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 690,
+          "top": 260,
+          "width": 250,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:20px;font-weight:600;text-align:center;margin:0;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 60,
+          "top": 310,
+          "width": 250,
+          "height": 130,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;text-align:center;margin:0;'>变量的命名规则与赋值操作原理</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 375,
+          "top": 310,
+          "width": 250,
+          "height": 130,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;text-align:center;margin:0;'>字符串、整数、浮点数等基础数据类型</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 690,
+          "top": 310,
+          "width": 250,
+          "height": 130,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;text-align:center;margin:0;'>不同数据类型之间的强制类型转换</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "two-column",
-      "title": "开发环境搭建：工欲善其事",
-      "content": [
+      "id": "slide-python-quiz",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "Anaconda环境配置",
-          "text": "推荐新手使用Anaconda。它集成了Python解释器、常用科学计算库及Jupyter Notebook编辑器，安装后即可直接使用，避免了复杂的库依赖管理问题。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/anaconda-install.png"
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 72,
+          "path": "M 0 0 L 1000 0 L 1000 72 L 0 72 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            72
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 135
+          }
         },
         {
-          "sub_title": "PyCharm IDE安装",
-          "text": "PyCharm是专业的Python集成开发环境。它提供智能代码补全、调试功能和项目管理工具，适合开发大型项目。建议下载免费的Community社区版。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/pycharm-welcome.png"
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 72,
+          "content": "<h1 style='color:#FFF;font-size:28px;font-weight:600;line-height:72px;text-align:center;'>Python快速入门 · 基础语法测验</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 40,
+          "top": 100,
+          "width": 290,
+          "height": 200,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 188 Q 290 200 278 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            290,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 355,
+          "top": 100,
+          "width": 290,
+          "height": 200,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 188 Q 290 200 278 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            290,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 670,
+          "top": 100,
+          "width": 290,
+          "height": 200,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 188 Q 290 200 278 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            290,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 60,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 44 0 L 44 44 L 22 44 L 0 22 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            44,
+            44
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-num-1",
+          "left": 60,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "content": "<span style='color:#FFF;font-size:18px;font-weight:700;text-align:center;line-height:44px;display:block;'>1</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 120,
+          "top": 120,
+          "width": 190,
+          "height": 44,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;line-height:44px;margin:0;'>变量与数据类型</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 375,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 44 0 L 44 44 L 22 44 L 0 22 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            44,
+            44
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-num-2",
+          "left": 375,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "content": "<span style='color:#FFF;font-size:18px;font-weight:700;text-align:center;line-height:44px;display:block;'>2</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 435,
+          "top": 120,
+          "width": 190,
+          "height": 44,
+          "content": "<h2 style='color:#5B21B6;font-size:16px;font-weight:600;line-height:44px;margin:0;'>条件判断语句</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 690,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 44 0 L 44 44 L 22 44 L 0 22 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            44,
+            44
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-num-3",
+          "left": 690,
+          "top": 120,
+          "width": 44,
+          "height": 44,
+          "content": "<span style='color:#FFF;font-size:18px;font-weight:700;text-align:center;line-height:44px;display:block;'>3</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 750,
+          "top": 120,
+          "width": 190,
+          "height": 44,
+          "content": "<h2 style='color:#065F46;font-size:16px;font-weight:600;line-height:44px;margin:0;'>循环结构应用</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-1",
+          "left": 60,
+          "top": 180,
+          "width": 250,
+          "height": 100,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>Python中如何定义变量？哪些数据类型是合法的？</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-2",
+          "left": 375,
+          "top": 180,
+          "width": 250,
+          "height": 100,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>if-elif-else的语法规则与嵌套使用场景</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-3",
+          "left": 690,
+          "top": 180,
+          "width": 250,
+          "height": 100,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>for与while循环的区别及break/continue用法</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-4",
+          "left": 180,
+          "top": 325,
+          "width": 290,
+          "height": 200,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 188 Q 290 200 278 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            290,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-5",
+          "left": 495,
+          "top": 325,
+          "width": 290,
+          "height": 200,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 188 Q 290 200 278 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            290,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-4",
+          "left": 200,
+          "top": 345,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 44 0 L 44 44 L 22 44 L 0 22 Z",
+          "fill": "#F97316",
+          "viewBox": [
+            0,
+            0,
+            44,
+            44
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-num-4",
+          "left": 200,
+          "top": 345,
+          "width": 44,
+          "height": 44,
+          "content": "<span style='color:#FFF;font-size:18px;font-weight:700;text-align:center;line-height:44px;display:block;'>4</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-4",
+          "left": 260,
+          "top": 345,
+          "width": 190,
+          "height": 44,
+          "content": "<h2 style='color:#9A3412;font-size:16px;font-weight:600;line-height:44px;margin:0;'>函数定义与调用</h2>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-5",
+          "left": 515,
+          "top": 345,
+          "width": 44,
+          "height": 44,
+          "path": "M 22 0 L 44 0 L 44 44 L 22 44 L 0 22 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            44,
+            44
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-num-5",
+          "left": 515,
+          "top": 345,
+          "width": 44,
+          "height": 44,
+          "content": "<span style='color:#FFF;font-size:18px;font-weight:700;text-align:center;line-height:44px;display:block;'>5</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-5",
+          "left": 575,
+          "top": 345,
+          "width": 190,
+          "height": 44,
+          "content": "<h2 style='color:#92400E;font-size:16px;font-weight:600;line-height:44px;margin:0;'>列表与字典操作</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-4",
+          "left": 200,
+          "top": 405,
+          "width": 250,
+          "height": 100,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>函数的参数传递、返回值及默认参数设置</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-5",
+          "left": 515,
+          "top": 405,
+          "width": 250,
+          "height": 100,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>列表的增删改查与字典的键值对操作</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#8B5CF6",
+          "#10B981",
+          "#F97316",
+          "#F59E0B",
+          "#EFF6FF",
+          "#F5F3FF",
+          "#ECFDF5",
+          "#FFF7ED",
+          "#FFFBEB"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "quote-highlight",
-      "title": "课程总结与下一步",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "核心要点回顾",
-          "text": "今天我们了解了Python从诞生到流行的历程，探索了它在数据科学与Web开发中的强大应用，并完成了开发环境的搭建。环境搭建是编程的第一步，务必确保安装成功。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "行动指南",
-          "text": "请尝试在命令行输入 python --version 检查安装结果。下一节课，我们将编写第一行Python代码，正式开始编程实战。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;text-align:center;'>Python快速入门 · 流程控制逻辑</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 50,
+          "top": 80,
+          "width": 430,
+          "height": 180,
+          "path": "M 12 0 L 418 0 Q 430 0 430 12 L 430 168 Q 430 180 418 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            430,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 520,
+          "top": 80,
+          "width": 430,
+          "height": 180,
+          "path": "M 12 0 L 418 0 Q 430 0 430 12 L 430 168 Q 430 180 418 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            430,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 70,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 28.95 15.36 L 45.89 15.36 L 31.92 24.64 L 36.87 40 L 24 30.72 L 11.13 40 L 16.08 24.64 L 2.11 15.36 L 19.05 15.36 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-text-1",
+          "left": 130,
+          "top": 100,
+          "width": 330,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 540,
+          "top": 100,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 28.95 15.36 L 45.89 15.36 L 31.92 24.64 L 36.87 40 L 24 30.72 L 11.13 40 L 16.08 24.64 L 2.11 15.36 L 19.05 15.36 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-text-2",
+          "left": 600,
+          "top": 100,
+          "width": 330,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-1",
+          "left": 70,
+          "top": 155,
+          "width": 390,
+          "height": 90,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>if-elif-else条件判断语句的执行逻辑，根据条件的真假来决定程序的执行路径，实现分支选择。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-2",
+          "left": 540,
+          "top": 155,
+          "width": 390,
+          "height": 90,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>for循环与while循环的区别与应用，for适用于遍历，while适用于条件驱动。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 285,
+          "top": 290,
+          "width": 430,
+          "height": 180,
+          "path": "M 12 0 L 418 0 Q 430 0 430 12 L 430 168 Q 430 180 418 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            430,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 305,
+          "top": 310,
+          "width": 48,
+          "height": 48,
+          "path": "M 24 0 L 28.95 15.36 L 45.89 15.36 L 31.92 24.64 L 36.87 40 L 24 30.72 L 11.13 40 L 16.08 24.64 L 2.11 15.36 L 19.05 15.36 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-text-3",
+          "left": 365,
+          "top": 310,
+          "width": 330,
+          "height": 40,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6"
+        },
+        {
+          "type": "text",
+          "id": "el-desc-3",
+          "left": 305,
+          "top": 365,
+          "width": 390,
+          "height": 90,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.6;'>break与continue关键字在循环中的作用，break用于跳出循环，continue用于跳过当前迭代。</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-1",
+          "left": 80,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "path": "M 4 0 L 116 0 Q 120 0 120 4 L 120 36 Q 120 40 116 40 L 4 40 Q 0 40 0 36 L 0 4 Q 0 0 4 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            120,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text-1",
+          "left": 80,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:12px;text-align:center;line-height:40px;'>if</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-2",
+          "left": 260,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "path": "M 4 0 L 116 0 Q 120 0 120 4 L 120 36 Q 120 40 116 40 L 4 40 Q 0 40 0 36 L 0 4 Q 0 0 4 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            120,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text-2",
+          "left": 260,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:12px;text-align:center;line-height:40px;'>elif</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-3",
+          "left": 440,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "path": "M 4 0 L 116 0 Q 120 0 120 4 L 120 36 Q 120 40 116 40 L 4 40 Q 0 40 0 36 L 0 4 Q 0 0 4 0 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            120,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text-3",
+          "left": 440,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:12px;text-align:center;line-height:40px;'>else</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-4",
+          "left": 620,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "path": "M 4 0 L 116 0 Q 120 0 120 4 L 120 36 Q 120 40 116 40 L 4 40 Q 0 40 0 36 L 0 4 Q 0 0 4 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            120,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text-4",
+          "left": 620,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:12px;text-align:center;line-height:40px;'>break</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-5",
+          "left": 800,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "path": "M 4 0 L 116 0 Q 120 0 120 4 L 120 36 Q 120 40 116 40 L 4 40 Q 0 40 0 36 L 0 4 Q 0 0 4 0 Z",
+          "fill": "#F97316",
+          "viewBox": [
+            0,
+            0,
+            120,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-text-5",
+          "left": 800,
+          "top": 500,
+          "width": 120,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:12px;text-align:center;line-height:40px;'>continue</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-arrow-1",
+          "left": 200,
+          "top": 520,
+          "width": 60,
+          "height": 2,
+          "path": "M 0 1 L 55 1 L 55 -3 L 60 1 L 55 5 L 55 1 Z",
+          "fill": "#64748B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-arrow-2",
+          "left": 380,
+          "top": 520,
+          "width": 60,
+          "height": 2,
+          "path": "M 0 1 L 55 1 L 55 -3 L 60 1 L 55 5 L 55 1 Z",
+          "fill": "#64748B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-arrow-3",
+          "left": 560,
+          "top": 520,
+          "width": 60,
+          "height": 2,
+          "path": "M 0 1 L 55 1 L 55 -3 L 60 1 L 55 5 L 55 1 Z",
+          "fill": "#64748B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-arrow-4",
+          "left": 740,
+          "top": 520,
+          "width": 60,
+          "height": 2,
+          "path": "M 0 1 L 55 1 L 55 -3 L 60 1 L 55 5 L 55 1 Z",
+          "fill": "#64748B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            2
+          ]
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#8B5CF6",
+          "#F5F3FF",
+          "#10B981",
+          "#F97316"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "two-column",
-      "title": "变量与数据类型：数据的容器",
-      "content": [
+      "id": "slide-python-functions",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "什么是变量？",
-          "text": "在Python中，变量就像是一个贴在数据上的“标签”。通过赋值操作，我们可以将数据存储在变量中，以便后续使用。交互式环境让我们能立即看到变量存储的内容。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/variable-box.png"
+          "type": "shape",
+          "id": "el-decor-circle-1",
+          "left": 0,
+          "top": 0,
+          "width": 300,
+          "height": 300,
+          "shape_name": "circle",
+          "path": "M 150 0 A 150 150 0 1 1 150 300 A 150 150 0 1 1 150 0",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            300,
+            300
+          ],
+          "opacity": 0.08
         },
         {
-          "sub_title": "赋值操作原理",
-          "text": "赋值运算符“=”并非数学中的相等，而是将右边的值绑定到左边的变量名上。例如：name = 'Python'，就是将字符串'Python'贴上了name这个标签。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-icon-bg",
+          "left": 460,
+          "top": 80,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0",
+          "fill": "#FFFFFF",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "opacity": 0.2
+        },
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 100,
+          "top": 120,
+          "width": 800,
+          "height": 280,
+          "path": "M 24 0 L 776 0 Q 800 0 800 24 L 800 256 Q 800 280 776 280 L 24 280 Q 0 280 0 256 L 0 24 Q 0 0 24 0 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 135
+          },
+          "viewBox": [
+            0,
+            0,
+            800,
+            280
+          ],
+          "opacity": 0.95
+        },
+        {
+          "type": "text",
+          "id": "el-course-label",
+          "left": 100,
+          "top": 160,
+          "width": 800,
+          "height": 30,
+          "content": "<h2 style='color:#BFDBFE;font-size:14px;font-weight:500;text-align:center;letter-spacing:2px;'>PYTHON 快速入门</h2>",
+          "fill": "transparent",
+          "defaultColor": "#BFDBFE"
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 100,
+          "top": 200,
+          "width": 800,
+          "height": 80,
+          "content": "<h1 style='color:#FFFFFF;font-size:36px;font-weight:700;text-align:center;line-height:1.3;'>Python函数编程实战<br>从定义到调用</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-scene-type",
+          "left": 100,
+          "top": 300,
+          "width": 800,
+          "height": 40,
+          "content": "<p style='color:#DBEAFE;font-size:13px;text-align:center;'>EXERCISE · 函数编程实战演练</p>",
+          "fill": "transparent",
+          "defaultColor": "#DBEAFE"
+        },
+        {
+          "type": "shape",
+          "id": "el-accent-line",
+          "left": 420,
+          "top": 340,
+          "width": 160,
+          "height": 4,
+          "path": "M 0 2 Q 40 0 80 2 Q 120 4 160 2 L 160 2 Q 120 4 80 2 Q 40 0 0 2 Z",
+          "fill": "#60A5FA",
+          "viewBox": [
+            0,
+            0,
+            160,
+            4
+          ],
+          "opacity": 0.6
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-circle-2",
+          "left": 750,
+          "top": 350,
+          "width": 250,
+          "height": 212.5,
+          "shape_name": "circle",
+          "path": "M 200 0 A 200 200 0 1 1 200 400 A 200 200 0 1 1 200 0",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            400,
+            400
+          ],
+          "opacity": 0.06
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-dot-1",
+          "left": 200,
+          "top": 450,
+          "width": 12,
+          "height": 12,
+          "path": "M 6 0 A 6 6 0 1 1 6 12 A 6 6 0 1 1 6 0",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            12,
+            12
+          ],
+          "opacity": 0.3
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-dot-2",
+          "left": 220,
+          "top": 450,
+          "width": 12,
+          "height": 12,
+          "path": "M 6 0 A 6 6 0 1 1 6 12 A 6 6 0 1 1 6 0",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            12,
+            12
+          ],
+          "opacity": 0.3
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-dot-3",
+          "left": 240,
+          "top": 450,
+          "width": 12,
+          "height": 12,
+          "path": "M 6 0 A 6 6 0 1 1 6 12 A 6 6 0 1 1 6 0",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            12,
+            12
+          ],
+          "opacity": 0.3
+        },
+        {
+          "type": "shape",
+          "id": "el-bottom-accent",
+          "left": 0,
+          "top": 540,
+          "width": 1000,
+          "height": 22.5,
+          "path": "M 0 0 L 1000 0 L 1000 22.5 Q 750 15 500 22.5 Q 250 30 0 22.5 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            22.5
+          ],
+          "opacity": 0.1
         }
       ],
-      "scene_id": 2
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#8B5CF6",
+          "#EFF6FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "grid-cards",
-      "title": "核心知识点概览",
-      "content": [
+      "id": "slide-data-structures",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "命名规则",
-          "text": "只能包含字母、数字和下划线，且不能以数字开头。区分大小写，建议使用小写字母与下划线组合（snake_case）。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "字符串",
-          "text": "由引号（单引号或双引号）包裹的文本数据。如：'Hello' 或 \"World\"。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;text-align:center;line-height:56px;'>Python快速入门 - 数据结构操作</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
         },
         {
-          "sub_title": "整数与浮点数",
-          "text": "整数：不带小数点的数字，如 10。浮点数：带小数点的数字，如 3.14。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 25,
+          "top": 80,
+          "width": 470,
+          "height": 160,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 148 Q 470 160 458 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            470,
+            160
+          ]
         },
         {
-          "sub_title": "类型转换",
-          "text": "使用 int(), float(), str() 等函数可实现数据类型的强制转换，是数据处理的关键技能。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 505,
+          "top": 80,
+          "width": 470,
+          "height": 160,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 148 Q 470 160 458 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            470,
+            160
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 50,
+          "top": 100,
+          "width": 420,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:20px;font-weight:700;margin:0;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 530,
+          "top": 100,
+          "width": 420,
+          "height": 36,
+          "content": "<h2 style='color:#92400E;font-size:20px;font-weight:700;margin:0;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 50,
+          "top": 145,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:16px;line-height:1.6;margin:0;'>列表的索引访问、切片与常用方法...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 530,
+          "top": 145,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:16px;line-height:1.6;margin:0;'>字典的键值对操作与遍历方法...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 265,
+          "top": 260,
+          "width": 470,
+          "height": 160,
+          "path": "M 12 0 L 458 0 Q 470 0 470 12 L 470 148 Q 470 160 458 160 L 12 160 Q 0 160 0 148 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            470,
+            160
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 290,
+          "top": 280,
+          "width": 420,
+          "height": 36,
+          "content": "<h2 style='color:#065F46;font-size:20px;font-weight:700;margin:0;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 290,
+          "top": 325,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#1E293B;font-size:16px;line-height:1.6;margin:0;'>元组的不可变特性与应用场景...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B"
         }
       ],
-      "scene_id": 2
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#ECFDF5",
+          "#F8FAFC"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "two-column",
-      "title": "代码实战：类型转换",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "交互式演示",
-          "text": "观察下方代码，我们定义了一个字符串类型的数字，并尝试将其转换为整数进行数学运算。请在交互环境中尝试修改变量的值。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 定义字符串变量\nnum_str = \"100\"\nprint(f\"原始类型: {type(num_str)}\")\n\n# 强制类型转换\nnum_int = int(num_str)\nresult = num_int + 50\n\nprint(f\"转换后类型: {type(num_int)}\")\nprint(f\"计算结果: {result}\") # 输出 150",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "代码解析",
-          "text": "1. type() 函数用于查看变量的数据类型。\n2. int() 函数将合法的数字字符串转为整数。\n3. 只有相同类型的数据才能进行运算，转换是连接不同数据的桥梁。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:20px;font-weight:600;'>Python快速入门 · 文件操作分析</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 16,
+          "top": 80,
+          "width": 468,
+          "height": 180,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 168 Q 468 180 456 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            468,
+            180
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 516,
+          "top": 80,
+          "width": 468,
+          "height": 180,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 456 0 Q 468 0 468 12 L 468 168 Q 468 180 456 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            468,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 104,
+          "top": 100,
+          "width": 360,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 604,
+          "top": 100,
+          "width": 360,
+          "height": 32,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 40,
+          "top": 110,
+          "width": 48,
+          "height": 48,
+          "shape_name": "rectangle",
+          "path": "M 24 0 L 24 0 Q 24 0 24 0 L 24 24 Q 0 24 0 24 L 0 24 Q 0 48 24 48 L 24 48 Q 48 48 48 24 L 48 24 Q 48 0 24 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon-text",
+          "left": 40,
+          "top": 110,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:24px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 540,
+          "top": 110,
+          "width": 48,
+          "height": 48,
+          "shape_name": "rectangle",
+          "path": "M 24 0 L 24 0 Q 24 0 24 0 L 24 24 Q 0 24 0 24 L 0 24 Q 0 48 24 48 L 24 48 Q 48 48 48 24 L 48 24 Q 48 0 24 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon-text",
+          "left": 540,
+          "top": 110,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:24px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 160,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>open函数的不同模式与文件打开方式...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 540,
+          "top": 160,
+          "width": 420,
+          "height": 80,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>read、write与readlines方法的使用...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 258,
+          "top": 292,
+          "width": 484,
+          "height": 180,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 472 0 Q 484 0 484 12 L 484 168 Q 484 180 472 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            484,
+            180
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 346,
+          "top": 312,
+          "width": 380,
+          "height": 32,
+          "content": "<h2 style='color:#9A3412;font-size:18px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 282,
+          "top": 322,
+          "width": 48,
+          "height": 48,
+          "shape_name": "rectangle",
+          "path": "M 24 0 L 24 0 Q 24 0 24 0 L 24 24 Q 0 24 0 24 L 0 24 Q 0 48 24 48 L 24 48 Q 48 48 48 24 L 48 24 Q 48 0 24 0 Z",
+          "fill": "#F97316",
+          "viewBox": [
+            0,
+            0,
+            48,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon-text",
+          "left": 282,
+          "top": 322,
+          "width": 48,
+          "height": 48,
+          "content": "<span style='color:#FFFFFF;font-size:24px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 282,
+          "top": 372,
+          "width": 436,
+          "height": 80,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>try-except异常处理机制捕获文件错误...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-1",
+          "left": 920,
+          "top": 480,
+          "width": 80,
+          "height": 80,
+          "shape_name": "rectangle",
+          "path": "M 40 0 Q 80 0 80 40 L 80 40 Q 80 80 40 80 L 40 80 Q 0 80 0 40 L 0 40 Q 0 0 40 0 Z",
+          "fill": "#3B82F6",
+          "opacity": 0.15,
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-deco-2",
+          "left": 0,
+          "top": 500,
+          "width": 60,
+          "height": 60,
+          "shape_name": "rectangle",
+          "path": "M 30 0 Q 60 0 60 30 L 60 30 Q 60 60 30 60 L 30 60 Q 0 60 0 30 L 0 30 Q 0 0 30 0 Z",
+          "fill": "#F97316",
+          "opacity": 0.15,
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
         }
       ],
-      "scene_id": 2
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#F59E0B",
+          "#F97316",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#FFF7ED"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     },
     {
-      "layout_type": "header-content",
-      "title": "动手练习：变量侦探",
-      "content": [
+      "id": "slide-python-data-analysis",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "练习任务",
-          "text": "在右侧的交互式代码编辑器中完成以下挑战：\n1. 创建一个名为 price 的变量，赋值为浮点数 19.99。\n2. 创建一个名为 count 的变量，赋值为字符串 \"5\"。\n3. 将 count 转换为整数，并计算 total = price * count_int。\n4. 打印 total 的结果。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "目标达成",
-          "text": "通过这个练习，你将掌握变量的定义、赋值以及不同数据类型间的转换技巧。点击“运行”按钮查看你的代码是否正确！",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "header-content",
-      "title": "基础语法测验",
-      "content": [
-        {
-          "sub_title": "测验说明",
-          "text": "本次测验旨在检验你对Python基础语法的掌握程度，涵盖变量命名规范、数据类型分类及输入输出函数的使用。请仔细审题，运用所学知识进行作答。",
-          "icon": "question",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:20px;font-weight:600;'>数据分析项目</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "考察范围",
-          "text": "1. Python标识符的合法命名规则判断\n2. print函数与input函数的使用区别\n3. 常用数据类型的分类与辨析",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心考点回顾",
-      "content": [
-        {
-          "sub_title": "标识符命名规则",
-          "text": "只能包含字母、数字和下划线，且不能以数字开头。严格区分大小写，避开Python保留关键字。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 40,
+          "top": 70,
+          "width": 920,
+          "height": 30,
+          "content": "<h2 style='color:#1E293B;font-size:16px;font-weight:600;'>Python数据分析实战流程</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "输入输出函数",
-          "text": "print()用于将信息输出到控制台。input()用于接收用户输入，且返回值始终为字符串类型。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 40,
+          "top": 110,
+          "width": 285,
+          "height": 380,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 368 Q 285 380 273 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            285,
+            380
+          ],
+          "gradient": null,
+          "opacity": 1
         },
         {
-          "sub_title": "数据类型辨析",
-          "text": "整数、浮点数、字符串、布尔值是四大基础类型。使用type()函数可查看变量具体类型。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "two-column",
-      "title": "典型示例解析",
-      "content": [
-        {
-          "sub_title": "标识符判断示例",
-          "text": "合法命名：my_var, _count, UserName\n非法命名：2nd_place (数字开头), user-name (含连字符), class (关键字)",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 355,
+          "top": 110,
+          "width": 285,
+          "height": 380,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 368 Q 285 380 273 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            285,
+            380
+          ],
+          "gradient": null,
+          "opacity": 1
         },
         {
-          "sub_title": "输入输出代码演示",
-          "text": "注意input接收的数据类型转换问题。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 输入输出示例\nname = input(\"请输入姓名: \")\nprint(f\"Hello, {name}\")\n\n# 类型转换示例\nage = int(input(\"请输入年龄: \"))\nprint(f\"明年你将 {age + 1} 岁\")",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "测验须知",
-      "content": [
-        {
-          "sub_title": "作答要求",
-          "text": "本环节包含选择题与代码分析题。请根据题目描述，判断命名合法性、区分数据类型或指出函数执行结果。准备好了吗？让我们开始挑战！",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "header-content",
-      "title": "程序的大脑：流程控制逻辑",
-      "content": [
-        {
-          "sub_title": "什么是流程控制",
-          "text": "流程控制是程序设计的核心，它决定了代码执行的顺序。通过条件判断和循环结构，程序才能拥有“判断力”和“持久力”，从而解决复杂问题。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "diagram_flow_control_overview.png"
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 670,
+          "top": 110,
+          "width": 285,
+          "height": 380,
+          "path": "M 12 0 L 273 0 Q 285 0 285 12 L 285 368 Q 285 380 273 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            285,
+            380
+          ],
+          "gradient": null,
+          "opacity": 1
         },
         {
-          "sub_title": "三大控制结构",
-          "text": "1. 顺序结构：从上到下依次执行\n2. 分支结构：根据条件选择执行路径\n3. 循环结构：重复执行特定代码块",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "条件判断：if-elif-else 执行逻辑",
-      "content": [
-        {
-          "sub_title": "逻辑流程图解",
-          "text": "程序从上至下判断条件，一旦某个条件为True，执行该分支代码块后跳出整个if结构；若所有条件均为False，则执行else分支（如果有）。",
-          "icon": "info",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": "diagram_if_elif_else_flow.png"
+          "type": "shape",
+          "id": "el-card1-icon-bg",
+          "left": 145,
+          "top": 140,
+          "width": 75,
+          "height": 75,
+          "path": "M 37.5 0 L 75 37.5 L 37.5 75 L 0 37.5 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            75,
+            75
+          ]
         },
         {
-          "sub_title": "互斥与覆盖",
-          "text": "多个elif分支之间是互斥的，不会重复执行。利用这一特性可以实现多级菜单、成绩评级等分段逻辑。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card2-icon-bg",
+          "left": 460,
+          "top": 140,
+          "width": 75,
+          "height": 75,
+          "path": "M 37.5 0 L 75 37.5 L 37.5 75 L 0 37.5 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            75,
+            75
+          ]
         },
         {
-          "sub_title": "注意事项",
-          "text": "注意缩进对齐，Python依靠缩进区分代码块。条件表达式后必须跟随冒号(:)。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "循环结构：for 与 while 的对决",
-      "content": [
-        {
-          "sub_title": "for循环：遍历序列",
-          "text": "适用场景：明确知道循环次数或需要遍历一个集合（如列表、字符串）时。\n逻辑：依次取出序列中的每个元素，执行代码块，直到序列末尾自动结束。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": "diagram_for_loop.png"
+          "type": "shape",
+          "id": "el-card3-icon-bg",
+          "left": 775,
+          "top": 140,
+          "width": 75,
+          "height": 75,
+          "path": "M 37.5 0 L 75 37.5 L 37.5 75 L 0 37.5 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            75,
+            75
+          ]
         },
         {
-          "sub_title": "while循环：条件驱动",
-          "text": "适用场景：不确定循环次数，只关心何时满足特定条件时。\n逻辑：只要条件为True，就不断重复执行代码块；条件为False时停止。需警惕死循环。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": "diagram_while_loop.png"
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "header-content",
-      "title": "循环控制：break 与 continue",
-      "content": [
-        {
-          "sub_title": "break：彻底终止",
-          "text": "在循环中遇到break，立即跳出整个循环，不再执行后续迭代。常用于找到特定结果后提前结束搜索。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": "diagram_break_logic.png"
+          "type": "text",
+          "id": "el-card1-icon",
+          "left": 145,
+          "top": 150,
+          "width": 75,
+          "height": 55,
+          "content": "<span style='color:#FFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
         },
         {
-          "sub_title": "continue：跳过当前",
-          "text": "在循环中遇到continue，跳过本次循环剩余的代码，直接进入下一次迭代。常用于过滤不符合条件的数据。",
-          "icon": "info",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": "diagram_continue_logic.png"
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "实战演练：构建逻辑思维",
-      "content": [
-        {
-          "sub_title": "练习任务",
-          "text": "请尝试编写一个简单的用户登录验证程序：\n1. 设置预设密码。\n2. 使用while循环给用户最多3次输入机会。\n3. 输入正确打印“登录成功”并break退出。\n4. 3次均错误打印“账户锁定”。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card2-icon",
+          "left": 460,
+          "top": 150,
+          "width": 75,
+          "height": 55,
+          "content": "<span style='color:#FFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
         },
         {
-          "sub_title": "思维提示",
-          "text": "思考一下，在哪里使用if判断输入是否正确？在哪里使用break停止循环？计数器变量应该放在循环的什么位置？",
-          "icon": "question",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "函数编程实战",
-      "content": [
-        {
-          "sub_title": "概述",
-          "text": "本节将介绍函数编程实战的相关概念和应用",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "Python核心数据结构概览",
-      "content": [
-        {
-          "sub_title": "列表",
-          "text": "有序可变容器，可以随时添加或删除元素。适合存储需要动态变化的数据序列，支持索引和切片操作。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card3-icon",
+          "left": 775,
+          "top": 150,
+          "width": 75,
+          "height": 55,
+          "content": "<span style='color:#FFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
         },
         {
-          "sub_title": "元组",
-          "text": "有序不可变容器，一旦初始化就不能修改。适合存储固定的数据集，如配置信息或函数返回值。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 40,
+          "top": 235,
+          "width": 285,
+          "height": 40,
+          "content": "<h3 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "字典",
-          "text": "无序键值对集合，通过键快速查找值。适合存储具有映射关系的数据，查询效率极高。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "数据结构操作要点解析",
-      "content": [
-        {
-          "sub_title": "列表：索引与切片",
-          "text": "使用下标访问元素（从0开始）；切片语法 [start:end:step] 可灵活获取子列表。常用方法：append(), pop(), sort()。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 355,
+          "top": 235,
+          "width": 285,
+          "height": 40,
+          "content": "<h3 style='color:#92400E;font-size:18px;font-weight:600;text-align:center;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "字典：键值对管理",
-          "text": "通过 Key 访问 Value；使用 items() 遍历键值对，keys() 遍历键，values() 遍历值。注意键的唯一性。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 670,
+          "top": 235,
+          "width": 285,
+          "height": 40,
+          "content": "<h3 style='color:#065F46;font-size:18px;font-weight:600;text-align:center;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "元组：不可变特性",
-          "text": "元组没有 append/insert 等方法。不可变性保证了数据安全，常用于多变量赋值和作为字典的键。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "实战演练：列表与字典操作",
-      "content": [
-        {
-          "sub_title": "列表操作示例",
-          "text": "演示列表的创建、索引访问、切片操作以及增删改方法的具体应用。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 列表操作\nfruits = ['apple', 'banana', 'cherry']\nprint(fruits[0])      # 索引访问: apple\nprint(fruits[1:])     # 切片: ['banana', 'cherry']\n\nfruits.append('orange')  # 增加元素\nfruits[1] = 'blueberry'  # 修改元素\nfruits.remove('apple')   # 删除元素\nprint(fruits)",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card1-content",
+          "left": 55,
+          "top": 285,
+          "width": 255,
+          "height": 180,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.8;text-align:center;'>读取CSV文件并进行数据清洗，使用pandas库处理缺失值和异常数据</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "字典操作示例",
-          "text": "演示字典的键值对增删改查及遍历方法。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 字典操作\nstudent = {'name': 'Tom', 'age': 20}\nprint(student['name'])    # 查: Tom\n\nstudent['grade'] = 'A'    # 增/改\nstudent['age'] = 21       # 修改\n\ndel student['grade']      # 删除\n\n# 遍历键值对\nfor key, value in student.items():\n    print(f\"{key}: {value}\")",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "元组的安全性与应用",
-      "content": [
-        {
-          "sub_title": "代码演示：不可变的威力",
-          "text": "元组因其不可变性，提供了数据完整性保护。尝试修改元组会引发 TypeError，这在调试中能有效防止意外篡改。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 元组操作示例\ncoordinates = (10, 20, 30)\n\n# 索引访问\nprint(f\"X坐标: {coordinates[0]}\")\n\n# 解包操作\nx, y, z = coordinates\nprint(f\"位置: ({x}, {y}, {z})\")\n\n# 尝试修改会报错\n# coordinates[0] = 15  # TypeError",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "课程总结与最佳实践",
-      "content": [
-        {
-          "sub_title": "核心回顾",
-          "text": "列表适合动态数据管理，字典适合映射关系处理，元组适合固定数据存储。选择合适的数据结构是编写高效代码的关键。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card2-content",
+          "left": 370,
+          "top": 285,
+          "width": 255,
+          "height": 180,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.8;text-align:center;'>利用循环与条件语句处理数据逻辑，实现复杂的数据筛选与转换</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "最佳实践建议",
-          "text": "1. 需要修改数据时首选列表；\n2. 需要快速查找时首选字典；\n3. 数据不应被改变时首选元组；\n4. 遍历字典时优先使用 items() 方法。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card3-content",
+          "left": 685,
+          "top": 285,
+          "width": 255,
+          "height": 180,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.8;text-align:center;'>格式化输出统计结果与报告生成，将分析结果可视化展示</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "文件操作基础与安全",
-      "content": [
-        {
-          "sub_title": "文件读写流程",
-          "text": "文件操作通常遵循“打开-读写-关闭”的标准流程。在Python中，使用open()函数打开文件会返回一个文件对象，通过该对象可以进行读写操作，最后必须调用close()方法释放系统资源。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "异常处理的重要性",
-          "text": "文件操作极易发生意外，如文件不存在、权限不足或磁盘已满。若不处理异常，程序会直接崩溃。使用try-except结构可以优雅地捕获错误，保证程序的健壮性。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心知识点详解",
-      "content": [
-        {
-          "sub_title": "open函数模式",
-          "text": "'r': 只读模式（默认）\n'w': 写入模式（覆盖）\n'a': 追加模式\n'b': 二进制模式\n'+': 读写模式",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "常用读写方法",
-          "text": "read(): 读取全部内容\nreadlines(): 按行读取返回列表\nwrite(): 写入字符串\nwritelines(): 写入行列表",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "异常处理机制",
-          "text": "try: 包裹可能出错的代码\nexcept: 捕获特定错误类型\nfinally: 无论是否出错都执行（常用于关闭文件）",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "two-column",
-      "title": "代码实战：安全读写文件",
-      "content": [
-        {
-          "sub_title": "演示代码解析",
-          "text": "视频演示了如何安全地读取文件。代码使用了try-except块来捕获FileNotFoundError，并在finally块中确保文件对象被正确关闭，这是文件操作的最佳实践。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "try:\n    # 以只读模式打开文件\n    file = open('demo.txt', 'r', encoding='utf-8')\n    content = file.read()\n    print(content)\nexcept FileNotFoundError:\n    print(\"错误：找不到指定文件\")\nfinally:\n    # 确保文件被关闭\n    if 'file' in locals():\n        file.close()",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "header-content",
-      "title": "练习与思考",
-      "content": [
-        {
-          "sub_title": "动手试一试",
-          "text": "请尝试编写一个程序，实现以下功能：\n1. 尝试打开一个名为 'data.txt' 的文件。\n2. 如果文件存在，读取内容并打印行数。\n3. 如果文件不存在，使用 'w' 模式创建该文件，并写入 'Hello Python'。\n4. 使用 try-except 结构处理可能的异常。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "header-content",
-      "title": "项目背景：销售数据自动化分析",
-      "content": [
-        {
-          "sub_title": "项目情境",
-          "text": "你是一家零售公司的数据分析师。月底需要处理数千条销售记录，手动计算不仅耗时而且容易出错。本项目中，我们将运用Python编写脚本，自动化完成数据读取、清洗与统计工作。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "项目目标",
-          "text": "编写Python脚本读取CSV销售数据文件，清洗缺失或异常数据，计算总销售额与平均客单价，并生成一份格式化的统计报告文件。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 8
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心知识点拆解",
-      "content": [
-        {
-          "sub_title": "CSV文件读取与清洗",
-          "text": "使用csv模块或pandas库打开文件。处理数据时需跳过空行，识别并处理'NA'或异常数值，确保计算准确性。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "循环与条件逻辑",
-          "text": "利用for循环遍历每一行数据。结合if条件语句判断数据有效性（如销售额是否为数字），并累加有效数据。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "格式化输出报告",
-          "text": "使用f-string格式化字符串，保留两位小数。将统计结果写入新的文本文件，生成最终的分析报告。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 8
-    },
-    {
-      "layout_type": "two-column",
-      "title": "代码实现：从读取到统计",
-      "content": [
-        {
-          "sub_title": "核心代码示例",
-          "text": "以下代码展示了如何打开CSV文件，逐行读取并进行基础的数据清洗与累加计算。请注意异常处理的使用。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "import csv\n\ntotal_sales = 0\nvalid_count = 0\n\nwith open('sales_data.csv', 'r') as file:\n    reader = csv.reader(file)\n    next(reader)  # 跳过表头\n    for row in reader:\n        try:\n            amount = float(row[2])  # 假设金额在第3列\n            if amount > 0:\n                total_sales += amount\n                valid_count += 1\n        except ValueError:\n            continue  # 跳过非数字行\n\nprint(f'总销售额: {total_sales:.2f}')",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 8
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "实战任务与要求",
-      "content": [
-        {
-          "sub_title": "动手练习",
-          "text": "请在本地IDE中完成以下任务：\n1. 下载提供的 'sales_2023.csv' 数据文件。\n2. 编写脚本计算总销售额、平均销售额及最高单笔销售额。\n3. 将结果输出为 'report.txt' 文件。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "进阶挑战",
-          "text": "尝试在报告中增加一项统计：统计销售额大于1000元的订单数量，并计算其占总订单的比例。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 8
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      }
     }
   ],
   "teacher": {
@@ -864,7 +2613,8 @@
             "my-var"
           ],
           "correct_answer": 2,
-          "explanation": "Python变量名必须以字母或下划线开头，不能以数字开头（排除A），不能包含连字符-（排除D）。虽然print是内置函数名，但在语法上可以作为变量名（不推荐），而_count完全符合命名规则，是最佳答案。"
+          "explanation": "Python变量名必须以字母或下划线开头，不能以数字开头（排除A），不能包含连字符-（排除D）。虽然print是内置函数名，但在语法上可以作为变量名（不推荐），而_count完全符合命名规则，是最佳答案。",
+          "color_theme": "blue"
         },
         {
           "question": "关于input()函数，下列说法正确的是？",
@@ -875,7 +2625,8 @@
             "input()和print()函数的功能完全一样"
           ],
           "correct_answer": 1,
-          "explanation": "input()函数接收的用户输入默认为字符串类型（A错）；它可以接受一个字符串参数作为提示信息（B对）；该函数会返回用户输入的内容（C错）；input用于接收输入，print用于输出，功能不同（D错）。"
+          "explanation": "input()函数接收的用户输入默认为字符串类型（A错）；它可以接受一个字符串参数作为提示信息（B对）；该函数会返回用户输入的内容（C错）；input用于接收输入，print用于输出，功能不同（D错）。",
+          "color_theme": "purple"
         },
         {
           "question": "执行代码 `x = 3.14` 后，变量x属于哪种数据类型？",
@@ -886,7 +2637,8 @@
             "bool"
           ],
           "correct_answer": 2,
-          "explanation": "3.14是一个带有小数点的数值，Python中将其识别为浮点数，因此变量x的数据类型是float。int是整数，str是字符串，bool是布尔类型。"
+          "explanation": "3.14是一个带有小数点的数值，Python中将其识别为浮点数，因此变量x的数据类型是float。int是整数，str是字符串，bool是布尔类型。",
+          "color_theme": "green"
         },
         {
           "question": "下列代码的输出结果是什么？\n`print(type(10 // 3))`",
@@ -897,7 +2649,8 @@
             "<class 'double'>"
           ],
           "correct_answer": 1,
-          "explanation": "// 是整除运算符，10除以3的整数部分是3，结果为整数3，因此类型是int。如果是 / 运算符，结果才是浮点数。Python中没有double类型。"
+          "explanation": "// 是整除运算符，10除以3的整数部分是3，结果为整数3，因此类型是int。如果是 / 运算符，结果才是浮点数。Python中没有double类型。",
+          "color_theme": "orange"
         },
         {
           "question": "若要从用户输入的字符串中获取一个整数并进行计算，正确的操作是？",
@@ -908,7 +2661,8 @@
             "num = float(input()) + 10"
           ],
           "correct_answer": 1,
-          "explanation": "input()返回的是字符串，不能直接与整数相加（会报错）。需要先用int()函数将字符串转换为整数，然后才能进行数学运算。选项D转换为浮点数虽然能计算，但题目要求获取整数，选项B最为准确。"
+          "explanation": "input()返回的是字符串，不能直接与整数相加（会报错）。需要先用int()函数将字符串转换为整数，然后才能进行数学运算。选项D转换为浮点数虽然能计算，但题目要求获取整数，选项B最为准确。",
+          "color_theme": "yellow"
         }
       ],
       "speech": "同学们，这次测验主要考察了Python的变量命名规则、基本数据类型以及输入输出函数的用法。大家要注意input()返回的是字符串，进行数值运算前必须类型转换。错题要及时整理哦！"
