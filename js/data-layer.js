@@ -697,6 +697,30 @@ window.StarData = (function () {
 
 console.log("[StarData] Data layer initialized");
 
+<<<<<<< HEAD
+// ========================================
+// 页面访问追踪（全站通用）
+// 每次页面加载时记录时间戳到 localStorage
+// 用于心流功能监测页面切换频率
+// ========================================
+(function recordPageVisit() {
+    const now = Date.now();
+    let visits;
+    try {
+        visits = JSON.parse(localStorage.getItem('page_visits') || '[]');
+    } catch(e) {
+        visits = [];
+    }
+    // 清理30秒前的过期记录
+    const thirtySecAgo = now - 30000;
+    visits = visits.filter(t => t > thirtySecAgo);
+    // 添加本次访问
+    visits.push(now);
+    // 限制最大记录数
+    if (visits.length > 50) visits = visits.slice(-50);
+    localStorage.setItem('page_visits', JSON.stringify(visits));
+})();
+=======
 /**
  * fetchSSEStream — POST-based SSE stream reader.
  *
@@ -761,3 +785,4 @@ window.fetchSSEStream = function ({ url, body, onEvent, onError, onDone }) {
   };
 };
 
+>>>>>>> 1b9d4fbb6fc7de3a6dd9ce17a87b251cb39d8f16
