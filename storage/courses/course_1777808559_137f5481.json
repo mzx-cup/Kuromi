@@ -1,0 +1,1021 @@
+{
+  "courseId": "course_1777808559_137f5481",
+  "title": "Redis核心实战",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Redis核心概念解析",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Redis单线程模型的高效执行原理",
+        "IO多路复用机制的底层实现逻辑",
+        "Redis五种基础数据结构的应用场景"
+      ],
+      "description": "通过可视化图表深入讲解Redis的C/S架构、单线程模型与IO多路复用机制，建立理论基础。"
+    },
+    {
+      "id": 2,
+      "title": "基础数据结构实战",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "String类型的SET/GET与原子计数操作",
+        "List结构实现简单消息队列的LPUSH/RPOP",
+        "Set集合的交集并集运算与去重应用"
+      ],
+      "description": "在在线IDE中实操String、List、Set等基础命令，通过实战演练掌握数据的增删改查操作。"
+    },
+    {
+      "id": 3,
+      "title": "内存数据结构原理",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "Hash表的渐进式Rehash扩容机制",
+        "ZSet跳跃表的层级索引构建原理",
+        "不同数据结构底层编码的转换条件"
+      ],
+      "description": "通过交互式可视化模拟，动态调整参数观察Hash表扩容与ZSet跳跃表节点的插入过程。"
+    },
+    {
+      "id": 4,
+      "title": "核心机制知识测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "定期删除与惰性删除的配合策略",
+        "LRU/LFU等八种内存淘汰算法区别",
+        "RDB快照与AOF日志的优缺点对比"
+      ],
+      "description": "针对过期策略、内存淘汰机制及持久化原理进行随堂测验，检验关键知识点的掌握程度。"
+    },
+    {
+      "id": 5,
+      "title": "高并发缓存架构图解",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "缓存穿透的布隆过滤器与空值缓存方案",
+        "缓存击穿的互斥锁与逻辑过期方案",
+        "缓存雪崩的随机过期时间与多级缓存"
+      ],
+      "description": "展示缓存穿透、击穿、雪崩的架构原理图，并标注解决方案在系统架构中的具体位置。"
+    },
+    {
+      "id": 6,
+      "title": "分布式锁实现",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "使用SETNX命令实现分布式锁获取",
+        "Lua脚本保证解锁操作的原子性",
+        "锁过期时间与看门狗自动续期机制"
+      ],
+      "description": "模拟电商秒杀场景，引导学员逐步完善setnx加锁、解锁逻辑，解决超卖与死锁问题。"
+    },
+    {
+      "id": 7,
+      "title": "社交平台项目实战",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "使用Set集合实现点赞与共同关注功能",
+        "利用ZSet实现最新动态的时间线排序",
+        "BitMap结构在用户签到统计中的应用"
+      ],
+      "description": "基于Redis设计并实现一个社交平台的点赞、共同好友关注及消息推送功能模块。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "header-content",
+      "title": "Redis核心架构与工作模型",
+      "content": [
+        {
+          "sub_title": "Client/Server 交互架构",
+          "text": "Redis采用经典的C/S架构，客户端通过TCP协议与服务端建立连接。服务端核心由单线程命令处理引擎与IO多路复用机制构成，实现了极高的并发处理能力。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/diagrams/redis-cs-architecture.png"
+        },
+        {
+          "sub_title": "单线程模型的核心优势",
+          "text": "虽然Redis主要工作线程是单线程的，但通过避免了多线程上下文切换和锁竞争的开销，配合IO多路复用，实现了惊人的执行效率。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "IO多路复用机制解析",
+      "content": [
+        {
+          "sub_title": "非阻塞IO (Non-blocking IO)",
+          "text": "Redis基于非阻塞IO模型，当连接没有数据到达时，线程不会挂起等待，而是立即返回处理其他任务，最大化利用CPU资源。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "事件循环 (Event Loop)",
+          "text": "Redis封装了select、epoll、kqueue等底层接口，构建了自己的事件处理器。通过死循环不断监听事件，实现了一个线程处理多个连接。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "文件事件分派器",
+          "text": "监听到socket事件后，分派器会将事件分发给对应的处理器（如连接应答、命令请求、命令回复处理器），实现逻辑解耦。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "五大基础数据结构应用场景",
+      "content": [
+        {
+          "sub_title": "String (字符串)",
+          "text": "最基础类型。场景：缓存对象（JSON）、计数器（粉丝数）、分布式锁（SETNX）。",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "List (列表)",
+          "text": "双向链表结构。场景：消息队列（LPUSH/RPOP）、最新列表（文章列表）、栈结构。",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Set (集合)",
+          "text": "无序唯一集合。场景：标签系统、社交关系（共同关注）、抽奖系统（SRANDMEMBER）。",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Hash (哈希)",
+          "text": "键值对集合。场景：购物车数据、对象属性存储（比String更节省内存的紧凑存储）。",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "ZSet (有序集合)",
+          "text": "带分值的集合。场景：排行榜（游戏积分）、延时队列（时间戳作为分值）、带权重的标签系统。",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "核心实战总结",
+      "content": [
+        {
+          "sub_title": "架构设计精髓",
+          "text": "\"Redis的高性能并非因为单线程本身，而是得益于单线程避免了锁竞争，结合IO多路复用机制实现了纯内存级别的快速响应。\"",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "选型建议",
+          "text": "在实际开发中，应根据业务场景选择合适的数据结构。例如，简单的KV缓存首选String，复杂对象存储推荐Hash，排名功能必选ZSet。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "Redis基础数据结构实战",
+      "content": [
+        {
+          "sub_title": "场景目标",
+          "text": "在在线IDE中实操String、List、Set等基础命令，通过实战演练掌握数据的增删改查操作。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心要点",
+          "text": "本次实战将重点覆盖String类型的原子计数、List结构的队列模拟以及Set集合的交并集运算。",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心数据结构知识点",
+      "content": [
+        {
+          "sub_title": "String类型",
+          "text": "最基础类型，支持SET/GET读写，INCR/DECR原子计数操作，常用于计数器、缓存场景。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "List结构",
+          "text": "双向链表实现，支持LPUSH/RPOP组合实现简单消息队列，适合存储列表数据。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Set集合",
+          "text": "无序唯一集合，支持交集(SINTER)、并集(SUNION)运算，常用于去重与标签系统。",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战演练：String与List操作",
+      "content": [
+        {
+          "sub_title": "String原子计数示例",
+          "text": "利用INCR命令实现原子递增，确保高并发下计数的准确性。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 设置初始值\nSET page_views 100\n# 原子递增\nINCR page_views\n# 获取结果\nGET page_views # 输出: 101",
+          "image_url": ""
+        },
+        {
+          "sub_title": "List消息队列示例",
+          "text": "使用LPUSH从左侧插入，RPOP从右侧弹出，实现先进先出(FIFO)队列。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 生产者：压入消息\nLPUSH task_queue \"task_1\"\nLPUSH task_queue \"task_2\"\n# 消费者：弹出消息\nRPOP task_queue # 返回 \"task_1\"\nRPOP task_queue # 返回 \"task_2\"",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战演练：Set集合运算",
+      "content": [
+        {
+          "sub_title": "Set去重与运算",
+          "text": "Set自动去重，适合存储唯一标识。通过交集运算寻找共同好友或共同标签。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 添加用户标签\nSADD user:1:tags \"redis\" \"db\"\nSADD user:2:tags \"redis\" \"java\"\n# 计算共同标签(交集)\nSINTER user:1:tags user:2:tags\n# 输出: \"redis\"",
+          "image_url": ""
+        },
+        {
+          "sub_title": "实战提示",
+          "text": "在进行集合运算时，注意大数据量的性能影响。SINTER时间复杂度为O(N*M)，建议在从节点执行或使用SCAN迭代。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "动手练习与总结",
+      "content": [
+        {
+          "sub_title": "练习任务",
+          "text": "1. 使用String实现一个文章点赞计数器（INCR）；\n2. 使用List构建一个简单的日志处理队列；\n3. 使用Set计算两个商品集合的并集，展示所有唯一商品。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "关键总结",
+          "text": "String是基石，List模拟队列，Set处理唯一性与集合运算。选择合适的数据结构是Redis优化的第一步。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "交互实验室：Redis内存数据结构探秘",
+      "content": [
+        {
+          "sub_title": "场景目标",
+          "text": "本环节通过可视化模拟，深入Redis内核。你将亲手操作参数，观察Hash表如何在服务不中断的情况下完成扩容，以及ZSet如何通过概率层级构建高效的跳跃表索引。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心实验对象",
+          "text": "1. Hash表：观察键值对数量变化引发的渐进式Rehash全过程。\n2. ZSet：动态插入节点，见证跳跃表多层索引的诞生。",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心原理：底层结构与编码转换",
+      "content": [
+        {
+          "sub_title": "Hash表的渐进式Rehash",
+          "text": "原理：维持ht[0]和ht[1]两张表，在增删改查操作中分步迁移数据，避免一次性扩容导致的卡顿。\n触发条件：load_factor > 1 (正常) 或 > 5 (强制)。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "ZSet跳跃表",
+          "text": "结构：多层链表结构，底层包含所有节点，上层通过随机概率（25%）构建索引。\n优势：将查找复杂度从O(N)降至O(logN)，实现原理简单且高效。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "编码转换条件",
+          "text": "Hash对象：元素数<512且值<64字节使用ziplist，否则hashtable。\nZSet对象：元素数<128且值<64字节使用ziplist，否则skiplist。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实验一：Hash表扩容模拟",
+      "content": [
+        {
+          "sub_title": "操作指南",
+          "text": "1. 点击“添加数据”观察负载因子变化。\n2. 触发扩容后，观察rehashidx索引的移动。\n3. 注意观察数据如何在ht[0]和ht[1]之间平滑迁移，期间服务保持响应。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "hash_rehash_diagram.png"
+        },
+        {
+          "sub_title": "关键状态监测",
+          "text": "• 扩容前：所有请求命中ht[0]。\n• 扩容中：新增节点写入ht[1]，查询操作同时检查两张表。\n• 扩容后：ht[1]晋升为ht[0]，释放旧表内存。\n\n请尝试在扩容期间执行查询操作，验证数据一致性。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实验二：ZSet跳跃表节点插入",
+      "content": [
+        {
+          "sub_title": "插入过程演示",
+          "text": "1. 输入分值插入新节点。\n2. 系统抛掷“硬币”（随机算法），决定是否提升至上一层索引。\n3. 观察L1、L2...Ln层指针的连接变化。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "skiplist_visual.png"
+        },
+        {
+          "sub_title": "性能对比思考",
+          "text": "• 对比普通链表：跳跃表如何减少比较次数？\n• 随机性：为什么Redis不要求严格的平衡（如AVL树），而是采用随机层高？\n\n请在交互区连续插入10个节点，统计平均层数。",
+          "icon": "question",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "实验总结与思考",
+      "content": [
+        {
+          "sub_title": "核心结论",
+          "text": "Redis通过精妙的数据结构设计，在内存限制与性能之间找到了平衡。Hash的渐进式Rehash保证了高并发下的平滑扩容，ZSet的跳跃表以较低的实现成本换取了媲美平衡树的查询效率。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "课后挑战",
+          "text": "思考题：如果将Hash对象的ziplist编码阈值调大，会对CPU缓存命中率产生什么影响？请在评论区分享你的观点。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "核心机制知识测验",
+      "content": [
+        {
+          "sub_title": "测验说明",
+          "text": "本次测验旨在检验大家对Redis核心机制的掌握程度，重点考察过期策略的执行逻辑、内存淘汰算法的选择场景以及持久化方案的优缺点权衡。请认真审题，结合源码原理作答。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "考察范围",
+          "text": "1. 过期策略：定期删除与惰性删除的配合机制\n2. 淘汰算法：LRU、LFU等八种内存淘汰策略的区别\n3. 持久化原理：RDB快照与AOF日志的对比分析",
+          "icon": "book",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "答题要求",
+          "text": "本环节包含单选题、多选题与判断题。请点击选项进行作答，系统将即时反馈正误结果，并附带关键知识点解析。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "第一部分：过期策略与淘汰机制",
+      "content": [
+        {
+          "sub_title": "Q1：过期键删除策略（单选）",
+          "text": "Redis采用了哪种策略来平衡CPU性能与内存回收效率？\n\nA. 仅使用定时删除\nB. 仅使用惰性删除\nC. 定期删除与惰性删除配合使用\nD. 仅使用立即删除",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Q2：内存淘汰算法（多选）",
+          "text": "当Redis内存达到maxmemory限制时，以下哪些配置会导致数据丢失风险？\n\nA. volatile-lru\nB. allkeys-lru\nC. noeviction\nD. volatile-random",
+          "icon": "question",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Q3：LFU算法特性（判断）",
+          "text": "LFU（Least Frequently Used）算法根据数据访问频率进行淘汰，相比LRU算法，它更能准确识别“冷数据”，适合处理突发性大量访问场景。请判断正误。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "第二部分：持久化原理对比",
+      "content": [
+        {
+          "sub_title": "Q4：RDB与AOF对比分析（连线题）",
+          "text": "请将以下特性归类到对应的持久化方式：\n\n1. 文件体积小，恢复速度快\n2. 数据安全性高，最多丢失1秒数据\n3. 适合作为备份文件迁移\n4. 写入压力大，文件可能过大\n\n选项：\nA. RDB快照\nB. AOF日志",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "Q5：混合持久化优势（单选）",
+          "text": "Redis 4.0推出了混合持久化（RDB+AOF），其主要优势是什么？\n\nA. 完全消除了AOF重写的开销\nB. 结合了RDB的快速恢复与AOF的数据完整性\nC. 使得Redis不再需要配置maxmemory\nD. 磁盘占用空间最小化",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "测验结束与要点总结",
+      "content": [
+        {
+          "sub_title": "核心考点回顾",
+          "text": "“定期删除负责定期抽样清理，惰性删除负责访问时检查，二者缺一不可。内存淘汰是Redis内存管理的最后一道防线，而持久化则是数据安全的兜底方案。”",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "下一步建议",
+          "text": "若对淘汰算法理解不深，建议复习 `evict.c` 源码实现；若对持久化配置存疑，请重点练习 `redis.conf` 中 appendonly 与 save 参数的调优配置。",
+          "icon": "lightbulb",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "header-content",
+      "title": "高并发缓存架构图解",
+      "content": [
+        {
+          "sub_title": "缓存面临的三大挑战",
+          "text": "在高并发场景下，Redis缓存架构主要面临穿透、击穿、雪崩三大风险。本节通过架构图解方式，深入剖析问题根源与解决方案的落地位置。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/redis-architecture-overview.png"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心问题与解决方案概览",
+      "content": [
+        {
+          "sub_title": "缓存穿透",
+          "text": "查询不存在的数据，请求直达数据库。\n方案：布隆过滤器拦截、空值缓存。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "缓存击穿",
+          "text": "热点Key过期，瞬间高并发击垮数据库。\n方案：互斥锁重建、逻辑过期策略。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "缓存雪崩",
+          "text": "大量Key同时过期或Redis宕机。\n方案：随机过期时间、多级缓存架构。",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "架构图解：缓存穿透与布隆过滤器",
+      "content": [
+        {
+          "sub_title": "架构原理",
+          "text": "在请求到达Redis之前，通过布隆过滤器进行前置拦截。若布隆过滤器判断数据不存在，直接返回，避免底层压力。对于误判或空查询，可采用空值缓存作为兜底。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/bloom-filter-diagram.png"
+        },
+        {
+          "sub_title": "方案落地位置",
+          "text": "1. 布隆过滤器：部署在应用服务层与Redis之间。\n2. 空值缓存：在Redis层设置短TTL的Null Key。\n\n此架构有效拦截无效流量，保护数据库安全。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "架构图解：缓存击穿与互斥锁",
+      "content": [
+        {
+          "sub_title": "架构原理",
+          "text": "当热点Key过期时，利用互斥锁控制只有一个线程去查询数据库并重建缓存。其他线程等待重试。逻辑过期方案则是在数据中嵌入过期字段，异步更新，保证高可用。",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/mutex-lock-diagram.png"
+        },
+        {
+          "sub_title": "方案落地位置",
+          "text": "1. 互斥锁：在应用服务层利用Redis SETNX实现。\n2. 逻辑过期：缓存Value结构中增加expire字段。\n\n解决方案直接作用于缓存重建逻辑中。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "header-content",
+      "title": "架构图解：缓存雪崩与多级缓存",
+      "content": [
+        {
+          "sub_title": "架构层级与防御策略",
+          "text": "雪崩解决的核心在于“错峰”与“冗余”。\n\n1. 随机过期时间：在设置TTL时增加随机值，避免同时失效（作用于Redis层）。\n2. 多级缓存：引入本地缓存作为二级缓存，即使Redis崩溃，本地缓存仍可支撑部分流量（作用于应用层与Redis之间）。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "https://example.com/images/multi-level-cache-diagram.png"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "场景引入：电商秒杀的超卖危机",
+      "content": [
+        {
+          "sub_title": "问题背景",
+          "text": "在高并发秒杀场景下，多个线程同时查询库存并扣减，由于缺乏同步机制，极易导致“超卖”现象，即库存为负数，引发客诉与资损。",
+          "icon": "warning",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "解决方案",
+          "text": "引入分布式锁，将并行操作串行化。本练习将带你从最基础的SETNX命令开始，逐步构建一个健壮的Redis分布式锁。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心知识点：构建稳健的分布式锁",
+      "content": [
+        {
+          "sub_title": "加锁策略",
+          "text": "使用 SET key value NX PX timeout 命令。NX保证互斥性，PX设置过期时间防止客户端宕机导致死锁。Value需设为UUID，标识锁持有者。",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "解锁原子性",
+          "text": "解锁必须校验锁持有者（Value），防止误删他人锁。因“判断+删除”非原子操作，必须使用Lua脚本执行解锁逻辑。",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "看门狗机制",
+          "text": "业务执行时间可能超过锁过期时间。引入Watchdog（看门狗）后台线程，定期检测并延长锁的TTL，防止业务未执行完锁即过期。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "代码演进：从基础到原子化",
+      "content": [
+        {
+          "sub_title": "错误示例：非原子解锁",
+          "text": "以下代码存在风险：如果线程A在判断uuid相等后、执行del前锁过期，线程B获取锁，此时A执行del会误删B的锁。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "// 线程A：危险的解锁逻辑\nif (uuid.equals(redis.get(key))) {\n    // 此时锁过期，线程B加锁成功\n    // 线程A执行删除，导致B的锁被误删\n    redis.del(key); \n}",
+          "image_url": ""
+        },
+        {
+          "sub_title": "正确示例：Lua脚本解锁",
+          "text": "Redis执行Lua脚本是原子性的，要么全做要么全不做，完美解决了竞态条件下的误删问题。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "// Lua脚本解锁\nString script = \n  \"if redis.call('get', KEYS[1]) == ARGV[1] \" +\n  \"then return redis.call('del', KEYS[1]) \" +\n  \"else return 0 end\";\nredis.eval(script, key, uuid);",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "实战练习任务",
+      "content": [
+        {
+          "sub_title": "任务一：实现基础加锁与解锁",
+          "text": "在IDE中打开 SecKillService 类，使用 setIfAbsent 方法实现加锁，并设置30秒过期时间。编写简单的解锁逻辑。",
+          "icon": "code",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "任务二：解决误删问题",
+          "text": "重构解锁代码，引入Lua脚本。确保只有锁的持有者才能释放锁，并通过单元测试验证原子性。",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "任务三：看门狗自动续期（进阶）",
+          "text": "模拟耗时10秒的业务，设置锁过期5秒。实现一个后台线程每1/3过期时间重设过期时间，确保业务执行期间锁不丢失。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "社交平台项目实战：Redis核心应用",
+      "content": [
+        {
+          "sub_title": "项目背景",
+          "text": "在当今高并发的社交平台场景中，传统关系型数据库面临着巨大的性能挑战。本项目旨在利用Redis的高性能读写特性，解决社交互动中的实时性难题。",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心目标",
+          "text": "基于Redis构建三个核心功能模块：高并发点赞与共同好友计算、基于时间线的动态消息推送、以及海量用户签到统计。通过实战掌握Set、ZSet、BitMap的高级应用。",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心数据结构选型与知识点解析",
+      "content": [
+        {
+          "sub_title": "Set集合：社交关系与点赞",
+          "text": "利用Set的去重特性存储点赞用户ID，通过SINTER命令高效计算共同关注好友，时间复杂度低，适合社交圈计算。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "ZSet有序集合：时间线排序",
+          "text": "使用Score存储动态发布的时间戳，实现最新动态的自动排序。利用ZRANGE轻松获取Top N最新消息流。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "BitMap位图：签到统计",
+          "text": "将一年365天映射为位图，用户签到对应位置置为1。极致节省空间（约46KB/用户/年），支持BITCOUNT快速统计连续签到。",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战场景演示：点赞与消息推送",
+      "content": [
+        {
+          "sub_title": "点赞功能实现",
+          "text": "使用SADD添加点赞用户，SREM取消点赞，SISMEMBER判断点赞状态。确保同一用户不能重复点赞，且查询速度极快。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "// 点赞与共同关注示例\nSADD like:post:1001 user:88\nSISMEMBER like:post:1001 user:88\n// 计算用户A与用户B的共同关注\nSINTER user:A:following user:B:following",
+          "image_url": ""
+        },
+        {
+          "sub_title": "消息推送实现",
+          "text": "使用ZADD添加动态，Score为时间戳。通过ZRANGE按时间倒序获取最新动态列表，实现关注Feed流的实时推送。",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "// 推送最新动态\nZADD user:888:timeline 1704067200 'post:1001'\n// 获取最新10条动态\nZREVRANGE user:888:timeline 0 9 WITHSCORES",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "实战任务与巩固要求",
+      "content": [
+        {
+          "sub_title": "任务清单",
+          "text": "1. 编写API接口实现文章的点赞/取消点赞功能，并返回当前点赞数。\n2. 实现两个用户之间的“共同关注”列表查询接口。\n3. 使用BitMap设计并实现用户本月的签到日历展示接口。",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "性能指标要求",
+          "text": "在模拟10万用户并发场景下，点赞响应时间需<10ms，签到统计需<5ms。请合理设计Key的命名规范，避免键冲突。",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 4,
+      "scene_id": 4,
+      "title": "Redis核心机制知识测验",
+      "questions": [
+        {
+          "question": "Redis中对于设置了过期时间的键，采用哪种策略在获取数据时检查并删除已过期的键？",
+          "options": [
+            "定期删除策略",
+            "惰性删除策略",
+            "定时删除策略",
+            "主动淘汰策略"
+          ],
+          "correct_answer": 1,
+          "explanation": "惰性删除策略是指在客户端访问数据时，Redis会检查该键是否过期，如果过期则删除。这种方式对CPU友好，但可能导致过期数据长期占用内存。"
+        },
+        {
+          "question": "当Redis内存使用达到上限（maxmemory）时，若配置为'allkeys-lru'淘汰策略，系统会执行什么操作？",
+          "options": [
+            "随机移除任意一个键",
+            "移除设置了过期时间且最近最少使用的键",
+            "移除最近最少使用（LRU）的任意键",
+            "移除最不经常使用（LFU）的键"
+          ],
+          "correct_answer": 2,
+          "explanation": "allkeys-lru策略会从所有键（无论是否设置过期时间）中，尝试移除最近最少使用（Least Recently Used）的键，适用于缓存场景。"
+        },
+        {
+          "question": "关于Redis持久化机制中RDB（快照）与AOF（日志）的优缺点对比，下列说法正确的是？",
+          "options": [
+            "AOF文件体积通常比RDB小，更适合灾备传输",
+            "RDB在生成快照时可能会阻塞主线程，且丢失数据风险比AOF高",
+            "AOF以二进制格式存储，数据恢复速度比RDB快",
+            "RDB记录的是每一次写操作命令，数据完整性极高"
+          ],
+          "correct_answer": 1,
+          "explanation": "RDB是二进制快照，恢复速度快但实时性差，save指令会阻塞主线程（bgsavefork子进程虽不阻塞但消耗资源）；AOF记录写命令，数据安全性高、体积大、恢复慢。因此选项B描述正确。"
+        },
+        {
+          "question": "在Redis 4.0及以上版本中，若需平衡数据安全性和性能，推荐使用哪种持久化配置？",
+          "options": [
+            "仅使用RDB，关闭AOF",
+            "仅使用AOF，关闭RDB",
+            "关闭所有持久化，依赖主从复制",
+            "开启混合持久化（AOF+RDB）"
+          ],
+          "correct_answer": 3,
+          "explanation": "Redis 4.0引入了混合持久化，在AOF重写时将RDB内容写入AOF文件开头。结合了RDB恢复快和AOF数据全的优点，是当前最佳实践方案。"
+        },
+        {
+          "question": "Redis 4.0引入了LFU（Least Frequently Used）算法作为内存淘汰策略。相比LRU算法，LFU更适合解决什么问题？",
+          "options": [
+            "解决冷数据瞬间大量访问导致的缓存穿透问题",
+            "解决键值对数量过多导致哈希冲突的问题",
+            "解决历史热点数据长期占据内存不被淘汰的问题",
+            "解决RDB快照生成时内存占用过大的问题"
+          ],
+          "correct_answer": 2,
+          "explanation": "LRU算法仅关注最近访问时间，可能导致曾经的热点数据（现在已不再访问）因访问时间较近而长期驻留内存。LFU根据访问频率淘汰，能更准确地识别并保留真正的热点数据，淘汰历史热点。"
+        }
+      ],
+      "speech": "各位同学，本次测验旨在检验大家对Redis核心机制的掌握情况。我们将从过期策略的配合、内存淘汰算法的选择，以及持久化方案的权衡三个维度进行考察。请务必注意区分LRU与LFU的适用场景，并深刻理解RDB与AOF在数据完整性与性能上的取舍。请认真作答！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 6,
+      "scene_id": 6,
+      "title": "Redis分布式锁实战演练",
+      "exercises": [
+        {
+          "instruction": "场景：秒杀抢购开始，请使用Redis SET命令尝试获取分布式锁。要求：锁的Key为'lock:product_101'，Value设为客户端唯一标识'uuid_123'，且必须设置30秒过期时间以防止死锁，并在命令中保证设置过期时间与加锁操作的原子性。",
+          "hints": [
+            "查阅Redis SET命令的NX和EX参数用法。",
+            "使用 'NX' 选项确保仅当Key不存在时才设置。",
+            "使用 'EX' 选项设置过期时间（秒）。",
+            "完整命令格式：SET key value NX EX seconds。"
+          ],
+          "expected_answer": "SET lock:product_101 uuid_123 NX EX 30"
+        },
+        {
+          "instruction": "场景：业务处理完毕，需要安全释放锁。为防止误删其他客户端的锁，请编写一个Lua脚本逻辑。要求：脚本需检查Key是否存在且Value等于'uuid_123'，如果匹配则删除Key，否则不做操作。",
+          "hints": [
+            "Redis Lua脚本中使用KEYS[1]和ARGV[1]获取参数。",
+            "先使用GET命令获取当前锁的Value进行比对。",
+            "若匹配则执行DEL命令，注意保证判断与删除的原子性。",
+            "返回1表示解锁成功，0表示失败或锁不属于当前客户端。"
+          ],
+          "expected_answer": "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
+        },
+        {
+          "instruction": "场景：秒杀业务逻辑复杂，执行时间超过了锁的过期时间。请简述如何利用“看门狗”机制解决该问题。",
+          "hints": [
+            "看门狗机制通常用于在锁有效期即将到期时进行续期。",
+            "核心逻辑是开启一个后台定时任务。",
+            "检测到业务未执行完，则重新设置锁的过期时间。",
+            "Redisson框架中默认续期时间是过期时间的1/3。"
+          ],
+          "expected_answer": "看门狗机制通过后台守护线程，在锁即将过期但业务仍未执行完成时，自动调用Lua脚本为锁重置过期时间（续期），从而避免因业务耗时过长导致锁提前失效引发的并发安全问题。"
+        }
+      ],
+      "speech": "同学们，面对高并发秒杀，简单的Setnx无法应对死锁风险。第一个练习，我们将学习如何用一条指令完成原子性加锁并设置过期时间。接着，为了防止误删锁，我们将引入Lua脚本保障解锁的原子性。最后，我会带大家深入理解看门狗机制，解决业务超时导致的锁失效难题。请大家动手实战，构建健壮的分布式锁！"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习 Redis",
+    "student_id": "1",
+    "session_id": "c05c5c2e-ca65-4828-89fb-eb870825bb11",
+    "generated_at": "2026-05-03 19:42:39",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

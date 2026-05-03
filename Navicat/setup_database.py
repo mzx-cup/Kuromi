@@ -424,6 +424,7 @@ MYSQL_TABLES = [
         user_id INT NOT NULL,
         course_id VARCHAR(100) NOT NULL UNIQUE,
         title VARCHAR(255) NOT NULL DEFAULT '',
+        ppt_pages INT DEFAULT 0,
         full_data LONGTEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

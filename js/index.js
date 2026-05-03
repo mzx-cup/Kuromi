@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin;
+﻿const API_BASE = window.location.origin;
 const API_URL = `${API_BASE}/api/chat`;
 const RUN_CODE_URL = `${API_BASE}/api/run-code`;
 const GRADE_CODE_URL = `${API_BASE}/api/grade-code`;
@@ -1395,7 +1395,7 @@ async function loadRecentCourses() {
                         courseId: record.course_id,
                         title: record.title,
                         createdAt: new Date(record.created_at).getTime(),
-                        slideCount: 0, // 数据库中暂无该字段
+                        slideCount: record.ppt_pages || 0,
                         // 保留完整数据供后续使用
                         _dbRecord: record
                     }));
@@ -1428,10 +1428,10 @@ async function loadRecentCourses() {
                 <i data-lucide="book-open" class="w-12 h-12"></i>
                 <div class="openmaic-card-overlay"></div>
                 <div class="openmaic-card-actions">
-                    <button class="openmaic-card-action-btn edit" onclick="event.stopPropagation(); editCourse('${course.courseId}')" title="重命名">
+                    <button class="openmaic-card-action-btn edit" onclick="event.stopPropagation(); showEditModal('${course.courseId}')" title="重命名">
                         <i data-lucide="pencil" class="w-3 h-3"></i>
                     </button>
-                    <button class="openmaic-card-action-btn" onclick="event.stopPropagation(); deleteCourse('${course.courseId}')" title="删除">
+                    <button class="openmaic-card-action-btn" onclick="event.stopPropagation(); showDeleteModal('${course.courseId}')" title="删除">
                         <i data-lucide="trash-2" class="w-3 h-3"></i>
                     </button>
                 </div>
@@ -1503,28 +1503,109 @@ async function openCourse(courseId) {
 }
 
 // 编辑课程
-function editCourse(courseId) {
+let editingCourseId = null;
+
+function showEditModal(courseId) {
+    editingCourseId = courseId;
     const history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
     const course = history.find(c => c.courseId === courseId);
-    if (course) {
-        const newTitle = prompt('请输入新课程名称:', course.title);
-        if (newTitle && newTitle.trim()) {
-            course.title = newTitle.trim();
-            localStorage.setItem('courseHistory', JSON.stringify(history));
-            loadRecentCourses();
+    if (!course) return;
+
+    document.getElementById('edit-course-input').value = course.title;
+    document.getElementById('edit-course-modal').classList.add('active');
+    document.getElementById('edit-course-input').focus();
+}
+
+function hideEditModal() {
+    document.getElementById('edit-course-modal').classList.remove('active');
+    editingCourseId = null;
+}
+
+async function confirmEdit() {
+    if (!editingCourseId) return;
+    const newTitle = document.getElementById('edit-course-input').value.trim();
+    if (!newTitle) return;
+
+    let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    const courseIndex = history.findIndex(c => c.courseId === editingCourseId);
+    if (courseIndex >= 0) {
+        history[courseIndex].title = newTitle;
+        localStorage.setItem('courseHistory', JSON.stringify(history));
+
+        // 如果用户已登录，同步更新数据库
+        const currentUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        if (currentUser && currentUser.id && currentUser.id !== 'anonymous') {
+            try {
+                const record = history[courseIndex];
+                await fetch(`/api/v2/classroom/${editingCourseId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: newTitle })
+                });
+            } catch (e) {
+                console.warn('更新数据库失败:', e);
+            }
         }
     }
+
+    hideEditModal();
+    loadRecentCourses();
 }
 
 // 删除课程
-function deleteCourse(courseId) {
-    if (confirm('确定要删除这个课程吗?')) {
-        let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
-        history = history.filter(c => c.courseId !== courseId);
-        localStorage.setItem('courseHistory', JSON.stringify(history));
-        loadRecentCourses();
-    }
+let deletingCourseId = null;
+
+function showDeleteModal(courseId) {
+    deletingCourseId = courseId;
+    document.getElementById('delete-course-modal').classList.add('active');
 }
+
+function hideDeleteModal() {
+    document.getElementById('delete-course-modal').classList.remove('active');
+    deletingCourseId = null;
+}
+
+async function confirmDelete() {
+    if (!deletingCourseId) return;
+
+    let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+    history = history.filter(c => c.courseId !== deletingCourseId);
+    localStorage.setItem('courseHistory', JSON.stringify(history));
+
+    // 如果用户已登录，同时删除数据库记录
+    const currentUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (currentUser && currentUser.id && currentUser.id !== 'anonymous') {
+        try {
+            await fetch(`/api/v2/classroom/${deletingCourseId}`, {
+                method: 'DELETE'
+            });
+        } catch (e) {
+            console.warn('删除数据库记录失败:', e);
+        }
+    }
+
+    hideDeleteModal();
+    loadRecentCourses();
+}
+
+// 初始化弹窗事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 编辑弹窗事件
+    document.getElementById('edit-modal-close')?.addEventListener('click', hideEditModal);
+    document.getElementById('edit-cancel-btn')?.addEventListener('click', hideEditModal);
+    document.getElementById('edit-confirm-btn')?.addEventListener('click', confirmEdit);
+    document.getElementById('edit-modal-backdrop')?.addEventListener('click', hideEditModal);
+    document.getElementById('edit-course-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirmEdit();
+        if (e.key === 'Escape') hideEditModal();
+    });
+
+    // 删除弹窗事件
+    document.getElementById('delete-modal-close')?.addEventListener('click', hideDeleteModal);
+    document.getElementById('delete-cancel-btn')?.addEventListener('click', hideDeleteModal);
+    document.getElementById('delete-confirm-btn')?.addEventListener('click', confirmDelete);
+    document.getElementById('delete-modal-backdrop')?.addEventListener('click', hideDeleteModal);
+});
 
 // 进入课堂按钮点击处理
 document.addEventListener('DOMContentLoaded', function() {
@@ -2263,24 +2344,25 @@ function renderPath() {
 
 function updateDispatchBadge(strategy) {
     const badge = document.getElementById('dispatch-badge');
-    const label = document.getElementById('dispatch-label');
-    if (!badge || !label) return;
+    if (!badge) return;
     const configs = {
-        socratic: { text: '苏格拉底诊断', bg: 'bg-purple-50 text-purple-600 border-purple-100' },
-        visual: { text: '高视觉权重', bg: 'bg-orange-50 text-orange-600 border-orange-100' },
-        pragmatic: { text: '高实践权重', bg: 'bg-emerald-50 text-emerald-600 border-emerald-100' },
-        textual: { text: '均衡模式', bg: '' }
+        socratic: { text: '苏格拉底诊断' },
+        visual: { text: '高视觉权重' },
+        pragmatic: { text: '高实践权重' },
+        textual: { text: '均衡模式' }
     };
-    const cfg = configs[strategy] || configs.textual;
-    if (cfg.bg) {
-        badge.className = `text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1 ${cfg.bg}`;
+}
+
+function setDispatchActive(isActive) {
+    const badge = document.getElementById('dispatch-badge');
+    if (!badge) return;
+    if (isActive) {
+        badge.classList.remove('dispatch-idle');
+        badge.classList.add('dispatch-active');
     } else {
-        badge.className = 'text-xs font-bold px-3 py-1 rounded-full border flex items-center gap-1';
-        badge.style.background = 'var(--primary-50)';
-        badge.style.color = 'var(--primary)';
-        badge.style.borderColor = 'var(--primary-200)';
+        badge.classList.remove('dispatch-active');
+        badge.classList.add('dispatch-idle');
     }
-    label.textContent = cfg.text;
 }
 
 function getLinkCache() {
@@ -3803,6 +3885,44 @@ function toggleRightCol() {
     if (col) col.classList.toggle('show');
 }
 
+function toggleTheme() {
+    const body = document.body;
+    const isLight = body.classList.contains('light-theme');
+    const themeToggle = document.getElementById('theme-toggle-btn');
+    
+    if (isLight) {
+        // 切换到深色主题
+        const currentDarkTheme = document.documentElement.getAttribute('data-theme') || 'starry-night';
+        body.classList.remove('light-theme');
+        document.documentElement.setAttribute('data-theme', currentDarkTheme);
+        localStorage.setItem('themeMode', 'dark');
+    } else {
+        // 切换到浅色主题
+        body.classList.add('light-theme');
+        document.documentElement.setAttribute('data-theme', 'sakura-falling');
+        localStorage.setItem('themeMode', 'light');
+    }
+    
+    // 重新初始化 lucide 图标
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+function initTheme() {
+    const themeToggle = document.getElementById('theme-toggle-btn');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+    
+    // 从 localStorage 恢复主题设置
+    const savedMode = localStorage.getItem('themeMode');
+    if (savedMode === 'light') {
+        document.body.classList.add('light-theme');
+        document.documentElement.setAttribute('data-theme', 'sakura-falling');
+    }
+}
+
 function updateAgentStatus(agentKey, status) {
     const item = document.querySelector(`.agent-status-item[data-agent="${agentKey}"]`);
     if (!item) return;
@@ -3888,6 +4008,8 @@ async function handleSendStream() {
     const sendButton = document.getElementById('send-btn');
     const userMsg = getInputValue();
     if (!userMsg) return;
+
+    setDispatchActive(true);
 
     // 检测辩论模式
     if (isDebateModeEnabled()) {
@@ -4062,6 +4184,7 @@ async function handleSendStream() {
 
                     if (data.dispatchStrategy) {
                         updateDispatchBadge(data.dispatchStrategy);
+                        setDispatchActive(true);
                         if (currentAssistantIdx >= 0) {
                             messages[currentAssistantIdx].socratic = data.dispatchStrategy === 'socratic';
                         }
@@ -4160,6 +4283,7 @@ async function handleSendStream() {
         if (notionInput) notionInput.focus();
         else { const mi = document.getElementById('message-input'); if (mi) mi.focus(); }
         streamAbortController = null;
+        setDispatchActive(false);
     }
 }
 
@@ -4185,6 +4309,7 @@ async function handleSend() {
     const sandboxLogsEl = document.getElementById('sandbox-logs');
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     updateSandboxStatus('处理中', 'bg-amber-100 text-amber-600');
+    setDispatchActive(true);
 
     try {
         const res = await fetch(API_URL, {
@@ -4235,6 +4360,7 @@ async function handleSend() {
 
             if (data.dispatchStrategy) {
                 updateDispatchBadge(data.dispatchStrategy);
+                setDispatchActive(true);
             }
 
             renderSources(data.sources || []);
@@ -4270,6 +4396,7 @@ async function handleSend() {
             msgInput.focus();
 
             saveProgress();
+            setDispatchActive(false);
         };
 
         if (logs.length === 0) {
@@ -4299,6 +4426,7 @@ async function handleSend() {
         updateSandboxStatus('错误', 'bg-red-100 text-red-600');
         setInputDisabled(false);
         if (sendButton) sendButton.disabled = false;
+        setDispatchActive(false);
     }
 }
 
@@ -4456,6 +4584,8 @@ async function loadProgress() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    initTheme();
+    
     const savedAgentId = localStorage.getItem('starlearn_agent');
     if (savedAgentId) {
         const savedAgent = AGENTS_CONFIG.find(a => a.id === savedAgentId);

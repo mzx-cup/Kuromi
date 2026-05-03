@@ -1,5 +1,5 @@
 (function() {
-    const LIGHT_THEMES = new Set(['sakura-falling']);
+    const LIGHT_THEMES = new Set(['sakura-falling', 'ocean-light']);
     const STORAGE_KEY = 'starlearn_theme';
     const DEFAULT_THEME = 'ocean';
     let sakuraCanvas = null;
@@ -11,6 +11,49 @@
 
     function getCurrentTheme() {
         return localStorage.getItem(STORAGE_KEY) || DEFAULT_THEME;
+    }
+
+    function getBaseTheme(currentTheme) {
+        if (currentTheme === 'ocean-light') return 'ocean';
+        if (currentTheme === 'ocean') return 'ocean-light';
+        return currentTheme;
+    }
+
+    function toggleTheme() {
+        const currentTheme = getCurrentTheme();
+        let newTheme;
+        
+        if (currentTheme === 'ocean' || currentTheme === 'ocean-light') {
+            newTheme = currentTheme === 'ocean' ? 'ocean-light' : 'ocean';
+        } else {
+            newTheme = isLightTheme(currentTheme) ? DEFAULT_THEME : 'ocean-light';
+        }
+        
+        applyTheme(newTheme);
+        localStorage.setItem(STORAGE_KEY, newTheme);
+        updateToggleButton(newTheme);
+    }
+
+    function updateToggleButton(theme) {
+        const btn = document.getElementById('theme-toggle-btn');
+        if (!btn) return;
+        
+        const sunIcon = btn.querySelector('.sun-icon');
+        const moonIcon = btn.querySelector('.moon-icon');
+        
+        if (sunIcon && moonIcon) {
+            if (isLightTheme(theme)) {
+                sunIcon.style.opacity = '0';
+                sunIcon.style.transform = 'rotate(0deg) scale(0)';
+                moonIcon.style.opacity = '1';
+                moonIcon.style.transform = 'rotate(0deg) scale(1)';
+            } else {
+                sunIcon.style.opacity = '1';
+                sunIcon.style.transform = 'rotate(0deg) scale(1)';
+                moonIcon.style.opacity = '0';
+                moonIcon.style.transform = 'rotate(90deg) scale(0)';
+            }
+        }
     }
 
     function renderSakuraParticles() {
@@ -109,11 +152,30 @@
         } else {
             stopSakuraParticles();
         }
+        updateToggleButton(theme);
     }
 
     function initTheme() {
         const theme = getCurrentTheme();
         applyTheme(theme);
+        
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const btn = this;
+                btn.classList.add('rotating');
+                
+                setTimeout(() => {
+                    toggleTheme();
+                    btn.classList.remove('rotating');
+                }, 150);
+            });
+            
+            updateToggleButton(theme);
+        }
     }
 
     if (document.readyState === 'loading') {
@@ -127,6 +189,7 @@
         isLightTheme: isLightTheme,
         getCurrentTheme: getCurrentTheme,
         applyTheme: applyTheme,
+        toggleTheme: toggleTheme,
         initTheme: initTheme,
         renderSakuraParticles: renderSakuraParticles,
         stopSakuraParticles: stopSakuraParticles
