@@ -8,28 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Animated Background -->
-    <div class="preview-bg"></div>
-
-    <!-- Floating Particles -->
-    <div class="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-    </div>
-
-    <!-- Connection Lines -->
-    <div class="connections">
-        <div class="connection-line"></div>
-        <div class="connection-line"></div>
-        <div class="connection-line"></div>
-        <div class="connection-line"></div>
+    <!-- Background Decor -->
+    <div class="bg-decor">
+        <div class="bg-blob bg-blob-blue"></div>
+        <div class="bg-blob bg-blob-purple"></div>
     </div>
 
     <div id="generation-preview" class="preview-page">
@@ -39,159 +21,192 @@
             <span>返回首页</span>
         </button>
 
-        <!-- Abort Button -->
-        <button id="abort-btn" class="abort-button">
-            <i class="fas fa-stop"></i>
-            <span>停止生成</span>
-        </button>
+        <!-- Main Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Main Card -->
+            <div class="main-card">
+                <!-- Progress Dots -->
+                <div class="progress-dots" id="progress-dots">
+                    <div class="dot" data-step="0"></div>
+                    <div class="dot" data-step="1"></div>
+                    <div class="dot" data-step="2"></div>
+                    <div class="dot" data-step="3"></div>
+                    <div class="dot" data-step="4"></div>
+                    <div class="dot" data-step="5"></div>
+                </div>
 
-        <!-- Central Card -->
-        <div class="preview-card">
-            <!-- Progress Dots -->
-            <div class="progress-dots" id="progress-dots">
-                <div class="dot" data-step="0"></div>
-                <div class="dot" data-step="1"></div>
-                <div class="dot" data-step="2"></div>
-                <div class="dot" data-step="3"></div>
-                <div class="dot" data-step="4"></div>
-                <div class="dot" data-step="5"></div>
+                <!-- Visualizer Container -->
+                <div class="visualizer-container" id="visualizer-container">
+                    <!-- Error State -->
+                    <div class="visualizer viz-error" id="viz-error" style="display: none;">
+                        <div class="error-visualizer">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                    </div>
+
+                    <!-- Complete State -->
+                    <div class="visualizer viz-complete" id="viz-complete" style="display: none;">
+                        <div class="complete-visualizer">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+
+                    <!-- PDF Analysis -->
+                    <div class="visualizer viz-pdf" id="viz-pdf">
+                        <div class="pdf-visualizer">
+                            <div class="pdf-glow"></div>
+                            <div class="pdf-doc">
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line"></div>
+                                <div class="pdf-line"></div>
+                                <div class="pdf-scan-line"></div>
+                            </div>
+                            <div class="pdf-icon">
+                                <i class="fas fa-expand"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Web Search -->
+                    <div class="visualizer viz-search" id="viz-search" style="display: none;">
+                        <div class="search-visualizer">
+                            <div class="search-glow"></div>
+                            <div class="search-card">
+                                <div class="search-header">
+                                    <i class="fas fa-search"></i>
+                                    <div class="search-bar">
+                                        <div class="search-bar-fill"></div>
+                                    </div>
+                                </div>
+                                <div class="search-results" id="search-results">
+                                    <div class="search-result-item">
+                                        <div class="result-title"></div>
+                                        <div class="result-url"></div>
+                                    </div>
+                                    <div class="search-result-item">
+                                        <div class="result-title"></div>
+                                        <div class="result-url"></div>
+                                    </div>
+                                    <div class="search-result-item">
+                                        <div class="result-title"></div>
+                                        <div class="result-url"></div>
+                                    </div>
+                                </div>
+                                <div class="search-scan"></div>
+                            </div>
+                            <div class="source-badge" id="source-badge" style="display: none;">
+                                <i class="fas fa-globe"></i>
+                                <span id="source-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Outline -->
+                    <div class="visualizer viz-outline" id="viz-outline" style="display: none;">
+                        <div class="outline-visualizer">
+                            <div class="outline-card">
+                                <div class="outline-header">
+                                    <span>课程大纲</span>
+                                </div>
+                                <div class="outline-content" id="outline-list-preview">
+                                    <div class="outline-placeholder">
+                                        <div class="outline-placeholder-line"></div>
+                                        <div class="outline-placeholder-line"></div>
+                                        <div class="outline-placeholder-line"></div>
+                                        <div class="outline-placeholder-line"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="live-dot"></div>
+                        </div>
+                    </div>
+
+                    <!-- Agent Generation -->
+                    <div class="visualizer viz-ai" id="viz-ai" style="display: none;">
+                        <div class="agent-visualizer">
+                            <div class="float-card">?</div>
+                            <div class="float-card">?</div>
+                            <div class="float-card">?</div>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="visualizer viz-content" id="viz-content" style="display: none;">
+                        <div class="content-visualizer">
+                            <div class="orbit-ring"></div>
+                            <div class="orbit-ring"></div>
+                            <div class="content-glow"></div>
+                            <div class="content-card">
+                                <div class="type-badge" id="content-type-badge">SLIDE</div>
+                                <i class="fas fa-file-powerpoint content-icon" style="color: #6366f1;"></i>
+                                <div class="content-lines">
+                                    <div class="content-line"></div>
+                                    <div class="content-line"></div>
+                                    <div class="content-line"></div>
+                                    <div class="content-line"></div>
+                                </div>
+                                <div class="content-scan"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="visualizer viz-actions" id="viz-actions" style="display: none;">
+                        <div class="actions-visualizer">
+                            <div class="actions-glow"></div>
+                            <div class="actions-card">
+                                <div class="actions-header">
+                                    <i class="fas fa-clapperboard"></i>
+                                    <div class="actions-title">
+                                        <div class="actions-title-fill"></div>
+                                    </div>
+                                </div>
+                                <div class="actions-list">
+                                    <div class="action-item" data-index="0">
+                                        <div class="action-icon"><i class="fas fa-comment"></i></div>
+                                        <div class="action-label"></div>
+                                        <div class="action-dot"></div>
+                                    </div>
+                                    <div class="action-item" data-index="1">
+                                        <div class="action-icon"><i class="fas fa-eye"></i></div>
+                                        <div class="action-label"></div>
+                                        <div class="action-dot"></div>
+                                    </div>
+                                    <div class="action-item" data-index="2">
+                                        <div class="action-icon"><i class="fas fa-comment"></i></div>
+                                        <div class="action-label"></div>
+                                        <div class="action-dot"></div>
+                                    </div>
+                                    <div class="action-item" data-index="3">
+                                        <div class="action-icon"><i class="fas fa-play"></i></div>
+                                        <div class="action-label"></div>
+                                        <div class="action-dot"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status Text -->
+                <div class="status-text">
+                    <h2 id="status-title" class="status-title">正在分析需求...</h2>
+                    <p id="status-desc" class="status-desc">星识AI正在为你准备个性化的课程内容</p>
+                </div>
+
+                <!-- Warning Badge -->
+                <div class="warning-badge" id="warning-badge">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="warning-text"></span>
+                </div>
             </div>
 
-            <!-- Visualizer Area -->
-            <div class="visualizer-area" id="visualizer-area">
-                <!-- Mini Preview Card (shows content being generated) -->
-                <div class="mini-preview-card" id="mini-preview-card">
-                    <div class="preview-header">
-                        <span class="preview-type-badge" id="preview-type-badge">SLIDE</span>
-                        <span class="preview-title" id="preview-title">课程内容</span>
-                    </div>
-                    <div class="preview-content" id="preview-content">
-                        <div class="preview-text-line"></div>
-                        <div class="preview-text-line"></div>
-                        <div class="preview-text-line short"></div>
-                    </div>
-                </div>
-
-                <!-- PDF Analysis - Document Scan -->
-                <div class="viz viz-pdf" id="viz-pdf">
-                    <div class="doc-icon">
-                        <i class="fas fa-file-pdf"></i>
-                        <div class="scan-line"></div>
-                    </div>
-                    <div class="doc-title">分析需求中...</div>
-                </div>
-
-                <!-- Web Search -->
-                <div class="viz viz-search" id="viz-search">
-                    <div class="search-box">
-                        <div class="search-header">
-                            <i class="fas fa-search"></i>
-                            <div class="search-bar">
-                                <div class="search-bar-fill"></div>
-                            </div>
-                        </div>
-                        <div class="search-results">
-                            <div class="result-item">
-                                <div class="result-title" style="width: 80%"></div>
-                                <div class="result-title" style="width: 60%"></div>
-                                <div class="result-title" style="width: 70%"></div>
-                            </div>
-                        </div>
-                        <div class="source-badge">
-                            <i class="fas fa-globe"></i>
-                            <span>0</span>
-                        </div>
-                    </div>
-                    <div class="search-title">网络搜索...</div>
-                </div>
-
-                <!-- Outline Generation - Streaming Notes -->
-                <div class="viz viz-outline" id="viz-outline">
-                    <div class="notepad">
-                        <div class="notepad-header">
-                            <i class="fas fa-list-ul"></i>
-                            <span>课程大纲</span>
-                        </div>
-                        <div class="outline-list" id="outline-list-preview">
-                            <div class="outline-item">
-                                <div class="outline-bullet"></div>
-                                <div class="outline-text main" style="width: 85%"></div>
-                            </div>
-                            <div class="outline-item">
-                                <div class="outline-bullet"></div>
-                                <div class="outline-text sub" style="width: 65%"></div>
-                            </div>
-                            <div class="outline-item">
-                                <div class="outline-bullet"></div>
-                                <div class="outline-text sub" style="width: 75%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="live-dot"></div>
-                    <div class="outline-title">生成大纲中...</div>
-                </div>
-
-                <!-- AI Agent Team -->
-                <div class="viz viz-ai" id="viz-ai">
-                    <div class="float-card"><i class="fas fa-robot"></i></div>
-                    <div class="float-card"><i class="fas fa-brain"></i></div>
-                    <div class="float-card"><i class="fas fa-lightbulb"></i></div>
-                    <div class="ai-title">配置AI教师团队...</div>
-                </div>
-
-                <!-- Content Generation -->
-                <div class="viz viz-content" id="viz-content">
-                    <div class="content-card">
-                        <div class="type-badge">SLIDE</div>
-                        <i class="fas fa-file-powerpoint content-icon" style="color: var(--primary-light);"></i>
-                        <div class="content-lines">
-                            <div class="content-line"></div>
-                            <div class="content-line"></div>
-                            <div class="content-line"></div>
-                            <div class="content-line"></div>
-                        </div>
-                    </div>
-                    <div class="content-title">生成幻灯片...</div>
-                </div>
-
-                <!-- Actions - TTS & Images -->
-                <div class="viz viz-actions" id="viz-actions">
-                    <div class="actions-header">
-                        <i class="fas fa-magic"></i>
-                        <div class="actions-title">
-                            <div class="actions-title-fill"></div>
-                        </div>
-                    </div>
-                    <div class="actions-list">
-                        <div class="action-item">
-                            <div class="action-icon"><i class="fas fa-image"></i></div>
-                            <div class="action-label"></div>
-                            <div class="action-dot"></div>
-                        </div>
-                        <div class="action-item">
-                            <div class="action-icon"><i class="fas fa-volume-up"></i></div>
-                            <div class="action-label"></div>
-                            <div class="action-dot"></div>
-                        </div>
-                        <div class="action-item">
-                            <div class="action-icon"><i class="fas fa-check-circle"></i></div>
-                            <div class="action-label"></div>
-                            <div class="action-dot"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Status Text -->
-            <div class="status-text">
-                <h2 id="status-title" class="status-title">正在分析需求...</h2>
-                <p id="status-desc" class="status-desc">星识AI正在为你准备个性化的课程内容</p>
-            </div>
-
-            <!-- Warning Badge -->
-            <div class="warning-badge" id="warning-badge">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span id="warning-text"></span>
+            <!-- Footer Hint -->
+            <div class="footer-hint" id="footer-hint">
+                <i class="fas fa-sparkles"></i>
+                <span>AI工作中</span>
             </div>
 
             <!-- Retry Button -->
@@ -199,40 +214,13 @@
                 <i class="fas fa-redo"></i>
                 <span>重试</span>
             </button>
-
-            <!-- Footer Hint -->
-            <div class="footer-hint">
-                <i class="fas fa-sparkles"></i>
-                <span>AI工作中</span>
-            </div>
         </div>
 
-        <!-- Agent Reveal Modal - 3D Card Flip -->
-        <div class="agent-reveal-modal" id="agent-reveal-modal">
-            <div class="agent-reveal-card">
-                <div class="agent-reveal-card-inner" id="agent-reveal-card-inner">
-                    <!-- Front -->
-                    <div class="agent-reveal-front">
-                        <i class="fas fa-user-graduate front-icon"></i>
-                        <h2>你的AI教师团队已就绪</h2>
-                        <p>星识为你配置了专业的教学团队，准备开始一段奇妙的学习之旅</p>
-                        <button class="reveal-btn" id="reveal-btn">
-                            <i class="fas fa-eye"></i> 查看团队
-                        </button>
-                    </div>
-                    <!-- Back -->
-                    <div class="agent-reveal-back" id="agent-reveal-back">
-                        <h3>教师团队</h3>
-                        <div class="agent-reveal-list" id="agent-reveal-list">
-                            <!-- Dynamic JS generation -->
-                        </div>
-                        <button class="reveal-continue-btn" id="agent-reveal-close">
-                            <i class="fas fa-arrow-right"></i> 进入课堂
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- Abort Button (Fixed Top Right) -->
+        <button id="abort-btn" class="abort-button">
+            <i class="fas fa-stop"></i>
+            <span>停止生成</span>
+        </button>
     </div>
 
     <script src="../js/generation-preview.js"></script>

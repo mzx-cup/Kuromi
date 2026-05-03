@@ -3273,9 +3273,14 @@ def init_classroom_tables():
                     )
                 """)
                 try:
-                    cursor.execute("ALTER TABLE classroom_records ADD COLUMN ppt_pages INTEGER DEFAULT 0")
-                    conn.commit()
-                except:
+                    # 检查列是否存在（SQLite 支持 PRAGMA table_info）
+                    cursor.execute("PRAGMA table_info(classroom_records)")
+                    columns = [row[1] for row in cursor.fetchall()]
+                    if 'ppt_pages' not in columns:
+                        cursor.execute("ALTER TABLE classroom_records ADD COLUMN ppt_pages INTEGER DEFAULT 0")
+                        conn.commit()
+                except Exception as e:
+                    print(f"添加ppt_pages列失败: {e}")
                     pass
             else:
                 cursor.execute("""
@@ -3293,9 +3298,13 @@ def init_classroom_tables():
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """)
                 try:
-                    cursor.execute("ALTER TABLE classroom_records ADD COLUMN IF NOT EXISTS ppt_pages INT DEFAULT 0")
-                    conn.commit()
-                except:
+                    # 先检查列是否存在（MySQL 5.x 不支持 ADD COLUMN IF NOT EXISTS）
+                    cursor.execute("SHOW COLUMNS FROM classroom_records LIKE 'ppt_pages'")
+                    if not cursor.fetchone():
+                        cursor.execute("ALTER TABLE classroom_records ADD COLUMN ppt_pages INT DEFAULT 0")
+                        conn.commit()
+                except Exception as e:
+                    print(f"添加ppt_pages列失败: {e}")
                     pass
             conn.commit()
             cursor.close()

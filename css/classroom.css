@@ -2456,7 +2456,7 @@ body {
     box-sizing: border-box;
     padding: 40px;
     overflow-y: auto;
-    background: #FFFFFF;
+    background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 30%);
 }
 
 /* 2. 核心区：解除宽度限制！ */
@@ -2546,6 +2546,358 @@ body {
     border-left: 5px solid #3B82F6;
     background: #F8FAFC;
 }
+
+/* ===== 新增布局样式 ===== */
+
+/* 8. 居中强调布局 */
+.slide-v2-container.layout-center-focus {
+    background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+}
+
+.slide-v2-container.layout-center-focus .slide-header.center-focus-header {
+    text-align: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 50%, #60A5FA 100%);
+    border-radius: 20px;
+    margin-bottom: 2rem;
+}
+
+.slide-v2-container.layout-center-focus .slide-header.center-focus-header h1 {
+    font-size: 2rem;
+    text-shadow: 0 2px 10px rgba(30, 64, 175, 0.3);
+}
+
+.slide-body.layout-center-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+}
+
+.layout-center-content .content-card {
+    max-width: 800px;
+    text-align: center;
+}
+
+.layout-center-content .content-card .card-title {
+    font-size: 1.25rem;
+}
+
+.layout-center-content .content-card .card-text {
+    font-size: 1.0625rem;
+}
+
+/* 9. 左右媒体布局 */
+.slide-body.layout-media-left {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.media-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    padding: 24px;
+    border-radius: 16px;
+    background: #f8fafc;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.02);
+    animation: cardFadeUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.media-card:hover {
+    transform: translateX(8px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.media-icon-wrap {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+}
+
+.media-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.media-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: #1E293B;
+    margin-bottom: 0.5rem;
+}
+
+.media-text {
+    color: #334155;
+    line-height: 1.7;
+    font-size: 0.9375rem;
+}
+
+.media-text p { margin: 0 0 0.5rem 0; }
+
+/* 10. 数据统计行布局 */
+.slide-body.layout-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    width: 100%;
+}
+
+.stat-card {
+    padding: 28px 24px;
+    border-radius: 16px;
+    text-align: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.02);
+    animation: cardFadeUp 0.5s ease-out forwards;
+    opacity: 0;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 12px;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1E40AF;
+    line-height: 1.2;
+    margin-bottom: 8px;
+}
+
+.stat-label {
+    font-size: 0.9375rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.stat-label p { margin: 0; }
+
+/* Stats theme colors */
+.stat-card.theme-blue .stat-value { color: #1E40AF; }
+.stat-card.theme-blue .stat-icon { color: #3B82F6; }
+.stat-card.theme-yellow .stat-value { color: #B45309; }
+.stat-card.theme-yellow .stat-icon { color: #F59E0B; }
+.stat-card.theme-green .stat-value { color: #047857; }
+.stat-card.theme-green .stat-icon { color: #10B981; }
+.stat-card.theme-purple .stat-value { color: #7C3AED; }
+.stat-card.theme-purple .stat-icon { color: #8B5CF6; }
+.stat-card.theme-orange .stat-value { color: #EA580C; }
+.stat-card.theme-orange .stat-icon { color: #F97316; }
+
+/* 11. 时间线步骤布局 */
+.slide-body.layout-timeline-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    padding: 20px 0;
+}
+
+.timeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    position: relative;
+    padding-bottom: 32px;
+}
+
+.timeline-step:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-step:last-child .timeline-connector {
+    display: none;
+}
+
+.timeline-number {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
+    z-index: 2;
+}
+
+.timeline-connector {
+    position: absolute;
+    left: 23px;
+    top: 48px;
+    width: 2px;
+    height: calc(100% - 48px);
+    background: linear-gradient(180deg, #3B82F6 0%, #93C5FD 100%);
+}
+
+.timeline-content {
+    flex: 1;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.02);
+    min-width: 0;
+}
+
+.timeline-icon {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+}
+
+.timeline-title {
+    font-weight: 700;
+    font-size: 1.0625rem;
+    color: #1E293B;
+    margin-bottom: 8px;
+}
+
+.timeline-text {
+    color: #475569;
+    line-height: 1.7;
+    font-size: 0.9375rem;
+}
+
+.timeline-text p { margin: 0 0 0.5rem 0; }
+
+/* 12. 对比布局 */
+.slide-body.layout-compare {
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    width: 100%;
+}
+
+.compare-left, .compare-right {
+    flex: 1;
+    min-width: 0;
+}
+
+.compare-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.compare-vs span {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+    color: white;
+    font-size: 1rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+}
+
+.layout-compare .content-card {
+    height: 100%;
+}
+
+.layout-compare .content-card:first-child {
+    border-left: 4px solid #3B82F6;
+}
+
+.layout-compare .content-card:last-child {
+    border-left: 4px solid #F59E0B;
+}
+
+/* 13. 全宽横幅布局 */
+.slide-body.layout-fullwidth-banner {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.banner-card {
+    border-radius: 16px;
+    overflow: hidden;
+    animation: cardFadeUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.banner-inner {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 28px 32px;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+}
+
+.banner-icon {
+    font-size: 2.5rem;
+    flex-shrink: 0;
+}
+
+.banner-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.banner-title {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: #1E3A8A;
+    margin-bottom: 6px;
+}
+
+.banner-text {
+    color: #1E293B;
+    line-height: 1.6;
+    font-size: 0.9375rem;
+}
+
+.banner-text p { margin: 0; }
+
+/* Banner theme colors */
+.banner-card.theme-blue .banner-inner { background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); }
+.banner-card.theme-blue .banner-title { color: #1E3A8A; }
+.banner-card.theme-blue .banner-text { color: #1E293B; }
+
+.banner-card.theme-yellow .banner-inner { background: linear-gradient(135deg, #FEFCE8 0%, #FEF3C7 100%); }
+.banner-card.theme-yellow .banner-title { color: #78350F; }
+.banner-card.theme-yellow .banner-text { color: #78350F; }
+
+.banner-card.theme-green .banner-inner { background: linear-gradient(135deg, #F0FDF4 0%, #D1FAE5 100%); }
+.banner-card.theme-green .banner-title { color: #064E3B; }
+.banner-card.theme-green .banner-text { color: #047857; }
+
+.banner-card.theme-purple .banner-inner { background: linear-gradient(135deg, #FAF5FF 0%, #EDE9FE 100%); }
+.banner-card.theme-purple .banner-title { color: #5B21B6; }
+.banner-card.theme-purple .banner-text { color: #6D28D9; }
+
+.banner-card.theme-orange .banner-inner { background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%); }
+.banner-card.theme-orange .banner-title { color: #9A3412; }
+.banner-card.theme-orange .banner-text { color: #C2410C; }
 
 /* 8. 莫兰迪色系主题 */
 .content-card.theme-blue {
@@ -2707,6 +3059,42 @@ body {
     opacity: 0.6;
 }
 
+/* Bullets for new card types */
+.media-card .card-bullets,
+.stat-card .card-bullets,
+.banner-card .card-bullets {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+    list-style: none;
+}
+
+.media-card .card-bullets li,
+.stat-card .card-bullets li,
+.banner-card .card-bullets li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.7;
+    font-size: 0.9375rem;
+    color: #334155;
+}
+
+.media-card .card-bullets li::before,
+.stat-card .card-bullets li::before,
+.banner-card .card-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.6em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+}
+
+.stat-card .card-bullets li { color: #64748b; }
+
 /* Simplified bullets in legacy renderSlideScene */
 .slide-body .simplified-bullets {
     margin: 0.75rem 1.5rem;
@@ -2720,7 +3108,7 @@ body {
     position: relative;
     line-height: 1.7;
     font-size: 1rem;
-    color: #e2e8f0;
+    color: #334155;
 }
 
 .slide-body .simplified-bullets li::before {
@@ -2739,7 +3127,7 @@ body {
     margin: 0.75rem 1.5rem 0.25rem;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #f8fafc;
+    color: #1E293B;
 }
 
 /* 13. 交错入场动画 */
@@ -2758,6 +3146,34 @@ body {
 
 .slide-body.layout-quote-highlight .content-card:nth-child(1) { animation-delay: 0.2s; }
 .slide-body.layout-quote-highlight .content-card:nth-child(2) { animation-delay: 0.35s; }
+
+/* 新布局动画 */
+.layout-media-left .media-card:nth-child(1) { animation-delay: 0.1s; }
+.layout-media-left .media-card:nth-child(2) { animation-delay: 0.2s; }
+.layout-media-left .media-card:nth-child(3) { animation-delay: 0.3s; }
+.layout-media-left .media-card:nth-child(4) { animation-delay: 0.4s; }
+
+.layout-stats-row .stat-card:nth-child(1) { animation-delay: 0.1s; }
+.layout-stats-row .stat-card:nth-child(2) { animation-delay: 0.2s; }
+.layout-stats-row .stat-card:nth-child(3) { animation-delay: 0.3s; }
+.layout-stats-row .stat-card:nth-child(4) { animation-delay: 0.4s; }
+.layout-stats-row .stat-card:nth-child(5) { animation-delay: 0.5s; }
+.layout-stats-row .stat-card:nth-child(6) { animation-delay: 0.6s; }
+
+.layout-timeline-steps .timeline-step:nth-child(1) { animation-delay: 0.1s; }
+.layout-timeline-steps .timeline-step:nth-child(2) { animation-delay: 0.2s; }
+.layout-timeline-steps .timeline-step:nth-child(3) { animation-delay: 0.3s; }
+.layout-timeline-steps .timeline-step:nth-child(4) { animation-delay: 0.4s; }
+.layout-timeline-steps .timeline-step:nth-child(5) { animation-delay: 0.5s; }
+.layout-timeline-steps .timeline-step:nth-child(6) { animation-delay: 0.6s; }
+
+.layout-compare .compare-left .content-card { animation-delay: 0.15s; }
+.layout-compare .compare-right .content-card { animation-delay: 0.3s; }
+
+.layout-fullwidth-banner .banner-card:nth-child(1) { animation-delay: 0.1s; }
+.layout-fullwidth-banner .banner-card:nth-child(2) { animation-delay: 0.2s; }
+.layout-fullwidth-banner .banner-card:nth-child(3) { animation-delay: 0.3s; }
+.layout-fullwidth-banner .banner-card:nth-child(4) { animation-delay: 0.4s; }
 
 /* 14. 消除调试边框 */
 .content-card, .slide-body { outline: none !important; }
@@ -2780,6 +3196,44 @@ body {
 
     .content-card {
         padding: 16px;
+    }
+
+    /* 新布局响应式 */
+    .layout-media-left .media-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .media-icon-wrap {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+
+    .layout-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+    }
+
+    .layout-compare {
+        flex-direction: column;
+    }
+
+    .compare-vs {
+        padding: 16px 0;
+    }
+
+    .banner-inner {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .layout-center-focus .slide-header.center-focus-header h1 {
+        font-size: 1.5rem;
     }
 }
 

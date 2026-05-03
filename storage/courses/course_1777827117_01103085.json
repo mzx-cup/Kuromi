@@ -1,0 +1,1036 @@
+{
+  "courseId": "course_1777827117_01103085",
+  "title": "C++快速入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "初识C++世界",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "了解C++语言的起源、特性及其在系统开发中的应用",
+        "掌握主流IDE的安装配置与第一个程序编写",
+        "理解编译型语言的基本工作原理与执行流程"
+      ],
+      "description": "通过幻灯片讲解C++的发展历史、应用领域及开发环境搭建，建立对编程语言的宏观认知。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "掌握整型、浮点型、字符型等基础数据类型的声明",
+        "理解变量命名规则与作用域的基本概念",
+        "学会使用输入输出流对象进行简单的控制台交互"
+      ],
+      "description": "在交互式编辑器中练习声明不同类型的变量，并尝试进行类型转换，观察内存占用情况。"
+    },
+    {
+      "id": 3,
+      "title": "流程控制逻辑",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "掌握条件判断语句if-else的语法结构与嵌套使用",
+        "理解switch语句在多分支选择中的应用场景",
+        "学会运用逻辑运算符构建复杂的布尔表达式"
+      ],
+      "description": "利用可视化控件拖拽构建if-else与switch语句逻辑，动态观察程序执行路径的变化。"
+    },
+    {
+      "id": 4,
+      "title": "基础语法测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "考察基本数据类型的取值范围与存储大小",
+        "辨析自增自减运算符在前置与后置时的区别",
+        "检测对循环语句中break与continue控制流的理解"
+      ],
+      "description": "针对变量定义、运算符优先级及流程控制语句进行选择题与代码纠错测试，巩固基础。"
+    },
+    {
+      "id": 5,
+      "title": "函数封装技巧",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "掌握函数的定义、声明、调用及返回值处理",
+        "理解值传递、指针传递与引用传递的区别",
+        "学会使用函数重载与默认参数提高代码灵活性"
+      ],
+      "description": "在在线编程环境中编写并调用自定义函数，实现数学计算功能，掌握参数传递方式。"
+    },
+    {
+      "id": 6,
+      "title": "内存模型解析",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "理解栈内存与堆内存的生命周期与管理差异",
+        "掌握指针变量的声明、初始化及解引用操作",
+        "学会使用new和delete进行动态内存分配与释放"
+      ],
+      "description": "通过动态图表展示栈与堆的内存分配区别，直观演示指针变量在内存中的寻址过程。"
+    },
+    {
+      "id": 7,
+      "title": "学生成绩管理",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "运用结构体或类来封装学生的姓名、学号与成绩",
+        "实现对成绩数据的动态录入、修改与删除功能",
+        "掌握文件读写操作实现数据的持久化存储"
+      ],
+      "description": "设计并开发一个命令行学生成绩管理系统，综合运用数组、结构体与文件操作知识。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "C++的起源与演进",
+      "content": [
+        {
+          "sub_title": "历史沿革",
+          "bullets": [
+            "1983年Bjarne Stroustrup创立",
+            "源于C语言，引入面向对象特性",
+            "命名源自C语言的自增运算符",
+            "持续演进：C++11/14/17/20标准"
+          ],
+          "narration": "同学们好！欢迎来到C++快速入门课程。今天我们要一起推开C++世界的大门。首先，我们来聊聊C++的身世。它诞生于1983年，由丹麦计算机科学家Bjarne Stroustrup在贝尔实验室开发。C++是在C语言的基础上发展起来的，它保留了C语言高效灵活的特点，又引入了面向对象编程的机制。名字里的'++'正取自C语言的自增运算符，寓意着它是C语言的进阶版本。经过几十年的发展，C++已经成为了现代编程语言的基石。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "C++的核心特性与优势",
+      "content": [
+        {
+          "sub_title": "语言特性",
+          "bullets": [
+            "高效的执行性能，接近C语言",
+            "丰富的抽象机制，支持多范式",
+            "强大的底层控制能力",
+            "广泛的生态系统与标准库"
+          ],
+          "narration": "为什么C++能长盛不衰？关键在于它的核心优势。第一是性能，C++编译生成的机器码执行效率极高，这是很多高级语言无法比拟的。第二是灵活性，它既支持面向过程编程，也支持面向对象和泛型编程，让你能根据需求选择最合适的范式。第三是控制力，你可以精确控制内存和硬件资源，这在系统开发中至关重要。正是因为这些特性，C++成为了对性能要求苛刻场景的首选语言。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "C++的应用版图",
+      "content": [
+        {
+          "sub_title": "主要领域",
+          "bullets": [
+            "游戏引擎与高性能游戏开发",
+            "操作系统与嵌入式系统",
+            "浏览器引擎与数据库系统",
+            "金融交易与人工智能底层"
+          ],
+          "narration": "C++的应用领域非常广泛，几乎覆盖了计算机科学的各个核心角落。在游戏行业，像Unreal Engine这样的顶级引擎都是用C++编写的，因为它能提供极致的运行性能。在系统层面，Windows、Linux操作系统的核心组件都离不开C++。我们日常使用的Chrome浏览器、MySQL数据库，底层也都是C++在驱动。可以说，哪里需要高性能，哪里就有C++的身影。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "编译执行与开发环境",
+      "content": [
+        {
+          "sub_title": "工作原理",
+          "bullets": [
+            "源代码 -> 预处理 -> 编译 -> 链接",
+            "生成平台相关的可执行文件",
+            "IDE推荐：VS Code / Visual Studio",
+            "配置编译器后即可开始编程"
+          ],
+          "narration": "作为编译型语言，C++的代码是如何变成程序的？这个过程分为四个阶段：预处理、编译、汇编和链接，最终生成计算机可以直接执行的可执行文件。这和Python那种边解释边执行的方式很不一样。为了方便开发，我们通常使用集成开发环境，也就是IDE。对于初学者，我推荐使用Visual Studio或者轻量级的VS Code，它们都提供了完善的代码编辑、调试功能。安装好环境后，我们就可以开始编写第一个程序了。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello, C++ World!\" << endl;\n    return 0;\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "开启你的C++之旅",
+      "content": [
+        {
+          "sub_title": "学习建议",
+          "bullets": [
+            "多动手实践，代码是敲出来的",
+            "理解原理比死记语法更重要",
+            "善用调试工具观察程序运行",
+            "从模仿开始，逐步建立编程思维"
+          ],
+          "narration": "恭喜你完成了C++的初识之旅！今天我们了解了C++的历史渊源、核心特性和广泛应用，也搞懂了编译型语言的工作原理。学习编程最重要的就是动手实践，光看不练是学不会的。不要害怕报错，每一个错误都是成长的机会。接下来的课程中，我们将正式进入语法学习，从变量、数据类型开始，一步步构建你的编程能力。准备好了吗？让我们在下一节课见！",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "header-content",
+      "title": "练习：变量与数据类型",
+      "content": [
+        {
+          "sub_title": "练习目标",
+          "bullets": [
+            "在编辑器中声明整型、浮点型、字符型变量",
+            "使用 sizeof 关键字观察各类型内存占用",
+            "尝试显式类型转换并分析精度变化"
+          ],
+          "narration": "同学们好！理论结合实践是掌握编程的最佳路径。今天的练习环节，我们将深入C++的交互式编辑器。大家需要动手声明整型、浮点型和字符型这三种最基础的变量，使用sizeof关键字探查它们在内存中的真实“体重”，并尝试进行类型转换。准备好了吗？让我们开始吧！",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "核心任务一：声明与探测",
+      "content": [
+        {
+          "sub_title": "操作指南",
+          "bullets": [
+            "声明 int、double、char 三种类型变量",
+            "使用 cout 输出变量值进行验证",
+            "调用 sizeof(变量名) 输出内存字节数"
+          ],
+          "narration": "第一个任务是基础变量的声明与探测。请在编辑器中分别定义一个整型、一个双精度浮点型和一个字符型变量。定义好之后，利用cout对象把它们打印出来确认无误。接着，使用sizeof关键字，像给行李称重一样，看看每种数据类型究竟占用了多少字节的内存空间。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "int age = 20;\ndouble price = 19.99;\nchar grade = 'A';\ncout << sizeof(age) << \" bytes\";",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "核心任务二：类型转换",
+      "content": [
+        {
+          "sub_title": "转换挑战",
+          "bullets": [
+            "将浮点数 3.14 赋值给整型变量",
+            "观察输出结果，思考精度丢失原因",
+            "尝试将结果再转回浮点型，数据能恢复吗？"
+          ],
+          "narration": "第二个任务涉及类型转换。请大家尝试把浮点数3.14赋值给一个整型变量，观察输出结果发生了什么变化。这就是典型的隐式类型转换和精度丢失问题。进一步思考，如果你把这个整数再强制转换回浮点型，原来的小数部分还能找回来吗？动手试一试，答案就在代码的运行结果里。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "double pi = 3.14;\nint i = pi;       // 隐式转换\ncout << i;        // 输出 3",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "练习提示与要求",
+      "content": [
+        {
+          "sub_title": "命名规范",
+          "bullets": [
+            "变量名只能含字母、数字和下划线",
+            "首字符必须是字母或下划线",
+            "严禁使用 int, double 等关键字"
+          ],
+          "narration": "在进行练习时，请务必遵守变量命名规范。变量名只能包含字母、数字和下划线，而且数字不能开头。同时，千万不要使用int、double这样的系统关键字作为变量名，否则编译器会报错。规范的命名是专业程序员的第一步。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "交互输入",
+          "bullets": [
+            "使用 cin 对象接收键盘输入",
+            "注意 >> 运算符的方向指向变量",
+            "输入完成后按回车键确认"
+          ],
+          "narration": "如果想让程序更加灵活，可以使用cin对象接收用户的键盘输入。请注意提取运算符>>的方向，它是指向变量的，表示数据流入变量。输入完毕后别忘了按回车键确认。这是实现控制台交互的基础操作。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "header-content",
+      "title": "流程控制逻辑：程序的十字路口",
+      "content": [
+        {
+          "sub_title": "逻辑判断的必要性",
+          "bullets": [
+            "程序执行顺序默认为自上而下",
+            "条件判断让程序具备决策能力",
+            "if-else处理“是非题”，switch处理“选择题”",
+            "逻辑运算符用于构建复杂判断条件"
+          ],
+          "narration": "同学们好！欢迎来到C++快速入门课程。大家想一想，如果程序只能从头到尾一行行执行，那它是不是像个只会听话的机器人？今天我们要给程序装上“大脑”，让它学会做选择。我们将通过拖拽控件的方式，亲眼看到程序是如何在十字路口转弯的。首先，我们来认识最基础的if-else语句。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心语法结构解析",
+      "content": [
+        {
+          "sub_title": "if-else 语句",
+          "bullets": [
+            "if后接小括号内的布尔表达式",
+            "条件为真执行if块，为假执行else块",
+            "else子句可选，用于处理异常情况",
+            "大括号{}标明语句块的边界范围"
+          ],
+          "narration": "先来看看if-else语句。它就像我们常说的“如果……那么……否则……”。if后面跟着一个判断条件，放在小括号里。如果条件成立，程序就走进if后面的大括号里执行；如果不成立，就跳到else的部分。大家注意，大括号非常重要，它划定了代码的势力范围，千万不要漏掉。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "switch 语句",
+          "bullets": [
+            "适用于整型、字符型等离散值判断",
+            "case标签标记不同的匹配入口",
+            "break关键字防止代码穿透执行",
+            "default处理所有未匹配的情况"
+          ],
+          "narration": "接下来是switch语句。当你面对“周一吃什么”、“按数字选菜单”这种多选一的情况时，switch就派上用场了。它像是一个分叉口，根据括号里的值，直接跳转到对应的case标签去执行。这里有个关键点：break，如果不加break，程序会像滑滑梯一样一路执行到底，这可是新手常犯的错误哦。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "互动演示：构建执行路径",
+      "content": [
+        {
+          "sub_title": "逻辑运算符组合",
+          "bullets": [
+            "&& (与)：两个条件必须同时成立",
+            "|| (或)：只要有一个条件成立即可",
+            "! (非)：将真变假，将假变真",
+            "合理组合可表达任意复杂逻辑"
+          ],
+          "narration": "现在我们进入互动环节。大家看屏幕上的逻辑运算符，它们就像是连接条件的胶水。双&符号代表“并且”，两个条件都要满足才行；双竖线代表“或者”，满足一个就行。等会儿大家拖拽这些控件时，试着把简单的条件拼成复杂的判断，比如“年龄大于18岁并且持有驾照”，看看程序的走向会发生什么变化。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "if (age > 18 && hasLicense) {\n    // 允许驾驶\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "动手挑战：拖拽控件定逻辑",
+      "content": [
+        {
+          "sub_title": "练习任务说明",
+          "bullets": [
+            "拖拽控件构建一个成绩评级系统",
+            "使用if-else嵌套处理不同分数段",
+            "尝试用switch改写简单的菜单选择",
+            "观察并记录程序执行路径的变化"
+          ],
+          "narration": "最后是大家的动手时间！请利用右侧的代码控件，搭建一个简单的成绩评级系统。比如，如果分数大于90是优秀，60到80是良好。大家要注意嵌套的逻辑关系，看看能不能用switch语句来优化菜单选择部分。完成搭建后，点击运行，仔细观察左侧的路径高亮变化，验证你的逻辑是否正确。开始行动吧！",
+          "text": "",
+          "icon": "question",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "C++基础语法测验",
+      "content": [
+        {
+          "sub_title": "测验说明",
+          "bullets": [
+            "本环节包含选择题与代码纠错题",
+            "重点考察变量定义与运算符优先级",
+            "辨析自增自减前置后置的区别",
+            "检测break与continue控制流理解"
+          ],
+          "narration": "同学们好！经过前面的学习，我们已经掌握了C++的基础语法。现在，我们通过一场小测验来检验学习成果。本次测验主要围绕变量定义、运算符优先级以及流程控制语句展开，题型包括选择题和代码纠错题。请大家仔细审题，运用所学知识进行分析，准备好了吗？让我们开始挑战吧！",
+          "text": "",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "考察范围与要点",
+      "content": [
+        {
+          "sub_title": "数据类型存储",
+          "bullets": [
+            "基本数据类型的取值范围",
+            "不同类型占用内存大小",
+            "有符号与无符号的区别"
+          ],
+          "narration": "首先回顾第一个考察点：基本数据类型。大家需要清楚int、char、float等类型在内存中占用的字节数，以及它们的取值范围。比如，short和int能表示的数值范围是不同的，这直接影响数据的存储与溢出情况。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "自增自减运算",
+          "bullets": [
+            "前置运算：先变后用",
+            "后置运算：先用后变",
+            "在表达式中需特别注意顺序"
+          ],
+          "narration": "第二个重点是自增自减运算符。前置和后置的区别非常关键。前置是“先改变变量的值，再参与运算”，而后置是“先用原值参与运算，再改变变量值”。这个细微差别往往决定了表达式的最终结果。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "流程控制语句",
+          "bullets": [
+            "break：立即跳出整个循环",
+            "continue：跳过本次迭代",
+            "二者执行逻辑截然不同"
+          ],
+          "narration": "最后是流程控制语句。break语句会直接终止整个循环，执行循环体后的代码；而continue只是结束本次循环迭代，直接进入下一次循环判断。理解这一点，对于分析循环执行流程至关重要。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "典型易错题解析",
+      "content": [
+        {
+          "sub_title": "选择题示例",
+          "bullets": [
+            "题目：int a = 5; 求 a++ + ++a",
+            "选项：A.12  B.11  C.10  D.13",
+            "解析：先取5，a变6；再自增变7",
+            "结果：5 + 7 = 12，选A"
+          ],
+          "narration": "我们来看一道典型的选择题。当a初始为5时，表达式a++加上++a的结果是多少？这里要分步分析：a++是后置，先取值5，a变为6；接着++a是前置，a先自增变为7再参与运算。所以最终计算的是5加7，结果为12。这类题目一定要按步骤拆解，不能想当然。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "int a = 5;\nint result = a++ + ++a;\n// a++ -> 取5, a变6\n// ++a -> a变7, 取7\n// result = 5 + 7 = 12",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "答题策略与技巧",
+      "content": [
+        {
+          "sub_title": "解题建议",
+          "bullets": [
+            "审题要慢，看清运算符位置",
+            "复杂表达式分步拆解计算",
+            "代码纠错先找语法错误",
+            "控制流题目可画图辅助分析"
+          ],
+          "narration": "最后给大家一些答题建议。做选择题时，审题一定要慢，特别是运算符的位置要看清楚。遇到复杂的表达式，不要心算，分步骤一步步拆解。代码纠错题，先扫描有没有明显的语法错误，比如漏掉分号或括号不匹配。涉及循环控制流的题目，可以在草稿纸上画流程图辅助分析。保持冷静，相信自己的判断，祝大家取得好成绩！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数封装基础",
+      "content": [
+        {
+          "sub_title": "函数定义三要素",
+          "bullets": [
+            "返回值类型：决定函数输出",
+            "函数名：调用时的唯一标识",
+            "参数列表：接收外部输入数据"
+          ],
+          "narration": "同学们好！今天我们进入C++函数封装的学习。函数可以看作是程序的“功能模块”，把一段特定功能的代码打包起来。定义一个函数，我们需要明确三个要素：它算出什么结果、叫什么名字、以及需要我们提供什么原材料。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "声明与调用",
+          "bullets": [
+            "声明向编译器预告函数存在",
+            "定义是函数的具体实现逻辑",
+            "调用时使用函数名加实参"
+          ],
+          "narration": "在实际编写时，我们通常会把函数声明放在头文件或文件顶部，把定义放在后面，这样无论在哪里调用，编译器都能找得到。调用函数就像给这个模块发送指令，把具体的数据传进去，让它帮我们干活。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "参数传递方式详解",
+      "content": [
+        {
+          "sub_title": "值传递",
+          "bullets": [
+            "复制实参的值给形参",
+            "函数内修改不影响原变量",
+            "适合小数据，安全但占内存"
+          ],
+          "narration": "第一种是值传递，这是最基础的方式。就像复印一份文件给别人，对方怎么涂改，你的原件都不会受影响。这种方式很安全，但如果数据量很大，复制起来就会消耗不少内存和时间。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "void addOne(int n) { n++; }",
+          "image_url": ""
+        },
+        {
+          "sub_title": "指针传递",
+          "bullets": [
+            "传递变量的内存地址",
+            "通过解引用修改原数据",
+            "效率高，需注意空指针风险"
+          ],
+          "narration": "第二种是指针传递。这次我们不传数据本身，而是传数据的“家庭住址”。函数拿着地址就能找到原变量，直接进行修改。效率很高，但使用时要小心，万一地址是空的，程序就会崩溃。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "void addOne(int* p) { (*p)++; }",
+          "image_url": ""
+        },
+        {
+          "sub_title": "引用传递",
+          "bullets": [
+            "形参是实参的别名",
+            "操作形参即操作实参本身",
+            "语法简洁，推荐的首选方式"
+          ],
+          "narration": "最后是引用传递，这是C++的特色。它就像是给变量起个“绰号”，操作绰号就是在操作变量本人。既有了指针的高效率，写起来又像值传递一样简单直观，是我们最推荐的传递方式。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "void addOne(int& r) { r++; }",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数重载与默认参数",
+      "content": [
+        {
+          "sub_title": "函数重载",
+          "bullets": [
+            "同名函数，参数列表不同",
+            "编译器根据参数自动匹配",
+            "实现类似功能的统一接口"
+          ],
+          "narration": "接下来说说提高代码灵活性的技巧。函数重载允许我们定义好几个同名函数，只要它们的参数不一样就行。比如处理加法，我们可以写一个处理整数的，再写一个处理小数的，调用时编译器会自动识别该用哪一个，非常智能。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "int add(int a, int b);\ndouble add(double a, double b);",
+          "image_url": ""
+        },
+        {
+          "sub_title": "默认参数",
+          "bullets": [
+            "参数列表中预设默认值",
+            "调用时可省略尾部参数",
+            "从右向左连续设置默认值"
+          ],
+          "narration": "另一个技巧是默认参数。有时候函数的某个参数大部分情况都取同一个值，我们就可以把它设为默认值。这样调用时如果不传这个参数，它就自动用默认值，既减少了代码量，又保持了灵活性。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "int power(int base, int exp = 2);\n// power(3) 等同于 power(3, 2)",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "header-content",
+      "title": "实战练习：计算圆的面积",
+      "content": [
+        {
+          "sub_title": "编程任务",
+          "bullets": [
+            "定义函数计算圆面积",
+            "使用引用参数返回结果",
+            "设置半径默认值为 1.0"
+          ],
+          "narration": "光说不练假把式，现在请大家动手试一试。我们需要编写一个计算圆面积的函数。要求利用引用传递把结果带出来，并且给半径参数设置一个默认值。这能帮你综合运用今天学到的封装技巧，快去在线环境试试吧！",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "void calcArea(double r, double& area) {\n    area = 3.14 * r * r;\n}",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "内存模型：栈与堆",
+      "content": [
+        {
+          "sub_title": "栈内存",
+          "bullets": [
+            "自动分配与释放，速度快",
+            "空间有限，适合局部变量",
+            "生命周期随函数调用结束而终止",
+            "遵循“后进先出”（LIFO）原则"
+          ],
+          "narration": "同学们好！今天我们来深入探索C++的内存模型。大家请看屏幕上的动态图表，左边展示的是“栈”内存。你可以把栈想象成一个自动管理的临时储物柜，我们在函数里定义的局部变量就放在这里。它的特点非常鲜明：由系统自动分配和释放，速度极快，但空间比较有限。最重要的是，一旦函数执行结束，栈上的内存就会自动回收，非常省心。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "堆内存",
+          "bullets": [
+            "手动分配与释放，灵活度高",
+            "空间较大，适合动态数据",
+            "生命周期由程序员控制",
+            "需警惕内存泄漏风险"
+          ],
+          "narration": "再看右边，这是“堆”内存。与栈不同，堆像是一个巨大的仓库，空间很大，但管理起来比较麻烦。如果你想在这里存放数据，必须手动申请，用完后还得记得手动归还。这就好比租房子，你可以住很久，但退租时必须把钥匙还回去。如果只申请不释放，就会导致内存泄漏，这是C++编程中需要特别注意的地方。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "header-content",
+      "title": "指针变量的寻址奥秘",
+      "content": [
+        {
+          "sub_title": "指针解析",
+          "bullets": [
+            "指针是存储内存地址的变量",
+            "声明时使用 * 符号标识类型",
+            "初始化需赋予有效的内存地址",
+            "解引用 * 操作符访问地址指向的值"
+          ],
+          "narration": "理解了内存区域后，我们来看看如何在内存中精准定位。这就需要用到“指针”。请看图表中闪烁的箭头，指针变量本身也占内存，但它存储的不是普通数据，而是另一个变量在内存中的“门牌号”。我们通过声明指针来告诉编译器“这个变量存的是地址”，然后利用解引用操作，也就是星号，顺着地址找到那个房间里真正存放的值。这就像是拿着写有房间号的纸条，最终找到房间里的人。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "动态内存管理实战",
+      "content": [
+        {
+          "sub_title": "申请内存",
+          "bullets": [
+            "使用 new 关键字申请堆内存",
+            "返回申请到的内存首地址",
+            "需用指针接收返回的地址",
+            "示例：int* p = new int(10);"
+          ],
+          "narration": "接下来，我们进入实战环节。如何在堆区申请内存呢？答案是使用 new 关键字。大家看左边的代码演示，当我们写下一行 new int 时，程序会在堆区找到一块合适的地盘，并返回这块地盘的起始地址。我们通常用一个指针变量来接收这个地址，这样就把这块内存“占住”了。记住，这时候系统可不会帮你自动打扫卫生。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "int* ptr = new int;\n*ptr = 20;",
+          "image_url": ""
+        },
+        {
+          "sub_title": "释放内存",
+          "bullets": [
+            "使用 delete 关键字释放内存",
+            "将指针指向的内存归还系统",
+            "释放后建议将指针置空",
+            "防止产生“野指针”引发错误"
+          ],
+          "narration": "既然借了，用完就得还。右边的代码展示了如何使用 delete 关键字释放内存。这一步至关重要，它告诉系统“这块地盘我不用了，你可以分配给别人”。如果不执行 delete，那块内存就会一直被占用，直到程序结束。为了安全起见，释放后我们通常会把指针设为 nullptr，避免它成为一个指向未知危险区域的“野指针”。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "delete ptr;\nptr = nullptr;",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "quote-highlight",
+      "title": "核心要点总结",
+      "content": [
+        {
+          "sub_title": "避坑指南",
+          "bullets": [
+            "栈内存自动管理，堆内存需手动干预",
+            "new 和 delete 必须成对使用",
+            "指针解引用前必须确保地址有效",
+            "内存泄漏是C++程序员的必修课"
+          ],
+          "narration": "最后，我们来总结一下今天的核心内容。栈内存像全自动洗衣机，用完即走；堆内存像自助厨房，自己动手丰衣足食，但记得洗碗。掌握 new 和 delete 的配对使用，是成为合格C++程序员的必经之路。希望大家在编程时，脑海中能浮现出今天看到的内存模型图，合理规划内存使用，写出高效健壮的代码。这节课就到这里，我们下节课见！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "项目启动：学生成绩管理系统",
+      "content": [
+        {
+          "sub_title": "项目背景",
+          "bullets": [
+            "综合运用数组、结构体与文件操作",
+            "模拟真实的学生信息管理场景",
+            "解决数据持久化存储的难题"
+          ],
+          "narration": "同学们好！欢迎来到C++快速入门课程。今天我们将通过一个具体的项目实战——'学生成绩管理系统'，来把之前学过的零散知识串联起来。大家想象一下，如果你是学校的教务管理员，面对成百上千学生的成绩，如何用程序高效地录入、修改和保存呢？这不仅是编程练习，更是解决实际问题的过程。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": ""
+        },
+        {
+          "sub_title": "核心目标",
+          "bullets": [
+            "设计数据结构封装学生信息",
+            "实现增删改查动态管理功能",
+            "掌握文件读写实现数据持久化"
+          ],
+          "narration": "在这个项目中，我们要达成三个核心目标。首先是学会如何用结构体或类来'打包'学生的姓名、学号和成绩；其次，我们要让程序动起来，能录入、能修改、能删除；最后，也是最关键的一点，我们要把数据保存到硬盘上，实现持久化存储，关机重启后数据依然存在。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心设计：数据封装与结构体",
+      "content": [
+        {
+          "sub_title": "结构体定义",
+          "bullets": [
+            "使用 struct 关键字定义学生类型",
+            "包含姓名、学号、成绩三个成员",
+            "通过点号运算符访问成员变量"
+          ],
+          "narration": "首先，我们需要解决数据的封装问题。在C++中，结构体（struct）是把不同类型数据组合在一起的利器。我们可以定义一个Student结构体，里面包含字符数组存储姓名、整型变量存储学号、以及浮点型变量存储成绩。这样，每个学生就是一个独立的整体，管理起来方便多了。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "struct Student {\n  char name[50];\n  int id;\n  float score;\n};",
+          "image_url": ""
+        },
+        {
+          "sub_title": "数据存储",
+          "bullets": [
+            "定义结构体数组存储多名学生",
+            "配合整型变量记录当前学生数量",
+            "注意数组越界问题的预防"
+          ],
+          "narration": "定义好单个学生结构后，我们需要管理多个学生。这时可以定义一个结构体数组，比如 Student stu[100]，这就相当于准备了100个'空盒子'等着装数据。同时，我们需要一个整型变量来记录当前实际有多少名学生，避免操作无效的空数据。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "Student students[100];\nint count = 0;",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "功能实现：动态管理与文件持久化",
+      "content": [
+        {
+          "sub_title": "动态管理逻辑",
+          "bullets": [
+            "录入：在数组末尾添加新元素",
+            "修改：按学号查找后更新数据",
+            "删除：移动数组元素覆盖目标"
+          ],
+          "narration": "接下来是功能的实现逻辑。录入功能比较简单，就是在数组末尾添加新数据，并让计数器加一。修改功能则需要先遍历数组找到对应学号的学生，再更新其成绩。删除功能稍微复杂一点，通常采用'覆盖法'，把后面的元素往前移，覆盖掉要删除的那条记录。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "// 录入示例\ncout << \"请输入姓名:\";\ncin >> students[count].name;\ncount++;",
+          "image_url": ""
+        },
+        {
+          "sub_title": "文件读写操作",
+          "bullets": [
+            "使用 fstream 类库进行文件操作",
+            "ofstream 用于写入，ifstream 用于读取",
+            "程序退出前写入，启动时读取数据"
+          ],
+          "narration": "最后，我们要解决数据持久化的问题。内存中的数据一断电就没了，所以必须存入文件。C++提供了 fstream 库，我们用 ofstream（输出文件流）把数组数据写入文本文件，用 ifstream（输入文件流）在程序启动时把数据读回数组。这样，你的成绩管理系统就真正实用了。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "// 写入文件示例\nofstream outFile(\"data.txt\");\noutFile << stu.name << \" \"\n       << stu.score;",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "header-content",
+      "title": "实战演练与任务清单",
+      "content": [
+        {
+          "sub_title": "开发步骤指南",
+          "bullets": [
+            "第一步：定义结构体，搭建程序框架",
+            "第二步：编写菜单函数，实现交互逻辑",
+            "第三步：逐个实现增删改查功能模块",
+            "第四步：添加文件读写，测试数据持久化"
+          ],
+          "narration": "现在到了大家动手的时候了。建议大家分四步走：先定义好结构体，把程序的骨架搭起来；然后写一个菜单函数，让用户能选择功能；接着逐个攻克录入、显示、修改、删除这些功能模块；最后再把文件读写加上。记住，不要试图一次性写完所有代码，分模块测试才是正道。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": ""
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 4,
+      "scene_id": 4,
+      "title": "C++基础语法专项测验",
+      "questions": [
+        {
+          "question": "在C++中，若需要存储一个范围在-100到100之间的整数，且希望尽可能节省内存空间，下列哪种数据类型是最合适的选择？",
+          "question_type": "single",
+          "options": [
+            "int",
+            "short",
+            "long long",
+            "double"
+          ],
+          "correct_answer": 1,
+          "explanation": "int通常占用4字节，short通常占用2字节，long long通常占用8字节，double用于浮点数且占用8字节。虽然int也能存储，但short占用内存更少且足以覆盖-100到100的范围（通常为-32768到32767），因此short是最合适的选择。",
+          "points": 5
+        },
+        {
+          "question": "关于以下代码片段的运行结果，描述正确的是？\nint a = 5;\nint b = a++ + ++a;\ncout << b;",
+          "question_type": "single",
+          "options": [
+            "输出结果为 10",
+            "输出结果为 11",
+            "输出结果为 12",
+            "该行为在C++标准中未定义，结果取决于编译器"
+          ],
+          "correct_answer": 3,
+          "explanation": "在C++17之前，在一个表达式中多次修改同一变量且其间无序列点（Sequence Point）属于未定义行为（Undefined Behavior）。虽然C++17对求值顺序做了部分规定，但此类写法极易引起歧义和错误，实际编程中应避免。因此最严谨的答案是行为未定义。",
+          "points": 5
+        },
+        {
+          "question": "在循环结构中，关于break和continue语句的使用，下列说法正确的有？",
+          "question_type": "multiple",
+          "options": [
+            "break语句用于立即终止当前所在的循环（如for、while），跳转至循环后的代码",
+            "continue语句用于终止本次循环迭代，直接进入下一次循环的条件判断",
+            "在嵌套循环中，break语句可以一次性跳出所有层级的循环",
+            "break语句只能用于循环语句中，不能用于switch语句"
+          ],
+          "correct_answers": [
+            0,
+            1
+          ],
+          "explanation": "A和B准确描述了break和continue的功能。C选项错误，break只能跳出当前所在的最近一层循环，不能直接跳出多层循环（需配合标志位或goto）。D选项错误，break常用于switch结构中防止case穿透。",
+          "points": 8
+        },
+        {
+          "question": "请阅读以下代码，指出其中的语法或逻辑错误，并说明如何修正。\n\nint main() {\n    int i = 0;\n    while (i < 10); {\n        cout << i << endl;\n        i++;\n    }\n    return 0;\n}",
+          "question_type": "short_answer",
+          "answer": "错误在于while循环语句后多了一个分号';'。这导致while循环体为空，形成死循环。修正方法：删除while(i < 10)后面的分号。",
+          "comment_prompt": "请根据学生回答的准确性和完整性评分。",
+          "key_points": [
+            "正确指出while语句后多了一个分号",
+            "解释了分号导致循环体为空或死循环的原因",
+            "给出了正确的修正方案（删除分号）"
+          ],
+          "explanation": "在while循环条件后直接添加分号，会被编译器视为一条空语句作为循环体。由于循环变量i在空循环体中未改变，while(i < 10)将永远成立，导致死循环。花括号{}内的代码块变成了一个独立的代码块，不再属于循环体。",
+          "points": 15
+        }
+      ],
+      "speech": "同学们，这次测验涵盖了C++基础语法的核心陷阱。从数据类型的合理选择，到自增运算符的执行顺序，再到循环控制的细节，每一题都在考验你们的代码功底。请大家认真复盘错题，特别是简答题中的逻辑陷阱，打好基础才能走得更远！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 2,
+      "scene_id": 2,
+      "title": "C++变量声明与类型转换实战",
+      "exercises": [
+        {
+          "instruction": "请在编辑器中声明一个整型变量 'score' 并初始化为 95，再声明一个双精度浮点型变量 'temperature' 初始化为 36.5。使用 cout 输出这两个变量的值。",
+          "hints": [
+            "整型使用关键字 'int'，双精度浮点型使用 'double'。",
+            "输出流对象 'cout' 配合插入运算符 '<<' 使用。",
+            "示例格式：int score = 95;"
+          ],
+          "expected_answer": "int score = 95;\ndouble temperature = 36.5;\ncout << score << endl;\ncout << temperature << endl;"
+        },
+        {
+          "instruction": "声明一个字符型变量 'grade' 存储等级 'A'。尝试将整型变量 'score' (上一步定义的) 强制转换为浮点型并除以 10.0，将结果存储在 'result' 变量中，最后输出 'result'。",
+          "hints": [
+            "字符型使用 'char' 关键字，字符需用单引号括起来。",
+            "强制类型转换语法：(type)variable 或 type(variable)。",
+            "确保 'result' 的数据类型能接收浮点数。"
+          ],
+          "expected_answer": "char grade = 'A';\ndouble result = (double)score / 10.0;\ncout << result << endl;"
+        },
+        {
+          "instruction": "使用 sizeof 运算符分别探测 'score'、'temperature' 和 'grade' 所占用的内存字节数，并输出结果，观察不同数据类型的内存差异。",
+          "hints": [
+            "sizeof 是一个编译时运算符，用法：sizeof(variable) 或 sizeof(type)。",
+            "可以配合 cout 直接输出，例如 cout << sizeof(score);。",
+            "预期整型通常占4字节，双精度占8字节，字符占1字节。"
+          ],
+          "expected_answer": "cout << \"Size of score: \" << sizeof(score) << \" bytes\" << endl;\ncout << \"Size of temperature: \" << sizeof(temperature) << \" bytes\" << endl;\ncout << \"Size of grade: \" << sizeof(grade) << \" bytes\" << endl;"
+        }
+      ],
+      "speech": "同学们，变量是程序存储数据的“容器”。在这组练习中，我们首先学习如何用正确的关键字声明整型、浮点型和字符型变量，这决定了数据的存储形式。接着，通过强制类型转换，你们会看到数据如何在不同的“容器”间流动。最后，利用 sizeof 运算符，我们可以直观地看到不同数据类型在内存中占用的“地盘”大小，这有助于理解计算机底层的资源分配。请大家动手尝试，感受类型系统的严谨性。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习C++",
+    "student_id": "1",
+    "session_id": "b14ecfe0-e85a-49d2-bc64-3f63592c9545",
+    "generated_at": "2026-05-04 00:51:57",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

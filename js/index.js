@@ -1368,8 +1368,65 @@ function initOpenMAICOverlay() {
         avatarImg.src = user.avatar;
     }
 
+    // 初始化自定义下拉菜单
+    initCustomSelects();
+
     // 加载最近课堂历史
     loadRecentCourses();
+}
+
+// 初始化自定义下拉菜单
+function initCustomSelects() {
+    const customSelects = document.querySelectorAll('.custom-select');
+
+    customSelects.forEach(selectWrapper => {
+        const trigger = selectWrapper.querySelector('.custom-select-trigger');
+        const dropdown = selectWrapper.querySelector('.custom-select-dropdown');
+        const options = selectWrapper.querySelectorAll('.custom-select-option');
+
+        // 点击 trigger 切换下拉
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // 关闭其他下拉
+            document.querySelectorAll('.custom-select.open').forEach(other => {
+                if (other !== selectWrapper) other.classList.remove('open');
+            });
+            selectWrapper.classList.toggle('open');
+        });
+
+        // 点击选项选择
+        options.forEach(option => {
+            option.addEventListener('click', () => {
+                const value = option.dataset.value;
+                const text = option.textContent;
+                const triggerEl = selectWrapper.querySelector('.custom-select-value');
+
+                // 更新显示值
+                triggerEl.textContent = text;
+
+                // 更新选中状态
+                options.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+
+                // 关闭下拉
+                selectWrapper.classList.remove('open');
+
+                // 找到对应的原 select 并更新值
+                const wrapperId = selectWrapper.id;
+                let originalSelectId = wrapperId.replace('-select-wrapper', '-select');
+                const originalSelect = document.getElementById(originalSelectId);
+                if (originalSelect && originalSelect.tagName === 'SELECT') {
+                    originalSelect.value = value;
+                    originalSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+    });
+
+    // 点击外部关闭下拉
+    document.addEventListener('click', () => {
+        customSelects.forEach(select => select.classList.remove('open'));
+    });
 }
 
 // 加载最近课堂历史
@@ -1636,11 +1693,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // OpenMAIC返回聊天按钮
-    const backChatBtn = document.getElementById('openmaic-back-chat-btn');
-    if (backChatBtn) {
-        backChatBtn.addEventListener('click', function() {
-            switchTab('chat');
+    // OpenMAIC返回课堂按钮
+    const backCourseBtn = document.getElementById('openmaic-back-course-btn');
+    if (backCourseBtn) {
+        backCourseBtn.addEventListener('click', function() {
+            switchTab('course');
         });
     }
 
@@ -3887,22 +3944,28 @@ function toggleRightCol() {
 
 function toggleTheme() {
     const body = document.body;
-    const isLight = body.classList.contains('light-theme');
-    const themeToggle = document.getElementById('theme-toggle-btn');
-    
-    if (isLight) {
-        // 切换到深色主题
-        const currentDarkTheme = document.documentElement.getAttribute('data-theme') || 'starry-night';
-        body.classList.remove('light-theme');
-        document.documentElement.setAttribute('data-theme', currentDarkTheme);
-        localStorage.setItem('themeMode', 'dark');
-    } else {
-        // 切换到浅色主题
-        body.classList.add('light-theme');
-        document.documentElement.setAttribute('data-theme', 'sakura-falling');
-        localStorage.setItem('themeMode', 'light');
+    const openmaicOverlay = document.getElementById('openmaic-overlay');
+    // 通过 body 是否有 course-mode 类来判断是否在课程生成页面
+    const isCourseMode = body.classList.contains('course-mode');
+
+    if (!isCourseMode) {
+        // 不在课程生成页面：不做任何事，不影响智能对话页面
+        return;
     }
-    
+
+    // 课程生成页面：只切换课程生成页面的主题
+    const isLight = openmaicOverlay.classList.contains('light-theme');
+
+    if (isLight) {
+        openmaicOverlay.classList.remove('light-theme');
+        openmaicOverlay.removeAttribute('data-theme');
+        localStorage.setItem('openmaic_themeMode', 'dark');
+    } else {
+        openmaicOverlay.classList.add('light-theme');
+        openmaicOverlay.setAttribute('data-theme', 'light');
+        localStorage.setItem('openmaic_themeMode', 'light');
+    }
+
     // 重新初始化 lucide 图标
     if (window.lucide) {
         window.lucide.createIcons();
@@ -3914,12 +3977,15 @@ function initTheme() {
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-    
-    // 从 localStorage 恢复主题设置
-    const savedMode = localStorage.getItem('themeMode');
-    if (savedMode === 'light') {
-        document.body.classList.add('light-theme');
-        document.documentElement.setAttribute('data-theme', 'sakura-falling');
+
+    // 注意：不再从 localStorage 恢复全局主题设置到 body
+    // 全局主题（智能对话页面）保持默认，不受课程生成页面主题切换的影响
+
+    // 从 localStorage 恢复课程生成页面的主题设置
+    const savedOpenmaicMode = localStorage.getItem('openmaic_themeMode');
+    const openmaicOverlay = document.getElementById('openmaic-overlay');
+    if (savedOpenmaicMode === 'light' && openmaicOverlay) {
+        openmaicOverlay.classList.add('light-theme');
     }
 }
 

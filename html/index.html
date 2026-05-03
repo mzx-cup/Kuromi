@@ -787,17 +787,9 @@
 
         <!-- 右上角工具栏 -->
         <div class="openmaic-toolbar">
-            <button class="openmaic-toolbar-btn" id="openmaic-back-chat-btn" title="返回聊天">
-                <i data-lucide="message-circle" class="w-4 h-4"></i>
-                <span>返回聊天</span>
-            </button>
-            <button class="theme-toggle-btn" id="theme-toggle-btn" title="切换主题">
-                <svg class="w-4 h-4 sun-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-                <svg class="w-4 h-4 moon-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                </svg>
+            <button class="openmaic-toolbar-btn" id="openmaic-back-course-btn" title="返回课堂">
+                <i data-lucide="graduation-cap" class="w-4 h-4"></i>
+                <span>返回课堂</span>
             </button>
             <button class="openmaic-toolbar-btn" id="openmaic-settings-btn" title="设置">
                 <i data-lucide="settings" class="w-4 h-4"></i>
@@ -827,12 +819,48 @@
                             <span class="openmaic-username" id="openmaic-username">同学</span>
                         </div>
                         <div class="openmaic-agent-bar">
-                            <select id="openmaic-agent-mode" class="openmaic-agent-select">
-                                <option value="preset">预设教师</option>
+                            <!-- 自定义下拉菜单：预设教师 -->
+                            <div class="custom-select" id="openmaic-agent-select-wrapper">
+                                <div class="custom-select-trigger">
+                                    <span class="custom-select-value">预设教师</span>
+                                    <span class="custom-select-arrow">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option active" data-value="preset">预设教师</div>
+                                    <div class="custom-select-option" data-value="auto">AI自动生成教师</div>
+                                </div>
+                            </div>
+                            <!-- 隐藏的原 selects（供其他代码引用） -->
+                            <select id="openmaic-agent-mode" style="display:none;">
+                                <option value="preset" selected>预设教师</option>
                                 <option value="auto">AI自动生成教师</option>
                             </select>
-                            <select id="openmaic-voice-select" class="openmaic-agent-select">
-                                <option value="female-shaonv">青春少女</option>
+
+                            <!-- 自定义下拉菜单：音色选择 -->
+                            <div class="custom-select" id="openmaic-voice-select-wrapper">
+                                <div class="custom-select-trigger">
+                                    <span class="custom-select-value">青春少女</span>
+                                    <span class="custom-select-arrow">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option active" data-value="female-shaonv">青春少女</div>
+                                    <div class="custom-select-option" data-value="female-yujie">温柔御姐</div>
+                                    <div class="custom-select-option" data-value="female-danyun">知性女声</div>
+                                    <div class="custom-select-option" data-value="male-qingshu">青涩少年</div>
+                                    <div class="custom-select-option" data-value="male-shaoshuai">磁性男声</div>
+                                </div>
+                            </div>
+                            <!-- 隐藏的原 selects（供其他代码引用） -->
+                            <select id="openmaic-voice-select" style="display:none;">
+                                <option value="female-shaonv" selected>青春少女</option>
                                 <option value="female-yujie">温柔御姐</option>
                                 <option value="female-danyun">知性女声</option>
                                 <option value="male-qingshu">青涩少年</option>
@@ -875,7 +903,7 @@
                             <div class="openmaic-toolbar-divider"></div>
 
                             <!-- 功能开关 -->
-                            <button class="openmaic-pill-toggle active" id="openmaic-websearch-pill" data-feature="websearch">
+                            <button class="openmaic-pill-toggle" id="openmaic-websearch-pill" data-feature="websearch">
                                 <i data-lucide="globe" class="w-3.5 h-3.5"></i>
                                 <span>网络搜索</span>
                             </button>
@@ -884,7 +912,7 @@
                                 <span>PDF解析</span>
                             </button>
                             <button class="openmaic-pill-toggle" id="openmaic-interactive-pill" data-feature="interactive">
-                                <i data-lucide="atoms" class="w-3.5 h-3.5"></i>
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                                 <span>深度交互</span>
                             </button>
                         </div>

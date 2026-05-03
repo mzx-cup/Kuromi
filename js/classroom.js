@@ -263,10 +263,39 @@
 
             // slides_v2 now includes scene_id from MiniMax PPT provider
             // Use findSceneData for scene_id matching (Strategy 1), fallback to index for legacy
+            var usedSlideV2Indices = new Set();
             this.scenes = outlines.map(function(outline, i) {
                 var sceneId = outline.id || i + 1;
                 var matchedSlide = findSceneData(slides, outline);
-                var matchedSlideV2 = findSceneData(slidesV2, outline) || slidesV2[i] || null;
+                var matchedSlideV2 = findSceneData(slidesV2, outline) || null;
+
+                // Fallback: if no scene_id match, find by index or first valid slides_v2 entry with content
+                if (!matchedSlideV2) {
+                    if (i < slidesV2.length) {
+                        var candidate = slidesV2[i];
+                        // If the indexed entry has no content, scan forward to find the first with valid content
+                        var hasContent = (candidate.elements && candidate.elements.length > 0) ||
+                                         (candidate.content && candidate.content.length > 0);
+                        if (!hasContent) {
+                            for (var j = i; j < slidesV2.length; j++) {
+                                var c = slidesV2[j];
+                                if ((c.elements && c.elements.length > 0) || (c.content && c.content.length > 0)) {
+                                    candidate = c;
+                                    break;
+                                }
+                            }
+                        }
+                        matchedSlideV2 = candidate;
+                    }
+                    if (!matchedSlideV2) matchedSlideV2 = null;
+                }
+
+                // Track which slidesV2 are matched to outlines
+                if (matchedSlideV2) {
+                    var matchedIdx = slidesV2.indexOf(matchedSlideV2);
+                    if (matchedIdx >= 0) usedSlideV2Indices.add(matchedIdx);
+                }
+
                 var matchedQuiz = findSceneData(quizData, outline);
                 var matchedExercise = findSceneData(exerciseData, outline);
 
@@ -283,6 +312,25 @@
                     audioUrl: (this.courseData.tts_audio_urls || {})[String(sceneId)] || null,
                     imageUrl: (matchedSlide && matchedSlide.content && matchedSlide.content.elements && matchedSlide.content.elements[0] && matchedSlide.content.elements[0].image_url) || null,
                 };
+            }, this);
+
+            // Add remaining slides_v2 that weren't matched to any outline as extra scenes
+            slidesV2.forEach(function(slideV2, i) {
+                if (!usedSlideV2Indices.has(i)) {
+                    this.scenes.push({
+                        id: slideV2.scene_id || slideV2.id || ('slide-' + i),
+                        title: slideV2.title || ('幻灯片 ' + (i + 1)),
+                        type: 'slide',
+                        description: '',
+                        keyPoints: [],
+                        slide: null,
+                        slides_v2: [slideV2],
+                        quiz: null,
+                        exercise: null,
+                        audioUrl: null,
+                        imageUrl: null,
+                    });
+                }
             }, this);
         }
 
@@ -403,13 +451,16 @@
                 case 'quiz': this.openQuizPopup(scene); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
                 case 'interactive': case 'pbl': this.renderInteractiveScene(scene); break;
-                default: {
-                    // Check if V2 slides are available
+                case 'slide': case 'code': case 'diagram': case 'video': {
                     if (scene.slides_v2 && scene.slides_v2.length > 0) {
                         this.renderSlideV2Scene(scene);
                     } else {
                         this.renderSlideScene(scene);
                     }
+                    break;
+                }
+                default: {
+                    this._renderSceneErrorPlaceholder(scene);
                 }
             }
 
@@ -433,6 +484,29 @@
             if (quizResult) quizResult.style.display = 'none';
         }
 
+        _renderSceneErrorPlaceholder(scene) {
+            if (!this.slideContainer) return;
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
+            this.slideContainer.style.display = 'block';
+            this.slideContainer.innerHTML = `
+                <div class="slide-v2-container layout-title-only">
+                    <div class="slide-header">
+                        <h1>${esc(scene.title || '内容加载异常')}</h1>
+                    </div>
+                    <div class="slide-body" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
+                        <div style="text-align:center;color:#64748b;padding:2rem;">
+                            <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+                            <p style="font-size:1.1rem;font-weight:600;">暂不支持该场景类型</p>
+                            <p style="font-size:0.9rem;margin-top:0.5rem;">场景类型: ${esc(scene.type || '未知')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // ============================================================
         // SlideV2 渲染器（结构化布局）
         // ============================================================
@@ -446,7 +520,7 @@
             COLOR_THEMES: ['blue', 'yellow', 'green', 'purple', 'orange'],
 
             _cycleCardThemes(cards) {
-                if (!cards || cards.length <= 1) return cards;
+                if (!cards || !Array.isArray(cards) || cards.length <= 1) return cards || [];
                 const themes = new Set(cards.map(c => c.colorTheme));
                 const needsCycle = themes.size <= 1 || cards.some(c => !c.colorTheme);
                 if (!needsCycle) return cards;
@@ -471,6 +545,12 @@
                     'grid-cards': this._renderGridCards.bind(this),
                     'header-content': this._renderHeaderContent.bind(this),
                     'quote-highlight': this._renderQuoteHighlight.bind(this),
+                    'center-focus': this._renderCenterFocus.bind(this),
+                    'media-left': this._renderMediaLeft.bind(this),
+                    'stats-row': this._renderStatsRow.bind(this),
+                    'timeline-steps': this._renderTimelineSteps.bind(this),
+                    'comparison': this._renderComparison.bind(this),
+                    'fullwidth-banner': this._renderFullwidthBanner.bind(this),
                 };
                 return renderers[layoutType] || this._renderTwoColumn.bind(this);
             },
@@ -541,33 +621,235 @@
                 `;
             },
 
-            _renderContentCard(item, cardIndex) {
-                const icon = this._getIcon(item.icon);
-                const theme = this._validateTheme(item.colorTheme);
-                const subTitle = this._escapeHtml(item.subTitle || '');
-                const textHtml = this._renderBulletsOrText(item);
-                const isBullets = textHtml.startsWith('<ul');
-                const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
-                const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
-                const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
-
+            _renderCenterFocus(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
-                    <div class="content-card theme-${theme}"${idxAttr}>
-                        ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
-                        ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
-                        ${textHtml && isBullets ? textHtml : ''}
-                        ${codeHtml}
-                        ${imageHtml}
+                    <div class="slide-v2-container layout-center-focus">
+                        <div class="slide-header center-focus-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-center-content">
+                            ${cards}
+                        </div>
                     </div>
                 `;
             },
 
+            _renderMediaLeft(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderMediaCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-media-left">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderStatsRow(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderStatCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-stats-row">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderTimelineSteps(slide) {
+                const items = slide.content || [];
+                const stepsHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    return `
+                        <div class="timeline-step">
+                            <div class="timeline-number">${i + 1}</div>
+                            <div class="timeline-connector"></div>
+                            <div class="timeline-content">
+                                ${icon ? `<div class="timeline-icon">${icon}</div>` : ''}
+                                <div class="timeline-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                                ${textHtml && !isBullets ? `<div class="timeline-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-timeline-steps">
+                            ${stepsHtml}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderComparison(slide) {
+                const items = slide.content || [];
+                const leftCard = items[0] ? this._renderContentCard(items[0], 0) : '';
+                const rightCard = items[1] ? this._renderContentCard(items[1], 1) : '';
+                return `
+                    <div class="slide-v2-container layout-comparison">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-compare">
+                            <div class="compare-left">${leftCard}</div>
+                            <div class="compare-vs"><span>VS</span></div>
+                            <div class="compare-right">${rightCard}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderFullwidthBanner(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderBannerCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-fullwidth-banner">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderMediaCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="media-card theme-${theme}"${idxAttr}>
+                            <div class="media-icon-wrap">${icon}</div>
+                            <div class="media-content">
+                                ${subTitle ? `<div class="media-title">${subTitle}</div>` : ''}
+                                ${textHtml && !isBullets ? `<div class="media-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                                ${imageHtml}
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="media-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="media-icon-wrap">⚠️</div>
+                        <div class="media-content">
+                            <div class="media-title">数据加载异常</div>
+                        </div>
+                    </div>`;
+                }
+            },
+
+            _renderStatCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="stat-card theme-${theme}"${idxAttr}>
+                            ${icon ? `<div class="stat-icon">${icon}</div>` : ''}
+                            <div class="stat-value">${subTitle}</div>
+                            ${textHtml && !isBullets ? `<div class="stat-label">${textHtml}</div>` : ''}
+                            ${textHtml && isBullets ? textHtml : ''}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="stat-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="stat-value">--</div>
+                        <div class="stat-label">数据异常</div>
+                    </div>`;
+                }
+            },
+
+            _renderBannerCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="banner-card theme-${theme}"${idxAttr}>
+                            <div class="banner-inner">
+                                ${icon ? `<div class="banner-icon">${icon}</div>` : ''}
+                                <div class="banner-content">
+                                    ${subTitle ? `<div class="banner-title">${subTitle}</div>` : ''}
+                                    ${textHtml && !isBullets ? `<div class="banner-text">${textHtml}</div>` : ''}
+                                    ${textHtml && isBullets ? textHtml : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="banner-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="banner-inner">
+                            <div class="banner-title">数据加载异常</div>
+                        </div>
+                    </div>`;
+                }
+            },
+
+            _renderContentCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
+                    const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="content-card theme-${theme}"${idxAttr}>
+                            ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
+                            ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
+                            ${textHtml && isBullets ? textHtml : ''}
+                            ${codeHtml}
+                            ${imageHtml}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="content-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="card-title">⚠️ 数据加载异常</div>
+                        <div class="card-text">卡片内容无法渲染，请刷新重试</div>
+                    </div>`;
+                }
+            },
+
             _renderBulletsOrText(item) {
                 if (item.bullets && Array.isArray(item.bullets) && item.bullets.length > 0) {
-                    const items = item.bullets
-                        .map(b => `<li>${this._escapeHtml(String(b))}</li>`)
-                        .join('');
-                    return `<ul class="card-bullets">${items}</ul>`;
+                    try {
+                        const items = item.bullets
+                            .map(b => `<li>${this._escapeHtml(String(b))}</li>`)
+                            .join('');
+                        return `<ul class="card-bullets">${items}</ul>`;
+                    } catch (e) {
+                        return `<ul class="card-bullets"><li>数据加载异常</li></ul>`;
+                    }
                 }
                 return this._parseMarkdown(item.text || '');
             },
@@ -630,37 +912,48 @@
             this.slideContainer.style.display = 'block';
             this.slideContainer.className = 'slide-container';
 
-            const slides_v2 = scene.slides_v2 || [];
-            if (slides_v2.length === 0) {
-                this.renderSlideScene(scene);
-                return;
+            try {
+                const slides_v2 = scene.slides_v2 || [];
+                if (slides_v2.length === 0) {
+                    this.renderSlideScene(scene);
+                    return;
+                }
+
+                const firstSlide = slides_v2[0];
+
+                // Determine card data from either format, route to SlideRenderer for consistent UI
+                var cardData;
+                if (firstSlide.elements && Array.isArray(firstSlide.elements) && firstSlide.elements.length > 0) {
+                    // OpenMAIC format: group elements into cards by ID prefix
+                    cardData = this._groupOpenMAICElementsToCards(firstSlide);
+                } else if (firstSlide.content && Array.isArray(firstSlide.content) && firstSlide.content.length > 0) {
+                    // SlideV2 format: use content + layout_type directly
+                    // Guard against null content or empty arrays from legacy data
+                    cardData = {
+                        title: firstSlide.title || scene.title || '',
+                        content: this.SlideRenderer._cycleCardThemes(firstSlide.content),
+                        layoutType: firstSlide.layoutType || firstSlide.layout_type || 'two-column'
+                    };
+                } else {
+                    // content is null/empty or elements format unknown - fallback to legacy slide rendering
+                    this.renderSlideScene(scene);
+                    return;
+                }
+
+                this.SlideRenderer.render(cardData, this.slideContainer);
+
+                // Store actions for playback pipeline (spotlight/laser use element IDs)
+                this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
+                // Store element-to-card mapping for spotlight/laser targeting
+                this._currentElemToCard = cardData._elemToCard || null;
+            } catch (e) {
+                console.error('[Classroom] renderSlideV2Scene error:', e);
             }
 
-            const firstSlide = slides_v2[0];
-
-            // Determine card data from either format, route to SlideRenderer for consistent UI
-            var cardData;
-            if (firstSlide.elements && Array.isArray(firstSlide.elements) && firstSlide.elements.length > 0) {
-                // OpenMAIC format: group elements into cards by ID prefix
-                cardData = this._groupOpenMAICElementsToCards(firstSlide);
-            } else if (firstSlide.content && Array.isArray(firstSlide.content)) {
-                // SlideV2 format: use content + layout_type directly
-                cardData = {
-                    title: firstSlide.title || scene.title || '',
-                    content: SlideRenderer._cycleCardThemes(firstSlide.content),
-                    layoutType: firstSlide.layoutType || firstSlide.layout_type || 'two-column'
-                };
-            } else {
-                this.renderSlideScene(scene);
-                return;
+            // Always check: did we actually render content? If container is empty, show error placeholder
+            if (!this.slideContainer.innerHTML.trim()) {
+                this._renderSceneErrorPlaceholder(scene);
             }
-
-            this.SlideRenderer.render(cardData, this.slideContainer);
-
-            // Store actions for playback pipeline (spotlight/laser use element IDs)
-            this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
-            // Store element-to-card mapping for spotlight/laser targeting
-            this._currentElemToCard = cardData._elemToCard || null;
         }
 
         // ---- OpenMAIC Elements → Card Data Converter ----
@@ -791,7 +1084,7 @@
                 if (cg.image && cg.image.id) elemToCard[cg.image.id] = mi;
             }
 
-            SlideRenderer._cycleCardThemes(cards);
+            this.SlideRenderer._cycleCardThemes(cards);
 
             return {
                 title: slideTitle,
@@ -2360,9 +2653,15 @@
                             <p style="color:#6366f1;font-size:0.9rem;margin-top:1rem;">Widget类型: ${widgetType}</p>
                         </div></body></html>`;
                 } else {
-                    // Basic placeholder
-                    iframe.srcdoc = `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#e0e7ff;">
-                        <div style="text-align:center;"><h2>${scene.title}</h2><p>${scene.description}</p></div></body></html>`;
+                    // Basic placeholder - show clear message
+                    const safeHtml = this._escapeHtml ? this._escapeHtml.bind(this) : (v => v || '');
+                    iframe.srcdoc = `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#e0e7ff;margin:0;">
+                        <div style="text-align:center;padding:2rem;">
+                            <div style="font-size:4rem;margin-bottom:1rem;">📭</div>
+                            <h2>${safeHtml(scene.title || '交互式学习')}</h2>
+                            <p style="color:#a0aec0;margin-top:0.5rem;">${safeHtml(scene.description || '该场景暂无可用内容')}</p>
+                            <p style="color:#6366f1;font-size:0.85rem;margin-top:1rem;">场景类型: ${safeHtml(scene.type)}</p>
+                        </div></body></html>`;
                 }
             }
         }

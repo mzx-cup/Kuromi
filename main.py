@@ -5979,7 +5979,11 @@ async def save_course(request: CourseSaveRequest):
     if user_id and course.courseId:
         try:
             full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
-            ppt_pages = len(course.slides_v2) if course.slides_v2 else (len(course.slides) if course.slides else 0)
+            ppt_pages = request.ppt_pages if request.ppt_pages else (
+                len(course.slides_v2) if course.slides_v2 else (
+                    len(course.slides) if course.slides else 0
+                )
+            )
             save_classroom_record(user_id, course.courseId, course.title, full_data, ppt_pages)
         except Exception as e:
             print(f"数据库保存失败（非致命）: {e}")

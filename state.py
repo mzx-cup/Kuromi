@@ -626,6 +626,7 @@ class CourseSaveRequest(BaseModel):
     """课程保存请求"""
     course_data: CourseData
     student_id: str = ""
+    ppt_pages: int = 0
 
 
 class CourseListResponse(BaseModel):
