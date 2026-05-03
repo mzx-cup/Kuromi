@@ -1,4 +1,69 @@
 // ============================================
+// 心流专注度追踪（基于 localStorage 跨页面持久化）
+// ============================================
+let focusTracker = {
+    baseFlowValue: 94,
+    currentFlow: 94,
+    updateInterval: null
+};
+
+function getPageVisits() {
+    try {
+        return JSON.parse(localStorage.getItem('page_visits') || '[]');
+    } catch(e) {
+        return [];
+    }
+}
+
+function calcFlowScore() {
+    const visits = getPageVisits();
+    const now = Date.now();
+    const tenSecAgo = now - 10000;
+    const recent = visits.filter(t => t > tenSecAgo);
+    const count = recent.length;
+    // 0-1 次切换 => 94 分；之后每次切换扣 8 分，最低 10 分
+    let score;
+    if (count <= 1) {
+        score = 94;
+    } else {
+        score = Math.max(10, 100 - (count - 1) * 8);
+    }
+    return { score, count };
+}
+
+function updateFocusValue() {
+    const { score, count } = calcFlowScore();
+    focusTracker.currentFlow = score;
+
+    const el = document.getElementById('nav-flow-value');
+    if (el) {
+        el.textContent = score + '%';
+        el.style.color = count >= 4 ? '#ef4444' : '';
+    }
+}
+
+function initFocusTracker() {
+    // 页面从隐藏切回前台时检测
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) updateFocusValue();
+    });
+
+    // popstate 前进/后退
+    window.addEventListener('popstate', updateFocusValue);
+
+    // sidebar 导航点击
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.sidebar-nav .nav-item')) {
+            // 延迟等待新页面 localStorage 写入
+            setTimeout(updateFocusValue, 100);
+        }
+    });
+
+    updateFocusValue();
+    focusTracker.updateInterval = setInterval(updateFocusValue, 1000);
+}
+
+// ============================================
 // Data Particle Animation
 // ============================================
 function createDataParticles() {
@@ -3396,6 +3461,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 120000);
         }
     });
+
+    // 初始化心流专注度监测
+    initFocusTracker();
 });
 
 // Smooth scroll for navigation
