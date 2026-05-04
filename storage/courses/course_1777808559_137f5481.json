@@ -90,797 +90,1590 @@
   "slides": [],
   "slides_v2": [
     {
-      "layout_type": "header-content",
-      "title": "Redis核心架构与工作模型",
-      "content": [
+      "id": "slide-redis-core-concept",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "Client/Server 交互架构",
-          "text": "Redis采用经典的C/S架构，客户端通过TCP协议与服务端建立连接。服务端核心由单线程命令处理引擎与IO多路复用机制构成，实现了极高的并发处理能力。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/diagrams/redis-cs-architecture.png"
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "单线程模型的核心优势",
-          "text": "虽然Redis主要工作线程是单线程的，但通过避免了多线程上下文切换和锁竞争的开销，配合IO多路复用，实现了惊人的执行效率。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title-text",
+          "left": 24,
+          "top": 0,
+          "width": 600,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:20px;font-weight:600;'>Redis核心实战 · Redis核心概念解析</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-left-media-bg",
+          "left": 0,
+          "top": 56,
+          "width": 420,
+          "height": 506.5,
+          "path": "M 0 0 L 420 0 L 420 506.5 L 0 506.5 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            420,
+            506.5
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 460,
+          "top": 80,
+          "width": 510,
+          "height": 120,
+          "path": "M 12 0 L 498 0 Q 510 0 510 12 L 510 108 Q 510 120 498 120 L 12 120 Q 0 120 0 108 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            510,
+            120
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-icon-bg",
+          "left": 480,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 C 31.05 0 40 8.95 40 20 C 40 31.05 31.05 40 20 40 C 8.95 40 0 31.05 0 20 C 0 8.95 8.95 0 20 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card1-icon",
+          "left": 480,
+          "top": 100,
+          "width": 40,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:18px;text-align:center;line-height:40px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 540,
+          "top": 100,
+          "width": 400,
+          "height": 36,
+          "content": "<h3 style='color:#1E40AF;font-size:18px;font-weight:600;'>要点 1 · Redis单线程模型的高效执行原理</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "shape",
+          "id": "el-redis-icon-circle",
+          "left": 135,
+          "top": 120,
+          "width": 150,
+          "height": 150,
+          "path": "M 75 0 C 116.42 0 150 33.58 150 75 C 150 116.42 116.42 150 75 150 C 33.58 150 0 116.42 0 75 C 0 33.58 33.58 0 75 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            150,
+            150
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card1-desc",
+          "left": 540,
+          "top": 140,
+          "width": 400,
+          "height": 50,
+          "content": "<p style='color:#64748B;font-size:13px;line-height:1.6;'>Redis采用单线程模型避免上下文切换开销，通过非阻塞I/O和事件循环实现高并发处理...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-redis-icon-text",
+          "left": 135,
+          "top": 155,
+          "width": 150,
+          "height": 80,
+          "content": "<h2 style='color:#FFFFFF;font-size:42px;font-weight:bold;text-align:center;line-height:1.2;'>R<br/>E<br/>D<br/>I<br/>S</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 460,
+          "top": 215,
+          "width": 510,
+          "height": 120,
+          "path": "M 12 0 L 498 0 Q 510 0 510 12 L 510 108 Q 510 120 498 120 L 12 120 Q 0 120 0 108 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            510,
+            120
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-icon-bg",
+          "left": 480,
+          "top": 235,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 C 31.05 0 40 8.95 40 20 C 40 31.05 31.05 40 20 40 C 8.95 40 0 31.05 0 20 C 0 8.95 8.95 0 20 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card2-icon",
+          "left": 480,
+          "top": 235,
+          "width": 40,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:18px;text-align:center;line-height:40px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 540,
+          "top": 235,
+          "width": 400,
+          "height": 36,
+          "content": "<h3 style='color:#92400E;font-size:18px;font-weight:600;'>要点 2 · IO多路复用机制的底层实现逻辑</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-desc",
+          "left": 540,
+          "top": 275,
+          "width": 400,
+          "height": 50,
+          "content": "<p style='color:#64748B;font-size:13px;line-height:1.6;'>通过select/poll/epoll等技术，Redis能够在单线程中同时监控多个客户端连接，实现高效的事件处理...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-media-title",
+          "left": 40,
+          "top": 300,
+          "width": 340,
+          "height": 50,
+          "content": "<h2 style='color:#FFFFFF;font-size:24px;font-weight:600;text-align:center;'>核心概念解析</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 460,
+          "top": 350,
+          "width": 510,
+          "height": 120,
+          "path": "M 12 0 L 498 0 Q 510 0 510 12 L 510 108 Q 510 120 498 120 L 12 120 Q 0 120 0 108 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            510,
+            120
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-media-subtitle",
+          "left": 40,
+          "top": 360,
+          "width": 340,
+          "height": 80,
+          "content": "<p style='color:#93C5FD;font-size:14px;text-align:center;line-height:1.8;'>深入理解Redis的<br/>核心运行机制与数据结构</p>",
+          "fill": "transparent",
+          "defaultColor": "#93C5FD"
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-icon-bg",
+          "left": 480,
+          "top": 370,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 C 31.05 0 40 8.95 40 20 C 40 31.05 31.05 40 20 40 C 8.95 40 0 31.05 0 20 C 0 8.95 8.95 0 20 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card3-icon",
+          "left": 480,
+          "top": 370,
+          "width": 40,
+          "height": 40,
+          "content": "<p style='color:#FFFFFF;font-size:18px;text-align:center;line-height:40px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 540,
+          "top": 370,
+          "width": 400,
+          "height": 36,
+          "content": "<h3 style='color:#065F46;font-size:18px;font-weight:600;'>要点 3 · Redis五种基础数据结构的应用场景</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-desc",
+          "left": 540,
+          "top": 410,
+          "width": 400,
+          "height": 50,
+          "content": "<p style='color:#64748B;font-size:13px;line-height:1.6;'>String、List、Hash、Set、ZSet各有特点，适用于缓存、计数器、排行榜、实时分析等不同业务场景...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration1",
+          "left": 20,
+          "top": 480,
+          "width": 60,
+          "height": 6,
+          "path": "M 3 0 L 57 0 Q 60 0 60 3 L 60 3 Q 60 6 57 6 L 3 6 Q 0 6 0 3 L 0 3 Q 0 0 3 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            6
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration2",
+          "left": 90,
+          "top": 480,
+          "width": 30,
+          "height": 6,
+          "path": "M 3 0 L 27 0 Q 30 0 30 3 L 30 3 Q 30 6 27 6 L 3 6 Q 0 6 0 3 L 0 3 Q 0 0 3 0 Z",
+          "fill": "#60A5FA",
+          "viewBox": [
+            0,
+            0,
+            30,
+            6
+          ]
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#F59E0B",
+          "#ECFDF5",
+          "#10B981"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "1",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。Redis单线程模型的高效执行原理"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。IO多路复用机制的底层实现逻辑"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。Redis五种基础数据结构的应用场景"
+        }
+      ]
     },
     {
-      "layout_type": "grid-cards",
-      "title": "IO多路复用机制解析",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "非阻塞IO (Non-blocking IO)",
-          "text": "Redis基于非阻塞IO模型，当连接没有数据到达时，线程不会挂起等待，而是立即返回处理其他任务，最大化利用CPU资源。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 Q 1000 0 1000 0 L 1000 56 Q 1000 56 1000 56 L 0 56 Q 0 56 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "事件循环 (Event Loop)",
-          "text": "Redis封装了select、epoll、kqueue等底层接口，构建了自己的事件处理器。通过死循环不断监听事件，实现了一个线程处理多个连接。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-header-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:20px;font-weight:600;'>Redis核心实战 · 基础数据结构实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "文件事件分派器",
-          "text": "监听到socket事件后，分派器会将事件分发给对应的处理器（如连接应答、命令请求、命令回复处理器），实现逻辑解耦。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-left-card",
+          "left": 20,
+          "top": 76,
+          "width": 420,
+          "height": 450,
+          "path": "M 12 0 L 408 0 Q 420 0 420 12 L 420 438 Q 420 450 408 450 L 12 450 Q 0 450 0 438 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#1E293B",
+          "viewBox": [
+            0,
+            0,
+            420,
+            450
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 460,
+          "top": 76,
+          "width": 520,
+          "height": 130,
+          "path": "M 12 0 L 508 0 Q 520 0 520 12 L 520 118 Q 520 130 508 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            520,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 480,
+          "top": 96,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 536,
+          "top": 96,
+          "width": 420,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "code",
+          "id": "el-code-block",
+          "left": 40,
+          "top": 100,
+          "width": 380,
+          "height": 400,
+          "content": "// String操作\nSET key value\nGET key\nINCR counter\n\n// List操作\nLPUSH queue item\nRPOP queue\n\n// Set操作\nSADD tags item\nSINTER set1 set2\nSUNION set1 set2",
+          "language": "redis"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 536,
+          "top": 132,
+          "width": 420,
+          "height": 60,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>String类型的SET/GET与原子计数操作</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 460,
+          "top": 220,
+          "width": 520,
+          "height": 130,
+          "path": "M 12 0 L 508 0 Q 520 0 520 12 L 520 118 Q 520 130 508 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            520,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 480,
+          "top": 240,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 536,
+          "top": 240,
+          "width": 420,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 536,
+          "top": 276,
+          "width": 420,
+          "height": 60,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>List结构实现简单消息队列的LPUSH/RPOP</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 460,
+          "top": 364,
+          "width": 520,
+          "height": 130,
+          "path": "M 12 0 L 508 0 Q 520 0 520 12 L 520 118 Q 520 130 508 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            520,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 480,
+          "top": 384,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 536,
+          "top": 384,
+          "width": 420,
+          "height": 32,
+          "content": "<h2 style='color:#065F46;font-size:16px;font-weight:600;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 536,
+          "top": 420,
+          "width": 420,
+          "height": 60,
+          "content": "<p style='color:#475569;font-size:14px;line-height:1.6;'>Set集合的交集并集运算与去重应用</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-redis-icon-bg",
+          "left": 170,
+          "top": 440,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 L 80 40 L 40 80 L 0 40 Z",
+          "fill": "#DC2626",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-redis-label",
+          "left": 155,
+          "top": 470,
+          "width": 110,
+          "height": 24,
+          "content": "<span style='color:#DC2626;font-size:12px;font-weight:600;'>Redis</span>",
+          "fill": "transparent",
+          "defaultColor": "#DC2626",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-1",
+          "left": 900,
+          "top": 500,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 30 L 30 60 L 0 30 Z",
+          "fill": "#DBEAFE",
+          "opacity": 0.5,
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-decoration-2",
+          "left": 940,
+          "top": 520,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 40 20 L 20 40 L 0 20 Z",
+          "fill": "#BFDBFE",
+          "opacity": 0.4,
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "2",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。String类型的SET/GET与原子计数操作"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。List结构实现简单消息队列的LPUSH/RPOP"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。Set集合的交集并集运算与去重应用"
+        }
+      ]
     },
     {
-      "layout_type": "two-column",
-      "title": "五大基础数据结构应用场景",
-      "content": [
+      "id": "slide-redis-data-structure",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "String (字符串)",
-          "text": "最基础类型。场景：缓存对象（JSON）、计数器（粉丝数）、分布式锁（SETNX）。",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          }
         },
         {
-          "sub_title": "List (列表)",
-          "text": "双向链表结构。场景：消息队列（LPUSH/RPOP）、最新列表（文章列表）、栈结构。",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "title-text",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;text-align:center;line-height:56px;'>Redis核心实战 · 内存数据结构原理</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "Set (集合)",
-          "text": "无序唯一集合。场景：标签系统、社交关系（共同关注）、抽奖系统（SRANDMEMBER）。",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "subtitle-text",
+          "left": 20,
+          "top": 72,
+          "width": 960,
+          "height": 36,
+          "content": "<h2 style='color:#64748B;font-size:14px;font-weight:400;text-align:center;'>Interactive Learning · 交互式学习</h2>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "Hash (哈希)",
-          "text": "键值对集合。场景：购物车数据、对象属性存储（比String更节省内存的紧凑存储）。",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "card-1-bg",
+          "left": 40,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "shape_name": "roundRect",
+          "path": "M 16 0 L 264 0 Q 280 0 280 16 L 280 324 Q 280 340 264 340 L 16 340 Q 0 340 0 324 L 0 16 Q 0 0 16 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ]
         },
         {
-          "sub_title": "ZSet (有序集合)",
-          "text": "带分值的集合。场景：排行榜（游戏积分）、延时队列（时间戳作为分值）、带权重的标签系统。",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "card-2-bg",
+          "left": 360,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "shape_name": "roundRect",
+          "path": "M 16 0 L 264 0 Q 280 0 280 16 L 280 324 Q 280 340 264 340 L 16 340 Q 0 340 0 324 L 0 16 Q 0 0 16 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "card-3-bg",
+          "left": 680,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "shape_name": "roundRect",
+          "path": "M 16 0 L 264 0 Q 280 0 280 16 L 280 324 Q 280 340 264 340 L 16 340 Q 0 340 0 324 L 0 16 Q 0 0 16 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "card-1-icon-bg",
+          "left": 100,
+          "top": 160,
+          "width": 80,
+          "height": 80,
+          "shape_name": "ellipse",
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "card-2-icon-bg",
+          "left": 420,
+          "top": 160,
+          "width": 80,
+          "height": 80,
+          "shape_name": "ellipse",
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "card-3-icon-bg",
+          "left": 740,
+          "top": 160,
+          "width": 80,
+          "height": 80,
+          "shape_name": "ellipse",
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "card-1-icon",
+          "left": 100,
+          "top": 170,
+          "width": 80,
+          "height": 60,
+          "content": "<span style='font-size:32px;text-align:center;display:block;line-height:60px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "card-2-icon",
+          "left": 420,
+          "top": 170,
+          "width": 80,
+          "height": 60,
+          "content": "<span style='font-size:32px;text-align:center;display:block;line-height:60px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "card-3-icon",
+          "left": 740,
+          "top": 170,
+          "width": 80,
+          "height": 60,
+          "content": "<span style='font-size:32px;text-align:center;display:block;line-height:60px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "card-1-title",
+          "left": 40,
+          "top": 260,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-2-title",
+          "left": 360,
+          "top": 260,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;text-align:center;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-3-title",
+          "left": 680,
+          "top": 260,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#5B21B6;font-size:18px;font-weight:600;text-align:center;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-1-content",
+          "left": 55,
+          "top": 305,
+          "width": 250,
+          "height": 140,
+          "content": "<p style='color:#1E40AF;font-size:13px;line-height:1.8;text-align:center;'>Hash表的渐进式<br/>Rehash扩容机制...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-2-content",
+          "left": 375,
+          "top": 305,
+          "width": 250,
+          "height": 140,
+          "content": "<p style='color:#065F46;font-size:13px;line-height:1.8;text-align:center;'>ZSet跳跃表的<br/>层级索引构建原理...</p>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "card-3-content",
+          "left": 695,
+          "top": 305,
+          "width": 250,
+          "height": 140,
+          "content": "<p style='color:#5B21B6;font-size:13px;line-height:1.8;text-align:center;'>不同数据结构底层<br/>编码的转换条件...</p>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "footer-bar-bg",
+          "left": 0,
+          "top": 530,
+          "width": 1000,
+          "height": 32,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 32 L 0 32 Z",
+          "fill": "#E2E8F0",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            32
+          ]
+        },
+        {
+          "type": "text",
+          "id": "footer-text",
+          "left": 20,
+          "top": 530,
+          "width": 960,
+          "height": 32,
+          "content": "<p style='color:#64748B;font-size:11px;line-height:32px;text-align:center;'>Redis · 数据结构 · 内存管理 · 性能优化</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#10B981",
+          "#8B5CF6",
+          "#EFF6FF",
+          "#ECFDF5",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "3",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。Hash表的渐进式Rehash扩容机制"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。ZSet跳跃表的层级索引构建原理"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。不同数据结构底层编码的转换条件"
+        }
+      ]
     },
     {
-      "layout_type": "quote-highlight",
-      "title": "核心实战总结",
-      "content": [
-        {
-          "sub_title": "架构设计精髓",
-          "text": "\"Redis的高性能并非因为单线程本身，而是得益于单线程避免了锁竞争，结合IO多路复用机制实现了纯内存级别的快速响应。\"",
-          "icon": "lightbulb",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "选型建议",
-          "text": "在实际开发中，应根据业务场景选择合适的数据结构。例如，简单的KV缓存首选String，复杂对象存储推荐Hash，排名功能必选ZSet。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
+      "id": "slide-3",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     },
     {
-      "layout_type": "header-content",
-      "title": "Redis基础数据结构实战",
-      "content": [
-        {
-          "sub_title": "场景目标",
-          "text": "在在线IDE中实操String、List、Set等基础命令，通过实战演练掌握数据的增删改查操作。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "核心要点",
-          "text": "本次实战将重点覆盖String类型的原子计数、List结构的队列模拟以及Set集合的交并集运算。",
-          "icon": "star",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
+      "id": "slide-4",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     },
     {
-      "layout_type": "grid-cards",
-      "title": "核心数据结构知识点",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "gradient",
+        "colors": [
+          {
+            "color": "#1E3A8A",
+            "pos": 0
+          },
+          {
+            "color": "#3B82F6",
+            "pos": 0.5
+          },
+          {
+            "color": "#60A5FA",
+            "pos": 1
+          }
+        ]
+      },
+      "elements": [
         {
-          "sub_title": "String类型",
-          "text": "最基础类型，支持SET/GET读写，INCR/DECR原子计数操作，常用于计数器、缓存场景。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-1-deco-circle-1",
+          "left": 0,
+          "top": 0,
+          "width": 300,
+          "height": 300,
+          "path": "M 150 0 A 150 150 0 1 1 0 150 A 150 150 0 1 1 150 0",
+          "fill": "rgba(255,255,255,0.1)",
+          "viewBox": [
+            0,
+            0,
+            300,
+            300
+          ]
         },
         {
-          "sub_title": "List结构",
-          "text": "双向链表实现，支持LPUSH/RPOP组合实现简单消息队列，适合存储列表数据。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-1-deco-circle-3",
+          "left": 850,
+          "top": 0,
+          "width": 150,
+          "height": 180,
+          "path": "M 90 0 A 90 90 0 1 1 0 90 A 90 90 0 1 1 90 0",
+          "fill": "rgba(255,255,255,0.05)",
+          "viewBox": [
+            0,
+            0,
+            180,
+            180
+          ]
         },
         {
-          "sub_title": "Set集合",
-          "text": "无序唯一集合，支持交集(SINTER)、并集(SUNION)运算，常用于去重与标签系统。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-1-card-bg",
+          "left": 100,
+          "top": 120,
+          "width": 800,
+          "height": 320,
+          "path": "M 16 0 L 784 0 Q 800 0 800 16 L 800 304 Q 800 320 784 320 L 16 320 Q 0 320 0 304 L 0 16 Q 0 0 16 0 Z",
+          "fill": "rgba(255,255,255,0.15)",
+          "viewBox": [
+            0,
+            0,
+            800,
+            320
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-1-course-label",
+          "left": 100,
+          "top": 150,
+          "width": 800,
+          "height": 30,
+          "content": "<h2 style='color:rgba(255,255,255,0.8);font-size:16px;text-align:center;letter-spacing:4px;'>Redis核心实战</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-1-main-title",
+          "left": 100,
+          "top": 195,
+          "width": 800,
+          "height": 80,
+          "content": "<h1 style='color:#FFFFFF;font-size:42px;text-align:center;font-weight:700;letter-spacing:2px;'>分布式锁实现</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-1-subtitle",
+          "left": 100,
+          "top": 290,
+          "width": 800,
+          "height": 40,
+          "content": "<h3 style='color:rgba(255,255,255,0.7);font-size:18px;text-align:center;font-weight:400;'>Redis Distributed Lock Implementation</h3>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-1-line-1",
+          "left": 200,
+          "top": 340,
+          "width": 200,
+          "height": 2,
+          "path": "M 0 1 L 200 1",
+          "fill": "rgba(255,255,255,0.3)",
+          "viewBox": [
+            0,
+            0,
+            200,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-1-line-2",
+          "left": 600,
+          "top": 340,
+          "width": 200,
+          "height": 2,
+          "path": "M 0 1 L 200 1",
+          "fill": "rgba(255,255,255,0.3)",
+          "viewBox": [
+            0,
+            0,
+            200,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-1-icon-container",
+          "left": 470,
+          "top": 360,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 15 L 60 45 L 30 60 L 0 45 L 0 15 Z",
+          "fill": "rgba(255,255,255,0.2)",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-1-exercise-badge",
+          "left": 450,
+          "top": 370,
+          "width": 100,
+          "height": 40,
+          "content": "<span style='font-size:24px;'>📚</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-1-deco-circle-2",
+          "left": 780,
+          "top": 380,
+          "width": 220,
+          "height": 182.5,
+          "path": "M 200 0 A 200 200 0 1 1 0 200 A 200 200 0 1 1 200 0",
+          "fill": "rgba(255,255,255,0.08)",
+          "viewBox": [
+            0,
+            0,
+            400,
+            400
+          ]
         }
       ],
-      "scene_id": 2
+      "theme": {
+        "themeColors": [
+          "#1E3A8A",
+          "#3B82F6",
+          "#60A5FA",
+          "#FFFFFF"
+        ],
+        "fontColor": "#FFFFFF",
+        "backgroundColor": "#1E3A8A"
+      },
+      "scene_id": "6",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "Redis分布式锁实战演练"
+        }
+      ]
     },
     {
-      "layout_type": "two-column",
-      "title": "实战演练：String与List操作",
-      "content": [
+      "id": "slide-redis-social",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "String原子计数示例",
-          "text": "利用INCR命令实现原子递增，确保高并发下计数的准确性。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 设置初始值\nSET page_views 100\n# 原子递增\nINCR page_views\n# 获取结果\nGET page_views # 输出: 101",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 72,
+          "path": "M 0 0 L 1000 0 L 1000 72 Q 0 72 0 0 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            72
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          }
         },
         {
-          "sub_title": "List消息队列示例",
-          "text": "使用LPUSH从左侧插入，RPOP从右侧弹出，实现先进先出(FIFO)队列。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 生产者：压入消息\nLPUSH task_queue \"task_1\"\nLPUSH task_queue \"task_2\"\n# 消费者：弹出消息\nRPOP task_queue # 返回 \"task_1\"\nRPOP task_queue # 返回 \"task_2\"",
-          "image_url": ""
+          "type": "text",
+          "id": "el-main-title",
+          "left": 30,
+          "top": 16,
+          "width": 940,
+          "height": 40,
+          "content": "<h1 style='color:#FFFFFF;font-size:28px;font-weight:600;'>Redis核心实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 30,
+          "top": 80,
+          "width": 940,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:500;'>社交平台项目实战</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 30,
+          "top": 140,
+          "width": 290,
+          "height": 320,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 135
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 355,
+          "top": 140,
+          "width": 290,
+          "height": 320,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#FFFBEB",
+                "pos": 0
+              },
+              {
+                "color": "#FEF3C7",
+                "pos": 1
+              }
+            ],
+            "rotate": 135
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 680,
+          "top": 140,
+          "width": 290,
+          "height": 320,
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 308 Q 290 320 278 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            290,
+            320
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#ECFDF5",
+                "pos": 0
+              },
+              {
+                "color": "#D1FAE5",
+                "pos": 1
+              }
+            ],
+            "rotate": 135
+          }
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon",
+          "left": 115,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-star",
+          "left": 115,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon",
+          "left": 440,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-star",
+          "left": 440,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon",
+          "left": 765,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-star",
+          "left": 765,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "content": "<p style='color:#FFFFFF;font-size:24px;text-align:center;line-height:60px;'>★</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 40,
+          "top": 245,
+          "width": 270,
+          "height": 36,
+          "content": "<h3 style='color:#1E40AF;font-size:20px;font-weight:600;text-align:center;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 365,
+          "top": 245,
+          "width": 270,
+          "height": 36,
+          "content": "<h3 style='color:#92400E;font-size:20px;font-weight:600;text-align:center;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 690,
+          "top": 245,
+          "width": 270,
+          "height": 36,
+          "content": "<h3 style='color:#065F46;font-size:20px;font-weight:600;text-align:center;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 40,
+          "top": 290,
+          "width": 270,
+          "height": 150,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;text-align:center;'>使用Set集合实现点赞与共同关注功能</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 365,
+          "top": 290,
+          "width": 270,
+          "height": 150,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;text-align:center;'>利用ZSet实现最新动态的时间线排序</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 690,
+          "top": 290,
+          "width": 270,
+          "height": 150,
+          "content": "<p style='color:#334155;font-size:14px;line-height:1.6;text-align:center;'>BitMap结构在用户签到统计中的应用</p>",
+          "fill": "transparent",
+          "defaultColor": "#334155",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "two-column",
-      "title": "实战演练：Set集合运算",
-      "content": [
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#334155",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "7",
+      "actions": [
         {
-          "sub_title": "Set去重与运算",
-          "text": "Set自动去重，适合存储唯一标识。通过交集运算寻找共同好友或共同标签。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "# 添加用户标签\nSADD user:1:tags \"redis\" \"db\"\nSADD user:2:tags \"redis\" \"java\"\n# 计算共同标签(交集)\nSINTER user:1:tags user:2:tags\n# 输出: \"redis\"",
-          "image_url": ""
+          "type": "speech",
+          "text": "要点 1。使用Set集合实现点赞与共同关注功能"
         },
         {
-          "sub_title": "实战提示",
-          "text": "在进行集合运算时，注意大数据量的性能影响。SINTER时间复杂度为O(N*M)，建议在从节点执行或使用SCAN迭代。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "speech",
+          "text": "要点 2。利用ZSet实现最新动态的时间线排序"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。BitMap结构在用户签到统计中的应用"
         }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "header-content",
-      "title": "动手练习与总结",
-      "content": [
-        {
-          "sub_title": "练习任务",
-          "text": "1. 使用String实现一个文章点赞计数器（INCR）；\n2. 使用List构建一个简单的日志处理队列；\n3. 使用Set计算两个商品集合的并集，展示所有唯一商品。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "关键总结",
-          "text": "String是基石，List模拟队列，Set处理唯一性与集合运算。选择合适的数据结构是Redis优化的第一步。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "header-content",
-      "title": "交互实验室：Redis内存数据结构探秘",
-      "content": [
-        {
-          "sub_title": "场景目标",
-          "text": "本环节通过可视化模拟，深入Redis内核。你将亲手操作参数，观察Hash表如何在服务不中断的情况下完成扩容，以及ZSet如何通过概率层级构建高效的跳跃表索引。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "核心实验对象",
-          "text": "1. Hash表：观察键值对数量变化引发的渐进式Rehash全过程。\n2. ZSet：动态插入节点，见证跳跃表多层索引的诞生。",
-          "icon": "info",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心原理：底层结构与编码转换",
-      "content": [
-        {
-          "sub_title": "Hash表的渐进式Rehash",
-          "text": "原理：维持ht[0]和ht[1]两张表，在增删改查操作中分步迁移数据，避免一次性扩容导致的卡顿。\n触发条件：load_factor > 1 (正常) 或 > 5 (强制)。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "ZSet跳跃表",
-          "text": "结构：多层链表结构，底层包含所有节点，上层通过随机概率（25%）构建索引。\n优势：将查找复杂度从O(N)降至O(logN)，实现原理简单且高效。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "编码转换条件",
-          "text": "Hash对象：元素数<512且值<64字节使用ziplist，否则hashtable。\nZSet对象：元素数<128且值<64字节使用ziplist，否则skiplist。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "two-column",
-      "title": "实验一：Hash表扩容模拟",
-      "content": [
-        {
-          "sub_title": "操作指南",
-          "text": "1. 点击“添加数据”观察负载因子变化。\n2. 触发扩容后，观察rehashidx索引的移动。\n3. 注意观察数据如何在ht[0]和ht[1]之间平滑迁移，期间服务保持响应。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "hash_rehash_diagram.png"
-        },
-        {
-          "sub_title": "关键状态监测",
-          "text": "• 扩容前：所有请求命中ht[0]。\n• 扩容中：新增节点写入ht[1]，查询操作同时检查两张表。\n• 扩容后：ht[1]晋升为ht[0]，释放旧表内存。\n\n请尝试在扩容期间执行查询操作，验证数据一致性。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "two-column",
-      "title": "实验二：ZSet跳跃表节点插入",
-      "content": [
-        {
-          "sub_title": "插入过程演示",
-          "text": "1. 输入分值插入新节点。\n2. 系统抛掷“硬币”（随机算法），决定是否提升至上一层索引。\n3. 观察L1、L2...Ln层指针的连接变化。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": "skiplist_visual.png"
-        },
-        {
-          "sub_title": "性能对比思考",
-          "text": "• 对比普通链表：跳跃表如何减少比较次数？\n• 随机性：为什么Redis不要求严格的平衡（如AVL树），而是采用随机层高？\n\n请在交互区连续插入10个节点，统计平均层数。",
-          "icon": "question",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "实验总结与思考",
-      "content": [
-        {
-          "sub_title": "核心结论",
-          "text": "Redis通过精妙的数据结构设计，在内存限制与性能之间找到了平衡。Hash的渐进式Rehash保证了高并发下的平滑扩容，ZSet的跳跃表以较低的实现成本换取了媲美平衡树的查询效率。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "课后挑战",
-          "text": "思考题：如果将Hash对象的ziplist编码阈值调大，会对CPU缓存命中率产生什么影响？请在评论区分享你的观点。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "header-content",
-      "title": "核心机制知识测验",
-      "content": [
-        {
-          "sub_title": "测验说明",
-          "text": "本次测验旨在检验大家对Redis核心机制的掌握程度，重点考察过期策略的执行逻辑、内存淘汰算法的选择场景以及持久化方案的优缺点权衡。请认真审题，结合源码原理作答。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "考察范围",
-          "text": "1. 过期策略：定期删除与惰性删除的配合机制\n2. 淘汰算法：LRU、LFU等八种内存淘汰策略的区别\n3. 持久化原理：RDB快照与AOF日志的对比分析",
-          "icon": "book",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "答题要求",
-          "text": "本环节包含单选题、多选题与判断题。请点击选项进行作答，系统将即时反馈正误结果，并附带关键知识点解析。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "第一部分：过期策略与淘汰机制",
-      "content": [
-        {
-          "sub_title": "Q1：过期键删除策略（单选）",
-          "text": "Redis采用了哪种策略来平衡CPU性能与内存回收效率？\n\nA. 仅使用定时删除\nB. 仅使用惰性删除\nC. 定期删除与惰性删除配合使用\nD. 仅使用立即删除",
-          "icon": "question",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "Q2：内存淘汰算法（多选）",
-          "text": "当Redis内存达到maxmemory限制时，以下哪些配置会导致数据丢失风险？\n\nA. volatile-lru\nB. allkeys-lru\nC. noeviction\nD. volatile-random",
-          "icon": "question",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "Q3：LFU算法特性（判断）",
-          "text": "LFU（Least Frequently Used）算法根据数据访问频率进行淘汰，相比LRU算法，它更能准确识别“冷数据”，适合处理突发性大量访问场景。请判断正误。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "第二部分：持久化原理对比",
-      "content": [
-        {
-          "sub_title": "Q4：RDB与AOF对比分析（连线题）",
-          "text": "请将以下特性归类到对应的持久化方式：\n\n1. 文件体积小，恢复速度快\n2. 数据安全性高，最多丢失1秒数据\n3. 适合作为备份文件迁移\n4. 写入压力大，文件可能过大\n\n选项：\nA. RDB快照\nB. AOF日志",
-          "icon": "lightbulb",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "Q5：混合持久化优势（单选）",
-          "text": "Redis 4.0推出了混合持久化（RDB+AOF），其主要优势是什么？\n\nA. 完全消除了AOF重写的开销\nB. 结合了RDB的快速恢复与AOF的数据完整性\nC. 使得Redis不再需要配置maxmemory\nD. 磁盘占用空间最小化",
-          "icon": "star",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "测验结束与要点总结",
-      "content": [
-        {
-          "sub_title": "核心考点回顾",
-          "text": "“定期删除负责定期抽样清理，惰性删除负责访问时检查，二者缺一不可。内存淘汰是Redis内存管理的最后一道防线，而持久化则是数据安全的兜底方案。”",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "下一步建议",
-          "text": "若对淘汰算法理解不深，建议复习 `evict.c` 源码实现；若对持久化配置存疑，请重点练习 `redis.conf` 中 appendonly 与 save 参数的调优配置。",
-          "icon": "lightbulb",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "header-content",
-      "title": "高并发缓存架构图解",
-      "content": [
-        {
-          "sub_title": "缓存面临的三大挑战",
-          "text": "在高并发场景下，Redis缓存架构主要面临穿透、击穿、雪崩三大风险。本节通过架构图解方式，深入剖析问题根源与解决方案的落地位置。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/redis-architecture-overview.png"
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心问题与解决方案概览",
-      "content": [
-        {
-          "sub_title": "缓存穿透",
-          "text": "查询不存在的数据，请求直达数据库。\n方案：布隆过滤器拦截、空值缓存。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "缓存击穿",
-          "text": "热点Key过期，瞬间高并发击垮数据库。\n方案：互斥锁重建、逻辑过期策略。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "缓存雪崩",
-          "text": "大量Key同时过期或Redis宕机。\n方案：随机过期时间、多级缓存架构。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "架构图解：缓存穿透与布隆过滤器",
-      "content": [
-        {
-          "sub_title": "架构原理",
-          "text": "在请求到达Redis之前，通过布隆过滤器进行前置拦截。若布隆过滤器判断数据不存在，直接返回，避免底层压力。对于误判或空查询，可采用空值缓存作为兜底。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/bloom-filter-diagram.png"
-        },
-        {
-          "sub_title": "方案落地位置",
-          "text": "1. 布隆过滤器：部署在应用服务层与Redis之间。\n2. 空值缓存：在Redis层设置短TTL的Null Key。\n\n此架构有效拦截无效流量，保护数据库安全。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "架构图解：缓存击穿与互斥锁",
-      "content": [
-        {
-          "sub_title": "架构原理",
-          "text": "当热点Key过期时，利用互斥锁控制只有一个线程去查询数据库并重建缓存。其他线程等待重试。逻辑过期方案则是在数据中嵌入过期字段，异步更新，保证高可用。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/mutex-lock-diagram.png"
-        },
-        {
-          "sub_title": "方案落地位置",
-          "text": "1. 互斥锁：在应用服务层利用Redis SETNX实现。\n2. 逻辑过期：缓存Value结构中增加expire字段。\n\n解决方案直接作用于缓存重建逻辑中。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "header-content",
-      "title": "架构图解：缓存雪崩与多级缓存",
-      "content": [
-        {
-          "sub_title": "架构层级与防御策略",
-          "text": "雪崩解决的核心在于“错峰”与“冗余”。\n\n1. 随机过期时间：在设置TTL时增加随机值，避免同时失效（作用于Redis层）。\n2. 多级缓存：引入本地缓存作为二级缓存，即使Redis崩溃，本地缓存仍可支撑部分流量（作用于应用层与Redis之间）。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/multi-level-cache-diagram.png"
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "场景引入：电商秒杀的超卖危机",
-      "content": [
-        {
-          "sub_title": "问题背景",
-          "text": "在高并发秒杀场景下，多个线程同时查询库存并扣减，由于缺乏同步机制，极易导致“超卖”现象，即库存为负数，引发客诉与资损。",
-          "icon": "warning",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "解决方案",
-          "text": "引入分布式锁，将并行操作串行化。本练习将带你从最基础的SETNX命令开始，逐步构建一个健壮的Redis分布式锁。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心知识点：构建稳健的分布式锁",
-      "content": [
-        {
-          "sub_title": "加锁策略",
-          "text": "使用 SET key value NX PX timeout 命令。NX保证互斥性，PX设置过期时间防止客户端宕机导致死锁。Value需设为UUID，标识锁持有者。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "解锁原子性",
-          "text": "解锁必须校验锁持有者（Value），防止误删他人锁。因“判断+删除”非原子操作，必须使用Lua脚本执行解锁逻辑。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "看门狗机制",
-          "text": "业务执行时间可能超过锁过期时间。引入Watchdog（看门狗）后台线程，定期检测并延长锁的TTL，防止业务未执行完锁即过期。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "代码演进：从基础到原子化",
-      "content": [
-        {
-          "sub_title": "错误示例：非原子解锁",
-          "text": "以下代码存在风险：如果线程A在判断uuid相等后、执行del前锁过期，线程B获取锁，此时A执行del会误删B的锁。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "// 线程A：危险的解锁逻辑\nif (uuid.equals(redis.get(key))) {\n    // 此时锁过期，线程B加锁成功\n    // 线程A执行删除，导致B的锁被误删\n    redis.del(key); \n}",
-          "image_url": ""
-        },
-        {
-          "sub_title": "正确示例：Lua脚本解锁",
-          "text": "Redis执行Lua脚本是原子性的，要么全做要么全不做，完美解决了竞态条件下的误删问题。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "// Lua脚本解锁\nString script = \n  \"if redis.call('get', KEYS[1]) == ARGV[1] \" +\n  \"then return redis.call('del', KEYS[1]) \" +\n  \"else return 0 end\";\nredis.eval(script, key, uuid);",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "实战练习任务",
-      "content": [
-        {
-          "sub_title": "任务一：实现基础加锁与解锁",
-          "text": "在IDE中打开 SecKillService 类，使用 setIfAbsent 方法实现加锁，并设置30秒过期时间。编写简单的解锁逻辑。",
-          "icon": "code",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "任务二：解决误删问题",
-          "text": "重构解锁代码，引入Lua脚本。确保只有锁的持有者才能释放锁，并通过单元测试验证原子性。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "任务三：看门狗自动续期（进阶）",
-          "text": "模拟耗时10秒的业务，设置锁过期5秒。实现一个后台线程每1/3过期时间重设过期时间，确保业务执行期间锁不丢失。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "社交平台项目实战：Redis核心应用",
-      "content": [
-        {
-          "sub_title": "项目背景",
-          "text": "在当今高并发的社交平台场景中，传统关系型数据库面临着巨大的性能挑战。本项目旨在利用Redis的高性能读写特性，解决社交互动中的实时性难题。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "核心目标",
-          "text": "基于Redis构建三个核心功能模块：高并发点赞与共同好友计算、基于时间线的动态消息推送、以及海量用户签到统计。通过实战掌握Set、ZSet、BitMap的高级应用。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心数据结构选型与知识点解析",
-      "content": [
-        {
-          "sub_title": "Set集合：社交关系与点赞",
-          "text": "利用Set的去重特性存储点赞用户ID，通过SINTER命令高效计算共同关注好友，时间复杂度低，适合社交圈计算。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "ZSet有序集合：时间线排序",
-          "text": "使用Score存储动态发布的时间戳，实现最新动态的自动排序。利用ZRANGE轻松获取Top N最新消息流。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "BitMap位图：签到统计",
-          "text": "将一年365天映射为位图，用户签到对应位置置为1。极致节省空间（约46KB/用户/年），支持BITCOUNT快速统计连续签到。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "two-column",
-      "title": "实战场景演示：点赞与消息推送",
-      "content": [
-        {
-          "sub_title": "点赞功能实现",
-          "text": "使用SADD添加点赞用户，SREM取消点赞，SISMEMBER判断点赞状态。确保同一用户不能重复点赞，且查询速度极快。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "// 点赞与共同关注示例\nSADD like:post:1001 user:88\nSISMEMBER like:post:1001 user:88\n// 计算用户A与用户B的共同关注\nSINTER user:A:following user:B:following",
-          "image_url": ""
-        },
-        {
-          "sub_title": "消息推送实现",
-          "text": "使用ZADD添加动态，Score为时间戳。通过ZRANGE按时间倒序获取最新动态列表，实现关注Feed流的实时推送。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "// 推送最新动态\nZADD user:888:timeline 1704067200 'post:1001'\n// 获取最新10条动态\nZREVRANGE user:888:timeline 0 9 WITHSCORES",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "实战任务与巩固要求",
-      "content": [
-        {
-          "sub_title": "任务清单",
-          "text": "1. 编写API接口实现文章的点赞/取消点赞功能，并返回当前点赞数。\n2. 实现两个用户之间的“共同关注”列表查询接口。\n3. 使用BitMap设计并实现用户本月的签到日历展示接口。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "性能指标要求",
-          "text": "在模拟10万用户并发场景下，点赞响应时间需<10ms，签到统计需<5ms。请合理设计Key的命名规范，避免键冲突。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
+      ]
     }
   ],
   "teacher": {

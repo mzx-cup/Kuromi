@@ -697,8 +697,15 @@ class MiniMaxPPTProvider:
         if len(content) == 2:
             return "two-column"
         if len(content) <= 4:
-            return random.choice(["two-column", "grid-cards"])
-        return random.choice(["header-content", "grid-cards"])
+            return random.choice([
+                "two-column", "grid-cards", "center-focus",
+                "media-left", "stats-row", "timeline-steps",
+                "fullwidth-banner", "comparison"
+            ])
+        return random.choice([
+            "header-content", "grid-cards", "center-focus",
+            "media-left", "stats-row", "timeline-steps"
+        ])
 
     def _strip_markdown(self, text: str) -> str:
         """去除 markdown 代码块包装"""

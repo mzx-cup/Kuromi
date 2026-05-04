@@ -35,11 +35,11 @@
 
     // MiniMax TTS voice mapping
     const MINIMAX_VOICES = {
-        'female-shaonv': { voice_id: 'female_shaonv', name: '青春少女', description: '活泼可爱的年轻女声' },
-        'female-yujie': { voice_id: 'female_yujie', name: '温柔御姐', description: '成熟温柔的姐姐声音' },
-        'female-danyun': { voice_id: 'female_danyun', name: '知性女声', description: '知性优雅的女性声音' },
-        'male-qingshu': { voice_id: 'male_qingshu', name: '青涩少年', description: '清新自然的年轻男声' },
-        'male-shaoshuai': { voice_id: 'male_shaoshuai', name: '磁性男声', description: '沉稳磁性的成熟男声' }
+        'female-shaonv': { voice_id: 'female-shaonv', name: '青春少女', description: '活泼可爱的年轻女声' },
+        'female-yujie': { voice_id: 'female-yujie', name: '温柔御姐', description: '成熟温柔的姐姐声音' },
+        'female-danyun': { voice_id: 'female-danyun', name: '知性女声', description: '知性优雅的女性声音' },
+        'male-qingshu': { voice_id: 'male-qingshu', name: '青涩少年', description: '清新自然的年轻男声' },
+        'male-shaoshuai': { voice_id: 'male-shaoshuai', name: '磁性男声', description: '沉稳磁性的成熟男声' }
     };
 
     // Default TTS config
@@ -91,6 +91,12 @@
             this.quizResults = [];
             this._wasSpeakingBeforeQuiz = false;
 
+            // Discussion state
+            this.discussionActive = false;
+            this.discussionMessages = [];
+            this.discussionStreamController = null;
+            this.currentDiscussionTab = 'qa';
+
             // Whiteboard state
             this.whiteboardRenderer = null;
             this.whiteboardContainer = document.getElementById('whiteboard-container');
@@ -117,6 +123,7 @@
             this.exerciseContainer = document.getElementById('exercise-container');
             this.interactiveContainer = document.getElementById('interactive-container');
             this.teacherAvatar = document.getElementById('teacher-avatar');
+            this.teacherStatus = document.getElementById('teacher-status');
             this.speechText = document.getElementById('speech-text');
             this.prevBtn = document.getElementById('prev-slide');
             this.nextBtn = document.getElementById('next-slide');
@@ -129,6 +136,11 @@
             this.chatInput = document.getElementById('chat-input');
             this.sendChat = document.getElementById('send-chat');
             this.chatAgentSelect = document.getElementById('chat-agent-select');
+            this.chatPanel = document.getElementById('chat-panel');
+            this.chatToggleBtn = document.getElementById('chat-toggle-btn');
+            this.discussionArea = document.getElementById('discussion-area');
+            this.discussionMessages = document.getElementById('discussion-messages');
+            this.discussionStartBtn = document.getElementById('discussion-start-btn');
             this.sceneThumbnails = document.getElementById('scene-thumbnails');
             this.sceneSidebar = document.getElementById('scene-sidebar');
             this.completionOverlay = document.getElementById('completion-overlay');
@@ -189,6 +201,14 @@
                             if (vi) vi.className = 'fas fa-volume-up';
                         }
                     },
+                    onWhiteboardAction: function(action) {
+                        self.executeWhiteboardAction(action);
+                    },
+                    onGenerateTTS: function(text) {
+                        const voiceId = self.ttsConfig?.voice || TTS_CONFIG.voice;
+                        const speed = self.ttsConfig?.speed || TTS_CONFIG.speed;
+                        return self.generateTTS(text, voiceId, speed);
+                    },
                 });
             }
 
@@ -217,6 +237,8 @@
             this.renderSceneSidebar();
             this.renderScene(0);
             this.updateNav();
+            // 启动后台轮询（如果courseId存在且生成未完成）
+            this.startBackgroundPolling();
         }
 
         loadData() {
@@ -227,7 +249,106 @@
             if (this.courseData) {
                 this.agentTeam = this.courseData.agent_team || [];
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
+                // 保存courseId用于后台轮询
+                this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || null;
             }
+        }
+
+        // ---- 后台轮询：增量加载新幻灯片 ----
+        startBackgroundPolling() {
+            if (!this.courseId) return;
+            const self = this;
+            this.pollingInterval = setInterval(async function() {
+                try {
+                    const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
+                    if (!resp.ok) return;
+                    const data = await resp.json();
+                    if (data.is_complete) {
+                        clearInterval(self.pollingInterval);
+                        return;
+                    }
+                    if (data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
+                        self.addNewScenes(data);
+                    }
+                } catch (e) {
+                    console.warn('[classroom] Polling error:', e);
+                }
+            }, 5000);
+        }
+
+        addNewScenes(data) {
+            const pendingV2 = data.pending_slides_v2 || [];
+            const pendingQuiz = data.pending_quiz_data || [];
+            const pendingExercise = data.pending_exercise_data || [];
+            if (pendingV2.length === 0) return;
+
+            const self = this;
+            let addedCount = 0;
+
+            pendingV2.forEach(function(slideV2) {
+                // 检查是否已存在
+                const exists = self.scenes.some(function(s) {
+                    return s.slides_v2 && s.slides_v2.length > 0 &&
+                           s.slides_v2[0].title === slideV2.title;
+                });
+                if (exists) return;
+
+                // 创建新场景
+                const newScene = {
+                    id: slideV2.scene_id || ('scene_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
+                    title: slideV2.title || '新页面',
+                    type: slideV2.layout_type || 'slide',
+                    slides_v2: [slideV2],
+                    slide: null,
+                    quiz: null,
+                    exercise: null,
+                    audioUrl: null,
+                    imageUrl: slideV2.content && slideV2.content[0] && slideV2.content[0].image_url || null,
+                    actions: slideV2.actions || null,
+                };
+
+                // 尝试匹配quiz或exercise
+                const matchedQuiz = pendingQuiz.find(function(q) {
+                    return q.scene_id === slideV2.scene_id;
+                });
+                if (matchedQuiz) newScene.quiz = matchedQuiz;
+
+                const matchedExercise = pendingExercise.find(function(e) {
+                    return e.scene_id === slideV2.scene_id;
+                });
+                if (matchedExercise) newScene.exercise = matchedExercise;
+
+                self.scenes.push(newScene);
+                addedCount++;
+            });
+
+            if (addedCount > 0) {
+                console.log(`[classroom] Added ${addedCount} new scenes`);
+                // 重新渲染侧边栏
+                this.renderSceneSidebar();
+                // 更新总页数
+                if (this.totalSlidesEl) {
+                    this.totalSlidesEl.textContent = this.scenes.length;
+                }
+                // 显示提示
+                this.showNewScenesToast(addedCount);
+            }
+        }
+
+        showNewScenesToast(count) {
+            const toast = document.createElement('div');
+            toast.className = 'new-scenes-toast';
+            toast.innerHTML = `<i class="fas fa-plus-circle"></i> 已添加 ${count} 个新页面`;
+            toast.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);' +
+                'background:linear-gradient(135deg,var(--primary),var(--accent));' +
+                'color:#fff;padding:12px 24px;border-radius:24px;z-index:9999;' +
+                'animation:slideDown 0.3s ease';
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
         }
 
         buildScenes() {
@@ -263,10 +384,39 @@
 
             // slides_v2 now includes scene_id from MiniMax PPT provider
             // Use findSceneData for scene_id matching (Strategy 1), fallback to index for legacy
+            var usedSlideV2Indices = new Set();
             this.scenes = outlines.map(function(outline, i) {
                 var sceneId = outline.id || i + 1;
                 var matchedSlide = findSceneData(slides, outline);
-                var matchedSlideV2 = findSceneData(slidesV2, outline) || slidesV2[i] || null;
+                var matchedSlideV2 = findSceneData(slidesV2, outline) || null;
+
+                // Fallback: if no scene_id match, find by index or first valid slides_v2 entry with content
+                if (!matchedSlideV2) {
+                    if (i < slidesV2.length) {
+                        var candidate = slidesV2[i];
+                        // If the indexed entry has no content, scan forward to find the first with valid content
+                        var hasContent = (candidate.elements && candidate.elements.length > 0) ||
+                                         (candidate.content && candidate.content.length > 0);
+                        if (!hasContent) {
+                            for (var j = i; j < slidesV2.length; j++) {
+                                var c = slidesV2[j];
+                                if ((c.elements && c.elements.length > 0) || (c.content && c.content.length > 0)) {
+                                    candidate = c;
+                                    break;
+                                }
+                            }
+                        }
+                        matchedSlideV2 = candidate;
+                    }
+                    if (!matchedSlideV2) matchedSlideV2 = null;
+                }
+
+                // Track which slidesV2 are matched to outlines
+                if (matchedSlideV2) {
+                    var matchedIdx = slidesV2.indexOf(matchedSlideV2);
+                    if (matchedIdx >= 0) usedSlideV2Indices.add(matchedIdx);
+                }
+
                 var matchedQuiz = findSceneData(quizData, outline);
                 var matchedExercise = findSceneData(exerciseData, outline);
 
@@ -284,6 +434,25 @@
                     imageUrl: (matchedSlide && matchedSlide.content && matchedSlide.content.elements && matchedSlide.content.elements[0] && matchedSlide.content.elements[0].image_url) || null,
                 };
             }, this);
+
+            // Add remaining slides_v2 that weren't matched to any outline as extra scenes
+            slidesV2.forEach(function(slideV2, i) {
+                if (!usedSlideV2Indices.has(i)) {
+                    this.scenes.push({
+                        id: slideV2.scene_id || slideV2.id || ('slide-' + i),
+                        title: slideV2.title || ('幻灯片 ' + (i + 1)),
+                        type: 'slide',
+                        description: '',
+                        keyPoints: [],
+                        slide: null,
+                        slides_v2: [slideV2],
+                        quiz: null,
+                        exercise: null,
+                        audioUrl: null,
+                        imageUrl: null,
+                    });
+                }
+            }, this);
         }
 
         setupUI() {
@@ -293,18 +462,13 @@
             if (this.totalSlidesEl) {
                 this.totalSlidesEl.textContent = this.scenes.length;
             }
-            // Set teacher avatar - use image if available, otherwise gradient circle with initials
+            // Set teacher avatar - use image if available, otherwise keep kawaii style
             if (this.courseData.teacher) {
                 const teacher = this.courseData.teacher;
                 if (teacher.avatar && teacher.avatar.startsWith('http')) {
-                    this.teacherAvatar.innerHTML = `<img src="${teacher.avatar}" alt="教师" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-                } else if (teacher.name) {
-                    // Generate initials from name
-                    const initials = teacher.name.slice(0, 2).toUpperCase();
-                    this.teacherAvatar.innerHTML = `<span style="font-size:1.5rem;font-weight:700;color:white;">${initials}</span>`;
-                } else {
-                    this.teacherAvatar.innerHTML = `<span style="font-size:1.5rem;">👩‍🏫</span>`;
+                    this.teacherAvatar.innerHTML = `<img src="${teacher.avatar}" alt="教师" class="avatar-img">`;
                 }
+                // else: keep the default kawaii face
             }
             // Populate agent selector in chat
             if (this.chatAgentSelect && this.agentTeam.length > 0) {
@@ -317,6 +481,37 @@
         bindEvents() {
             document.getElementById('toggle-sidebar')?.addEventListener('click', () => {
                 this.sceneSidebar.classList.toggle('collapsed');
+            });
+            this.chatToggleBtn?.addEventListener('click', () => {
+                this.chatPanel.classList.toggle('collapsed');
+                this.chatToggleBtn.classList.toggle('expanded');
+            });
+            // Chat tab switching
+            document.querySelectorAll('.chat-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const tabName = e.target.dataset.tab;
+                    this.switchChatTab(tabName);
+                });
+            });
+            // Discussion start button
+            this.discussionStartBtn?.addEventListener('click', () => this.startDiscussion());
+            // Close chat panel when clicking on the main content area
+            document.getElementById('classroom-page')?.addEventListener('click', (e) => {
+                if (e.target.closest('.chat-panel') || e.target.closest('.chat-toggle-btn')) return;
+                if (!this.chatPanel.classList.contains('collapsed')) {
+                    this.chatPanel.classList.add('collapsed');
+                    this.chatToggleBtn.classList.remove('expanded');
+                }
+                // Tabbed content tab switching
+                const tabBtn = e.target.closest('.tab-btn');
+                if (tabBtn) {
+                    const tabIdx = tabBtn.dataset.tab;
+                    const container = tabBtn.closest('.slide-v2-container');
+                    container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                    tabBtn.classList.add('active');
+                    container.querySelector(`.tab-panel[data-panel="${tabIdx}"]`)?.classList.add('active');
+                }
             });
             this.prevBtn?.addEventListener('click', () => this.prevScene());
             this.nextBtn?.addEventListener('click', () => this.nextScene());
@@ -403,13 +598,16 @@
                 case 'quiz': this.openQuizPopup(scene); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
                 case 'interactive': case 'pbl': this.renderInteractiveScene(scene); break;
-                default: {
-                    // Check if V2 slides are available
+                case 'slide': case 'code': case 'diagram': case 'video': {
                     if (scene.slides_v2 && scene.slides_v2.length > 0) {
                         this.renderSlideV2Scene(scene);
                     } else {
                         this.renderSlideScene(scene);
                     }
+                    break;
+                }
+                default: {
+                    this._renderSceneErrorPlaceholder(scene);
                 }
             }
 
@@ -423,14 +621,35 @@
         hideAllSceneContainers() {
             [this.slideContainer, this.quizContainer, this.exerciseContainer, this.interactiveContainer]
                 .forEach(el => { if (el) el.style.display = 'none'; });
-            // Hide whiteboard if visible, but don't toggle state
-            if (this.whiteboardContainer) this.whiteboardContainer.style.display = 'none';
             // Hide quiz popup
             if (this.quizPopupOverlay) this.quizPopupOverlay.style.display = 'none';
             const quizSubmit = document.getElementById('quiz-submit-btn');
             const quizResult = document.getElementById('quiz-result');
             if (quizSubmit) quizSubmit.style.display = 'none';
             if (quizResult) quizResult.style.display = 'none';
+        }
+
+        _renderSceneErrorPlaceholder(scene) {
+            if (!this.slideContainer) return;
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
+            this.slideContainer.style.display = 'block';
+            this.slideContainer.innerHTML = `
+                <div class="slide-v2-container layout-title-only">
+                    <div class="slide-header">
+                        <h1>${esc(scene.title || '内容加载异常')}</h1>
+                    </div>
+                    <div class="slide-body" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
+                        <div style="text-align:center;color:#64748b;padding:2rem;">
+                            <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+                            <p style="font-size:1.1rem;font-weight:600;">暂不支持该场景类型</p>
+                            <p style="font-size:0.9rem;margin-top:0.5rem;">场景类型: ${esc(scene.type || '未知')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // ============================================================
@@ -446,10 +665,18 @@
             COLOR_THEMES: ['blue', 'yellow', 'green', 'purple', 'orange'],
 
             _cycleCardThemes(cards) {
-                if (!cards || cards.length <= 1) return cards;
-                const themes = new Set(cards.map(c => c.colorTheme));
-                const needsCycle = themes.size <= 1 || cards.some(c => !c.colorTheme);
-                if (!needsCycle) return cards;
+                if (!cards || !Array.isArray(cards) || cards.length === 0) return cards || [];
+                // Normalize color_theme (snake_case) to colorTheme (camelCase) for all cards
+                for (let i = 0; i < cards.length; i++) {
+                    if (cards[i]) {
+                        if (!cards[i].colorTheme && cards[i].color_theme) {
+                            cards[i].colorTheme = cards[i].color_theme;
+                        }
+                    }
+                }
+                // Single card with valid theme: keep it, no cycling needed
+                if (cards.length === 1) return cards;
+                // Two or more cards: always cycle themes for visual variety
                 for (let i = 0; i < cards.length; i++) {
                     cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
                 }
@@ -458,7 +685,7 @@
 
             render(slideV2, container) {
                 if (!slideV2 || !container) return;
-                const layoutType = slideV2.layoutType || 'two-column';
+                const layoutType = slideV2.layoutType || slideV2.layout_type || 'two-column';
                 const renderer = this._getRenderer(layoutType);
                 const html = renderer(slideV2);
                 container.innerHTML = html;
@@ -471,6 +698,32 @@
                     'grid-cards': this._renderGridCards.bind(this),
                     'header-content': this._renderHeaderContent.bind(this),
                     'quote-highlight': this._renderQuoteHighlight.bind(this),
+                    'center-focus': this._renderCenterFocus.bind(this),
+                    'media-left': this._renderMediaLeft.bind(this),
+                    'stats-row': this._renderStatsRow.bind(this),
+                    'timeline-steps': this._renderTimelineSteps.bind(this),
+                    'comparison': this._renderComparison.bind(this),
+                    'fullwidth-banner': this._renderFullwidthBanner.bind(this),
+                    'three-column-cards': this._renderThreeColumnCards.bind(this),
+                    'asymmetric-split': this._renderAsymmetricSplit.bind(this),
+                    'icon-vertical-stack': this._renderIconVerticalStack.bind(this),
+                    'numbered-list': this._renderNumberedList.bind(this),
+                    // 新增 15 种布局
+                    'hero-center': this._renderHeroCenter.bind(this),
+                    'left-sidebar': this._renderLeftSidebar.bind(this),
+                    'bottom-cards': this._renderBottomCards.bind(this),
+                    'floating-overlap': this._renderFloatingOverlap.bind(this),
+                    'grid-icon': this._renderGridIcon.bind(this),
+                    'process-flow': this._renderProcessFlow.bind(this),
+                    'quote-wall': this._renderQuoteWall.bind(this),
+                    'info-graphic': this._renderInfoGraphic.bind(this),
+                    'tabbed-content': this._renderTabbedContent.bind(this),
+                    'dark-header': this._renderDarkHeader.bind(this),
+                    'gradient-split': this._renderGradientSplit.bind(this),
+                    'circle-radial': this._renderCircleRadial.bind(this),
+                    'stair-step': this._renderStairStep.bind(this),
+                    'minimal-center': this._renderMinimalCenter.bind(this),
+                    'horizontal-scroll': this._renderHorizontalScroll.bind(this),
                 };
                 return renderers[layoutType] || this._renderTwoColumn.bind(this);
             },
@@ -541,33 +794,579 @@
                 `;
             },
 
-            _renderContentCard(item, cardIndex) {
-                const icon = this._getIcon(item.icon);
-                const theme = this._validateTheme(item.colorTheme);
-                const subTitle = this._escapeHtml(item.subTitle || '');
-                const textHtml = this._renderBulletsOrText(item);
-                const isBullets = textHtml.startsWith('<ul');
-                const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
-                const imageHtml = item.imageUrl ? this._renderImage(item.imageUrl) : '';
-                const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
-
+            _renderCenterFocus(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
-                    <div class="content-card theme-${theme}"${idxAttr}>
-                        ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
-                        ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
-                        ${textHtml && isBullets ? textHtml : ''}
-                        ${codeHtml}
-                        ${imageHtml}
+                    <div class="slide-v2-container layout-center-focus">
+                        <div class="slide-header center-focus-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-center-content">
+                            ${cards}
+                        </div>
                     </div>
                 `;
             },
 
+            _renderMediaLeft(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderMediaCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-media-left">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderStatsRow(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderStatCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-stats-row">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderTimelineSteps(slide) {
+                const items = slide.content || [];
+                const stepsHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    return `
+                        <div class="timeline-step">
+                            <div class="timeline-number">${i + 1}</div>
+                            <div class="timeline-connector"></div>
+                            <div class="timeline-content">
+                                ${icon ? `<div class="timeline-icon">${icon}</div>` : ''}
+                                <div class="timeline-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                                ${textHtml && !isBullets ? `<div class="timeline-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-timeline-steps">
+                            ${stepsHtml}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderComparison(slide) {
+                const items = slide.content || [];
+                const leftCard = items[0] ? this._renderContentCard(items[0], 0) : '';
+                const rightCard = items[1] ? this._renderContentCard(items[1], 1) : '';
+                return `
+                    <div class="slide-v2-container layout-comparison">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-compare">
+                            <div class="compare-left">${leftCard}</div>
+                            <div class="compare-vs"><span>VS</span></div>
+                            <div class="compare-right">${rightCard}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderFullwidthBanner(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderBannerCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-fullwidth-banner">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderThreeColumnCards(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-three-column-cards">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderAsymmetricSplit(slide) {
+                const items = slide.content || [];
+                const leftCard = items[0] ? this._renderContentCard(items[0], 0) : '';
+                const rightCard = items[1] ? this._renderContentCard(items[1], 1) : '';
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-asymmetric-split">
+                            <div class="asymmetric-left">${leftCard}</div>
+                            <div class="asymmetric-right">${rightCard}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderIconVerticalStack(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-icon-vertical-stack">
+                            ${cards}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderNumberedList(slide) {
+                const items = slide.content || [];
+                const itemsHtml = items.map((item, i) => {
+                    const card = this._renderContentCard(item, i);
+                    const num = i + 1;
+                    return `
+                        <div class="numbered-item">
+                            <div class="numbered-big">${num}</div>
+                            <div class="numbered-content">${card}</div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="slide-body layout-numbered-list">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                `;
+            },
+
+            // ========== 新增 15 种布局渲染器 ==========
+
+            _renderHeroCenter(slide) {
+                const item = slide.content?.[0];
+                const icon = item ? this._getIcon(item.icon) : '';
+                const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                return `
+                    <div class="slide-v2-container layout-hero-center">
+                        <div class="hero-content">
+                            ${icon ? `<div class="hero-icon">${icon}</div>` : ''}
+                            <h1 class="hero-title">${this._escapeHtml(slide.title || '')}</h1>
+                            ${item?.subTitle ? `<div class="hero-subtitle">${this._escapeHtml(item.subTitle)}</div>` : ''}
+                            ${textHtml && !textHtml.startsWith('<ul') ? `<div class="hero-desc">${textHtml}</div>` : ''}
+                            ${textHtml && textHtml.startsWith('<ul') ? textHtml : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderLeftSidebar(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container layout-left-sidebar">
+                        <div class="sidebar-title">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="sidebar-body">${cards}</div>
+                    </div>
+                `;
+            },
+
+            _renderBottomCards(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container layout-bottom-cards">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="bottom-cards-scroll">${cards}</div>
+                    </div>
+                `;
+            },
+
+            _renderFloatingOverlap(slide) {
+                const cards = (slide.content || []).map((item, i) => {
+                    const card = this._renderContentCard(item, i);
+                    const offset = i * 20;
+                    return `<div class="floating-card" style="margin-top: ${offset}px; z-index: ${i + 1};">${card}</div>`;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-floating-overlap">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="floating-body">${cards}</div>
+                    </div>
+                `;
+            },
+
+            _renderGridIcon(slide) {
+                const items = slide.content || [];
+                const iconsHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon) || '<i class="fas fa-circle"></i>';
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    return `
+                        <div class="grid-icon-item theme-${this._validateTheme(item.colorTheme)}">
+                            <div class="grid-icon">${icon}</div>
+                            <div class="grid-label">${subTitle}</div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-grid-icon">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="grid-icon-body">${iconsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderProcessFlow(slide) {
+                const items = slide.content || [];
+                const stepsHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon) || '';
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    return `
+                        <div class="process-step">
+                            <div class="process-node theme-${this._validateTheme(item.colorTheme)}">
+                                ${icon ? `<div class="process-icon">${icon}</div>` : ''}
+                                <div class="process-title">${subTitle}</div>
+                            </div>
+                            ${i < items.length - 1 ? '<div class="process-arrow"><i class="fas fa-arrow-right"></i></div>' : ''}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-process-flow">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="process-body">${stepsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderQuoteWall(slide) {
+                const items = slide.content || [];
+                const quotesHtml = items.map((item, i) => {
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const sizeClass = i % 3 === 0 ? 'quote-large' : i % 3 === 1 ? 'quote-medium' : 'quote-small';
+                    return `
+                        <div class="quote-card theme-${this._validateTheme(item.colorTheme)} ${sizeClass}">
+                            <div class="quote-mark"><i class="fas fa-quote-left"></i></div>
+                            ${textHtml && !textHtml.startsWith('<ul') ? `<div class="quote-text">${textHtml}</div>` : ''}
+                            ${textHtml && textHtml.startsWith('<ul') ? textHtml : ''}
+                            ${subTitle ? `<div class="quote-author">— ${subTitle}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-quote-wall">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="quote-wall-body">${quotesHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderInfoGraphic(slide) {
+                const items = slide.content || [];
+                const infoHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon) || '';
+                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    return `
+                        <div class="info-item theme-${this._validateTheme(item.colorTheme)}">
+                            ${icon ? `<div class="info-icon">${icon}</div>` : ''}
+                            <div class="info-number">${i + 1}</div>
+                            <div class="info-label">${subTitle}</div>
+                            ${textHtml && !textHtml.startsWith('<ul') ? `<div class="info-desc">${textHtml}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-info-graphic">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="info-body">${infoHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderTabbedContent(slide) {
+                const items = slide.content || [];
+                const tabsHtml = items.map((item, i) => `
+                    <button class="tab-btn ${i === 0 ? 'active' : ''}" data-tab="${i}">
+                        ${this._getIcon(item.icon) || ''} ${this._escapeHtml(item.subTitle || item.title || `标签${i + 1}`)}
+                    </button>
+                `).join('');
+                const panelsHtml = items.map((item, i) => {
+                    const card = this._renderContentCard(item, i);
+                    return `<div class="tab-panel ${i === 0 ? 'active' : ''}" data-panel="${i}">${card}</div>`;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-tabbed">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="tab-header">${tabsHtml}</div>
+                        <div class="tab-content">${panelsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderDarkHeader(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container layout-dark-header">
+                        <div class="dark-header-bar">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="dark-content">${cards}</div>
+                    </div>
+                `;
+            },
+
+            _renderGradientSplit(slide) {
+                const items = slide.content || [];
+                const leftCard = items[0] ? this._renderContentCard(items[0], 0) : '';
+                const rightCard = items[1] ? this._renderContentCard(items[1], 1) : '';
+                return `
+                    <div class="slide-v2-container layout-gradient-split">
+                        <div class="gradient-left theme-${items[0] ? this._validateTheme(items[0].colorTheme) : 'blue'}">
+                            ${leftCard}
+                        </div>
+                        <div class="gradient-right">${rightCard}</div>
+                    </div>
+                `;
+            },
+
+            _renderCircleRadial(slide) {
+                const items = slide.content || [];
+                const centerItem = items[0];
+                const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
+                const centerTitle = this._escapeHtml(centerItem?.subTitle || slide.title || '');
+                const itemsHtml = items.slice(1).map((item, i) => {
+                    const card = this._renderContentCard(item, i + 1);
+                    return `<div class="radial-item" data-index="${i}">${card}</div>`;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-circle-radial">
+                        <div class="radial-center theme-${centerItem ? this._validateTheme(centerItem.colorTheme) : 'blue'}">
+                            ${centerIcon ? `<div class="radial-icon">${centerIcon}</div>` : ''}
+                            <div class="radial-title">${centerTitle}</div>
+                        </div>
+                        <div class="radial-ring">${itemsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderStairStep(slide) {
+                const items = slide.content || [];
+                const stepsHtml = items.map((item, i) => {
+                    const card = this._renderContentCard(item, i);
+                    return `
+                        <div class="stair-item" style="margin-left: ${i * 40}px;">
+                            ${card}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-stair-step">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="stair-body">${stepsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderMinimalCenter(slide) {
+                const card = slide.content?.[0] ? this._renderContentCard(slide.content[0], 0) : '';
+                return `
+                    <div class="slide-v2-container layout-minimal-center">
+                        <div class="minimal-card">
+                            <div class="minimal-header">
+                                <h1>${this._escapeHtml(slide.title || '')}</h1>
+                            </div>
+                            ${card}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderHorizontalScroll(slide) {
+                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container layout-horizontal-scroll">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="h-scroll-track">${cards}</div>
+                    </div>
+                `;
+            },
+
+            _renderMediaCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.sub_title || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const imageHtml = item.imageUrl || item.image_url ? this._renderImage(item.imageUrl || item.image_url) : '';
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="media-card theme-${theme}"${idxAttr}>
+                            <div class="media-icon-wrap">${icon}</div>
+                            <div class="media-content">
+                                ${subTitle ? `<div class="media-title">${subTitle}</div>` : ''}
+                                ${textHtml && !isBullets ? `<div class="media-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                                ${imageHtml}
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="media-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="media-icon-wrap">⚠️</div>
+                        <div class="media-content">
+                            <div class="media-title">数据加载异常</div>
+                        </div>
+                    </div>`;
+                }
+            },
+
+            _renderStatCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.sub_title || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="stat-card theme-${theme}"${idxAttr}>
+                            ${icon ? `<div class="stat-icon">${icon}</div>` : ''}
+                            <div class="stat-value">${subTitle}</div>
+                            ${textHtml && !isBullets ? `<div class="stat-label">${textHtml}</div>` : ''}
+                            ${textHtml && isBullets ? textHtml : ''}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="stat-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="stat-value">--</div>
+                        <div class="stat-label">数据异常</div>
+                    </div>`;
+                }
+            },
+
+            _renderBannerCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.sub_title || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="banner-card theme-${theme}"${idxAttr}>
+                            <div class="banner-inner">
+                                ${icon ? `<div class="banner-icon">${icon}</div>` : ''}
+                                <div class="banner-content">
+                                    ${subTitle ? `<div class="banner-title">${subTitle}</div>` : ''}
+                                    ${textHtml && !isBullets ? `<div class="banner-text">${textHtml}</div>` : ''}
+                                    ${textHtml && isBullets ? textHtml : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="banner-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="banner-inner">
+                            <div class="banner-title">数据加载异常</div>
+                        </div>
+                    </div>`;
+                }
+            },
+
+            _renderContentCard(item, cardIndex) {
+                try {
+                    const icon = this._getIcon(item.icon);
+                    const theme = this._validateTheme(item.colorTheme);
+                    const subTitle = this._escapeHtml(item.subTitle || item.sub_title || item.title || '');
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
+                    const videoUrl = item.videoUrl || item.video_url || '';
+                    const imageUrl = item.imageUrl || item.image_url || '';
+                    const videoHtml = videoUrl ? `<video src="${this._escapeAttr(videoUrl)}" controls autoplay loop muted playsinline style="width:100%;border-radius:8px;max-height:280px;object-fit:cover;"></video>` : '';
+                    const imageHtml = !videoUrl && imageUrl ? this._renderImage(imageUrl) : '';
+                    const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+
+                    return `
+                        <div class="content-card theme-${theme}"${idxAttr}>
+                            ${subTitle ? `<div class="card-title">${icon} ${subTitle}</div>` : ''}
+                            ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
+                            ${textHtml && isBullets ? textHtml : ''}
+                            ${codeHtml}
+                            ${videoHtml}
+                            ${imageHtml}
+                        </div>
+                    `;
+                } catch (e) {
+                    return `<div class="content-card theme-blue"${(cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : ''}>
+                        <div class="card-title">⚠️ 数据加载异常</div>
+                        <div class="card-text">卡片内容无法渲染，请刷新重试</div>
+                    </div>`;
+                }
+            },
+
             _renderBulletsOrText(item) {
                 if (item.bullets && Array.isArray(item.bullets) && item.bullets.length > 0) {
-                    const items = item.bullets
-                        .map(b => `<li>${this._escapeHtml(String(b))}</li>`)
-                        .join('');
-                    return `<ul class="card-bullets">${items}</ul>`;
+                    try {
+                        const items = item.bullets
+                            .map(b => `<li>${this._escapeHtml(String(b))}</li>`)
+                            .join('');
+                        return `<ul class="card-bullets">${items}</ul>`;
+                    } catch (e) {
+                        return `<ul class="card-bullets"><li>数据加载异常</li></ul>`;
+                    }
                 }
                 return this._parseMarkdown(item.text || '');
             },
@@ -585,7 +1384,8 @@
             },
 
             _validateTheme(theme) {
-                return this.COLOR_THEMES.includes(theme) ? theme : 'blue';
+                if (theme && this.COLOR_THEMES.includes(theme)) return theme;
+                return 'blue';
             },
 
             _parseMarkdown(text) {
@@ -630,37 +1430,61 @@
             this.slideContainer.style.display = 'block';
             this.slideContainer.className = 'slide-container';
 
-            const slides_v2 = scene.slides_v2 || [];
-            if (slides_v2.length === 0) {
-                this.renderSlideScene(scene);
-                return;
+            try {
+                const slides_v2 = scene.slides_v2 || [];
+                console.log('[Classroom] renderSlideV2Scene:', {
+                    sceneId: scene.id,
+                    sceneTitle: scene.title,
+                    slidesV2Count: slides_v2.length,
+                    firstSlideKeys: slides_v2[0] ? Object.keys(slides_v2[0]) : [],
+                    firstSlideContentCount: slides_v2[0]?.content?.length,
+                    firstSlideColorThemes: slides_v2[0]?.content?.map(c => c.color_theme)
+                });
+                if (slides_v2.length === 0) {
+                    this.renderSlideScene(scene);
+                    return;
+                }
+
+                const firstSlide = slides_v2[0];
+
+                // Determine card data from either format, route to SlideRenderer for consistent UI
+                var cardData;
+                if (firstSlide.elements && Array.isArray(firstSlide.elements) && firstSlide.elements.length > 0) {
+                    // OpenMAIC format: group elements into cards by ID prefix
+                    cardData = this._groupOpenMAICElementsToCards(firstSlide);
+                } else if (firstSlide.content && Array.isArray(firstSlide.content) && firstSlide.content.length > 0) {
+                    // SlideV2 format: use content + layout_type directly
+                    // Guard against null content or empty arrays from legacy data
+                    cardData = {
+                        title: firstSlide.title || scene.title || '',
+                        content: this.SlideRenderer._cycleCardThemes(firstSlide.content),
+                        layoutType: firstSlide.layout_type || firstSlide.layoutType || 'two-column'
+                    };
+                } else {
+                    // content is null/empty or elements format unknown - fallback to legacy slide rendering
+                    this.renderSlideScene(scene);
+                    return;
+                }
+
+                this.SlideRenderer.render(cardData, this.slideContainer);
+                console.log('[Classroom] SlideRenderer.render called, cardData:', {
+                    layoutType: cardData.layoutType,
+                    contentCount: cardData.content?.length,
+                    cardThemes: cardData.content?.map(c => c.colorTheme)
+                });
+
+                // Store actions for playback pipeline (spotlight/laser use element IDs)
+                this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
+                // Store element-to-card mapping for spotlight/laser targeting
+                this._currentElemToCard = cardData._elemToCard || null;
+            } catch (e) {
+                console.error('[Classroom] renderSlideV2Scene error:', e);
             }
 
-            const firstSlide = slides_v2[0];
-
-            // Determine card data from either format, route to SlideRenderer for consistent UI
-            var cardData;
-            if (firstSlide.elements && Array.isArray(firstSlide.elements) && firstSlide.elements.length > 0) {
-                // OpenMAIC format: group elements into cards by ID prefix
-                cardData = this._groupOpenMAICElementsToCards(firstSlide);
-            } else if (firstSlide.content && Array.isArray(firstSlide.content)) {
-                // SlideV2 format: use content + layout_type directly
-                cardData = {
-                    title: firstSlide.title || scene.title || '',
-                    content: SlideRenderer._cycleCardThemes(firstSlide.content),
-                    layoutType: firstSlide.layoutType || firstSlide.layout_type || 'two-column'
-                };
-            } else {
-                this.renderSlideScene(scene);
-                return;
+            // Always check: did we actually render content? If container is empty, show error placeholder
+            if (!this.slideContainer.innerHTML.trim()) {
+                this._renderSceneErrorPlaceholder(scene);
             }
-
-            this.SlideRenderer.render(cardData, this.slideContainer);
-
-            // Store actions for playback pipeline (spotlight/laser use element IDs)
-            this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
-            // Store element-to-card mapping for spotlight/laser targeting
-            this._currentElemToCard = cardData._elemToCard || null;
         }
 
         // ---- OpenMAIC Elements → Card Data Converter ----
@@ -791,7 +1615,7 @@
                 if (cg.image && cg.image.id) elemToCard[cg.image.id] = mi;
             }
 
-            SlideRenderer._cycleCardThemes(cards);
+            this.SlideRenderer._cycleCardThemes(cards);
 
             return {
                 title: slideTitle,
@@ -1196,7 +2020,10 @@
                 }
             }, true);
 
-            window.addEventListener('beforeunload', () => window.speechSynthesis?.cancel());
+            window.addEventListener('beforeunload', () => {
+                window.speechSynthesis?.cancel();
+                if (this.pollingInterval) clearInterval(this.pollingInterval);
+            });
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) window.speechSynthesis?.cancel();
             });
@@ -1822,65 +2649,91 @@
                 }
             }
 
-            // Card-based spotlight: use CSS classes for dimming + highlight
-            if (targetElem && targetElem.classList.contains('content-card')) {
-                this.slideContainer.classList.add('spotlight-active');
-                targetElem.classList.add('spotlight-target');
-                this.spotlightElement = targetElem;
-                return;
-            }
-
-            // Legacy overlay-based spotlight
-            const overlay = document.createElement('div');
-            overlay.id = 'spotlight-overlay';
-            overlay.className = 'spotlight-overlay';
-
-            let holeStyle = '';
+            var rect = targetElem ? targetElem.getBoundingClientRect() : {left: 200, top: 150, width: 600, height: 300};
+            var pad = 10;
 
             if (targetElem) {
-                const rect = targetElem.getBoundingClientRect();
-                const padding = 20;
-                holeStyle = `
-                    position: absolute;
-                    left: ${rect.left - padding}px;
-                    top: ${rect.top - padding}px;
-                    width: ${rect.width + padding * 2}px;
-                    height: ${rect.height + padding * 2}px;
-                    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
-                    border-radius: 12px;
-                    animation: spotlightPulse 2s ease-in-out infinite;
-                `;
-
-                targetElem.style.transition = 'filter 0.4s ease, transform 0.4s ease';
-                targetElem.style.filter = 'brightness(1.3) drop-shadow(0 0 20px var(--primary-glow))';
-                targetElem.style.transform = 'scale(1.02)';
-
-                this.spotlightElement = targetElem;
+                targetElem.classList.add('spotlight-target');
             }
 
-            const hole = document.createElement('div');
-            hole.style.cssText = holeStyle;
-            overlay.appendChild(hole);
-            this.actionOverlay.appendChild(overlay);
+            // OpenMAIC 风格的 SVG mask 实现
+            var svgNS = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('class', 'openmaic-spotlight-svg');
+            svg.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+
+            var maskId = 'spotlight-mask-' + Date.now();
+            var defs = document.createElementNS(svgNS, 'defs');
+            var mask = document.createElementNS(svgNS, 'mask');
+            mask.setAttribute('id', maskId);
+
+            var whiteRect = document.createElementNS(svgNS, 'rect');
+            whiteRect.setAttribute('width', '100%');
+            whiteRect.setAttribute('height', '100%');
+            whiteRect.setAttribute('fill', 'white');
+            mask.appendChild(whiteRect);
+
+            var hole = document.createElementNS(svgNS, 'rect');
+            hole.setAttribute('x', Math.max(0, rect.left - pad));
+            hole.setAttribute('y', Math.max(0, rect.top - pad));
+            hole.setAttribute('width', rect.width + pad * 2);
+            hole.setAttribute('height', rect.height + pad * 2);
+            hole.setAttribute('fill', 'black');
+            hole.setAttribute('rx', '14');
+            mask.appendChild(hole);
+
+            defs.appendChild(mask);
+            svg.appendChild(defs);
+
+            var dimRect = document.createElementNS(svgNS, 'rect');
+            dimRect.setAttribute('width', '100%');
+            dimRect.setAttribute('height', '100%');
+            dimRect.setAttribute('fill', 'rgba(15, 23, 42, 0.6)');
+            dimRect.setAttribute('mask', 'url(#' + maskId + ')');
+            svg.appendChild(dimRect);
+
+            var glow = document.createElementNS(svgNS, 'rect');
+            glow.setAttribute('x', Math.max(0, rect.left - pad));
+            glow.setAttribute('y', Math.max(0, rect.top - pad));
+            glow.setAttribute('width', rect.width + pad * 2);
+            glow.setAttribute('height', rect.height + pad * 2);
+            glow.setAttribute('fill', 'none');
+            glow.setAttribute('stroke', 'rgba(99, 102, 241, 0.7)');
+            glow.setAttribute('stroke-width', '2.5');
+            glow.setAttribute('rx', '14');
+            glow.setAttribute('class', 'openmaic-spotlight-glow');
+            svg.appendChild(glow);
+
+            this.actionOverlay.appendChild(svg);
+            this.spotlightElement = svg;
+
+            // 记录当前 spotlight 目标，用于语音同步
+            this._currentSpotlightTarget = elementId;
         }
 
         clearSpotlight() {
-            const overlay = document.getElementById('spotlight-overlay');
+            var overlay = document.getElementById('spotlight-overlay');
             if (overlay) overlay.remove();
 
-            // Clear card-based spotlight classes
+            var svg = this.actionOverlay ? this.actionOverlay.querySelector('.openmaic-spotlight-svg') : null;
+            if (svg) svg.remove();
+
             if (this.slideContainer) {
                 this.slideContainer.classList.remove('spotlight-active');
             }
             if (this.spotlightElement) {
-                this.spotlightElement.classList.remove('spotlight-target');
+                if (this.spotlightElement.classList) {
+                    this.spotlightElement.classList.remove('spotlight-target');
+                }
                 this.spotlightElement.style.filter = '';
                 this.spotlightElement.style.transform = '';
                 this.spotlightElement = null;
             }
 
-            // Clear all element highlights
-            document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex, .slide-table').forEach(el => {
+            this._currentSpotlightTarget = null;
+
+            document.querySelectorAll('.spotlight-target').forEach(el => {
+                el.classList.remove('spotlight-target');
                 el.style.filter = '';
                 el.style.transform = '';
             });
@@ -1908,55 +2761,73 @@
                 }
             }
 
-            const laserContainer = document.createElement('div');
-            laserContainer.id = 'laser-overlay';
-            laserContainer.className = 'laser-overlay';
-
             var cx = window.innerWidth / 2;
             var cy = window.innerHeight / 2;
 
             if (targetElem) {
-                const rect = targetElem.getBoundingClientRect();
+                var rect = targetElem.getBoundingClientRect();
                 cx = rect.left + rect.width / 2;
                 cy = rect.top + rect.height / 2;
 
-                // Card-based: add laser-target class
                 if (targetElem.classList.contains('content-card')) {
                     targetElem.classList.add('laser-target');
                 }
-                // Highlight element with glow
                 targetElem.style.transition = 'filter 0.3s ease';
                 targetElem.style.filter = `brightness(1.2) drop-shadow(0 0 15px ${color})`;
 
                 this.laserTargetElem = targetElem;
             }
 
-            laserContainer.innerHTML = `
-                <div class="laser-dot" style="left:${cx}px;top:${cy}px;background:radial-gradient(circle, ${color} 0%, transparent 70%); animation: laserFlyIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);"></div>
-                <div class="laser-ring" style="left:${cx}px;top:${cy}px;border-color:${color};"></div>
-                <svg width="100%" height="100%" style="position:absolute;top:0;left:0;pointer-events:none;">
-                    <line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy}"
-                          stroke="${color}" stroke-width="2" stroke-dasharray="5,5"
-                          style="animation: laserTrace 0.5s ease forwards;">
-                        <animate attributeName="x2" values="${cx};${cx + 50}" dur="0.5s" fill="freeze"/>
-                        <animate attributeName="y2" values="${cy};${cy - 30}" dur="0.5s" fill="freeze"/>
-                    </line>
-                </svg>
-            `;
+            if (this.actionOverlay) {
+                var vw = window.innerWidth;
+                var vh = window.innerHeight;
 
-            this.actionOverlay.appendChild(laserContainer);
+                // 从最近的角落飞入
+                var startX = cx < vw / 2 ? -20 : vw + 20;
+                var startY = cy < vh / 2 ? -20 : vh + 20;
+
+                var container = document.createElement('div');
+                container.className = 'openmaic-laser-container';
+
+                var ring = document.createElement('div');
+                ring.className = 'openmaic-laser-ring';
+                ring.style.left = (cx - 20) + 'px';
+                ring.style.top = (cy - 20) + 'px';
+                ring.style.borderColor = color;
+                container.appendChild(ring);
+
+                var dot = document.createElement('div');
+                dot.className = 'openmaic-laser-dot';
+                dot.style.setProperty('--laser-start-x', startX + 'px');
+                dot.style.setProperty('--laser-start-y', startY + 'px');
+                dot.style.setProperty('--laser-end-x', cx + 'px');
+                dot.style.setProperty('--laser-end-y', cy + 'px');
+                container.appendChild(dot);
+
+                this.actionOverlay.appendChild(container);
+            }
+
+            // 记录当前 laser 目标
+            this._currentLaserTarget = elementId;
         }
 
         clearLaser() {
-            const laser = document.getElementById('laser-overlay');
+            var laser = document.getElementById('laser-overlay');
             if (laser) laser.remove();
+
+            var openmaicLaser = this.actionOverlay ? this.actionOverlay.querySelector('.openmaic-laser-container') : null;
+            if (openmaicLaser) openmaicLaser.remove();
+
             if (this.laserTargetElem) {
                 this.laserTargetElem.classList.remove('laser-target');
                 this.laserTargetElem.style.filter = '';
                 this.laserTargetElem = null;
             }
 
-            document.querySelectorAll('.slide-text, .slide-code, .slide-image, .slide-shape, .slide-latex, .slide-table').forEach(el => {
+            this._currentLaserTarget = null;
+
+            document.querySelectorAll('.laser-target').forEach(el => {
+                el.classList.remove('laser-target');
                 el.style.filter = '';
             });
         }
@@ -2045,8 +2916,16 @@
         async playSpeechAction(text, voiceId = null, speed = 1.0) {
             if (!text) return;
 
+            // ---- Spotlight 跟随语音：自动切换到当前讲解的卡片 ----
+            var currentElementId = this._findElementForSpeech(text);
+            if (currentElementId && currentElementId !== this._currentSpotlightTarget) {
+                this.clearSpotlight();
+                this.renderSpotlight(currentElementId);
+            }
+
             this.speechText.textContent = text;
             this.showSpeechSyncIndicator(true);
+            this.updateTeacherStatus('讲解中', true);
 
             // Update teacher avatar to speaking state
             if (this.teacherAvatar) {
@@ -2067,6 +2946,7 @@
 
                 this.audioPlayer.onended = () => {
                     this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
                     if (this.teacherAvatar) {
                         this.teacherAvatar.classList.remove('speaking');
                     }
@@ -2114,6 +2994,7 @@
                         this.teacherAvatar.classList.add('speaking');
                     }
                     this.showSpeechSyncIndicator(true);
+                    this.updateTeacherStatus('讲解中', true);
                 };
 
                 utterance.onend = () => {
@@ -2121,6 +3002,7 @@
                         this.teacherAvatar.classList.remove('speaking');
                     }
                     this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
                     resolve();
                 };
 
@@ -2129,6 +3011,7 @@
                         this.teacherAvatar.classList.remove('speaking');
                     }
                     this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
                     resolve();
                 };
 
@@ -2136,27 +3019,82 @@
             });
         }
 
+        _findElementForSpeech(text) {
+            if (!this.courseData || !this.courseData.scenes) return null;
+
+            var currentScene = this.scenes[this.currentIndex];
+            if (!currentScene) return null;
+
+            // 尝试从 scene_actions 中匹配
+            var sceneActions = this.courseData.scene_actions || [];
+            var actionData = sceneActions.find(a =>
+                a.scene_id === currentScene.id ||
+                a.scene_index === this.currentIndex
+            );
+
+            if (actionData?.actions) {
+                for (var i = 0; i < actionData.actions.length; i++) {
+                    var act = actionData.actions[i];
+                    if (act.type === 'speech' && act.text === text) {
+                        // 查找同一个 action 块中紧随其后的 spotlight action
+                        if (i + 1 < actionData.actions.length) {
+                            var nextAct = actionData.actions[i + 1];
+                            if (nextAct.type === 'spotlight') {
+                                return nextAct.element_id;
+                            }
+                        }
+                        // 或者查找同组中唯一的 spotlight
+                        for (var j = 0; j < actionData.actions.length; j++) {
+                            if (actionData.actions[j].type === 'spotlight') {
+                                return actionData.actions[j].element_id;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback: 从当前 scene 的 slides_v2 content 中匹配 text
+            var slideV2 = currentScene.slide || currentScene;
+            if (slideV2.content) {
+                for (var k = 0; k < slideV2.content.length; k++) {
+                    var item = slideV2.content[k];
+                    if (item.narration === text || item.text === text ||
+                        (item.bullets && item.bullets.some(function(b) { return text.indexOf(b) >= 0; }))) {
+                        return 'card-' + (k + 1);
+                    }
+                }
+            }
+
+            return null;
+        }
+
         async generateTTS(text, voiceId = null, speed = 1.0) {
             const voice = voiceId || TTS_CONFIG.voice;
             const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
 
             try {
-                const response = await fetch('/api/socratic/tts', {
+                // Use file endpoint (returns /audio/filename.mp3 URL, works everywhere)
+                const response = await fetch('/api/v2/tts/file', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        voice_id: voiceConfig.voice_id,
+                        voice: voiceConfig.voice_id,
                         speed: speed,
-                        provider: 'minimax'
+                        provider_id: 'minimax-tts'
                     })
                 });
 
                 const data = await response.json();
-                if (data.success && data.audio_url) {
+                console.log('[Classroom] TTS response:', data);
+                if (data.audio_url) {
+                    console.log('[Classroom] TTS audioUrl:', data.audio_url);
                     return { success: true, audioUrl: data.audio_url };
                 }
-                return { success: false, error: 'TTS generation failed' };
+                if (data.detail) {
+                    console.error('[Classroom] TTS API error:', data.detail);
+                }
+                return { success: false, error: data.detail || 'TTS generation failed' };
             } catch (e) {
                 console.error('TTS API error:', e);
                 return { success: false, error: e.message };
@@ -2171,6 +3109,17 @@
                 } else {
                     this.speechSync.classList.remove('syncing');
                 }
+            }
+        }
+
+        updateTeacherStatus(text, isActive) {
+            if (!this.teacherStatus) return;
+            const statusText = this.teacherStatus.querySelector('.status-text');
+            if (statusText) statusText.textContent = text;
+            if (isActive) {
+                this.teacherStatus.classList.add('active');
+            } else {
+                this.teacherStatus.classList.remove('active');
             }
         }
 
@@ -2360,9 +3309,15 @@
                             <p style="color:#6366f1;font-size:0.9rem;margin-top:1rem;">Widget类型: ${widgetType}</p>
                         </div></body></html>`;
                 } else {
-                    // Basic placeholder
-                    iframe.srcdoc = `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#e0e7ff;">
-                        <div style="text-align:center;"><h2>${scene.title}</h2><p>${scene.description}</p></div></body></html>`;
+                    // Basic placeholder - show clear message
+                    const safeHtml = this._escapeHtml ? this._escapeHtml.bind(this) : (v => v || '');
+                    iframe.srcdoc = `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#e0e7ff;margin:0;">
+                        <div style="text-align:center;padding:2rem;">
+                            <div style="font-size:4rem;margin-bottom:1rem;">📭</div>
+                            <h2>${safeHtml(scene.title || '交互式学习')}</h2>
+                            <p style="color:#a0aec0;margin-top:0.5rem;">${safeHtml(scene.description || '该场景暂无可用内容')}</p>
+                            <p style="color:#6366f1;font-size:0.85rem;margin-top:1rem;">场景类型: ${safeHtml(scene.type)}</p>
+                        </div></body></html>`;
                 }
             }
         }
@@ -2372,7 +3327,7 @@
         _getWhiteboardRenderer() {
             if (!this.whiteboardRenderer && window.WhiteboardRenderer) {
                 this.whiteboardRenderer = new window.WhiteboardRenderer({
-                    containerId: 'whiteboard-stage',
+                    containerId: 'whiteboard-container',
                     width: 1000,
                     height: 562.5
                 });
@@ -2424,8 +3379,16 @@
                 console.warn('[Classroom] WhiteboardRenderer not available');
                 return;
             }
-            // Auto-open whiteboard on first draw action
+            // Normalize to {type, params} format - action can be flat or wrapped
             var name = action.type || action.name || '';
+            var params = action.params || {};
+            // If params is empty, the action might be flat (from OpenMAICSlidePlayer)
+            if (Object.keys(params).length === 0) {
+                params = this._mapWbActionParams(action);
+            }
+            var normalizedAction = { type: name, params: params };
+
+            // Auto-open whiteboard on first draw action
             if (!this.whiteboardVisible && name.startsWith('wb_draw_')) {
                 this.whiteboardVisible = true;
                 this.whiteboardToggleBtn?.classList.add('active');
@@ -2455,36 +3418,37 @@
                 return;
             }
             if (name === 'wb_delete') {
-                renderer.delete(action.params?.elementId);
+                renderer.delete(params.elementId);
                 return;
             }
-            renderer.execute(action);
+            renderer.execute(normalizedAction);
         }
 
         updateTeacherSpeech(scene) {
             if (!this.speechText) return;
-            const speech = scene.slide?.speech || scene.quiz?.speech || scene.description || '';
+            // narration from slides_v2 content (V2 format)
+            const narration = scene.slides_v2?.[0]?.content?.[0]?.narration || '';
+            const speech = scene.slide?.speech || scene.quiz?.speech || scene.description || narration;
             this.speechText.textContent = speech || `现在讲解：${scene.title}`;
 
             // Update avatar if agent team has different teachers per scene
             const teacherIdx = scene.teacher_index || 0;
             const agent = this.agentTeam[teacherIdx];
-            if (agent && this.teacherAvatar) {
-                if (agent.avatar && agent.avatar.startsWith('http')) {
-                    this.teacherAvatar.innerHTML = `<img src="${agent.avatar}" alt="${agent.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-                } else if (agent.name) {
-                    const initials = agent.name.slice(0, 2).toUpperCase();
-                    this.teacherAvatar.innerHTML = `<span style="font-size:1.5rem;font-weight:700;color:white;">${initials}</span>`;
-                } else {
-                    this.teacherAvatar.innerHTML = `<span style="font-size:1.5rem;">👩‍🏫</span>`;
-                }
+            if (agent && this.teacherAvatar && agent.avatar && agent.avatar.startsWith('http')) {
+                this.teacherAvatar.innerHTML = `<img src="${agent.avatar}" alt="${agent.name}" class="avatar-img">`;
             }
+            // else: keep the default kawaii face
         }
 
         // ---- Audio / TTS ----
 
         playSceneAudio(scene) {
             this.stopAudio();
+            // Update play button to pause icon
+            const playBtn = document.getElementById('playback-play-btn');
+            const playIcon = playBtn?.querySelector('i');
+            if (playBtn) playBtn.classList.add('playing');
+            if (playIcon) playIcon.className = 'fas fa-pause';
 
             // If OpenMAIC actions are available, use the action pipeline (speech + spotlight + laser)
             if (this._currentOpenMAICActions && this._currentOpenMAICActions.length > 0 && this.openmaicPlayer) {
@@ -2504,29 +3468,82 @@
                 this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
                 this.audioPlayer.onended = () => {
                     this.speechSync.style.display = 'none';
+                    const playBtn = document.getElementById('playback-play-btn');
+                    const playIcon = playBtn?.querySelector('i');
+                    if (playBtn) playBtn.classList.remove('playing');
+                    if (playIcon) playIcon.className = 'fas fa-play';
                     if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                         setTimeout(() => this.nextScene(), 800);
                     }
                 };
             } else if (scene.slide?.speech) {
-                this.fallbackTTS(scene);
+                // Use MiniMax TTS with selected voice
+                this._playTTSWithVoice(scene.slide.speech);
+            } else {
+                // Fallback: try narration from slides_v2 content (V2 format)
+                const narration = scene.slides_v2?.[0]?.content?.[0]?.narration;
+                if (narration) {
+                    this._playTTSWithVoice(narration);
+                }
+            }
+        }
+
+        async _playTTSWithVoice(text) {
+            if (!text) return;
+            this.speechSync.style.display = 'flex';
+            const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
+            const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
+            const result = await this.generateTTS(text, voiceId, speed);
+            console.log('[Classroom] _playTTSWithVoice result:', result);
+            if (result.success && this.audioPlayer) {
+                this.audioPlayer.src = result.audioUrl;
+                this.audioPlayer.onloadedmetadata = () => {
+                    console.log('[Classroom] audio metadata loaded: duration=', this.audioPlayer.duration);
+                };
+                this.audioPlayer.onplay = () => {
+                    console.log('[Classroom] audio play event fired!');
+                };
+                this.audioPlayer.onerror = () => {
+                    console.error('[Classroom] audio error, falling back to browser TTS:', this.audioPlayer.error);
+                    this.fallbackTTS({ slide: { speech: text } });
+                };
+                this.audioPlayer.onended = () => {
+                    this.speechSync.style.display = 'none';
+                    const playBtn = document.getElementById('playback-play-btn');
+                    const playIcon = playBtn?.querySelector('i');
+                    if (playBtn) playBtn.classList.remove('playing');
+                    if (playIcon) playIcon.className = 'fas fa-play';
+                    if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
+                        setTimeout(() => this.nextScene(), 800);
+                    }
+                };
+                this.audioPlayer.play().catch(() => {});
+            } else {
+                this.speechSync.style.display = 'none';
             }
         }
 
         fallbackTTS(scene) {
-            const text = scene.slide?.speech || scene.quiz?.speech || '';
-            if (!text || !window.speechSynthesis) return;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-CN';
-            utterance.rate = 1.0;
-            this.speechSync.style.display = 'flex';
-            utterance.onend = () => {
+            const text = scene.slide?.speech || scene.quiz?.speech || scene.slides_v2?.[0]?.content?.[0]?.narration || '';
+            if (!text) return;
+            // Use browser SpeechSynthesis since HTMLAudioElement is blocked on this machine
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                var utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = this.ttsConfig?.speed || TTS_CONFIG.speed;
+                utterance.onend = () => {
+                    this.speechSync.style.display = 'none';
+                    if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
+                        setTimeout(() => this.nextScene(), 800);
+                    }
+                };
+                utterance.onerror = () => { this.speechSync.style.display = 'none'; };
+                this.speechSynthesisUtterance = utterance;
+                window.speechSynthesis.speak(utterance);
+            } else {
                 this.speechSync.style.display = 'none';
-                if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
-                    setTimeout(() => this.nextScene(), 800);
-                }
-            };
-            window.speechSynthesis.speak(utterance);
+            }
         }
 
         toggleVoice() {
@@ -2670,6 +3687,8 @@
         _onQuizToggleClick() {
             // Find the first quiz scene in the course
             var quizScene = this.scenes.find(function(s) { return s.type === 'quiz'; });
+            console.log('[Classroom] Toggle quiz, found scene:', quizScene);
+            console.log('[Classroom] All scenes types:', this.scenes.map(function(s) { return s.type; }));
             if (!quizScene) {
                 this.addChatMessage('teacher', '当前课程没有测验环节。');
                 return;
@@ -2755,7 +3774,21 @@
         _renderAllQuestions(scene) {
             var self = this;
             var quiz = scene.quiz_data || scene.quiz;
+            if (!quiz) {
+                console.warn('[Classroom] No quiz data found in scene');
+                if (this.quizQuestionsArea) {
+                    this.quizQuestionsArea.innerHTML = '<div class="quiz-error">测验数据加载失败</div>';
+                }
+                return;
+            }
             var questions = quiz.questions || [];
+            if (questions.length === 0) {
+                console.warn('[Classroom] No questions in quiz');
+                if (this.quizQuestionsArea) {
+                    this.quizQuestionsArea.innerHTML = '<div class="quiz-error">暂无测验题目</div>';
+                }
+                return;
+            }
 
             var html = '';
             questions.forEach(function(q, i) {
@@ -3521,12 +4554,234 @@
                     avatarHtml = `<i class="fas fa-chalkboard-teacher" style="color:white;"></i>`;
                 }
             } else {
-                avatarHtml = `<i class="fas fa-user" style="color:var(--accent-light);"></i>`;
+                // Load user avatar from localStorage
+                let userAvatarHtml = `<i class="fas fa-user" style="color:var(--accent-light);"></i>`;
+                try {
+                    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+                    if (user && user.avatar) {
+                        userAvatarHtml = `<img src="${user.avatar}" alt="用户" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                    }
+                } catch (e) {}
+                avatarHtml = userAvatarHtml;
             }
 
             div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${this.escapeHtml(text)}</p></div>`;
             this.chatMessages.appendChild(div);
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        }
+
+        // ---- Discussion ----
+
+        switchChatTab(tabName) {
+            this.currentDiscussionTab = tabName;
+            document.querySelectorAll('.chat-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+
+            if (tabName === 'qa') {
+                document.getElementById('chat-messages').style.display = 'flex';
+                document.getElementById('chat-input').closest('.chat-input-area').style.display = 'flex';
+                this.discussionArea.style.display = 'none';
+            } else {
+                document.getElementById('chat-messages').style.display = 'none';
+                document.getElementById('chat-input').closest('.chat-input-area').style.display = 'none';
+                this.discussionArea.style.display = 'flex';
+            }
+        }
+
+        async startDiscussion() {
+            if (this.discussionActive) return;
+            if (!this.courseId) {
+                window.starlearnNotifications?.showNotification({
+                    title: '无法发起讨论',
+                    content: '未找到课程数据，请重新生成课程',
+                    type: 'system'
+                });
+                return;
+            }
+
+            const scene = this.scenes[this.currentIndex];
+            const slideTopic = scene?.title || '';
+            const slideContent = scene?.slide?.content?.elements?.map(e => e.content).join('\n') || '';
+            const speechContent = scene?.slide?.speech || scene?.quiz?.speech || '';
+
+            this.discussionActive = true;
+            if (this.discussionStartBtn) {
+                this.discussionStartBtn.disabled = true;
+                this.discussionStartBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 讨论中...';
+            }
+            this.clearDiscussionMessages();
+
+            try {
+                const response = await fetch('/api/v2/course/discussion/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: this.courseData.metadata?.student_id || '',
+                        course_id: this.courseId,
+                        slide_topic: slideTopic,
+                        slide_content: slideContent,
+                        speech_content: speechContent,
+                        user_message: '',
+                        agent_ids: []
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => '');
+                    throw new Error(errorText || 'HTTP ' + response.status);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const parts = buffer.split('\n\n');
+                    buffer = parts.pop() || '';
+
+                    for (const part of parts) {
+                        if (!part.trim()) continue;
+                        const lines = part.split('\n');
+                        let eventData = '';
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                eventData = line.slice(6);
+                            }
+                        }
+                        if (eventData) {
+                            try {
+                                const event = JSON.parse(eventData);
+                                this.handleDiscussionEvent(event);
+                            } catch (e) {
+                                console.warn('Failed to parse discussion event', e);
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Discussion stream error', e);
+                window.starlearnNotifications?.showNotification({
+                    title: '讨论启动失败',
+                    content: '网络请求失败，请稍后重试',
+                    type: 'system'
+                });
+                this.addDiscussionMessage('system', '讨论启动失败，请稍后重试。');
+            } finally {
+                this.discussionActive = false;
+                if (this.discussionStartBtn) {
+                    this.discussionStartBtn.disabled = false;
+                    this.discussionStartBtn.innerHTML = '<i class="fas fa-plus"></i> 发起讨论';
+                }
+            }
+        }
+
+        handleDiscussionEvent(event) {
+            switch (event.type) {
+                case 'discussion_start':
+                    this.addDiscussionMessage('system', '各位AI同学开始讨论...');
+                    break;
+
+                case 'agent_chunk':
+                    // 流式发言内容
+                    this.appendDiscussionChunk(event.agent_id, event.content);
+                    break;
+
+                case 'debate_round_complete':
+                    this.addDiscussionMessage('system', event.message || '第一轮发言完成');
+                    break;
+
+                case 'discussion_complete':
+                    if (event.final_answer) {
+                        this.showDiscussionSummary(event.final_answer);
+                    }
+                    break;
+
+                case 'error':
+                    this.addDiscussionMessage('system', '讨论出错: ' + event.message);
+                    break;
+            }
+        }
+
+        appendDiscussionChunk(agentId, content) {
+            let msgEl = document.getElementById(`discussion-msg-${agentId}`);
+            if (!msgEl) {
+                const agent = this.agentTeam.find(a => a.id === agentId) || {};
+                msgEl = document.createElement('div');
+                msgEl.className = 'discussion-message';
+                msgEl.id = `discussion-msg-${agentId}`;
+                msgEl.innerHTML = `
+                    <div class="message-avatar" style="background: ${agent.color || 'var(--primary)'}">${agent.name?.charAt(0) || 'AI'}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-name">${agent.name || 'AI同学'}</span>
+                        </div>
+                        <div class="message-text"></div>
+                    </div>
+                `;
+                this.discussionMessages?.appendChild(msgEl);
+            }
+            const textEl = msgEl.querySelector('.message-text');
+            if (textEl) {
+                textEl.textContent += content;
+                this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
+            }
+        }
+
+        showDiscussionSummary(summaryText) {
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'discussion-summary';
+            summaryEl.innerHTML = `
+                <div class="discussion-summary-title"><i class="fas fa-graduation-cap"></i> 讨论总结</div>
+                <div class="discussion-summary-text">${this.escapeHtml(summaryText)}</div>
+            `;
+            this.discussionMessages?.appendChild(summaryEl);
+            this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
+        }
+
+        clearDiscussionMessages() {
+            if (this.discussionMessages) {
+                this.discussionMessages.innerHTML = '';
+            }
+        }
+
+        addDiscussionMessage(type, text, agentInfo = null) {
+            if (!this.discussionMessages) return;
+            const div = document.createElement('div');
+            div.className = `discussion-message ${type === 'user' ? 'user-message' : ''}`;
+
+            if (type === 'system') {
+                div.innerHTML = `
+                    <div class="message-content" style="margin-left: 0;">
+                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${this.escapeHtml(text)}</div>
+                    </div>
+                `;
+            } else if (type === 'user') {
+                div.innerHTML = `
+                    <div class="message-avatar"><i class="fas fa-user" style="color: var(--accent-light);"></i></div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-name">我</span>
+                        </div>
+                        <div class="message-text">${this.escapeHtml(text)}</div>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="message-avatar" style="background: ${agentInfo?.color || 'var(--primary)'}">${agentInfo?.name?.charAt(0) || 'AI'}</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-name">${agentInfo?.name || 'AI同学'}</span>
+                        </div>
+                        <div class="message-text">${this.escapeHtml(text)}</div>
+                    </div>
+                `;
+            }
+
+            this.discussionMessages.appendChild(div);
+            this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
         }
 
         // ---- Navigation ----
@@ -3744,46 +4999,20 @@
         // ---- Utils ----
 
         initVoiceSelector() {
-            const teacherArea = document.getElementById('teacher-area');
-            if (!teacherArea) return;
+            const voiceSelect = document.getElementById('voice-select');
+            if (!voiceSelect) return;
 
-            // Create voice selector dropdown
-            const voiceSelector = document.createElement('div');
-            voiceSelector.className = 'voice-selector';
-            voiceSelector.innerHTML = `
-                <select id="voice-select" class="voice-select">
-                    ${Object.entries(MINIMAX_VOICES).map(([id, v]) =>
-                        `<option value="${id}" ${id === TTS_CONFIG.voice ? 'selected' : ''}>${v.name}</option>`
-                    ).join('')}
-                </select>
-            `;
+            // Load saved voice preference
+            const saved = localStorage.getItem('classroom_voice');
+            if (saved && MINIMAX_VOICES[saved]) {
+                TTS_CONFIG.voice = saved;
+                voiceSelect.value = saved;
+            }
 
-            // Style the selector
-            voiceSelector.style.cssText = `
-                position: absolute;
-                top: 10px;
-                right: 10px;
-                z-index: 10;
-            `;
-
-            const select = voiceSelector.querySelector('select');
-            select.style.cssText = `
-                background: var(--surface-glass);
-                border: 1px solid var(--glass-border);
-                border-radius: 8px;
-                padding: 6px 12px;
-                color: var(--text-primary);
-                font-size: 12px;
-                cursor: pointer;
-                outline: none;
-            `;
-
-            select.addEventListener('change', (e) => {
+            voiceSelect.addEventListener('change', (e) => {
                 TTS_CONFIG.voice = e.target.value;
                 this.saveVoicePreference(e.target.value);
             });
-
-            teacherArea.appendChild(voiceSelector);
         }
 
         saveVoicePreference(voiceId) {
@@ -3794,6 +5023,19 @@
             const saved = localStorage.getItem('classroom_voice');
             if (saved && MINIMAX_VOICES[saved]) {
                 TTS_CONFIG.voice = saved;
+                // Sync header select
+                const headerSelect = document.getElementById('header-voice-select');
+                if (headerSelect) headerSelect.value = saved;
+                // Sync custom dropdown
+                const dropdownValue = document.getElementById('voice-dropdown-value');
+                const dropdownItems = document.querySelectorAll('.voice-dropdown-item');
+                if (dropdownValue) {
+                    const item = document.querySelector(`.voice-dropdown-item[data-value="${saved}"]`);
+                    if (item) dropdownValue.textContent = item.textContent;
+                }
+                dropdownItems.forEach(i => {
+                    i.classList.toggle('selected', i.dataset.value === saved);
+                });
             }
         }
 
@@ -3801,6 +5043,19 @@
             if (MINIMAX_VOICES[voiceId]) {
                 TTS_CONFIG.voice = voiceId;
                 this.saveVoicePreference(voiceId);
+                // Sync header voice select if exists
+                const headerSelect = document.getElementById('header-voice-select');
+                if (headerSelect) headerSelect.value = voiceId;
+                // Sync custom dropdown
+                const dropdownValue = document.getElementById('voice-dropdown-value');
+                const dropdownItems = document.querySelectorAll('.voice-dropdown-item');
+                if (dropdownValue) {
+                    const item = document.querySelector(`.voice-dropdown-item[data-value="${voiceId}"]`);
+                    if (item) dropdownValue.textContent = item.textContent;
+                }
+                dropdownItems.forEach(i => {
+                    i.classList.toggle('selected', i.dataset.value === voiceId);
+                });
             }
         }
 

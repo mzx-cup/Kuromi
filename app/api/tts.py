@@ -48,6 +48,15 @@ class TTSResponse(BaseModel):
     sentences: list[dict] = []
 
 
+class TTSFileResponse(BaseModel):
+    success: bool = True
+    audio_url: str
+    format: str
+    duration_ms: int
+    word_timestamps: list[dict] = []
+    sentences: list[dict] = []
+
+
 # =============================================================================
 # 非流式端点
 # =============================================================================
@@ -78,6 +87,57 @@ async def generate_tts(req: TTSRequest):
     )
     return TTSResponse(
         audio_base64=audio_b64,
+        format=result.format,
+        duration_ms=result.duration_ms,
+        word_timestamps=result.word_timestamps,
+        sentences=result.sentences,
+    )
+
+
+# =============================================================================
+# 文件模式端点 — 解决部分浏览器无法解码 blob URL 的问题
+# =============================================================================
+
+import os
+import time
+import uuid
+
+@router.post("/file", response_model=TTSFileResponse)
+async def generate_tts_file(req: TTSRequest):
+    """生成 TTS 音频并保存为文件，返回文件 URL（兼容所有浏览器）。"""
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="text is required")
+
+    config = _build_config(req)
+
+    try:
+        provider = get_tts_provider(req.provider_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    try:
+        result = await provider.generate(req.text, config)
+    except Exception as e:
+        logger.error("TTS generation failed [provider=%s]: %s", req.provider_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Save audio to file
+    audio_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "audio")
+    if not os.path.exists(audio_dir):
+        os.makedirs(audio_dir)
+
+    filename = f"tts_{int(time.time())}_{uuid.uuid4().hex[:8]}.mp3"
+    audio_path = os.path.join(audio_dir, filename)
+    with open(audio_path, "wb") as f:
+        f.write(result.audio)
+
+    logger.info(
+        "TTS file generated: provider=%s, text_len=%d, audio_bytes=%d, url=/audio/%s",
+        req.provider_id, len(req.text), len(result.audio), filename,
+    )
+    return TTSFileResponse(
+        success=True,
+        audio_url=f"/audio/{filename}",
         format=result.format,
         duration_ms=result.duration_ms,
         word_timestamps=result.word_timestamps,

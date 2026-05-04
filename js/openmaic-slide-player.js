@@ -15,6 +15,8 @@
         this.teacherAvatar = options.teacherAvatar || null;
         this.onSlideEnd = options.onSlideEnd || null;
         this.getSpeed = options.getSpeed || (function() { return 1; });
+        this.onWhiteboardAction = options.onWhiteboardAction || null;
+        this.onGenerateTTS = options.onGenerateTTS || null;
 
         this.slide = null;
         this.queue = [];
@@ -139,7 +141,16 @@
         var delay = Number(action.delay) || 0;
         var timerId = setTimeout(function() {
             self.removeTimer(timerId);
-            switch (action.type) {
+            var type = action.type || '';
+
+            // Delegate whiteboard actions to ClassroomController
+            if (type.startsWith('wb_') && self.onWhiteboardAction) {
+                self.onWhiteboardAction(action);
+                self.processNext();
+                return;
+            }
+
+            switch (type) {
                 case 'spotlight':
                     self.showSpotlight(action.targetId, action.duration || 4000);
                     self.processNext();
@@ -322,24 +333,53 @@
     OpenMAICSlidePlayer.prototype.playBrowserSpeech = function(text) {
         var self = this;
         return new Promise(function(resolve) {
-            if (!window.speechSynthesis) { resolve(); return; }
-            window.speechSynthesis.cancel();
-            var utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = self.getSpeed();
-            utterance.lang = 'zh-CN';
-            utterance.onend = function() {
-                self.currentUtterance = null;
-                self.hideSpeechText();
-                resolve();
-            };
-            utterance.onerror = function() {
-                self.currentUtterance = null;
-                self.hideSpeechText();
-                resolve();
-            };
-            self.currentUtterance = utterance;
-            window.speechSynthesis.speak(utterance);
+            if (!text) { resolve(); return; }
+
+            // Try MiniMax TTS first if callback available
+            if (self.onGenerateTTS) {
+                self.onGenerateTTS(text).then(function(result) {
+                    if (result.success && self.audioElement) {
+                        self.audioElement.src = result.audioUrl;
+                        self.audioElement.onended = function() {
+                            self.hideSpeechText();
+                            resolve();
+                        };
+                        self.audioElement.play().catch(function() {
+                            self.playBrowserSpeechFallback(text, resolve);
+                        });
+                    } else {
+                        self.playBrowserSpeechFallback(text, resolve);
+                    }
+                }).catch(function() {
+                    self.playBrowserSpeechFallback(text, resolve);
+                });
+                return;
+            }
+
+            // Fallback to browser speech
+            self.playBrowserSpeechFallback(text, resolve);
         });
+    };
+
+    OpenMAICSlidePlayer.prototype.playBrowserSpeechFallback = function(text, resolve) {
+        var self = this;
+        if (!window.speechSynthesis) { resolve(); return; }
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = self.getSpeed();
+        utterance.lang = 'zh-CN';
+        utterance.onend = function() {
+            self.currentUtterance = null;
+            self.hideSpeechText();
+            resolve();
+        };
+        utterance.onerror = function() {
+            self.currentUtterance = null;
+            self.hideSpeechText();
+            resolve();
+        };
+        self.currentUtterance = utterance;
+        window.speechSynthesis.speak(utterance);
     };
 
     OpenMAICSlidePlayer.prototype.pauseAudio = function() {
@@ -540,6 +580,8 @@
         }
         if (el.defaultColor) {
             style += 'color:' + el.defaultColor + ';';
+        } else {
+            style += 'color:#1E293B;';
         }
         if (el.defaultFontName) {
             style += 'font-family:"' + el.defaultFontName + '",sans-serif;';

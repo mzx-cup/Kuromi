@@ -34,7 +34,7 @@ class CourseGeneratorConfig:
     enable_image: bool = False
     enable_tts: bool = False
     enable_video: bool = False
-    first_batch_size: int = 4  # 首次生成的幻灯片数量
+    first_batch_size: int = 3  # 首次生成的幻灯片数量
     use_v2_slides: bool = True  # 使用 V2 结构化布局格式
 
 
@@ -56,9 +56,12 @@ class CourseGenerator:
             student_id: str = "",
             enable_image: bool = False,
             enable_tts: bool = False,
+            enable_video: bool = False,
             voice_id: str = "female-shaonv",
             agent_mode: str = "preset",
             interactive_mode: bool = False,
+            enable_pdf_upload: bool = False,
+            pdf_text: str = "",
         ) -> AsyncGenerator[dict[str, Any], None]:
             """
             生成课程，返回SSE事件流
@@ -82,6 +85,9 @@ class CourseGenerator:
             self.config.interactive_mode = interactive_mode
             self.config.enable_image = enable_image
             self.config.enable_tts = enable_tts
+            self.config.enable_video = enable_video
+            self.config.enable_pdf_upload = enable_pdf_upload
+            self._pdf_text = pdf_text  # 存储PDF文本，供 _generate_outlines / _generate_scene_content_v2 使用
 
             try:
                 # ---- Phase 1: 分析需求 ----
@@ -194,13 +200,15 @@ class CourseGenerator:
                             for sv2 in slides_v2_batch:
                                 sv2.scene_id = outline.id
                             slides_v2.extend(slides_v2_batch)
-                            # quiz/exercise: ALSO generate specialized data for interactive renderers
-                            if outline.type in ("quiz", "exercise"):
+                            # quiz: handle quiz_data from V2 result
+                            quiz_result = result.get("quiz_data")
+                            if outline.type == "quiz" and quiz_result:
+                                quiz_result["scene_id"] = outline.id
+                                quiz_data.append(quiz_result)
+                            # exercise: still need V1 for exercise_data (no V2 exercise branch yet)
+                            if outline.type == "exercise":
                                 result_v1 = await self._generate_scene_content(course_title, outline, i + 1)
-                                if outline.type == "quiz" and result_v1.get("quiz_data"):
-                                    result_v1["quiz_data"]["scene_id"] = outline.id
-                                    quiz_data.append(result_v1["quiz_data"])
-                                if outline.type == "exercise" and result_v1.get("exercise_data"):
+                                if result_v1.get("exercise_data"):
                                     result_v1["exercise_data"]["scene_id"] = outline.id
                                     exercise_data.append(result_v1["exercise_data"])
                         else:
@@ -250,6 +258,25 @@ class CourseGenerator:
                     }
                 }
 
+                # --- 保存首批后的pending状态到数据库 ---
+                try:
+                    from db import save_course_generation_status
+                    pending_outlines = [
+                        {"id": outlines[j].id, "title": outlines[j].title, "type": outlines[j].type}
+                        for j in range(first_batch_size, total)
+                    ]
+                    save_course_generation_status(
+                        course_id=session_id,
+                        total_outlines=total,
+                        generated_count=first_batch_size,
+                        pending_slides_v2=[],  # pending are outlines, not slides_v2 yet
+                        pending_quiz_data=[],
+                        pending_exercise_data=[],
+                        is_complete=0
+                    )
+                except Exception as e:
+                    logger.warning(f"[generate] Failed to save initial generation status: {e}")
+
                 # --- 4b: 继续生成剩余幻灯片 ---
                 for i in range(first_batch_size, total):
                     outline = outlines[i]
@@ -261,6 +288,19 @@ class CourseGenerator:
                             for sv2 in new_v2:
                                 sv2.scene_id = outline.id
                             slides_v2.extend(new_v2)
+
+                            # V2 slides: generate images for each content item with image_prompt
+                            if enable_image and new_v2:
+                                from media_generation import generate_image
+                                for sv2 in new_v2:
+                                    for item in sv2.content:
+                                        if item.image_prompt and not item.image_url:
+                                            try:
+                                                image_url = await generate_image(item.image_prompt)
+                                                item.image_url = image_url
+                                            except Exception as e:
+                                                logger.warning(f"V2 image gen failed for scene {outline.id}: {e}")
+
                             # quiz/exercise: ALSO generate specialized data for interactive renderers
                             if outline.type in ("quiz", "exercise"):
                                 result_v1 = await self._generate_scene_content(course_title, outline, i + 1)
@@ -304,6 +344,26 @@ class CourseGenerator:
                     except Exception as e:
                         logger.exception(f"[generate] 4b CRASH at outline[{i}] type={outline.type}: {e}")
                         raise
+
+                # --- 4b完成：yield first_batch_complete，前端可以进入课堂了 ---
+                try:
+                    from db import update_course_generation_status
+                    update_course_generation_status(
+                        course_id=session_id,
+                        generated_count=total,  # all outlines now generated
+                        is_complete=0
+                    )
+                except Exception as e:
+                    logger.warning(f"[generate] Failed to update generation status after 4b: {e}")
+
+                yield {
+                    "type": "first_batch_complete",
+                    "progress": 60,
+                    "data": {
+                        "generated_count": total,
+                        "total_outlines": total,
+                    }
+                }
 
                 # ---- Phase 5: 配图生成 ----
                 if enable_image:
@@ -350,7 +410,81 @@ class CourseGenerator:
                         "data": {"msg": "跳过语音生成"}
                     }
 
-                # ---- Phase 7: 构建最终数据 ----
+                # ---- Phase 7: 视频生成（并发生成 + SSE 心跳）----
+                if enable_video and slides_v2:
+                    # 收集所有待生成视频的任务
+                    video_tasks: list[dict[str, Any]] = []
+                    for sv2 in slides_v2:
+                        for item in sv2.content:
+                            prompt = item.video_prompt or item.image_prompt
+                            if not prompt:
+                                continue
+                            video_tasks.append({"slide": sv2, "item": item, "prompt": prompt})
+
+                    if video_tasks:
+                        yield {
+                            "type": "status",
+                            "progress": 89,
+                            "data": {"msg": f"正在并发生成 {len(video_tasks)} 个教学视频（耗时较长，请耐心等待）..."}
+                        }
+
+                        async def _gen_one(task: dict) -> dict[str, Any]:
+                            try:
+                                from media_generation import generate_video
+                                url = await generate_video(prompt=task["prompt"])
+                                task["item"].video_url = url
+                                logger.info(f"[video] generated for slide '{task['slide'].title[:30]}': {url[:80]}")
+                                return {"ok": True, "title": task["slide"].title[:30], "url": url}
+                            except Exception as e:
+                                logger.warning(f"[video] generation failed for slide '{task['slide'].title[:30]}': {e}")
+                                return {"ok": False, "title": task["slide"].title[:30], "error": str(e)}
+
+                        coros = [_gen_one(t) for t in video_tasks]
+                        completed = 0
+                        failed = 0
+                        pending = set(asyncio.ensure_future(c) for c in coros)
+
+                        while pending:
+                            done, pending = await asyncio.wait(
+                                pending, timeout=15,
+                                return_when=asyncio.FIRST_COMPLETED
+                            )
+                            for fut in done:
+                                result = fut.result()
+                                if result["ok"]:
+                                    completed += 1
+                                else:
+                                    failed += 1
+                            # 向 SSE 前端回传进度（同时作为心跳防止超时断开）
+                            remaining = len(pending)
+                            yield {
+                                "type": "status",
+                                "progress": 90,
+                                "data": {
+                                    "msg": f"视频生成中... 已完成 {completed}/{len(video_tasks)}"
+                                           + (f"，失败 {failed}" if failed else "")
+                                           + (f"，剩余 {remaining} 个" if remaining else "")
+                                }
+                            }
+                        yield {
+                            "type": "status",
+                            "progress": 94,
+                            "data": {"msg": f"视频生成完成（成功 {completed} 个" + (f"，失败 {failed} 个" if failed else "") + "）"}
+                        }
+                    else:
+                        yield {
+                            "type": "status",
+                            "progress": 89,
+                            "data": {"msg": "视频生成完成（无可用场景）"}
+                        }
+                else:
+                    yield {
+                        "type": "status",
+                        "progress": 89,
+                        "data": {"msg": "跳过视频生成"}
+                    }
+
+                # ---- Phase 8: 构建最终数据 ----
                 teacher = TeacherInfo(
                     name=self.config.teacher_name,
                     avatar=self.config.teacher_avatar,
@@ -359,7 +493,7 @@ class CourseGenerator:
                 )
 
                 course_data = CourseData(
-                    courseId=f"course_{int(time.time())}_{uuid.uuid4().hex[:8]}",
+                    courseId=session_id,  # 使用session_id作为courseId以便前端轮询
                     title=course_title,
                     outlines=outlines,
                     slides=slides,
@@ -379,6 +513,17 @@ class CourseGenerator:
                         "interactive_mode": interactive_mode,
                     }
                 )
+
+                # --- 完成：更新数据库状态为complete ---
+                try:
+                    from db import update_course_generation_status
+                    update_course_generation_status(
+                        course_id=session_id,
+                        generated_count=total,
+                        is_complete=1
+                    )
+                except Exception as e:
+                    logger.warning(f"[generate] Failed to update generation status at done: {e}")
 
                 yield {
                     "type": "done",
@@ -442,9 +587,16 @@ class CourseGenerator:
 
     async def _generate_outlines(self, requirement: str) -> list[SceneOutline]:
         """用LLM生成课程大纲"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建课程大纲，确保所有知识点和结构来源于此文档）
+
+{self._pdf_text}
+"""
         raw = await self._call_llm_with_retry(
             "你是一位课程设计专家，严格按JSON格式输出。",
-            build_prompt("outline_generation_v3", requirement=requirement, course_type="general"),
+            build_prompt("outline_generation_v3", requirement=requirement, course_type="general", pdf_text=pdf_context),
             temperature=0.7,
         )
         items = self._extract_json(raw)
@@ -475,6 +627,14 @@ class CourseGenerator:
         slide_index: int,
     ) -> dict[str, Any]:
         """用LLM为单个大纲项生成内容，返回 {slide, quiz_data?, exercise_data?}"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建，确保内容准确）
+
+{self._pdf_text}
+"""
+
         prompt_id = "slide_content"
         system_prompt = "你是一位课程内容专家，严格按JSON格式输出。"
 
@@ -500,6 +660,7 @@ class CourseGenerator:
                     outline_title=outline.title,
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
+                    pdf_text=pdf_context,
                 ),
                 temperature=0.6,
             )
@@ -610,6 +771,53 @@ class CourseGenerator:
         slide_index: int,
     ) -> dict[str, Any]:
         """用LLM生成V2格式幻灯片内容（结构化布局）—— 强容错版本"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建幻灯片，确保知识点准确来源于文档）
+
+{self._pdf_text}
+"""
+
+        web_search_context = ""
+        if self.config.enable_web_search:
+            try:
+                from app.services.teacher.web_search import search_web, format_as_context
+                query = f"{outline.title} {', '.join(outline.key_points) if outline.key_points else ''}"
+                logger.info(f"[web_search] searching for outline: {query[:80]}")
+                results = await search_web(query)
+                web_search_context = format_as_context(results)
+                logger.info(f"[web_search] got {results.source_count} results for: {outline.title}")
+            except Exception as e:
+                logger.warning(f"[web_search] failed for outline {outline.title}: {e}")
+
+        # --- Quiz场景：生成测验题目 ---
+        if outline.type == "quiz":
+            logger.info(f"[_generate_scene_content_v2] generating quiz for outline: {outline.title}")
+            try:
+                quiz_prompt = build_prompt(
+                    "quiz_content",
+                    course_title=course_title,
+                    outline_title=outline.title,
+                    outline_description=outline.description,
+                    key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
+                    web_search_context=web_search_context,
+                    pdf_text=pdf_context,
+                    scene_id=outline.id,
+                )
+                quiz_raw = await self._call_llm_with_retry(
+                    "你是一位测验出题专家，严格按JSON格式输出。",
+                    quiz_prompt,
+                    temperature=0.5,
+                )
+                quiz_data = self._extract_json(quiz_raw)
+                logger.info(f"[_generate_scene_content_v2] quiz generated with {len(quiz_data.get('questions', []))} questions for outline: {outline.title}")
+                # Return empty slides_v2 (quiz scenes don't need slides) and quiz_data
+                return {"slides_v2": [], "quiz_data": quiz_data}
+            except Exception as e:
+                logger.error(f"[_generate_scene_content_v2] quiz generation failed for {outline.title}: {e}")
+                return {"slides_v2": [], "quiz_data": None}
+
         try:
             raw = await self._call_llm_with_retry(
                 "你是一位课程内容专家，严格按JSON格式输出。",
@@ -620,6 +828,8 @@ class CourseGenerator:
                     outline_title=outline.title,
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
+                    web_search_context=web_search_context,
+                    pdf_text=pdf_context,
                 ),
                 temperature=0.6,
             )
@@ -663,10 +873,18 @@ class CourseGenerator:
 
                 # 安全提取字段，缺失则用默认值
                 slide_title = slide_data.get("title") or outline.title or f"知识点讲解 {idx + 1}"
-                layout_type = slide_data.get("layoutType") or "two-column"
+                layout_type = slide_data.get("layoutType") or slide_data.get("layout_type") or "two-column"
 
                 # 校验 layout_type 合法性
-                allowed_layouts = {"title-only", "two-column", "grid-cards", "header-content", "quote-highlight"}
+                allowed_layouts = {
+                    "title-only", "two-column", "grid-cards", "header-content", "quote-highlight",
+                    "center-focus", "media-left", "stats-row", "timeline-steps", "comparison",
+                    "fullwidth-banner", "three-column-cards", "asymmetric-split",
+                    "icon-vertical-stack", "numbered-list", "hero-center", "left-sidebar",
+                    "bottom-cards", "floating-overlap", "grid-icon", "process-flow", "quote-wall",
+                    "info-graphic", "tabbed-content", "dark-header", "gradient-split",
+                    "circle-radial", "stair-step", "minimal-center", "horizontal-scroll"
+                }
                 if layout_type not in allowed_layouts:
                     logger.warning(f"[_generate_scene_content_v2] slides[{idx}] layoutType={layout_type} invalid, forcing two-column")
                     layout_type = "two-column"
@@ -716,14 +934,17 @@ class CourseGenerator:
                                 bullets = [text_raw[:200]]
 
                         content_item = SlideContentItemV2(
-                            sub_title=item_data.get("subTitle") or "",
+                            sub_title=item_data.get("subTitle") or item_data.get("sub_title") or "",
                             bullets=bullets,
                             narration=narration,
                             text=text_raw,
                             icon=icon,
                             color_theme=color_theme,
                             code_snippet=item_data.get("codeSnippet") or "",
-                            image_url=item_data.get("imageUrl") or "",
+                            image_url=item_data.get("imageUrl") or item_data.get("image_url") or "",
+                            image_prompt=item_data.get("image_prompt") or item_data.get("imagePrompt") or "",
+                            video_url=item_data.get("videoUrl") or item_data.get("video_url") or None,
+                            video_prompt=item_data.get("video_prompt") or item_data.get("videoPrompt") or None,
                         )
                         content_items.append(content_item)
                     except Exception as e:

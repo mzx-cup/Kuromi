@@ -27,18 +27,12 @@ class WhiteboardRenderer {
 
   _initContainer() {
     let container = document.getElementById(this.containerId);
-    if (!container) {
-      container = document.createElement('div');
-      container.id = this.containerId;
-      container.style.cssText = 'position:relative;overflow:hidden;background:#fff;border-radius:8px;';
-      document.body.appendChild(container);
-    }
-    // Responsive: container fills its parent, SVG viewBox handles scaling
-    container.style.width = '100%';
-    container.style.height = '100%';
-    container.innerHTML = '';
+    if (!container) return;
 
-    // SVG 层
+    // If SVG already exists, just reuse it
+    if (this.svgRoot && container.contains(this.svgRoot)) return;
+
+    // Only create SVG if not present
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('width', '100%');

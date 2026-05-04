@@ -224,27 +224,34 @@
                         </div>
                     </div>
 
-                    <!-- AI Teacher Area -->
-                    <div class="teacher-area" id="teacher-area">
-                        <div class="teacher-avatar" id="teacher-avatar">
-                            <i class="fas fa-chalkboard-teacher" style="color:white;font-size:1.8rem;"></i>
-                        </div>
-                        <div class="teacher-info">
-                            <span class="teacher-name" id="teacher-name">AI教师</span>
-                            <div class="teacher-status" id="teacher-status">
-                                <span class="status-dot"></span>
-                                <span class="status-text">待机中</span>
+                    <!-- AI Teacher Area - Fixed Bottom Right -->
+                <div class="teacher-area" id="teacher-area">
+                    <div class="teacher-avatar" id="teacher-avatar">
+                        <div class="teacher-avatar-inner">
+                            <div class="teacher-avatar-eyes">
+                                <div class="eye eye-left"></div>
+                                <div class="eye eye-right"></div>
                             </div>
+                            <div class="teacher-avatar-mouth"></div>
                         </div>
-                        <div class="teacher-speech">
-                            <div class="speech-bubble">
-                                <p id="speech-text">正在加载课程内容...</p>
-                            </div>
+                    </div>
+                    <div class="teacher-info">
+                        <span class="teacher-name" id="teacher-name">AI教师</span>
+                        <div class="teacher-status" id="teacher-status">
+                            <span class="status-dot"></span>
+                            <span class="status-text">待机中</span>
+                        </div>
+                    </div>
+                    <div class="teacher-speech-wrapper">
+                        <div class="speech-bubble">
+                            <p id="speech-text">正在加载课程内容...</p>
+                        </div>
+                        <div class="teacher-controls" id="teacher-controls">
                             <div class="speech-controls" id="speech-controls">
                                 <button class="speech-btn replay-btn" id="replay-btn" title="重新播放">
                                     <i class="fas fa-redo"></i>
                                 </button>
-                                <button class="playback-play-btn" id="playback-play-btn" title="播放 / 暂停" data-shortcut="Space">
+                                <button class="speech-btn playback-play-btn" id="playback-play-btn" title="播放 / 暂停" data-shortcut="Space">
                                     <i class="fas fa-play"></i>
                                 </button>
                                 <div class="playback-speed-wrap" id="playback-speed-wrap">
@@ -259,6 +266,21 @@
                                         <div class="speed-option" data-speed="1.25">1.25x</div>
                                         <div class="speed-option" data-speed="1.5">1.5x</div>
                                         <div class="speed-option" data-speed="2.0">2x</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="voice-selector" id="voice-selector">
+                                <div class="voice-dropdown" id="voice-dropdown">
+                                    <div class="voice-dropdown-trigger" id="voice-dropdown-trigger">
+                                        <span class="voice-dropdown-value" id="voice-dropdown-value">温柔御姐</span>
+                                        <i class="fas fa-chevron-up voice-dropdown-arrow"></i>
+                                    </div>
+                                    <div class="voice-dropdown-menu" id="voice-dropdown-menu">
+                                        <div class="voice-dropdown-item" data-value="female-shaonv">青春少女</div>
+                                        <div class="voice-dropdown-item selected" data-value="female-yujie">温柔御姐</div>
+                                        <div class="voice-dropdown-item" data-value="female-danyun">知性女声</div>
+                                        <div class="voice-dropdown-item" data-value="male-qingshu">青涩少年</div>
+                                        <div class="voice-dropdown-item" data-value="male-shaoshuai">磁性男声</div>
                                     </div>
                                 </div>
                             </div>
@@ -289,27 +311,48 @@
                 </div>
             </main>
 
-            <!-- Chat Panel -->
-            <aside class="chat-panel" id="chat-panel">
-                <div class="chat-header">
-                    <i class="fas fa-comments"></i>
-                    <span>课堂讨论</span>
-                    <select id="chat-agent-select" class="chat-agent-select">
-                        <option value="">AI助教</option>
-                    </select>
+        <!-- Floating Chat Toggle Button -->
+        <button class="chat-toggle-btn" id="chat-toggle-btn" title="课堂讨论">
+            <i class="fas fa-comment-dots"></i>
+        </button>
+
+        <!-- Chat Panel -->
+        <aside class="chat-panel collapsed" id="chat-panel">
+            <div class="chat-header">
+                <i class="fas fa-comments"></i>
+                <span>课堂讨论</span>
+                <div class="chat-tabs">
+                    <button class="chat-tab active" data-tab="qa">问答</button>
+                    <button class="chat-tab" data-tab="discussion">讨论</button>
                 </div>
-                <div class="chat-messages" id="chat-messages"></div>
-                <div class="chat-input-area">
-                    <button class="voice-input-btn" id="chat-voice-btn" title="语音输入">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <input type="text" id="chat-input" placeholder="向老师提问..." autocomplete="off">
-                    <button class="send-btn" id="send-chat">
-                        <i class="fas fa-paper-plane"></i>
+                <select id="chat-agent-select" class="chat-agent-select">
+                    <option value="">AI助教</option>
+                </select>
+            </div>
+
+            <!-- QA Mode Messages -->
+            <div class="chat-messages" id="chat-messages"></div>
+
+            <!-- Discussion Mode -->
+            <div class="discussion-area" id="discussion-area" style="display:none;">
+                <div class="discussion-messages" id="discussion-messages"></div>
+                <div class="discussion-actions">
+                    <button class="discussion-start-btn" id="discussion-start-btn">
+                        <i class="fas fa-plus"></i> 发起讨论
                     </button>
                 </div>
-            </aside>
-        </div>
+            </div>
+
+            <div class="chat-input-area">
+                <button class="voice-input-btn" id="chat-voice-btn" title="语音输入">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <input type="text" id="chat-input" placeholder="向老师提问..." autocomplete="off">
+                <button class="send-btn" id="send-chat" style="display:none;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </aside>
 
         <!-- Audio Player -->
         <audio id="tts-audio-player" preload="auto" style="display:none;"></audio>
@@ -367,16 +410,42 @@
     </div>
 
     <script>
-// Voice select change handler
+// Voice select change handlers
 document.getElementById('header-voice-select')?.addEventListener('change', function() {
     if (window.classroomController) {
         window.classroomController.setVoice(this.value);
+    }
+});
+
+document.getElementById('voice-dropdown-trigger')?.addEventListener('click', function() {
+    document.getElementById('voice-dropdown-menu').classList.toggle('show');
+});
+
+document.querySelectorAll('.voice-dropdown-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+        const value = this.dataset.value;
+        const text = this.textContent;
+        document.getElementById('voice-dropdown-value').textContent = text;
+        document.getElementById('voice-dropdown-menu').classList.remove('show');
+        document.querySelectorAll('.voice-dropdown-item').forEach(i => i.classList.remove('selected'));
+        this.classList.add('selected');
+        if (window.classroomController) {
+            window.classroomController.setVoice(value);
+        }
+    });
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.voice-dropdown')) {
+        document.getElementById('voice-dropdown-menu')?.classList.remove('show');
     }
 });
 </script>
 <script src="../js/slide-v2-adapter.js"></script>
 <script src="../js/openmaic-slide-player.js"></script>
 <script src="../js/whiteboard-renderer.js"></script>
+<script src="../js/notifications.js"></script>
 <script src="../js/classroom.js"></script>
 </body>
 </html>

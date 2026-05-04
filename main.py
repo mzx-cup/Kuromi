@@ -24,6 +24,9 @@ from db import (
     get_classroom_record,
     update_classroom_record,
     delete_classroom_record,
+    save_course_generation_status,
+    get_course_generation_status,
+    update_course_generation_status,
 )
 import asyncio
 
@@ -5727,9 +5730,12 @@ async def generate_course_stream(request: CourseGenerationRequest):
             student_id=request.student_id or "",
             enable_image=request.enable_image,
             enable_tts=request.enable_tts,
+            enable_video=request.enable_video,
             voice_id=request.voice_id,
             agent_mode=request.agent_mode,
             interactive_mode=request.interactive_mode,
+            enable_pdf_upload=request.enable_pdf_upload,
+            pdf_text=request.pdf_text,
         ):
             event_type = event.pop("type", "message")
             yield sse_event(event_type, event)
@@ -5770,6 +5776,72 @@ async def export_course_pptx(data: dict[str, Any] = {}):
         raise HTTPException(status_code=500, detail=f"PPTX导出失败: {str(e)}")
 
 
+@app.post("/api/v2/course/extract-pdf-text")
+async def extract_pdf_text(request: Request):
+    """
+    提取PDF文本内容
+    接收base64编码的PDF内容或文件路径，返回提取的文本
+    """
+    import base64
+    import pdfplumber
+    import tempfile
+    import os
+
+    try:
+        body = await request.json()
+        pdf_content = body.get("pdf_content")  # base64 encoded PDF
+        pdf_url = body.get("pdf_url")  # or URL to download
+        filename = body.get("filename", "document.pdf")
+
+        text_content = ""
+
+        if pdf_content:
+            # Decode base64 PDF
+            pdf_bytes = base64.b64decode(pdf_content)
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                tmp.write(pdf_bytes)
+                tmp_path = tmp.name
+        elif pdf_url:
+            # Download from URL
+            resp = requests.get(pdf_url, timeout=30)
+            resp.raise_for_status()
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                tmp.write(resp.content)
+                tmp_path = tmp.name
+        else:
+            raise HTTPException(status_code=400, detail="未提供PDF内容或URL")
+
+        # Extract text using pdfplumber
+        with pdfplumber.open(tmp_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_content += page_text + "\n\n"
+
+        # Cleanup temp file
+        os.unlink(tmp_path)
+
+        if not text_content.strip():
+            return {"success": True, "text": "", "message": "PDF未提取到文本内容"}
+
+        # Truncate if too long (LLM context limit)
+        max_chars = 50000
+        if len(text_content) > max_chars:
+            text_content = text_content[:max_chars] + "\n\n[内容已截断...]"
+
+        return {
+            "success": True,
+            "text": text_content,
+            "filename": filename,
+            "char_count": len(text_content)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF解析失败: {str(e)}")
+
+
 # ============================================================
 # 课堂聊天 API (基于当前课程上下文)
 # ============================================================
@@ -5788,6 +5860,25 @@ async def course_chat(request: CourseChatRequest):
     # 尝试构建完整的课程上下文
     agent_role = getattr(request, 'agent_role', 'AI助教') if hasattr(request, 'agent_role') else 'AI助教'
     course_title = request.course_id  # fallback
+
+    # 网络搜索：检测问题是否超出课程范围，必要时调用 Tavily
+    web_context = ""
+    if getattr(request, 'enable_web_search', False):
+        try:
+            from app.services.teacher.web_search import search_web, format_as_context
+            # 检测问题是否涉及课程外知识（最新、现在、新闻、动态等关键词）
+            beyond_keywords = ["最新", "现在", "新闻", "动态", "最近", "202", "如何", "怎么"]
+            needs_search = (
+                len(request.slide_content) < 100 or
+                any(kw in request.user_input for kw in beyond_keywords)
+            )
+            if needs_search:
+                search_resp = await search_web(request.user_input)
+                if search_resp and search_resp.source_count > 0:
+                    web_context = format_as_context(search_resp)
+                    logger.info(f"[course_chat] Tavily搜索成功，结果数={search_resp.source_count}")
+        except Exception as e:
+            logger.warning(f"[course_chat] Tavily搜索失败: {e}")
 
     # 加载课程数据以获取更多上下文
     filepath = _get_course_path(request.course_id)
@@ -5835,6 +5926,7 @@ async def course_chat(request: CourseChatRequest):
 幻灯片内容: {request.slide_content[:500]}
 教师台词: {request.speech[:300]}
 课程大纲: {course_context[:500]}
+{web_context}
 
 请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
 
@@ -5846,6 +5938,7 @@ async def course_chat(request: CourseChatRequest):
     except Exception:
         system_prompt = f"""你是课堂AI助教。当前课程: {course_title}
 当前讲解: {request.slide_title}
+{web_context}
 请回答学生问题，简洁有教育意义。"""
         user_prompt = request.user_input
 
@@ -5865,12 +5958,30 @@ async def course_chat_stream(request: CourseChatRequest):
     """课堂内AI问答（流式SSE）"""
     from llm_stream import call_llm_stream
 
+    # 网络搜索
+    web_context = ""
+    if getattr(request, 'enable_web_search', False):
+        try:
+            from app.services.teacher.web_search import search_web, format_as_context
+            beyond_keywords = ["最新", "现在", "新闻", "动态", "最近", "202", "如何", "怎么"]
+            needs_search = (
+                len(request.slide_content) < 100 or
+                any(kw in request.user_input for kw in beyond_keywords)
+            )
+            if needs_search:
+                search_resp = await search_web(request.user_input)
+                if search_resp and search_resp.source_count > 0:
+                    web_context = format_as_context(search_resp)
+        except Exception:
+            pass
+
     system_prompt = f"""你是一个课堂AI助教，正在辅助学生学习课程。
 
 当前课程: {request.course_id}
 当前幻灯片: {request.slide_title}
 幻灯片内容: {request.slide_content[:500]}
 教师台词: {request.speech[:300]}
+{web_context}
 
 请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
 
@@ -5887,6 +5998,188 @@ async def course_chat_stream(request: CourseChatRequest):
                 full_content += chunk
                 yield _sse_event_chat("chat_chunk", {"content": chunk})
         yield _sse_event_chat("chat_done", {"content": full_content})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.post("/api/v2/course/discussion/stream")
+async def course_discussion_stream(request: Request):
+    """AI同学多智能体讨论流式API"""
+    from state import CourseDiscussionRequest
+
+    try:
+        body = await request.json()
+        req = CourseDiscussionRequest(**body)
+    except Exception as e:
+        logger.error(f"Discussion request parse error: {e}")
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+    logger.info(f"Discussion stream started: course={req.course_id}")
+
+    event_queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=2048)
+    disconnected = asyncio.Event()
+
+    async def push_event(event: dict):
+        if not disconnected.is_set():
+            await event_queue.put(event)
+
+    async def run_discussion():
+        try:
+            await push_event({"type": "discussion_start", "message": "讨论开始"})
+
+            # 加载课程数据获取 agent_team
+            filepath = _get_course_path(req.course_id)
+            if not os.path.exists(filepath):
+                await push_event({"type": "error", "message": "课程不存在"})
+                return
+
+            with open(filepath, "r", encoding="utf-8") as f:
+                course_data = json.load(f)
+
+            agent_team = course_data.get("agent_team", [])
+            if not agent_team:
+                await push_event({"type": "error", "message": "没有可用的AI同学"})
+                return
+
+            # 过滤指定 agent
+            active_agents = agent_team
+            if req.agent_ids:
+                active_agents = [a for a in agent_team if a.get("id") in req.agent_ids]
+                if not active_agents:
+                    active_agents = agent_team
+
+            # 生成讨论话题
+            topic = req.slide_topic or req.slide_content[:200] if req.slide_content else "当前课程内容"
+            user_input = req.user_message or f"关于「{topic}」，请各位AI同学发表看法"
+
+            # 第一阶段：各身份独立发言 (并发)
+            tasks = []
+            for agent in active_agents:
+                task = asyncio.create_task(
+                    asyncio.wait_for(
+                        run_debate_agent_turn(
+                            agent_id=agent.get("id", ""),
+                            agent_name=agent.get("name", "AI同学"),
+                            system_prompt=agent.get("persona", f"你是{agent.get('name', 'AI')}，一个活泼的AI同学。"),
+                            user_input=user_input,
+                            context=req.slide_content or "",
+                            round_num=1,
+                            push_event=push_event
+                        ),
+                        timeout=DEBATE_TIMEOUT_FIRST_ROUND
+                    )
+                )
+                tasks.append((agent.get("id", ""), task))
+
+            agent_responses = {}
+            for agent_id, task in tasks:
+                try:
+                    result = await task
+                    agent_responses[agent_id] = result
+                except Exception as e:
+                    logger.error(f"Agent {agent_id} failed: {e}")
+
+            await push_event({
+                "type": "discussion_round_complete",
+                "round": 1,
+                "message": "第一轮发言完成"
+            })
+
+            # 第二阶段：交叉评论
+            cross_comments = {}
+            if len(agent_responses) > 1:
+                comment_tasks = []
+                for agent in active_agents:
+                    if agent.get("id") not in agent_responses:
+                        continue
+                    other_responses = {
+                        aid: resp for aid, resp in agent_responses.items()
+                        if aid != agent.get("id")
+                    }
+                    if not other_responses:
+                        continue
+
+                    task = asyncio.create_task(
+                        asyncio.wait_for(
+                            run_debate_cross_comment(
+                                agent_id=agent.get("id", ""),
+                                agent_name=agent.get("name", "AI同学"),
+                                user_input=user_input,
+                                other_responses=other_responses,
+                                push_event=push_event
+                            ),
+                            timeout=DEBATE_TIMEOUT_COMMENT
+                        )
+                    )
+                    comment_tasks.append((agent.get("id", ""), task))
+
+                for agent_id, task in comment_tasks:
+                    try:
+                        result = await task
+                        cross_comments[agent_id] = result
+                    except Exception as e:
+                        logger.error(f"Comment {agent_id} failed: {e}")
+
+            # 第三阶段：裁判总结
+            final_answer = await asyncio.wait_for(
+                run_judge_synthesis(
+                    user_input=user_input,
+                    agent_responses=agent_responses,
+                    cross_comments=cross_comments,
+                    push_event=push_event
+                ),
+                timeout=DEBATE_TIMEOUT_JUDGE
+            )
+
+            await push_event({
+                "type": "discussion_complete",
+                "final_answer": final_answer,
+                "agent_responses": agent_responses
+            })
+
+        except Exception as e:
+            logger.error(f"Discussion workflow error: {e}", exc_info=True)
+            await push_event({"type": "error", "message": str(e)})
+        finally:
+            await event_queue.put(None)
+
+    task = asyncio.create_task(run_discussion())
+
+    async def event_generator():
+        try:
+            while not disconnected.is_set():
+                if await request.is_disconnected():
+                    disconnected.set()
+                    break
+
+                try:
+                    event = await asyncio.wait_for(event_queue.get(), timeout=5.0)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+
+                if event is None:
+                    break
+
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+            logger.info(f"Discussion stream closed: course={req.course_id}")
 
     return StreamingResponse(
         event_generator(),
@@ -5979,7 +6272,11 @@ async def save_course(request: CourseSaveRequest):
     if user_id and course.courseId:
         try:
             full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
-            ppt_pages = len(course.slides_v2) if course.slides_v2 else (len(course.slides) if course.slides else 0)
+            ppt_pages = request.ppt_pages if request.ppt_pages else (
+                len(course.slides_v2) if course.slides_v2 else (
+                    len(course.slides) if course.slides else 0
+                )
+            )
             save_classroom_record(user_id, course.courseId, course.title, full_data, ppt_pages)
         except Exception as e:
             print(f"数据库保存失败（非致命）: {e}")
@@ -5995,6 +6292,31 @@ async def get_course(course_id: str):
         raise HTTPException(status_code=404, detail="Course not found")
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+@app.get("/api/v2/course/{course_id}/slides/pending")
+async def get_pending_slides(course_id: str):
+    """获取课程待生成的幻灯片（用于后台增量生成）"""
+    status = get_course_generation_status(course_id)
+    if not status:
+        return {
+            "pending_slides": [],
+            "pending_slides_v2": [],
+            "pending_quiz_data": [],
+            "pending_exercise_data": [],
+            "generated_count": 0,
+            "total_outlines": 0,
+            "is_complete": True
+        }
+    return {
+        "pending_slides": [],
+        "pending_slides_v2": status.get("pending_slides_v2", []),
+        "pending_quiz_data": status.get("pending_quiz_data", []),
+        "pending_exercise_data": status.get("pending_exercise_data", []),
+        "generated_count": status.get("generated_count", 0),
+        "total_outlines": status.get("total_outlines", 0),
+        "is_complete": status.get("is_complete", False)
+    }
 
 
 @app.get("/api/v2/course/list/{student_id}")

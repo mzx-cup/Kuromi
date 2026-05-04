@@ -1,7 +1,6 @@
 /**
  * Generation Preview Page JavaScript
- * Handles SSE streaming events and progress visualization
- * Enhanced with 6-step pipeline and AgentRevealModal
+ * OpenMAIC Style - Clean glass-morphism UI
  */
 
 (function() {
@@ -22,6 +21,8 @@
     let abortController = null;
     let sessionData = null;
     let courseData = null;
+    let isError = false;
+    let actionInterval = null;
 
     // DOM Elements
     const backBtn = document.getElementById('back-btn');
@@ -32,10 +33,15 @@
     const warningBadge = document.getElementById('warning-badge');
     const warningText = document.getElementById('warning-text');
     const outlineListPreview = document.getElementById('outline-list-preview');
-    const agentRevealModal = document.getElementById('agent-reveal-modal');
+    const footerHint = document.getElementById('footer-hint');
+    const retryBtn = document.getElementById('retry-btn');
+    const visualizerContainer = document.getElementById('visualizer-container');
+    const featureCardsContainer = document.getElementById('feature-cards');
 
     // Viz containers
     const vizContainers = {
+        'error': document.getElementById('viz-error'),
+        'complete': document.getElementById('viz-complete'),
         'pdf-analysis': document.getElementById('viz-pdf'),
         'web-search': document.getElementById('viz-search'),
         'outline': document.getElementById('viz-outline'),
@@ -44,11 +50,61 @@
         'actions': document.getElementById('viz-actions')
     };
 
-    // Mini preview elements
-    const miniPreviewCard = document.getElementById('mini-preview-card');
-    const previewTypeBadge = document.getElementById('preview-type-badge');
-    const previewTitle = document.getElementById('preview-title');
-    const previewContent = document.getElementById('preview-content');
+    // Feature card state
+    const featureState = {
+        image: { active: false, done: false },
+        tts: { active: false, done: false },
+        video: { active: false, done: false },
+        websearch: { active: false, done: false },
+        interactive: { active: false, done: false }
+    };
+
+    // Feature card definitions
+    const FEATURE_DEFS = [
+        {
+            key: 'websearch',
+            label: '网络搜索',
+            icon: 'fa-search',
+            cssClass: 'search-card',
+            stepId: 'web-search'
+        },
+        {
+            key: 'image',
+            label: '生成图片',
+            icon: 'fa-image',
+            cssClass: 'image-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'tts',
+            label: '语音讲解',
+            icon: 'fa-microphone',
+            cssClass: 'tts-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'video',
+            label: '生成视频',
+            icon: 'fa-video',
+            cssClass: 'video-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'interactive',
+            label: '深度交互',
+            icon: 'fa-bolt',
+            cssClass: 'interactive-card',
+            stepId: 'agent-generation'
+        }
+    ];
+
+    // Search elements
+    const searchResults = document.getElementById('search-results');
+    const sourceBadge = document.getElementById('source-badge');
+    const sourceCount = document.getElementById('source-count');
+
+    // Action items
+    const actionItems = document.querySelectorAll('.action-item');
 
     function init() {
         loadSession();
@@ -76,18 +132,16 @@
         backBtn?.addEventListener('click', goBack);
         abortBtn?.addEventListener('click', abortGeneration);
 
-        const revealBtn = document.getElementById('reveal-btn');
-        if (revealBtn) {
-            revealBtn.addEventListener('click', hideAgentReveal);
-        }
-
-        const closeReveal = document.getElementById('agent-reveal-close');
-        if (closeReveal) {
-            closeReveal.addEventListener('click', hideAgentReveal);
-        }
+        retryBtn?.addEventListener('click', () => {
+            retryBtn.style.display = 'none';
+            isError = false;
+            startGeneration();
+        });
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') hideAgentReveal();
+            if (e.key === 'Escape') {
+                // Close any modals if needed
+            }
         });
     }
 
@@ -102,16 +156,63 @@
             abortController.abort();
             showError('生成已取消');
             abortBtn.style.display = 'none';
+            if (footerHint) footerHint.style.display = 'none';
         }
     }
 
     // ---- SSE Stream handling ----
 
     async function startGeneration() {
+        // Reset state
+        isError = false;
+        currentStep = 0;
+
+        // Hide all visualizers first
+        Object.values(vizContainers).forEach(viz => {
+            if (viz) {
+                viz.style.display = 'none';
+                viz.classList.remove('active');
+            }
+        });
+
+        // Show first visualizer
+        if (vizContainers['pdf-analysis']) {
+            vizContainers['pdf-analysis'].style.display = 'flex';
+            vizContainers['pdf-analysis'].classList.add('active');
+        }
+
+        // Reset progress dots
+        const dots = progressDots.querySelectorAll('.dot');
+        dots.forEach((dot, i) => {
+            dot.classList.remove('active', 'completed');
+            if (i === 0) dot.classList.add('active');
+        });
+
+        // Reset status
+        statusTitle.textContent = STEPS[0].title;
+        statusDesc.textContent = STEPS[0].desc;
+        abortBtn.style.display = 'flex';
+        abortBtn.classList.add('visible');
+        if (footerHint) footerHint.style.display = 'flex';
+        if (retryBtn) retryBtn.style.display = 'none';
+
+        // Initialize feature cards based on enabled features
+        initFeatureCards();
+
         abortController = new AbortController();
 
-        // Support both old format (requirements.requirement) and flat format
         const reqs = sessionData.requirements || sessionData || {};
+        const hasPdfContent = !!(reqs.enable_pdf_upload && reqs.pdf_text);
+
+        // 如果有PDF内容，更新第一步描述
+        if (hasPdfContent) {
+            STEPS[0].title = '正在解析文档...';
+            STEPS[0].desc = '基于PDF参考文档构建课程';
+        } else {
+            STEPS[0].title = '正在分析需求...';
+            STEPS[0].desc = '解析学习需求与内容';
+        }
+
         const body = {
             requirement: reqs.requirement || '',
             student_id: String(sessionData.student_id || reqs.student_id || ''),
@@ -122,9 +223,9 @@
             agent_mode: reqs.agent_mode || 'preset',
             interactive_mode: reqs.interactive_mode || false,
             enable_web_search: reqs.enable_web_search !== false,
+            enable_pdf_upload: reqs.enable_pdf_upload ?? false,
+            pdf_text: reqs.pdf_text || '',
         };
-        console.log('[DEBUG] SessionData:', JSON.stringify(sessionData));
-        console.log('[DEBUG] Body sent:', JSON.stringify(body));
 
         try {
             const response = await fetch('/api/v2/course/generate/stream', {
@@ -136,12 +237,8 @@
 
             if (!response.ok) {
                 const errText = await response.text();
-                console.error('[DEBUG] 422 response body:', errText);
                 throw new Error(`服务器错误: ${response.status} - ${errText}`);
             }
-
-            abortBtn.style.display = 'flex';
-        abortBtn.classList.add('visible');
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -163,7 +260,6 @@
             if (error.name === 'AbortError') return;
             console.warn('SSE连接失败:', error);
             showError('连接失败，请检查网络后重试');
-            showRetryButton();
         }
     }
 
@@ -207,11 +303,10 @@
 
     // ---- Step visualization ----
 
-    let activeStepId = null;
-
     function updateStep(index, step) {
+        if (isError) return;
+
         currentStep = index;
-        activeStepId = step.id;
 
         // Update progress dots
         const dots = progressDots.querySelectorAll('.dot');
@@ -227,29 +322,177 @@
 
         // Switch active visualizer
         Object.entries(vizContainers).forEach(([id, viz]) => {
-            if (viz) viz.classList.toggle('active', id === step.id);
+            if (viz) {
+                viz.style.display = id === step.id ? 'flex' : 'none';
+                viz.classList.toggle('active', id === step.id);
+            }
+        });
+
+        // Start action animation if on actions step
+        if (step.id === 'actions') {
+            startActionAnimation();
+        } else {
+            stopActionAnimation();
+        }
+    }
+
+    function startActionAnimation() {
+        if (actionInterval) return;
+        let activeIndex = 0;
+        actionItems.forEach((item, i) => {
+            item.classList.toggle('active', i === 0);
+        });
+        actionInterval = setInterval(() => {
+            actionItems.forEach((item, i) => {
+                item.classList.toggle('active', i === activeIndex);
+            });
+            activeIndex = (activeIndex + 1) % actionItems.length;
+        }, 1600);
+    }
+
+    function stopActionAnimation() {
+        if (actionInterval) {
+            clearInterval(actionInterval);
+            actionInterval = null;
+        }
+        actionItems.forEach(item => item.classList.remove('active'));
+    }
+
+    // ---- Feature Cards ----
+
+    function initFeatureCards() {
+        if (!featureCardsContainer) return;
+
+        const reqs = sessionData.requirements || sessionData || {};
+        const enabledFeatures = [];
+
+        if (reqs.enable_web_search) enabledFeatures.push('websearch');
+        if (reqs.enable_image) enabledFeatures.push('image');
+        if (reqs.enable_tts !== false) enabledFeatures.push('tts');
+        if (reqs.enable_video) enabledFeatures.push('video');
+        if (reqs.interactive_mode) enabledFeatures.push('interactive');
+
+        if (enabledFeatures.length === 0) {
+            featureCardsContainer.style.display = 'none';
+            return;
+        }
+
+        featureCardsContainer.innerHTML = '';
+        featureCardsContainer.style.display = 'flex';
+
+        enabledFeatures.forEach((key, i) => {
+            const def = FEATURE_DEFS.find(d => d.key === key);
+            if (!def) return;
+
+            featureState[key] = { active: false, done: false };
+
+            const card = document.createElement('div');
+            card.className = `feature-card ${def.cssClass} waiting`;
+            card.id = `feature-card-${key}`;
+            card.style.animationDelay = `${i * 0.1}s`;
+            card.innerHTML = `
+                <i class="fas ${def.icon} feature-icon"></i>
+                <span class="feature-text">${def.label}</span>
+            `;
+            featureCardsContainer.appendChild(card);
+        });
+
+        requestAnimationFrame(() => {
+            featureCardsContainer.classList.add('visible');
         });
     }
 
-    function updateStatus(msg) {
-        statusTitle.textContent = msg;
+    function activateFeatureCard(key) {
+        const card = document.getElementById(`feature-card-${key}`);
+        if (!card || featureState[key].done) return;
+
+        // Deactivate all first
+        Object.keys(featureState).forEach(k => {
+            const c = document.getElementById(`feature-card-${k}`);
+            if (c && !featureState[k].done) {
+                c.classList.remove('active');
+            }
+        });
+
+        featureState[key].active = true;
+        featureState[key].done = true;
+
+        card.classList.remove('waiting');
+        card.classList.add('active');
+
+        // Mark done after a brief active period
+        setTimeout(() => {
+            card.classList.add('done');
+            const icon = card.querySelector('.feature-icon');
+            if (icon) {
+                icon.className = `fas ${FEATURE_DEFS.find(d => d.key === key).icon} feature-icon`;
+            }
+        }, 1500);
+    }
+
+    function hideFeatureCards() {
+        if (!featureCardsContainer) return;
+        featureCardsContainer.classList.remove('visible');
+        setTimeout(() => {
+            if (featureCardsContainer) featureCardsContainer.style.display = 'none';
+        }, 400);
     }
 
     function showError(message) {
+        isError = true;
+        stopActionAnimation();
+        hideFeatureCards();
+
+        // Hide all visualizers
+        Object.values(vizContainers).forEach(viz => {
+            if (viz) {
+                viz.style.display = 'none';
+                viz.classList.remove('active');
+            }
+        });
+
+        // Show error visualizer
+        if (vizContainers['error']) {
+            vizContainers['error'].style.display = 'flex';
+            vizContainers['error'].classList.add('active');
+        }
+
+        // Update status
         statusTitle.textContent = '生成失败';
         statusDesc.textContent = message;
-        Object.values(vizContainers).forEach(v => { if (v) v.classList.remove('active'); });
+
+        // Hide abort, show retry
+        abortBtn.style.display = 'none';
+        if (footerHint) footerHint.style.display = 'none';
+        if (retryBtn) {
+            retryBtn.style.display = 'flex';
+            retryBtn.classList.add('visible');
+        }
     }
 
-    function showRetryButton() {
-        const retryBtn = document.getElementById('retry-btn');
-        if (retryBtn) {
-            retryBtn.classList.add('visible');
-            retryBtn.addEventListener('click', () => {
-                retryBtn.style.display = 'none';
-                startGeneration();
-            });
+    function showComplete() {
+        stopActionAnimation();
+        hideFeatureCards();
+
+        // Hide all visualizers
+        Object.values(vizContainers).forEach(viz => {
+            if (viz) {
+                viz.style.display = 'none';
+                viz.classList.remove('active');
+            }
+        });
+
+        // Show complete visualizer
+        if (vizContainers['complete']) {
+            vizContainers['complete'].style.display = 'flex';
+            vizContainers['complete'].classList.add('active');
         }
+
+        statusTitle.textContent = '课程生成完成！';
+        statusDesc.textContent = '即将进入课堂...';
+
+        abortBtn.style.display = 'none';
+        if (footerHint) footerHint.style.display = 'none';
     }
 
     function showWarning(text) {
@@ -264,10 +507,35 @@
         console.log('Progress:', percent + '%');
     }
 
+    // ---- Search results update ----
+
+    function updateSearchSources(sources) {
+        if (!searchResults) return;
+
+        searchResults.innerHTML = sources.slice(0, 4).map((source, i) => `
+            <div class="search-result-item">
+                <div class="result-title" style="width: ${60 + Math.random() * 30}%"></div>
+                <div class="result-url"></div>
+            </div>
+        `).join('');
+
+        if (sourceBadge && sourceCount) {
+            sourceBadge.style.display = 'flex';
+            sourceCount.textContent = sources.length;
+        }
+    }
+
     // ---- Outline streaming ----
 
     function addOutlineItem(outline) {
         if (!outlineListPreview) return;
+
+        // Check if showing placeholder
+        const placeholder = outlineListPreview.querySelector('.outline-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
         const div = document.createElement('div');
         div.className = 'outline-item';
         const badgeType = outline.type || 'slide';
@@ -275,121 +543,11 @@
             'slide': '📖', 'quiz': '📝', 'exercise': '✏️',
             'interactive': '🎮', 'pbl': '🔬', 'code': '💻', 'video': '🎬'
         };
-        div.innerHTML = `<span class="outline-type-icon">${typeIcons[badgeType] || '📖'}</span> ${outline.title || '新章节'}`;
+        div.innerHTML = `
+            <div class="outline-bullet"></div>
+            <span class="outline-text-main">${typeIcons[badgeType] || '📖'} ${outline.title || '新章节'}</span>
+        `;
         outlineListPreview.appendChild(div);
-    }
-
-    // ---- Agent Reveal Modal ----
-
-    function showAgentReveal(agents) {
-        if (!agentRevealModal) return;
-        const backPanel = document.getElementById('agent-reveal-back');
-        if (backPanel && agents) {
-            backPanel.innerHTML = agents.map((a, i) => `
-                <div class="agent-reveal-card-item" style="animation-delay: ${i * 0.15}s; border-left: 3px solid ${a.color || '#6366f1'};">
-                    <div class="agent-card-avatar">${a.avatar || '🤖'}</div>
-                    <div class="agent-card-info">
-                        <h4 style="color: ${a.color || '#6366f1'};">${a.name || ''}</h4>
-                        <p class="agent-card-role">${a.role || ''}</p>
-                        <p class="agent-card-persona">${(a.persona || '').slice(0, 80)}...</p>
-                        <span class="agent-card-voice">
-                            <i class="fas fa-volume-up"></i> ${getVoiceLabel(a.voice_id || '')}
-                        </span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        agentRevealModal.style.display = 'flex';
-        agentRevealModal.classList.add('visible');
-        requestAnimationFrame(() => {
-            document.getElementById('agent-reveal-card-inner')?.classList.add('flipped');
-        });
-    }
-
-    function hideAgentReveal() {
-        if (agentRevealModal) agentRevealModal.style.display = 'none';
-    }
-
-    function getVoiceLabel(voiceId) {
-        const map = {
-            'female-shaonv': '青春少女', 'female-yujie': '温柔御姐',
-            'female-danyun': '知性女声', 'male-qingshu': '青涩少年',
-            'male-shaoshuai': '磁性男声'
-        };
-        return map[voiceId] || '默认语音';
-    }
-
-    // ---- Completion ----
-
-    async function completeGeneration(data) {
-        courseData = data;
-        console.log('[DEBUG] completeGeneration called, courseId:', courseData?.courseId, 'student_id:', sessionData?.student_id, 'type:', typeof sessionData?.student_id);
-        abortBtn.style.display = 'none';
-
-        // Merge progressive batch slides into final course data if present
-        const progressiveSlides = sessionStorage.getItem('progressiveSlides');
-        if (progressiveSlides) {
-            try {
-                const batchSlides = JSON.parse(progressiveSlides);
-                if (batchSlides.length > 0 && courseData.slides) {
-                    // Prepend progressive batch slides to the front
-                    courseData.slides = [...batchSlides, ...courseData.slides];
-                }
-            } catch (e) {
-                console.warn('Failed to merge progressive slides:', e);
-            }
-        }
-
-        // Update all dots to completed
-        const dots = progressDots.querySelectorAll('.dot');
-        dots.forEach(dot => {
-            dot.classList.remove('active');
-            dot.classList.add('completed');
-        });
-        updateStatus('课程生成完成！');
-        statusDesc.textContent = '即将进入课堂...';
-        updateStep(STEPS.length, STEPS[STEPS.length - 1]);
-
-        // Save to server
-        const studentId = String(sessionData?.student_id || '');
-        console.log('[DEBUG] Saving course, studentId:', studentId, 'type:', typeof studentId);
-        try {
-            const response = await fetch('/api/v2/course/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ course_data: courseData, student_id: studentId })
-            });
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error('[DEBUG] Save failed with status:', response.status, 'body:', errText);
-            } else {
-                const result = await response.json();
-                console.log('[DEBUG] Save succeeded:', result);
-            }
-        } catch (err) {
-            console.warn('Save failed:', err);
-        }
-
-        // Store for classroom
-        sessionStorage.setItem('classroomData', JSON.stringify(courseData));
-
-        // Show agent reveal if auto mode
-        const agents = courseData?.agent_team;
-        if (agents && agents.length > 0 && sessionData.requirements?.agent_mode === 'auto') {
-            showAgentReveal(agents);
-            // Navigate after reveal animation
-            setTimeout(() => {
-                hideAgentReveal();
-                navigateToClassroom();
-            }, 4000);
-        } else {
-            setTimeout(navigateToClassroom, 1200);
-        }
-    }
-
-    function navigateToClassroom() {
-        window.location.href = '/classroom.html';
     }
 
     // ---- SSE message handler ----
@@ -397,16 +555,13 @@
     function handleSSEMessage(event) {
         try {
             const raw = event.parsed || {};
-            // SSE event field (e.g. "pdf_analysis", "status") - set via backend event: field
             const eventType = raw.type || event.type;
-            // Inner data object (payload inside the JSON body)
             const msg = raw.data || {};
-            // Top-level "data" key inside the SSE event body (for progress, error, etc.)
             const rootData = raw;
 
             switch (eventType) {
                 case 'status':
-                    if (msg.msg) updateStatus(msg.msg);
+                    if (msg.msg) statusDesc.textContent = msg.msg;
                     if (rootData.progress) updateProgress(rootData.progress);
                     break;
 
@@ -416,8 +571,12 @@
 
                 case 'web_search':
                     updateStep(1, STEPS[1]);
+                    activateFeatureCard('websearch');
                     if (msg.sources_count !== undefined) {
                         statusDesc.textContent = `已找到 ${msg.sources_count} 条相关资料`;
+                    }
+                    if (msg.sources && msg.sources.length > 0) {
+                        updateSearchSources(msg.sources);
                     }
                     break;
 
@@ -432,6 +591,7 @@
 
                 case 'agent_generation':
                     updateStep(3, STEPS[3]);
+                    activateFeatureCard('interactive');
                     const agents = msg.agents || [];
                     if (agents.length > 0) {
                         statusDesc.textContent = `已生成 ${agents.length} 位AI教师`;
@@ -439,13 +599,6 @@
                     break;
 
                 case 'progressive_batch':
-                    // Store progressive batch data for classroom
-                    // Show mini preview for batch content
-                    if (miniPreviewCard && msg.type) {
-                        miniPreviewCard.classList.add('active');
-                        previewTypeBadge.textContent = (msg.type || 'SLIDE').toUpperCase();
-                        previewTitle.textContent = msg.title?.slice(0, 20) || '生成中...';
-                    }
                     if (msg.slides) {
                         sessionStorage.setItem('progressiveSlides', JSON.stringify(msg.slides));
                         sessionStorage.setItem('progressiveQuizData', JSON.stringify(msg.quiz_data || []));
@@ -453,18 +606,20 @@
                     }
                     break;
 
+                case 'first_batch_complete':
+                    statusTitle.textContent = '首批内容已生成';
+                    statusDesc.textContent = '即将进入课堂...';
+                    // 隐藏abort按钮
+                    if (abortBtn) abortBtn.style.display = 'none';
+                    if (footerHint) footerHint.style.display = 'none';
+                    // 1秒后跳转到课堂
+                    setTimeout(() => {
+                        navigateToClassroom();
+                    }, 1000);
+                    break;
+
                 case 'slide_content':
                     updateStep(4, STEPS[4]);
-                    // Update mini preview with actual content
-                    if (miniPreviewCard) {
-                        miniPreviewCard.classList.add('active');
-                        if (msg.title) {
-                            previewTitle.textContent = msg.title.slice(0, 20) || '课程内容';
-                        }
-                        if (msg.type) {
-                            previewTypeBadge.textContent = msg.type.toUpperCase() || 'SLIDE';
-                        }
-                    }
                     if (msg.speech_preview) {
                         statusDesc.textContent = msg.speech_preview.slice(0, 30) + '...';
                     } else {
@@ -474,8 +629,9 @@
 
                 case 'image_progress':
                     updateStep(5, STEPS[5]);
+                    activateFeatureCard('image');
                     if (msg.error) {
-                        statusDesc.textContent = `配图跳过 (${msg.slide_id})`;
+                        statusDesc.textContent = `配图跳过 (幻灯片 ${msg.slide_id})`;
                     } else if (!msg.skipped) {
                         statusDesc.textContent = `配图完成 (幻灯片 ${msg.slide_id})`;
                     }
@@ -483,6 +639,7 @@
 
                 case 'tts_progress':
                     updateStep(5, STEPS[5]);
+                    activateFeatureCard('tts');
                     if (msg.error) {
                         console.warn('TTS failed:', msg.error);
                     } else if (!msg.skipped) {
@@ -496,7 +653,6 @@
 
                 case 'error':
                     showError(rootData.error || msg.error || '生成失败');
-                    showRetryButton();
                     break;
 
                 case 'warning':
@@ -507,6 +663,78 @@
             console.error('SSE handler error:', e);
         }
     }
+
+    // ---- Completion ----
+
+    async function completeGeneration(data) {
+        courseData = data;
+        stopActionAnimation();
+        showComplete();
+
+        // Merge progressive slides
+        const progressiveSlides = sessionStorage.getItem('progressiveSlides');
+        if (progressiveSlides) {
+            try {
+                const batchSlides = JSON.parse(progressiveSlides);
+                if (batchSlides.length > 0 && courseData.slides) {
+                    courseData.slides = [...batchSlides, ...courseData.slides];
+                }
+            } catch (e) {
+                console.warn('Failed to merge progressive slides:', e);
+            }
+        }
+
+        // Update all dots to completed
+        const dots = progressDots.querySelectorAll('.dot');
+        dots.forEach(dot => {
+            dot.classList.remove('active');
+            dot.classList.add('completed');
+        });
+
+        // Save to server
+        const studentId = String(sessionData?.student_id || '');
+        const pageCount = (courseData.slides && courseData.slides.length > 0)
+            ? courseData.slides.length
+            : 0;
+        try {
+            const response = await fetch('/api/v2/course/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_data: courseData,
+                    student_id: studentId,
+                    ppt_pages: pageCount
+                })
+            });
+            if (!response.ok) {
+                console.error('Save failed with status:', response.status);
+            }
+        } catch (err) {
+            console.warn('Save failed:', err);
+        }
+
+        // Store for classroom and navigate
+        sessionStorage.setItem('classroomData', JSON.stringify(courseData));
+
+        const agents = courseData?.agent_team;
+        if (agents && agents.length > 0 && sessionData.requirements?.agent_mode === 'auto') {
+            // Show agent reveal modal
+            setTimeout(() => {
+                navigateToClassroom();
+            }, 2000);
+        } else {
+            setTimeout(navigateToClassroom, 1200);
+        }
+    }
+
+    function navigateToClassroom() {
+        window.location.href = '/classroom.html';
+    }
+
+    // Cleanup on page leave
+    window.addEventListener('beforeunload', () => {
+        stopActionAnimation();
+    });
 
     // Initialize
     if (document.readyState === 'loading') {
