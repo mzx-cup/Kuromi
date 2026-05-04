@@ -3701,15 +3701,12 @@ body.light-theme .path-tree-empty {
 
 .toggle-switch {
     position: relative;
-    width: 48px; height: 28px;
-    background: var(--surface-glass-hover);
-    border-radius: 14px;
+    display: inline-block;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-    border: 1px solid var(--border-glass);
 }
-.toggle-switch.active { background: var(--accent); border-color: var(--accent); }
-.toggle-switch::after {
+
+/* Pattern A (.active-based) 滑块 — 仅在没有 .toggle-slider 子元素时生效 */
+.toggle-switch:not(:has(.toggle-slider))::after {
     content: '';
     position: absolute;
     top: 3px; left: 3px;
@@ -3719,7 +3716,23 @@ body.light-theme .path-tree-empty {
     transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
-.toggle-switch.active::after { left: 23px; }
+
+.toggle-switch:not(:has(.toggle-slider)) {
+    width: 48px; height: 28px;
+    background: var(--surface-glass-hover);
+    border-radius: 14px;
+    border: 1px solid var(--border-glass);
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+.toggle-switch:not(:has(.toggle-slider)).active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.toggle-switch:not(:has(.toggle-slider)).active::after {
+    left: 23px;
+}
 
 .setting-row {
     background: var(--surface-glass);
@@ -6890,14 +6903,15 @@ body.course-mode #course-input-section {
     100% { height: 14px; }
 }
 
-/* 媒体设置弹窗 - 通过Portal渲染到body */
+/* 媒体设置弹窗 - 通过Portal渲染到body，深色毛玻璃风格 */
 .openmaic-media-popup {
     width: 320px;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(167, 139, 250, 0.2);
     border-radius: 1rem;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(167, 139, 250, 0.1);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -6914,25 +6928,18 @@ body.course-mode #course-input-section {
     transform: translateY(0) !important;
 }
 
-@media (prefers-color-scheme: dark) {
-    .openmaic-media-popup {
-        background: rgba(15, 23, 42, 0.98);
-        border-color: rgba(255, 255, 255, 0.1);
-    }
-}
-
 .media-popup-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border-glass);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .media-popup-title {
     font-size: 0.875rem;
     font-weight: 700;
-    color: var(--foreground);
+    color: #e2e8f0;
 }
 
 .media-popup-close {
@@ -6944,14 +6951,14 @@ body.course-mode #course-input-section {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: var(--text-tertiary);
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.15s;
 }
 
 .media-popup-close:hover {
-    background: var(--muted);
-    color: var(--foreground);
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
 }
 
 .media-popup-content {
@@ -6963,23 +6970,40 @@ body.course-mode #course-input-section {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 0;
+    padding: 0.75rem 0.5rem;
+    margin: 0 -0.5rem;
     gap: 1rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    transition: background 0.15s ease;
+}
+
+.media-option:hover {
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .media-option + .media-option {
-    border-top: 1px solid var(--border-glass);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .media-option .toggle-switch {
     width: 44px;
     height: 24px;
     flex-shrink: 0;
+    /* 消除 Pattern A (class-based) 样式泄漏 */
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+/* 消除 Pattern A 的 ::after 伪元素滑块，统一使用 .toggle-slider::before */
+.media-option .toggle-switch::after {
+    display: none;
 }
 
 .media-option .toggle-slider {
     border-radius: 12px;
-    background: #94a3b8;
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .media-option .toggle-slider::before {
@@ -6987,6 +7011,10 @@ body.course-mode #course-input-section {
     height: 18px;
     left: 3px;
     bottom: 3px;
+}
+
+.media-option .toggle-switch input:checked + .toggle-slider {
+    background: #a78bfa;
 }
 
 .media-option .toggle-switch input:checked + .toggle-slider::before {
@@ -6997,27 +7025,77 @@ body.course-mode #course-input-section {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
+    flex: 1;
 }
 
-.media-option-info i {
-    color: var(--primary);
+.media-option-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    background: rgba(167, 139, 250, 0.15);
+    border-radius: 0.5rem;
+    flex-shrink: 0;
 }
 
-.media-option-info div {
+.media-option-icon i,
+.media-option-icon svg {
+    color: #a78bfa;
+}
+
+.media-option-icon.video {
+    background: rgba(56, 189, 248, 0.15);
+}
+
+.media-option-icon.video i,
+.media-option-icon.video svg {
+    color: #38bdf8;
+}
+
+.media-option-text {
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
+    min-width: 0;
 }
 
 .media-option-label {
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--foreground);
+    color: #e2e8f0;
 }
 
 .media-option-desc {
     font-size: 0.75rem;
-    color: var(--text-tertiary);
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+/* 媒体供应商信息 */
+.media-provider-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    background: rgba(167, 139, 250, 0.08);
+    border: 1px solid rgba(167, 139, 250, 0.12);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.media-provider-info i,
+.media-provider-info svg {
+    color: #a78bfa;
+    flex-shrink: 0;
+}
+
+.media-provider-info strong {
+    color: #a78bfa;
+    font-weight: 600;
 }
 
 /* 开关 */
@@ -8206,8 +8284,80 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-media-popup {
-    background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+}
+
+.openmaic-overlay.light-theme .media-popup-header {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.openmaic-overlay.light-theme .media-popup-title {
+    color: #1e293b;
+}
+
+.openmaic-overlay.light-theme .media-popup-close {
+    color: #94a3b8;
+}
+
+.openmaic-overlay.light-theme .media-popup-close:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: #334155;
+}
+
+.openmaic-overlay.light-theme .media-option:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.openmaic-overlay.light-theme .media-option + .media-option {
+    border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+.openmaic-overlay.light-theme .media-option-label {
+    color: #1e293b;
+}
+
+.openmaic-overlay.light-theme .media-option-desc {
+    color: #64748b;
+}
+
+.openmaic-overlay.light-theme .media-option-icon {
+    background: rgba(114, 46, 209, 0.1);
+}
+
+.openmaic-overlay.light-theme .media-option-icon i,
+.openmaic-overlay.light-theme .media-option-icon svg {
+    color: var(--primary);
+}
+
+.openmaic-overlay.light-theme .media-option-icon.video {
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.openmaic-overlay.light-theme .media-option-icon.video i,
+.openmaic-overlay.light-theme .media-option-icon.video svg {
+    color: #0ea5e9;
+}
+
+.openmaic-overlay.light-theme .media-option .toggle-slider {
+    background: #cbd5e1;
+}
+
+.openmaic-overlay.light-theme .media-option .toggle-switch input:checked + .toggle-slider {
+    background: var(--primary);
+}
+
+.openmaic-overlay.light-theme .media-provider-info {
+    background: rgba(114, 46, 209, 0.06);
+    border-color: rgba(114, 46, 209, 0.12);
+    color: #64748b;
+}
+
+.openmaic-overlay.light-theme .media-provider-info i,
+.openmaic-overlay.light-theme .media-provider-info svg,
+.openmaic-overlay.light-theme .media-provider-info strong {
+    color: var(--primary);
 }
 
 .openmaic-overlay.light-theme .openmaic-voice-btn {
@@ -8261,11 +8411,6 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay:not(.light-theme) .openmaic-toolbar-btn {
     background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.openmaic-overlay:not(.light-theme) .openmaic-media-popup {
-    background: rgba(15, 23, 42, 0.98);
     border-color: rgba(255, 255, 255, 0.1);
 }
 

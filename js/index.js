@@ -1807,6 +1807,30 @@ document.addEventListener('DOMContentLoaded', function() {
         imageToggle?.addEventListener('change', updateMediaBadge);
         videoToggle?.addEventListener('change', updateMediaBadge);
 
+        // 初始化时更新徽章状态
+        updateMediaBadge();
+
+        // 整行点击切换开关
+        let mediaToggleDebounce = null;
+        function handleMediaOptionClick(e) {
+            // 点击来自 toggle 开关内部（label/input/slider），由原生行为处理
+            if (e.target.closest('.toggle-switch')) return;
+
+            if (mediaToggleDebounce) return;
+            mediaToggleDebounce = setTimeout(function () { mediaToggleDebounce = null; }, 200);
+
+            var checkbox = this.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+
+        var mediaOptionRows = mediaPopup.querySelectorAll('.media-option');
+        for (var m = 0; m < mediaOptionRows.length; m++) {
+            mediaOptionRows[m].addEventListener('click', handleMediaOptionClick);
+        }
+
         // 点击外部关闭弹窗
         document.addEventListener('click', function(e) {
             if (mediaPopup.classList.contains('show') && !mediaPopup.contains(e.target) && e.target !== mediaBtn) {
@@ -2148,22 +2172,22 @@ async function startCourseGeneration(requirement) {
         window.hidePdfUploadProgress();
     }
 
-    // 将PDF内容添加到requirement
-    let fullRequirement = requirement;
-    if (pdfText) {
-        fullRequirement = `【文档内容】\n${pdfText}\n\n【学习需求】\n${requirement}`;
-    }
+    // 读取PDF解析开关状态
+    const pdfPill = document.getElementById('openmaic-pdf-pill');
+    const enablePdfUpload = pdfPill?.classList.contains('active') ?? false;
 
-    // 保存生成会话数据
+    // 保存生成会话数据（PDF文本独立字段，不再拼接进requirement）
     const sessionData = {
         requirements: {
-            requirement: fullRequirement,
+            requirement: requirement,
             original_requirement: requirement,
             enable_image: imageToggle?.checked || false,
             enable_tts: true,    // 默认开启语音
             enable_video: videoToggle?.checked || false,
             enable_web_search: webSearchPill?.classList.contains('active') ?? true,
             interactive_mode: interactivePill?.classList.contains('active') ?? false,
+            enable_pdf_upload: enablePdfUpload,
+            pdf_text: pdfText,
             voice_id: voiceId,
             agent_mode: agentMode,
             pdf_files: pdfFiles.map(f => f.name),

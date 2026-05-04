@@ -436,6 +436,8 @@ class SlideContentItemV2(BaseModel):
     code_snippet: str = ""  # 可选代码块
     image_url: str = ""  # 可选配图URL
     image_prompt: str = ""  # 配图生成提示词（用于AI生成配图）
+    video_url: Optional[str] = None  # 可选视频URL
+    video_prompt: Optional[str] = None  # 视频生成提示词（用于AI生成视频）
 
     @field_validator('icon')
     @classmethod
@@ -591,6 +593,7 @@ class CourseGenerationRequest(BaseModel):
     agent_mode: str = "preset"  # preset / auto
     interactive_mode: bool = False
     enable_pdf_upload: bool = False
+    pdf_text: str = ""
 
 
 class CourseGenerationSession(BaseModel):

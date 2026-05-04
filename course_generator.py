@@ -56,9 +56,12 @@ class CourseGenerator:
             student_id: str = "",
             enable_image: bool = False,
             enable_tts: bool = False,
+            enable_video: bool = False,
             voice_id: str = "female-shaonv",
             agent_mode: str = "preset",
             interactive_mode: bool = False,
+            enable_pdf_upload: bool = False,
+            pdf_text: str = "",
         ) -> AsyncGenerator[dict[str, Any], None]:
             """
             生成课程，返回SSE事件流
@@ -82,6 +85,9 @@ class CourseGenerator:
             self.config.interactive_mode = interactive_mode
             self.config.enable_image = enable_image
             self.config.enable_tts = enable_tts
+            self.config.enable_video = enable_video
+            self.config.enable_pdf_upload = enable_pdf_upload
+            self._pdf_text = pdf_text  # 存储PDF文本，供 _generate_outlines / _generate_scene_content_v2 使用
 
             try:
                 # ---- Phase 1: 分析需求 ----
@@ -404,7 +410,81 @@ class CourseGenerator:
                         "data": {"msg": "跳过语音生成"}
                     }
 
-                # ---- Phase 7: 构建最终数据 ----
+                # ---- Phase 7: 视频生成（并发生成 + SSE 心跳）----
+                if enable_video and slides_v2:
+                    # 收集所有待生成视频的任务
+                    video_tasks: list[dict[str, Any]] = []
+                    for sv2 in slides_v2:
+                        for item in sv2.content:
+                            prompt = item.video_prompt or item.image_prompt
+                            if not prompt:
+                                continue
+                            video_tasks.append({"slide": sv2, "item": item, "prompt": prompt})
+
+                    if video_tasks:
+                        yield {
+                            "type": "status",
+                            "progress": 89,
+                            "data": {"msg": f"正在并发生成 {len(video_tasks)} 个教学视频（耗时较长，请耐心等待）..."}
+                        }
+
+                        async def _gen_one(task: dict) -> dict[str, Any]:
+                            try:
+                                from media_generation import generate_video
+                                url = await generate_video(prompt=task["prompt"])
+                                task["item"].video_url = url
+                                logger.info(f"[video] generated for slide '{task['slide'].title[:30]}': {url[:80]}")
+                                return {"ok": True, "title": task["slide"].title[:30], "url": url}
+                            except Exception as e:
+                                logger.warning(f"[video] generation failed for slide '{task['slide'].title[:30]}': {e}")
+                                return {"ok": False, "title": task["slide"].title[:30], "error": str(e)}
+
+                        coros = [_gen_one(t) for t in video_tasks]
+                        completed = 0
+                        failed = 0
+                        pending = set(asyncio.ensure_future(c) for c in coros)
+
+                        while pending:
+                            done, pending = await asyncio.wait(
+                                pending, timeout=15,
+                                return_when=asyncio.FIRST_COMPLETED
+                            )
+                            for fut in done:
+                                result = fut.result()
+                                if result["ok"]:
+                                    completed += 1
+                                else:
+                                    failed += 1
+                            # 向 SSE 前端回传进度（同时作为心跳防止超时断开）
+                            remaining = len(pending)
+                            yield {
+                                "type": "status",
+                                "progress": 90,
+                                "data": {
+                                    "msg": f"视频生成中... 已完成 {completed}/{len(video_tasks)}"
+                                           + (f"，失败 {failed}" if failed else "")
+                                           + (f"，剩余 {remaining} 个" if remaining else "")
+                                }
+                            }
+                        yield {
+                            "type": "status",
+                            "progress": 94,
+                            "data": {"msg": f"视频生成完成（成功 {completed} 个" + (f"，失败 {failed} 个" if failed else "") + "）"}
+                        }
+                    else:
+                        yield {
+                            "type": "status",
+                            "progress": 89,
+                            "data": {"msg": "视频生成完成（无可用场景）"}
+                        }
+                else:
+                    yield {
+                        "type": "status",
+                        "progress": 89,
+                        "data": {"msg": "跳过视频生成"}
+                    }
+
+                # ---- Phase 8: 构建最终数据 ----
                 teacher = TeacherInfo(
                     name=self.config.teacher_name,
                     avatar=self.config.teacher_avatar,
@@ -507,9 +587,16 @@ class CourseGenerator:
 
     async def _generate_outlines(self, requirement: str) -> list[SceneOutline]:
         """用LLM生成课程大纲"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建课程大纲，确保所有知识点和结构来源于此文档）
+
+{self._pdf_text}
+"""
         raw = await self._call_llm_with_retry(
             "你是一位课程设计专家，严格按JSON格式输出。",
-            build_prompt("outline_generation_v3", requirement=requirement, course_type="general"),
+            build_prompt("outline_generation_v3", requirement=requirement, course_type="general", pdf_text=pdf_context),
             temperature=0.7,
         )
         items = self._extract_json(raw)
@@ -540,6 +627,14 @@ class CourseGenerator:
         slide_index: int,
     ) -> dict[str, Any]:
         """用LLM为单个大纲项生成内容，返回 {slide, quiz_data?, exercise_data?}"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建，确保内容准确）
+
+{self._pdf_text}
+"""
+
         prompt_id = "slide_content"
         system_prompt = "你是一位课程内容专家，严格按JSON格式输出。"
 
@@ -565,6 +660,7 @@ class CourseGenerator:
                     outline_title=outline.title,
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
+                    pdf_text=pdf_context,
                 ),
                 temperature=0.6,
             )
@@ -675,6 +771,14 @@ class CourseGenerator:
         slide_index: int,
     ) -> dict[str, Any]:
         """用LLM生成V2格式幻灯片内容（结构化布局）—— 强容错版本"""
+        pdf_context = ""
+        if self.config.enable_pdf_upload and getattr(self, '_pdf_text', ''):
+            pdf_context = f"""
+## 参考文档内容（请严格基于以下文档构建幻灯片，确保知识点准确来源于文档）
+
+{self._pdf_text}
+"""
+
         web_search_context = ""
         if self.config.enable_web_search:
             try:
@@ -698,6 +802,7 @@ class CourseGenerator:
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
                     web_search_context=web_search_context,
+                    pdf_text=pdf_context,
                     scene_id=outline.id,
                 )
                 quiz_raw = await self._call_llm_with_retry(
@@ -724,6 +829,7 @@ class CourseGenerator:
                     outline_description=outline.description,
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
                     web_search_context=web_search_context,
+                    pdf_text=pdf_context,
                 ),
                 temperature=0.6,
             )
@@ -837,6 +943,8 @@ class CourseGenerator:
                             code_snippet=item_data.get("codeSnippet") or "",
                             image_url=item_data.get("imageUrl") or item_data.get("image_url") or "",
                             image_prompt=item_data.get("image_prompt") or item_data.get("imagePrompt") or "",
+                            video_url=item_data.get("videoUrl") or item_data.get("video_url") or None,
+                            video_prompt=item_data.get("video_prompt") or item_data.get("videoPrompt") or None,
                         )
                         content_items.append(content_item)
                     except Exception as e:

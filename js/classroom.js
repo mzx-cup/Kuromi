@@ -1333,16 +1333,11 @@
                     const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
                     const isBullets = textHtml.startsWith('<ul');
                     const codeHtml = item.codeSnippet ? this._renderCodeSnippet(item.codeSnippet) : '';
-                    const imageHtml = item.imageUrl || item.image_url ? this._renderImage(item.imageUrl || item.image_url) : '';
+                    const videoUrl = item.videoUrl || item.video_url || '';
+                    const imageUrl = item.imageUrl || item.image_url || '';
+                    const videoHtml = videoUrl ? `<video src="${this._escapeAttr(videoUrl)}" controls autoplay loop muted playsinline style="width:100%;border-radius:8px;max-height:280px;object-fit:cover;"></video>` : '';
+                    const imageHtml = !videoUrl && imageUrl ? this._renderImage(imageUrl) : '';
                     const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
-
-                    console.log('[Classroom] _renderContentCard:', {
-                        itemKeys: Object.keys(item),
-                        icon: item.icon,
-                        colorTheme: item.colorTheme,
-                        theme: theme,
-                        subTitle: subTitle
-                    });
 
                     return `
                         <div class="content-card theme-${theme}"${idxAttr}>
@@ -1350,6 +1345,7 @@
                             ${textHtml && !isBullets ? `<div class="card-text">${textHtml}</div>` : ''}
                             ${textHtml && isBullets ? textHtml : ''}
                             ${codeHtml}
+                            ${videoHtml}
                             ${imageHtml}
                         </div>
                     `;
@@ -4593,8 +4589,12 @@
 
         async startDiscussion() {
             if (this.discussionActive) return;
-            if (!this.courseData?.courseId) {
-                console.warn('No course data loaded');
+            if (!this.courseId) {
+                window.starlearnNotifications?.showNotification({
+                    title: '无法发起讨论',
+                    content: '未找到课程数据，请重新生成课程',
+                    type: 'system'
+                });
                 return;
             }
 
@@ -4616,7 +4616,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         student_id: this.courseData.metadata?.student_id || '',
-                        course_id: this.courseData.courseId || '',
+                        course_id: this.courseId,
                         slide_topic: slideTopic,
                         slide_content: slideContent,
                         speech_content: speechContent,
@@ -4624,6 +4624,11 @@
                         agent_ids: []
                     })
                 });
+
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => '');
+                    throw new Error(errorText || 'HTTP ' + response.status);
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder('utf-8');
@@ -4658,6 +4663,11 @@
                 }
             } catch (e) {
                 console.error('Discussion stream error', e);
+                window.starlearnNotifications?.showNotification({
+                    title: '讨论启动失败',
+                    content: '网络请求失败，请稍后重试',
+                    type: 'system'
+                });
                 this.addDiscussionMessage('system', '讨论启动失败，请稍后重试。');
             } finally {
                 this.discussionActive = false;

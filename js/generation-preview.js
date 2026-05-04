@@ -202,12 +202,12 @@
         abortController = new AbortController();
 
         const reqs = sessionData.requirements || sessionData || {};
-        const hasPdfContent = reqs.requirement?.includes('【文档内容】');
+        const hasPdfContent = !!(reqs.enable_pdf_upload && reqs.pdf_text);
 
         // 如果有PDF内容，更新第一步描述
         if (hasPdfContent) {
             STEPS[0].title = '正在解析文档...';
-            STEPS[0].desc = '从PDF提取学习内容';
+            STEPS[0].desc = '基于PDF参考文档构建课程';
         } else {
             STEPS[0].title = '正在分析需求...';
             STEPS[0].desc = '解析学习需求与内容';
@@ -223,6 +223,8 @@
             agent_mode: reqs.agent_mode || 'preset',
             interactive_mode: reqs.interactive_mode || false,
             enable_web_search: reqs.enable_web_search !== false,
+            enable_pdf_upload: reqs.enable_pdf_upload ?? false,
+            pdf_text: reqs.pdf_text || '',
         };
 
         try {

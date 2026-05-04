@@ -5730,9 +5730,12 @@ async def generate_course_stream(request: CourseGenerationRequest):
             student_id=request.student_id or "",
             enable_image=request.enable_image,
             enable_tts=request.enable_tts,
+            enable_video=request.enable_video,
             voice_id=request.voice_id,
             agent_mode=request.agent_mode,
             interactive_mode=request.interactive_mode,
+            enable_pdf_upload=request.enable_pdf_upload,
+            pdf_text=request.pdf_text,
         ):
             event_type = event.pop("type", "message")
             yield sse_event(event_type, event)
@@ -5771,26 +5774,6 @@ async def export_course_pptx(data: dict[str, Any] = {}):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PPTX导出失败: {str(e)}")
-
-
-@app.post("/api/v2/course/upload-pdf")
-async def upload_pdf():
-    """
-    上传并解析PDF文档
-    接收PDF文件，提取文本内容返回
-    """
-    import os
-    import uuid
-
-    # 使用 fastapi.UploadFile 处理文件上传
-    from fastapi import UploadFile, File
-
-    try:
-        # 这个endpoint需要用multipart/form-data方式调用
-        # 由于当前架构使用的是JSON body，我们需要创建一个单独的处理函数
-        pass
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF上传失败: {str(e)}")
 
 
 @app.post("/api/v2/course/extract-pdf-text")

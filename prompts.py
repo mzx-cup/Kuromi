@@ -208,7 +208,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 需求：{requirement}
 课程类型：{course_type}
-
+{pdf_text}
 要求：
 1. 生成5-8个课程场景
 2. 场景类型多样化：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）
@@ -454,6 +454,7 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景描述：{outline_description}
 关键知识点：{key_points}
 
+{pdf_text}
 【网络搜索结果】（当提供时，请将以下最新信息融入幻灯片内容中）
 {web_search_context}
 
@@ -512,6 +513,8 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
   - codeSnippet: 可选代码块
   - imageUrl: 可选配图URL（已有URL时直接填入）
   - image_prompt: 可选英文配图描述词（用于AI生成配图，描述这张卡片适合配什么样的插图）
+  - videoUrl: 可选视频URL（已有URL时直接填入）
+  - video_prompt: 可选英文视频描述词（用于AI生成视频，描述适合生成什么样的动态场景）
 
 **【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片应使用不同色系以增强视觉区分度。**
 
