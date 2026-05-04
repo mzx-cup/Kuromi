@@ -241,7 +241,6 @@ class PPTXExporter:
             img_data = self._fetch_image_data(card.image_url)
             if img_data:
                 try:
-                    from pptx.util import Inches as I
                     pic = slide.shapes.add_picture(
                         io.BytesIO(img_data),
                         left + Inches(0.1),
@@ -251,6 +250,21 @@ class PPTXExporter:
                     )
                 except Exception:
                     pass
+
+        # 添加视频（仅记录视频URL作为文本标签）
+        if card.video_url:
+            video_label_box = slide.shapes.add_textbox(
+                text_left,
+                text_top + Inches(0.5),
+                text_width,
+                Inches(0.4)
+            )
+            tf = video_label_box.text_frame
+            p = tf.paragraphs[0]
+            p.text = f"🎬 视频: {card.video_url[:60]}..."
+            p.font.size = Pt(9)
+            p.font.color.rgb = RgbColor(100, 116, 139)
+            p.font.italic = True
 
     def _parse_v2_color(self, color_theme: str) -> RgbColor:
         """将 V2 色系转换为 RgbColor"""

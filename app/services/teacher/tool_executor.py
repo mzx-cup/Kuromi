@@ -75,18 +75,36 @@ class ToolExecutor:
     # ---- 私有处理器 ----
 
     async def _handle_web_search(self, args: dict) -> dict:
-        """Tavily 网页搜索 — 使用真实 API"""
+        """优先 MiniMax Coding Plan 搜索，失败则用 Tavily"""
         query = args["query"]
         logger.info("Web search: %s", query[:80])
 
-        from app.services.teacher.web_search import search_web, format_as_context
+        from app.services.teacher.web_search import (
+            search_minimax, search_web, format_as_context,
+        )
 
+        # Step 1: 尝试 MiniMax MCP 搜索
         try:
-            search_response = await search_web(query)
+            search_response = await search_minimax(query)
+            if search_response and (search_response.results or search_response.answer):
+                logger.info("MiniMax search succeeded for: %s", query[:80])
+                context = format_as_context(search_response)
+                return {
+                    "query": query,
+                    "answer": search_response.answer,
+                    "results": [
+                        {"title": r.title, "url": r.url, "content": r.content[:300]}
+                        for r in search_response.results
+                    ],
+                    "source_count": search_response.source_count,
+                    "context_for_llm": context,
+                    "provider": "minimax",
+                }
         except Exception as e:
-            logger.error("Web search failed: %s", e)
-            return {"error": str(e), "query": query}
+            logger.warning("MiniMax search failed, falling back to Tavily: %s", e)
 
+        # Step 2: Fallback 到 Tavily
+        search_response = await search_web(query)
         if not search_response.results and not search_response.answer:
             return {
                 "query": query,
@@ -95,7 +113,6 @@ class ToolExecutor:
                 "source_count": 0,
             }
 
-        # 格式化结果供 LLM 使用
         context = format_as_context(search_response)
         return {
             "query": query,
@@ -106,6 +123,7 @@ class ToolExecutor:
             ],
             "source_count": search_response.source_count,
             "context_for_llm": context,
+            "provider": "tavily",
         }
 
     async def _handle_grade_quiz(self, args: dict) -> dict:

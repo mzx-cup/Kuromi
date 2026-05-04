@@ -458,6 +458,7 @@ class SlideV2(BaseModel):
     title: str = ""
     content: list[SlideContentItemV2] = Field(default_factory=list)
     scene_id: Optional[int] = None  # strict FK → SceneOutline.id
+    teacher_actions: list[TeacherAction] = Field(default_factory=list)  # AI教师白板动作
 
     @field_validator('layout_type')
     @classmethod
@@ -493,19 +494,8 @@ class TeacherInfo(BaseModel):
 class TeacherAction(BaseModel):
     """AI教师动作（用于课堂演示）"""
     id: str = ""
-    type: str = ""  # spotlight, laser, speech, wb_open, wb_close, wb_draw_text, wb_draw_shape
-    element_id: str = ""  # spotlight/laser指向的元素ID
-    text: str = ""  # speech动作的讲解文本
-    # Whiteboard动作
-    wb_content: str = ""  # 白板绘制的HTML内容
-    wb_shape: str = ""  # 白板绘制的形状类型
-    # Widget动作
-    widget_target: str = ""
-    widget_state: dict[str, Any] = Field(default_factory=dict)
-    # 动画参数
-    duration: float = 0  # 动作持续时间（秒）
-    delay: float = 0  # 动作延迟时间（秒）
-    color: str = "#ff6b6b"  # laser颜色
+    type: str = ""  # spotlight, laser, speech, wb_open, wb_close, wb_draw_text, wb_draw_shape, wb_draw_svg...
+    params: dict[str, Any] = Field(default_factory=dict)  # 动作参数，如 {"content": "文字", "x": 100, "y": 200}
 
 
 class SceneActions(BaseModel):

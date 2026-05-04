@@ -33,13 +33,14 @@
         heartbeat: 'elem-attention-heartbeat'
     };
 
-    // MiniMax TTS voice mapping
+    // MiniMax TTS voice mapping (string key -> {index, name, description})
+    // index 0-4 maps to /api/socratic/tts voice_id
     const MINIMAX_VOICES = {
-        'female-shaonv': { voice_id: 'female-shaonv', name: '青春少女', description: '活泼可爱的年轻女声' },
-        'female-yujie': { voice_id: 'female-yujie', name: '温柔御姐', description: '成熟温柔的姐姐声音' },
-        'female-danyun': { voice_id: 'female-danyun', name: '知性女声', description: '知性优雅的女性声音' },
-        'male-qingshu': { voice_id: 'male-qingshu', name: '青涩少年', description: '清新自然的年轻男声' },
-        'male-shaoshuai': { voice_id: 'male-shaoshuai', name: '磁性男声', description: '沉稳磁性的成熟男声' }
+        'female-shaonv': { index: 0, name: '晓雅', description: '活泼可爱的年轻女声' },
+        'female-yujie': { index: 0, name: '晓雅', description: '成熟温柔的姐姐声音' },
+        'female-danyun': { index: 4, name: '雅典娜', description: '知性优雅的女性声音' },
+        'male-qingshu': { index: 1, name: '云起', description: '清新自然的年轻男声' },
+        'male-shaoshuai': { index: 2, name: '雨辰', description: '沉稳磁性的成熟男声' }
     };
 
     // Default TTS config
@@ -75,6 +76,7 @@
             this.sceneStartTime = Date.now();
             this.totalTimeSpent = 0;
             this.currentAudio = null;
+            this.settings = {};
 
             // Action system state
             this.actionQueue = [];
@@ -123,8 +125,10 @@
             this.exerciseContainer = document.getElementById('exercise-container');
             this.interactiveContainer = document.getElementById('interactive-container');
             this.teacherAvatar = document.getElementById('teacher-avatar');
+            this.teacherArea = document.getElementById('teacher-area');
             this.teacherStatus = document.getElementById('teacher-status');
             this.speechText = document.getElementById('speech-text');
+            this.voiceWaveform = document.getElementById('voice-waveform');
             this.prevBtn = document.getElementById('prev-slide');
             this.nextBtn = document.getElementById('next-slide');
             this.currentSlideEl = document.getElementById('current-slide');
@@ -237,6 +241,8 @@
             this.renderSceneSidebar();
             this.renderScene(0);
             this.updateNav();
+            this.initTeacherAreaInteraction();
+            this.loadSettings(); // Load saved settings
             // 启动后台轮询（如果courseId存在且生成未完成）
             this.startBackgroundPolling();
         }
@@ -251,6 +257,26 @@
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
                 // 保存courseId用于后台轮询
                 this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || null;
+
+                // 加载渐进式生成的数据（测验、练习、新幻灯片）
+                try {
+                    const progressiveQuiz = JSON.parse(sessionStorage.getItem('progressiveQuizData') || '[]');
+                    const progressiveExercise = JSON.parse(sessionStorage.getItem('progressiveExerciseData') || '[]');
+                    const progressiveSlides = JSON.parse(sessionStorage.getItem('progressiveSlides') || '[]');
+
+                    // 合并到courseData
+                    if (progressiveQuiz.length > 0) {
+                        this.courseData.quiz_data = (this.courseData.quiz_data || []).concat(progressiveQuiz);
+                    }
+                    if (progressiveExercise.length > 0) {
+                        this.courseData.exercise_data = (this.courseData.exercise_data || []).concat(progressiveExercise);
+                    }
+                    if (progressiveSlides.length > 0) {
+                        this.courseData.slides = (this.courseData.slides || []).concat(progressiveSlides);
+                    }
+                } catch (e) {
+                    console.warn('[classroom] Failed to load progressive data:', e);
+                }
             }
         }
 
@@ -280,10 +306,79 @@
             const pendingV2 = data.pending_slides_v2 || [];
             const pendingQuiz = data.pending_quiz_data || [];
             const pendingExercise = data.pending_exercise_data || [];
-            if (pendingV2.length === 0) return;
 
             const self = this;
             let addedCount = 0;
+
+            // 处理只有quiz/exercise数据但没有slides_v2的场景（如测验场景）
+            pendingQuiz.forEach(function(quizItem) {
+                // 检查是否已存在该quiz场景
+                const exists = self.scenes.some(function(s) {
+                    return s.id === quizItem.scene_id;
+                });
+                if (exists) {
+                    // 更新已有场景的quiz数据
+                    const scene = self.scenes.find(function(s) { return s.id === quizItem.scene_id; });
+                    if (scene && !scene.quiz) {
+                        scene.quiz = quizItem;
+                        console.log('[Classroom] Updated quiz for scene:', scene.id);
+                    }
+                    return;
+                }
+                // 创建新的quiz场景
+                const newScene = {
+                    id: quizItem.scene_id || ('quiz_' + Date.now()),
+                    title: quizItem.title || '课堂测验',
+                    type: 'quiz',
+                    slides_v2: [],
+                    slide: null,
+                    quiz: quizItem,
+                    exercise: null,
+                    audioUrl: null,
+                    imageUrl: null,
+                };
+                self.scenes.push(newScene);
+                addedCount++;
+                console.log('[Classroom] Added quiz scene:', newScene.id);
+            });
+
+            pendingExercise.forEach(function(exItem) {
+                const exists = self.scenes.some(function(s) {
+                    return s.id === exItem.scene_id;
+                });
+                if (exists) {
+                    const scene = self.scenes.find(function(s) { return s.id === exItem.scene_id; });
+                    if (scene && !scene.exercise) {
+                        scene.exercise = exItem;
+                    }
+                    return;
+                }
+                const newScene = {
+                    id: exItem.scene_id || ('exercise_' + Date.now()),
+                    title: exItem.title || '课堂练习',
+                    type: 'exercise',
+                    slides_v2: [],
+                    slide: null,
+                    quiz: null,
+                    exercise: exItem,
+                    audioUrl: null,
+                    imageUrl: null,
+                };
+                self.scenes.push(newScene);
+                addedCount++;
+            });
+
+            // 处理新的slides_v2数据
+            if (pendingV2.length === 0) {
+                if (addedCount > 0) {
+                    this.renderSceneSidebar();
+                    if (this.totalSlidesEl) {
+                        this.totalSlidesEl.textContent = this.scenes.length;
+                    }
+                    this.showNewScenesToast(addedCount);
+                }
+                return;
+            }
 
             pendingV2.forEach(function(slideV2) {
                 // 检查是否已存在
@@ -538,6 +633,10 @@
             document.getElementById('exit-btn')?.addEventListener('click', () => this.showExitModal());
             document.getElementById('cancel-exit')?.addEventListener('click', () => this.hideExitModal());
             document.getElementById('confirm-exit')?.addEventListener('click', () => this.confirmExit());
+            // Settings
+            document.getElementById('settings-btn')?.addEventListener('click', () => this.showSettingsModal());
+            document.getElementById('cancel-settings')?.addEventListener('click', () => this.hideSettingsModal());
+            document.getElementById('save-settings')?.addEventListener('click', () => this.saveSettings());
             // Whiteboard toggle
             this.whiteboardToggleBtn?.addEventListener('click', () => this.toggleWhiteboard());
             this.whiteboardClearBtn?.addEventListener('click', () => this.clearWhiteboard());
@@ -586,6 +685,10 @@
 
         renderScene(index) {
             if (index < 0 || index >= this.scenes.length) return;
+
+            // Stop any currently playing audio before rendering new scene
+            this.stopAudio();
+
             this.visitedScenes.add(this.currentIndex);
             this.totalTimeSpent += Math.floor((Date.now() - this.sceneStartTime) / 1000);
             this.sceneStartTime = Date.now();
@@ -1473,8 +1576,10 @@
                     cardThemes: cardData.content?.map(c => c.colorTheme)
                 });
 
-                // Store actions for playback pipeline (spotlight/laser use element IDs)
-                this._currentOpenMAICActions = firstSlide.actions || scene.actions || null;
+                // Store actions for playback pipeline (spotlight/laser/wb_draw use element IDs)
+                this._currentOpenMAICActions = firstSlide.actions
+                    || scene.actions
+                    || (scene.slides_v2?.[0]?.teacher_actions?.length ? scene.slides_v2[0].teacher_actions : null);
                 // Store element-to-card mapping for spotlight/laser targeting
                 this._currentElemToCard = cardData._elemToCard || null;
             } catch (e) {
@@ -2916,6 +3021,9 @@
         async playSpeechAction(text, voiceId = null, speed = 1.0) {
             if (!text) return;
 
+            // Stop any currently playing audio before starting new one
+            this.stopAudio();
+
             // ---- Spotlight 跟随语音：自动切换到当前讲解的卡片 ----
             var currentElementId = this._findElementForSpeech(text);
             if (currentElementId && currentElementId !== this._currentSpotlightTarget) {
@@ -2924,6 +3032,7 @@
             }
 
             this.speechText.textContent = text;
+            this.updateTeacherSpeechText(text);
             this.showSpeechSyncIndicator(true);
             this.updateTeacherStatus('讲解中', true);
 
@@ -3071,30 +3180,29 @@
         async generateTTS(text, voiceId = null, speed = 1.0) {
             const voice = voiceId || TTS_CONFIG.voice;
             const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
+            const voiceIndex = voiceConfig.index || 0;
 
             try {
-                // Use file endpoint (returns /audio/filename.mp3 URL, works everywhere)
-                const response = await fetch('/api/v2/tts/file', {
+                // Use /api/socratic/tts endpoint (same as socratic-ai.html)
+                const response = await fetch('/api/socratic/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        voice: voiceConfig.voice_id,
-                        speed: speed,
-                        provider_id: 'minimax-tts'
+                        voice_id: voiceIndex
                     })
                 });
 
                 const data = await response.json();
                 console.log('[Classroom] TTS response:', data);
-                if (data.audio_url) {
+                if (data.success && data.audio_url) {
                     console.log('[Classroom] TTS audioUrl:', data.audio_url);
                     return { success: true, audioUrl: data.audio_url };
                 }
-                if (data.detail) {
-                    console.error('[Classroom] TTS API error:', data.detail);
+                if (data.error) {
+                    console.error('[Classroom] TTS API error:', data.error);
                 }
-                return { success: false, error: data.detail || 'TTS generation failed' };
+                return { success: false, error: data.error || 'TTS generation failed' };
             } catch (e) {
                 console.error('TTS API error:', e);
                 return { success: false, error: e.message };
@@ -3118,9 +3226,108 @@
             if (statusText) statusText.textContent = text;
             if (isActive) {
                 this.teacherStatus.classList.add('active');
+                this.teacherArea.classList.add('speaking');
+                // Expand to compact mode when speaking
+                if (this.teacherArea.dataset.state === 'minimized') {
+                    this.setTeacherAreaState('compact');
+                }
+                // Show voice waveform
+                if (this.voiceWaveform) this.voiceWaveform.style.display = 'flex';
             } else {
                 this.teacherStatus.classList.remove('active');
+                this.teacherArea.classList.remove('speaking');
+                // Hide voice waveform
+                if (this.voiceWaveform) this.voiceWaveform.style.display = 'none';
             }
+        }
+
+        updateTeacherSpeechText(text) {
+            // Update both full-text and mini-text elements
+            const fullTextEl = this.speechText;
+            const miniTextEl = this.teacherArea?.querySelector('.mini-text');
+            if (fullTextEl) {
+                fullTextEl.textContent = text;
+                // Scroll to top when text updates
+                const bubble = fullTextEl.closest('.speech-bubble');
+                if (bubble) bubble.scrollTop = 0;
+            }
+            if (miniTextEl) miniTextEl.textContent = text;
+        }
+
+        setTeacherAreaState(state) {
+            if (!this.teacherArea) return;
+            this.teacherArea.dataset.state = state;
+            // Remove all state classes
+            this.teacherArea.classList.remove('minimized', 'compact', 'full');
+            this.teacherArea.classList.add(state);
+        }
+
+        // Hover/click interaction for teacher area
+        initTeacherAreaInteraction() {
+            if (!this.teacherArea) return;
+            const self = this;
+            let hoverTimeout = null;
+            let isTransitioning = false;
+
+            // Mouse enter/leave for hover expand
+            this.teacherArea.addEventListener('mouseenter', function() {
+                if (isTransitioning) return;
+                clearTimeout(hoverTimeout);
+                if (self.teacherArea.dataset.state === 'minimized') {
+                    hoverTimeout = setTimeout(() => {
+                        isTransitioning = true;
+                        self.setTeacherAreaState('compact');
+                        setTimeout(() => { isTransitioning = false; }, 400);
+                    }, 150);
+                }
+            });
+
+            this.teacherArea.addEventListener('mouseleave', function() {
+                clearTimeout(hoverTimeout);
+                if (isTransitioning) return;
+                if (!self.teacherArea.classList.contains('speaking') &&
+                    self.teacherArea.dataset.state === 'compact') {
+                    hoverTimeout = setTimeout(() => {
+                        isTransitioning = true;
+                        self.setTeacherAreaState('minimized');
+                        setTimeout(() => { isTransitioning = false; }, 400);
+                    }, 200);
+                }
+            });
+
+            // Click avatar to toggle full mode
+            const avatar = this.teacherArea.querySelector('.teacher-avatar');
+            if (avatar) {
+                avatar.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const current = self.teacherArea.dataset.state;
+                    if (current === 'minimized') {
+                        self.setTeacherAreaState('compact');
+                    } else if (current === 'compact') {
+                        self.setTeacherAreaState('full');
+                    } else {
+                        self.setTeacherAreaState('compact');
+                    }
+                });
+            }
+
+            // Click outside to collapse from full mode
+            document.addEventListener('click', function(e) {
+                if (!self.teacherArea.contains(e.target) &&
+                    self.teacherArea.dataset.state === 'full' &&
+                    !self.teacherArea.classList.contains('speaking')) {
+                    self.setTeacherAreaState('minimized');
+                }
+            });
+
+            // Keyboard: Escape to collapse from full
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' &&
+                    self.teacherArea.dataset.state === 'full' &&
+                    !self.teacherArea.classList.contains('speaking')) {
+                    self.setTeacherAreaState('compact');
+                }
+            });
         }
 
         updateSpeechProgress() {
@@ -3356,6 +3563,8 @@
                 // Hide slide navigation during whiteboard
                 if (this.slideControls) this.slideControls.style.display = 'none';
                 if (this.progressBar) this.progressBar.style.display = 'none';
+                // Slide mode off when using whiteboard (more space available)
+                if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
             } else {
                 // Switch back to slide view
                 if (this.whiteboardContainer) {
@@ -3429,7 +3638,9 @@
             // narration from slides_v2 content (V2 format)
             const narration = scene.slides_v2?.[0]?.content?.[0]?.narration || '';
             const speech = scene.slide?.speech || scene.quiz?.speech || scene.description || narration;
-            this.speechText.textContent = speech || `现在讲解：${scene.title}`;
+            const displayText = speech || `现在讲解：${scene.title}`;
+            this.speechText.textContent = displayText;
+            this.updateTeacherSpeechText(displayText);
 
             // Update avatar if agent team has different teachers per scene
             const teacherIdx = scene.teacher_index || 0;
@@ -3444,6 +3655,8 @@
 
         playSceneAudio(scene) {
             this.stopAudio();
+            // Activate slide mode when playing slides (compact UI to avoid covering content)
+            if (this.teacherArea) this.teacherArea.classList.add('slide-mode');
             // Update play button to pause icon
             const playBtn = document.getElementById('playback-play-btn');
             const playIcon = playBtn?.querySelector('i');
@@ -3567,6 +3780,10 @@
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             if (this.openmaicPlayer) this.openmaicPlayer.stop({ keepSlide: true });
             if (this.speechSync) this.speechSync.style.display = 'none';
+            // Reset pause state
+            this.audioPausedBefore = false;
+            // Deactivate slide mode when audio stops
+            if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
             // Reset play button state
             const playBtn = document.getElementById('playback-play-btn');
             const playIcon = playBtn?.querySelector('i');
@@ -3576,10 +3793,23 @@
 
         replaySpeech() { this.playSceneAudio(this.scenes[this.currentIndex]); }
         pauseSpeech() {
-            if (this.audioPlayer?.paused === false) this.audioPlayer.pause();
-            else this.audioPlayer?.play().catch(() => {});
-            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
-            else if (window.speechSynthesis.speaking) window.speechSynthesis.pause();
+            // Pause MiniMax TTS audio
+            if (this.audioPlayer && !this.audioPlayer.paused) {
+                this.audioPausedBefore = true;
+                this.audioPlayer.pause();
+            }
+            // Cancel browser TTS (Web Speech API doesn't support pause/resume well)
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        resumeSpeech() {
+            // Resume MiniMax TTS audio if it was playing
+            if (this.audioPlayer && this.audioPausedBefore) {
+                this.audioPlayer.play().catch(() => {});
+                this.audioPausedBefore = false;
+            }
         }
 
         // ---- Quiz ----
@@ -4600,7 +4830,25 @@
 
             const scene = this.scenes[this.currentIndex];
             const slideTopic = scene?.title || '';
-            const slideContent = scene?.slide?.content?.elements?.map(e => e.content).join('\n') || '';
+
+            // 优先从 slides_v2 (V2格式) 提取内容，fallback 到旧 slide 格式
+            let slideContent = '';
+            if (scene?.slides_v2 && scene.slides_v2.length > 0) {
+                const slideV2 = scene.slides_v2[0];
+                // 收集所有卡片的文字内容
+                slideContent = (slideV2.content || [])
+                    .map(item => {
+                        const texts = [];
+                        if (item.sub_title) texts.push(item.sub_title);
+                        if (item.text) texts.push(item.text);
+                        if (item.bullets && item.bullets.length) texts.push(item.bullets.join('\n'));
+                        if (item.code_snippet) texts.push('代码: ' + item.code_snippet);
+                        return texts.join('\n');
+                    })
+                    .join('\n\n');
+            } else if (scene?.slide?.content?.elements) {
+                slideContent = scene.slide.content.elements.map(e => e.content).join('\n');
+            }
             const speechContent = scene?.slide?.speech || scene?.quiz?.speech || '';
 
             this.discussionActive = true;
@@ -4685,8 +4933,8 @@
                     break;
 
                 case 'agent_chunk':
-                    // 流式发言内容
-                    this.appendDiscussionChunk(event.agent_id, event.content);
+                    // 流式发言内容，传递完整event以获取agent_name和agent_color
+                    this.appendDiscussionChunk(event.agent_id, event.content, event);
                     break;
 
                 case 'debate_round_complete':
@@ -4705,18 +4953,34 @@
             }
         }
 
-        appendDiscussionChunk(agentId, content) {
+        appendDiscussionChunk(agentId, content, event = {}) {
             let msgEl = document.getElementById(`discussion-msg-${agentId}`);
             if (!msgEl) {
+                // 优先从 agentTeam 查找（课程自带的AI团队），找不到则使用 event 中的数据
                 const agent = this.agentTeam.find(a => a.id === agentId) || {};
+                const agentName = agent.name || event.agent_name || 'AI同学';
+                // 颜色优先级：agent.color（课程） > event.agent_color（预设角色） > 默认颜色
+                const agentColorRaw = agent.color || event.agent_color || '#6366f1';
+                const roleClass = agentId ? `role-${agentId}` : 'role-agent';
+                // 解析颜色值，生成气泡样式
+                let bubbleStyle = '';
+                if (agentColorRaw.startsWith('#')) {
+                    // HEX颜色转换
+                    const r = parseInt(agentColorRaw.slice(1, 3), 16);
+                    const g = parseInt(agentColorRaw.slice(3, 5), 16);
+                    const b = parseInt(agentColorRaw.slice(5, 7), 16);
+                    bubbleStyle = `background: rgba(${r}, ${g}, ${b}, 0.15); border-color: rgba(${r}, ${g}, ${b}, 0.4);`;
+                } else {
+                    bubbleStyle = `background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4);`;
+                }
                 msgEl = document.createElement('div');
-                msgEl.className = 'discussion-message';
+                msgEl.className = `discussion-message ${roleClass}`;
                 msgEl.id = `discussion-msg-${agentId}`;
                 msgEl.innerHTML = `
-                    <div class="message-avatar" style="background: ${agent.color || 'var(--primary)'}">${agent.name?.charAt(0) || 'AI'}</div>
-                    <div class="message-content">
+                    <div class="message-avatar" style="background: ${agentColorRaw}">${agentName?.charAt(0) || 'AI'}</div>
+                    <div class="message-content" style="${bubbleStyle}">
                         <div class="message-header">
-                            <span class="message-name">${agent.name || 'AI同学'}</span>
+                            <span class="message-name">${agentName}</span>
                         </div>
                         <div class="message-text"></div>
                     </div>
@@ -4725,7 +4989,9 @@
             }
             const textEl = msgEl.querySelector('.message-text');
             if (textEl) {
-                textEl.textContent += content;
+                // 过滤掉<think>和</think>标签内容
+                const cleanContent = content.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<\/think>/g, '');
+                textEl.textContent += cleanContent;
                 this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
             }
         }
@@ -4733,12 +4999,49 @@
         showDiscussionSummary(summaryText) {
             const summaryEl = document.createElement('div');
             summaryEl.className = 'discussion-summary';
+            const formattedText = this._formatDiscussionText(summaryText);
             summaryEl.innerHTML = `
                 <div class="discussion-summary-title"><i class="fas fa-graduation-cap"></i> 讨论总结</div>
-                <div class="discussion-summary-text">${this.escapeHtml(summaryText)}</div>
+                <div class="discussion-summary-text">${formattedText}</div>
             `;
             this.discussionMessages?.appendChild(summaryEl);
-            this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
+            // defer scroll until after layout so scrollHeight includes the new element
+            requestAnimationFrame(() => {
+                if (this.discussionMessages) {
+                    this.discussionMessages.scrollTop = this.discussionMessages.scrollHeight;
+                    summaryEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            });
+        }
+
+        _formatDiscussionText(text) {
+            if (!text) return '';
+            // 转义HTML
+            let html = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+
+            // 换行 -> <br>
+            html = html.replace(/\n+/g, '<br>');
+
+            // 粗体 **text** 或 *text*
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+            // 行内代码 `code`
+            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+            // Markdown无序列表 - 行首的 - 或 * 列表项
+            html = html.replace(/<br>\s*[-*]\s+(.*?)(?=<br>|$)/g, '<br><span class="list-bullet">•</span> $1');
+
+            // 清理多余br
+            html = html.replace(/(<br>)+/g, '<br>');
+            html = html.replace(/^<br>/, '');
+
+            return html;
         }
 
         clearDiscussionMessages() {
@@ -4750,7 +5053,12 @@
         addDiscussionMessage(type, text, agentInfo = null) {
             if (!this.discussionMessages) return;
             const div = document.createElement('div');
-            div.className = `discussion-message ${type === 'user' ? 'user-message' : ''}`;
+            let roleClass = '';
+            if (type === 'user') roleClass = 'user-message';
+            else if (type === 'system') roleClass = 'system-message';
+            else if (agentInfo?.id) roleClass = `role-${agentInfo.id}`;
+            else if (agentInfo?.role) roleClass = `role-${agentInfo.role}`;
+            div.className = `discussion-message ${roleClass}`;
 
             if (type === 'system') {
                 div.innerHTML = `
@@ -4769,9 +5077,18 @@
                     </div>
                 `;
             } else {
+                // 使用 agent.color 作为背景色
+                const agentColor = agentInfo?.color || `hsl(${Math.abs((agentInfo?.id || 'ai').split('').reduce((a, c) => a + c.charCodeAt(0), 0)) % 360}, 70%, 50%)`;
+                let bubbleStyle = '';
+                if (agentColor.startsWith('#')) {
+                    const r = parseInt(agentColor.slice(1, 3), 16);
+                    const g = parseInt(agentColor.slice(3, 5), 16);
+                    const b = parseInt(agentColor.slice(5, 7), 16);
+                    bubbleStyle = `background: rgba(${r}, ${g}, ${b}, 0.15); border-color: rgba(${r}, ${g}, ${b}, 0.4);`;
+                }
                 div.innerHTML = `
-                    <div class="message-avatar" style="background: ${agentInfo?.color || 'var(--primary)'}">${agentInfo?.name?.charAt(0) || 'AI'}</div>
-                    <div class="message-content">
+                    <div class="message-avatar" style="background: ${agentColor}">${agentInfo?.name?.charAt(0) || 'AI'}</div>
+                    <div class="message-content" style="${bubbleStyle}">
                         <div class="message-header">
                             <span class="message-name">${agentInfo?.name || 'AI同学'}</span>
                         </div>
@@ -4792,7 +5109,15 @@
 
         updateNav() {
             const total = this.scenes.length;
-            if (this.currentSlideEl) this.currentSlideEl.textContent = this.currentIndex + 1;
+            if (this.currentSlideEl) {
+                const newSlideNum = this.currentIndex + 1;
+                if (this.currentSlideEl.textContent != newSlideNum) {
+                    this.currentSlideEl.textContent = newSlideNum;
+                    this.currentSlideEl.classList.remove('changed');
+                    void this.currentSlideEl.offsetWidth; // trigger reflow
+                    this.currentSlideEl.classList.add('changed');
+                }
+            }
             if (this.totalSlidesEl) this.totalSlidesEl.textContent = total;
             if (this.prevBtn) this.prevBtn.disabled = this.currentIndex === 0;
             if (this.nextBtn) this.nextBtn.disabled = this.currentIndex === total - 1;
@@ -4913,6 +5238,89 @@
             this.stopAudio();
             sessionStorage.removeItem('generationSession');
             window.location.href = '/index.html';
+        }
+
+        // ---- Settings ----
+
+        showSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            if (!modal) return;
+            // Load current settings into form
+            const voiceSelect = document.getElementById('settings-voice-select');
+            const speedSelect = document.getElementById('settings-speed-select');
+            const autoplayToggle = document.getElementById('settings-autoplay');
+            const progressToggle = document.getElementById('settings-show-progress');
+            const slideNumToggle = document.getElementById('settings-show-slide-num');
+            const notifToggle = document.getElementById('settings-notifications');
+
+            if (voiceSelect) voiceSelect.value = this.settings?.voice || 'female-yujie';
+            if (speedSelect) speedSelect.value = this.settings?.speed || '1.0';
+            if (autoplayToggle) autoplayToggle.checked = this.settings?.autoplay !== false;
+            if (progressToggle) progressToggle.checked = this.settings?.showProgress !== false;
+            if (slideNumToggle) slideNumToggle.checked = this.settings?.showSlideNum !== false;
+            if (notifToggle) notifToggle.checked = this.settings?.notifications !== false;
+
+            modal.style.display = 'flex';
+        }
+
+        hideSettingsModal() {
+            const el = document.getElementById('settings-modal');
+            if (el) el.style.display = 'none';
+        }
+
+        saveSettings() {
+            const voiceSelect = document.getElementById('settings-voice-select');
+            const speedSelect = document.getElementById('settings-speed-select');
+            const autoplayToggle = document.getElementById('settings-autoplay');
+            const progressToggle = document.getElementById('settings-show-progress');
+            const slideNumToggle = document.getElementById('settings-show-slide-num');
+            const notifToggle = document.getElementById('settings-notifications');
+
+            this.settings = {
+                voice: voiceSelect?.value || 'female-yujie',
+                speed: speedSelect?.value || '1.0',
+                autoplay: autoplayToggle?.checked ?? true,
+                showProgress: progressToggle?.checked ?? true,
+                showSlideNum: slideNumToggle?.checked ?? true,
+                notifications: notifToggle?.checked ?? true
+            };
+
+            // Apply settings
+            if (this.settings.voice) this.setVoice(this.settings.voice);
+            if (this.settings.speed) this.setSpeed(parseFloat(this.settings.speed));
+
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) progressBar.style.display = this.settings.showProgress ? 'block' : 'none';
+
+            const slideControls = document.querySelector('.slide-controls');
+            const slideIndicator = document.querySelector('.slide-indicator');
+            if (slideIndicator) slideIndicator.style.display = this.settings.showSlideNum ? 'flex' : 'none';
+
+            // Save to localStorage
+            localStorage.setItem('classroom-settings', JSON.stringify(this.settings));
+
+            this.hideSettingsModal();
+            this.showNotification('设置已保存', 'success');
+        }
+
+        loadSettings() {
+            try {
+                const saved = localStorage.getItem('classroom-settings');
+                if (saved) {
+                    this.settings = JSON.parse(saved);
+                    // Apply loaded settings
+                    if (this.settings.voice) this.setVoice(this.settings.voice);
+                    if (this.settings.speed) this.setSpeed(parseFloat(this.settings.speed));
+
+                    const progressBar = document.querySelector('.progress-bar');
+                    if (progressBar) progressBar.style.display = this.settings.showProgress !== false ? 'block' : 'none';
+
+                    const slideIndicator = document.querySelector('.slide-indicator');
+                    if (slideIndicator) slideIndicator.style.display = this.settings.showSlideNum !== false ? 'flex' : 'none';
+                }
+            } catch (e) {
+                console.warn('Failed to load settings:', e);
+            }
         }
 
         // ---- Chat Voice Input (Speech Recognition) ----

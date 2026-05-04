@@ -295,24 +295,52 @@ def _get_icon(icon_name: str) -> str:
     return icons.get(icon_name, icons["book"])
 
 
+# 前端 slide-v2-adapter.js 同步的 30 种主题色
 THEME_COLORS = {
-    "blue":   {"bg": "#DBEAFE", "text": "#1E40AF", "accent": "#3B82F6", "hex": "#EFF6FF"},
-    "yellow": {"bg": "#FEF3C7", "text": "#92400E", "accent": "#F59E0B", "hex": "#FFFBEB"},
-    "green":  {"bg": "#D1FAE5", "text": "#065F46", "accent": "#10B981", "hex": "#ECFDF5"},
-    "purple": {"bg": "#EDE9FE", "text": "#5B21B6", "accent": "#8B5CF6", "hex": "#F5F3FF"},
+    # 基础色（1-15）
+    "blue":   {"bg": "#DBEAFE", "text": "#1E40AF", "accent": "#3B82F6", "hex": "#DBEAFE"},
+    "yellow": {"bg": "#FEF3C7", "text": "#92400E", "accent": "#F59E0B", "hex": "#FEF3C7"},
+    "green":  {"bg": "#D1FAE5", "text": "#065F46", "accent": "#10B981", "hex": "#D1FAE5"},
+    "purple": {"bg": "#EDE9FE", "text": "#5B21B6", "accent": "#8B5CF6", "hex": "#EDE9FE"},
     "orange": {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#F97316", "hex": "#FFF7ED"},
+    "cyan":   {"bg": "#CFFAFE", "text": "#164E63", "accent": "#06B6D4", "hex": "#CFFAFE"},
+    "pink":   {"bg": "#FCE7F3", "text": "#831843", "accent": "#EC4899", "hex": "#FCE7F3"},
+    "indigo": {"bg": "#E0E7FF", "text": "#3730A3", "accent": "#6366F1", "hex": "#E0E7FF"},
+    "teal":   {"bg": "#CCFBF1", "text": "#115E59", "accent": "#14B8A6", "hex": "#CCFBF1"},
+    "rose":   {"bg": "#FFE4E6", "text": "#9F1239", "accent": "#F43F5E", "hex": "#FFE4E6"},
+    "amber":  {"bg": "#FFFBEB", "text": "#78350F", "accent": "#F59E0B", "hex": "#FFFBEB"},
+    "lime":   {"bg": "#ECFCC5", "text": "#3F6212", "accent": "#84CC16", "hex": "#ECFCC5"},
+    "sky":    {"bg": "#E0F2FE", "text": "#0C4A6E", "accent": "#0EA5E9", "hex": "#E0F2FE"},
+    "violet": {"bg": "#F5F3FF", "text": "#4C1D95", "accent": "#8B5CF6", "hex": "#F5F3FF"},
+    "slate":  {"bg": "#F1F5F9", "text": "#1E293B", "accent": "#64748B", "hex": "#F1F5F9"},
+    # 扩展色（16-30）
+    "crimson":  {"bg": "#FFE4E6", "text": "#9F1239", "accent": "#DC2626", "hex": "#FFE4E6"},
+    "emerald":  {"bg": "#D1FAE5", "text": "#065F46", "accent": "#059669", "hex": "#D1FAE5"},
+    "fuchsia":  {"bg": "#FCE7F3", "text": "#831843", "accent": "#D946EF", "hex": "#FCE7F3"},
+    "gold":     {"bg": "#FFFBEB", "text": "#78350F", "accent": "#D97706", "hex": "#FFFBEB"},
+    "gray":     {"bg": "#F3F4F6", "text": "#1F2937", "accent": "#6B7280", "hex": "#F3F4F6"},
+    "aqua":     {"bg": "#CFFAFE", "text": "#164E63", "accent": "#0891B2", "hex": "#CFFAFE"},
+    "lavender": {"bg": "#EDE9FE", "text": "#5B21B6", "accent": "#A78BFA", "hex": "#EDE9FE"},
+    "coral":    {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#FB923C", "hex": "#FFF7ED"},
+    "navy":     {"bg": "#E0E7FF", "text": "#3730A3", "accent": "#4338CA", "hex": "#E0E7FF"},
+    "mint":     {"bg": "#CCFBF1", "text": "#115E59", "accent": "#34D399", "hex": "#CCFBF1"},
+    "peach":    {"bg": "#FCE7F3", "text": "#831843", "accent": "#FB7185", "hex": "#FCE7F3"},
+    "rust":     {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#EA580C", "hex": "#FFF7ED"},
+    "sand":     {"bg": "#FEF3C7", "text": "#92400E", "accent": "#FCD34D", "hex": "#FEF3C7"},
+    "sage":     {"bg": "#ECFCC5", "text": "#3F6212", "accent": "#65A30D", "hex": "#ECFCC5"},
+    "wine":     {"bg": "#F5F3FF", "text": "#4C1D95", "accent": "#7C3AED", "hex": "#F5F3FF"},
 }
 
 
-# 语义颜色匹配表 - 根据内容关键词匹配主题色
+# 语义颜色匹配表 - 根据内容关键词匹配主题色（支持30种颜色）
 SEMANTIC_COLOR_MAP = {
     # 核心/基础/重要概念 - 使用蓝色
     "基础": "blue", "核心": "blue", "概念": "blue", "原理": "blue",
-    "入门": "blue", "基础": "blue", "概述": "blue", "简介": "blue",
+    "入门": "blue", "概述": "blue", "简介": "blue", "导论": "blue",
 
     # 警告/注意/危险 - 使用黄色/橙色
     "警告": "yellow", "注意": "yellow", "危险": "orange", "错误": "orange",
-    "异常": "orange", "失败": "orange", "问题": "yellow",
+    "异常": "orange", "失败": "orange", "问题": "yellow", "警告": "amber",
 
     # 成功/完成/正确 - 使用绿色
     "成功": "green", "完成": "green", "正确": "green", "通过": "green",
@@ -320,15 +348,32 @@ SEMANTIC_COLOR_MAP = {
 
     # 高级/特殊/重点 - 使用紫色
     "高级": "purple", "深入": "purple", "扩展": "purple", "特殊": "purple",
-    "重点": "purple", "关键": "purple", "核心": "purple", "精华": "purple",
+    "重点": "purple", "关键": "purple", "精华": "purple", "深度": "indigo",
 
     # 信息/提示/说明 - 使用蓝色系
     "信息": "blue", "提示": "blue", "说明": "blue", "解释": "blue",
     "定义": "blue", "介绍": "blue", "特点": "blue", "特性": "blue",
 
-    # 代码/技术/实现 - 使用蓝色
+    # 代码/技术/实现 - 使用蓝色或青色
     "代码": "blue", "函数": "blue", "方法": "blue", "实现": "blue",
-    "技术": "blue", "算法": "blue", "编程": "blue", "开发": "blue",
+    "技术": "cyan", "算法": "cyan", "编程": "cyan", "开发": "cyan",
+    "语法": "sky", "变量": "sky", "类型": "sky",
+
+    # 创意/设计/艺术 - 使用粉色/紫红
+    "创意": "pink", "设计": "pink", "艺术": "pink", "美学": "rose",
+    "色彩": "violet", "绘制": "violet", "画": "rose",
+
+    # 自然/环境/健康 - 使用绿色/青色
+    "自然": "teal", "环境": "teal", "生态": "teal", "健康": "teal",
+    "植物": "lime", "环保": "lime", "绿色": "lime",
+
+    # 数据/统计/分析 - 使用青色/蓝色
+    "数据": "cyan", "统计": "cyan", "分析": "cyan", "图表": "sky",
+    "数字": "indigo", "指标": "indigo", "量化": "sky",
+
+    # 时间/流程/步骤 - 使用蓝灰/石板色
+    "时间": "slate", "流程": "slate", "步骤": "slate", "阶段": "slate",
+    "顺序": "slate", "进度": "slate", "计划": "slate",
 }
 
 
@@ -499,12 +544,22 @@ class MiniMaxPPTProvider:
 - Text Dark: #1E293B
 - Text Light: #64748B
 
-### 主题色
-- Blue: bg=#EFF6FF, text=#1E40AF
-- Yellow: bg=#FFFBEB, text=#92400E
-- Green: bg=#ECFDF5, text=#065F46
-- Purple: bg=#F5F3FF, text=#5B21B6
+### 主题色（15种）
+- Blue: bg=#DBEAFE, text=#1E40AF
+- Yellow: bg=#FEF3C7, text=#92400E
+- Green: bg=#D1FAE5, text=#065F46
+- Purple: bg=#EDE9FE, text=#5B21B6
 - Orange: bg=#FFF7ED, text=#9A3412
+- Cyan: bg=#CFFAFE, text=#164E63
+- Pink: bg=#FCE7F3, text=#831843
+- Indigo: bg=#E0E7FF, text=#3730A3
+- Teal: bg=#CCFBF1, text=#115E59
+- Rose: bg=#FFE4E6, text=#9F1239
+- Amber: bg=#FFFBEB, text=#78350F
+- Lime: bg=#ECFCC5, text=#3F6212
+- Sky: bg=#E0F2FE, text=#0C4A6E
+- Violet: bg=#F5F3FF, text=#4C1D95
+- Slate: bg=#F1F5F9, text=#1E293B
 
 ## 输出要求
 
@@ -519,14 +574,25 @@ class MiniMaxPPTProvider:
 
 ## 颜色使用规则
 
-当内容项指定了配色主题时（如"blue", "purple"），必须使用对应的主题色：
-- Blue: fill=#EFF6FF, text=#1E40AF, icon_bg=#3B82F6
-- Yellow: fill=#FFFBEB, text=#92400E, icon_bg=#F59E0B
-- Green: fill=#ECFDF5, text=#065F46, icon_bg=#10B981
-- Purple: fill=#F5F3FF, text=#5B21B6, icon_bg=#8B5CF6
-- Orange: fill=#FFF7ED, text=#9A3412, icon_bg=#F97316
+当内容项指定了配色主题时（如"blue", "purple"），必须使用对应的主题色。
+**重要**：相邻的卡片必须使用不同的颜色！使用 color_theme 字段来确保颜色差异化。
 
-**禁止**：不要让相邻的卡片使用相同颜色！
+## 布局类型（共14种）
+
+**基础布局（5种）**：title-only, two-column, grid-cards, header-content, quote-highlight
+
+**扩展布局（9种）**：center-focus, media-left, stats-row, timeline-steps, fullwidth-banner, comparison, three-column-cards, asymmetric-split, hero-center
+
+## 图片友好型布局
+
+当需要嵌入 AI 生成的图片时，推荐使用：
+- media-left：图片在左侧，内容在右侧
+- hero-center：顶部大图，中心聚焦
+- fullwidth-banner：全宽横幅图片
+- asymmetric-split：不对称分割，图片占大区域
+- center-focus：中心聚焦，适合单图展示
+
+这些布局为图片预留了充足空间。
 
 ## 示例输出
 
@@ -572,29 +638,116 @@ class MiniMaxPPTProvider:
 - 场景标题: {scene_title}
 - 场景类型: {scene_type}
 
+## 可用的30种主题色
+{blue_colors}
+
 ## 内容项
 {content_items}
 
 ## 设计要求
 - 风格: {design_style}
 - 布局类型: {layout_type}
+- 重要规则：
+  1. 每张幻灯片最多使用5种主题色，相邻卡片必须使用不同颜色
+  2. 同一课程中不同幻灯片之间，排版和颜色组合不能完全相同或高度相似
+  3. 幻灯片之间应有明显的视觉差异（不同布局、不同配色、不同元素位置）
+  4. 避免连续两张幻灯片使用相同或相似的布局结构和配色方案
+{media_image_hint}
 
 请生成一个精美的幻灯片JSON。"""
 
     LAYOUT_TYPES = [
-        "two-column",
+        # 基础布局（1-8，对应内容数量1-8直接锁定）
+        "title-only",      # 1项
+        "two-column",      # 2项
+        "quote-highlight", # 3项
+        "stats-row",       # 4项
+        "header-content",  # 5项
+        "asymmetric-split",# 6项
+        "timeline-steps",  # 7项
+        "comparison",      # 8项
+        # 扩展布局（9-25，用于9+项及风格池）
         "grid-cards",
-        "header-content",
-        "quote-highlight",
-        "title-only"
+        "center-focus",
+        "media-left",
+        "fullwidth-banner",
+        "three-column-cards",
+        "hero-center",
+        "info-card",
+        "feature-list",
+        "hero-split",
+        "numbered-list",
+        "quote-card",
+        "grid-highlight",
+        "vertical-stack",
+        "diagonal-split",
+        "circle-accent",
+        "sidebar-layout",
+        "banner-strip",
     ]
 
     DESIGN_STYLES = [
-        "modern",
-        "classic",
-        "playful",
-        "professional",
-        "minimal"
+        # 基础风格（1-6）
+        "modern",       # 现代简约
+        "classic",      # 经典稳重
+        "playful",      # 活泼明亮
+        "professional", # 专业商务
+        "minimal",      # 极简留白
+        "video",        # 视频优先
+        # 扩展风格（7-15）
+        "elegant",      # 优雅精致
+        "bold",         # 大胆撞色
+        "soft",         # 柔和温暖
+        "tech",         # 科技感
+        "creative",     # 创意艺术
+        "nature",       # 自然清新
+        "retro",        # 复古风格
+        "luxury",       # 轻奢质感
+        "kids",         # 童趣可爱
+    ]
+
+    # design_style 与主题色的映射关系（15种风格）
+    STYLE_COLOR_PREFERENCES = {
+        "modern":       ["blue", "cyan", "indigo", "purple", "sky"],
+        "classic":      ["blue", "green", "purple", "slate", "indigo"],
+        "playful":      ["pink", "amber", "lime", "orange", "yellow"],
+        "professional": ["blue", "slate", "indigo", "teal", "cyan"],
+        "minimal":      ["slate", "sky", "teal", "violet", "indigo"],
+        "video":        ["slate", "indigo", "rose", "violet", "cyan"],
+        "elegant":      ["violet", "rose", "gold", "slate", "fuchsia"],
+        "bold":         ["crimson", "orange", "gold", "lime", "rose"],
+        "soft":         ["peach", "sky", "lavender", "mint", "amber"],
+        "tech":         ["navy", "slate", "cyan", "indigo", "emerald"],
+        "creative":     ["fuchsia", "coral", "wine", "gold", "violet"],
+        "nature":       ["sage", "mint", "emerald", "lime", "teal"],
+        "retro":        ["coral", "amber", "rust", "gold", "sand"],
+        "luxury":       ["wine", "gold", "navy", "slate", "crimson"],
+        "kids":         ["peach", "coral", "sky", "lime", "yellow"],
+    }
+
+    # design_style 与布局的映射关系（15种风格）
+    STYLE_LAYOUT_PREFERENCES = {
+        "modern":       ["header-content", "center-focus", "grid-cards", "fullwidth-banner"],
+        "classic":      ["two-column", "header-content", "quote-highlight", "comparison"],
+        "playful":      ["grid-cards", "asymmetric-split", "timeline-steps", "three-column-cards"],
+        "professional": ["header-content", "two-column", "stats-row", "center-focus"],
+        "minimal":      ["title-only", "center-focus", "hero-center", "header-content"],
+        "video":        ["hero-center", "fullwidth-banner", "media-left", "center-focus", "asymmetric-split"],
+        "elegant":      ["quote-highlight", "center-focus", "hero-center", "grid-highlight"],
+        "bold":         ["asymmetric-split", "diagonal-split", "grid-cards", "fullwidth-banner"],
+        "soft":         ["vertical-stack", "info-card", "quote-card", "center-focus"],
+        "tech":         ["header-content", "grid-cards", "feature-list", "banner-strip"],
+        "creative":     ["hero-split", "circle-accent", "asymmetric-split", "sidebar-layout"],
+        "nature":       ["feature-list", "numbered-list", "grid-cards", "vertical-stack"],
+        "retro":        ["quote-card", "banner-strip", "numbered-list", "grid-highlight"],
+        "luxury":       ["hero-center", "quote-highlight", "grid-highlight", "fullwidth-banner"],
+        "kids":         ["numbered-list", "vertical-stack", "info-card", "grid-cards"],
+    }
+
+    # 图片友好型布局（当有AI图片时优先使用）
+    IMAGE_FRIENDLY_LAYOUTS = [
+        "media-left", "hero-center", "fullwidth-banner",
+        "asymmetric-split", "center-focus"
     ]
 
     async def generate(
@@ -607,15 +760,39 @@ class MiniMaxPPTProvider:
         try:
             # 构造提示词
             content_items = self._format_content_items(request.content)
-            layout_type = self._select_layout(request.content, request.scene_type)
+            layout_type = self._select_layout(request.content, request.scene_type, request.design_style)
+
+            # 构建图片提示
+            media_image_hint = ""
+            if request.has_media_images:
+                # 当有AI图片时，提供图片友好型布局建议和尺寸约束
+                aspect_ratio = request.media_image_aspect_ratio
+                if aspect_ratio == "16:9":
+                    recommended_h = 400  # 宽度940时，16:9比例的高度
+                elif aspect_ratio == "4:3":
+                    recommended_h = 450
+                elif aspect_ratio == "1:1":
+                    recommended_h = 400
+                else:
+                    recommended_h = 400
+
+                media_image_hint = f"""
+## AI 图片嵌入提示
+- 当前有 AI 生成的图片需要嵌入到幻灯片
+- 图片宽高比: {aspect_ratio}
+- 图片区域最小尺寸: 宽度≥400px，高度≥{recommended_h}px
+- 推荐布局: {', '.join(self.IMAGE_FRIENDLY_LAYOUTS)}
+- 如果使用其他布局，请确保有足够的空间展示图片"""
 
             user_prompt = self.USER_PROMPT_TEMPLATE.format(
                 course_title=request.course_title,
                 scene_title=request.scene_title,
                 scene_type=request.scene_type,
+                blue_colors=self._list_theme_colors(),
                 content_items=content_items,
                 design_style=request.design_style,
                 layout_type=layout_type,
+                media_image_hint=media_image_hint or "",
             )
 
             # 调用 MiniMax API
@@ -645,6 +822,13 @@ class MiniMaxPPTProvider:
             logger.error("PPT generation failed: %s", e)
             return PPTGenerationResult(success=False, error=str(e))
 
+    def _list_theme_colors(self) -> str:
+        """将30种主题色格式化为提示词文本"""
+        lines = []
+        for name, colors in THEME_COLORS.items():
+            lines.append(f"- {name}: bg={colors['bg']}, text={colors['text']}, accent={colors['accent']}")
+        return "\n".join(lines)
+
     def _format_content_items(self, content: list) -> str:
         """格式化内容项"""
         if not content:
@@ -665,9 +849,9 @@ class MiniMaxPPTProvider:
                 item["color_theme"] = semantic_color
                 used_colors.add(semantic_color)
             elif not item.get("color_theme"):
-                # 如果已用或无匹配，使用差异化的默认颜色
-                default_colors = ["blue", "purple", "green", "orange", "yellow"]
-                for c in default_colors:
+                # 如果已用或无匹配，使用差异化的默认颜色（15色循环）
+                all_colors = list(THEME_COLORS.keys())
+                for c in all_colors:
                     if c not in used_colors:
                         item["color_theme"] = c
                         used_colors.add(c)
@@ -688,24 +872,44 @@ class MiniMaxPPTProvider:
 
         return "\n".join(lines)
 
-    def _select_layout(self, content: list, scene_type: str) -> str:
-        """根据内容和类型选择布局"""
+    def _select_layout(self, content: list, scene_type: str, design_style: str = "modern") -> str:
+        """根据内容数量直接锁定布局（1-8项各自对应不同布局，样式差异最大化）"""
         if scene_type == "quiz":
             return "grid-cards"
-        if len(content) == 1:
+
+        count = len(content)
+
+        # 1-8项直接锁定不同布局，样式差异最大化
+        if count == 1:
             return "title-only"
-        if len(content) == 2:
+        elif count == 2:
             return "two-column"
-        if len(content) <= 4:
-            return random.choice([
-                "two-column", "grid-cards", "center-focus",
-                "media-left", "stats-row", "timeline-steps",
-                "fullwidth-banner", "comparison"
-            ])
-        return random.choice([
-            "header-content", "grid-cards", "center-focus",
-            "media-left", "stats-row", "timeline-steps"
-        ])
+        elif count == 3:
+            return "quote-highlight"
+        elif count == 4:
+            return "stats-row"
+        elif count == 5:
+            return "header-content"
+        elif count == 6:
+            return "asymmetric-split"
+        elif count == 7:
+            return "timeline-steps"
+        elif count == 8:
+            return "comparison"
+
+        # 9项及以上使用多内容布局池（从25种布局中排除已锁定的8种）
+        multi_content_layouts = [
+            l for l in [
+                # 已锁定布局之外的扩展布局
+                "grid-cards", "center-focus", "media-left", "fullwidth-banner",
+                "three-column-cards", "hero-center", "info-card", "feature-list",
+                "hero-split", "numbered-list", "quote-card", "grid-highlight",
+                "vertical-stack", "diagonal-split", "circle-accent", "sidebar-layout", "banner-strip",
+                # 保留部分已锁定布局作为回退
+                "header-content", "stats-row", "two-column", "timeline-steps", "comparison",
+            ] if l in self.LAYOUT_TYPES
+        ]
+        return random.choice(multi_content_layouts)
 
     def _strip_markdown(self, text: str) -> str:
         """去除 markdown 代码块包装"""

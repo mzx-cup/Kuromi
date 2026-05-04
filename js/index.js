@@ -1693,11 +1693,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // OpenMAIC返回课堂按钮
+    // OpenMAIC返回聊天按钮
     const backCourseBtn = document.getElementById('openmaic-back-course-btn');
     if (backCourseBtn) {
         backCourseBtn.addEventListener('click', function() {
-            switchTab('course');
+            switchTab('chat');
         });
     }
 

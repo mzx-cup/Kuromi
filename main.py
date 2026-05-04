@@ -3057,7 +3057,8 @@ async def run_debate_agent_turn(
     context: str,
     round_num: int,
     push_event,
-    timeout: int = DEBATE_TIMEOUT_FIRST_ROUND
+    timeout: int = DEBATE_TIMEOUT_FIRST_ROUND,
+    agent_color: str = "#6366f1"
 ) -> str:
     """运行单个AI身份的辩论回合"""
 
@@ -3065,6 +3066,7 @@ async def run_debate_agent_turn(
         "type": "agent_start",
         "agent_id": agent_id,
         "agent_name": agent_name,
+        "agent_color": agent_color,
         "round": round_num
     })
 
@@ -3096,6 +3098,8 @@ async def run_debate_agent_turn(
             await push_event({
                 "type": "agent_chunk",
                 "agent_id": agent_id,
+                "agent_name": agent_name,
+                "agent_color": agent_color,
                 "content": chunk
             })
 
@@ -3280,7 +3284,8 @@ async def debate_stream(raw_request: Request, body: DebateRequest):
                             user_input=body.user_input,
                             context="",
                             round_num=1,
-                            push_event=push_event
+                            push_event=push_event,
+                            agent_color=agent.themeColor
                         ),
                         timeout=DEBATE_TIMEOUT_FIRST_ROUND
                     )
@@ -5736,6 +5741,7 @@ async def generate_course_stream(request: CourseGenerationRequest):
             interactive_mode=request.interactive_mode,
             enable_pdf_upload=request.enable_pdf_upload,
             pdf_text=request.pdf_text,
+            enable_web_search=request.enable_web_search,
         ):
             event_type = event.pop("type", "message")
             yield sse_event(event_type, event)
@@ -6014,6 +6020,11 @@ async def course_chat_stream(request: CourseChatRequest):
 async def course_discussion_stream(request: Request):
     """AI同学多智能体讨论流式API"""
     from state import CourseDiscussionRequest
+    from app.services.teacher.discussion_roles import (
+        get_discussion_roles_manager,
+        build_discussion_prompt,
+        get_all_participants,
+    )
 
     try:
         body = await request.json()
@@ -6035,30 +6046,54 @@ async def course_discussion_stream(request: Request):
         try:
             await push_event({"type": "discussion_start", "message": "讨论开始"})
 
-            # 加载课程数据获取 agent_team
-            filepath = _get_course_path(req.course_id)
-            if not os.path.exists(filepath):
-                await push_event({"type": "error", "message": "课程不存在"})
-                return
-
-            with open(filepath, "r", encoding="utf-8") as f:
-                course_data = json.load(f)
-
-            agent_team = course_data.get("agent_team", [])
-            if not agent_team:
-                await push_event({"type": "error", "message": "没有可用的AI同学"})
-                return
-
-            # 过滤指定 agent
-            active_agents = agent_team
-            if req.agent_ids:
-                active_agents = [a for a in agent_team if a.get("id") in req.agent_ids]
-                if not active_agents:
-                    active_agents = agent_team
+            # 使用预设的多角色系统
+            roles_manager = get_discussion_roles_manager()
 
             # 生成讨论话题
             topic = req.slide_topic or req.slide_content[:200] if req.slide_content else "当前课程内容"
             user_input = req.user_message or f"关于「{topic}」，请各位AI同学发表看法"
+
+            # 获取参与者列表
+            # 如果前端传入了特定的agent_ids，使用课程中的agent；否则使用预设角色
+            if req.agent_ids and len(req.agent_ids) > 0:
+                # 使用课程中的agent（兼容旧逻辑）
+                filepath = _get_course_path(req.course_id)
+                if not os.path.exists(filepath):
+                    await push_event({"type": "error", "message": "课程不存在"})
+                    return
+
+                with open(filepath, "r", encoding="utf-8") as f:
+                    course_data = json.load(f)
+
+                agent_team = course_data.get("agent_team", [])
+                if not agent_team:
+                    await push_event({"type": "error", "message": "没有可用的AI同学"})
+                    return
+
+                active_agents = [a for a in agent_team if a.get("id") in req.agent_ids]
+                if not active_agents:
+                    active_agents = agent_team
+
+                # 构建agent的讨论提示词
+                for agent in active_agents:
+                    agent["system_prompt"] = agent.get("persona", f"你是{agent.get('name', 'AI')}，一个活泼的AI同学。")
+                    agent["role"] = agent.get("role", "agent")
+            else:
+                # 使用预设的多角色系统（老师3人 + 学生随机3人）
+                participants = get_all_participants()
+                active_agents = [
+                    {
+                        "id": p.role_id,
+                        "name": p.name,
+                        "role": p.role_id,
+                        "color": p.color,
+                        "avatar_bg": p.avatar_bg,
+                        "system_prompt": build_discussion_prompt(p, topic, req.slide_content or ""),
+                    }
+                    for p in participants
+                ]
+
+                logger.info(f"Using discussion roles: {[a['name'] for a in active_agents]}")
 
             # 第一阶段：各身份独立发言 (并发)
             tasks = []
@@ -6068,11 +6103,12 @@ async def course_discussion_stream(request: Request):
                         run_debate_agent_turn(
                             agent_id=agent.get("id", ""),
                             agent_name=agent.get("name", "AI同学"),
-                            system_prompt=agent.get("persona", f"你是{agent.get('name', 'AI')}，一个活泼的AI同学。"),
+                            system_prompt=agent.get("system_prompt", f"你是{agent.get('name', 'AI')}，一个活泼的AI同学。"),
                             user_input=user_input,
                             context=req.slide_content or "",
                             round_num=1,
-                            push_event=push_event
+                            push_event=push_event,
+                            agent_color=agent.get("color", "#6366f1")
                         ),
                         timeout=DEBATE_TIMEOUT_FIRST_ROUND
                     )

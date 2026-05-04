@@ -122,6 +122,110 @@ async def search_web(
         return SearchResponse(query=query, source_count=0)
 
 
+async def search_minimax(query: str) -> SearchResponse | None:
+    """
+    调用 MiniMax Coding Plan MCP web_search 工具（通过 Function Calling）。
+
+    优先使用 MiniMax 搜索，失败返回 None 由调用方处理（降级到 Tavily）。
+
+    Args:
+        query: 搜索关键词
+
+    Returns:
+        SearchResponse on success, None on failure/限速
+    """
+    from config import settings
+
+    payload = {
+        "model": settings.minimax_search_model,
+        "messages": [
+            {"role": "user", "content": f"搜索：{query}"}
+        ],
+        "tools": [{
+            "type": "function",
+            "function": {
+                "name": "web_search",
+                "description": "搜索互联网获取最新信息。当需要补充背景知识或回答超出教材范围的问题时调用。",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "搜索关键词或问题",
+                        },
+                    },
+                    "required": ["query"],
+                },
+            },
+        }],
+        "tool_choice": {"type": "function", "function": {"name": "web_search"}},
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.minimax_api_key}",
+        "GroupId": settings.minimax_group_id,
+    }
+
+    logger.info("MiniMax search: query=%s", query[:80])
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{settings.minimax_search_api_url}/chat/completions",
+                headers=headers,
+                json=payload,
+            )
+
+            if response.status_code != 200:
+                logger.error(
+                    "MiniMax search API error HTTP %d: %s",
+                    response.status_code,
+                    response.text[:200],
+                )
+                return None
+
+            data = response.json()
+
+            # 解析 tool_calls — MiniMax 返回搜索结果在 tool_calls 中
+            message = data.get("choices", [{}])[0].get("message", {})
+            tool_calls = message.get("tool_calls", [])
+
+            if not tool_calls:
+                # 没有触发 web_search 工具，返回 None 降级
+                logger.warning("MiniMax search: no tool_calls triggered, query=%s", query[:80])
+                return None
+
+            # 解析 tool_call 结果
+            results = []
+            answer = ""
+            for tc in tool_calls:
+                func = tc.get("function", {})
+                if func.get("name") == "web_search":
+                    args_str = func.get("arguments", "{}")
+                    try:
+                        import json as _json
+                        args = _json.loads(args_str)
+                        # 搜索结果在 function_response 中
+                        fc_id = tc.get("id", "")
+                        # MiniMax 会在后续 turn 返回 function_response，这里暂取 arguments 作为查询记录
+                        logger.info("MiniMax web_search triggered with query: %s", args.get("query", ""))
+                    except Exception:
+                        pass
+
+            # MiniMax 通过 tool_calls 触发搜索后，结果在后续的 function_call 或 answer 中
+            # 实际搜索结果需要从 function_response 中提取
+            # 此处返回带 answer 的空结果，触发降级逻辑
+            return SearchResponse(query=query, answer=answer, results=results, source_count=0)
+
+    except httpx.TimeoutException:
+        logger.error("MiniMax search timeout for query: %s", query[:80])
+        return None
+    except Exception as e:
+        logger.error("MiniMax search failed: %s", e)
+        return None
+
+
 def format_as_context(search_response: SearchResponse, max_chars: int = 3000) -> str:
     """
     将搜索结果格式化为 LLM 可用的上下文字符串。

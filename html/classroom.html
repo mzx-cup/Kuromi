@@ -225,7 +225,7 @@
                     </div>
 
                     <!-- AI Teacher Area - Fixed Bottom Right -->
-                <div class="teacher-area" id="teacher-area">
+                <div class="teacher-area minimized" id="teacher-area" data-state="minimized">
                     <div class="teacher-avatar" id="teacher-avatar">
                         <div class="teacher-avatar-inner">
                             <div class="teacher-avatar-eyes">
@@ -244,7 +244,18 @@
                     </div>
                     <div class="teacher-speech-wrapper">
                         <div class="speech-bubble">
-                            <p id="speech-text">正在加载课程内容...</p>
+                            <p id="speech-text" class="full-text">正在加载课程内容...</p>
+                            <p class="mini-text">正在加载课程内容...</p>
+                        </div>
+                        <div class="voice-waveform" id="voice-waveform" style="display:none;">
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
                         </div>
                         <div class="teacher-controls" id="teacher-controls">
                             <div class="speech-controls" id="speech-controls">
@@ -273,7 +284,7 @@
                                 <div class="voice-dropdown" id="voice-dropdown">
                                     <div class="voice-dropdown-trigger" id="voice-dropdown-trigger">
                                         <span class="voice-dropdown-value" id="voice-dropdown-value">温柔御姐</span>
-                                        <i class="fas fa-chevron-up voice-dropdown-arrow"></i>
+                                        <i class="fas fa-chevron-down voice-dropdown-arrow"></i>
                                     </div>
                                     <div class="voice-dropdown-menu" id="voice-dropdown-menu">
                                         <div class="voice-dropdown-item" data-value="female-shaonv">青春少女</div>
@@ -325,9 +336,6 @@
                     <button class="chat-tab active" data-tab="qa">问答</button>
                     <button class="chat-tab" data-tab="discussion">讨论</button>
                 </div>
-                <select id="chat-agent-select" class="chat-agent-select">
-                    <option value="">AI助教</option>
-                </select>
             </div>
 
             <!-- QA Mode Messages -->
@@ -390,6 +398,88 @@
                 <button class="completion-back-btn" onclick="location.href='/index.html'">
                     <i class="fas fa-home"></i> 返回首页
                 </button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal" id="settings-modal" style="display: none;">
+            <div class="modal-content settings-modal-content">
+                <div class="modal-header">
+                    <i class="fas fa-cog"></i>
+                    <span>设置</span>
+                </div>
+                <div class="settings-sections">
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">
+                            <i class="fas fa-volume-up"></i> 语音设置
+                        </h3>
+                        <div class="settings-item">
+                            <label class="settings-label">默认音色</label>
+                            <select id="settings-voice-select" class="settings-select">
+                                <option value="female-shaonv">青春少女</option>
+                                <option value="female-yujie" selected>温柔御姐</option>
+                                <option value="female-danyun">知性女声</option>
+                                <option value="male-qingshu">青涩少年</option>
+                                <option value="male-shaoshuai">磁性男声</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <label class="settings-label">默认语速</label>
+                            <select id="settings-speed-select" class="settings-select">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1.0" selected>1.0x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2.0">2.0x</option>
+                            </select>
+                        </div>
+                        <div class="settings-item">
+                            <label class="settings-label">自动播放语音</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settings-autoplay" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">
+                            <i class="fas fa-desktop"></i> 显示设置
+                        </h3>
+                        <div class="settings-item">
+                            <label class="settings-label">显示进度条</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settings-show-progress" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-item">
+                            <label class="settings-label">显示页码</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settings-show-slide-num" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 class="settings-section-title">
+                            <i class="fas fa-bell"></i> 通知设置
+                        </h3>
+                        <div class="settings-item">
+                            <label class="settings-label">新消息通知</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="settings-notifications" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" id="cancel-settings">取消</button>
+                    <button class="btn btn-primary" id="save-settings">保存</button>
+                </div>
             </div>
         </div>
 

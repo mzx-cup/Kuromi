@@ -599,10 +599,18 @@
                     break;
 
                 case 'progressive_batch':
+                    // Always save quiz/exercise data, even when slides are empty (quiz scenes have no slides)
+                    if (msg.quiz_data && msg.quiz_data.length > 0) {
+                        sessionStorage.setItem('progressiveQuizData', JSON.stringify(msg.quiz_data));
+                    }
+                    if (msg.exercise_data && msg.exercise_data.length > 0) {
+                        sessionStorage.setItem('progressiveExerciseData', JSON.stringify(msg.exercise_data));
+                    }
                     if (msg.slides) {
                         sessionStorage.setItem('progressiveSlides', JSON.stringify(msg.slides));
-                        sessionStorage.setItem('progressiveQuizData', JSON.stringify(msg.quiz_data || []));
-                        sessionStorage.setItem('progressiveExerciseData', JSON.stringify(msg.exercise_data || []));
+                    }
+                    if (msg.slides_v2 && msg.slides_v2.length > 0) {
+                        sessionStorage.setItem('progressiveSlidesV2', JSON.stringify(msg.slides_v2));
                     }
                     break;
 
@@ -671,8 +679,11 @@
         stopActionAnimation();
         showComplete();
 
-        // Merge progressive slides
+        // Merge progressive data (slides, quiz, exercise)
         const progressiveSlides = sessionStorage.getItem('progressiveSlides');
+        const progressiveQuiz = sessionStorage.getItem('progressiveQuizData');
+        const progressiveExercise = sessionStorage.getItem('progressiveExerciseData');
+        const progressiveSlidesV2 = sessionStorage.getItem('progressiveSlidesV2');
         if (progressiveSlides) {
             try {
                 const batchSlides = JSON.parse(progressiveSlides);
@@ -681,6 +692,36 @@
                 }
             } catch (e) {
                 console.warn('Failed to merge progressive slides:', e);
+            }
+        }
+        if (progressiveQuiz) {
+            try {
+                const batchQuiz = JSON.parse(progressiveQuiz);
+                if (batchQuiz.length > 0) {
+                    courseData.quiz_data = [...(courseData.quiz_data || []), ...batchQuiz];
+                }
+            } catch (e) {
+                console.warn('Failed to merge progressive quiz:', e);
+            }
+        }
+        if (progressiveExercise) {
+            try {
+                const batchExercise = JSON.parse(progressiveExercise);
+                if (batchExercise.length > 0) {
+                    courseData.exercise_data = [...(courseData.exercise_data || []), ...batchExercise];
+                }
+            } catch (e) {
+                console.warn('Failed to merge progressive exercise:', e);
+            }
+        }
+        if (progressiveSlidesV2) {
+            try {
+                const batchV2 = JSON.parse(progressiveSlidesV2);
+                if (batchV2.length > 0) {
+                    courseData.slides_v2 = [...batchV2, ...(courseData.slides_v2 || [])];
+                }
+            } catch (e) {
+                console.warn('Failed to merge progressive slides_v2:', e);
             }
         }
 

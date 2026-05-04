@@ -515,6 +515,22 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
   - image_prompt: 可选英文配图描述词（用于AI生成配图，描述这张卡片适合配什么样的插图）
   - videoUrl: 可选视频URL（已有URL时直接填入）
   - video_prompt: 可选英文视频描述词（用于AI生成视频，描述适合生成什么样的动态场景）
+- teacherActions: **可选**的白板动作数组，AI教师在讲解时可边讲边画。当需要用图形、公式、图表辅助讲解时使用。每个动作格式为：
+  - type: 动作类型（wb_draw_text|w b_draw_shape|w b_draw_svg|w b_draw_latex|w b_draw_chart|w b_draw_table|w b_draw_line|w b_draw_code）
+  - params: 动作参数（见下方详细说明）
+  - 当不需要白板绘图时可不提供此字段或设为空数组
+
+**【白板动作参数说明】**
+- wb_draw_text: {"content": "文字内容", "x": 数字, "y": 数字, "fontSize": 数字, "color": "颜色值"}
+- wb_draw_shape: {"shape": "rect|circle|triangle|arrow", "x": 数字, "y": 数字, "width": 数字, "height": 数字, "color": "颜色值"}
+- wb_draw_svg: {"svg": "SVG字符串", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
+- wb_draw_latex: {"latex": "LaTeX公式", "x": 数字, "y": 数字, "fontSize": 数字}
+- wb_draw_chart: {"chartType": "bar|line|pie", "data": "数据描述", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
+- wb_draw_table: {"rows": [["第一行"], ["第二行"]], "x": 数字, "y": 数字, "colWidths": [数字]}
+- wb_draw_line: {"x1": 数字, "y1": 数字, "x2": 数字, "y2": 数字, "color": "颜色值", "strokeWidth": 数字}
+- wb_draw_code: {"code": "代码内容", "x": 数字, "y": 数字, "fontSize": 数字, "language": "语言"}
+
+**【何时使用白板动作】** 当讲解需要展示：数学公式推导、几何图形、流程图、数据图表、对比表格、代码演示时，使用teacherActions。白板动作应配合narration讲解内容，在合适的时机触发。
 
 **【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片应使用不同色系以增强视觉区分度。**
 

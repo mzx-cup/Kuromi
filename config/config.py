@@ -27,10 +27,19 @@ class Settings(BaseSettings):
     minimax_video_model: str = Field(default="video-01", description="MiniMax video generation model")
     minimax_tts_model: str = Field(default="speech-2.8-hd", description="MiniMax TTS model for voice generation")
 
+    # MiniMax Coding Plan 搜索额度（走 coding-plan-search）
+    minimax_search_api_url: str = "https://api.minimax.chat/v1"
+    minimax_search_model: str = "MiniMax-M2.7"
+
     # 百度语音识别 API（用于语音转文字）
     baidu_asr_app_id: str = Field(default="", description="百度语音识别 App ID")
     baidu_asr_api_key: str = Field(default="eymy6AqdEbhI676lonzRF9ux", description="百度语音识别 API Key")
     baidu_asr_secret_key: str = Field(default="qcSs7d5xEKJyPIxK9fXJqeEel95XFi8F", description="百度语音识别 Secret Key")
+
+    # 可灵Kling视频生成API
+    kling_api_url: str = "https://api.kling.ai/v1"
+    kling_access_key: str = Field(default="", description="可灵Kling Access Key")
+    kling_secret_key: str = Field(default="", description="可灵Kling Secret Key")
 
     # Use app-specific env names so a global DEBUG variable does not override us.
     debug: bool = Field(

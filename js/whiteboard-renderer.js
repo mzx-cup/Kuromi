@@ -91,8 +91,10 @@ class WhiteboardRenderer {
   }
 
   clear() {
+    if (this.svgRoot) {
+      this.svgRoot.innerHTML = '';
+    }
     this.elements.clear();
-    this._initContainer();
   }
 
   delete(elementId) {

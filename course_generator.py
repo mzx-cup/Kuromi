@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional, AsyncGenerator
 
-from state import CourseData, SceneOutline, Slide, SlideContent, SlideElement, SlideBackground, TeacherInfo, SlideV2, SlideContentItemV2
+from state import CourseData, SceneOutline, Slide, SlideContent, SlideElement, SlideBackground, TeacherInfo, SlideV2, SlideContentItemV2, TeacherAction
 from llm_stream import call_llm_async
 from prompts import build_prompt
 
@@ -62,6 +62,7 @@ class CourseGenerator:
             interactive_mode: bool = False,
             enable_pdf_upload: bool = False,
             pdf_text: str = "",
+            enable_web_search: bool = True,
         ) -> AsyncGenerator[dict[str, Any], None]:
             """
             生成课程，返回SSE事件流
@@ -87,6 +88,7 @@ class CourseGenerator:
             self.config.enable_tts = enable_tts
             self.config.enable_video = enable_video
             self.config.enable_pdf_upload = enable_pdf_upload
+            self.config.enable_web_search = enable_web_search
             self._pdf_text = pdf_text  # 存储PDF文本，供 _generate_outlines / _generate_scene_content_v2 使用
 
             try:
@@ -782,12 +784,20 @@ class CourseGenerator:
         web_search_context = ""
         if self.config.enable_web_search:
             try:
-                from app.services.teacher.web_search import search_web, format_as_context
+                from app.services.teacher.web_search import search_minimax, search_web, format_as_context
                 query = f"{outline.title} {', '.join(outline.key_points) if outline.key_points else ''}"
                 logger.info(f"[web_search] searching for outline: {query[:80]}")
-                results = await search_web(query)
-                web_search_context = format_as_context(results)
-                logger.info(f"[web_search] got {results.source_count} results for: {outline.title}")
+
+                # 优先 MiniMax MCP 搜索
+                resp = await search_minimax(query)
+                if resp and (resp.results or resp.answer):
+                    web_search_context = format_as_context(resp)
+                    logger.info(f"[web_search] MiniMax got {resp.source_count} results for: {outline.title}")
+                else:
+                    # Fallback 到 Tavily
+                    results = await search_web(query)
+                    web_search_context = format_as_context(results)
+                    logger.info(f"[web_search] Tavily got {results.source_count} results for: {outline.title}")
             except Exception as e:
                 logger.warning(f"[web_search] failed for outline {outline.title}: {e}")
 
@@ -951,10 +961,22 @@ class CourseGenerator:
                         logger.warning(f"[_generate_scene_content_v2] slides[{idx}].content[{cidx}] 解析异常: {e}，跳过该卡片")
                         continue
 
+                # Extract teacher_actions (whiteboard drawing actions)
+                teacher_actions: list[TeacherAction] = []
+                raw_actions = slide_data.get("teacherActions") or []
+                if isinstance(raw_actions, list):
+                    for act in raw_actions:
+                        if isinstance(act, dict):
+                            teacher_actions.append(TeacherAction(
+                                type=act.get("type", ""),
+                                params=act.get("params") or {},
+                            ))
+
                 slide_v2 = SlideV2(
                     layout_type=layout_type,
                     title=slide_title,
                     content=content_items,
+                    teacher_actions=teacher_actions,
                 )
                 slides_v2.append(slide_v2)
             except Exception as e:

@@ -185,116 +185,27 @@ async def generate_tts(
 
 
 # ----------------------------------------------------------------
-# Video Generation (video-01) - Job-based polling
+# Video Generation (可灵Kling)
 # ----------------------------------------------------------------
-
-# Video endpoints: {minimax_api_url}/video_generation, /query/video_generation, /files/retrieve
-VIDEO_SUBMIT_URL = "{base}/video_generation"
-VIDEO_QUERY_URL = "{base}/query/video_generation"
-VIDEO_RETRIEVE_URL = "{base}/files/retrieve"
 
 
 async def generate_video(
     prompt: str,
-    duration: int = 6,
-    resolution: str = "720P",
-    model: str = "",
-    api_key: str = "",
-    poll_interval: int = 5,
-    max_poll_time: int = 300,
+    duration: int = 5,
+    resolution: str = "720p",
 ) -> str:
     """
-    调用 MiniMax video-01 生成视频（基于任务轮询模式）
+    调用可灵Kling API生成视频
     返回: 视频下载URL
     """
-    client = await get_client()
-    key = api_key or settings.minimax_api_key
-    model_name = model or settings.minimax_video_model
-    api_base = settings.minimax_api_url
+    if not settings.kling_access_key or not settings.kling_secret_key:
+        raise RuntimeError("可灵API密钥未配置，请检查config/.env中的KLING_ACCESS_KEY和KLING_SECRET_KEY")
 
-    # Step 1: Submit task
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json; charset=utf-8",
-    }
-
-    submit_payload = {
-        "model": model_name,
-        "prompt": prompt,
-        "duration": duration,
-        "resolution": resolution,
-    }
-
-    submit_url = VIDEO_SUBMIT_URL.format(base=api_base)
-    logger.info(f"Submitting video generation: model={model_name}, prompt={prompt[:60]}...")
-    submit_resp = await client.post(submit_url, headers=headers, json=submit_payload)
-
-    if submit_resp.status_code != 200:
-        raise RuntimeError(
-            f"MiniMax Video submit error HTTP {submit_resp.status_code}: {submit_resp.text[:200]}"
-        )
-
-    submit_data = submit_resp.json()
-    base_resp = submit_data.get("base_resp", {})
-    if base_resp.get("status_code", 0) != 0:
-        raise RuntimeError(
-            f"MiniMax Video submit error {base_resp.get('status_code')}: {base_resp.get('status_msg')}"
-        )
-
-    task_id = submit_data.get("task_id")
-    if not task_id:
-        raise RuntimeError(f"No task_id in MiniMax video response: {json.dumps(submit_data)[:200]}")
-
-    logger.info(f"Video task submitted: task_id={task_id}")
-
-    # Step 2: Poll for completion
-    start_time = time.time()
-    while time.time() - start_time < max_poll_time:
-        await asyncio.sleep(poll_interval)
-
-        query_url = VIDEO_QUERY_URL.format(base=api_base)
-        query_resp = await client.get(
-            f"{query_url}?task_id={task_id}",
-            headers=headers,
-        )
-
-        if query_resp.status_code != 200:
-            logger.warning(f"Video query error HTTP {query_resp.status_code}, retrying...")
-            continue
-
-        query_data = query_resp.json()
-        status = query_data.get("status", "")
-
-        logger.info(f"Video task {task_id} status: {status}")
-
-        if status == "Success":
-            file_id = query_data.get("file_id")
-            if not file_id:
-                raise RuntimeError(f"No file_id in MiniMax video query: {json.dumps(query_data)[:200]}")
-
-            # Step 3: Retrieve download URL
-            retrieve_url = VIDEO_RETRIEVE_URL.format(base=api_base)
-            retrieve_resp = await client.get(
-                f"{retrieve_url}?file_id={file_id}",
-                headers=headers,
-            )
-
-            if retrieve_resp.status_code != 200:
-                raise RuntimeError(
-                    f"MiniMax file retrieve error HTTP {retrieve_resp.status_code}"
-                )
-
-            retrieve_data = retrieve_resp.json()
-            download_url = retrieve_data.get("file", {}).get("download_url", "")
-            if not download_url:
-                raise RuntimeError(f"No download_url in MiniMax file retrieve")
-
-            logger.info(f"Video generated successfully: {download_url[:80]}...")
-            return download_url
-
-        elif status == "Fail":
-            raise RuntimeError(f"MiniMax video generation failed: {json.dumps(query_data)[:200]}")
-
-        # "Preparing", "Queueing", "Processing" → continue polling
-
-    raise RuntimeError(f"MiniMax video generation timed out after {max_poll_time}s")
+    from kling_api import generate_video_text
+    return await generate_video_text(
+        prompt=prompt,
+        duration=duration,
+        resolution=resolution,
+        poll_interval=5,
+        max_poll_time=600,
+    )
