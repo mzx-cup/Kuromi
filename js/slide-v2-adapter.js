@@ -24,7 +24,17 @@
         yellow: { bg: '#FEF3C7', text: '#92400E', accent: '#F59E0B', hex: '#FEF3C7' },
         green:  { bg: '#D1FAE5', text: '#065F46', accent: '#10B981', hex: '#D1FAE5' },
         purple: { bg: '#EDE9FE', text: '#5B21B6', accent: '#8B5CF6', hex: '#EDE9FE' },
-        orange: { bg: '#FFF7ED', text: '#9A3412', accent: '#F97316', hex: '#FFF7ED' }
+        orange: { bg: '#FFF7ED', text: '#9A3412', accent: '#F97316', hex: '#FFF7ED' },
+        cyan:   { bg: '#CFFAFE', text: '#164E63', accent: '#06B6D4', hex: '#CFFAFE' },
+        pink:   { bg: '#FCE7F3', text: '#831843', accent: '#EC4899', hex: '#FCE7F3' },
+        indigo: { bg: '#E0E7FF', text: '#3730A3', accent: '#6366F1', hex: '#E0E7FF' },
+        teal:   { bg: '#CCFBF1', text: '#115E59', accent: '#14B8A6', hex: '#CCFBF1' },
+        rose:   { bg: '#FFE4E6', text: '#9F1239', accent: '#F43F5E', hex: '#FFE4E6' },
+        amber:  { bg: '#FFFBEB', text: '#78350F', accent: '#F59E0B', hex: '#FFFBEB' },
+        lime:   { bg: '#ECFCC5', text: '#3F6212', accent: '#84CC16', hex: '#ECFCC5' },
+        sky:    { bg: '#E0F2FE', text: '#0C4A6E', accent: '#0EA5E9', hex: '#E0F2FE' },
+        violet: { bg: '#F5F3FF', text: '#4C1D95', accent: '#8B5CF6', hex: '#F5F3FF' },
+        slate:  { bg: '#F1F5F9', text: '#1E293B', accent: '#64748B', hex: '#F1F5F9' }
     };
 
     function escapeHtml(str) {
@@ -277,12 +287,80 @@
         return elements;
     }
 
+    function layoutThreeColumn(normalized, sceneId) {
+        var elements = [];
+        elements.push(makeTitleBar(normalized.title, sceneId));
+        var items = normalized.content;
+        if (items.length === 0) return elements;
+        var bodyTop = TITLE_H + GAP * 2;
+        var cols = 3;
+        var colW = (VIEWPORT_W - MARGIN * 2 - GAP * (cols - 1)) / cols;
+        var cardH = VIEWPORT_H - bodyTop - GAP;
+        for (var i = 0; i < items.length && i < 6; i++) {
+            var col = i % cols;
+            elements = elements.concat(buildCard(items[i],
+                MARGIN + col * (colW + GAP),
+                bodyTop,
+                colW, cardH, i, sceneId));
+        }
+        return elements;
+    }
+
+    function layoutSpotlight(normalized, sceneId) {
+        var elements = [];
+        elements.push(makeTitleBar(normalized.title, sceneId));
+        var items = normalized.content;
+        if (items.length === 0) return elements;
+        var bodyTop = TITLE_H + GAP * 2;
+        var mainW = VIEWPORT_W - MARGIN * 2;
+        var mainH = (VIEWPORT_H - bodyTop - GAP) * 0.55;
+        elements = elements.concat(buildCard(items[0], MARGIN, bodyTop, mainW, mainH, 0, sceneId));
+        var sideTop = bodyTop + mainH + GAP;
+        var sideH = VIEWPORT_H - sideTop - GAP;
+        var sideW = (mainW - GAP * (items.length - 1)) / Math.min(items.length - 1, 3);
+        for (var i = 1; i < items.length && i < 4; i++) {
+            elements = elements.concat(buildCard(items[i],
+                MARGIN + (i - 1) * (sideW + GAP),
+                sideTop, sideW, sideH, i, sceneId));
+        }
+        return elements;
+    }
+
+    function layoutMagazine(normalized, sceneId) {
+        var elements = [];
+        elements.push(makeTitleBar(normalized.title, sceneId));
+        var items = normalized.content;
+        if (items.length === 0) return elements;
+        var bodyTop = TITLE_H + GAP * 2;
+        if (items.length === 1) {
+            elements = elements.concat(buildCard(items[0], MARGIN, bodyTop,
+                VIEWPORT_W - MARGIN * 2, VIEWPORT_H - bodyTop - GAP, 0, sceneId));
+        } else {
+            var mainW = (VIEWPORT_W - MARGIN * 2) * 0.6;
+            var sideW = VIEWPORT_W - MARGIN * 2 - mainW - GAP;
+            var mainH = VIEWPORT_H - bodyTop - GAP;
+            elements = elements.concat(buildCard(items[0], MARGIN, bodyTop, mainW, mainH, 0, sceneId));
+            var col = 0;
+            for (var i = 1; i < items.length && i < 4; i++) {
+                var itemH = (mainH - GAP * (Math.min(items.length - 1, 3) - 1)) / Math.min(items.length - 1, 3);
+                elements = elements.concat(buildCard(items[i],
+                    MARGIN + mainW + GAP, bodyTop + col * (itemH + GAP),
+                    sideW, itemH, i, sceneId));
+                col++;
+            }
+        }
+        return elements;
+    }
+
     var LAYOUT_TEMPLATES = {
         'title-only': layoutTitleOnly,
         'two-column': layoutTwoColumn,
         'grid-cards': layoutGridCards,
         'header-content': layoutHeaderContent,
-        'quote-highlight': layoutQuoteHighlight
+        'quote-highlight': layoutQuoteHighlight,
+        'three-column': layoutThreeColumn,
+        'spotlight': layoutSpotlight,
+        'magazine': layoutMagazine
     };
 
     // ---- Card Builder ----

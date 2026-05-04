@@ -36,6 +36,7 @@
     const footerHint = document.getElementById('footer-hint');
     const retryBtn = document.getElementById('retry-btn');
     const visualizerContainer = document.getElementById('visualizer-container');
+    const featureCardsContainer = document.getElementById('feature-cards');
 
     // Viz containers
     const vizContainers = {
@@ -48,6 +49,54 @@
         'slide-content': document.getElementById('viz-content'),
         'actions': document.getElementById('viz-actions')
     };
+
+    // Feature card state
+    const featureState = {
+        image: { active: false, done: false },
+        tts: { active: false, done: false },
+        video: { active: false, done: false },
+        websearch: { active: false, done: false },
+        interactive: { active: false, done: false }
+    };
+
+    // Feature card definitions
+    const FEATURE_DEFS = [
+        {
+            key: 'websearch',
+            label: '网络搜索',
+            icon: 'fa-search',
+            cssClass: 'search-card',
+            stepId: 'web-search'
+        },
+        {
+            key: 'image',
+            label: '生成图片',
+            icon: 'fa-image',
+            cssClass: 'image-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'tts',
+            label: '语音讲解',
+            icon: 'fa-microphone',
+            cssClass: 'tts-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'video',
+            label: '生成视频',
+            icon: 'fa-video',
+            cssClass: 'video-card',
+            stepId: 'actions'
+        },
+        {
+            key: 'interactive',
+            label: '深度交互',
+            icon: 'fa-bolt',
+            cssClass: 'interactive-card',
+            stepId: 'agent-generation'
+        }
+    ];
 
     // Search elements
     const searchResults = document.getElementById('search-results');
@@ -147,9 +196,23 @@
         if (footerHint) footerHint.style.display = 'flex';
         if (retryBtn) retryBtn.style.display = 'none';
 
+        // Initialize feature cards based on enabled features
+        initFeatureCards();
+
         abortController = new AbortController();
 
         const reqs = sessionData.requirements || sessionData || {};
+        const hasPdfContent = reqs.requirement?.includes('【文档内容】');
+
+        // 如果有PDF内容，更新第一步描述
+        if (hasPdfContent) {
+            STEPS[0].title = '正在解析文档...';
+            STEPS[0].desc = '从PDF提取学习内容';
+        } else {
+            STEPS[0].title = '正在分析需求...';
+            STEPS[0].desc = '解析学习需求与内容';
+        }
+
         const body = {
             requirement: reqs.requirement || '',
             student_id: String(sessionData.student_id || reqs.student_id || ''),
@@ -293,9 +356,90 @@
         actionItems.forEach(item => item.classList.remove('active'));
     }
 
+    // ---- Feature Cards ----
+
+    function initFeatureCards() {
+        if (!featureCardsContainer) return;
+
+        const reqs = sessionData.requirements || sessionData || {};
+        const enabledFeatures = [];
+
+        if (reqs.enable_web_search) enabledFeatures.push('websearch');
+        if (reqs.enable_image) enabledFeatures.push('image');
+        if (reqs.enable_tts !== false) enabledFeatures.push('tts');
+        if (reqs.enable_video) enabledFeatures.push('video');
+        if (reqs.interactive_mode) enabledFeatures.push('interactive');
+
+        if (enabledFeatures.length === 0) {
+            featureCardsContainer.style.display = 'none';
+            return;
+        }
+
+        featureCardsContainer.innerHTML = '';
+        featureCardsContainer.style.display = 'flex';
+
+        enabledFeatures.forEach((key, i) => {
+            const def = FEATURE_DEFS.find(d => d.key === key);
+            if (!def) return;
+
+            featureState[key] = { active: false, done: false };
+
+            const card = document.createElement('div');
+            card.className = `feature-card ${def.cssClass} waiting`;
+            card.id = `feature-card-${key}`;
+            card.style.animationDelay = `${i * 0.1}s`;
+            card.innerHTML = `
+                <i class="fas ${def.icon} feature-icon"></i>
+                <span class="feature-text">${def.label}</span>
+            `;
+            featureCardsContainer.appendChild(card);
+        });
+
+        requestAnimationFrame(() => {
+            featureCardsContainer.classList.add('visible');
+        });
+    }
+
+    function activateFeatureCard(key) {
+        const card = document.getElementById(`feature-card-${key}`);
+        if (!card || featureState[key].done) return;
+
+        // Deactivate all first
+        Object.keys(featureState).forEach(k => {
+            const c = document.getElementById(`feature-card-${k}`);
+            if (c && !featureState[k].done) {
+                c.classList.remove('active');
+            }
+        });
+
+        featureState[key].active = true;
+        featureState[key].done = true;
+
+        card.classList.remove('waiting');
+        card.classList.add('active');
+
+        // Mark done after a brief active period
+        setTimeout(() => {
+            card.classList.add('done');
+            const icon = card.querySelector('.feature-icon');
+            if (icon) {
+                icon.className = `fas ${FEATURE_DEFS.find(d => d.key === key).icon} feature-icon`;
+            }
+        }, 1500);
+    }
+
+    function hideFeatureCards() {
+        if (!featureCardsContainer) return;
+        featureCardsContainer.classList.remove('visible');
+        setTimeout(() => {
+            if (featureCardsContainer) featureCardsContainer.style.display = 'none';
+        }, 400);
+    }
+
     function showError(message) {
         isError = true;
         stopActionAnimation();
+        hideFeatureCards();
 
         // Hide all visualizers
         Object.values(vizContainers).forEach(viz => {
@@ -326,6 +470,7 @@
 
     function showComplete() {
         stopActionAnimation();
+        hideFeatureCards();
 
         // Hide all visualizers
         Object.values(vizContainers).forEach(viz => {
@@ -424,6 +569,7 @@
 
                 case 'web_search':
                     updateStep(1, STEPS[1]);
+                    activateFeatureCard('websearch');
                     if (msg.sources_count !== undefined) {
                         statusDesc.textContent = `已找到 ${msg.sources_count} 条相关资料`;
                     }
@@ -443,6 +589,7 @@
 
                 case 'agent_generation':
                     updateStep(3, STEPS[3]);
+                    activateFeatureCard('interactive');
                     const agents = msg.agents || [];
                     if (agents.length > 0) {
                         statusDesc.textContent = `已生成 ${agents.length} 位AI教师`;
@@ -457,6 +604,18 @@
                     }
                     break;
 
+                case 'first_batch_complete':
+                    statusTitle.textContent = '首批内容已生成';
+                    statusDesc.textContent = '即将进入课堂...';
+                    // 隐藏abort按钮
+                    if (abortBtn) abortBtn.style.display = 'none';
+                    if (footerHint) footerHint.style.display = 'none';
+                    // 1秒后跳转到课堂
+                    setTimeout(() => {
+                        navigateToClassroom();
+                    }, 1000);
+                    break;
+
                 case 'slide_content':
                     updateStep(4, STEPS[4]);
                     if (msg.speech_preview) {
@@ -468,6 +627,7 @@
 
                 case 'image_progress':
                     updateStep(5, STEPS[5]);
+                    activateFeatureCard('image');
                     if (msg.error) {
                         statusDesc.textContent = `配图跳过 (幻灯片 ${msg.slide_id})`;
                     } else if (!msg.skipped) {
@@ -477,6 +637,7 @@
 
                 case 'tts_progress':
                     updateStep(5, STEPS[5]);
+                    activateFeatureCard('tts');
                     if (msg.error) {
                         console.warn('TTS failed:', msg.error);
                     } else if (!msg.skipped) {

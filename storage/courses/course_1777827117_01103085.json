@@ -90,815 +90,2180 @@
   "slides": [],
   "slides_v2": [
     {
-      "layout_type": "two-column",
-      "title": "C++的起源与演进",
-      "content": [
+      "id": "slide-cpp-intro",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "历史沿革",
-          "bullets": [
-            "1983年Bjarne Stroustrup创立",
-            "源于C语言，引入面向对象特性",
-            "命名源自C语言的自增运算符",
-            "持续演进：C++11/14/17/20标准"
-          ],
-          "narration": "同学们好！欢迎来到C++快速入门课程。今天我们要一起推开C++世界的大门。首先，我们来聊聊C++的身世。它诞生于1983年，由丹麦计算机科学家Bjarne Stroustrup在贝尔实验室开发。C++是在C语言的基础上发展起来的，它保留了C语言高效灵活的特点，又引入了面向对象编程的机制。名字里的'++'正取自C语言的自增运算符，寓意着它是C语言的进阶版本。经过几十年的发展，C++已经成为了现代编程语言的基石。",
-          "text": "",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "C++的核心特性与优势",
-      "content": [
-        {
-          "sub_title": "语言特性",
-          "bullets": [
-            "高效的执行性能，接近C语言",
-            "丰富的抽象机制，支持多范式",
-            "强大的底层控制能力",
-            "广泛的生态系统与标准库"
-          ],
-          "narration": "为什么C++能长盛不衰？关键在于它的核心优势。第一是性能，C++编译生成的机器码执行效率极高，这是很多高级语言无法比拟的。第二是灵活性，它既支持面向过程编程，也支持面向对象和泛型编程，让你能根据需求选择最合适的范式。第三是控制力，你可以精确控制内存和硬件资源，这在系统开发中至关重要。正是因为这些特性，C++成为了对性能要求苛刻场景的首选语言。",
-          "text": "",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
-    },
-    {
-      "layout_type": "header-content",
-      "title": "C++的应用版图",
-      "content": [
-        {
-          "sub_title": "主要领域",
-          "bullets": [
-            "游戏引擎与高性能游戏开发",
-            "操作系统与嵌入式系统",
-            "浏览器引擎与数据库系统",
-            "金融交易与人工智能底层"
-          ],
-          "narration": "C++的应用领域非常广泛，几乎覆盖了计算机科学的各个核心角落。在游戏行业，像Unreal Engine这样的顶级引擎都是用C++编写的，因为它能提供极致的运行性能。在系统层面，Windows、Linux操作系统的核心组件都离不开C++。我们日常使用的Chrome浏览器、MySQL数据库，底层也都是C++在驱动。可以说，哪里需要高性能，哪里就有C++的身影。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
-    },
-    {
-      "layout_type": "two-column",
-      "title": "编译执行与开发环境",
-      "content": [
-        {
-          "sub_title": "工作原理",
-          "bullets": [
-            "源代码 -> 预处理 -> 编译 -> 链接",
-            "生成平台相关的可执行文件",
-            "IDE推荐：VS Code / Visual Studio",
-            "配置编译器后即可开始编程"
-          ],
-          "narration": "作为编译型语言，C++的代码是如何变成程序的？这个过程分为四个阶段：预处理、编译、汇编和链接，最终生成计算机可以直接执行的可执行文件。这和Python那种边解释边执行的方式很不一样。为了方便开发，我们通常使用集成开发环境，也就是IDE。对于初学者，我推荐使用Visual Studio或者轻量级的VS Code，它们都提供了完善的代码编辑、调试功能。安装好环境后，我们就可以开始编写第一个程序了。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello, C++ World!\" << endl;\n    return 0;\n}",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "开启你的C++之旅",
-      "content": [
-        {
-          "sub_title": "学习建议",
-          "bullets": [
-            "多动手实践，代码是敲出来的",
-            "理解原理比死记语法更重要",
-            "善用调试工具观察程序运行",
-            "从模仿开始，逐步建立编程思维"
-          ],
-          "narration": "恭喜你完成了C++的初识之旅！今天我们了解了C++的历史渊源、核心特性和广泛应用，也搞懂了编译型语言的工作原理。学习编程最重要的就是动手实践，光看不练是学不会的。不要害怕报错，每一个错误都是成长的机会。接下来的课程中，我们将正式进入语法学习，从变量、数据类型开始，一步步构建你的编程能力。准备好了吗？让我们在下一节课见！",
-          "text": "",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
-    },
-    {
-      "layout_type": "header-content",
-      "title": "练习：变量与数据类型",
-      "content": [
-        {
-          "sub_title": "练习目标",
-          "bullets": [
-            "在编辑器中声明整型、浮点型、字符型变量",
-            "使用 sizeof 关键字观察各类型内存占用",
-            "尝试显式类型转换并分析精度变化"
-          ],
-          "narration": "同学们好！理论结合实践是掌握编程的最佳路径。今天的练习环节，我们将深入C++的交互式编辑器。大家需要动手声明整型、浮点型和字符型这三种最基础的变量，使用sizeof关键字探查它们在内存中的真实“体重”，并尝试进行类型转换。准备好了吗？让我们开始吧！",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "two-column",
-      "title": "核心任务一：声明与探测",
-      "content": [
-        {
-          "sub_title": "操作指南",
-          "bullets": [
-            "声明 int、double、char 三种类型变量",
-            "使用 cout 输出变量值进行验证",
-            "调用 sizeof(变量名) 输出内存字节数"
-          ],
-          "narration": "第一个任务是基础变量的声明与探测。请在编辑器中分别定义一个整型、一个双精度浮点型和一个字符型变量。定义好之后，利用cout对象把它们打印出来确认无误。接着，使用sizeof关键字，像给行李称重一样，看看每种数据类型究竟占用了多少字节的内存空间。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "int age = 20;\ndouble price = 19.99;\nchar grade = 'A';\ncout << sizeof(age) << \" bytes\";",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "two-column",
-      "title": "核心任务二：类型转换",
-      "content": [
-        {
-          "sub_title": "转换挑战",
-          "bullets": [
-            "将浮点数 3.14 赋值给整型变量",
-            "观察输出结果，思考精度丢失原因",
-            "尝试将结果再转回浮点型，数据能恢复吗？"
-          ],
-          "narration": "第二个任务涉及类型转换。请大家尝试把浮点数3.14赋值给一个整型变量，观察输出结果发生了什么变化。这就是典型的隐式类型转换和精度丢失问题。进一步思考，如果你把这个整数再强制转换回浮点型，原来的小数部分还能找回来吗？动手试一试，答案就在代码的运行结果里。",
-          "text": "",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "double pi = 3.14;\nint i = pi;       // 隐式转换\ncout << i;        // 输出 3",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "练习提示与要求",
-      "content": [
-        {
-          "sub_title": "命名规范",
-          "bullets": [
-            "变量名只能含字母、数字和下划线",
-            "首字符必须是字母或下划线",
-            "严禁使用 int, double 等关键字"
-          ],
-          "narration": "在进行练习时，请务必遵守变量命名规范。变量名只能包含字母、数字和下划线，而且数字不能开头。同时，千万不要使用int、double这样的系统关键字作为变量名，否则编译器会报错。规范的命名是专业程序员的第一步。",
-          "text": "",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "交互输入",
-          "bullets": [
-            "使用 cin 对象接收键盘输入",
-            "注意 >> 运算符的方向指向变量",
-            "输入完成后按回车键确认"
-          ],
-          "narration": "如果想让程序更加灵活，可以使用cin对象接收用户的键盘输入。请注意提取运算符>>的方向，它是指向变量的，表示数据流入变量。输入完毕后别忘了按回车键确认。这是实现控制台交互的基础操作。",
-          "text": "",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "header-content",
-      "title": "流程控制逻辑：程序的十字路口",
-      "content": [
-        {
-          "sub_title": "逻辑判断的必要性",
-          "bullets": [
-            "程序执行顺序默认为自上而下",
-            "条件判断让程序具备决策能力",
-            "if-else处理“是非题”，switch处理“选择题”",
-            "逻辑运算符用于构建复杂判断条件"
-          ],
-          "narration": "同学们好！欢迎来到C++快速入门课程。大家想一想，如果程序只能从头到尾一行行执行，那它是不是像个只会听话的机器人？今天我们要给程序装上“大脑”，让它学会做选择。我们将通过拖拽控件的方式，亲眼看到程序是如何在十字路口转弯的。首先，我们来认识最基础的if-else语句。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心语法结构解析",
-      "content": [
-        {
-          "sub_title": "if-else 语句",
-          "bullets": [
-            "if后接小括号内的布尔表达式",
-            "条件为真执行if块，为假执行else块",
-            "else子句可选，用于处理异常情况",
-            "大括号{}标明语句块的边界范围"
-          ],
-          "narration": "先来看看if-else语句。它就像我们常说的“如果……那么……否则……”。if后面跟着一个判断条件，放在小括号里。如果条件成立，程序就走进if后面的大括号里执行；如果不成立，就跳到else的部分。大家注意，大括号非常重要，它划定了代码的势力范围，千万不要漏掉。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:20px;line-height:56px;text-align:center;margin:0;'>C++快速入门</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "switch 语句",
-          "bullets": [
-            "适用于整型、字符型等离散值判断",
-            "case标签标记不同的匹配入口",
-            "break关键字防止代码穿透执行",
-            "default处理所有未匹配的情况"
-          ],
-          "narration": "接下来是switch语句。当你面对“周一吃什么”、“按数字选菜单”这种多选一的情况时，switch就派上用场了。它像是一个分叉口，根据括号里的值，直接跳转到对应的case标签去执行。这里有个关键点：break，如果不加break，程序会像滑滑梯一样一路执行到底，这可是新手常犯的错误哦。",
-          "text": "",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "two-column",
-      "title": "互动演示：构建执行路径",
-      "content": [
-        {
-          "sub_title": "逻辑运算符组合",
-          "bullets": [
-            "&& (与)：两个条件必须同时成立",
-            "|| (或)：只要有一个条件成立即可",
-            "! (非)：将真变假，将假变真",
-            "合理组合可表达任意复杂逻辑"
-          ],
-          "narration": "现在我们进入互动环节。大家看屏幕上的逻辑运算符，它们就像是连接条件的胶水。双&符号代表“并且”，两个条件都要满足才行；双竖线代表“或者”，满足一个就行。等会儿大家拖拽这些控件时，试着把简单的条件拼成复杂的判断，比如“年龄大于18岁并且持有驾照”，看看程序的走向会发生什么变化。",
-          "text": "",
-          "icon": "star",
-          "color_theme": "green",
-          "code_snippet": "if (age > 18 && hasLicense) {\n    // 允许驾驶\n}",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "header-content",
-      "title": "动手挑战：拖拽控件定逻辑",
-      "content": [
-        {
-          "sub_title": "练习任务说明",
-          "bullets": [
-            "拖拽控件构建一个成绩评级系统",
-            "使用if-else嵌套处理不同分数段",
-            "尝试用switch改写简单的菜单选择",
-            "观察并记录程序执行路径的变化"
-          ],
-          "narration": "最后是大家的动手时间！请利用右侧的代码控件，搭建一个简单的成绩评级系统。比如，如果分数大于90是优秀，60到80是良好。大家要注意嵌套的逻辑关系，看看能不能用switch语句来优化菜单选择部分。完成搭建后，点击运行，仔细观察左侧的路径高亮变化，验证你的逻辑是否正确。开始行动吧！",
-          "text": "",
-          "icon": "question",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "header-content",
-      "title": "C++基础语法测验",
-      "content": [
-        {
-          "sub_title": "测验说明",
-          "bullets": [
-            "本环节包含选择题与代码纠错题",
-            "重点考察变量定义与运算符优先级",
-            "辨析自增自减前置后置的区别",
-            "检测break与continue控制流理解"
-          ],
-          "narration": "同学们好！经过前面的学习，我们已经掌握了C++的基础语法。现在，我们通过一场小测验来检验学习成果。本次测验主要围绕变量定义、运算符优先级以及流程控制语句展开，题型包括选择题和代码纠错题。请大家仔细审题，运用所学知识进行分析，准备好了吗？让我们开始挑战吧！",
-          "text": "",
-          "icon": "question",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "考察范围与要点",
-      "content": [
-        {
-          "sub_title": "数据类型存储",
-          "bullets": [
-            "基本数据类型的取值范围",
-            "不同类型占用内存大小",
-            "有符号与无符号的区别"
-          ],
-          "narration": "首先回顾第一个考察点：基本数据类型。大家需要清楚int、char、float等类型在内存中占用的字节数，以及它们的取值范围。比如，short和int能表示的数值范围是不同的，这直接影响数据的存储与溢出情况。",
-          "text": "",
-          "icon": "info",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 50,
+          "top": 70,
+          "width": 900,
+          "height": 40,
+          "content": "<h2 style='color:#64748B;font-size:16px;text-align:center;margin:0;'>初识C++世界</h2>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "自增自减运算",
-          "bullets": [
-            "前置运算：先变后用",
-            "后置运算：先用后变",
-            "在表达式中需特别注意顺序"
-          ],
-          "narration": "第二个重点是自增自减运算符。前置和后置的区别非常关键。前置是“先改变变量的值，再参与运算”，而后置是“先用原值参与运算，再改变变量值”。这个细微差别往往决定了表达式的最终结果。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 50,
+          "top": 130,
+          "width": 280,
+          "height": 360,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 348 Q 280 360 268 360 L 12 360 Q 0 360 0 348 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            360
+          ]
         },
         {
-          "sub_title": "流程控制语句",
-          "bullets": [
-            "break：立即跳出整个循环",
-            "continue：跳过本次迭代",
-            "二者执行逻辑截然不同"
-          ],
-          "narration": "最后是流程控制语句。break语句会直接终止整个循环，执行循环体后的代码；而continue只是结束本次循环迭代，直接进入下一次循环判断。理解这一点，对于分析循环执行流程至关重要。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "典型易错题解析",
-      "content": [
-        {
-          "sub_title": "选择题示例",
-          "bullets": [
-            "题目：int a = 5; 求 a++ + ++a",
-            "选项：A.12  B.11  C.10  D.13",
-            "解析：先取5，a变6；再自增变7",
-            "结果：5 + 7 = 12，选A"
-          ],
-          "narration": "我们来看一道典型的选择题。当a初始为5时，表达式a++加上++a的结果是多少？这里要分步分析：a++是后置，先取值5，a变为6；接着++a是前置，a先自增变为7再参与运算。所以最终计算的是5加7，结果为12。这类题目一定要按步骤拆解，不能想当然。",
-          "text": "",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "int a = 5;\nint result = a++ + ++a;\n// a++ -> 取5, a变6\n// ++a -> a变7, 取7\n// result = 5 + 7 = 12",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "答题策略与技巧",
-      "content": [
-        {
-          "sub_title": "解题建议",
-          "bullets": [
-            "审题要慢，看清运算符位置",
-            "复杂表达式分步拆解计算",
-            "代码纠错先找语法错误",
-            "控制流题目可画图辅助分析"
-          ],
-          "narration": "最后给大家一些答题建议。做选择题时，审题一定要慢，特别是运算符的位置要看清楚。遇到复杂的表达式，不要心算，分步骤一步步拆解。代码纠错题，先扫描有没有明显的语法错误，比如漏掉分号或括号不匹配。涉及循环控制流的题目，可以在草稿纸上画流程图辅助分析。保持冷静，相信自己的判断，祝大家取得好成绩！",
-          "text": "",
-          "icon": "star",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "函数封装基础",
-      "content": [
-        {
-          "sub_title": "函数定义三要素",
-          "bullets": [
-            "返回值类型：决定函数输出",
-            "函数名：调用时的唯一标识",
-            "参数列表：接收外部输入数据"
-          ],
-          "narration": "同学们好！今天我们进入C++函数封装的学习。函数可以看作是程序的“功能模块”，把一段特定功能的代码打包起来。定义一个函数，我们需要明确三个要素：它算出什么结果、叫什么名字、以及需要我们提供什么原材料。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 360,
+          "top": 130,
+          "width": 280,
+          "height": 360,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 348 Q 280 360 268 360 L 12 360 Q 0 360 0 348 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            280,
+            360
+          ]
         },
         {
-          "sub_title": "声明与调用",
-          "bullets": [
-            "声明向编译器预告函数存在",
-            "定义是函数的具体实现逻辑",
-            "调用时使用函数名加实参"
-          ],
-          "narration": "在实际编写时，我们通常会把函数声明放在头文件或文件顶部，把定义放在后面，这样无论在哪里调用，编译器都能找得到。调用函数就像给这个模块发送指令，把具体的数据传进去，让它帮我们干活。",
-          "text": "",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "参数传递方式详解",
-      "content": [
-        {
-          "sub_title": "值传递",
-          "bullets": [
-            "复制实参的值给形参",
-            "函数内修改不影响原变量",
-            "适合小数据，安全但占内存"
-          ],
-          "narration": "第一种是值传递，这是最基础的方式。就像复印一份文件给别人，对方怎么涂改，你的原件都不会受影响。这种方式很安全，但如果数据量很大，复制起来就会消耗不少内存和时间。",
-          "text": "",
-          "icon": "info",
-          "color_theme": "yellow",
-          "code_snippet": "void addOne(int n) { n++; }",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 670,
+          "top": 130,
+          "width": 280,
+          "height": 360,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 348 Q 280 360 268 360 L 12 360 Q 0 360 0 348 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            280,
+            360
+          ]
         },
         {
-          "sub_title": "指针传递",
-          "bullets": [
-            "传递变量的内存地址",
-            "通过解引用修改原数据",
-            "效率高，需注意空指针风险"
-          ],
-          "narration": "第二种是指针传递。这次我们不传数据本身，而是传数据的“家庭住址”。函数拿着地址就能找到原变量，直接进行修改。效率很高，但使用时要小心，万一地址是空的，程序就会崩溃。",
-          "text": "",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "void addOne(int* p) { (*p)++; }",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-1-icon-bg",
+          "left": 130,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 30 L 30 60 L 0 30 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
         },
         {
-          "sub_title": "引用传递",
-          "bullets": [
-            "形参是实参的别名",
-            "操作形参即操作实参本身",
-            "语法简洁，推荐的首选方式"
-          ],
-          "narration": "最后是引用传递，这是C++的特色。它就像是给变量起个“绰号”，操作绰号就是在操作变量本人。既有了指针的高效率，写起来又像值传递一样简单直观，是我们最推荐的传递方式。",
-          "text": "",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "void addOne(int& r) { r++; }",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "函数重载与默认参数",
-      "content": [
-        {
-          "sub_title": "函数重载",
-          "bullets": [
-            "同名函数，参数列表不同",
-            "编译器根据参数自动匹配",
-            "实现类似功能的统一接口"
-          ],
-          "narration": "接下来说说提高代码灵活性的技巧。函数重载允许我们定义好几个同名函数，只要它们的参数不一样就行。比如处理加法，我们可以写一个处理整数的，再写一个处理小数的，调用时编译器会自动识别该用哪一个，非常智能。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "int add(int a, int b);\ndouble add(double a, double b);",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-2-icon-bg",
+          "left": 440,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 30 L 30 60 L 0 30 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
         },
         {
-          "sub_title": "默认参数",
-          "bullets": [
-            "参数列表中预设默认值",
-            "调用时可省略尾部参数",
-            "从右向左连续设置默认值"
-          ],
-          "narration": "另一个技巧是默认参数。有时候函数的某个参数大部分情况都取同一个值，我们就可以把它设为默认值。这样调用时如果不传这个参数，它就自动用默认值，既减少了代码量，又保持了灵活性。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "int power(int base, int exp = 2);\n// power(3) 等同于 power(3, 2)",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "header-content",
-      "title": "实战练习：计算圆的面积",
-      "content": [
-        {
-          "sub_title": "编程任务",
-          "bullets": [
-            "定义函数计算圆面积",
-            "使用引用参数返回结果",
-            "设置半径默认值为 1.0"
-          ],
-          "narration": "光说不练假把式，现在请大家动手试一试。我们需要编写一个计算圆面积的函数。要求利用引用传递把结果带出来，并且给半径参数设置一个默认值。这能帮你综合运用今天学到的封装技巧，快去在线环境试试吧！",
-          "text": "",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "void calcArea(double r, double& area) {\n    area = 3.14 * r * r;\n}",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "内存模型：栈与堆",
-      "content": [
-        {
-          "sub_title": "栈内存",
-          "bullets": [
-            "自动分配与释放，速度快",
-            "空间有限，适合局部变量",
-            "生命周期随函数调用结束而终止",
-            "遵循“后进先出”（LIFO）原则"
-          ],
-          "narration": "同学们好！今天我们来深入探索C++的内存模型。大家请看屏幕上的动态图表，左边展示的是“栈”内存。你可以把栈想象成一个自动管理的临时储物柜，我们在函数里定义的局部变量就放在这里。它的特点非常鲜明：由系统自动分配和释放，速度极快，但空间比较有限。最重要的是，一旦函数执行结束，栈上的内存就会自动回收，非常省心。",
-          "text": "",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-3-icon-bg",
+          "left": 750,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 30 L 30 60 L 0 30 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
         },
         {
-          "sub_title": "堆内存",
-          "bullets": [
-            "手动分配与释放，灵活度高",
-            "空间较大，适合动态数据",
-            "生命周期由程序员控制",
-            "需警惕内存泄漏风险"
-          ],
-          "narration": "再看右边，这是“堆”内存。与栈不同，堆像是一个巨大的仓库，空间很大，但管理起来比较麻烦。如果你想在这里存放数据，必须手动申请，用完后还得记得手动归还。这就好比租房子，你可以住很久，但退租时必须把钥匙还回去。如果只申请不释放，就会导致内存泄漏，这是C++编程中需要特别注意的地方。",
-          "text": "",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "指针变量的寻址奥秘",
-      "content": [
-        {
-          "sub_title": "指针解析",
-          "bullets": [
-            "指针是存储内存地址的变量",
-            "声明时使用 * 符号标识类型",
-            "初始化需赋予有效的内存地址",
-            "解引用 * 操作符访问地址指向的值"
-          ],
-          "narration": "理解了内存区域后，我们来看看如何在内存中精准定位。这就需要用到“指针”。请看图表中闪烁的箭头，指针变量本身也占内存，但它存储的不是普通数据，而是另一个变量在内存中的“门牌号”。我们通过声明指针来告诉编译器“这个变量存的是地址”，然后利用解引用操作，也就是星号，顺着地址找到那个房间里真正存放的值。这就像是拿着写有房间号的纸条，最终找到房间里的人。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "动态内存管理实战",
-      "content": [
-        {
-          "sub_title": "申请内存",
-          "bullets": [
-            "使用 new 关键字申请堆内存",
-            "返回申请到的内存首地址",
-            "需用指针接收返回的地址",
-            "示例：int* p = new int(10);"
-          ],
-          "narration": "接下来，我们进入实战环节。如何在堆区申请内存呢？答案是使用 new 关键字。大家看左边的代码演示，当我们写下一行 new int 时，程序会在堆区找到一块合适的地盘，并返回这块地盘的起始地址。我们通常用一个指针变量来接收这个地址，这样就把这块内存“占住”了。记住，这时候系统可不会帮你自动打扫卫生。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "int* ptr = new int;\n*ptr = 20;",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 50,
+          "top": 240,
+          "width": 280,
+          "height": 30,
+          "content": "<h3 style='color:#1E40AF;font-size:16px;text-align:center;margin:0;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "释放内存",
-          "bullets": [
-            "使用 delete 关键字释放内存",
-            "将指针指向的内存归还系统",
-            "释放后建议将指针置空",
-            "防止产生“野指针”引发错误"
-          ],
-          "narration": "既然借了，用完就得还。右边的代码展示了如何使用 delete 关键字释放内存。这一步至关重要，它告诉系统“这块地盘我不用了，你可以分配给别人”。如果不执行 delete，那块内存就会一直被占用，直到程序结束。为了安全起见，释放后我们通常会把指针设为 nullptr，避免它成为一个指向未知危险区域的“野指针”。",
-          "text": "",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "delete ptr;\nptr = nullptr;",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "核心要点总结",
-      "content": [
-        {
-          "sub_title": "避坑指南",
-          "bullets": [
-            "栈内存自动管理，堆内存需手动干预",
-            "new 和 delete 必须成对使用",
-            "指针解引用前必须确保地址有效",
-            "内存泄漏是C++程序员的必修课"
-          ],
-          "narration": "最后，我们来总结一下今天的核心内容。栈内存像全自动洗衣机，用完即走；堆内存像自助厨房，自己动手丰衣足食，但记得洗碗。掌握 new 和 delete 的配对使用，是成为合格C++程序员的必经之路。希望大家在编程时，脑海中能浮现出今天看到的内存模型图，合理规划内存使用，写出高效健壮的代码。这节课就到这里，我们下节课见！",
-          "text": "",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "项目启动：学生成绩管理系统",
-      "content": [
-        {
-          "sub_title": "项目背景",
-          "bullets": [
-            "综合运用数组、结构体与文件操作",
-            "模拟真实的学生信息管理场景",
-            "解决数据持久化存储的难题"
-          ],
-          "narration": "同学们好！欢迎来到C++快速入门课程。今天我们将通过一个具体的项目实战——'学生成绩管理系统'，来把之前学过的零散知识串联起来。大家想象一下，如果你是学校的教务管理员，面对成百上千学生的成绩，如何用程序高效地录入、修改和保存呢？这不仅是编程练习，更是解决实际问题的过程。",
-          "text": "",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 360,
+          "top": 240,
+          "width": 280,
+          "height": 30,
+          "content": "<h3 style='color:#92400E;font-size:16px;text-align:center;margin:0;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "核心目标",
-          "bullets": [
-            "设计数据结构封装学生信息",
-            "实现增删改查动态管理功能",
-            "掌握文件读写实现数据持久化"
-          ],
-          "narration": "在这个项目中，我们要达成三个核心目标。首先是学会如何用结构体或类来'打包'学生的姓名、学号和成绩；其次，我们要让程序动起来，能录入、能修改、能删除；最后，也是最关键的一点，我们要把数据保存到硬盘上，实现持久化存储，关机重启后数据依然存在。",
-          "text": "",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心设计：数据封装与结构体",
-      "content": [
-        {
-          "sub_title": "结构体定义",
-          "bullets": [
-            "使用 struct 关键字定义学生类型",
-            "包含姓名、学号、成绩三个成员",
-            "通过点号运算符访问成员变量"
-          ],
-          "narration": "首先，我们需要解决数据的封装问题。在C++中，结构体（struct）是把不同类型数据组合在一起的利器。我们可以定义一个Student结构体，里面包含字符数组存储姓名、整型变量存储学号、以及浮点型变量存储成绩。这样，每个学生就是一个独立的整体，管理起来方便多了。",
-          "text": "",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "struct Student {\n  char name[50];\n  int id;\n  float score;\n};",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 670,
+          "top": 240,
+          "width": 280,
+          "height": 30,
+          "content": "<h3 style='color:#065F46;font-size:16px;text-align:center;margin:0;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "数据存储",
-          "bullets": [
-            "定义结构体数组存储多名学生",
-            "配合整型变量记录当前学生数量",
-            "注意数组越界问题的预防"
-          ],
-          "narration": "定义好单个学生结构后，我们需要管理多个学生。这时可以定义一个结构体数组，比如 Student stu[100]，这就相当于准备了100个'空盒子'等着装数据。同时，我们需要一个整型变量来记录当前实际有多少名学生，避免操作无效的空数据。",
-          "text": "",
-          "icon": "info",
-          "color_theme": "yellow",
-          "code_snippet": "Student students[100];\nint count = 0;",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "two-column",
-      "title": "功能实现：动态管理与文件持久化",
-      "content": [
-        {
-          "sub_title": "动态管理逻辑",
-          "bullets": [
-            "录入：在数组末尾添加新元素",
-            "修改：按学号查找后更新数据",
-            "删除：移动数组元素覆盖目标"
-          ],
-          "narration": "接下来是功能的实现逻辑。录入功能比较简单，就是在数组末尾添加新数据，并让计数器加一。修改功能则需要先遍历数组找到对应学号的学生，再更新其成绩。删除功能稍微复杂一点，通常采用'覆盖法'，把后面的元素往前移，覆盖掉要删除的那条记录。",
-          "text": "",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "// 录入示例\ncout << \"请输入姓名:\";\ncin >> students[count].name;\ncount++;",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 70,
+          "top": 280,
+          "width": 240,
+          "height": 180,
+          "content": "<p style='color:#475569;font-size:13px;text-align:center;line-height:1.6;margin:0;'>了解C++语言的起源、特性及其在系统开发中的应用...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "文件读写操作",
-          "bullets": [
-            "使用 fstream 类库进行文件操作",
-            "ofstream 用于写入，ifstream 用于读取",
-            "程序退出前写入，启动时读取数据"
-          ],
-          "narration": "最后，我们要解决数据持久化的问题。内存中的数据一断电就没了，所以必须存入文件。C++提供了 fstream 库，我们用 ofstream（输出文件流）把数组数据写入文本文件，用 ifstream（输入文件流）在程序启动时把数据读回数组。这样，你的成绩管理系统就真正实用了。",
-          "text": "",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "// 写入文件示例\nofstream outFile(\"data.txt\");\noutFile << stu.name << \" \"\n       << stu.score;",
-          "image_url": ""
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 380,
+          "top": 280,
+          "width": 240,
+          "height": 180,
+          "content": "<p style='color:#475569;font-size:13px;text-align:center;line-height:1.6;margin:0;'>掌握主流IDE的安装配置与第一个程序编写...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 690,
+          "top": 280,
+          "width": 240,
+          "height": 180,
+          "content": "<p style='color:#475569;font-size:13px;text-align:center;line-height:1.6;margin:0;'>理解编译型语言的基本工作原理与执行流程...</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 7
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "1",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。了解C++语言的起源、特性及其在系统开发中的应用"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。掌握主流IDE的安装配置与第一个程序编写"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。理解编译型语言的基本工作原理与执行流程"
+        }
+      ]
     },
     {
-      "layout_type": "header-content",
-      "title": "实战演练与任务清单",
-      "content": [
-        {
-          "sub_title": "开发步骤指南",
-          "bullets": [
-            "第一步：定义结构体，搭建程序框架",
-            "第二步：编写菜单函数，实现交互逻辑",
-            "第三步：逐个实现增删改查功能模块",
-            "第四步：添加文件读写，测试数据持久化"
+      "id": "slide-cpp-variables",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "gradient",
+        "gradient": {
+          "type": "linear",
+          "colors": [
+            {
+              "color": "#1E40AF",
+              "pos": 0
+            },
+            {
+              "color": "#3B82F6",
+              "pos": 0.5
+            },
+            {
+              "color": "#60A5FA",
+              "pos": 1
+            }
           ],
-          "narration": "现在到了大家动手的时候了。建议大家分四步走：先定义好结构体，把程序的骨架搭起来；然后写一个菜单函数，让用户能选择功能；接着逐个攻克录入、显示、修改、删除这些功能模块；最后再把文件读写加上。记住，不要试图一次性写完所有代码，分模块测试才是正道。",
-          "text": "",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
+          "rotate": 135
+        }
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-decorative-circle-1",
+          "left": 0,
+          "top": 0,
+          "width": 300,
+          "height": 300,
+          "shape_name": "ellipse",
+          "fill": "rgba(255,255,255,0.1)",
+          "viewBox": [
+            0,
+            0,
+            300,
+            300
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-decorative-circle-3",
+          "left": 600,
+          "top": 0,
+          "width": 200,
+          "height": 200,
+          "shape_name": "ellipse",
+          "fill": "rgba(255,255,255,0.05)",
+          "viewBox": [
+            0,
+            0,
+            200,
+            200
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-bg",
+          "left": 50,
+          "top": 180,
+          "width": 80,
+          "height": 80,
+          "shape_name": "roundRect",
+          "path": "M 8 0 L 72 0 Q 80 0 80 8 L 80 72 Q 80 80 72 80 L 8 80 Q 0 80 0 72 L 0 8 Q 0 0 8 0 Z",
+          "fill": "rgba(255,255,255,0.2)",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 160,
+          "top": 180,
+          "width": 700,
+          "height": 80,
+          "content": "<h1 style='color:#FFFFFF;font-size:42px;font-weight:700;line-height:1.3;'>C++变量声明与类型转换实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-course-label",
+          "left": 70,
+          "top": 205,
+          "width": 40,
+          "height": 30,
+          "content": "<span style='font-size:24px;'>&#128218;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-divider",
+          "left": 160,
+          "top": 280,
+          "width": 120,
+          "height": 4,
+          "shape_name": "rectangle",
+          "fill": "rgba(255,255,255,0.6)",
+          "viewBox": [
+            0,
+            0,
+            120,
+            4
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-course-title",
+          "left": 160,
+          "top": 300,
+          "width": 700,
+          "height": 40,
+          "content": "<h2 style='color:rgba(255,255,255,0.9);font-size:20px;font-weight:400;letter-spacing:2px;'>C++快速入门 · 变量与数据类型</h2>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-decorative-circle-2",
+          "left": 750,
+          "top": 350,
+          "width": 250,
+          "height": 212.5,
+          "shape_name": "ellipse",
+          "fill": "rgba(255,255,255,0.08)",
+          "viewBox": [
+            0,
+            0,
+            400,
+            400
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-exercise-badge",
+          "left": 160,
+          "top": 360,
+          "width": 100,
+          "height": 32,
+          "shape_name": "roundRect",
+          "path": "M 16 0 L 84 0 Q 100 0 100 16 L 100 32 Q 100 48 84 48 L 16 48 Q 0 48 0 32 L 0 16 Q 0 0 16 0 Z",
+          "fill": "rgba(255,255,255,0.25)",
+          "viewBox": [
+            0,
+            0,
+            100,
+            48
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-badge-text",
+          "left": 160,
+          "top": 360,
+          "width": 100,
+          "height": 32,
+          "content": "<p style='color:#FFFFFF;font-size:14px;font-weight:600;text-align:center;line-height:32px;'>EXERCISE</p>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-bottom-decoration",
+          "left": 0,
+          "top": 520,
+          "width": 1000,
+          "height": 42.5,
+          "shape_name": "rectangle",
+          "fill": "rgba(0,0,0,0.15)",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            42.5
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-footer-text",
+          "left": 0,
+          "top": 528,
+          "width": 1000,
+          "height": 30,
+          "content": "<p style='color:rgba(255,255,255,0.7);font-size:13px;text-align:center;letter-spacing:1px;'>掌握C++变量的声明、初始化与类型转换技巧</p>",
+          "fill": "transparent",
+          "defaultColor": "rgba(255,255,255,0.7)"
         }
       ],
-      "scene_id": 7
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#60A5FA",
+          "#EFF6FF"
+        ],
+        "fontColor": "#FFFFFF",
+        "backgroundColor": "#1E40AF"
+      },
+      "scene_id": "2",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "C++变量声明与类型转换实战"
+        }
+      ]
+    },
+    {
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 80,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 80 L 0 80 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-course-title",
+          "left": 30,
+          "top": 8,
+          "width": 400,
+          "height": 30,
+          "content": "<span style='color:#93C5FD;font-size:14px;font-weight:500;'>C++快速入门</span>",
+          "fill": "transparent",
+          "defaultColor": "#93C5FD",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-interactive-badge",
+          "left": 850,
+          "top": 28,
+          "width": 100,
+          "height": 28,
+          "shape_name": "roundRect",
+          "path": "M 0 14 Q 0 0 14 0 L 86 0 Q 100 0 100 14 L 100 14 Q 100 28 86 28 L 14 28 Q 0 28 0 14 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            100,
+            28
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-interactive-text",
+          "left": 850,
+          "top": 28,
+          "width": 100,
+          "height": 28,
+          "content": "<span style='color:#FFFFFF;font-size:12px;font-weight:600;'>INTERACTIVE</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-scene-title",
+          "left": 30,
+          "top": 35,
+          "width": 600,
+          "height": 40,
+          "content": "<h1 style='color:#FFFFFF;font-size:26px;font-weight:600;'>流程控制逻辑</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 40,
+          "top": 110,
+          "width": 290,
+          "height": 400,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 388 Q 290 400 278 400 L 12 400 Q 0 400 0 388 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            290,
+            400
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 355,
+          "top": 110,
+          "width": 290,
+          "height": 400,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 388 Q 290 400 278 400 L 12 400 Q 0 400 0 388 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            290,
+            400
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 670,
+          "top": 110,
+          "width": 290,
+          "height": 400,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 278 0 Q 290 0 290 12 L 290 388 Q 290 400 278 400 L 12 400 Q 0 400 0 388 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            290,
+            400
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 125,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 C 46.5685 0 60 13.4315 60 30 C 60 46.5685 46.5685 60 30 60 C 13.4315 60 0 46.5685 0 30 C 0 13.4315 13.4315 0 30 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-1",
+          "left": 125,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "content": "<span style='color:#FFFFFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial",
+          "textAlign": "center"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 440,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 C 46.5685 0 60 13.4315 60 30 C 60 46.5685 46.5685 60 30 60 C 13.4315 60 0 46.5685 0 30 C 0 13.4315 13.4315 0 30 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-2",
+          "left": 440,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "content": "<span style='color:#FFFFFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial",
+          "textAlign": "center"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 755,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "shape_name": "circle",
+          "path": "M 30 0 C 46.5685 0 60 13.4315 60 30 C 60 46.5685 46.5685 60 30 60 C 13.4315 60 0 46.5685 0 30 C 0 13.4315 13.4315 0 30 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-3",
+          "left": 755,
+          "top": 140,
+          "width": 60,
+          "height": 60,
+          "content": "<span style='color:#FFFFFF;font-size:28px;'>&#9733;</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 40,
+          "top": 220,
+          "width": 290,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:20px;font-weight:700;text-align:center;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 355,
+          "top": 220,
+          "width": 290,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:20px;font-weight:700;text-align:center;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 670,
+          "top": 220,
+          "width": 290,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:20px;font-weight:700;text-align:center;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 55,
+          "top": 270,
+          "width": 260,
+          "height": 200,
+          "content": "<p style='color:#1E40AF;font-size:15px;line-height:1.7;text-align:center;'>掌握条件判断语句<strong>if-else</strong>的语法结构与嵌套使用</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 370,
+          "top": 270,
+          "width": 260,
+          "height": 200,
+          "content": "<p style='color:#92400E;font-size:15px;line-height:1.7;text-align:center;'>理解<strong>switch</strong>语句在多分支选择中的应用场景</p>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 685,
+          "top": 270,
+          "width": 260,
+          "height": 200,
+          "content": "<p style='color:#065F46;font-size:15px;line-height:1.7;text-align:center;'>学会运用<strong>逻辑运算符</strong>构建复杂的布尔表达式</p>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei",
+          "textAlign": "center"
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-line-1",
+          "left": 100,
+          "top": 480,
+          "width": 800,
+          "height": 4,
+          "shape_name": "rectangle",
+          "path": "M 2 0 L 798 0 Q 800 2 800 4 Q 800 6 798 8 L 2 8 Q 0 6 0 4 Q 0 2 2 0 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#3B82F6",
+                "pos": 0
+              },
+              {
+                "color": "#F59E0B",
+                "pos": 0.5
+              },
+              {
+                "color": "#10B981",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "viewBox": [
+            0,
+            0,
+            800,
+            8
+          ]
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "3",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。掌握条件判断语句if-else的语法结构与嵌套使用"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。理解switch语句在多分支选择中的应用场景"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。学会运用逻辑运算符构建复杂的布尔表达式"
+        }
+      ]
+    },
+    {
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-header-title",
+          "left": 50,
+          "top": 0,
+          "width": 900,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:22px;font-weight:600;'>基础语法测验</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-header-subtitle",
+          "left": 260,
+          "top": 0,
+          "width": 500,
+          "height": 56,
+          "content": "<h2 style='color:#93C5FD;font-size:14px;'>C++快速入门</h2>",
+          "fill": "transparent",
+          "defaultColor": "#93C5FD",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 40,
+          "top": 80,
+          "width": 440,
+          "height": 210,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 198 Q 440 210 428 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            440,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 520,
+          "top": 80,
+          "width": 440,
+          "height": 210,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 198 Q 440 210 428 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            440,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-icon-bg",
+          "left": 60,
+          "top": 100,
+          "width": 56,
+          "height": 56,
+          "path": "M 28 0 Q 56 0 56 28 L 56 28 Q 56 56 28 56 L 28 56 Q 0 56 0 28 L 0 28 Q 0 0 28 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            56,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card1-icon",
+          "left": 60,
+          "top": 100,
+          "width": 56,
+          "height": 56,
+          "content": "<span style='color:#FFF;font-size:24px;'>?</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 130,
+          "top": 100,
+          "width": 330,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>题目 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-icon-bg",
+          "left": 540,
+          "top": 100,
+          "width": 56,
+          "height": 56,
+          "path": "M 28 0 Q 56 0 56 28 L 56 28 Q 56 56 28 56 L 28 56 Q 0 56 0 28 L 0 28 Q 0 0 28 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            56,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card2-icon",
+          "left": 540,
+          "top": 100,
+          "width": 56,
+          "height": 56,
+          "content": "<span style='color:#FFF;font-size:24px;'>?</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 610,
+          "top": 100,
+          "width": 330,
+          "height": 36,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>题目 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-content",
+          "left": 130,
+          "top": 140,
+          "width": 330,
+          "height": 130,
+          "content": "<p style='color:#1E293B;font-size:13px;line-height:1.6;'>在C++中，若需要存储一个范围在-100到100之间的整数，且希望尽可能节省内存空间，下列哪种数据类型是最合适的选择？</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-content",
+          "left": 610,
+          "top": 140,
+          "width": 330,
+          "height": 130,
+          "content": "<p style='color:#1E293B;font-size:13px;line-height:1.6;'>关于以下代码片段的运行结果，描述正确的是？<br><code style='background:#E2E8F0;padding:2px 6px;border-radius:4px;'>int a = 5;</code><br><code style='background:#E2E8F0;padding:2px 6px;border-radius:4px;'>int b = a++ + ++a;</code><br><code style='background:#E2E8F0;padding:2px 6px;border-radius:4px;'>cout << b;</code></p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 40,
+          "top": 310,
+          "width": 440,
+          "height": 210,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 198 Q 440 210 428 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            440,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card4-bg",
+          "left": 520,
+          "top": 310,
+          "width": 440,
+          "height": 210,
+          "path": "M 12 0 L 428 0 Q 440 0 440 12 L 440 198 Q 440 210 428 210 L 12 210 Q 0 210 0 198 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFF7ED",
+          "viewBox": [
+            0,
+            0,
+            440,
+            210
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-icon-bg",
+          "left": 60,
+          "top": 330,
+          "width": 56,
+          "height": 56,
+          "path": "M 28 0 Q 56 0 56 28 L 56 28 Q 56 56 28 56 L 28 56 Q 0 56 0 28 L 0 28 Q 0 0 28 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            56,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card3-icon",
+          "left": 60,
+          "top": 330,
+          "width": 56,
+          "height": 56,
+          "content": "<span style='color:#FFF;font-size:24px;'>?</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 130,
+          "top": 330,
+          "width": 330,
+          "height": 36,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;'>题目 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card4-icon-bg",
+          "left": 540,
+          "top": 330,
+          "width": 56,
+          "height": 56,
+          "path": "M 28 0 Q 56 0 56 28 L 56 28 Q 56 56 28 56 L 28 56 Q 0 56 0 28 L 0 28 Q 0 0 28 0 Z",
+          "fill": "#F97316",
+          "viewBox": [
+            0,
+            0,
+            56,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card4-icon",
+          "left": 540,
+          "top": 330,
+          "width": 56,
+          "height": 56,
+          "content": "<span style='color:#FFF;font-size:24px;'>?</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-card4-title",
+          "left": 610,
+          "top": 330,
+          "width": 330,
+          "height": 36,
+          "content": "<h2 style='color:#9A3412;font-size:18px;font-weight:600;'>题目 4</h2>",
+          "fill": "transparent",
+          "defaultColor": "#9A3412",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-content",
+          "left": 130,
+          "top": 370,
+          "width": 330,
+          "height": 130,
+          "content": "<p style='color:#1E293B;font-size:13px;line-height:1.6;'>在循环结构中，关于break和continue语句的使用，下列说法正确的有？</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "code",
+          "id": "el-card4-code",
+          "left": 610,
+          "top": 370,
+          "width": 330,
+          "height": 130,
+          "content": "int main() {\n    int i = 0;\n    while (i < 10); {\n        cout << i << endl;\n        i++;\n    }\n    return 0;\n}",
+          "language": "cpp",
+          "fill": "#1E293B"
+        },
+        {
+          "type": "text",
+          "id": "el-footer-text",
+          "left": 0,
+          "top": 530,
+          "width": 1000,
+          "height": 32,
+          "content": "<p style='color:#94A3B8;font-size:12px;text-align:center;'>请仔细阅读每道题目，选择正确答案</p>",
+          "fill": "transparent",
+          "defaultColor": "#94A3B8",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5",
+          "#F97316",
+          "#FFF7ED"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "4",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "题目 1。在C++中，若需要存储一个范围在-100到100之间的整数，且希望尽可能节省内存空间，下列哪种数据类型是最合适的选择？"
+        },
+        {
+          "type": "speech",
+          "text": "题目 2。关于以下代码片段的运行结果，描述正确的是？\nint a = 5;\nint b = a++ + ++a;\ncout << b;"
+        },
+        {
+          "type": "speech",
+          "text": "题目 3。在循环结构中，关于break和continue语句的使用，下列说法正确的有？"
+        },
+        {
+          "type": "speech",
+          "text": "题目 4。请阅读以下代码，指出其中的语法或逻辑错误，并说明如何修正。\n\nint main() {\n    int i = 0;\n    while (i < 10); {\n        cout << i << endl;\n        i++;\n    }\n    return 0;\n}"
+        }
+      ]
+    },
+    {
+      "id": "slide-cpp-functions",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;'>C++快速入门 · 函数封装技巧</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-code-container",
+          "left": 20,
+          "top": 72,
+          "width": 480,
+          "height": 468,
+          "path": "M 12 0 L 468 0 Q 480 0 480 12 L 480 456 Q 480 468 468 468 L 12 468 Q 0 468 0 456 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#1E293B",
+          "viewBox": [
+            0,
+            0,
+            480,
+            468
+          ],
+          "opacity": 0.98
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 520,
+          "top": 72,
+          "width": 460,
+          "height": 140,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 128 Q 460 140 448 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            460,
+            140
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-code-header",
+          "left": 32,
+          "top": 84,
+          "width": 456,
+          "height": 28,
+          "content": "<span style='color:#94A3B8;font-size:12px;font-family:Consolas,monospace;'>// function.cpp</span>",
+          "fill": "transparent",
+          "defaultColor": "#94A3B8",
+          "defaultFontName": "Consolas"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 540,
+          "top": 92,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 23.5 12.5 L 37 12.5 L 26 20.5 L 30 33.5 L 20 26 L 10 33.5 L 14 20.5 L 3 12.5 L 16.5 12.5 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-1",
+          "left": 596,
+          "top": 92,
+          "width": 364,
+          "height": 32,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;margin:0;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "code",
+          "id": "el-code-block",
+          "left": 32,
+          "top": 116,
+          "width": 456,
+          "height": 412,
+          "content": "#include <iostream>\nusing namespace std;\n\n// 函数重载示例\nint add(int a, int b) {\n    return a + b;\n}\n\ndouble add(double a, double b) {\n    return a + b;\n}\n\n// 引用传递\nvoid swap(int& x, int& y) {\n    int temp = x;\n    x = y;\n    y = temp;\n}\n\n// 默认参数\nvoid greet(string name, string prefix = \"Hello\") {\n    cout << prefix << \", \" << name << \"!\" << endl;\n}\n\nint main() {\n    cout << add(3, 5) << endl;           // 整数加法\n    cout << add(1.5, 2.5) << endl;       // 浮点加法\n    \n    int x = 10, y = 20;\n    swap(x, y);                          // 引用传递\n    cout << x << \" \" << y << endl;       // 20 10\n    \n    greet(\"Alice\");                      // 默认参数\n    greet(\"Bob\", \"Hi\");                 // 自定义前缀\n    return 0;\n}",
+          "language": "cpp"
+        },
+        {
+          "type": "text",
+          "id": "el-content-1",
+          "left": 540,
+          "top": 132,
+          "width": 420,
+          "height": 68,
+          "content": "<p style='color:#475569;font-size:13px;line-height:1.6;margin:0;'>掌握函数的<strong>定义、声明、调用</strong>及<strong>返回值处理</strong>，理解函数作为代码封装基本单元的作用。</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 520,
+          "top": 228,
+          "width": 460,
+          "height": 140,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 128 Q 460 140 448 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            460,
+            140
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 540,
+          "top": 248,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 23.5 12.5 L 37 12.5 L 26 20.5 L 30 33.5 L 20 26 L 10 33.5 L 14 20.5 L 3 12.5 L 16.5 12.5 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-2",
+          "left": 596,
+          "top": 248,
+          "width": 364,
+          "height": 32,
+          "content": "<h2 style='color:#92400E;font-size:16px;font-weight:600;margin:0;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-2",
+          "left": 540,
+          "top": 288,
+          "width": 420,
+          "height": 68,
+          "content": "<p style='color:#475569;font-size:13px;line-height:1.6;margin:0;'>理解<strong>值传递、指针传递</strong>与<strong>引用传递</strong>的区别，掌握不同传递方式对性能和语义的影响。</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 520,
+          "top": 384,
+          "width": 460,
+          "height": 140,
+          "path": "M 12 0 L 448 0 Q 460 0 460 12 L 460 128 Q 460 140 448 140 L 12 140 Q 0 140 0 128 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            460,
+            140
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 540,
+          "top": 404,
+          "width": 40,
+          "height": 40,
+          "path": "M 20 0 L 23.5 12.5 L 37 12.5 L 26 20.5 L 30 33.5 L 20 26 L 10 33.5 L 14 20.5 L 3 12.5 L 16.5 12.5 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            40,
+            40
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-title-3",
+          "left": 596,
+          "top": 404,
+          "width": 364,
+          "height": 32,
+          "content": "<h2 style='color:#065F46;font-size:16px;font-weight:600;margin:0;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-content-3",
+          "left": 540,
+          "top": 444,
+          "width": 420,
+          "height": 68,
+          "content": "<p style='color:#475569;font-size:13px;line-height:1.6;margin:0;'>学会使用<strong>函数重载</strong>与<strong>默认参数</strong>提高代码灵活性，使接口更简洁直观。</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "5",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。掌握函数的定义、声明、调用及返回值处理"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。理解值传递、指针传递与引用传递的区别"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。学会使用函数重载与默认参数提高代码灵活性"
+        }
+      ]
+    },
+    {
+      "id": "slide-cpp-memory-model",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 50,
+          "top": 0,
+          "width": 900,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;text-align:center;'>C++快速入门 - 内存模型解析</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 50,
+          "top": 70,
+          "width": 900,
+          "height": 40,
+          "content": "<h2 style='color:#64748B;font-size:14px;text-align:center;'>掌握C++内存管理的核心概念与技术</h2>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-bg",
+          "left": 50,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 328 Q 280 340 268 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-bg",
+          "left": 360,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 328 Q 280 340 268 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-bg",
+          "left": 670,
+          "top": 130,
+          "width": 280,
+          "height": 340,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 328 Q 280 340 268 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            280,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1-icon-bg",
+          "left": 135,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2-icon-bg",
+          "left": 445,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3-icon-bg",
+          "left": 755,
+          "top": 160,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 Q 60 0 60 30 Q 60 60 30 60 Q 0 60 0 30 Q 0 0 30 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-icon",
+          "left": 135,
+          "top": 165,
+          "width": 60,
+          "height": 50,
+          "content": "<span style='font-size:28px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-icon",
+          "left": 445,
+          "top": 165,
+          "width": 60,
+          "height": 50,
+          "content": "<span style='font-size:28px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-icon",
+          "left": 755,
+          "top": 165,
+          "width": 60,
+          "height": 50,
+          "content": "<span style='font-size:28px;'>⭐</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-title",
+          "left": 60,
+          "top": 240,
+          "width": 260,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;text-align:center;font-weight:bold;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-title",
+          "left": 370,
+          "top": 240,
+          "width": 260,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;text-align:center;font-weight:bold;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-title",
+          "left": 680,
+          "top": 240,
+          "width": 260,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:18px;text-align:center;font-weight:bold;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-1-content",
+          "left": 70,
+          "top": 285,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#475569;font-size:13px;text-align:center;line-height:1.7;'>理解栈内存与堆内存的生命周期与管理差异，掌握不同内存区域的特性与使用场景</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-2-content",
+          "left": 380,
+          "top": 285,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#78350F;font-size:13px;text-align:center;line-height:1.7;'>掌握指针变量的声明、初始化及解引用操作，理解指针与地址的关系</p>",
+          "fill": "transparent",
+          "defaultColor": "#78350F",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-3-content",
+          "left": 690,
+          "top": 285,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#064E3B;font-size:13px;text-align:center;line-height:1.7;'>学会使用new和delete进行动态内存分配与释放，避免内存泄漏问题</p>",
+          "fill": "transparent",
+          "defaultColor": "#064E3B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-diagram-center",
+          "left": 450,
+          "top": 490,
+          "width": 100,
+          "height": 50,
+          "path": "M 50 0 Q 100 0 100 25 Q 100 50 50 50 Q 0 50 0 25 Q 0 0 50 0 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            100,
+            50
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-diagram-center-text",
+          "left": 450,
+          "top": 498,
+          "width": 100,
+          "height": 35,
+          "content": "<span style='color:#FFFFFF;font-size:12px;font-weight:bold;'>C++内存</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-line-1",
+          "left": 190,
+          "top": 515,
+          "width": 260,
+          "height": 2,
+          "path": "M 0 1 L 260 1 L 260 2 L 0 2 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            260,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-line-2",
+          "left": 500,
+          "top": 515,
+          "width": 1,
+          "height": 2,
+          "path": "M 0 1 L 0 1 L 0 2 L 0 2 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            0,
+            2
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-line-3",
+          "left": 550,
+          "top": 515,
+          "width": 260,
+          "height": 2,
+          "path": "M 0 1 L 260 1 L 260 2 L 0 2 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            260,
+            2
+          ]
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#FFFBEB",
+          "#F59E0B",
+          "#ECFDF5",
+          "#10B981"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "6",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。理解栈内存与堆内存的生命周期与管理差异"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。掌握指针变量的声明、初始化及解引用操作"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。学会使用new和delete进行动态内存分配与释放"
+        }
+      ]
+    },
+    {
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
+        {
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-header-title",
+          "left": 50,
+          "top": 0,
+          "width": 900,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;text-align:center;'>C++快速入门 · 学生成绩管理</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 50,
+          "top": 80,
+          "width": 900,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:500;text-align:center;'>PBL项目实践 · 核心知识点解析</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 50,
+          "top": 140,
+          "width": 280,
+          "height": 320,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 308 Q 280 320 268 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            320
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 360,
+          "top": 140,
+          "width": 280,
+          "height": 320,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 308 Q 280 320 268 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            320
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 670,
+          "top": 140,
+          "width": 280,
+          "height": 320,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 308 Q 280 320 268 320 L 12 320 Q 0 320 0 308 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            280,
+            320
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-icon",
+          "left": 140,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 20 L 50 20 L 50 60 L 10 60 L 10 20 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-icon",
+          "left": 450,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 20 L 50 20 L 50 60 L 10 60 L 10 20 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-icon",
+          "left": 760,
+          "top": 165,
+          "width": 60,
+          "height": 60,
+          "path": "M 30 0 L 60 20 L 50 20 L 50 60 L 10 60 L 10 20 L 0 20 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            60,
+            60
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 70,
+          "top": 245,
+          "width": 240,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 380,
+          "top": 245,
+          "width": 240,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 690,
+          "top": 245,
+          "width": 240,
+          "height": 40,
+          "content": "<h2 style='color:#065F46;font-size:18px;font-weight:600;text-align:center;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-content",
+          "left": 70,
+          "top": 295,
+          "width": 240,
+          "height": 140,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>运用结构体或类来封装学生的姓名、学号与成绩，实现数据的统一管理</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-content",
+          "left": 380,
+          "top": 295,
+          "width": 240,
+          "height": 140,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>实现对成绩数据的动态录入、修改与删除功能，支持增删改查基本操作</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-content",
+          "left": 690,
+          "top": 295,
+          "width": 240,
+          "height": 140,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>掌握文件读写操作实现数据的持久化存储，确保程序退出后数据不丢失</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-footer-line",
+          "left": 50,
+          "top": 490,
+          "width": 900,
+          "height": 2,
+          "path": "M 0 1 L 900 1",
+          "fill": "#E2E8F0",
+          "viewBox": [
+            0,
+            0,
+            900,
+            2
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-footer-text",
+          "left": 50,
+          "top": 505,
+          "width": 900,
+          "height": 30,
+          "content": "<p style='color:#64748B;font-size:12px;text-align:center;'>C++面向对象编程 · PBL项目驱动学习</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
+        }
+      ],
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "7",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。运用结构体或类来封装学生的姓名、学号与成绩"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。实现对成绩数据的动态录入、修改与删除功能"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。掌握文件读写操作实现数据的持久化存储"
+        }
+      ]
     }
   ],
   "teacher": {

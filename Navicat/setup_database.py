@@ -433,6 +433,25 @@ MYSQL_TABLES = [
         INDEX idx_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 26. course_generation_status - 课程生成状态跟踪
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS course_generation_status (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        course_id VARCHAR(100) NOT NULL UNIQUE,
+        total_outlines INT DEFAULT 0,
+        generated_count INT DEFAULT 0,
+        pending_slides_v2 TEXT,
+        pending_quiz_data TEXT,
+        pending_exercise_data TEXT,
+        is_complete TINYINT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_course_id (course_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -462,6 +481,7 @@ TABLE_NAMES = [
     "learning_goals",
     "weekly_summary",
     "classroom_records",
+    "course_generation_status",
 ]
 
 

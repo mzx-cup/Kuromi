@@ -109,30 +109,31 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 只输出JSON，不要添加其他文字。""",
 
-    "quiz_content": """你是一位测验出题专家。根据以下内容生成测验题目。
+    "quiz_content": """你是一位测验出题专家。根据以下内容生成3-5道测验题目。
 
 课程主题：{course_title}
 场景标题：{outline_title}
 场景描述：{outline_description}
 关键知识点：{key_points}
+{web_search_context}
 
 要求：
-1. 生成4-6道题目，至少包含以下三类题型：
-   - single（单选题）：1-2道，每题4个选项，1个正确答案
-   - multiple（多选题）：1-2道，每题4个选项，1-3个正确答案
-   - short_answer（简答题）：1-2道，需学生输入文字回答
-2. 题目难度递进，从基础概念到综合应用
-3. 所有题目需包含详细解析(explanation)
-4. 简答题必须包含参考答案(answer)和评分标准(comment_prompt)，列出3-5个关键评分要点(key_points)
-5. 每道题注明分值(points)，单选题5分、多选题8分、简答题15分
-6. 生成AI教师的讲解台词speech（50-100字）
-7. 生成配图提示词image_prompt（英文）
+1. 根据内容复杂度动态生成3-5道题目
+2. 题型组合：至少包含1道单选题、1道多选题、1道简答题（可额外添加1-2道单选题或多选题）
+3. 单选题：4个选项，1个正确答案，5分
+4. 多选题：4个选项，2-3个正确答案，8分
+5. 简答题：需学生输入文字回答，15分，必须包含参考答案(answer)和评分标准(comment_prompt)
+6. 所有题目需包含详细解析(explanation)
+7. 生成教师引导语speech（50-100字）：鼓励学生开始答题
+8. 输出时带上scene_id字段用于匹配
 
 输出JSON格式：
 {{
+  "scene_id": {scene_id},
   "title": "测验标题",
   "questions": [
     {{
+      "id": 1,
       "question": "题目内容",
       "question_type": "single",
       "options": ["A选项", "B选项", "C选项", "D选项"],
@@ -141,6 +142,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
       "points": 5
     }},
     {{
+      "id": 2,
       "question": "多选题内容",
       "question_type": "multiple",
       "options": ["A选项", "B选项", "C选项", "D选项"],
@@ -149,6 +151,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
       "points": 8
     }},
     {{
+      "id": 3,
       "question": "简答题内容",
       "question_type": "short_answer",
       "answer": "参考答案",
@@ -158,8 +161,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
       "points": 15
     }}
   ],
-  "speech": "教师引导语",
-  "image_prompt": "英文配图提示词"
+  "speech": "教师引导语"
 }}
 
 只输出JSON，不要添加其他文字。""",
@@ -452,22 +454,28 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景描述：{outline_description}
 关键知识点：{key_points}
 
+【网络搜索结果】（当提供时，请将以下最新信息融入幻灯片内容中）
+{web_search_context}
+
 【幻灯片设计原则 - 最重要，必须遵守】
 幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。如果一段文字读起来像是在"说"而不是在"展示"，它就不应该出现在幻灯片上。
 
+**【网络搜索】** 当上方提供了网络搜索结果时，请将最新的数据、统计数字或实际案例融入 bullets 和 narration 中，使内容更加与时俱进。引用来源时请在 narration 中自然提及，如"根据2024年最新研究..."或"据最新行业报告显示..."。
+
 【核心字段说明 - 两个字段缺一不可】
-1. bullets（字符串数组）：屏幕展示用的简短要点，每条≤25中文字符，每卡3-5条
-2. narration（字符串）：AI教师口语化讲课台词，150-300字，TTS语音引擎用
+1. bullets（字符串数组）：屏幕展示用的简短要点，每条≤50中文字符，每卡4-7条
+2. narration（字符串）：AI教师口语化讲课台词，200-450字，TTS语音引擎用
    - 必须是连贯的、自然的讲课语言（不能只是把bullets读一遍）
    - 包含引入语、知识点讲解、过渡句
    - 如"同学们好！今天我们来学习变量这个非常重要的概念。首先，变量就像是编程世界里的储物盒..."
 
 【bullets字段格式强制要求】
 - bullets 是 JSON 字符串数组，每个元素是一条简短要点
-- 每条 bullet 不超过25个中文字符或15个英文单词
-- 每个卡片3-5条 bullets，绝不超过6条
+- 每条 bullet 不超过50个中文字符或25个英文单词
+- 每个卡片4-7条 bullets，绝不超过8条
 - 不要在 bullet 里写 `- ` 前缀（JSON数组已经表达了列表结构）
 - 禁止将多个要点合并成长段落放入单个数组元素
+- 每张幻灯片建议包含4-7个要点，文字量要充足
 
 【正误示例】
 ❌ 错误写法（一条超长bullet——这是长段落伪装）：
@@ -493,24 +501,62 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 
 【输出格式 - 必须严格遵循】
 生成一个JSON对象，包含slides数组。每页幻灯片包含：
-- layoutType: 布局类型（title-only/two-column/grid-cards/header-content/quote-highlight）
+- layoutType: 布局类型（title-only/two-column/grid-cards/header-content/quote-highlight/center-focus/media-left/stats-row/timeline-steps/comparison/fullwidth-banner/three-column-cards/asymmetric-split/icon-vertical-stack/numbered-list/hero-center/left-sidebar/bottom-cards/floating-overlap/grid-icon/process-flow/quote-wall/info-graphic/tabbed-content/dark-header/gradient-split/circle-radial/stair-step/minimal-center/horizontal-scroll）
 - title: 幻灯片大标题
 - content: 内容数组，每个元素包含：
   - subTitle: 卡片小标题（5-10字）
-  - bullets: 字符串数组（每条≤25中文字符，3-5条）
-  - narration: AI教师口语化讲课台词（150-300字，连贯自然的口语，供TTS语音引擎朗读）
+  - bullets: 字符串数组（每条≤50中文字符，4-7条）
+  - narration: AI教师口语化讲课台词（200-450字，连贯自然的口语，供TTS语音引擎朗读）
   - icon: 图标名（book|lightbulb|code|check|star|question|warning|info）
-  - colorTheme: 色系（blue|yellow|green|purple|orange）
+  - colorTheme: **必须提供**的色系字段，值仅限 blue|yellow|green|purple|orange，禁止省略此字段
   - codeSnippet: 可选代码块
-  - imageUrl: 可选配图URL
+  - imageUrl: 可选配图URL（已有URL时直接填入）
+  - image_prompt: 可选英文配图描述词（用于AI生成配图，描述这张卡片适合配什么样的插图）
+
+**【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片应使用不同色系以增强视觉区分度。**
+
+**【布局类型说明】**
+- title-only: 仅标题页面
+- two-column: 两栏对比布局
+- grid-cards: 多卡片网格布局
+- header-content: 标题+内容堆叠
+- quote-highlight: 引言高亮布局
+- center-focus: 居中聚焦布局
+- media-left: 媒体内容左置
+- stats-row: 数据统计行
+- timeline-steps: 时间线步骤
+- comparison: VS对比布局
+- fullwidth-banner: 全宽横幅
+- three-column-cards: 三栏等分布局（适合3个并行要点）
+- asymmetric-split: 左大右小非对称布局（适合一主一次内容）
+- icon-vertical-stack: 图标垂直堆叠布局（适合图标展示型内容）
+- numbered-list: 数字引导列表布局（适合流程/步骤型内容）
+- hero-center: 英雄居中布局（适合开场/总结，大标题居中展示）
+- left-sidebar: 左侧边栏布局（左侧标题+右侧内容）
+- bottom-cards: 底部卡片布局（水平滚动卡片）
+- floating-overlap: 浮动重叠布局（卡片堆叠错落有致）
+- grid-icon: 图标网格布局（大图标+标签）
+- process-flow: 流程图布局（水平箭头连接步骤）
+- quote-wall: 引言墙布局（大小不一的引言卡片拼贴）
+- info-graphic: 信息图布局（数字+图标+说明垂直排列）
+- tabbed-content: 标签页布局（顶部标签切换内容）
+- dark-header: 深色标题布局（深色标题区+浅色内容）
+- gradient-split: 渐变分屏布局（左深右浅分屏）
+- circle-radial: 圆形放射布局（中心主题+周围内容）
+- stair-step: 阶梯布局（内容块阶梯状错位）
+- minimal-center: 极简居中布局（标题嵌入内容卡片）
+- horizontal-scroll: 水平滚动布局（内容水平滚动展示）
 
 生成3-5页幻灯片，覆盖以下内容：
-1. 概念引入页（建议用 two-column 或 header-content）
-2. 知识点讲解页（建议用 grid-cards 展示多个要点）
-3. 示例演示页（建议用 two-column 或 quote-highlight）
-4. 练习巩固页（可用任意布局）
+1. 概念引入页（建议用 hero-center、two-column、header-content 或 asymmetric-split）
+2. 知识点讲解页（建议用 grid-cards、three-column-cards 或 info-graphic 展示多个要点）
+3. 示例演示页（建议用 two-column、quote-highlight 或 media-left）
+4. 流程步骤页（建议用 numbered-list、timeline-steps 或 process-flow）
+5. 总结强化页（建议用 fullwidth-banner 或 comparison）
 
-色系分配：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调
+每种布局都应该被充分使用，让幻灯片整体视觉丰富多样。
+
+色系分配规则：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调，orange用于补充说明。相邻卡片禁止使用相同色系。
 
 【完整输出示例】
 {{{{
@@ -525,13 +571,15 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
             "变量是存储数据的命名容器",
             "变量名是标签，变量值是内容",
             "使用 = 赋值语句创建和修改变量",
-            "Python变量无需声明类型，直接赋值即可"
+            "Python变量无需声明类型，直接赋值即可",
+            "变量可以存储各种类型的数据"
           ],
           "narration": "同学们好！今天我们来学习Python中最基础的概念——变量。变量就像是一个带标签的储物盒，盒子的名字就是变量名，里面装的东西就是变量的值。在Python中创建一个变量非常简单，直接写等号就行了，不需要像其他语言那样先声明类型。",
           "icon": "lightbulb",
           "colorTheme": "blue",
           "codeSnippet": "",
-          "imageUrl": ""
+          "imageUrl": "",
+          "image_prompt": "A clear illustration of a labeled storage box containing data, representing Python variables concept"
         }}}}
       ]
     }}}}

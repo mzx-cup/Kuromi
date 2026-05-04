@@ -11,3 +11,4 @@ asyncmy>=0.2
 alembic>=1.13
 langgraph
 langgraph-checkpoint-mysql
+pdfplumber>=0.10.0

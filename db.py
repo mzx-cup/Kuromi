@@ -3312,6 +3312,222 @@ def init_classroom_tables():
             print(f"初始化课堂记录表失败: {e}")
 
 
+def init_course_generation_status_table():
+    """初始化课程生成状态跟踪表"""
+    with get_db() as conn:
+        if conn is None:
+            return
+        try:
+            cursor = conn.cursor()
+            if _is_sqlite(conn):
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS course_generation_status (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        course_id TEXT NOT NULL UNIQUE,
+                        total_outlines INTEGER DEFAULT 0,
+                        generated_count INTEGER DEFAULT 0,
+                        pending_slides_v2 TEXT,
+                        pending_quiz_data TEXT,
+                        pending_exercise_data TEXT,
+                        is_complete INTEGER DEFAULT 0,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS course_generation_status (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        course_id VARCHAR(100) NOT NULL UNIQUE,
+                        total_outlines INT DEFAULT 0,
+                        generated_count INT DEFAULT 0,
+                        pending_slides_v2 TEXT,
+                        pending_quiz_data TEXT,
+                        pending_exercise_data TEXT,
+                        is_complete TINYINT DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_course_id (course_id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                """)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            print(f"初始化course_generation_status表失败: {e}")
+
+
+def save_course_generation_status(course_id: str, total_outlines: int, generated_count: int,
+                                   pending_slides_v2: list = None, pending_quiz_data: list = None,
+                                   pending_exercise_data: list = None, is_complete: int = 0) -> bool:
+    """保存课程生成状态到数据库"""
+    import json
+    init_course_generation_status_table()
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                pending_slides_v2_json = json.dumps(pending_slides_v2 or [], ensure_ascii=False)
+                pending_quiz_json = json.dumps(pending_quiz_data or [], ensure_ascii=False)
+                pending_exercise_json = json.dumps(pending_exercise_data or [], ensure_ascii=False)
+
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO course_generation_status
+                        (course_id, total_outlines, generated_count, pending_slides_v2,
+                         pending_quiz_data, pending_exercise_data, is_complete)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(course_id) DO UPDATE SET
+                            total_outlines=excluded.total_outlines,
+                            generated_count=excluded.generated_count,
+                            pending_slides_v2=excluded.pending_slides_v2,
+                            pending_quiz_data=excluded.pending_quiz_data,
+                            pending_exercise_data=excluded.pending_exercise_data,
+                            is_complete=excluded.is_complete,
+                            updated_at=datetime('now')
+                    """, (course_id, total_outlines, generated_count, pending_slides_v2_json,
+                          pending_quiz_json, pending_exercise_json, is_complete))
+                else:
+                    cursor.execute("""
+                        INSERT INTO course_generation_status
+                        (course_id, total_outlines, generated_count, pending_slides_v2,
+                         pending_quiz_data, pending_exercise_data, is_complete)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            total_outlines=%s, generated_count=%s, pending_slides_v2=%s,
+                            pending_quiz_data=%s, pending_exercise_data=%s, is_complete=%s
+                    """, (course_id, total_outlines, generated_count, pending_slides_v2_json,
+                          pending_quiz_json, pending_exercise_json, is_complete,
+                          total_outlines, generated_count, pending_slides_v2_json,
+                          pending_quiz_json, pending_exercise_json, is_complete))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存课程生成状态失败: {e}")
+        return False
+
+
+def get_course_generation_status(course_id: str) -> Optional[dict]:
+    """获取课程生成状态"""
+    import json
+    init_course_generation_status_table()
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        SELECT course_id, total_outlines, generated_count, pending_slides_v2,
+                               pending_quiz_data, pending_exercise_data, is_complete,
+                               created_at, updated_at
+                        FROM course_generation_status WHERE course_id = ?
+                    """, (course_id,))
+                    row = cursor.fetchone()
+                    cursor.close()
+                    if row:
+                        return {
+                            'course_id': row[0],
+                            'total_outlines': row[1],
+                            'generated_count': row[2],
+                            'pending_slides_v2': json.loads(row[3]) if row[3] else [],
+                            'pending_quiz_data': json.loads(row[4]) if row[4] else [],
+                            'pending_exercise_data': json.loads(row[5]) if row[5] else [],
+                            'is_complete': bool(row[6]),
+                            'created_at': row[7],
+                            'updated_at': row[8],
+                        }
+                    return None
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute("""
+                        SELECT course_id, total_outlines, generated_count, pending_slides_v2,
+                               pending_quiz_data, pending_exercise_data, is_complete,
+                               created_at, updated_at
+                        FROM course_generation_status WHERE course_id = %s
+                    """, (course_id,))
+                    row = cursor.fetchone()
+                    cursor.close()
+                    if row:
+                        row['pending_slides_v2'] = json.loads(row['pending_slides_v2']) if row['pending_slides_v2'] else []
+                        row['pending_quiz_data'] = json.loads(row['pending_quiz_data']) if row['pending_quiz_data'] else []
+                        row['pending_exercise_data'] = json.loads(row['pending_exercise_data']) if row['pending_exercise_data'] else []
+                        row['is_complete'] = bool(row['is_complete'])
+                        return row
+                    return None
+            except Exception as e:
+                print(f"获取课程生成状态失败: {e}")
+        return None
+
+
+def update_course_generation_status(course_id: str, generated_count: int = None,
+                                     pending_slides_v2: list = None, pending_quiz_data: list = None,
+                                     pending_exercise_data: list = None, is_complete: int = None) -> bool:
+    """更新课程生成状态（只更新提供的字段）"""
+    import json
+    init_course_generation_status_table()
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                current = None
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        SELECT total_outlines, generated_count, pending_slides_v2,
+                               pending_quiz_data, pending_exercise_data, is_complete
+                        FROM course_generation_status WHERE course_id = ?
+                    """, (course_id,))
+                    current = cursor.fetchone()
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute("""
+                        SELECT total_outlines, generated_count, pending_slides_v2,
+                               pending_quiz_data, pending_exercise_data, is_complete
+                        FROM course_generation_status WHERE course_id = %s
+                    """, (course_id,))
+                    current = cursor.fetchone()
+
+                if not current:
+                    return False
+
+                if _is_sqlite(conn):
+                    total_outlines = current[0]
+                    new_gen_count = generated_count if generated_count is not None else current[1]
+                    new_pending_v2 = json.dumps(pending_slides_v2 if pending_slides_v2 is not None else json.loads(current[2] or "[]"), ensure_ascii=False)
+                    new_pending_quiz = json.dumps(pending_quiz_data if pending_quiz_data is not None else json.loads(current[3] or "[]"), ensure_ascii=False)
+                    new_pending_exercise = json.dumps(pending_exercise_data if pending_exercise_data is not None else json.loads(current[4] or "[]"), ensure_ascii=False)
+                    new_complete = is_complete if is_complete is not None else current[5]
+
+                    cursor.execute("""
+                        UPDATE course_generation_status SET
+                            generated_count = ?, pending_slides_v2 = ?, pending_quiz_data = ?,
+                            pending_exercise_data = ?, is_complete = ?, updated_at = datetime('now')
+                        WHERE course_id = ?
+                    """, (new_gen_count, new_pending_v2, new_pending_quiz, new_pending_exercise, new_complete, course_id))
+                else:
+                    total_outlines = current['total_outlines']
+                    new_gen_count = generated_count if generated_count is not None else current['generated_count']
+                    new_pending_v2 = json.dumps(pending_slides_v2 if pending_slides_v2 is not None else json.loads(current['pending_slides_v2'] or "[]"), ensure_ascii=False)
+                    new_pending_quiz = json.dumps(pending_quiz_data if pending_quiz_data is not None else json.loads(current['pending_quiz_data'] or "[]"), ensure_ascii=False)
+                    new_pending_exercise = json.dumps(pending_exercise_data if pending_exercise_data is not None else json.loads(current['pending_exercise_data'] or "[]"), ensure_ascii=False)
+                    new_complete = is_complete if is_complete is not None else current['is_complete']
+
+                    cursor.execute("""
+                        UPDATE course_generation_status SET
+                            generated_count = %s, pending_slides_v2 = %s, pending_quiz_data = %s,
+                            pending_exercise_data = %s, is_complete = %s
+                        WHERE course_id = %s
+                    """, (new_gen_count, new_pending_v2, new_pending_quiz, new_pending_exercise, new_complete, course_id))
+
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"更新课程生成状态失败: {e}")
+        return False
+
+
 def save_classroom_record(user_id: int, course_id: str, title: str, full_data: str, ppt_pages: int = 0) -> bool:
     """保存课堂记录到数据库"""
     # 先初始化表（使用独立连接，不依赖contextmanager）

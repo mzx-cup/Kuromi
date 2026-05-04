@@ -1,0 +1,873 @@
+{
+  "courseId": "course_1777870930_78445c5e",
+  "title": "Python快速入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Python初识与环境",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Python语言的发展历史与主要应用领域",
+        "Python解释器的安装与环境变量配置",
+        "PyCharm或VS Code编辑器的基本使用"
+      ],
+      "description": "介绍Python语言的发展历史、特点及应用领域，演示开发环境的安装与配置过程。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "变量的定义规则与命名规范习惯",
+        "整数、浮点数、字符串与布尔类型",
+        "使用type()函数查看变量数据类型"
+      ],
+      "description": "通过交互式界面模拟变量的赋值过程，直观展示不同数据类型的存储形式。"
+    },
+    {
+      "id": 3,
+      "title": "基础语法随堂测",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "Python变量的合法命名规则判断",
+        "input()函数接收数据的类型处理",
+        "int()与str()等类型转换函数的应用"
+      ],
+      "description": "针对变量命名规则、数据类型转换及基本输入输出函数进行快速测验。"
+    },
+    {
+      "id": 4,
+      "title": "流程控制逻辑图",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "if-elif-else条件分支语句结构",
+        "for循环与while循环的执行流程",
+        "break与continue关键字的作用机制"
+      ],
+      "description": "利用流程图展示if条件判断与for/while循环的执行逻辑，理清代码走向。"
+    },
+    {
+      "id": 5,
+      "title": "函数编写实战",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "函数的定义格式与def关键字使用",
+        "位置参数与关键字参数的传递方式",
+        "return语句返回计算结果的方法"
+      ],
+      "description": "在集成开发环境中编写计算器函数，练习函数的定义、参数传递及返回值。"
+    },
+    {
+      "id": 6,
+      "title": "数据结构操作",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "列表的索引访问与切片操作方法",
+        "字典的键值对添加与删除操作",
+        "append、pop等常用数据操作方法"
+      ],
+      "description": "通过列表和字典的操作练习，掌握数据的增删改查及常用方法。"
+    },
+    {
+      "id": 7,
+      "title": "数据分析项目",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "使用pandas库读取外部CSV数据文件",
+        "处理数据中的缺失值与重复值",
+        "计算数据的平均值、最大值等统计指标"
+      ],
+      "description": "模拟真实数据分析场景，读取CSV文件并进行数据清洗与简单统计分析。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "Python初识与环境",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍Python初识与环境的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习Python初识与环境的相关内容。",
+          "text": "本节将介绍Python初识与环境的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍变量与数据类型的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习变量与数据类型的相关内容。",
+          "text": "本节将介绍变量与数据类型的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": ""
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "center-focus",
+      "title": "基础语法随堂测",
+      "content": [
+        {
+          "sub_title": "测验说明",
+          "bullets": [
+            "本次测验包含3道核心题目",
+            "考察变量命名、输入处理与类型转换",
+            "请仔细思考后选择正确答案",
+            "每题限时30秒，准备好开始挑战吧"
+          ],
+          "narration": "同学们好！欢迎来到Python基础语法的随堂测验环节。今天我们不讲新知识，而是要通过几道典型的题目，来检验大家对变量命名规则、input函数处理机制以及类型转换函数的掌握情况。这可是编程的基础功，大家要仔细思考哦。准备好了吗？让我们开始挑战！",
+          "text": "",
+          "icon": "question",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A digital quiz interface with a large question mark icon, blue background, clean and modern style"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "题目一：变量命名判断",
+      "content": [
+        {
+          "sub_title": "合法命名辨析",
+          "bullets": [
+            "以下哪个是合法的变量名？",
+            "A. 1st_name （以数字开头）",
+            "B. my-var （包含连字符）",
+            "C. user_name （下划线连接）",
+            "D. class （系统保留字）"
+          ],
+          "narration": "来看第一题，关于变量的合法命名。大家看屏幕上的四个选项：A选项以数字开头，这是不允许的；B选项包含了连字符，会被Python误认为是减号运算；D选项的class是Python的保留关键字，不能用作变量名。正确答案是C，user_name使用下划线连接，完全符合命名规范。大家选对了吗？",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Comparison of valid and invalid variable names with checkmarks and crosses"
+        },
+        {
+          "sub_title": "命名规则速记",
+          "bullets": [
+            "只能包含字母、数字和下划线",
+            "开头不能是数字",
+            "不能使用Python保留关键字",
+            "区分大小写，Name和name不同"
+          ],
+          "narration": "这里给大家总结一下命名规则的核心要点：变量名只能由字母、数字和下划线组成，而且开头字符绝对不能是数字。另外要避开像class、if、while这样的系统保留字。最后别忘了，Python是区分大小写的，Name和name其实是两个完全不同的变量哦。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A checklist of Python variable naming rules with icons"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "header-content",
+      "title": "题目二：input()函数返回值",
+      "content": [
+        {
+          "sub_title": "类型陷阱题",
+          "bullets": [
+            "代码：age = input(\"请输入年龄：\")",
+            "用户输入数字 18",
+            "问题：变量age的数据类型是？",
+            "A. int 类型",
+            "B. str 类型",
+            "C. float 类型",
+            "D. bool 类型"
+          ],
+          "narration": "第二题是一个经典的类型陷阱题。虽然用户输入的是数字18，但是input()函数的返回值永远是字符串类型。这是很多初学者容易踩的坑！如果你想用这个年龄进行数学运算，必须先用int()函数进行类型转换。所以正确答案是B，str类型。大家记住了吗？input接收到的任何数据，默认都是字符串。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "green",
+          "code_snippet": "age = input(\"请输入年龄：\")\n# 用户输入: 18\nprint(type(age))  # <class 'str'>",
+          "image_url": "",
+          "image_prompt": "A conceptual diagram showing input function always returns string type"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "comparison",
+      "title": "题目三：类型转换应用",
+      "content": [
+        {
+          "sub_title": "错误写法",
+          "bullets": [
+            "a = \"10\", b = \"20\"",
+            "c = a + b",
+            "结果：c = \"1020\"",
+            "字符串拼接而非数值相加"
+          ],
+          "narration": "第三题我们来看类型转换的实际应用。左边展示的是错误写法：当两个字符串\"10\"和\"20\"相加时，Python执行的是字符串拼接操作，结果是\"1020\"，这显然不是我们想要的数学运算结果。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "a = \"10\"\nb = \"20\"\nc = a + b\nprint(c)  # 输出: 1020",
+          "image_url": "",
+          "image_prompt": "Warning symbol indicating incorrect string concatenation"
+        },
+        {
+          "sub_title": "正确写法",
+          "bullets": [
+            "a = \"10\", b = \"20\"",
+            "c = int(a) + int(b)",
+            "结果：c = 30",
+            "使用int()转换后进行数值计算"
+          ],
+          "narration": "正确的做法如右边所示：使用int()函数将字符串转换为整数后再相加，这样就能得到正确的数学运算结果30。这道题考察的是大家对str()和int()函数应用的掌握情况，也是后续做计算器类程序的基础。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "a = \"10\"\nb = \"20\"\nc = int(a) + int(b)\nprint(c)  # 输出: 30",
+          "image_url": "",
+          "image_prompt": "Checkmark symbol indicating correct integer conversion"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "fullwidth-banner",
+      "title": "测验总结",
+      "content": [
+        {
+          "sub_title": "核心要点回顾",
+          "bullets": [
+            "变量命名：字母开头，避保留字，用下划线",
+            "input()函数：永远返回字符串类型",
+            "类型转换：int()转整数，str()转字符串",
+            "编程细节决定成败，多加练习巩固记忆"
+          ],
+          "narration": "今天的随堂测验就到这里！让我们快速回顾一下三个核心知识点：第一，变量命名要遵守规则，字母或下划线开头，避开保留字；第二，input函数接收的数据永远是字符串，需要运算时记得转换；第三，灵活运用int()和str()函数进行类型转换。这些基础语法看似简单，但在实际编程中非常重要，希望大家课后多做练习，巩固今天的知识点。下次课见！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A summary banner with key icons representing variable naming, input function, and type conversion"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "asymmetric-split",
+      "title": "条件判断：程序的岔路口",
+      "content": [
+        {
+          "sub_title": "if-elif-else结构",
+          "bullets": [
+            "if语句：判断条件是否为真，决定执行路径",
+            "elif语句：处理多个互斥条件，逐级筛选",
+            "else语句：捕获所有未满足条件的剩余情况",
+            "条件表达式结果必须是布尔值：True或False",
+            "利用缩进划分代码块，体现逻辑层级"
+          ],
+          "narration": "同学们好！今天我们来探索Python流程控制的核心逻辑。首先来看条件判断，它就像是程序遇到的岔路口。if-elif-else结构让代码具备了思考能力。if负责最初的判断，如果条件成立就执行；如果不成立，就走向elif进行下一轮判断；如果所有条件都不满足，else作为兜底方案就会执行。大家要注意，Python靠缩进来区分代码块，这和其他语言用大括号的方法很不一样，一定要养成良好的缩进习惯。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A flowchart showing a diamond-shaped decision node splitting into two paths, representing if-else logic"
+        },
+        {
+          "sub_title": "执行逻辑图解",
+          "bullets": [
+            "流程图起点：从上至下顺序执行",
+            "判断节点：菱形框代表布尔条件判断",
+            "分支走向：条件为真走是分支，否则走否分支",
+            "汇合点：各分支执行完毕后汇合继续执行"
+          ],
+          "narration": "我们通过流程图来直观理解一下。代码从上往下跑，遇到菱形的判断框就要停下来问一句：条件成立吗？成立就走'是'这条路，不成立就走'否'那条路。这种图形化的思维方式能帮助大家在写代码前先理清逻辑，避免写出混乱的嵌套结构。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A clear logic gate diagram with boolean input and output flow"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "循环结构：自动化的核心",
+      "content": [
+        {
+          "sub_title": "for循环遍历",
+          "bullets": [
+            "用于遍历序列：列表、元组、字符串等",
+            "计数器自动迭代：无需手动更新索引",
+            "已知循环次数时的首选方案",
+            "配合range()函数生成数字序列"
+          ],
+          "narration": "接下来我们看循环结构。for循环就像是按名单点名，名单上有多少人，就点多少次名。它非常适合用在我们要遍历一个已知序列的时候，比如处理列表里的每一个元素，或者让代码重复执行固定的次数。配合range函数，我们可以非常灵活地控制循环的范围和步长。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A loop arrow cycling through a list of items, representing for loop iteration"
+        },
+        {
+          "sub_title": "while循环条件",
+          "bullets": [
+            "基于条件判断：只要条件为真就持续循环",
+            "死循环风险：条件永远为真导致程序卡死",
+            "适用于不确定循环次数的场景",
+            "通常需要在循环体内改变条件变量"
+          ],
+          "narration": "而while循环更像是一个执着的管理者，只要条件满足，他就会一直让你重复做某件事。因为它是基于条件的，所以特别适合那些我们事先不知道要循环多少次的场景，比如猜数字游戏，直到猜对才停止。但大家要特别小心死循环，如果条件永远不变，程序就会卡死在那里。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A circular arrow chasing a condition flag, symbolizing while loop logic"
+        },
+        {
+          "sub_title": "循环控制关键字",
+          "bullets": [
+            "break：立即终止整个循环，跳出循环体",
+            "continue：跳过本次迭代，直接进入下一轮",
+            "改变程序默认的顺序执行流程",
+            "通常配合if条件判断使用"
+          ],
+          "narration": "最后要介绍两个循环控制的关键字。break就像紧急刹车，一旦执行，整个循环立刻结束，不管还有多少次没跑完。continue则像是跳过这一项，本次循环剩下的代码不跑了，直接开始下一轮。这两个关键字能让我们更灵活地控制循环逻辑，但也要谨慎使用，以免破坏代码的可读性。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A traffic stop sign and a skip arrow symbolizing break and continue actions"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "循环控制：break与continue机制",
+      "content": [
+        {
+          "sub_title": "break终止流程",
+          "bullets": [
+            "触发时机：满足特定条件时执行",
+            "执行效果：立即跳出当前整个循环结构",
+            "后续动作：继续执行循环体之后的代码",
+            "典型应用：找到目标元素后停止搜索"
+          ],
+          "narration": "我们深入看看break的工作机制。想象你在排队买票，突然发现票卖完了，这时候你会直接离开队伍，这就相当于break。在流程图上，break就像是一条直达出口的捷径，不管循环原本还要跑多少次，只要遇到break，程序指针直接跳到循环体外面。这在我们查找数据时特别有用，一旦找到了想要的数据，就没必要继续浪费时间遍历剩下的内容了。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A flowchart showing a loop with a break arrow jumping out of the cycle"
+        },
+        {
+          "sub_title": "continue跳过流程",
+          "bullets": [
+            "触发时机：迭代过程中遇到特定条件",
+            "执行效果：跳过本次循环剩余语句",
+            "后续动作：立即回到循环起点判断条件",
+            "典型应用：过滤不符合要求的数据"
+          ],
+          "narration": "而continue则温和得多。还是排队的例子，轮到你时发现忘了带钱包，你只能跳过这一次，去后面重新排队，这就是continue。在流程图上，它像是一个回旋镖，直接把程序指针扔回循环的开头，重新检查条件。我们常用它来过滤数据，比如处理一串数字时，遇到负数就跳过不处理，只处理正数。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A flowchart showing a loop with a continue arrow jumping back to the start"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "comparison",
+      "title": "流程控制总结：选择正确的工具",
+      "content": [
+        {
+          "sub_title": "条件判断 vs 循环结构",
+          "bullets": [
+            "条件判断：解决做与不做的问题",
+            "循环结构：解决做多少次的问题",
+            "两者结合：构建复杂的程序逻辑",
+            "流程图是理清逻辑的最佳工具"
+          ],
+          "narration": "这节课我们学习了Python流程控制的三大支柱。条件判断让程序有了选择的能力，循环让程序有了重复的能力。大家在实际编程时，往往需要把这两者结合起来用。比如在一个循环里进行条件判断，或者在条件判断里嵌套循环。我建议大家养成画流程图的习惯，尤其是面对复杂逻辑时，先画图再写代码，能帮你避开很多逻辑陷阱。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A split comparison diagram showing decision branching on left and loop cycle on right"
+        },
+        {
+          "sub_title": "最佳实践建议",
+          "bullets": [
+            "避免过深的嵌套：保持代码扁平化",
+            "善用break优化性能：减少无效循环",
+            "警惕死循环：确保while有退出机制",
+            "代码可读性优先：逻辑清晰比技巧重要"
+          ],
+          "narration": "最后给大家几条实用的建议。第一，尽量不要写太深的嵌套，超过三层的if嵌套会让代码变得很难读。第二，在查找任务中善用break，能显著提升程序效率。第三，写while循环时，一定要确保条件有变成False的机会，否则程序就会陷入死循环。记住，写出能跑的代码只是第一步，写出清晰、易读、高效的代码才是我们的目标。今天的课就到这里，大家课后记得动手练习一下这几种流程控制语句！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A clean code snippet icon with best practice checklist symbols"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "asymmetric-split",
+      "title": "函数编写实战：打造你的计算器",
+      "content": [
+        {
+          "sub_title": "为什么需要函数",
+          "bullets": [
+            "函数是组织好的、可重复使用的代码块",
+            "实现单一功能，提高代码复用率",
+            "让程序结构更清晰，易于维护",
+            "遵循“不要重复自己”(DRY)的编程原则"
+          ],
+          "narration": "同学们好！欢迎来到Python快速入门课程。今天我们要挑战一个非常有意思的主题——函数编写实战。想象一下，如果你的计算器每次计算都要重新写一遍加减乘除的代码，那该多麻烦啊。函数就是为了解决这个问题而生的，它可以把一段代码打包起来，随时随地调用。今天我们就通过编写一个简易计算器，来掌握函数的核心技巧。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2Fa00536c2-a933-4271-98a9-8c31e30e61c0_aigc.jpeg?Expires=1777957065&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=1GOfsJOd%2BzJZRngl4b02yldPMrY%3D",
+          "image_prompt": "A split screen illustration showing messy code on the left and organized function blocks on the right"
+        },
+        {
+          "sub_title": "计算器功能规划",
+          "bullets": [
+            "定义加法函数 add()",
+            "定义减法函数 subtract()",
+            "实现参数传递与结果返回"
+          ],
+          "narration": "我们今天的实战目标是编写一个简易计算器。别担心，我们会从最基础的加法函数开始，一步步扩展到减法。在这个过程中，你会深刻理解函数是如何定义、如何传递数据、又是如何把结果交还给你的。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F3dae2dc9-937a-4831-a23d-fa8214f57948_aigc.jpeg?Expires=1777957078&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=GjE%2FCuJHBPkUGaj6OtsIr5V3YV0%3D",
+          "image_prompt": "A simple calculator interface sketch with function symbols"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "函数定义与参数传递核心语法",
+      "content": [
+        {
+          "sub_title": "定义函数格式",
+          "bullets": [
+            "使用 def 关键字开头",
+            "后接函数名和圆括号 ()",
+            "以冒号 : 结尾，缩进编写函数体",
+            "函数名应具有描述性，遵循命名规范"
+          ],
+          "narration": "首先，我们来掌握函数的定义格式。在Python中，定义函数必须使用 def 关键字，这是“define”的缩写，非常好记。def 后面跟着函数名，比如 add，然后是一对圆括号，最后千万别忘了那个冒号。冒号下面的代码需要缩进，这代表它们属于这个函数内部。这就像是给函数画了一个专属区域，里面的代码只有被调用时才会执行。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "def add(a, b):\n    result = a + b\n    return result",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2Fa59a7150-d6e7-4061-8765-0fda6db91050_aigc.jpeg?Expires=1777957092&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=G8ezCJqbolk093EePLtuIcjR5Vo%3D",
+          "image_prompt": "Python code syntax structure diagram highlighting def keyword"
+        },
+        {
+          "sub_title": "位置参数传递",
+          "bullets": [
+            "按参数顺序依次传递值",
+            "调用时实参与形参位置一一对应",
+            "add(5, 3) 中 5 传给 a，3 传给 b",
+            "顺序错误会导致逻辑错误"
+          ],
+          "narration": "接下来是参数传递。最常见的是位置参数，顾名思义，就是按照位置顺序来传递数据。当我们调用 add(5, 3) 时，Python 会自动把第一个数 5 传给参数 a，把第二个数 3 传给参数 b。这种方式简单直接，但一定要确保顺序正确，否则减法可能就变成负数了哦。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "# 位置参数调用示例\nresult = add(10, 20)\n# 10 -> a, 20 -> b",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F3efba430-e8a4-4765-9d4d-7331383972de_aigc.jpeg?Expires=1777957107&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=FyEtwb8xTFFuGpXsrdIS1q2acKk%3D",
+          "image_prompt": "Arrow diagram showing parameter mapping from caller to function"
+        },
+        {
+          "sub_title": "关键字参数传递",
+          "bullets": [
+            "调用时指定参数名 = 值",
+            "无需关心参数顺序",
+            "提高代码可读性",
+            "add(b=3, a=5) 结果依然正确"
+          ],
+          "narration": "如果你觉得记顺序太麻烦，关键字参数就是你的救星。这种方式允许我们在调用时直接指定参数名，比如 add(b=3, a=5)。这样一来，即使顺序打乱了，Python 也能准确地把 5 赋值给 a，把 3 赋值给 b。这在参数较多时特别有用，能让代码的可读性大大提高。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "# 关键字参数调用示例\nresult = add(b=20, a=10)\n# 明确指定参数值",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F8e41ecfb-d9f8-4fbd-ba83-a091fe301c7b_aigc.jpeg?Expires=1777957122&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=AYlVuAMSvI4T1Aqi26Izs%2F9qSXM%3D",
+          "image_prompt": "Labeled parameter boxes showing named argument passing"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "media-left",
+      "title": "实战演练：编写计算器函数",
+      "content": [
+        {
+          "sub_title": "完整代码演示",
+          "bullets": [
+            "定义 add 函数接收两个参数",
+            "使用 return 返回计算结果",
+            "调用函数并打印返回值",
+            "return 语句结束函数执行"
+          ],
+          "narration": "现在让我们把刚才学的知识串联起来，动手编写一个加法函数。请看左侧的代码示例。我们定义了一个名为 add 的函数，它接收 a 和 b 两个参数。函数体内只有一行核心代码：return a + b。这里的 return 非常关键，它不仅把计算结果返回给调用者，还标志着函数执行的结束。当我们调用 add(5, 3) 时，结果 8 就会被返回并存储在变量中。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "def add(a, b):\n    \"\"\"计算两数之和\"\"\"\n    return a + b\n\ndef subtract(a, b):\n    \"\"\"计算两数之差\"\"\"\n    return a - b\n\n# 调用函数\nsum_result = add(5, 3)\nprint(f\"加法结果: {sum_result}\")  # 输出 8\n\ndiff_result = subtract(10, 4)\nprint(f\"减法结果: {diff_result}\")  # 输出 6",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2Fadf58910-75d2-4788-9e4d-af29a34b06d1_aigc.jpeg?Expires=1777957137&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=thGTSHH39z2LT7b2%2BcTcO3QvJ9I%3D",
+          "image_prompt": "IDE screenshot showing Python function code with syntax highlighting"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "函数编写四步法",
+      "content": [
+        {
+          "sub_title": "编写流程",
+          "bullets": [
+            "第一步：使用 def 定义函数名和参数",
+            "第二步：编写缩进的函数体代码",
+            "第三步：使用 return 返回处理结果",
+            "第四步：调用函数并使用返回值"
+          ],
+          "narration": "为了帮助大家记忆，我总结了函数编写的四步法。第一步，用 def 敲响开场鼓，定义函数名和参数列表；第二步，在缩进的函数体内编写具体的业务逻辑，比如我们的计算过程；第三步，用 return 把结果“送出去”，这一步千万别漏；最后一步，在需要的地方调用函数，享受封装带来的便利。按照这个步骤，你就能写出规范的函数了。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F419d5022-c989-4129-895b-ee15ece5560b_aigc.jpeg?Expires=1777957151&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=GrdQUfuGrqfNfq4w15cQgvUoiMM%3D",
+          "image_prompt": "Four step infographic diagram showing function creation process"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "fullwidth-banner",
+      "title": "课程总结：函数核心要点回顾",
+      "content": [
+        {
+          "sub_title": "今日收获",
+          "bullets": [
+            "def 关键字是定义函数的起点",
+            "位置参数按顺序传递，关键字参数按名称传递",
+            "return 语句返回结果并结束函数",
+            "函数让代码更简洁、可复用、易维护"
+          ],
+          "narration": "恭喜大家完成了今天的函数编写实战！让我们快速回顾一下核心要点。我们掌握了 def 关键字的使用方法，学会了位置参数和关键字参数两种传递方式，理解了 return 语句的重要性。记住，函数是程序员的得力助手，它能帮你把复杂的代码变得井井有条。课后请大家尝试扩展计算器功能，加上乘法和除法。我们下节课再见！",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F6ce7769f-bc21-4a63-bec6-120fac46e85b_aigc.jpeg?Expires=1777957165&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=94KHfyD2g7LBYTM8G8DiGwriRnk%3D",
+          "image_prompt": "Summary banner with checkmarks and key concept icons"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "列表与字典：数据的容器",
+      "content": [
+        {
+          "sub_title": "列表",
+          "bullets": [
+            "有序的可变序列，用方括号 [] 定义",
+            "通过索引访问元素，索引从 0 开始",
+            "支持切片操作，灵活获取子序列",
+            "适合存储同类型的一组数据"
+          ],
+          "narration": "同学们好！今天我们进入实战环节，来聊聊Python中最重要的两种数据结构：列表和字典。首先看列表，它就像是一个有序的货架，用方括号来定义。你可以通过编号，也就是索引，精准找到每一个货物，这个编号是从0开始的。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "fruits = ['apple', 'banana', 'orange']",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2F37d778c2-d656-45ba-bbaa-8e9250ce04ab_aigc.jpeg?Expires=1777957229&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=6djCUTQLtrZAbog5IzqFm%2F8CucA%3D",
+          "image_prompt": "A visual representation of a numbered shelf holding different fruits in boxes"
+        },
+        {
+          "sub_title": "字典",
+          "bullets": [
+            "无序的键值对集合，用花括号 {} 定义",
+            "通过唯一的键来访问对应的值",
+            "键必须是不可变类型，如字符串或数字",
+            "适合存储具有映射关系的数据"
+          ],
+          "narration": "而字典则完全不同，它更像是一本真正的字典或者通讯录。它用花括号定义，里面存的是“键值对”。比如你查“Apple”这个词，就能找到“苹果”这个释义。在编程里，我们通过唯一的“键”来快速锁定“值”，这种映射关系让数据查找非常高效。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "student = {'name': 'Tom', 'age': 18}",
+          "image_url": "https://hailuo-image-algeng-data.oss-cn-wulanchabu.aliyuncs.com/image_inference_output%2Ftalkie%2Fprod%2Fimg%2F2026-05-04%2Ff2838034-2fb6-4496-853a-cf77ab274707_aigc.jpeg?Expires=1777957243&OSSAccessKeyId=LTAI5tB2SwrRwAtD23etQUbC&Signature=7nBz%2FBzsk2crXa%2BFf4qfvyjwe%2Bk%3D",
+          "image_prompt": "An open book or dictionary showing key-value pairs connected by arrows"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "核心操作方法一览",
+      "content": [
+        {
+          "sub_title": "索引与切片",
+          "bullets": [
+            "正向索引从0开始，反向索引从-1开始",
+            "切片语法 [start:end:step]",
+            "切片返回的是新的列表副本",
+            "灵活获取列表的任意子集"
+          ],
+          "narration": "掌握了基本概念，我们来看看具体的操作技巧。对于列表，最强大的功能莫过于切片。你可以用正向索引从头找，也可以用负向索引从尾找。切片语法虽然看起来简单，但通过起始、结束和步长三个参数，你能像切蛋糕一样，精准地切出你想要的任何一部分数据。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "print(fruits[1])  # banana\nprint(fruits[0:2]) # ['apple', 'banana']",
+          "image_url": "",
+          "image_prompt": "A diagram showing a list being sliced into parts with index markers"
+        },
+        {
+          "sub_title": "增删改操作",
+          "bullets": [
+            "append() 在末尾添加单个元素",
+            "pop() 移除指定索引元素并返回",
+            "del 语句可删除指定索引元素",
+            "字典通过键直接赋值即可新增或修改"
+          ],
+          "narration": "数据不是静态的，我们需要动态管理。列表有append方法，可以往末尾追加元素；有pop方法，能把元素“弹”出来并删除。字典的操作更直观，想加一条数据？直接写个新键赋值就行；想修改？找到那个键重新赋值。这就是所谓的“增删改查”中的核心操作。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "fruits.append('grape')\nfruits.pop(1)\nstudent['grade'] = 'A'",
+          "image_url": "",
+          "image_prompt": "Icons showing addition, deletion and modification actions on data blocks"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "media-left",
+      "title": "实战演练：动手操作数据",
+      "content": [
+        {
+          "sub_title": "代码示例",
+          "bullets": [
+            "创建一个购物清单列表",
+            "使用 append 添加新商品",
+            "使用 pop 移除已购买商品",
+            "创建学生信息字典并修改分数"
+          ],
+          "narration": "光说不练假把式，我们来看一段具体的代码。首先定义一个购物清单列表，然后动态地添加牛奶，移除已经买好的苹果。接着我们处理一个学生信息的字典，把他的数学成绩从85分更新为95分。大家注意看，这些操作都是原地修改，直接改变原数据，不需要创建新变量。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 列表操作\nshopping = ['苹果', '面包']\nshopping.append('牛奶')\nshopping.pop(0)  # 移除苹果\n\n# 字典操作\nscores = {'math': 85, 'english': 90}\nscores['math'] = 95  # 修改分数",
+          "image_url": "",
+          "image_prompt": "A split screen showing code on the left and the resulting data structure changes on the right"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "练习任务：挑战三步走",
+      "content": [
+        {
+          "sub_title": "任务步骤",
+          "bullets": [
+            "第一步：创建列表并索引访问",
+            "第二步：使用切片获取部分数据",
+            "第三步：字典键值对的增删改",
+            "第四步：综合运用 append 和 pop"
+          ],
+          "narration": "好，现在轮到你们大显身手了！请按照屏幕上的步骤完成练习。第一步，创建一个包含五个元素的列表，尝试用索引取出第三个元素。第二步，用切片取出前三个元素。第三步，定义一个字典，完成一次添加、一次修改和一次删除操作。最后，结合append和pop，模拟一个简单的排队叫号系统。动手试试吧！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A checklist with three items being checked off, representing programming tasks"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "数据分析项目",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍数据分析项目的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习数据分析项目的相关内容。",
+          "text": "本节将介绍数据分析项目的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": ""
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "id": 3,
+      "scene_id": 3,
+      "title": "Python基础语法随堂测",
+      "questions": [
+        {
+          "question": "下列选项中，哪个是不合法的Python变量名？",
+          "question_type": "single",
+          "options": [
+            "my_name",
+            "1st_player",
+            "_count",
+            "UserName"
+          ],
+          "correct_answer": 1,
+          "explanation": "Python变量命名规则规定：变量名必须以字母或下划线开头，不能以数字开头。选项B以数字'1'开头，因此是不合法的变量名。",
+          "points": 5
+        },
+        {
+          "question": "关于Python的数据类型转换和输入函数，以下说法正确的是？",
+          "question_type": "multiple",
+          "options": [
+            "input()函数接收的用户输入默认为字符串类型(str)",
+            "int('3.14')可以将字符串转换为整数3",
+            "str(100)可以将整数100转换为字符串'100'",
+            "使用int()函数可以将纯数字组成的字符串转换为整数"
+          ],
+          "correct_answers": [
+            0,
+            2,
+            3
+          ],
+          "explanation": "input()默认接收的是字符串；int('3.14')会报错，因为int()只能转换整数形式的字符串，不能转换浮点数形式的字符串；str()可以将任意类型转为字符串；int()可以转换像'123'这样的纯数字字符串。",
+          "points": 8
+        },
+        {
+          "question": "请编写一段代码，实现以下功能：接收用户输入的年龄（假设输入为数字），将其转换为整数类型后，输出“你的年龄是：[年龄]岁”。（例如输入18，输出：你的年龄是：18岁）",
+          "question_type": "short_answer",
+          "answer": "age = input()\nage = int(age)\nprint('你的年龄是：' + str(age) + '岁')\n\n或者写成一行：\nprint('你的年龄是：' + str(int(input())) + '岁')",
+          "comment_prompt": "请根据关键点评分，代码逻辑正确即可得分。",
+          "key_points": [
+            "正确使用input()函数获取输入",
+            "使用int()函数将输入的字符串转换为整数",
+            "使用str()函数将整数转换回字符串以便拼接（或使用逗号分隔打印）",
+            "输出格式符合题目要求"
+          ],
+          "explanation": "这道题综合考察了输入、类型转换和输出。input()得到的是字符串，必须用int()转换才能进行数值运算（虽然本题只要求输出，但题目要求转换为整数），而在字符串拼接时，又需要将整数转回字符串。",
+          "points": 15
+        }
+      ],
+      "speech": "同学们，这几道题考察了Python最基础也最重要的语法规则。变量命名是编程的基石，而类型转换则是处理数据的关键。特别是简答题，大家要注意input()接收的永远是字符串，做数学运算前千万别忘了类型转换哦！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 6,
+      "scene_id": 6,
+      "title": "Python数据结构操作实战",
+      "exercises": [
+        {
+          "instruction": "已知列表 numbers = [10, 20, 30, 40, 50]，请编写代码：首先使用切片获取索引1到3（不含3）的子列表，然后使用 append 方法将数字 60 添加到列表末尾。",
+          "hints": [
+            "切片语法为 list[start:end]，注意 end 索引是包含在内的吗？",
+            "append() 方法用于在列表尾部添加新元素。"
+          ],
+          "expected_answer": "numbers = [10, 20, 30, 40, 50]\nsub_list = numbers[1:3]\nnumbers.append(60)\nprint(sub_list)\nprint(numbers)"
+        },
+        {
+          "instruction": "已知字典 student = {'name': 'Tom', 'age': 18}。请编写代码：添加一个新的键值对 'grade': 'A'，然后使用 pop 方法删除 'age' 键值对。",
+          "hints": [
+            "添加键值对可以直接使用 dict['key'] = value 的形式。",
+            "pop() 方法可以删除指定的键，并返回对应的值。"
+          ],
+          "expected_answer": "student = {'name': 'Tom', 'age': 18}\nstudent['grade'] = 'A'\nstudent.pop('age')\nprint(student)"
+        }
+      ],
+      "speech": "同学们，我们刚才学习了列表和字典的基础操作。现在请大家动手试一试：对于列表，不仅要会用索引切片取数据，还要会用 append 做增长；对于字典，重点掌握键值对的“增”与“删”。这些是处理数据的核心技能，大家多练习几遍，感受一下数据容器的灵活性，遇到报错记得检查键名或索引是否越界。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习Python",
+    "student_id": "1",
+    "session_id": "63f2fce3-ace1-464c-81ee-9dffd7143e22",
+    "generated_at": "2026-05-04 13:02:10",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": true
+  }
+}

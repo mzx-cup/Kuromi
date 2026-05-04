@@ -271,6 +271,17 @@ class DebateRequest(BaseModel):
         return v.strip()
 
 
+class CourseDiscussionRequest(BaseModel):
+    """课堂讨论请求"""
+    student_id: str = ""
+    course_id: str = Field(..., min_length=1)
+    slide_topic: str = ""
+    slide_content: str = ""
+    speech_content: str = ""
+    user_message: str = ""
+    agent_ids: list[str] = Field(default_factory=list)
+
+
 # ============================================================
 # 学生画像（6维度）
 # ============================================================
@@ -417,13 +428,14 @@ class Slide(BaseModel):
 class SlideContentItemV2(BaseModel):
     """幻灯片内容项 V2（结构化布局）"""
     sub_title: str = ""
-    bullets: list[str] = Field(default_factory=list)  # 结构化要点数组（屏幕显示用，每条≤25中文字符）
-    narration: str = ""  # AI教师口语化讲课台词（TTS语音引擎用，150-300字）
+    bullets: list[str] = Field(default_factory=list)  # 结构化要点数组（屏幕显示用，每条≤50中文字符）
+    narration: str = ""  # AI教师口语化讲课台词（TTS语音引擎用，200-450字）
     text: str = ""  # 向后兼容：旧版长段落文本
     icon: str = "book"  # book, lightbulb, code, check, star, question, warning, info
     color_theme: str = "blue"  # blue, yellow, green, purple, orange
     code_snippet: str = ""  # 可选代码块
-    image_url: str = ""  # 可选配图
+    image_url: str = ""  # 可选配图URL
+    image_prompt: str = ""  # 配图生成提示词（用于AI生成配图）
 
     @field_validator('icon')
     @classmethod
@@ -448,7 +460,13 @@ class SlideV2(BaseModel):
     @field_validator('layout_type')
     @classmethod
     def validate_layout_type(cls, v):
-        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'quote-highlight'}
+        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'quote-highlight',
+                   'center-focus', 'media-left', 'stats-row', 'timeline-steps', 'comparison',
+                   'fullwidth-banner', 'three-column-cards', 'asymmetric-split',
+                   'icon-vertical-stack', 'numbered-list', 'hero-center', 'left-sidebar',
+                   'bottom-cards', 'floating-overlap', 'grid-icon', 'process-flow', 'quote-wall',
+                   'info-graphic', 'tabbed-content', 'dark-header', 'gradient-split',
+                   'circle-radial', 'stair-step', 'minimal-center', 'horizontal-scroll'}
         return v if v in allowed else 'two-column'
 
 
@@ -541,6 +559,7 @@ class CourseChatRequest(BaseModel):
     speech: str = ""
     user_input: str = Field(..., min_length=1)
     history: list[dict[str, str]] = Field(default_factory=list)
+    enable_web_search: bool = False  # 启用 Tavily 网络搜索
 
 
 class CourseData(BaseModel):

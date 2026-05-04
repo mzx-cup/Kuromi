@@ -6964,10 +6964,33 @@ body.course-mode #course-input-section {
     align-items: center;
     justify-content: space-between;
     padding: 0.75rem 0;
+    gap: 1rem;
 }
 
 .media-option + .media-option {
     border-top: 1px solid var(--border-glass);
+}
+
+.media-option .toggle-switch {
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.media-option .toggle-slider {
+    border-radius: 12px;
+    background: #94a3b8;
+}
+
+.media-option .toggle-slider::before {
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    bottom: 3px;
+}
+
+.media-option .toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(20px);
 }
 
 .media-option-info {
@@ -7094,6 +7117,30 @@ body.course-mode #course-input-section {
 
 .attachment-remove:hover {
     background: rgba(114, 46, 209, 0.2);
+}
+
+/* 附件上传进度条 */
+.attachment-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(114, 46, 209, 0.2);
+    border-radius: 0 0 0.75rem 0.75rem;
+    overflow: hidden;
+}
+
+.attachment-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.attachment-item {
+    position: relative;
+    overflow: hidden;
 }
 
 /* 媒体徽章 */

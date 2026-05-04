@@ -1833,6 +1833,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('openmaic-file-input');
     const attachmentsContainer = document.getElementById('openmaic-attachments');
 
+    // 存储已上传的PDF文件
+    window.uploadedPdfFiles = [];
+
     if (attachBtn && fileInput) {
         attachBtn.addEventListener('click', function() {
             fileInput.click();
@@ -1842,6 +1845,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const files = Array.from(this.files || []);
             files.forEach(file => {
                 addAttachmentItem(file);
+                // 如果是PDF，存储到列表
+                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                    window.uploadedPdfFiles.push(file);
+                }
             });
             this.value = ''; // 清空以便重复选择
         });
@@ -1851,25 +1858,56 @@ document.addEventListener('DOMContentLoaded', function() {
     function addAttachmentItem(file) {
         if (!attachmentsContainer) return;
 
+        const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
         const item = document.createElement('div');
-        item.className = 'attachment-item';
+        item.className = 'attachment-item' + (isPdf ? ' pdf-file' : '');
         item.innerHTML = `
-            <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+            <i data-lucide="${isPdf ? 'file-text' : 'file'}" class="w-3.5 h-3.5"></i>
             <span>${file.name.length > 20 ? file.name.substring(0, 17) + '...' : file.name}</span>
             <button class="attachment-remove">
                 <i data-lucide="x" class="w-3 h-3"></i>
             </button>
+            <div class="attachment-progress" style="display:none;">
+                <div class="attachment-progress-bar"></div>
+            </div>
         `;
 
         // 移除按钮
         item.querySelector('.attachment-remove')?.addEventListener('click', function() {
             item.style.animation = 'attachment-in 0.2s ease-out reverse';
-            setTimeout(() => item.remove(), 200);
+            setTimeout(() => {
+                item.remove();
+                // 从列表中移除
+                const idx = window.uploadedPdfFiles.indexOf(file);
+                if (idx > -1) window.uploadedPdfFiles.splice(idx, 1);
+            }, 200);
         });
 
         attachmentsContainer.appendChild(item);
         lucide.createIcons();
     }
+
+    // 显示上传进度
+    window.showPdfUploadProgress = function(percent) {
+        const items = document.querySelectorAll('.attachment-item.pdf-file');
+        items.forEach(item => {
+            const progress = item.querySelector('.attachment-progress');
+            if (progress) {
+                progress.style.display = 'block';
+                const bar = progress.querySelector('.attachment-progress-bar');
+                if (bar) bar.style.width = percent + '%';
+            }
+        });
+    };
+
+    // 隐藏上传进度
+    window.hidePdfUploadProgress = function() {
+        const items = document.querySelectorAll('.attachment-item.pdf-file');
+        items.forEach(item => {
+            const progress = item.querySelector('.attachment-progress');
+            if (progress) progress.style.display = 'none';
+        });
+    };
 
     // OpenMAIC语音输入（使用 Whisper 本地识别）
     const voiceBtn = document.getElementById('openmaic-voice-btn');
@@ -2039,7 +2077,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 开始课程生成
-function startCourseGeneration(requirement) {
+async function startCourseGeneration(requirement) {
     // 检查用户是否已登录（有有效ID）
     const storedUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
     if (!storedUser || !storedUser.id || storedUser.id === 'anonymous') {
@@ -2058,10 +2096,69 @@ function startCourseGeneration(requirement) {
     const agentMode = document.getElementById('openmaic-agent-mode')?.value || 'preset';
     const voiceId = document.getElementById('openmaic-voice-select')?.value || 'female-shaonv';
 
+    // 处理PDF文件上传
+    let pdfText = '';
+    const pdfFiles = window.uploadedPdfFiles || [];
+    if (pdfFiles.length > 0) {
+        const enterBtn = document.getElementById('openmaic-enter-btn');
+        const originalText = enterBtn?.querySelector('span')?.textContent;
+        if (enterBtn) {
+            enterBtn.disabled = true;
+            if (enterBtn.querySelector('span')) enterBtn.querySelector('span').textContent = '解析文档中...';
+        }
+
+        try {
+            for (let i = 0; i < pdfFiles.length; i++) {
+                const file = pdfFiles[i];
+                window.showPdfUploadProgress(Math.round((i / pdfFiles.length) * 50));
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // 由于我们使用base64方式，先读取文件
+                const arrayBuffer = await file.arrayBuffer();
+                const base64 = btoa(new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+
+                const resp = await fetch('/api/v2/course/extract-pdf-text', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        pdf_content: base64,
+                        filename: file.name
+                    })
+                });
+
+                if (resp.ok) {
+                    const result = await resp.json();
+                    if (result.success && result.text) {
+                        pdfText += `\n\n=== ${file.name} ===\n\n` + result.text;
+                    }
+                }
+
+                window.showPdfUploadProgress(Math.round(50 + (i / pdfFiles.length) * 50));
+            }
+        } catch (e) {
+            console.warn('[PDF] Upload failed:', e);
+        }
+
+        if (enterBtn) {
+            enterBtn.disabled = false;
+            if (enterBtn.querySelector('span')) enterBtn.querySelector('span').textContent = originalText || '进入课堂';
+        }
+        window.hidePdfUploadProgress();
+    }
+
+    // 将PDF内容添加到requirement
+    let fullRequirement = requirement;
+    if (pdfText) {
+        fullRequirement = `【文档内容】\n${pdfText}\n\n【学习需求】\n${requirement}`;
+    }
+
     // 保存生成会话数据
     const sessionData = {
         requirements: {
-            requirement: requirement,
+            requirement: fullRequirement,
+            original_requirement: requirement,
             enable_image: imageToggle?.checked || false,
             enable_tts: true,    // 默认开启语音
             enable_video: videoToggle?.checked || false,
@@ -2069,6 +2166,7 @@ function startCourseGeneration(requirement) {
             interactive_mode: interactivePill?.classList.contains('active') ?? false,
             voice_id: voiceId,
             agent_mode: agentMode,
+            pdf_files: pdfFiles.map(f => f.name),
         },
         student_id: storedUser.id,
         timestamp: Date.now()

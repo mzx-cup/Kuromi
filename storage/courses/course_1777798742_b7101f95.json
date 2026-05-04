@@ -90,712 +90,1642 @@
   "slides": [],
   "slides_v2": [
     {
-      "layout_type": "two-column",
-      "title": "生活中的“冒泡”现象",
-      "content": [
+      "id": "slide-bubble-sort-intro",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "场景引入",
-          "text": "想象一下在泳池中，由于水压不同，水底的气泡会随着上升过程逐渐变大，并最终浮出水面。在这个过程中，最大的气泡总是最显眼的那个。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/bubble-pool.png"
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "排序映射",
-          "text": "在计算机科学中，冒泡排序正是借鉴了这一物理现象：数据序列中较大的元素，就像大气泡一样，通过不断的比较与交换，一步步“浮”到数列的末端。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/sorting-concept.png"
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 8,
+          "width": 600,
+          "height": 40,
+          "content": "<h1 style='color:#FFFFFF;font-size:22px;font-weight:600;'>掌握冒泡排序</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 20,
+          "top": 80,
+          "width": 960,
+          "height": 36,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;'>冒泡排序初探</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 40,
+          "top": 140,
+          "width": 293,
+          "height": 340,
+          "path": "M 12 0 L 281 0 Q 293 0 293 12 L 293 328 Q 293 340 281 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            293,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 353,
+          "top": 140,
+          "width": 293,
+          "height": 340,
+          "path": "M 12 0 L 281 0 Q 293 0 293 12 L 293 328 Q 293 340 281 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            293,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 666,
+          "top": 140,
+          "width": 293,
+          "height": 340,
+          "path": "M 12 0 L 281 0 Q 293 0 293 12 L 293 328 Q 293 340 281 340 L 12 340 Q 0 340 0 328 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            293,
+            340
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-1",
+          "left": 146.5,
+          "top": 170,
+          "width": 64,
+          "height": 64,
+          "path": "M 32 0 L 64 20 L 56 56 L 32 48 L 8 56 L 0 20 Z",
+          "fill": "#8B5CF6",
+          "viewBox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-2",
+          "left": 459.5,
+          "top": 170,
+          "width": 64,
+          "height": 64,
+          "path": "M 32 0 L 64 20 L 56 56 L 32 48 L 8 56 L 0 20 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-3",
+          "left": 772.5,
+          "top": 170,
+          "width": 64,
+          "height": 64,
+          "path": "M 32 0 L 64 20 L 56 56 L 32 48 L 8 56 L 0 20 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            64,
+            64
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-1",
+          "left": 158.5,
+          "top": 180,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:32px;color:#FFFFFF;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-2",
+          "left": 471.5,
+          "top": 180,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:32px;color:#FFFFFF;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-icon-star-3",
+          "left": 784.5,
+          "top": 180,
+          "width": 40,
+          "height": 40,
+          "content": "<span style='font-size:32px;color:#FFFFFF;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Arial"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-1",
+          "left": 60,
+          "top": 260,
+          "width": 253,
+          "height": 36,
+          "content": "<h3 style='color:#5B21B6;font-size:18px;font-weight:600;text-align:center;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-2",
+          "left": 373,
+          "top": 260,
+          "width": 253,
+          "height": 36,
+          "content": "<h3 style='color:#92400E;font-size:18px;font-weight:600;text-align:center;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-3",
+          "left": 686,
+          "top": 260,
+          "width": 253,
+          "height": 36,
+          "content": "<h3 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-1",
+          "left": 60,
+          "top": 300,
+          "width": 253,
+          "height": 140,
+          "content": "<p style='color:#5B21B6;font-size:14px;line-height:1.8;text-align:center;'>冒泡排序的核心是比较相邻元素并交换位置...</p>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-2",
+          "left": 373,
+          "top": 300,
+          "width": 253,
+          "height": 140,
+          "content": "<p style='color:#92400E;font-size:14px;line-height:1.8;text-align:center;'>每一轮遍历将最大元素移动到数组末端...</p>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-3",
+          "left": 686,
+          "top": 300,
+          "width": 253,
+          "height": 140,
+          "content": "<p style='color:#1E40AF;font-size:14px;line-height:1.8;text-align:center;'>算法名称源于大元素像气泡一样逐渐上浮...</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#8B5CF6",
+          "#F59E0B",
+          "#EFF6FF",
+          "#F5F3FF",
+          "#FFFBEB"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "1",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。冒泡排序的核心是比较相邻元素并交换位置"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。每一轮遍历将最大元素移动到数组末端"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。算法名称源于大元素像气泡一样逐渐上浮"
+        }
+      ]
     },
     {
-      "layout_type": "grid-cards",
-      "title": "冒泡排序核心法则",
-      "content": [
-        {
-          "sub_title": "核心动作：比较与交换",
-          "text": "冒泡排序的基础是比较相邻的两个元素。如果前一个元素比后一个元素大，就交换它们的位置，确保大的元素在右侧。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "遍历规律：大元素后移",
-          "text": "每一轮完整的遍历，都会将当前未排序部分的最大元素移动到数组的最末端，该元素在后续排序中不再移动。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "命名由来：气泡上浮",
-          "text": "算法名称形象地描述了过程：大元素像气泡一样，经过一次次交换，逐渐从数组底部“上浮”到顶端（末尾）。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 1
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     },
     {
-      "layout_type": "two-column",
-      "title": "算法演示：第一轮遍历",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "执行流程",
-          "text": "假设数组为 [5, 3, 8, 4]：\n1. 比较5和3，交换 → [3, 5, 8, 4]\n2. 比较5和8，不动 → [3, 5, 8, 4]\n3. 比较8和4，交换 → [3, 5, 4, 8]\n结果：最大元素8已“浮”至末端。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "图解示意",
-          "text": "左侧展示了数组在第一轮排序中的变化过程。通过三次相邻比较，数字8像气泡一样最终沉底，确定了它的最终位置。",
-          "icon": "info",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": "https://example.com/images/bubble-step1.png"
+          "type": "text",
+          "id": "el-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFFFFF;font-size:20px;font-weight:600;text-align:center;line-height:56px;'>掌握冒泡排序</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 20,
+          "top": 70,
+          "width": 960,
+          "height": 32,
+          "content": "<h2 style='color:#64748B;font-size:16px;text-align:center;'>算法步骤拆解</h2>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 50,
+          "top": 120,
+          "width": 280,
+          "height": 380,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 368 Q 280 380 268 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            380
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          },
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 360,
+          "top": 120,
+          "width": 280,
+          "height": 380,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 368 Q 280 380 268 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            280,
+            380
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#FFFBEB",
+                "pos": 0
+              },
+              {
+                "color": "#FEF3C7",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          },
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 670,
+          "top": 120,
+          "width": 280,
+          "height": 380,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 368 Q 280 380 268 380 L 12 380 Q 0 380 0 368 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            380
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#EFF6FF",
+                "pos": 0
+              },
+              {
+                "color": "#DBEAFE",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          },
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-icon-bg",
+          "left": 150,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 C 62.09 0 80 17.91 80 40 C 80 62.09 62.09 80 40 80 C 17.91 80 0 62.09 0 40 C 0 17.91 17.91 0 40 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card1-icon",
+          "left": 150,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "content": "<span style='color:#FFFFFF;font-size:32px;text-align:center;line-height:80px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-icon-bg",
+          "left": 460,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 C 62.09 0 80 17.91 80 40 C 80 62.09 62.09 80 40 80 C 17.91 80 0 62.09 0 40 C 0 17.91 17.91 0 40 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card2-icon",
+          "left": 460,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "content": "<span style='color:#FFFFFF;font-size:32px;text-align:center;line-height:80px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-icon-bg",
+          "left": 770,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 C 62.09 0 80 17.91 80 40 C 80 62.09 62.09 80 40 80 C 17.91 80 0 62.09 0 40 C 0 17.91 17.91 0 40 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-card3-icon",
+          "left": 770,
+          "top": 150,
+          "width": 80,
+          "height": 80,
+          "content": "<span style='color:#FFFFFF;font-size:32px;text-align:center;line-height:80px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 50,
+          "top": 250,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 360,
+          "top": 250,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#92400E;font-size:18px;font-weight:600;text-align:center;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 670,
+          "top": 250,
+          "width": 280,
+          "height": 40,
+          "content": "<h2 style='color:#1E40AF;font-size:18px;font-weight:600;text-align:center;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-content",
+          "left": 70,
+          "top": 300,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>理解双重嵌套循环的执行流程与边界条件</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-content",
+          "left": 380,
+          "top": 300,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>掌握元素交换逻辑所需的临时变量用法</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-content",
+          "left": 690,
+          "top": 300,
+          "width": 240,
+          "height": 160,
+          "content": "<p style='color:#1E293B;font-size:14px;line-height:1.8;text-align:center;'>分析算法中比较与交换操作的具体执行次数</p>",
+          "fill": "transparent",
+          "defaultColor": "#1E293B",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "3",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。理解双重嵌套循环的执行流程与边界条件"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。掌握元素交换逻辑所需的临时变量用法"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。分析算法中比较与交换操作的具体执行次数"
+        }
+      ]
     },
     {
-      "layout_type": "header-content",
-      "title": "课堂小结与思考",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "核心思想总结",
-          "text": "冒泡排序通过“两两比较”和“位置交换”，利用多轮遍历实现数据的有序排列。它是最基础且直观的排序算法，虽然效率不是最高，但非常适合初学者理解排序的本质。",
-          "icon": "book",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-1-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ]
         },
         {
-          "sub_title": "思考题",
-          "text": "如果一个数组已经是排好序的，冒泡排序还需要进行复杂的比较和交换吗？我们该如何优化它？",
-          "icon": "question",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-1-title",
+          "left": 20,
+          "top": 0,
+          "width": 960,
+          "height": 56,
+          "content": "<h1 style='color:#FFF;font-size:22px;font-weight:600;'>掌握冒泡排序 - 代码实现实战</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "code",
+          "id": "el-1-code",
+          "left": 30,
+          "top": 70,
+          "width": 940,
+          "height": 180,
+          "content": "def bubble_sort(arr):\n    n = len(arr)\n    for i in range(n - 1):\n        for j in range(n - 1 - i):\n            if arr[j] > arr[j + 1]:\n                arr[j], arr[j + 1] = arr[j + 1], arr[j]\n    return arr\n\n# 示例\nnums = [64, 34, 25, 12, 22, 11, 90]\nprint(bubble_sort(nums))  # 输出: [11, 12, 22, 25, 34, 64, 90]",
+          "language": "python"
+        },
+        {
+          "type": "shape",
+          "id": "el-1-card-1-bg",
+          "left": 30,
+          "top": 270,
+          "width": 300,
+          "height": 130,
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 118 Q 300 130 288 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            300,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-1-card-2-bg",
+          "left": 350,
+          "top": 270,
+          "width": 300,
+          "height": 130,
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 118 Q 300 130 288 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            300,
+            130
+          ]
+        },
+        {
+          "type": "shape",
+          "id": "el-1-card-3-bg",
+          "left": 670,
+          "top": 270,
+          "width": 300,
+          "height": 130,
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 118 Q 300 130 288 130 L 12 130 Q 0 130 0 118 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F5F3FF",
+          "viewBox": [
+            0,
+            0,
+            300,
+            130
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-1-num",
+          "left": 50,
+          "top": 280,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#3B82F6;color:#FFF;font-size:18px;font-weight:700;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;'>1</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-2-num",
+          "left": 370,
+          "top": 280,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#10B981;color:#FFF;font-size:18px;font-weight:700;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;'>2</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-3-num",
+          "left": 690,
+          "top": 280,
+          "width": 40,
+          "height": 40,
+          "content": "<div style='background:#8B5CF6;color:#FFF;font-size:18px;font-weight:700;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;'>3</div>",
+          "fill": "transparent"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-1-title",
+          "left": 96,
+          "top": 282,
+          "width": 220,
+          "height": 30,
+          "content": "<h3 style='color:#1E40AF;font-size:15px;margin:0;font-weight:600;'>双重循环结构</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-2-title",
+          "left": 416,
+          "top": 282,
+          "width": 220,
+          "height": 30,
+          "content": "<h3 style='color:#065F46;font-size:15px;margin:0;font-weight:600;'>循环边界设置</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-3-title",
+          "left": 736,
+          "top": 282,
+          "width": 220,
+          "height": 30,
+          "content": "<h3 style='color:#5B21B6;font-size:15px;margin:0;font-weight:600;'>相邻元素交换</h3>",
+          "fill": "transparent",
+          "defaultColor": "#5B21B6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-1-content",
+          "left": 50,
+          "top": 320,
+          "width": 260,
+          "height": 70,
+          "content": "<p style='color:#3B82F6;font-size:13px;line-height:1.5;margin:0;'>编写标准的双重循环结构实现冒泡排序，外层循环控制遍历次数，内层循环执行元素比较。</p>",
+          "fill": "transparent",
+          "defaultColor": "#3B82F6",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-2-content",
+          "left": 370,
+          "top": 320,
+          "width": 260,
+          "height": 70,
+          "content": "<p style='color:#059669;font-size:13px;line-height:1.5;margin:0;'>正确设置外层循环范围与内层循环边界，确保每轮比较不越界且覆盖所有未排序元素。</p>",
+          "fill": "transparent",
+          "defaultColor": "#059669",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-1-card-3-content",
+          "left": 690,
+          "top": 320,
+          "width": 260,
+          "height": 70,
+          "content": "<p style='color:#7C3AED;font-size:13px;line-height:1.5;margin:0;'>实现相邻元素比较与交换的核心代码逻辑，使用Python元组交换实现原地排序。</p>",
+          "fill": "transparent",
+          "defaultColor": "#7C3AED",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-1-footer-bar",
+          "left": 0,
+          "top": 520,
+          "width": 1000,
+          "height": 42,
+          "path": "M 0 0 L 1000 0 L 1000 42 L 0 42 Z",
+          "fill": "#E2E8F0",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            42
+          ]
+        },
+        {
+          "type": "text",
+          "id": "el-1-footer-text",
+          "left": 20,
+          "top": 520,
+          "width": 960,
+          "height": 42,
+          "content": "<p style='color:#64748B;font-size:12px;margin:0;text-align:center;line-height:42px;'>💡 提示：冒泡排序时间复杂度 O(n²)，适合小规模数据排序</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 1
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#10B981",
+          "#ECFDF5",
+          "#8B5CF6",
+          "#F5F3FF"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "4",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。编写标准的双重循环结构实现冒泡排序"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。正确设置外层循环范围与内层循环边界"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。实现相邻元素比较与交换的核心代码逻辑"
+        }
+      ]
     },
     {
-      "layout_type": "header-content",
-      "title": "交互演示：排序过程可视化",
-      "content": [
-        {
-          "sub_title": "场景说明",
-          "text": "欢迎来到冒泡排序可视化实验室！这里你将亲自操控算法的运行。通过右侧的动态演示区，你可以直观地看到无序数组如何一步步变为有序。请利用控制面板调整排序速度，或使用步进功能深入分析每一个交换动作。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "学习目标",
-          "text": "1. 观察无序数组通过多轮遍历变为有序的完整过程。\n2. 直观理解内层循环（相邻比较）与外层循环（轮次迭代）的配合关系。\n3. 利用暂停功能分析每一轮排序后的中间结果。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 2
+      "id": "slide-4",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "elements": []
     },
     {
-      "layout_type": "grid-cards",
-      "title": "核心观察要点",
-      "content": [
+      "id": "slide-1",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "外层循环：轮次推进",
-          "text": "观察每一轮遍历如何将当前最大的元素“冒泡”到数组末尾。注意每轮结束后，已排序区域（数组尾部）的变化。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-title-bar",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 56,
+          "shape_name": "rectangle",
+          "path": "M 0 0 L 1000 0 L 1000 56 L 0 56 Z",
+          "fill": "#1E40AF",
+          "viewBox": [
+            0,
+            0,
+            1000,
+            56
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 0
+          },
+          "opacity": 1
         },
         {
-          "sub_title": "内层循环：两两比较",
-          "text": "重点关注相邻元素的比较过程。当左侧元素大于右侧元素时，观察它们如何进行位置交换。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-main-title",
+          "left": 20,
+          "top": 8,
+          "width": 960,
+          "height": 24,
+          "content": "<h1 style='color:#FFFFFF;font-size:18px;font-weight:600;'>掌握冒泡排序</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "控制台操作",
-          "text": "使用“暂停/继续”按钮定格关键时刻，使用“步进”按钮逐帧执行，精确分析算法逻辑。",
-          "icon": "check",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-subtitle",
+          "left": 20,
+          "top": 32,
+          "width": 960,
+          "height": 18,
+          "content": "<h2 style='color:#BFDBFE;font-size:13px;'>算法优化进阶 · 练习</h2>",
+          "fill": "transparent",
+          "defaultColor": "#BFDBFE",
+          "defaultFontName": "Microsoft YaHei"
         },
         {
-          "sub_title": "效率思考",
-          "text": "在观察过程中思考：如果一个数组已经基本有序，冒泡排序还需要进行这么多轮比较吗？",
-          "icon": "question",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-card-1",
+          "left": 24,
+          "top": 80,
+          "width": 300,
+          "height": 200,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 188 Q 300 200 288 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            300,
+            200
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-2",
+          "left": 350,
+          "top": 80,
+          "width": 300,
+          "height": 200,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 188 Q 300 200 288 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            300,
+            200
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card-3",
+          "left": 676,
+          "top": 80,
+          "width": 300,
+          "height": 200,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 288 0 Q 300 0 300 12 L 300 188 Q 300 200 288 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            300,
+            200
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-bg-1",
+          "left": 124,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "shape_name": "rectangle",
+          "path": "M 26 0 L 26 0 Q 26 0 26 0 L 26 52 Q 52 52 52 26 L 52 26 Q 52 0 26 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-icon-1",
+          "left": 124,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:22px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-bg-2",
+          "left": 450,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "shape_name": "rectangle",
+          "path": "M 26 0 L 26 0 Q 26 0 26 0 L 26 52 Q 52 52 52 26 L 52 26 Q 52 0 26 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-icon-2",
+          "left": 450,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:22px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-icon-bg-3",
+          "left": 776,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "shape_name": "rectangle",
+          "path": "M 26 0 L 26 0 Q 26 0 26 0 L 26 52 Q 52 52 52 26 L 52 26 Q 52 0 26 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            52,
+            52
+          ],
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-icon-3",
+          "left": 776,
+          "top": 100,
+          "width": 52,
+          "height": 52,
+          "content": "<span style='color:#FFFFFF;font-size:22px;'>★</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-1",
+          "left": 40,
+          "top": 165,
+          "width": 220,
+          "height": 24,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;text-align:center;'>要点 1</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-2",
+          "left": 366,
+          "top": 165,
+          "width": 220,
+          "height": 24,
+          "content": "<h2 style='color:#92400E;font-size:16px;font-weight:600;text-align:center;'>要点 2</h2>",
+          "fill": "transparent",
+          "defaultColor": "#92400E",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-title-3",
+          "left": 692,
+          "top": 165,
+          "width": 220,
+          "height": 24,
+          "content": "<h2 style='color:#1E40AF;font-size:16px;font-weight:600;text-align:center;'>要点 3</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-1",
+          "left": 40,
+          "top": 192,
+          "width": 220,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.6;text-align:center;'>识别数组已经有序的情况以提前结束排序</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-2",
+          "left": 366,
+          "top": 192,
+          "width": 220,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.6;text-align:center;'>引入布尔标志位记录本轮是否发生交换</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-card-content-3",
+          "left": 692,
+          "top": 192,
+          "width": 220,
+          "height": 70,
+          "content": "<p style='color:#475569;font-size:12px;line-height:1.6;text-align:center;'>分析优化后算法在最好情况下的性能提升</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "shape",
+          "id": "el-decor-1",
+          "left": 50,
+          "top": 320,
+          "width": 900,
+          "height": 180,
+          "shape_name": "rectangle",
+          "path": "M 12 0 L 888 0 Q 900 0 900 12 L 900 168 Q 900 180 888 180 L 12 180 Q 0 180 0 168 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F8FAFC",
+          "viewBox": [
+            0,
+            0,
+            900,
+            180
+          ],
+          "gradient": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#F8FAFC",
+                "pos": 0
+              },
+              {
+                "color": "#EFF6FF",
+                "pos": 1
+              }
+            ],
+            "rotate": 90
+          },
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-tip-title",
+          "left": 80,
+          "top": 340,
+          "width": 840,
+          "height": 28,
+          "content": "<h2 style='color:#1E40AF;font-size:15px;font-weight:600;'>💡 优化思路回顾</h2>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF",
+          "defaultFontName": "Microsoft YaHei"
+        },
+        {
+          "type": "text",
+          "id": "el-tip-content",
+          "left": 80,
+          "top": 375,
+          "width": 840,
+          "height": 100,
+          "content": "<p style='color:#475569;font-size:13px;line-height:1.8;'>冒泡排序的经典优化在于<strong style='color:#1E40AF;'>提前终止</strong>：当某轮遍历没有任何交换时，说明数组已经有序，可以立即结束排序。这种优化使最好情况时间复杂度从 <code style='background:#E2E8F0;padding:2px 6px;border-radius:4px;color:#7C3AED;'>O(n²)</code> 降低到 <code style='background:#E2E8F0;padding:2px 6px;border-radius:4px;color:#7C3AED;'>O(n)</code>。</p>",
+          "fill": "transparent",
+          "defaultColor": "#475569",
+          "defaultFontName": "Microsoft YaHei"
         }
       ],
-      "scene_id": 2
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "6",
+      "actions": [
+        {
+          "type": "speech",
+          "text": "要点 1。识别数组已经有序的情况以提前结束排序"
+        },
+        {
+          "type": "speech",
+          "text": "要点 2。引入布尔标志位记录本轮是否发生交换"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。分析优化后算法在最好情况下的性能提升"
+        }
+      ]
     },
     {
-      "layout_type": "two-column",
-      "title": "算法逻辑与代码对照",
-      "content": [
+      "id": "slide-bubble-sort",
+      "viewportSize": {
+        "width": 1000,
+        "height": 562.5
+      },
+      "viewportRatio": 0.5625,
+      "background": {
+        "type": "solid",
+        "color": "#F8FAFC"
+      },
+      "elements": [
         {
-          "sub_title": "逻辑解析",
-          "text": "左侧代码展示了冒泡排序的核心逻辑。在可视化演示中，黄色高亮表示正在进行比较的元素，红色表示发生交换的操作。请尝试将代码行与可视化动画步骤一一对应，理解双重循环的边界条件。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "function bubbleSort(arr) {\n  for (let i = 0; i < arr.length - 1; i++) {\n    // 外层循环：控制排序轮数\n    for (let j = 0; j < arr.length - 1 - i; j++) {\n      // 内层循环：相邻比较\n      if (arr[j] > arr[j+1]) {\n        // 交换位置\n        [arr[j], arr[j+1]] = [arr[j+1], arr[j]];\n      }\n    }\n  }\n}",
-          "image_url": ""
+          "type": "shape",
+          "id": "el-header-bg",
+          "left": 0,
+          "top": 0,
+          "width": 1000,
+          "height": 180,
+          "path": "M 0 0 L 1000 0 L 1000 180 Q 1000 200 980 200 L 20 200 Q 0 200 0 180 Z",
+          "fill": {
+            "type": "linear",
+            "colors": [
+              {
+                "color": "#1E40AF",
+                "pos": 0
+              },
+              {
+                "color": "#3B82F6",
+                "pos": 1
+              }
+            ],
+            "rotate": 180
+          },
+          "viewBox": [
+            0,
+            0,
+            1000,
+            200
+          ]
         },
         {
-          "sub_title": "观察指引",
-          "text": "当代码执行到内层循环判断时，观察可视化区域中哪两个元素被选中。注意变量 j 的上限随着 i 的增加而减少，这在可视化中体现为每轮扫描范围的缩短。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "text",
+          "id": "el-pbl-badge",
+          "left": 40,
+          "top": 24,
+          "width": 80,
+          "height": 32,
+          "content": "<span style='background:#FFFFFF22;color:#FFF;font-size:12px;font-weight:600;padding:6px 14px;border-radius:16px;'>PBL</span>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-main-title",
+          "left": 40,
+          "top": 65,
+          "width": 920,
+          "height": 50,
+          "content": "<h1 style='color:#FFFFFF;font-size:32px;font-weight:700;margin:0;'>掌握冒泡排序</h1>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-sub-title",
+          "left": 40,
+          "top": 115,
+          "width": 920,
+          "height": 35,
+          "content": "<h2 style='color:#BFDBFE;font-size:18px;font-weight:400;margin:0;'>成绩排序系统</h2>",
+          "fill": "transparent",
+          "defaultColor": "#BFDBFE"
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-bg",
+          "left": 40,
+          "top": 220,
+          "width": 280,
+          "height": 280,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 268 Q 280 280 268 280 L 12 280 Q 0 280 0 268 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#EFF6FF",
+          "viewBox": [
+            0,
+            0,
+            280,
+            280
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card1-icon",
+          "left": 40,
+          "top": 220,
+          "width": 280,
+          "height": 80,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 68 Q 280 80 268 80 L 12 80 Q 0 80 0 68 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            280,
+            80
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-bg",
+          "left": 360,
+          "top": 220,
+          "width": 280,
+          "height": 280,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 268 Q 280 280 268 280 L 12 280 Q 0 280 0 268 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#FFFBEB",
+          "viewBox": [
+            0,
+            0,
+            280,
+            280
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card2-icon",
+          "left": 360,
+          "top": 220,
+          "width": 280,
+          "height": 80,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 68 Q 280 80 268 80 L 12 80 Q 0 80 0 68 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            280,
+            80
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-bg",
+          "left": 680,
+          "top": 220,
+          "width": 280,
+          "height": 280,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 268 Q 280 280 268 280 L 12 280 Q 0 280 0 268 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#ECFDF5",
+          "viewBox": [
+            0,
+            0,
+            280,
+            280
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "shape",
+          "id": "el-card3-icon",
+          "left": 680,
+          "top": 220,
+          "width": 280,
+          "height": 80,
+          "path": "M 12 0 L 268 0 Q 280 0 280 12 L 280 68 Q 280 80 268 80 L 12 80 Q 0 80 0 68 L 0 12 Q 0 0 12 0 Z",
+          "fill": "#10B981",
+          "viewBox": [
+            0,
+            0,
+            280,
+            80
+          ],
+          "gradient": null,
+          "opacity": 1
+        },
+        {
+          "type": "text",
+          "id": "el-card1-icon-text",
+          "left": 40,
+          "top": 230,
+          "width": 280,
+          "height": 60,
+          "content": "<div style='text-align:center;font-size:28px;'>⭐</div>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-icon-text",
+          "left": 360,
+          "top": 230,
+          "width": 280,
+          "height": 60,
+          "content": "<div style='text-align:center;font-size:28px;'>⭐</div>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-icon-text",
+          "left": 680,
+          "top": 230,
+          "width": 280,
+          "height": 60,
+          "content": "<div style='text-align:center;font-size:28px;'>⭐</div>",
+          "fill": "transparent",
+          "defaultColor": "#FFFFFF"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-title",
+          "left": 60,
+          "top": 320,
+          "width": 240,
+          "height": 40,
+          "content": "<h3 style='color:#1E40AF;font-size:18px;font-weight:700;margin:0;'>要点 1</h3>",
+          "fill": "transparent",
+          "defaultColor": "#1E40AF"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-title",
+          "left": 380,
+          "top": 320,
+          "width": 240,
+          "height": 40,
+          "content": "<h3 style='color:#92400E;font-size:18px;font-weight:700;margin:0;'>要点 2</h3>",
+          "fill": "transparent",
+          "defaultColor": "#92400E"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-title",
+          "left": 700,
+          "top": 320,
+          "width": 240,
+          "height": 40,
+          "content": "<h3 style='color:#065F46;font-size:18px;font-weight:700;margin:0;'>要点 3</h3>",
+          "fill": "transparent",
+          "defaultColor": "#065F46"
+        },
+        {
+          "type": "text",
+          "id": "el-card1-content",
+          "left": 60,
+          "top": 365,
+          "width": 240,
+          "height": 120,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>设计合理的数据结构存储学生信息与成绩...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-card2-content",
+          "left": 380,
+          "top": 365,
+          "width": 240,
+          "height": 120,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>修改比较逻辑以支持降序排列成绩数据...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "text",
+          "id": "el-card3-content",
+          "left": 700,
+          "top": 365,
+          "width": 240,
+          "height": 120,
+          "content": "<p style='color:#64748B;font-size:14px;line-height:1.6;margin:0;'>处理成绩相同情况下的并列排名显示逻辑...</p>",
+          "fill": "transparent",
+          "defaultColor": "#64748B"
+        },
+        {
+          "type": "shape",
+          "id": "el-decorate-circle",
+          "left": 900,
+          "top": 450,
+          "width": 80,
+          "height": 80,
+          "path": "M 40 0 A 40 40 0 1 1 40 80 A 40 40 0 1 1 40 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "gradient": null,
+          "opacity": 0.15
+        },
+        {
+          "type": "shape",
+          "id": "el-decorate-dot1",
+          "left": 50,
+          "top": 520,
+          "width": 12,
+          "height": 12,
+          "path": "M 6 0 A 6 6 0 1 1 6 12 A 6 6 0 1 1 6 0 Z",
+          "fill": "#3B82F6",
+          "viewBox": [
+            0,
+            0,
+            12,
+            12
+          ],
+          "gradient": null,
+          "opacity": 0.3
+        },
+        {
+          "type": "shape",
+          "id": "el-decorate-dot2",
+          "left": 70,
+          "top": 530,
+          "width": 8,
+          "height": 8,
+          "path": "M 4 0 A 4 4 0 1 1 4 8 A 4 4 0 1 1 4 0 Z",
+          "fill": "#F59E0B",
+          "viewBox": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "gradient": null,
+          "opacity": 0.4
         }
       ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "实践与总结",
-      "content": [
+      "theme": {
+        "themeColors": [
+          "#1E40AF",
+          "#3B82F6",
+          "#EFF6FF",
+          "#F59E0B",
+          "#FFFBEB",
+          "#10B981",
+          "#ECFDF5"
+        ],
+        "fontColor": "#1E293B",
+        "backgroundColor": "#F8FAFC"
+      },
+      "scene_id": "7",
+      "actions": [
         {
-          "sub_title": "互动任务",
-          "text": "现在，请点击下方的“开始排序”按钮。尝试在排序过程中点击“暂停”，预测下一个将被交换的元素是哪两个，然后点击“步进”验证你的猜想。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "speech",
+          "text": "要点 1。设计合理的数据结构存储学生信息与成绩"
         },
         {
-          "sub_title": "核心总结",
-          "text": "冒泡排序的本质是通过不断的“比较与交换”，将无序元素逐步归位。它就像水底的气泡，大的元素会慢慢浮出水面。虽然它简单直观，但请注意观察它执行了多少次比较操作，这直接关系到算法的效率。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
+          "type": "speech",
+          "text": "要点 2。修改比较逻辑以支持降序排列成绩数据"
+        },
+        {
+          "type": "speech",
+          "text": "要点 3。处理成绩相同情况下的并列排名显示逻辑"
         }
-      ],
-      "scene_id": 2
-    },
-    {
-      "layout_type": "header-content",
-      "title": "冒泡排序算法逻辑全景",
-      "content": [
-        {
-          "sub_title": "核心思想",
-          "text": "冒泡排序通过重复地遍历待排序序列，依次比较相邻元素，若顺序错误则交换位置。如同气泡上浮，最大（或最小）元素逐渐“冒泡”至序列顶端。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "diagram_bubble_sort_overview.png"
-        },
-        {
-          "sub_title": "流程图解读",
-          "text": "右侧流程图展示了从“开始”到“结束”的完整路径。重点关注菱形判断框（是否需要交换）与矩形处理框（执行交换）的循环执行过程，直至无需交换为止。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "关键逻辑步骤拆解",
-      "content": [
-        {
-          "sub_title": "双重循环控制",
-          "text": "外层循环控制排序轮数，内层循环负责每轮的比较次数。需注意内层循环的边界条件会随着外层轮数的增加而递减。",
-          "icon": "book",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "相邻元素比较",
-          "text": "在每一次内层循环中，比较相邻的两个元素（如 arr[j] 和 arr[j+1]）。如果前一个元素大于后一个元素，则触发交换逻辑。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "交换逻辑实现",
-          "text": "利用临时变量 temp 暂存数据。标准三步走：temp = a; a = b; b = temp; 确保数据在交换过程中不丢失。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "执行次数分析",
-          "text": "对于n个元素，比较次数约为 n(n-1)/2 次。时间复杂度为 O(n²)，属于效率较低的排序算法，仅适用于小规模数据。",
-          "icon": "warning",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "two-column",
-      "title": "单轮排序流程图详解",
-      "content": [
-        {
-          "sub_title": "流程图结构",
-          "text": "【图表描述】\n1. 开始节点 -> 初始化索引 j=0\n2. 判断节点：j < length-i-1 ?\n3. 分支Yes -> 比较节点：arr[j] > arr[j+1] ?\n4. 分支Yes -> 处理节点：Swap(arr[j], arr[j+1])\n5. 循环回归：j++，返回判断节点\n6. 分支No -> 结束本轮排序",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": "diagram_single_pass_flow.png"
-        },
-        {
-          "sub_title": "逻辑要点解析",
-          "text": "流程图清晰地展示了算法的“判断-执行”闭环。菱形框代表布尔判断，决定了程序的分支走向；矩形框代表具体操作。通过此图可直观理解为何内层循环边界需减去 i（已排序好的轮数）。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "核心机制总结",
-      "content": [
-        {
-          "sub_title": "双重循环与边界",
-          "text": "外层循环决定排序趟数，内层循环确定比较终点。边界条件 length-i-1 是优化关键，避免了对已排序元素的重复比较。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "临时变量的必要性",
-          "text": "交换逻辑中，临时变量是数据安全的保障。没有 temp，直接赋值会导致原数据被覆盖，这是初学者最容易犯的逻辑错误。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 3
-    },
-    {
-      "layout_type": "header-content",
-      "title": "冒泡排序算法逻辑解析",
-      "content": [
-        {
-          "sub_title": "核心思想",
-          "text": "冒泡排序通过重复地遍历要排序的数列，一次比较两个相邻的元素，如果它们的顺序错误就把它们交换过来。遍历数列的工作是重复地进行直到没有再需要交换，这意味着该数列已经排序完成。",
-          "icon": "lightbulb",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "双重循环结构",
-          "text": "算法实现需要嵌套两层循环：外层循环控制排序的轮数，内层循环负责每轮中相邻元素的比较与交换。这种结构确保了每一轮都能将当前未排序部分的最大值“冒泡”到正确位置。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "关键实现要点",
-      "content": [
-        {
-          "sub_title": "外层循环范围",
-          "text": "外层循环变量 i 从 0 开始，范围应小于数组长度减 1 (i < n-1)。因为最后一个元素不需要再进行比较，它已经在之前的轮次中被排序好了。",
-          "icon": "warning",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "内层循环边界",
-          "text": "内层循环变量 j 从 0 开始，关键在于上界设置为 j < n-1-i。随着外层循环进行，尾部已排序好的元素逐渐增多，内层比较范围相应减小，避免无效比较。",
-          "icon": "check",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "相邻元素比较",
-          "text": "在内层循环中，使用条件语句 if (arr[j] > arr[j+1]) 判断相邻元素顺序。若前一个元素大于后一个元素，则触发交换逻辑，这是排序的核心判断。",
-          "icon": "code",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "元素交换逻辑",
-          "text": "实现交换通常需要一个临时变量 temp。标准流程为：temp = arr[j]; arr[j] = arr[j+1]; arr[j+1] = temp; 确保两个元素的值正确互换，不丢失数据。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "two-column",
-      "title": "代码实现实战",
-      "content": [
-        {
-          "sub_title": "标准实现示例",
-          "text": "以下代码展示了标准的冒泡排序实现。请注意观察内层循环的边界条件是如何随着外层循环变量的变化而动态调整的，这是优化算法效率的关键。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "public void bubbleSort(int[] arr) {\n    int n = arr.length;\n    // 外层循环：控制排序轮数\n    for (int i = 0; i < n - 1; i++) {\n        // 内层循环：比较相邻元素\n        // 注意边界：n - 1 - i\n        for (int j = 0; j < n - 1 - i; j++) {\n            // 核心逻辑：相邻比较与交换\n            if (arr[j] > arr[j + 1]) {\n                // 交换元素\n                int temp = arr[j];\n                arr[j] = arr[j + 1];\n                arr[j + 1] = temp;\n            }\n        }\n    }\n}",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "常见错误与修正",
-      "content": [
-        {
-          "sub_title": "易错点提示",
-          "text": "初学者常犯的错误是内层循环边界写死为 j < n-1，虽然代码能运行，但会产生不必要的比较操作。另一个常见错误是交换元素时未使用临时变量，导致数据覆盖丢失。",
-          "icon": "warning",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "最佳实践",
-          "text": "在编写代码时，建议先画出数组索引图，手动模拟一轮循环的过程，确认 i 和 j 的变化范围。理解 'n-1-i' 的数学含义是掌握冒泡排序的关键所在。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 4
-    },
-    {
-      "layout_type": "header-content",
-      "title": "基础知识测验：冒泡排序",
-      "content": [
-        {
-          "sub_title": "测验说明",
-          "text": "本次测验包含选择题和判断题，旨在检验你对冒泡排序核心原理的掌握程度。请仔细审题，准备好计算时间复杂度并模拟排序过程。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "考察重点",
-          "text": "1. 时间复杂度分析（最好与最坏情况）\n2. 排序过程的推演与状态判断\n3. 与其他基础排序算法（如选择排序）的对比",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心考点回顾",
-      "content": [
-        {
-          "sub_title": "时间复杂度",
-          "text": "最坏情况（逆序）：$O(n^2)$，需进行 $n(n-1)/2$ 次比较。\n最好情况（正序）：$O(n)$，仅需一趟扫描。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "排序过程",
-          "text": "每一轮遍历将当前未排序部分的最大元素“冒泡”至右侧。经过 k 轮后，数组右侧 k 个元素必然有序。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "算法对比",
-          "text": "冒泡排序是稳定排序，而简单选择排序是不稳定的。两者平均时间复杂度相同，但冒泡排序在有序数组上效率更高。",
-          "icon": "check",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "模拟演示：第一轮排序",
-      "content": [
-        {
-          "sub_title": "初始数组状态",
-          "text": "待排序数组：[5, 1, 4, 2, 8]\n目标：找出最大值并将其移动到最右侧。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "比较过程推演",
-          "text": "1. 比较 5 和 1 -> 交换 -> [1, 5, 4, 2, 8]\n2. 比较 5 和 4 -> 交换 -> [1, 4, 5, 2, 8]\n3. 比较 5 和 2 -> 交换 -> [1, 4, 2, 5, 8]\n4. 比较 5 和 8 -> 不交换 -> [1, 4, 2, 5, 8]\n结果：第一轮结束，最大值 8 已就位。",
-          "icon": "check",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "header-content",
-      "title": "测验开始",
-      "content": [
-        {
-          "sub_title": "注意事项",
-          "text": "本环节包含 5 道题目。请根据刚才回顾的知识点，在脑海中模拟排序过程或计算比较次数。准备好了吗？让我们开始挑战！",
-          "icon": "question",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 5
-    },
-    {
-      "layout_type": "two-column",
-      "title": "为什么需要优化冒泡排序？",
-      "content": [
-        {
-          "sub_title": "传统冒泡排序的痛点",
-          "text": "在传统实现中，即使数组在第一轮比较后就已经完全有序，算法依然会固执地执行完所有 N-1 轮比较。这产生了大量不必要的计算开销。",
-          "icon": "warning",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "优化的核心思路",
-          "text": "引入一个“哨兵”——布尔标志位。在每一轮排序开始前，我们假设数组已经有序；一旦发生交换，就修改标志位。如果一轮结束标志位未变，说明数组已经有序，可以立即终止排序。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "优化算法的关键步骤",
-      "content": [
-        {
-          "sub_title": "1. 初始化标志位",
-          "text": "在每一轮外层循环开始时，将布尔标志位（如 isSorted）初始化为 true，表示当前假设数组已经有序。",
-          "icon": "book",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "2. 监测交换行为",
-          "text": "在内层循环中，一旦执行了元素交换操作，立即将 isSorted 设置为 false，证明数组尚未完全有序。",
-          "icon": "code",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "3. 提前终止判断",
-          "text": "内层循环结束后，检查 isSorted 的值。如果仍为 true，说明本轮未发生任何交换，数组已有序，使用 break 关键字跳出外层循环。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "代码实现：引入标志位",
-      "content": [
-        {
-          "sub_title": "优化后的冒泡排序实现",
-          "text": "注意观察外层循环中 isSorted 变量的定义与判断逻辑。这是提升效率的关键所在。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "function bubbleSortOptimized(arr) {\n  let n = arr.length;\n  for (let i = 0; i < n - 1; i++) {\n    // 1. 假设本轮已经有序\n    let isSorted = true;\n\n    for (let j = 0; j < n - 1 - i; j++) {\n      if (arr[j] > arr[j + 1]) {\n        // 2. 发生交换，说明假设不成立\n        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];\n        isSorted = false;\n      }\n    }\n\n    // 3. 如果本轮未发生交换，提前结束\n    if (isSorted) {\n      break;\n    }\n  }\n  return arr;\n}",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "two-column",
-      "title": "练习任务：实战优化",
-      "content": [
-        {
-          "sub_title": "任务背景",
-          "text": "假设我们正在处理一个实时传感器数据流，数据大部分时间是有序的，偶尔会有乱序。我们需要一个高效的排序算法来减少延迟。",
-          "icon": "info",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "练习要求",
-          "text": "1. 定义一个包含100个元素的已排序数组。\n2. 分别使用传统冒泡排序和优化后的冒泡排序处理该数组。\n3. 打印两种方法实际执行的外层循环次数，对比效率差异。\n4. 尝试将数组中间的两个元素交换位置，再次运行优化算法，观察循环次数的变化。",
-          "icon": "star",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 6
-    },
-    {
-      "layout_type": "header-content",
-      "title": "项目背景：成绩排序系统",
-      "content": [
-        {
-          "sub_title": "项目情境",
-          "text": "某班级期末考试结束，老师需要根据学生的总成绩进行排名。你需要开发一个小型系统，能够输入学生信息与成绩，并输出排名后的名单。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "核心挑战",
-          "text": "不仅需要将成绩从高到低排序，还必须正确处理“并列排名”的情况（例如：两人分数相同，则排名相同，下一名次顺延）。",
-          "icon": "warning",
-          "color_theme": "orange",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "学习目标",
-          "text": "掌握冒泡排序算法原理，灵活运用数据结构存储信息，并设计逻辑处理并列排名问题。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "grid-cards",
-      "title": "核心知识点拆解",
-      "content": [
-        {
-          "sub_title": "数据结构设计",
-          "text": "使用结构体或类封装学生信息。建议包含：学号、姓名、成绩、排名。将多个学生对象存储在数组或列表中以便遍历。",
-          "icon": "info",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "降序排列逻辑",
-          "text": "冒泡排序默认为升序。需修改比较逻辑：若 前一个元素成绩 < 后一个元素成绩，则交换位置，确保最大值“冒泡”至数组顶端。",
-          "icon": "lightbulb",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "并列排名处理",
-          "text": "排序完成后进行遍历赋值。规则：第一名排名为1；若当前学生成绩等于前一名，则排名相同；否则，排名等于当前数组索引+1。",
-          "icon": "check",
-          "color_theme": "green",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "two-column",
-      "title": "算法实现：排序与排名",
-      "content": [
-        {
-          "sub_title": "冒泡排序与排名逻辑",
-          "text": "左侧代码展示了两个关键步骤：首先使用冒泡排序对成绩进行降序排列，随后通过一次遍历处理并列排名逻辑。",
-          "icon": "code",
-          "color_theme": "green",
-          "code_snippet": "// 定义学生结构体\nstruct Student {\n    string name;\n    int score;\n    int rank;\n};\n\n// 1. 冒泡排序（降序）\nfor(int i=0; i<n-1; i++) {\n    for(int j=0; j<n-1-i; j++) {\n        if(stu[j].score < stu[j+1].score) {\n            swap(stu[j], stu[j+1]);\n        }\n    }\n}\n\n// 2. 处理并列排名\nstu[0].rank = 1; // 第一名\nfor(int i=1; i<n; i++) {\n    if(stu[i].score == stu[i-1].score) {\n        // 成绩相同，排名相同\n        stu[i].rank = stu[i-1].rank;\n    } else {\n        // 成绩不同，排名等于数组下标+1\n        stu[i].rank = i + 1;\n    }\n}",
-          "image_url": ""
-        },
-        {
-          "sub_title": "代码解析",
-          "text": "1. 比较运算符使用 '<' 实现降序。\n2. 交换操作直接交换整个结构体，保证数据完整性。\n3. 排名逻辑独立于排序执行，避免在排序过程中处理复杂的名次计算。",
-          "icon": "book",
-          "color_theme": "blue",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
-    },
-    {
-      "layout_type": "quote-highlight",
-      "title": "项目总结与拓展",
-      "content": [
-        {
-          "sub_title": "关键回顾",
-          "text": "本项目通过冒泡排序解决了成绩排序问题。核心在于理解排序的稳定性以及如何通过后处理逻辑解决实际业务中的“并列排名”需求。",
-          "icon": "star",
-          "color_theme": "purple",
-          "code_snippet": "",
-          "image_url": ""
-        },
-        {
-          "sub_title": "思考题",
-          "text": "如果使用选择排序替代冒泡排序，是否会影响并列排名的处理逻辑？为什么？",
-          "icon": "question",
-          "color_theme": "yellow",
-          "code_snippet": "",
-          "image_url": ""
-        }
-      ],
-      "scene_id": 7
+      ]
     }
   ],
   "teacher": {
