@@ -29,6 +29,8 @@ logger = logging.getLogger("ppt.regenerate")
 
 STORAGE_DIR = Path(__file__).resolve().parent.parent.parent.parent / "storage" / "courses"
 
+DESIGN_STYLES = ["modern", "elegant", "minimal", "bold", "classic"]
+
 
 async def regenerate_slide(
     provider,
@@ -48,7 +50,7 @@ async def regenerate_slide(
         scene_title=scene.get("title", f"场景 {scene_idx + 1}"),
         scene_type=scene.get("type", "slide"),
         content=content,
-        design_style="modern",
+        design_style=DESIGN_STYLES[scene_idx % len(DESIGN_STYLES)],
     )
 
     result = await provider.generate(request)
@@ -152,7 +154,7 @@ async def regenerate_course(course_path: Path) -> bool:
             scene_id=str(outline.get("id", idx + 1)),
             scene_type=scene_type,
             content=content,
-            design_style="modern",
+            design_style=DESIGN_STYLES[idx % len(DESIGN_STYLES)],
         )
 
         result = await provider.generate(request)

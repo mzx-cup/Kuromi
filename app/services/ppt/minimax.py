@@ -873,43 +873,31 @@ class MiniMaxPPTProvider:
         return "\n".join(lines)
 
     def _select_layout(self, content: list, scene_type: str, design_style: str = "modern") -> str:
-        """根据内容数量直接锁定布局（1-8项各自对应不同布局，样式差异最大化）"""
+        """
+        根据设计风格选择布局池中的随机布局。
+
+        不再按内容项数量锁定布局（那样会导致多个幻灯片内容项数量相同时布局雷同），
+        而是让每张幻灯片从布局池中随机选择不同布局，视觉多样性最大化。
+        """
         if scene_type == "quiz":
             return "grid-cards"
 
-        count = len(content)
-
-        # 1-8项直接锁定不同布局，样式差异最大化
-        if count == 1:
-            return "title-only"
-        elif count == 2:
-            return "two-column"
-        elif count == 3:
-            return "quote-highlight"
-        elif count == 4:
-            return "stats-row"
-        elif count == 5:
-            return "header-content"
-        elif count == 6:
-            return "asymmetric-split"
-        elif count == 7:
-            return "timeline-steps"
-        elif count == 8:
-            return "comparison"
-
-        # 9项及以上使用多内容布局池（从25种布局中排除已锁定的8种）
-        multi_content_layouts = [
-            l for l in [
-                # 已锁定布局之外的扩展布局
-                "grid-cards", "center-focus", "media-left", "fullwidth-banner",
-                "three-column-cards", "hero-center", "info-card", "feature-list",
-                "hero-split", "numbered-list", "quote-card", "grid-highlight",
-                "vertical-stack", "diagonal-split", "circle-accent", "sidebar-layout", "banner-strip",
-                # 保留部分已锁定布局作为回退
-                "header-content", "stats-row", "two-column", "timeline-steps", "comparison",
-            ] if l in self.LAYOUT_TYPES
+        # 从全部28种布局中随机选择，让连续幻灯片布局自然差异化
+        base_layouts = [
+            "title-only", "two-column", "quote-highlight", "stats-row",
+            "header-content", "asymmetric-split", "timeline-steps", "comparison",
+            "grid-cards", "center-focus", "media-left", "fullwidth-banner",
+            "three-column-cards", "hero-center",
         ]
-        return random.choice(multi_content_layouts)
+        # 扩展布局池（额外14种）
+        extra_layouts = [
+            "info-card", "feature-list", "hero-split", "numbered-list",
+            "quote-card", "grid-highlight", "vertical-stack", "diagonal-split",
+            "circle-accent", "sidebar-layout", "banner-strip",
+            "icon-vertical-stack", "bottom-cards", "floating-overlap",
+        ]
+        all_layouts = base_layouts + extra_layouts
+        return random.choice(all_layouts)
 
     def _strip_markdown(self, text: str) -> str:
         """去除 markdown 代码块包装"""

@@ -566,14 +566,16 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - minimal-center: 极简居中布局（标题嵌入内容卡片）
 - horizontal-scroll: 水平滚动布局（内容水平滚动展示）
 
-生成3-5页幻灯片，覆盖以下内容：
+生成4-7页幻灯片，覆盖以下内容：
 1. 概念引入页（建议用 hero-center、two-column、header-content 或 asymmetric-split）
-2. 知识点讲解页（建议用 grid-cards、three-column-cards 或 info-graphic 展示多个要点）
-3. 示例演示页（建议用 two-column、quote-highlight 或 media-left）
-4. 流程步骤页（建议用 numbered-list、timeline-steps 或 process-flow）
-5. 总结强化页（建议用 fullwidth-banner 或 comparison）
+2. 知识点讲解页1（建议用 grid-cards、three-column-cards 或 info-graphic 展示多个要点）
+3. 知识点讲解页2（建议用不同于页面2的布局，如 two-column、quote-highlight 或 media-left）
+4. 示例演示页（建议用 numbered-list、timeline-steps 或 process-flow）
+5. 流程步骤页（建议用 asymmetric-split、stats-row 或 info-graphic）
+6. 总结强化页（建议用 fullwidth-banner、comparison 或 center-focus）
+7. 扩展思考页（可选，建议用 quote-wall、floating-overlap 或 circle-radial）
 
-每种布局都应该被充分使用，让幻灯片整体视觉丰富多样。
+**必须至少生成4页幻灯片，每页布局必须不同。禁止所有幻灯片使用相同或相似的布局。**
 
 色系分配规则：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调，orange用于补充说明。相邻卡片禁止使用相同色系。
 
