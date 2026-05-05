@@ -14,17 +14,31 @@
 ├── proactive_tutor.py         # 主动辅导模块（推送消息）
 ├── task_manager.py            # 异步任务管理
 ├── prompts.py                 # 提示词模板整合
-├── course_generator.py        # 课程生成器
-├── media_generation.py        # 媒体生成（图片/TTS）
-├── pptx_export.py             # PPT 导出
-├── verify_ppt_templates.py    # PPT 模板验证
 │
-├── # 外部 API 集成
-├── kling_api.py               # 可灵视频 API
-├── cogvideo_api.py            # CogVideo 视频 API
-├── cogvideo_text_to_video.py  # CogVideo 文生视频
-├── cogvideo_image_to_video.py # CogVideo 图生视频
-├── download_cogvideo.py      # CogVideo 下载工具
+├── # 工具库 (libs/) - 归类散落的工具模块
+├── libs/                      # 工具库目录
+│   ├── __init__.py
+│   ├── video/                 # 视频生成
+│   │   ├── __init__.py
+│   │   ├── cogvideo_api.py    # CogVideo 服务（独立运行）
+│   │   ├── cogvideo_text_to_video.py
+│   │   ├── cogvideo_image_to_video.py
+│   │   └── download.py        # CogVideo 下载工具
+│   ├── kling_api.py           # 可灵视频 API
+│   ├── media.py               # 媒体生成（图片/TTS/视频）
+│   ├── course.py              # 课程生成器
+│   └── pptx.py               # PPT 导出
+│
+│   # 根目录的 re-export 文件（向后兼容）
+├── cogvideo_api.py            # → libs.video.cogvideo_api (re-export)
+├── cogvideo_text_to_video.py  # → libs.video.cogvideo_text_to_video (re-export)
+├── cogvideo_image_to_video.py # → libs.video.cogvideo_image_to_video (re-export)
+├── download_cogvideo.py       # → libs.video.download (re-export)
+├── kling_api.py               # → libs.kling_api (re-export)
+├── media_generation.py        # → libs.media (re-export)
+├── course_generator.py        # → libs.course (re-export)
+├── pptx_export.py             # → libs.pptx (re-export)
+├── verify_ppt_templates.py    # → libs.pptx (re-export)
 │
 ├── # 配置与数据库
 ├── config/                    # 配置目录
@@ -142,7 +156,35 @@
 | `proactive_tutor.py` | 主动辅导（推送消息、学习干预） |
 | `task_manager.py` | 异步任务调度（思维导图、视频等） |
 | `prompts.py` | 所有提示词模板整合 |
-| `course_generator.py` | 课程生成主逻辑 |
+
+### 2️⃣ 工具库 (libs/) - 实际代码
+
+| 文件/目录 | 用途 |
+|-----------|------|
+| `libs/media.py` | 媒体生成（TTS、图片、视频） |
+| `libs/course.py` | 课程生成主逻辑 |
+| `libs/pptx.py` | PPT 导出 |
+| `libs/kling_api.py` | 可灵视频生成 API |
+| `libs/video/cogvideo_api.py` | CogVideo 服务（独立运行） |
+| `libs/video/cogvideo_text_to_video.py` | CogVideo 文生视频 |
+| `libs/video/cogvideo_image_to_video.py` | CogVideo 图生视频 |
+| `libs/video/download.py` | CogVideo 下载工具 |
+
+### 3️⃣ 根目录 re-export 文件（向后兼容）
+
+这些文件只有一行 re-export，实际代码在 libs/ 中：
+
+| 文件 | 实际位置 |
+|------|---------|
+| `cogvideo_api.py` | → `libs/video/cogvideo_api.py` |
+| `cogvideo_text_to_video.py` | → `libs/video/cogvideo_text_to_video.py` |
+| `cogvideo_image_to_video.py` | → `libs/video/cogvideo_image_to_video.py` |
+| `download_cogvideo.py` | → `libs/video/download.py` |
+| `kling_api.py` | → `libs/kling_api.py` |
+| `media_generation.py` | → `libs/media.py` |
+| `course_generator.py` | → `libs/course.py` |
+| `pptx_export.py` | → `libs/pptx.py` |
+| `verify_ppt_templates.py` | → `libs/pptx.py` |
 | `pptx_export.py` | PPT 导出功能 |
 | `media_generation.py` | 媒体生成（TTS、图片） |
 

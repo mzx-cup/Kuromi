@@ -10,6 +10,8 @@ PPT 模板、颜色样式、布局系统验证脚本
 5. STYLE_LAYOUT_PREFERENCES 每个style的layout都在LAYOUT_TYPES中
 6. IMAGE_FRIENDLY_LAYOUTS 所有layout都在LAYOUT_TYPES中
 7. _select_layout 能根据不同design_style选取对应布局
+
+运行方式: python verify_ppt_templates.py
 """
 
 import sys
@@ -123,12 +125,10 @@ def main():
         layout = provider._select_layout(content, "normal", "modern")
         locked[count] = layout
 
-    # 检查1-8是否各有不同布局（允许重复但应尽量不同）
     layout_set = set(locked.values())
     print(f"    Locked layouts: {locked}")
     print(f"    Unique locked layouts: {len(layout_set)} / 8")
 
-    # 汇总
     print("\n" + "=" * 60)
     if errors:
         print(f"ERRORS FOUND: {len(errors)}")
