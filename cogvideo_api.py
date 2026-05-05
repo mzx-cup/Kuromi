@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 """
 CogVideoX-2B API 服务
-使用 FastAPI 封装成 REST API，方便集成到星识项目
+适配 8GB 显存以下显卡（使用 CPU 卸载）
 
 启动服务:
-    uvicorn cogvideo_api:app --reload --port 8000
+    python cogvideo_api.py
 
 API 文档:
     http://localhost:8000/docs
 """
 
+import os
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
-from modelscope import CogVideoXPipeline
-from modelscope.outputs import OutputKeys
+from fastapi.responses import FileResponse
+from diffusers import CogVideoXPipeline
+from diffusers.utils import export_to_video
 from PIL import Image
 import torch
-import os
 import tempfile
 
 app = FastAPI(title="CogVideoX-2B API", version="1.0.0")
@@ -31,8 +33,15 @@ def load_model():
     global pipe
     print("=" * 50)
     print("加载 CogVideoX-2B 模型（首次运行需要下载，请耐心等待）...")
-    pipe = CogVideoXPipeline('THUDM/CogVideoX-2B', device='cuda:0')
-    pipe.to(torch.float16)
+
+    pipe = CogVideoXPipeline.from_pretrained(
+        'THUDM/CogVideoX-2B',
+        torch_dtype=torch.float16,
+    )
+
+    # 适配 8GB 以下显存：使用 CPU 卸载
+    pipe.enable_model_cpu_offload()
+
     print("模型加载完成!")
     print("=" * 50)
 
@@ -73,20 +82,17 @@ async def text_to_video(
 
     try:
         # 生成视频
-        output = pipe({
-            'text': prompt,
-        })
-
-        video_key = OutputKeys.OUTPUT_VIDEO
-        videos = output[video_key]
+        output = pipe(
+            prompt,
+            num_frames=num_frames,
+            guidance_scale=guidance_scale,
+        )
 
         # 保存到临时文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as f:
             temp_path = f.name
-            if isinstance(videos, list):
-                videos[0].save(temp_path)
-            else:
-                videos.save(temp_path)
+            video_frames = output.frames[0]
+            export_to_video(video_frames, temp_path, fps=8)
 
         return FileResponse(temp_path, media_type="video/mp4", filename="output.mp4")
 
@@ -96,7 +102,7 @@ async def text_to_video(
 
 @app.post("/video/image")
 async def image_to_video(
-    image: UploadFile = File(..., description="输入图片"),
+    image: UploadFile = File(..., description="输入图片文件"),
     prompt: str = Form(..., description="视频描述"),
     num_frames: int = Form(49, description="帧数（默认49帧约6秒）"),
     guidance_scale: float = Form(7.5, description="引导强度"),
@@ -123,21 +129,18 @@ async def image_to_video(
         init_image = Image.open(image.file).convert("RGB")
 
         # 生成视频
-        output = pipe({
-            'text': prompt,
-            'image': init_image
-        })
-
-        video_key = OutputKeys.OUTPUT_VIDEO
-        videos = output[video_key]
+        output = pipe(
+            prompt,
+            image=init_image,
+            num_frames=num_frames,
+            guidance_scale=guidance_scale,
+        )
 
         # 保存到临时文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as f:
             temp_path = f.name
-            if isinstance(videos, list):
-                videos[0].save(temp_path)
-            else:
-                videos.save(temp_path)
+            video_frames = output.frames[0]
+            export_to_video(video_frames, temp_path, fps=8)
 
         return FileResponse(temp_path, media_type="video/mp4", filename="output.mp4")
 

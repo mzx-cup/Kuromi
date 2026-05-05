@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 """
 CogVideoX-2B 文生视频脚本
-使用 ModelScope 国内镜像下载模型
+适配 8GB 显存以下显卡（使用 CPU 卸载）
 
 使用方法:
-1. 先注册 ModelScope: https://www.modelscope.cn
-2. 安装依赖: pip install modelscope torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-3. 运行: python cogvideo_text_to_video.py
+1. 安装依赖: pip install diffusers transformers accelerate sentencepiece
+2. 运行: python cogvideo_text_to_video.py --prompt "一个男人在公园里跑步"
 """
 
-from modelscope import CogVideoXPipeline
-from modelscope.outputs import OutputKeys
+import os
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+
+from diffusers import CogVideoXPipeline
+from diffusers.utils import export_to_video
 import torch
 
 
@@ -34,25 +36,27 @@ def generate_video_from_text(
     """
     print(f"加载 CogVideoX-2B 模型...")
 
-    # 加载模型（首次会自动从 ModelScope 下载）
-    pipe = CogVideoXPipeline('THUDM/CogVideoX-2B', device='cuda:0')
-    pipe.to(torch.float16)
+    # 加载模型（首次会自动从 HuggingFace 下载）
+    pipe = CogVideoXPipeline.from_pretrained(
+        'THUDM/CogVideoX-2B',
+        torch_dtype=torch.float16,
+    )
+
+    # 适配 8GB 以下显存：使用 CPU 卸载
+    pipe.enable_model_cpu_offload()
 
     print(f"开始生成视频: {prompt[:50]}...")
 
     # 生成视频
-    output = pipe({
-        'text': prompt,
-    })
+    output = pipe(
+        prompt,
+        num_frames=num_frames,
+        guidance_scale=guidance_scale,
+    )
 
-    # 保存视频
-    video_key = OutputKeys.OUTPUT_VIDEO
-    videos = output[video_key]
-
-    if isinstance(videos, list):
-        videos[0].save(output_path)
-    else:
-        videos.save(output_path)
+    # 保存视频 - 使用 export_to_video
+    video_frames = output.frames[0]
+    export_to_video(video_frames, output_path, fps=8)
 
     print(f"视频已保存: {output_path}")
     return output_path
