@@ -289,12 +289,13 @@
                     const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
                     if (!resp.ok) return;
                     const data = await resp.json();
+                    // Always consume pending slides first, even if complete
+                    if (data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
+                        self.addNewScenes(data);
+                    }
                     if (data.is_complete) {
                         clearInterval(self.pollingInterval);
                         return;
-                    }
-                    if (data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
-                        self.addNewScenes(data);
                     }
                 } catch (e) {
                     console.warn('[classroom] Polling error:', e);
@@ -381,14 +382,34 @@
             }
 
             pendingV2.forEach(function(slideV2) {
-                // 检查是否已存在
+                // Try to merge into existing scene by scene_id
+                var merged = false;
+                if (slideV2.scene_id != null) {
+                    var matchedScene = self.scenes.find(function(s) {
+                        return String(s.id) === String(slideV2.scene_id);
+                    });
+                    if (matchedScene) {
+                        // Check duplicate by title within the scene
+                        var slideExists = matchedScene.slides_v2.some(function(s) {
+                            return s.title === slideV2.title;
+                        });
+                        if (!slideExists) {
+                            matchedScene.slides_v2.push(slideV2);
+                            addedCount++;
+                        }
+                        merged = true;
+                    }
+                }
+                if (merged) return;
+
+                // Fallback: check global duplicate by first slide title
                 const exists = self.scenes.some(function(s) {
                     return s.slides_v2 && s.slides_v2.length > 0 &&
                            s.slides_v2[0].title === slideV2.title;
                 });
                 if (exists) return;
 
-                // 创建新场景
+                // Create new scene
                 const newScene = {
                     id: slideV2.scene_id || ('scene_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
                     title: slideV2.title || '新页面',
@@ -402,7 +423,7 @@
                     actions: slideV2.actions || null,
                 };
 
-                // 尝试匹配quiz或exercise
+                // Try matching quiz or exercise
                 const matchedQuiz = pendingQuiz.find(function(q) {
                     return q.scene_id === slideV2.scene_id;
                 });
@@ -473,20 +494,25 @@
                 }
                 return false;
             };
+            const findSceneDataAll = function(items, outline) {
+                var matches = (items || []).filter(function(item) { return matchesScene(item, outline); });
+                return matches.length > 0 ? matches : null;
+            };
             const findSceneData = function(items, outline) {
-                return (items || []).find(function(item) { return matchesScene(item, outline); }) || null;
+                var matches = findSceneDataAll(items, outline);
+                return matches ? matches[0] : null;
             };
 
             // slides_v2 now includes scene_id from MiniMax PPT provider
-            // Use findSceneData for scene_id matching (Strategy 1), fallback to index for legacy
+            // Use findSceneDataAll for scene_id matching (Strategy 1), fallback to index for legacy
             var usedSlideV2Indices = new Set();
             this.scenes = outlines.map(function(outline, i) {
                 var sceneId = outline.id || i + 1;
                 var matchedSlide = findSceneData(slides, outline);
-                var matchedSlideV2 = findSceneData(slidesV2, outline) || null;
+                var matchedSlidesV2 = findSceneDataAll(slidesV2, outline);
 
                 // Fallback: if no scene_id match, find by index or first valid slides_v2 entry with content
-                if (!matchedSlideV2) {
+                if (!matchedSlidesV2) {
                     if (i < slidesV2.length) {
                         var candidate = slidesV2[i];
                         // If the indexed entry has no content, scan forward to find the first with valid content
@@ -501,15 +527,17 @@
                                 }
                             }
                         }
-                        matchedSlideV2 = candidate;
+                        matchedSlidesV2 = [candidate];
                     }
-                    if (!matchedSlideV2) matchedSlideV2 = null;
+                    if (!matchedSlidesV2) matchedSlidesV2 = null;
                 }
 
                 // Track which slidesV2 are matched to outlines
-                if (matchedSlideV2) {
-                    var matchedIdx = slidesV2.indexOf(matchedSlideV2);
-                    if (matchedIdx >= 0) usedSlideV2Indices.add(matchedIdx);
+                if (matchedSlidesV2) {
+                    matchedSlidesV2.forEach(function(s) {
+                        var matchedIdx = slidesV2.indexOf(s);
+                        if (matchedIdx >= 0) usedSlideV2Indices.add(matchedIdx);
+                    });
                 }
 
                 var matchedQuiz = findSceneData(quizData, outline);
@@ -522,7 +550,7 @@
                     description: outline.description || '',
                     keyPoints: outline.key_points || outline.keyPoints || [],
                     slide: matchedSlide,
-                    slides_v2: matchedSlideV2 ? [matchedSlideV2] : [],
+                    slides_v2: matchedSlidesV2 || [],
                     quiz: matchedQuiz,
                     exercise: matchedExercise,
                     audioUrl: (this.courseData.tts_audio_urls || {})[String(sceneId)] || null,
@@ -548,6 +576,38 @@
                     });
                 }
             }, this);
+
+            // Expand scenes that contain multiple slides into individual scenes
+            this.expandMultiSlideScenes();
+        }
+
+        expandMultiSlideScenes() {
+            const expanded = [];
+            const self = this;
+            this.scenes.forEach(function(scene) {
+                const slides = scene.slides_v2 || [];
+                if (slides.length <= 1) {
+                    expanded.push(scene);
+                    return;
+                }
+                slides.forEach(function(slide, idx) {
+                    expanded.push({
+                        id: scene.id + '_slide_' + idx,
+                        title: slide.title || scene.title || ('幻灯片 ' + (idx + 1)),
+                        type: scene.type || 'slide',
+                        description: scene.description || '',
+                        keyPoints: scene.keyPoints || [],
+                        slide: null,
+                        slides_v2: [slide],
+                        quiz: idx === 0 ? scene.quiz : null,
+                        exercise: idx === 0 ? scene.exercise : null,
+                        audioUrl: scene.audioUrl,
+                        imageUrl: (slide.content && slide.content[0] && slide.content[0].image_url) ||
+                                  (slide.image_url) || scene.imageUrl || null,
+                    });
+                });
+            });
+            this.scenes = expanded;
         }
 
         setupUI() {
@@ -1535,14 +1595,7 @@
 
             try {
                 const slides_v2 = scene.slides_v2 || [];
-                console.log('[Classroom] renderSlideV2Scene:', {
-                    sceneId: scene.id,
-                    sceneTitle: scene.title,
-                    slidesV2Count: slides_v2.length,
-                    firstSlideKeys: slides_v2[0] ? Object.keys(slides_v2[0]) : [],
-                    firstSlideContentCount: slides_v2[0]?.content?.length,
-                    firstSlideColorThemes: slides_v2[0]?.content?.map(c => c.color_theme)
-                });
+
                 if (slides_v2.length === 0) {
                     this.renderSlideScene(scene);
                     return;
@@ -1557,7 +1610,6 @@
                     cardData = this._groupOpenMAICElementsToCards(firstSlide);
                 } else if (firstSlide.content && Array.isArray(firstSlide.content) && firstSlide.content.length > 0) {
                     // SlideV2 format: use content + layout_type directly
-                    // Guard against null content or empty arrays from legacy data
                     cardData = {
                         title: firstSlide.title || scene.title || '',
                         content: this.SlideRenderer._cycleCardThemes(firstSlide.content),
@@ -1701,8 +1753,9 @@
                 });
             }
 
-            var layoutType = cards.length <= 1 ? 'title-only' :
-                             cards.length <= 2 ? 'two-column' : 'grid-cards';
+            var layoutType = slide.layout_type || slide.layoutType ||
+                             (cards.length <= 1 ? 'title-only' :
+                              cards.length <= 2 ? 'two-column' : 'grid-cards');
 
             // Build element-to-card-index mapping for spotlight/laser actions
             var elemToCard = {};
@@ -3971,7 +4024,18 @@
 
         _renderQuizCover(scene) {
             var quiz = scene.quiz_data || scene.quiz;
-            if (!quiz) return;
+            if (!quiz) {
+                if (this.quizCoverTitle) {
+                    this.quizCoverTitle.textContent = scene.title || '课堂测验';
+                }
+                if (this.quizCoverMeta) {
+                    this.quizCoverMeta.innerHTML =
+                        '<span><i class="fas fa-info-circle"></i> 测验数据尚未生成</span>';
+                }
+                if (this.quizStartBtn) this.quizStartBtn.style.display = 'none';
+                return;
+            }
+            if (this.quizStartBtn) this.quizStartBtn.style.display = 'flex';
 
             var questions = quiz.questions || [];
             var totalPoints = questions.reduce(function(sum, q) { return sum + (q.points || 10); }, 0);
@@ -4007,8 +4071,14 @@
             if (!quiz) {
                 console.warn('[Classroom] No quiz data found in scene');
                 if (this.quizQuestionsArea) {
-                    this.quizQuestionsArea.innerHTML = '<div class="quiz-error">测验数据加载失败</div>';
+                    this.quizQuestionsArea.innerHTML =
+                        '<div class="quiz-error">' +
+                        '<i class="fas fa-info-circle"></i> ' +
+                        '<p>测验数据尚未生成</p>' +
+                        '<p class="quiz-error-sub">请关闭后重新进入课堂，或稍后再试</p>' +
+                        '</div>';
                 }
+                if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'none';
                 return;
             }
             var questions = quiz.questions || [];
@@ -4069,6 +4139,11 @@
         }
 
         _renderQuestionCard(q, index) {
+            var self = this;
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
             var type = q.question_type || 'single';
             var points = q.points || 10;
             var typeLabels = { single: '单选题', multiple: '多选题', short_answer: '简答题' };
@@ -4081,7 +4156,7 @@
             html += '<span class="question-type-tag ' + typeClass + '">' + typeLabel + '</span>';
             html += '<span class="question-card-points">' + points + ' 分</span>';
             html += '</div>';
-            html += '<div class="question-body">' + this._escapeHtml(q.question) + '</div>';
+            html += '<div class="question-body">' + esc(q.question) + '</div>';
 
             if (type === 'short_answer') {
                 html += this._renderShortAnswerQuestion(q, index);
@@ -4097,14 +4172,18 @@
             var options = q.options || [];
             var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             var isMulti = type === 'multiple';
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
             var html = '<div class="question-options">';
 
             options.forEach(function(opt, oi) {
                 html += '<div class="quiz-option' + (isMulti ? ' multi' : '') + '" data-option-index="' + oi + '">';
                 html += '<div class="quiz-option-radio' + (isMulti ? ' multi' : '') + '"></div>';
-                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + this._escapeHtml(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
+                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + esc(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
                 html += '</div>';
-            }.bind(this));
+            });
 
             html += '</div>';
             return html;
@@ -4430,6 +4509,10 @@
         }
 
         _renderQuestionReview(q, index, result) {
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
             var type = q.question_type || 'single';
             var isCorrect = result.is_correct;
             var correctClass = isCorrect ? 'review-correct' : 'review-incorrect';
@@ -4443,7 +4526,7 @@
             html += '<span class="question-card-points">' + Math.round(result.score || 0) + ' / ' + Math.round(result.total_points || q.points || 10) + ' 分</span>';
             html += markIcon;
             html += '</div>';
-            html += '<div class="question-body">' + this._escapeHtml(q.question) + '</div>';
+            html += '<div class="question-body">' + esc(q.question) + '</div>';
 
             if (type === 'short_answer') {
                 // Show user answer + AI feedback
@@ -4452,7 +4535,7 @@
                 if (existing) userAnswer = existing.value || '';
                 html += '<div class="sa-answer-area">';
                 html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">你的答案：</div>';
-                html += '<div style="font-size:13px;color:var(--text-primary);padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);margin-bottom:10px;">' + this._escapeHtml(userAnswer || '(未作答)') + '</div>';
+                html += '<div style="font-size:13px;color:var(--text-primary);padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--glass-border);margin-bottom:10px;">' + esc(userAnswer || '(未作答)') + '</div>';
                 if (result.feedback) {
                     html += '<div class="sa-feedback-box" id="sa-feedback-' + index + '">';
                     html += '<div class="sa-feedback-label"><i class="fas fa-robot"></i> AI 点评</div>';
@@ -4461,7 +4544,7 @@
                     html += '</div>';
                 }
                 if (result.correct_answer) {
-                    html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:8px;">参考答案：' + this._escapeHtml(result.correct_answer) + '</div>';
+                    html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:8px;">参考答案：' + esc(result.correct_answer) + '</div>';
                 }
                 html += '</div>';
             } else {
@@ -4470,7 +4553,7 @@
                 if (result.feedback) {
                     html += '<div style="padding:8px 16px 14px;font-size:12px;color:var(--text-secondary);line-height:1.5;">';
                     html += '<i class="fas fa-lightbulb" style="color:#fbbf24;margin-right:4px;"></i>';
-                    html += this._escapeHtml(result.feedback);
+                    html += esc(result.feedback);
                     html += '</div>';
                 }
             }
@@ -4482,10 +4565,13 @@
         _renderChoiceOptionsReview(q, index, result, type) {
             var options = q.options || [];
             var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            var correctAnswer = result.correct_answer || '';
             var isMulti = type === 'multiple';
             var userSet = new Set();
             var correctSet = new Set();
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
 
             if (isMulti) {
                 var existing = this.quizUserAnswers[index];
@@ -4513,10 +4599,10 @@
                 html += '<div class="quiz-option-radio' + (isMulti ? ' multi' : '') + ' review-icon">';
                 if (isUserSelected) html += '<i class="fas ' + (isCorrectOption ? 'fa-check' : 'fa-times') + '" style="font-size:12px;"></i>';
                 html += '</div>';
-                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + this._escapeHtml(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
+                html += '<span class="quiz-option-text">' + labels[oi] + '. ' + esc(typeof opt === 'string' ? opt : (opt.text || opt.key || '')) + '</span>';
                 html += iconHtml;
                 html += '</div>';
-            }.bind(this));
+            });
             html += '</div>';
             return html;
         }

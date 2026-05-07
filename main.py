@@ -3751,10 +3751,8 @@ async def report_struggle(request: Request):
             # fallback for pydantic v1
             event = StruggleEvent(**payload)
     except Exception as ve:
-        # Log the validation error for debugging
-        req_logger.warning(f"Struggle event validation failed: {ve}")
-        # Provide readable detail to client
-        raise HTTPException(status_code=422, detail=f"Invalid struggle event payload: {ve}")
+        req_logger.warning(f"Struggle event validation failed: payload={payload}, error={ve}")
+        raise HTTPException(status_code=400, detail=f"Invalid struggle event payload: {ve}")
 
     if not event.user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
@@ -6332,7 +6330,8 @@ async def get_course(course_id: str):
 
 @app.get("/api/v2/course/{course_id}/slides/pending")
 async def get_pending_slides(course_id: str):
-    """获取课程待生成的幻灯片（用于后台增量生成）"""
+    """获取课程待生成的幻灯片（用于后台增量生成）。
+    返回后自动清空 pending_slides_v2，避免前端重复获取。"""
     status = get_course_generation_status(course_id)
     if not status:
         return {
@@ -6344,9 +6343,19 @@ async def get_pending_slides(course_id: str):
             "total_outlines": 0,
             "is_complete": True
         }
+    pending_v2 = status.get("pending_slides_v2", [])
+    # 清空已返回的 pending slides，防止重复推送
+    if pending_v2:
+        try:
+            update_course_generation_status(
+                course_id=course_id,
+                pending_slides_v2=[]
+            )
+        except Exception as e:
+            logger.warning(f"Failed to clear pending slides after poll: {e}")
     return {
         "pending_slides": [],
-        "pending_slides_v2": status.get("pending_slides_v2", []),
+        "pending_slides_v2": pending_v2,
         "pending_quiz_data": status.get("pending_quiz_data", []),
         "pending_exercise_data": status.get("pending_exercise_data", []),
         "generated_count": status.get("generated_count", 0),

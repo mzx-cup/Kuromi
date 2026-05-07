@@ -210,7 +210,11 @@ content字段可以使用以下markdown标记来组织富文本内容：
 课程类型：{course_type}
 {pdf_text}
 要求：
-1. 生成5-8个课程场景
+1. 根据内容复杂度决定场景数量，不要硬凑：
+   - 简单主题（1-2个核心概念）：5-6个场景
+   - 中等主题（3-5个核心概念）：7-9个场景
+   - 复杂主题（6个以上核心概念）：10-12个场景
+   知识讲完了就停止，不要为了凑数量而拆分已经完整的知识点。
 2. 场景类型多样化：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）
 3. 每个场景包含：
    - title: 标题（简短有力，8字以内）
@@ -454,21 +458,28 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景描述：{outline_description}
 关键知识点：{key_points}
 
+【课程上下文 - 必须遵守】
+上一节标题：{prev_outline_title}（已讲过，本节禁止重复其概念、比喻和例子）
+下一节标题：{next_outline_title}（留给后面讲，本节只做必要铺垫，不展开）
+
 {pdf_text}
 【网络搜索结果】（当提供时，请将以下最新信息融入幻灯片内容中）
 {web_search_context}
 
-【幻灯片设计原则 - 最重要，必须遵守】
-幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。如果一段文字读起来像是在"说"而不是在"展示"，它就不应该出现在幻灯片上。
+【幻灯片设计原则】
+幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。
 
-**【网络搜索】** 当上方提供了网络搜索结果时，请将最新的数据、统计数字或实际案例融入 bullets 和 narration 中，使内容更加与时俱进。引用来源时请在 narration 中自然提及，如"根据2024年最新研究..."或"据最新行业报告显示..."。
+**【网络搜索】** 当上方提供了网络搜索结果时，请将最新的数据、统计数字或实际案例融入 bullets 和 narration 中。引用来源时请在 narration 中自然提及。
 
-【核心字段说明 - 两个字段缺一不可】
+【核心字段说明】
 1. bullets（字符串数组）：屏幕展示用的简短要点，每条≤50中文字符，每卡4-7条
 2. narration（字符串）：AI教师口语化讲课台词，200-450字，TTS语音引擎用
    - 必须是连贯的、自然的讲课语言（不能只是把bullets读一遍）
-   - 包含引入语、知识点讲解、过渡句
-   - 如"同学们好！今天我们来学习变量这个非常重要的概念。首先，变量就像是编程世界里的储物盒..."
+   - narration 的开头必须根据课程位置变化，绝对禁止所有幻灯片用同样的开头：
+     * 如果是课程第一节：用引入式，如"同学们好！今天我们来学习..."
+     * 如果是中间节：用衔接式，如"上一节我们讲了xxx，接下来看看..."或"在掌握了xxx之后，我们来深入..."
+     * 如果是最后一节：用回顾式，如"到目前为止，我们已经学习了...今天来总结一下..."
+   - 禁止使用"储物盒""盒子""标签"等过度通用的比喻，要根据具体知识点选择贴切的类比
 
 【bullets字段格式强制要求】
 - bullets 是 JSON 字符串数组，每个元素是一条简短要点
@@ -476,11 +487,10 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - 每个卡片4-7条 bullets，绝不超过8条
 - 不要在 bullet 里写 `- ` 前缀（JSON数组已经表达了列表结构）
 - 禁止将多个要点合并成长段落放入单个数组元素
-- 每张幻灯片建议包含4-7个要点，文字量要充足
 
 【正误示例】
 ❌ 错误写法（一条超长bullet——这是长段落伪装）：
-"bullets": ["Python变量是编程中用于存储数据的基本容器，你可以把变量想象成一个带有标签的盒子，盒子上贴着变量的名字，盒子里装着具体的数据。在Python中创建变量非常简单，你只需要使用赋值语句即可完成创建。"]
+"bullets": ["Python变量是编程中用于存储数据的基本容器，你可以把变量想象成一个带有标签的盒子..."]
 
 ✅ 正确写法（精简短句数组）：
 "bullets": [
@@ -507,32 +517,17 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - content: 内容数组，每个元素包含：
   - subTitle: 卡片小标题（5-10字）
   - bullets: 字符串数组（每条≤50中文字符，4-7条）
-  - narration: AI教师口语化讲课台词（200-450字，连贯自然的口语，供TTS语音引擎朗读）
+  - narration: AI教师口语化讲课台词（200-450字）
   - icon: 图标名（book|lightbulb|code|check|star|question|warning|info）
   - colorTheme: **必须提供**的色系字段，值仅限 blue|yellow|green|purple|orange，禁止省略此字段
   - codeSnippet: 可选代码块
   - imageUrl: 可选配图URL（已有URL时直接填入）
-  - image_prompt: 可选英文配图描述词（用于AI生成配图，描述这张卡片适合配什么样的插图）
+  - image_prompt: 可选英文配图描述词
   - videoUrl: 可选视频URL（已有URL时直接填入）
-  - video_prompt: 可选英文视频描述词（用于AI生成视频，描述适合生成什么样的动态场景）
-- teacherActions: **可选**的白板动作数组，AI教师在讲解时可边讲边画。当需要用图形、公式、图表辅助讲解时使用。每个动作格式为：
-  - type: 动作类型（wb_draw_text|w b_draw_shape|w b_draw_svg|w b_draw_latex|w b_draw_chart|w b_draw_table|w b_draw_line|w b_draw_code）
-  - params: 动作参数（见下方详细说明）
-  - 当不需要白板绘图时可不提供此字段或设为空数组
+  - video_prompt: 可选英文视频描述词
+- teacherActions: **可选**的白板动作数组
 
-**【白板动作参数说明】**
-- wb_draw_text: {"content": "文字内容", "x": 数字, "y": 数字, "fontSize": 数字, "color": "颜色值"}
-- wb_draw_shape: {"shape": "rect|circle|triangle|arrow", "x": 数字, "y": 数字, "width": 数字, "height": 数字, "color": "颜色值"}
-- wb_draw_svg: {"svg": "SVG字符串", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
-- wb_draw_latex: {"latex": "LaTeX公式", "x": 数字, "y": 数字, "fontSize": 数字}
-- wb_draw_chart: {"chartType": "bar|line|pie", "data": "数据描述", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
-- wb_draw_table: {"rows": [["第一行"], ["第二行"]], "x": 数字, "y": 数字, "colWidths": [数字]}
-- wb_draw_line: {"x1": 数字, "y1": 数字, "x2": 数字, "y2": 数字, "color": "颜色值", "strokeWidth": 数字}
-- wb_draw_code: {"code": "代码内容", "x": 数字, "y": 数字, "fontSize": 数字, "language": "语言"}
-
-**【何时使用白板动作】** 当讲解需要展示：数学公式推导、几何图形、流程图、数据图表、对比表格、代码演示时，使用teacherActions。白板动作应配合narration讲解内容，在合适的时机触发。
-
-**【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片应使用不同色系以增强视觉区分度。**
+**【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片必须使用不同色系。**
 
 **【布局类型说明】**
 - title-only: 仅标题页面
@@ -546,64 +541,99 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - timeline-steps: 时间线步骤
 - comparison: VS对比布局
 - fullwidth-banner: 全宽横幅
-- three-column-cards: 三栏等分布局（适合3个并行要点）
-- asymmetric-split: 左大右小非对称布局（适合一主一次内容）
-- icon-vertical-stack: 图标垂直堆叠布局（适合图标展示型内容）
-- numbered-list: 数字引导列表布局（适合流程/步骤型内容）
-- hero-center: 英雄居中布局（适合开场/总结，大标题居中展示）
-- left-sidebar: 左侧边栏布局（左侧标题+右侧内容）
-- bottom-cards: 底部卡片布局（水平滚动卡片）
-- floating-overlap: 浮动重叠布局（卡片堆叠错落有致）
-- grid-icon: 图标网格布局（大图标+标签）
-- process-flow: 流程图布局（水平箭头连接步骤）
-- quote-wall: 引言墙布局（大小不一的引言卡片拼贴）
-- info-graphic: 信息图布局（数字+图标+说明垂直排列）
-- tabbed-content: 标签页布局（顶部标签切换内容）
-- dark-header: 深色标题布局（深色标题区+浅色内容）
-- gradient-split: 渐变分屏布局（左深右浅分屏）
-- circle-radial: 圆形放射布局（中心主题+周围内容）
-- stair-step: 阶梯布局（内容块阶梯状错位）
-- minimal-center: 极简居中布局（标题嵌入内容卡片）
-- horizontal-scroll: 水平滚动布局（内容水平滚动展示）
+- three-column-cards: 三栏等分布局
+- asymmetric-split: 左大右小非对称布局
+- icon-vertical-stack: 图标垂直堆叠布局
+- numbered-list: 数字引导列表布局
+- hero-center: 英雄居中布局
+- left-sidebar: 左侧边栏布局
+- bottom-cards: 底部卡片布局
+- floating-overlap: 浮动重叠布局
+- grid-icon: 图标网格布局
+- process-flow: 流程图布局
+- quote-wall: 引言墙布局
+- info-graphic: 信息图布局
+- tabbed-content: 标签页布局
+- dark-header: 深色标题布局
+- gradient-split: 渐变分屏布局
+- circle-radial: 圆形放射布局
+- stair-step: 阶梯布局
+- minimal-center: 极简居中布局
+- horizontal-scroll: 水平滚动布局
 
-生成4-7页幻灯片，覆盖以下内容：
-1. 概念引入页（建议用 hero-center、two-column、header-content 或 asymmetric-split）
-2. 知识点讲解页1（建议用 grid-cards、three-column-cards 或 info-graphic 展示多个要点）
-3. 知识点讲解页2（建议用不同于页面2的布局，如 two-column、quote-highlight 或 media-left）
-4. 示例演示页（建议用 numbered-list、timeline-steps 或 process-flow）
-5. 流程步骤页（建议用 asymmetric-split、stats-row 或 info-graphic）
-6. 总结强化页（建议用 fullwidth-banner、comparison 或 center-focus）
-7. 扩展思考页（可选，建议用 quote-wall、floating-overlap 或 circle-radial）
+【页数要求】
+- 本 outline 生成 2-3 页幻灯片即可
+- 如果知识点较少，1-2 页也完全足够
+- **绝对禁止为凑页数而重复内容或拆分同一知识点**
+- 每页必须聚焦本 outline 的 1-2 个具体知识点，不要泛泛而谈
+- 每页布局必须不同，禁止所有幻灯片使用相同布局
 
-**必须至少生成4页幻灯片，每页布局必须不同。禁止所有幻灯片使用相同或相似的布局。**
+【差异化强制要求】
+1. 禁止重复上一节（{prev_outline_title}）已经讲过的概念、比喻、例子。
+2. 不要提前展开下一节（{next_outline_title}）的核心内容。
+3. 每页必须聚焦本 outline 的关键知识点，深入讲解而非泛泛罗列。
+4. narration 的开头必须根据本节在课程中的位置变化，禁止千篇一律。
+5. 相邻卡片禁止使用相同色系。
+6. 每页幻灯片的 layoutType 必须不同，禁止全部使用 two-column，必须从可用布局列表中选择最适合知识点表达的类型。
+7. 同一 outline 内的所有幻灯片，colorTheme 必须轮换使用 blue/yellow/green/purple/orange，禁止所有卡片使用同一种颜色。
 
-色系分配规则：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调，orange用于补充说明。相邻卡片禁止使用相同色系。
-
-【完整输出示例】
+【极简输出示例 - 仅展示JSON结构，内容请替换为真实知识点】
 {{{{
   "slides": [
     {{{{
       "layoutType": "grid-cards",
-      "title": "Python变量入门",
+      "title": "{{真实标题}}",
       "content": [
         {{{{
-          "subTitle": "什么是变量",
+          "subTitle": "{{卡片小标题}}",
           "bullets": [
-            "变量是存储数据的命名容器",
-            "变量名是标签，变量值是内容",
-            "使用 = 赋值语句创建和修改变量",
-            "Python变量无需声明类型，直接赋值即可",
-            "变量可以存储各种类型的数据"
+            "{{要点1}}",
+            "{{要点2}}",
+            "{{要点3}}"
           ],
-          "narration": "同学们好！今天我们来学习Python中最基础的概念——变量。变量就像是一个带标签的储物盒，盒子的名字就是变量名，里面装的东西就是变量的值。在Python中创建一个变量非常简单，直接写等号就行了，不需要像其他语言那样先声明类型。",
-          "icon": "lightbulb",
-          "colorTheme": "blue",
-          "codeSnippet": "",
-          "imageUrl": "",
-          "image_prompt": "A clear illustration of a labeled storage box containing data, representing Python variables concept"
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "book",
+          "colorTheme": "blue"
+        }},
+        {{{{
+          "subTitle": "{{卡片小标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "code",
+          "colorTheme": "green"
         }}}}
       ]
-    }}}}
+    }},
+    {{{{
+      "layoutType": "timeline-steps",
+      "title": "{{第二页标题}}",
+      "content": [
+        {{{{
+          "subTitle": "{{步骤1标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "lightbulb",
+          "colorTheme": "purple"
+        }},
+        {{{{
+          "subTitle": "{{步骤2标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}",
+            "{{要点3}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "star",
+          "colorTheme": "orange"
+        }}
+      ]
+    }}
   ]
 }}}}
 

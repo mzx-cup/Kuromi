@@ -697,7 +697,6 @@ window.StarData = (function () {
 
 console.log("[StarData] Data layer initialized");
 
-<<<<<<< HEAD
 // ========================================
 // 页面访问追踪（全站通用）
 // 每次页面加载时记录时间戳到 localStorage
@@ -720,7 +719,6 @@ console.log("[StarData] Data layer initialized");
     if (visits.length > 50) visits = visits.slice(-50);
     localStorage.setItem('page_visits', JSON.stringify(visits));
 })();
-=======
 /**
  * fetchSSEStream — POST-based SSE stream reader.
  *
@@ -784,5 +782,3 @@ window.fetchSSEStream = function ({ url, body, onEvent, onError, onDone }) {
     abort: () => controller.abort(),
   };
 };
-
->>>>>>> 1b9d4fbb6fc7de3a6dd9ce17a87b251cb39d8f16

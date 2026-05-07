@@ -34,7 +34,7 @@ class CourseGeneratorConfig:
     enable_image: bool = False
     enable_tts: bool = False
     enable_video: bool = False
-    first_batch_size: int = 3  # 首次生成的幻灯片数量
+    first_batch_size: int = 5  # 首次生成的幻灯片数量（生成5个后前端即可进入课堂）
     use_v2_slides: bool = True  # 使用 V2 结构化布局格式
 
 
@@ -196,7 +196,9 @@ class CourseGenerator:
                     try:
                         if self.config.use_v2_slides:
                             logger.info(f"[generate] 4a V2 outline[{i}] type={outline.type} title={outline.title}")
-                            result = await self._generate_scene_content_v2(course_title, outline, i + 1)
+                            prev_title = outlines[i - 1].title if i > 0 else "（本课程第一节）"
+                            next_title = outlines[i + 1].title if i + 1 < total else "（本课程最后一节）"
+                            result = await self._generate_scene_content_v2(course_title, outline, i + 1, prev_title, next_title)
                             slides_v2_batch = result.get("slides_v2", [])
                             logger.info(f"[generate] 4a V2 got slides_v2_batch len={len(slides_v2_batch)}")
                             for sv2 in slides_v2_batch:
@@ -280,16 +282,31 @@ class CourseGenerator:
                     logger.warning(f"[generate] Failed to save initial generation status: {e}")
 
                 # --- 4b: 继续生成剩余幻灯片 ---
+                pending_slides_v2_for_db: list[dict] = []
                 for i in range(first_batch_size, total):
                     outline = outlines[i]
                     try:
                         if self.config.use_v2_slides:
                             logger.info(f"[generate] 4b V2 outline[{i}] type={outline.type}")
-                            result = await self._generate_scene_content_v2(course_title, outline, i + 1)
+                            prev_title = outlines[i - 1].title if i > 0 else "（本课程第一节）"
+                            next_title = outlines[i + 1].title if i + 1 < total else "（本课程最后一节）"
+                            result = await self._generate_scene_content_v2(course_title, outline, i + 1, prev_title, next_title)
                             new_v2 = result.get("slides_v2", [])
                             for sv2 in new_v2:
                                 sv2.scene_id = outline.id
                             slides_v2.extend(new_v2)
+
+                            # Push newly generated slides to pending list for frontend polling
+                            if new_v2:
+                                pending_slides_v2_for_db.extend([s.model_dump() for s in new_v2])
+                                try:
+                                    from db import update_course_generation_status
+                                    update_course_generation_status(
+                                        course_id=session_id,
+                                        pending_slides_v2=pending_slides_v2_for_db.copy()
+                                    )
+                                except Exception as e:
+                                    logger.warning(f"[generate] Failed to update pending slides: {e}")
 
                             # V2 slides: generate images for each content item with image_prompt
                             if enable_image and new_v2:
@@ -303,7 +320,12 @@ class CourseGenerator:
                                             except Exception as e:
                                                 logger.warning(f"V2 image gen failed for scene {outline.id}: {e}")
 
-                            # quiz/exercise: ALSO generate specialized data for interactive renderers
+                            # V2 quiz data fallback
+                            quiz_result_v2 = result.get("quiz_data")
+                            if outline.type == "quiz" and quiz_result_v2:
+                                quiz_result_v2["scene_id"] = outline.id
+                                quiz_data.append(quiz_result_v2)
+                            # quiz/exercise: ALSO generate specialized data for interactive renderers (fallback for V2 missing quiz)
                             if outline.type in ("quiz", "exercise"):
                                 result_v1 = await self._generate_scene_content(course_title, outline, i + 1)
                                 if outline.type == "quiz" and result_v1.get("quiz_data"):
@@ -353,7 +375,8 @@ class CourseGenerator:
                     update_course_generation_status(
                         course_id=session_id,
                         generated_count=total,  # all outlines now generated
-                        is_complete=0
+                        pending_slides_v2=pending_slides_v2_for_db.copy() if pending_slides_v2_for_db else [],
+                        is_complete=1
                     )
                 except Exception as e:
                     logger.warning(f"[generate] Failed to update generation status after 4b: {e}")
@@ -522,6 +545,7 @@ class CourseGenerator:
                     update_course_generation_status(
                         course_id=session_id,
                         generated_count=total,
+                        pending_slides_v2=[],
                         is_complete=1
                     )
                 except Exception as e:
@@ -616,6 +640,40 @@ class CourseGenerator:
                 key_points=item.get("key_points", []),
                 description=item.get("description", ""),
             ))
+
+        # ---- 后处理：均衡化场景类型分布 ----
+        # 按类型分组：slide类(slide/code/diagram/video)和互动类(quiz/exercise/interactive/pbl)
+        slide_types = {"slide", "code", "diagram", "video"}
+        interactive_types = {"quiz", "exercise", "interactive", "pbl"}
+
+        slides_outlines = [o for o in outlines if o.type in slide_types]
+        interactive_outlines = [o for o in outlines if o.type in interactive_types]
+
+        if interactive_outlines and slides_outlines:
+            # 智能均衡：交替排列，每 1-2 个 slide 后放 1 个 interactive
+            distributed: list[SceneOutline] = []
+            si, ii = 0, 0
+            # 动态步长：保持 slide 连续不超过 2 个
+            while si < len(slides_outlines) or ii < len(interactive_outlines):
+                remaining_slides = len(slides_outlines) - si
+                remaining_interactive = len(interactive_outlines) - ii
+                # 每隔一段放一个互动场景
+                gap = 2 if remaining_slides >= remaining_interactive * 2 else 1
+                for _ in range(gap):
+                    if si < len(slides_outlines):
+                        distributed.append(slides_outlines[si])
+                        si += 1
+                    if ii < len(interactive_outlines) and si >= len(slides_outlines):
+                        distributed.append(interactive_outlines[ii])
+                        ii += 1
+                if ii < len(interactive_outlines):
+                    distributed.append(interactive_outlines[ii])
+                    ii += 1
+            # 重新编号
+            for i, o in enumerate(distributed):
+                o.id = i + 1
+            return distributed
+
         return outlines
 
     # ----------------------------------------------------------------
@@ -771,6 +829,8 @@ class CourseGenerator:
         course_title: str,
         outline: SceneOutline,
         slide_index: int,
+        prev_outline_title: str = "",
+        next_outline_title: str = "",
     ) -> dict[str, Any]:
         """用LLM生成V2格式幻灯片内容（结构化布局）—— 强容错版本"""
         pdf_context = ""
@@ -840,6 +900,8 @@ class CourseGenerator:
                     key_points=", ".join(outline.key_points) if outline.key_points else outline.title,
                     web_search_context=web_search_context,
                     pdf_text=pdf_context,
+                    prev_outline_title=prev_outline_title or "（本课程第一节）",
+                    next_outline_title=next_outline_title or "（本课程最后一节）",
                 ),
                 temperature=0.6,
             )
@@ -883,7 +945,7 @@ class CourseGenerator:
 
                 # 安全提取字段，缺失则用默认值
                 slide_title = slide_data.get("title") or outline.title or f"知识点讲解 {idx + 1}"
-                layout_type = slide_data.get("layoutType") or slide_data.get("layout_type") or "two-column"
+                layout_type = slide_data.get("layoutType") or slide_data.get("layout_type") or ""
 
                 # 校验 layout_type 合法性
                 allowed_layouts = {
@@ -896,8 +958,19 @@ class CourseGenerator:
                     "circle-radial", "stair-step", "minimal-center", "horizontal-scroll"
                 }
                 if layout_type not in allowed_layouts:
-                    logger.warning(f"[_generate_scene_content_v2] slides[{idx}] layoutType={layout_type} invalid, forcing two-column")
-                    layout_type = "two-column"
+                    # 均衡布局：排除 title-only，从其余27种中随机选择，确保布局多样性
+                    import random
+                    fallback_layouts = [
+                        "two-column", "grid-cards", "header-content", "quote-highlight",
+                        "center-focus", "media-left", "stats-row", "timeline-steps", "comparison",
+                        "fullwidth-banner", "three-column-cards", "asymmetric-split",
+                        "icon-vertical-stack", "numbered-list", "hero-center", "left-sidebar",
+                        "bottom-cards", "floating-overlap", "grid-icon", "process-flow",
+                        "quote-wall", "info-graphic", "tabbed-content", "dark-header",
+                        "gradient-split", "circle-radial", "stair-step", "minimal-center",
+                        "horizontal-scroll"
+                    ]
+                    layout_type = random.choice(fallback_layouts)
 
                 # --- 第三层：逐卡片解析容错 ---
                 content_items: list[SlideContentItemV2] = []
@@ -992,9 +1065,21 @@ class CourseGenerator:
         return {"slides_v2": slides_v2}
 
     def _fallback_slide_v2(self, outline: SceneOutline) -> SlideV2:
-        """V2格式降级幻灯片"""
+        """V2格式降级幻灯片 —— 使用多样化布局和颜色，避免千篇一律"""
+        layouts = [
+            "grid-cards", "header-content", "media-left", "stats-row",
+            "timeline-steps", "comparison", "three-column-cards",
+            "icon-vertical-stack", "hero-center", "process-flow"
+        ]
+        colors = ["blue", "yellow", "green", "purple", "orange"]
+        icons = ["book", "lightbulb", "code", "check", "star"]
+        # 基于 outline.id 的哈希轮换，确保不同 outline 有不同的视觉风格
+        h = hash(outline.id) if outline.id else hash(outline.title)
+        layout = layouts[abs(h) % len(layouts)]
+        color = colors[abs(h >> 2) % len(colors)]
+        icon = icons[abs(h >> 4) % len(icons)]
         return SlideV2(
-            layout_type="two-column",
+            layout_type=layout,
             title=outline.title,
             content=[
                 SlideContentItemV2(
@@ -1002,8 +1087,8 @@ class CourseGenerator:
                     bullets=[f"本节将介绍{outline.title}的相关概念和应用"],
                     narration=f"同学们好，本节我们来学习{outline.title}的相关内容。",
                     text=f"本节将介绍{outline.title}的相关概念和应用",
-                    icon="book",
-                    color_theme="blue",
+                    icon=icon,
+                    color_theme=color,
                 )
             ],
         )

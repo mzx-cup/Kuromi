@@ -4274,7 +4274,7 @@ body {
 }
 
 .timeline-text {
-    color: #475569;
+    color: #334155;
     line-height: 1.7;
     font-size: 0.9375rem;
 }
@@ -5727,6 +5727,17 @@ body {
     padding: 2rem;
     color: var(--text-secondary);
     font-size: 1rem;
+}
+.quiz-error i {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    display: block;
+    color: var(--warning, #f59e0b);
+}
+.quiz-error-sub {
+    font-size: 0.875rem;
+    color: var(--text-tertiary, #94a3b8);
+    margin-top: 0.5rem;
 }
 
 /* Question Card Styles */
