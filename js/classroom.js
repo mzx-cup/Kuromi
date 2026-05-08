@@ -68,6 +68,7 @@
             this.currentIndex = 0;
             this.scenes = [];
             this.agentTeam = [];
+            this.currentTeacher = null;
             this.quizAnswers = {};
             this.visitedScenes = new Set();
             this.isPlaying = false;
@@ -254,6 +255,20 @@
             }
             if (this.courseData) {
                 this.agentTeam = this.courseData.agent_team || [];
+
+                // 加载分配的老师配置
+                if (this.courseData && this.courseData.teacher) {
+                    this.currentTeacher = this.courseData.teacher;
+                } else if (this.courseData && this.courseData.agent_team && this.courseData.agent_team.length > 0) {
+                    // 兼容旧的agent_team结构
+                    this.currentTeacher = this.courseData.agent_team[0];
+                }
+
+                // 如果有指定音色，优先使用老师的音色
+                if (this.currentTeacher && this.currentTeacher.voiceId) {
+                    TTS_CONFIG.voice = this.currentTeacher.voiceId;
+                }
+
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
                 // 保存courseId用于后台轮询
                 this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || null;
