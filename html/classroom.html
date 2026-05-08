@@ -6,6 +6,7 @@
     <title>课堂学习 - 星识</title>
     <link rel="stylesheet" href="../css/classroom.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
     <style>
     .sync-progress-container {
         width: 60px;
@@ -142,6 +143,39 @@
                                 <i class="fas fa-pencil-alt"></i> 白板
                             </span>
                             <div class="whiteboard-toolbar-actions">
+                                <div class="wb-pen-group" id="wb-pen-group" style="display:none;">
+                                    <button class="whiteboard-tool-btn" id="wb-pen-toggle-btn" title="画笔模式">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="whiteboard-tool-btn" id="wb-eraser-btn" title="橡皮擦">
+                                        <i class="fas fa-eraser"></i>
+                                    </button>
+                                    <div class="wb-pen-colors">
+                                        <button class="wb-pen-color active" data-color="#1e293b" style="background:#1e293b;" title="黑色"></button>
+                                        <button class="wb-pen-color" data-color="#ef4444" style="background:#ef4444;" title="红色"></button>
+                                        <button class="wb-pen-color" data-color="#3b82f6" style="background:#3b82f6;" title="蓝色"></button>
+                                        <button class="wb-pen-color" data-color="#10b981" style="background:#10b981;" title="绿色"></button>
+                                        <button class="wb-pen-color" data-color="#f59e0b" style="background:#f59e0b;" title="橙色"></button>
+                                        <button class="wb-pen-color" data-color="#8b5cf6" style="background:#8b5cf6;" title="紫色"></button>
+                                        <button class="wb-pen-color" data-color="#ec4899" style="background:#ec4899;" title="粉色"></button>
+                                        <button class="wb-pen-color" data-color="#06b6d4" style="background:#06b6d4;" title="青色"></button>
+                                        <button class="wb-pen-color" data-color="#84cc16" style="background:#84cc16;" title="黄绿"></button>
+                                        <button class="wb-pen-color" data-color="#ffffff" style="background:#ffffff;" title="白色"></button>
+                                    </div>
+                                    <input type="range" class="wb-pen-width" id="wb-pen-width" min="1" max="20" value="3" title="画笔粗细">
+                                    <button class="whiteboard-tool-btn" id="wb-pen-undo-btn" title="撤销">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                </div>
+                                <button class="whiteboard-tool-btn" id="wb-text-btn" title="文字">
+                                    <i class="fas fa-font"></i>
+                                </button>
+                                <button class="whiteboard-tool-btn" id="wb-ai-draw-btn" title="AI 绘图">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                                <button class="whiteboard-tool-btn" id="wb-theme-btn" title="切换主题">
+                                    <i class="fas fa-adjust"></i>
+                                </button>
                                 <button class="whiteboard-tool-btn" id="wb-clear-btn" title="清空白板">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
@@ -532,6 +566,72 @@ document.addEventListener('click', function(e) {
     }
 });
 </script>
+
+<!-- Whiteboard AI Draw Modal -->
+<div class="wb-modal-overlay" id="wb-ai-draw-modal" style="display:none;">
+    <div class="wb-modal-card">
+        <div class="wb-modal-header">
+            <span class="wb-modal-title"><i class="fas fa-magic"></i> AI 智能绘图</span>
+            <button class="wb-modal-close" id="wb-ai-draw-modal-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="wb-modal-body">
+            <div class="wb-modal-desc">
+                描述你想绘制的内容，AI 将自动生成精美的白板图形。
+            </div>
+            <textarea class="wb-modal-input" id="wb-ai-draw-input" rows="4" placeholder="例如：绘制一个直角三角形，标注三个顶点和直角符号..."></textarea>
+            <div class="wb-modal-examples">
+                <span class="wb-modal-examples-label">快速示例：</span>
+                <button class="wb-modal-example-chip" data-example="绘制一个坐标系并画出 y=x² 的抛物线，标注顶点和开口方向">抛物线</button>
+                <button class="wb-modal-example-chip" data-example="绘制一个圆并标注圆心、半径和直径">圆的几何</button>
+                <button class="wb-modal-example-chip" data-example="绘制一个流程图：开始 → 输入 → 判断 → 输出 → 结束">流程图</button>
+                <button class="wb-modal-example-chip" data-example="绘制一个二叉树，根节点为A，左子节点B，右子节点C">二叉树</button>
+            </div>
+        </div>
+        <div class="wb-modal-footer">
+            <button class="wb-modal-btn wb-modal-btn-secondary" id="wb-ai-draw-modal-cancel">取消</button>
+            <button class="wb-modal-btn wb-modal-btn-primary" id="wb-ai-draw-modal-submit"><i class="fas fa-wand-magic-sparkles"></i> 开始绘制</button>
+        </div>
+    </div>
+</div>
+
+<!-- Whiteboard Text Input Modal -->
+<div class="wb-modal-overlay" id="wb-text-modal" style="display:none;">
+    <div class="wb-modal-card wb-modal-card-sm">
+        <div class="wb-modal-header">
+            <span class="wb-modal-title"><i class="fas fa-font"></i> 添加文字</span>
+            <button class="wb-modal-close" id="wb-text-modal-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="wb-modal-body">
+            <input type="text" class="wb-modal-input-text" id="wb-text-input" placeholder="输入文字内容...">
+            <div class="wb-text-options">
+                <div class="wb-text-option-row">
+                    <span class="wb-text-option-label">字号</span>
+                    <input type="range" class="wb-text-size-slider" id="wb-text-size" min="12" max="48" value="20">
+                    <span class="wb-text-size-value" id="wb-text-size-value">20px</span>
+                </div>
+                <div class="wb-text-option-row">
+                    <span class="wb-text-option-label">颜色</span>
+                    <div class="wb-text-colors">
+                        <button class="wb-text-color active" data-color="#1e293b" style="background:#1e293b;"></button>
+                        <button class="wb-text-color" data-color="#ef4444" style="background:#ef4444;"></button>
+                        <button class="wb-text-color" data-color="#3b82f6" style="background:#3b82f6;"></button>
+                        <button class="wb-text-color" data-color="#10b981" style="background:#10b981;"></button>
+                        <button class="wb-text-color" data-color="#8b5cf6" style="background:#8b5cf6;"></button>
+                        <button class="wb-text-color" data-color="#f59e0b" style="background:#f59e0b;"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="wb-modal-footer">
+            <button class="wb-modal-btn wb-modal-btn-secondary" id="wb-text-modal-cancel">取消</button>
+            <button class="wb-modal-btn wb-modal-btn-primary" id="wb-text-modal-submit"><i class="fas fa-check"></i> 添加</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 <script src="../js/slide-v2-adapter.js"></script>
 <script src="../js/openmaic-slide-player.js"></script>
 <script src="../js/whiteboard-renderer.js"></script>

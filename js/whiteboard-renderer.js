@@ -29,8 +29,11 @@ class WhiteboardRenderer {
     let container = document.getElementById(this.containerId);
     if (!container) return;
 
-    // If SVG already exists, just reuse it
-    if (this.svgRoot && container.contains(this.svgRoot)) return;
+    // Find the stage element within the container (toolbar should stay interactive)
+    const stage = container.querySelector('.whiteboard-stage') || container;
+
+    // If SVG already exists inside the stage, just reuse it
+    if (this.svgRoot && stage.contains(this.svgRoot)) return;
 
     // Only create SVG if not present
     const svgNS = 'http://www.w3.org/2000/svg';
@@ -40,8 +43,38 @@ class WhiteboardRenderer {
     svg.setAttribute('viewBox', `0 0 ${this.width} ${this.height}`);
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
-    container.appendChild(svg);
+    stage.appendChild(svg);
     this.svgRoot = svg;
+
+    // --- Pixel Eraser Infrastructure ---
+    // Create defs + mask for pixel-level erasing of user strokes
+    const defs = document.createElementNS(svgNS, 'defs');
+    const mask = document.createElementNS(svgNS, 'mask');
+    mask.setAttribute('id', 'wb-pixel-eraser-mask');
+    mask.setAttribute('maskUnits', 'userSpaceOnUse');
+    // White rect = fully visible by default
+    const maskBase = document.createElementNS(svgNS, 'rect');
+    maskBase.setAttribute('x', '0');
+    maskBase.setAttribute('y', '0');
+    maskBase.setAttribute('width', this.width);
+    maskBase.setAttribute('height', this.height);
+    maskBase.setAttribute('fill', 'white');
+    mask.appendChild(maskBase);
+    defs.appendChild(mask);
+    svg.appendChild(defs);
+
+    // Group for user pen strokes (masked)
+    const maskedGroup = document.createElementNS(svgNS, 'g');
+    maskedGroup.setAttribute('id', 'wb-masked-strokes');
+    maskedGroup.setAttribute('mask', 'url(#wb-pixel-eraser-mask)');
+    svg.appendChild(maskedGroup);
+    this._maskedStrokesGroup = maskedGroup;
+
+    // Group for AI / template content (unmasked)
+    const unmaskedGroup = document.createElementNS(svgNS, 'g');
+    unmaskedGroup.setAttribute('id', 'wb-unmasked-content');
+    svg.appendChild(unmaskedGroup);
+    this._unmaskedContentGroup = unmaskedGroup;
   }
 
   // ---- Action 分发 ----
@@ -92,9 +125,19 @@ class WhiteboardRenderer {
 
   clear() {
     if (this.svgRoot) {
-      this.svgRoot.innerHTML = '';
+      // Preserve defs (mask) and group structure, clear contents only
+      if (this._maskedStrokesGroup) this._maskedStrokesGroup.innerHTML = '';
+      if (this._unmaskedContentGroup) this._unmaskedContentGroup.innerHTML = '';
+      // Reset mask: remove all black erase circles, keep white base rect
+      const mask = this.svgRoot.querySelector('#wb-pixel-eraser-mask');
+      if (mask) {
+        const base = mask.querySelector('rect');
+        mask.innerHTML = '';
+        if (base) mask.appendChild(base);
+      }
     }
     this.elements.clear();
+    this._userStrokes = [];
   }
 
   delete(elementId) {
@@ -109,7 +152,7 @@ class WhiteboardRenderer {
   // ---- 绘制方法 ----
 
   drawText(params) {
-    const { content, x = 100, y = 100, fontSize = 20, color = '#333333', elementId } = params;
+    const { content, x = 100, y = 100, fontSize = 20, color = '#333333', elementId, animate = true } = params;
     const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     textEl.setAttribute('x', x);
     textEl.setAttribute('y', y);
@@ -117,12 +160,17 @@ class WhiteboardRenderer {
     textEl.setAttribute('fill', color);
     textEl.setAttribute('font-family', 'system-ui, sans-serif');
     textEl.textContent = content;
+    textEl.style.opacity = animate ? '0' : '1';
+    textEl.style.transition = 'opacity 250ms ease';
     this.svgRoot.appendChild(textEl);
+    if (animate) {
+      requestAnimationFrame(() => { textEl.style.opacity = '1'; });
+    }
     if (elementId) this.elements.set(elementId, textEl);
   }
 
   drawShape(params) {
-    const { shape, x = 100, y = 100, width = 100, height = 100, fillColor, strokeColor = '#333', elementId } = params;
+    const { shape, x = 100, y = 100, width = 100, height = 100, fillColor, strokeColor = '#333', elementId, animate = true } = params;
     const svgNS = 'http://www.w3.org/2000/svg';
     let shapeEl;
 
@@ -156,7 +204,19 @@ class WhiteboardRenderer {
     shapeEl.setAttribute('fill', fillColor || 'rgba(37, 99, 235, 0.1)');
     shapeEl.setAttribute('stroke', strokeColor);
     shapeEl.setAttribute('stroke-width', '2');
-    this.svgRoot.appendChild(shapeEl);
+    if (animate) {
+      shapeEl.style.opacity = '0';
+      shapeEl.style.transformOrigin = `${x + width / 2}px ${y + height / 2}px`;
+      shapeEl.style.transform = 'scale(0.5)';
+      shapeEl.style.transition = 'opacity 300ms ease, transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1)';
+      this.svgRoot.appendChild(shapeEl);
+      requestAnimationFrame(() => {
+        shapeEl.style.opacity = '1';
+        shapeEl.style.transform = 'scale(1)';
+      });
+    } else {
+      this.svgRoot.appendChild(shapeEl);
+    }
     if (elementId) this.elements.set(elementId, shapeEl);
   }
 
@@ -443,12 +503,12 @@ class WhiteboardRenderer {
   }
 
   drawLine(params) {
-    const { startX, startY, endX, endY, color = '#333', width: lineWidth = 2, style: lineStyle = 'solid', points = [], elementId } = params;
+    const { startX, startY, endX, endY, color = '#333', width: lineWidth = 2, style: lineStyle = 'solid', points = [], elementId, animate = true } = params;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', startX);
     line.setAttribute('y1', startY);
-    line.setAttribute('x2', endX);
-    line.setAttribute('y2', endY);
+    line.setAttribute('x2', animate ? startX : endX);
+    line.setAttribute('y2', animate ? startY : endY);
     line.setAttribute('stroke', color);
     line.setAttribute('stroke-width', lineWidth);
     if (lineStyle === 'dashed') line.setAttribute('stroke-dasharray', '5,5');
@@ -474,6 +534,15 @@ class WhiteboardRenderer {
     }
 
     this.svgRoot.appendChild(line);
+    if (animate) {
+      const dist = Math.hypot(endX - startX, endY - startY);
+      const dur = Math.max(200, Math.min(600, dist * 0.5));
+      line.style.transition = `x2 ${dur}ms ease-out, y2 ${dur}ms ease-out`;
+      requestAnimationFrame(() => {
+        line.setAttribute('x2', endX);
+        line.setAttribute('y2', endY);
+      });
+    }
     if (elementId) this.elements.set(elementId, line);
   }
 
@@ -505,6 +574,214 @@ class WhiteboardRenderer {
     foreign.appendChild(div);
     this.svgRoot.appendChild(foreign);
     if (elementId) this.elements.set(elementId, foreign);
+  }
+
+  // ---- 学生自由绘制模式 ----
+
+  enablePenMode(color = '#ef4444', width = 3) {
+    if (this._penEnabled) return;
+    this.disableEraserMode();
+    this._penEnabled = true;
+    this._penColor = color;
+    this._penWidth = width;
+    this._userStrokes = this._userStrokes || [];
+    this._currentPath = null;
+    this._currentPoints = [];
+    this._bindPenEvents();
+    if (this.svgRoot) {
+      this.svgRoot.style.cursor = 'crosshair';
+      this.svgRoot.style.touchAction = 'none';
+    }
+  }
+
+  disablePenMode() {
+    if (!this._penEnabled) return;
+    this._penEnabled = false;
+    this._unbindPenEvents();
+    if (this.svgRoot) {
+      this.svgRoot.style.cursor = '';
+      this.svgRoot.style.touchAction = '';
+    }
+  }
+
+  setPenColor(color) {
+    this._penColor = color;
+  }
+
+  setPenWidth(width) {
+    this._penWidth = width;
+  }
+
+  undo() {
+    if (!this._userStrokes || this._userStrokes.length === 0) return;
+    const lastStroke = this._userStrokes.pop();
+    if (lastStroke && lastStroke.parentNode) {
+      lastStroke.parentNode.removeChild(lastStroke);
+    }
+  }
+
+  // ---- 橡皮擦模式 ----
+
+  enableEraserMode(radius = 20) {
+    if (this._eraserEnabled) return;
+    this.disablePenMode();
+    this._eraserEnabled = true;
+    this._eraserRadius = radius;
+    this._eraserDown = false;
+    this._bindEraserEvents();
+    if (this.svgRoot) {
+      this.svgRoot.style.cursor = 'cell';
+      this.svgRoot.style.touchAction = 'none';
+    }
+  }
+
+  disableEraserMode() {
+    if (!this._eraserEnabled) return;
+    this._eraserEnabled = false;
+    this._unbindEraserEvents();
+    if (this.svgRoot) {
+      this.svgRoot.style.cursor = '';
+      this.svgRoot.style.touchAction = '';
+    }
+  }
+
+  setEraserRadius(radius) {
+    this._eraserRadius = radius;
+  }
+
+  /** 像素级擦除：在 mask 中添加黑色圆形，使该区域的笔画透明 */
+  _eraseAt(x, y) {
+    if (!this.svgRoot) return false;
+    const mask = this.svgRoot.querySelector('#wb-pixel-eraser-mask');
+    if (!mask) return false;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const r = this._eraserRadius || 20;
+    const hole = document.createElementNS(svgNS, 'circle');
+    hole.setAttribute('cx', x.toFixed(1));
+    hole.setAttribute('cy', y.toFixed(1));
+    hole.setAttribute('r', r);
+    hole.setAttribute('fill', 'black');
+    mask.appendChild(hole);
+    return true;
+  }
+
+  _pointToSegmentDistance(px, py, a, b) {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return Math.hypot(px - a.x, py - a.y);
+    let t = ((px - a.x) * dx + (py - a.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (a.x + t * dx), py - (a.y + t * dy));
+  }
+
+  _bindEraserEvents() {
+    this._eraDown = this._onEraserPointerDown.bind(this);
+    this._eraMove = this._onEraserPointerMove.bind(this);
+    this._eraUp = this._onEraserPointerUp.bind(this);
+    if (this.svgRoot) {
+      this.svgRoot.addEventListener('pointerdown', this._eraDown);
+      this.svgRoot.addEventListener('pointermove', this._eraMove);
+      this.svgRoot.addEventListener('pointerup', this._eraUp);
+      this.svgRoot.addEventListener('pointerleave', this._eraUp);
+    }
+  }
+
+  _unbindEraserEvents() {
+    if (this.svgRoot) {
+      this.svgRoot.removeEventListener('pointerdown', this._eraDown);
+      this.svgRoot.removeEventListener('pointermove', this._eraMove);
+      this.svgRoot.removeEventListener('pointerup', this._eraUp);
+      this.svgRoot.removeEventListener('pointerleave', this._eraUp);
+    }
+  }
+
+  _onEraserPointerDown(evt) {
+    if (!this._eraserEnabled || evt.button !== 0) return;
+    evt.preventDefault();
+    this._eraserDown = true;
+    this.svgRoot.setPointerCapture(evt.pointerId);
+    const p = this._getSVGPoint(evt);
+    this._eraseAt(p.x, p.y);
+  }
+
+  _onEraserPointerMove(evt) {
+    if (!this._eraserEnabled || !this._eraserDown) return;
+    evt.preventDefault();
+    const p = this._getSVGPoint(evt);
+    this._eraseAt(p.x, p.y);
+  }
+
+  _onEraserPointerUp(evt) {
+    if (!this._eraserEnabled) return;
+    evt.preventDefault();
+    this._eraserDown = false;
+    try { this.svgRoot.releasePointerCapture(evt.pointerId); } catch (_) {}
+  }
+
+  _bindPenEvents() {
+    this._penDown = this._onPointerDown.bind(this);
+    this._penMove = this._onPointerMove.bind(this);
+    this._penUp = this._onPointerUp.bind(this);
+    if (this.svgRoot) {
+      this.svgRoot.addEventListener('pointerdown', this._penDown);
+      this.svgRoot.addEventListener('pointermove', this._penMove);
+      this.svgRoot.addEventListener('pointerup', this._penUp);
+      this.svgRoot.addEventListener('pointerleave', this._penUp);
+    }
+  }
+
+  _unbindPenEvents() {
+    if (this.svgRoot) {
+      this.svgRoot.removeEventListener('pointerdown', this._penDown);
+      this.svgRoot.removeEventListener('pointermove', this._penMove);
+      this.svgRoot.removeEventListener('pointerup', this._penUp);
+      this.svgRoot.removeEventListener('pointerleave', this._penUp);
+    }
+  }
+
+  _getSVGPoint(evt) {
+    const pt = this.svgRoot.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const svgP = pt.matrixTransform(this.svgRoot.getScreenCTM().inverse());
+    return { x: svgP.x, y: svgP.y };
+  }
+
+  _onPointerDown(evt) {
+    if (!this._penEnabled || evt.button !== 0) return;
+    evt.preventDefault();
+    this.svgRoot.setPointerCapture(evt.pointerId);
+    const p = this._getSVGPoint(evt);
+    this._currentPoints = [p];
+    this._currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    this._currentPath.setAttribute('fill', 'none');
+    this._currentPath.setAttribute('stroke', this._penColor);
+    this._currentPath.setAttribute('stroke-width', this._penWidth);
+    this._currentPath.setAttribute('stroke-linecap', 'round');
+    this._currentPath.setAttribute('stroke-linejoin', 'round');
+    this._currentPath.setAttribute('d', `M ${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
+    this._currentPath.classList.add('wb-pen-stroke');
+    const targetGroup = this._maskedStrokesGroup || this.svgRoot;
+    targetGroup.appendChild(this._currentPath);
+  }
+
+  _onPointerMove(evt) {
+    if (!this._penEnabled || !this._currentPath) return;
+    evt.preventDefault();
+    const p = this._getSVGPoint(evt);
+    this._currentPoints.push(p);
+    const d = this._currentPoints.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`).join(' ');
+    this._currentPath.setAttribute('d', d);
+  }
+
+  _onPointerUp(evt) {
+    if (!this._penEnabled || !this._currentPath) return;
+    evt.preventDefault();
+    try { this.svgRoot.releasePointerCapture(evt.pointerId); } catch (_) {}
+    this._userStrokes.push(this._currentPath);
+    this._currentPath = null;
+    this._currentPoints = [];
   }
 }
 

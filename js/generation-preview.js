@@ -6,9 +6,10 @@
 (function() {
     'use strict';
 
-    // Step definitions (6 steps)
+    // Step definitions (7 steps)
     const STEPS = [
         { id: 'pdf-analysis', title: '正在分析需求...', desc: '解析学习需求与内容' },
+        { id: 'requirement-analysis', title: '正在分析学习需求...', desc: '解析目标、难度与受众' },
         { id: 'web-search', title: '正在搜索资料...', desc: '获取相关学习资源' },
         { id: 'outline', title: '正在生成课程大纲...', desc: 'AI设计课程结构' },
         { id: 'agent-generation', title: '正在配置AI教师...', desc: '教师团队准备中' },
@@ -43,6 +44,7 @@
         'error': document.getElementById('viz-error'),
         'complete': document.getElementById('viz-complete'),
         'pdf-analysis': document.getElementById('viz-pdf'),
+        'requirement-analysis': document.getElementById('viz-requirement-analysis'),
         'web-search': document.getElementById('viz-search'),
         'outline': document.getElementById('viz-outline'),
         'agent-generation': document.getElementById('viz-ai'),
@@ -509,15 +511,49 @@
 
     // ---- Search results update ----
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m];
+        });
+    }
+
+    function formatRequirementAnalysis(data) {
+        const parts = [];
+        const difficultyMap = { 'basic': '基础', 'medium': '进阶', 'advanced': '高级' };
+        if (data.difficulty) {
+            parts.push(`难度: ${difficultyMap[data.difficulty] || data.difficulty}`);
+        }
+        if (data.target_audience) {
+            parts.push(`受众: ${data.target_audience}`);
+        }
+        if (data.estimated_duration) {
+            parts.push(`时长: ${data.estimated_duration}`);
+        }
+        if (data.learning_goals && data.learning_goals.length > 0) {
+            parts.push(`目标: ${data.learning_goals.slice(0, 2).join('、')}`);
+        }
+        if (data.suggested_scene_types && data.suggested_scene_types.length > 0) {
+            const typeMap = { 'slide': '幻灯片', 'quiz': '测验', 'exercise': '练习', 'interactive': '交互', 'code': '代码', 'video': '视频', 'pbl': '项目' };
+            parts.push(`场景: ${data.suggested_scene_types.map(t => typeMap[t] || t).join('、')}`);
+        }
+        return parts.join(' | ') || '正在解析学习需求...';
+    }
+
     function updateSearchSources(sources) {
         if (!searchResults) return;
 
-        searchResults.innerHTML = sources.slice(0, 4).map((source, i) => `
-            <div class="search-result-item">
-                <div class="result-title" style="width: ${60 + Math.random() * 30}%"></div>
-                <div class="result-url"></div>
-            </div>
-        `).join('');
+        searchResults.innerHTML = sources.slice(0, 4).map((source, i) => {
+            const title = source.title || source.query || '搜索结果';
+            const url = source.url || '';
+            const domain = url ? url.replace(/^https?:\/\//, '').split('/')[0] : '';
+            return `
+                <div class="search-result-item">
+                    <div class="result-title-text">${escapeHtml(title)}</div>
+                    ${domain ? `<div class="result-url-text">${escapeHtml(domain)}</div>` : ''}
+                </div>
+            `;
+        }).join('');
 
         if (sourceBadge && sourceCount) {
             sourceBadge.style.display = 'flex';
@@ -569,8 +605,15 @@
                     updateStep(0, STEPS[0]);
                     break;
 
-                case 'web_search':
+                case 'requirement_analysis':
                     updateStep(1, STEPS[1]);
+                    if (msg.learning_goals || msg.difficulty || msg.target_audience) {
+                        statusDesc.textContent = formatRequirementAnalysis(msg);
+                    }
+                    break;
+
+                case 'web_search':
+                    updateStep(2, STEPS[2]);
                     activateFeatureCard('websearch');
                     if (msg.sources_count !== undefined) {
                         statusDesc.textContent = `已找到 ${msg.sources_count} 条相关资料`;
@@ -581,7 +624,7 @@
                     break;
 
                 case 'outline':
-                    updateStep(2, STEPS[2]);
+                    updateStep(3, STEPS[3]);
                     if (msg.title) addOutlineItem(msg);
                     break;
 
@@ -590,7 +633,7 @@
                     break;
 
                 case 'agent_generation':
-                    updateStep(3, STEPS[3]);
+                    updateStep(4, STEPS[4]);
                     activateFeatureCard('interactive');
                     const agents = msg.agents || [];
                     if (agents.length > 0) {
@@ -612,6 +655,9 @@
                     if (msg.slides_v2 && msg.slides_v2.length > 0) {
                         sessionStorage.setItem('progressiveSlidesV2', JSON.stringify(msg.slides_v2));
                     }
+                    if (msg.code_data && msg.code_data.length > 0) {
+                        sessionStorage.setItem('progressiveCodeData', JSON.stringify(msg.code_data));
+                    }
                     break;
 
                 case 'first_batch_complete':
@@ -621,6 +667,7 @@
                         slides_v2_count: (msg.slides_v2 || []).length,
                         quiz_count: (msg.quiz_data || []).length,
                         exercise_count: (msg.exercise_data || []).length,
+                        code_count: (msg.code_data || []).length,
                         outlines_count: (msg.outlines || []).length,
                     });
                     statusTitle.textContent = '首批内容已生成';
@@ -641,6 +688,7 @@
                             agent_team: msg.agent_team || [],
                             quiz_data: msg.quiz_data || [],
                             exercise_data: msg.exercise_data || [],
+                            code_data: msg.code_data || [],
                             teacher: {
                                 name: '星识教师',
                                 avatar: '',
@@ -674,6 +722,9 @@
                     if (msg.exercise_data && msg.exercise_data.length > 0) {
                         sessionStorage.setItem('progressiveExerciseData', JSON.stringify(msg.exercise_data));
                     }
+                    if (msg.code_data && msg.code_data.length > 0) {
+                        sessionStorage.setItem('progressiveCodeData', JSON.stringify(msg.code_data));
+                    }
 
                     // 1秒后跳转到课堂
                     setTimeout(() => {
@@ -683,7 +734,7 @@
                     break;
 
                 case 'slide_content':
-                    updateStep(4, STEPS[4]);
+                    updateStep(5, STEPS[5]);
                     if (msg.speech_preview) {
                         statusDesc.textContent = msg.speech_preview.slice(0, 30) + '...';
                     } else {
@@ -692,7 +743,7 @@
                     break;
 
                 case 'image_progress':
-                    updateStep(5, STEPS[5]);
+                    updateStep(6, STEPS[6]);
                     activateFeatureCard('image');
                     if (msg.error) {
                         statusDesc.textContent = `配图跳过 (幻灯片 ${msg.slide_id})`;
@@ -702,7 +753,7 @@
                     break;
 
                 case 'tts_progress':
-                    updateStep(5, STEPS[5]);
+                    updateStep(6, STEPS[6]);
                     activateFeatureCard('tts');
                     if (msg.error) {
                         console.warn('TTS failed:', msg.error);
@@ -740,6 +791,7 @@
         const progressiveQuiz = sessionStorage.getItem('progressiveQuizData');
         const progressiveExercise = sessionStorage.getItem('progressiveExerciseData');
         const progressiveSlidesV2 = sessionStorage.getItem('progressiveSlidesV2');
+        const progressiveCode = sessionStorage.getItem('progressiveCodeData');
         if (progressiveSlides) {
             try {
                 const batchSlides = JSON.parse(progressiveSlides);
@@ -778,6 +830,16 @@
                 }
             } catch (e) {
                 console.warn('Failed to merge progressive slides_v2:', e);
+            }
+        }
+        if (progressiveCode) {
+            try {
+                const batchCode = JSON.parse(progressiveCode);
+                if (batchCode.length > 0) {
+                    courseData.code_data = [...(courseData.code_data || []), ...batchCode];
+                }
+            } catch (e) {
+                console.warn('Failed to merge progressive code_data:', e);
             }
         }
 

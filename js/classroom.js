@@ -105,6 +105,15 @@
             this.whiteboardStage = document.getElementById('whiteboard-stage');
             this.whiteboardToggleBtn = document.getElementById('whiteboard-toggle-btn');
             this.whiteboardClearBtn = document.getElementById('wb-clear-btn');
+            this.whiteboardAIDrawBtn = document.getElementById('wb-ai-draw-btn');
+            this.wbTextBtn = document.getElementById('wb-text-btn');
+            this.wbThemeBtn = document.getElementById('wb-theme-btn');
+            this.wbPenGroup = document.getElementById('wb-pen-group');
+            this.wbPenToggleBtn = document.getElementById('wb-pen-toggle-btn');
+            this.wbEraserBtn = document.getElementById('wb-eraser-btn');
+            this.wbPenUndoBtn = document.getElementById('wb-pen-undo-btn');
+            this.wbPenWidthInput = document.getElementById('wb-pen-width');
+            this.wbTheme = 'light'; // 'light' | 'dark'
 
             // Animation state
             this.currentAnimationEffects = [];
@@ -223,6 +232,15 @@
             this.chatInterimText = '';
         }
 
+        _escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;')
+                      .replace(/'/g, '&#039;');
+        }
+
         // ---- Init ----
 
         async init() {
@@ -277,6 +295,15 @@
                     }
                     if (progressiveSlidesV2.length > 0) {
                         this.courseData.slides_v2 = (this.courseData.slides_v2 || []).concat(progressiveSlidesV2);
+                    }
+                    // 加载渐进式 code_data
+                    try {
+                        const progressiveCode = JSON.parse(sessionStorage.getItem('progressiveCodeData') || '[]');
+                        if (progressiveCode.length > 0) {
+                            this.courseData.code_data = (this.courseData.code_data || []).concat(progressiveCode);
+                        }
+                    } catch (e) {
+                        console.warn('[classroom] Failed to load progressive code data:', e);
                     }
                 } catch (e) {
                     console.warn('[classroom] Failed to load progressive data:', e);
@@ -503,6 +530,7 @@
             const slides = this.courseData.slides || [];
             const quizData = this.courseData.quiz_data || [];
             const exerciseData = this.courseData.exercise_data || [];
+            const codeData = this.courseData.code_data || [];
             const slidesV2 = this.courseData.slides_v2 || [];
 
             const sameId = function(a, b) {
@@ -573,7 +601,10 @@
 
                 var matchedQuiz = findSceneData(quizData, outline);
                 var matchedExercise = findSceneData(exerciseData, outline);
+                var matchedCode = findSceneData(codeData, outline);
 
+                var isWb = outline.type === 'whiteboard';
+                var wbDesc = isWb ? (outline.whiteboard_description || outline.description || outline.title) : null;
                 return {
                     id: sceneId,
                     originalId: sceneId,
@@ -585,8 +616,10 @@
                     slides_v2: matchedSlidesV2 || [],
                     quiz: matchedQuiz,
                     exercise: matchedExercise,
+                    code_data: matchedCode,
                     audioUrl: (this.courseData.tts_audio_urls || {})[String(sceneId)] || null,
                     imageUrl: (matchedSlide && matchedSlide.content && matchedSlide.content.elements && matchedSlide.content.elements[0] && matchedSlide.content.elements[0].image_url) || null,
+                    whiteboard_description: wbDesc,
                 };
             }, this);
 
@@ -603,6 +636,7 @@
                         slides_v2: [slideV2],
                         quiz: null,
                         exercise: null,
+                        code_data: null,
                         audioUrl: null,
                         imageUrl: null,
                     });
@@ -615,18 +649,17 @@
 
         expandMultiSlideScenes() {
             const expanded = [];
-            const self = this;
-            this.scenes.forEach(function(scene) {
+            this.scenes.forEach((scene) => {
                 const slides = scene.slides_v2 || [];
                 if (slides.length <= 1) {
                     expanded.push(scene);
                     return;
                 }
-                slides.forEach(function(slide, idx) {
+                slides.forEach((slide, idx) => {
                     expanded.push({
                         id: scene.id + '_slide_' + idx,
                         originalId: scene.originalId || scene.id,
-                        title: slide.title || scene.title || ('幻灯片 ' + (idx + 1)),
+                        title: this.SlideRenderer._stripThinkTags(slide.title || scene.title || ('幻灯片 ' + (idx + 1))),
                         type: scene.type || 'slide',
                         description: scene.description || '',
                         keyPoints: scene.keyPoints || [],
@@ -634,6 +667,7 @@
                         slides_v2: [slide],
                         quiz: idx === 0 ? scene.quiz : null,
                         exercise: idx === 0 ? scene.exercise : null,
+                        code_data: idx === 0 ? scene.code_data : null,
                         audioUrl: scene.audioUrl,
                         imageUrl: (slide.content && slide.content[0] && slide.content[0].image_url) ||
                                   (slide.image_url) || scene.imageUrl || null,
@@ -645,7 +679,7 @@
 
         setupUI() {
             if (this.courseTitle && this.courseData.title) {
-                this.courseTitle.textContent = this.courseData.title;
+                this.courseTitle.textContent = this.SlideRenderer._stripThinkTags(this.courseData.title);
             }
             if (this.totalSlidesEl) {
                 this.totalSlidesEl.textContent = this.scenes.length;
@@ -733,6 +767,58 @@
             // Whiteboard toggle
             this.whiteboardToggleBtn?.addEventListener('click', () => this.toggleWhiteboard());
             this.whiteboardClearBtn?.addEventListener('click', () => this.clearWhiteboard());
+            this.whiteboardAIDrawBtn?.addEventListener('click', () => this._showAIDrawModal());
+            this.wbTextBtn?.addEventListener('click', () => this._showTextInputModal());
+            this.wbThemeBtn?.addEventListener('click', () => this._toggleWhiteboardTheme());
+            // Pen controls
+            this.wbPenToggleBtn?.addEventListener('click', () => this._togglePenMode());
+            this.wbEraserBtn?.addEventListener('click', () => this._toggleEraserMode());
+            this.wbPenUndoBtn?.addEventListener('click', () => {
+                const renderer = this._getWhiteboardRenderer();
+                if (renderer) renderer.undo();
+            });
+            this.wbPenWidthInput?.addEventListener('input', (e) => {
+                const renderer = this._getWhiteboardRenderer();
+                if (renderer) renderer.setPenWidth(parseInt(e.target.value, 10) || 3);
+            });
+            document.querySelectorAll('.wb-pen-color').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const color = e.currentTarget.dataset.color;
+                    const renderer = this._getWhiteboardRenderer();
+                    if (renderer) renderer.setPenColor(color);
+                    document.querySelectorAll('.wb-pen-color').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                });
+            });
+            // AI draw modal
+            document.getElementById('wb-ai-draw-modal-close')?.addEventListener('click', () => this._hideAIDrawModal());
+            document.getElementById('wb-ai-draw-modal-cancel')?.addEventListener('click', () => this._hideAIDrawModal());
+            document.getElementById('wb-ai-draw-modal-submit')?.addEventListener('click', () => this._submitAIDraw());
+            document.getElementById('wb-ai-draw-input')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && e.ctrlKey) this._submitAIDraw();
+            });
+            document.querySelectorAll('.wb-modal-example-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    const input = document.getElementById('wb-ai-draw-input');
+                    if (input) input.value = e.currentTarget.dataset.example;
+                });
+            });
+            // Text modal
+            document.getElementById('wb-text-modal-close')?.addEventListener('click', () => this._hideTextModal());
+            document.getElementById('wb-text-modal-cancel')?.addEventListener('click', () => this._hideTextModal());
+            document.getElementById('wb-text-modal-submit')?.addEventListener('click', () => this._submitTextInput());
+            document.getElementById('wb-text-input')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') this._submitTextInput();
+            });
+            document.getElementById('wb-text-size')?.addEventListener('input', (e) => {
+                document.getElementById('wb-text-size-value').textContent = e.target.value + 'px';
+            });
+            document.querySelectorAll('.wb-text-color').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.wb-text-color').forEach(b => b.classList.remove('active'));
+                    e.currentTarget.classList.add('active');
+                });
+            });
             // Quiz popup buttons
             this.quizToggleBtn?.addEventListener('click', () => this._onQuizToggleClick());
             this.quizCloseBtn?.addEventListener('click', () => this.closeQuizPopup());
@@ -764,7 +850,7 @@
             this.sceneThumbnails.innerHTML = this.scenes.map((s, i) => `
                 <div class="scene-thumb ${i === currentIdx ? 'active' : ''}" data-index="${i}" onclick="classroomController.goToScene(${i})">
                     <span class="scene-thumb-icon">${icons[s.type] || '📖'}</span>
-                    <span class="scene-thumb-label">${s.title.slice(0, 8)}</span>
+                    <span class="scene-thumb-label">${this.SlideRenderer._stripThinkTags(s.title || '').slice(0, 8)}</span>
                     <span class="scene-thumb-badge">${s.type}</span>
                 </div>
             `).join('');
@@ -797,10 +883,39 @@
             this.hideAllSceneContainers();
 
             switch (scene.type) {
-                case 'quiz': this.openQuizPopup(scene); break;
+                case 'quiz': this.openQuizPopup(scene, true); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
-                case 'interactive': case 'pbl': this.renderInteractiveScene(scene); break;
-                case 'slide': case 'code': case 'diagram': case 'video': {
+                case 'interactive': this.renderInteractiveScene(scene); break;
+                case 'pbl': this.renderPBLScene(scene); break;
+                case 'whiteboard': {
+                    this.whiteboardVisible = true;
+                    this.whiteboardToggleBtn?.classList.add('active');
+                    this._animateWhiteboardOpen();
+                    this._initWhiteboard();
+                    if (this.slideControls) this.slideControls.style.display = 'none';
+                    if (this.progressBar) this.progressBar.style.display = 'none';
+                    if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
+                    // Show pen controls for students
+                    if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
+                    // Auto-draw if scene has whiteboard content description
+                    const wbDesc = scene.whiteboard_description || scene.description || scene.title;
+                    if (wbDesc && scene.auto_draw !== false) {
+                        this._autoDrawWhiteboardContent(wbDesc, scene);
+                    }
+                    break;
+                }
+                case 'code': {
+                    if (scene.code_data) {
+                        if (this.interactiveContainer) this.interactiveContainer.style.display = 'block';
+                        this._renderCodeEditorScene(scene, scene.code_data);
+                    } else if (scene.slides_v2 && scene.slides_v2.length > 0) {
+                        this.renderSlideV2Scene(scene);
+                    } else {
+                        this.renderSlideScene(scene);
+                    }
+                    break;
+                }
+                case 'slide': case 'diagram': case 'video': {
                     if (scene.slides_v2 && scene.slides_v2.length > 0) {
                         this.renderSlideV2Scene(scene);
                     } else {
@@ -841,7 +956,7 @@
             this.slideContainer.innerHTML = `
                 <div class="slide-v2-container layout-title-only">
                     <div class="slide-header">
-                        <h1>${esc(scene.title || '内容加载异常')}</h1>
+                        <h1>${esc(this.SlideRenderer._stripThinkTags(scene.title || '内容加载异常'))}</h1>
                     </div>
                     <div class="slide-body" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
                         <div style="text-align:center;color:#64748b;padding:2rem;">
@@ -865,6 +980,11 @@
                 'warning': '⚠️', 'info': 'ℹ️'
             },
             COLOR_THEMES: ['blue', 'yellow', 'green', 'purple', 'orange'],
+
+            _stripThinkTags(str) {
+                if (!str) return str;
+                return str.replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<\/think>/g, '');
+            },
 
             _cycleCardThemes(cards) {
                 if (!cards || !Array.isArray(cards) || cards.length === 0) return cards || [];
@@ -898,33 +1018,22 @@
                     'title-only': this._renderTitleOnly.bind(this),
                     'two-column': this._renderTwoColumn.bind(this),
                     'grid-cards': this._renderGridCards.bind(this),
-                    'magazine-cover': this._renderMagazineCover.bind(this),
-                    'photo-story': this._renderPhotoStory.bind(this),
-                    'spotlight-focus': this._renderSpotlightFocus.bind(this),
-                    'kinetic-type': this._renderKineticType.bind(this),
-                    'isometric-cards': this._renderIsometricCards.bind(this),
+                    'header-content': this._renderHeaderContent.bind(this),
                     'timeline-steps': this._renderTimelineSteps.bind(this),
                     'comparison': this._renderComparison.bind(this),
                     'fullwidth-banner': this._renderFullwidthBanner.bind(this),
                     'three-column-cards': this._renderThreeColumnCards.bind(this),
                     'asymmetric-split': this._renderAsymmetricSplit.bind(this),
-                    'orbit-ring': this._renderOrbitRing.bind(this),
                     'numbered-list': this._renderNumberedList.bind(this),
                     'hero-center': this._renderHeroCenter.bind(this),
-                    'left-sidebar': this._renderLeftSidebar.bind(this),
-                    'film-strip': this._renderFilmStrip.bind(this),
-                    'floating-overlap': this._renderFloatingOverlap.bind(this),
-                    'grid-icon': this._renderGridIcon.bind(this),
-                    'process-flow': this._renderProcessFlow.bind(this),
-                    'quote-wall': this._renderQuoteWall.bind(this),
-                    'info-graphic': this._renderInfoGraphic.bind(this),
-                    'tabbed-content': this._renderTabbedContent.bind(this),
-                    'dark-header': this._renderDarkHeader.bind(this),
-                    'gradient-split': this._renderGradientSplit.bind(this),
-                    'circle-radial': this._renderCircleRadial.bind(this),
-                    'stair-step': this._renderStairStep.bind(this),
                     'chapter-divider': this._renderChapterDivider.bind(this),
-                    'horizontal-scroll': this._renderHorizontalScroll.bind(this),
+                    'edu-definition': this._renderEduDefinition.bind(this),
+                    'edu-keypoints': this._renderEduKeypoints.bind(this),
+                    'edu-example': this._renderEduExample.bind(this),
+                    'edu-summary': this._renderEduSummary.bind(this),
+                    'edu-welcome': this._renderEduWelcome.bind(this),
+                    'media-showcase': this._renderMediaShowcase.bind(this),
+                    'edu-programming-concept': this._renderEduProgrammingConcept.bind(this),
                 };
                 return renderers[layoutType] || this._renderTwoColumn.bind(this);
             },
@@ -1132,54 +1241,6 @@
                 `;
             },
 
-            _renderGridIcon(slide) {
-                const items = slide.content || [];
-                const iconsHtml = items.map((item, i) => {
-                    const icon = this._getIcon(item.icon) || '<i class="fas fa-circle"></i>';
-                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
-                    return `
-                        <div class="grid-icon-item theme-${this._validateTheme(item.colorTheme)}">
-                            <div class="grid-icon">${icon}</div>
-                            <div class="grid-label">${subTitle}</div>
-                        </div>
-                    `;
-                }).join('');
-                return `
-                    <div class="slide-v2-container layout-grid-icon">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="grid-icon-body">${iconsHtml}</div>
-                    </div>
-                `;
-            },
-
-            _renderProcessFlow(slide) {
-                const items = slide.content || [];
-                const stepsHtml = items.map((item, i) => {
-                    const icon = this._getIcon(item.icon) || '';
-                    const subTitle = this._escapeHtml(item.subTitle || item.title || '');
-                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
-                    return `
-                        <div class="process-step">
-                            <div class="process-node theme-${this._validateTheme(item.colorTheme)}">
-                                ${icon ? `<div class="process-icon">${icon}</div>` : ''}
-                                <div class="process-title">${subTitle}</div>
-                            </div>
-                            ${i < items.length - 1 ? '<div class="process-arrow"><i class="fas fa-arrow-right"></i></div>' : ''}
-                        </div>
-                    `;
-                }).join('');
-                return `
-                    <div class="slide-v2-container layout-process-flow">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="process-body">${stepsHtml}</div>
-                    </div>
-                `;
-            },
-
             _renderQuoteWall(slide) {
                 const items = slide.content || [];
                 const quotesHtml = items.map((item, i) => {
@@ -1330,7 +1391,256 @@
                 `;
             },
 
-            // ========== 8 种精美新布局渲染器 ==========
+            _renderEduDefinition(slide) {
+                const items = slide.content || [];
+                const defItem = items[0] || {};
+                const propItems = items.slice(1, 5);
+                const summaryItem = items[5] || {};
+                const defText = this._renderBulletsOrText({ bullets: defItem.bullets, text: defItem.text || '' });
+                const propsHtml = propItems.map((item, i) => {
+                    const theme = ['blue', 'green', 'purple', 'orange'][i % 4];
+                    return `<div class="edu-prop-tag theme-${theme}">${this._getIcon(item.icon)} ${this._escapeHtml(item.subTitle || item.title || '')}</div>`;
+                }).join('');
+                const summaryText = summaryItem.text || summaryItem.subTitle || '';
+                return `
+                    <div class="slide-v2-container layout-edu-definition">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="edu-definition-body">
+                            <div class="edu-definition-left">
+                                <div class="edu-definition-box">
+                                    <div class="edu-def-quote">"</div>
+                                    <div class="edu-def-text">${defText}</div>
+                                </div>
+                            </div>
+                            <div class="edu-definition-right">
+                                <div class="edu-prop-title">关键属性</div>
+                                <div class="edu-prop-tags">${propsHtml}</div>
+                            </div>
+                        </div>
+                        ${summaryText ? `<div class="edu-summary-bar">${this._escapeHtml(summaryText)}</div>` : ''}
+                    </div>
+                `;
+            },
+
+            _renderEduKeypoints(slide) {
+                const items = slide.content || [];
+                const cards = items.slice(0, 3).map((item, i) => {
+                    const theme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
+                    const icon = this._getIcon(item.icon);
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || item.content || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    return `
+                        <div class="edu-keypoint-card theme-${theme}">
+                            <div class="edu-kp-topbar"></div>
+                            <div class="edu-kp-body">
+                                <div class="edu-kp-header">${icon} <span>${this._escapeHtml(item.subTitle || item.title || '')}</span></div>
+                                ${textHtml && !isBullets ? `<div class="edu-kp-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-edu-keypoints">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="edu-keypoints-body">${cards}</div>
+                        <div class="edu-keypoints-footer"><i class="fas fa-lightbulb"></i> 记住这些要点</div>
+                    </div>
+                `;
+            },
+
+            _renderEduExample(slide) {
+                const items = slide.content || [];
+                const leftItem = items[0] || {};
+                const rightItem = items[1] || {};
+                const leftText = this._renderBulletsOrText({ bullets: leftItem.bullets, text: leftItem.text || '' });
+                const isLeftBullets = leftText.startsWith('<ul');
+                const rightText = rightItem.text || rightItem.codeSnippet || '';
+                const rightHtml = rightItem.codeSnippet
+                    ? this._renderCodeSnippet(rightItem.codeSnippet)
+                    : (rightText ? `<div class="edu-example-text">${this._parseMarkdown(rightText)}</div>` : '');
+                return `
+                    <div class="slide-v2-container layout-edu-example">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="edu-example-body">
+                            <div class="edu-example-left">
+                                <div class="edu-example-label">概念说明</div>
+                                ${leftItem.subTitle ? `<div class="edu-example-subtitle">${this._escapeHtml(leftItem.subTitle)}</div>` : ''}
+                                ${leftText && !isLeftBullets ? `<div class="edu-example-desc">${leftText}</div>` : ''}
+                                ${leftText && isLeftBullets ? leftText : ''}
+                            </div>
+                            <div class="edu-example-right">
+                                <div class="edu-example-badge">示例</div>
+                                <div class="edu-example-content">${rightHtml}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderEduSummary(slide) {
+                const items = slide.content || [];
+                const sections = [
+                    { label: '知识回顾', icon: 'book', theme: 'blue' },
+                    { label: '实践要点', icon: 'lightbulb', theme: 'green' },
+                    { label: '下节预告', icon: 'star', theme: 'orange' }
+                ];
+                const blocksHtml = sections.map((sec, i) => {
+                    const item = items[i] || {};
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    const isBullets = textHtml.startsWith('<ul');
+                    return `
+                        <div class="edu-summary-block theme-${sec.theme}">
+                            <div class="edu-summary-block-header">
+                                <div class="edu-summary-icon">${this._getIcon(sec.icon)}</div>
+                                <div class="edu-summary-label">${sec.label}</div>
+                            </div>
+                            <div class="edu-summary-block-body">
+                                ${item.subTitle ? `<div class="edu-summary-block-title">${this._escapeHtml(item.subTitle)}</div>` : ''}
+                                ${textHtml && !isBullets ? `<div class="edu-summary-text">${textHtml}</div>` : ''}
+                                ${textHtml && isBullets ? textHtml : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-edu-summary">
+                        <div class="edu-summary-title">${this._escapeHtml(slide.title || '')}</div>
+                        <div class="edu-summary-body">${blocksHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderHeaderContent(slide) {
+                const items = slide.content || [];
+                const headerItem = items[0];
+                const remaining = items.slice(1);
+                const headerHtml = headerItem ? this._renderContentCard(headerItem, 0) : '';
+                const contentHtml = remaining.map((item, i) => this._renderContentCard(item, i + 1)).join('');
+                return `
+                    <div class="slide-v2-container layout-header-content">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="header-content-area">
+                            ${headerHtml}
+                            <div class="header-content-stack">${contentHtml}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderEduWelcome(slide) {
+                const items = slide.content || [];
+                const theme = slide.colorTheme || 'blue';
+                const themeMap = {
+                    blue: { bg: '#DBEAFE', accent: '#3B82F6', text: '#1E40AF', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
+                    green: { bg: '#D1FAE5', accent: '#10B981', text: '#065F46', gradient: 'linear-gradient(135deg, #10B981, #047857)' },
+                    orange: { bg: '#FFEDD5', accent: '#F59E0B', text: '#92400E', gradient: 'linear-gradient(135deg, #F59E0B, #D97706)' },
+                    purple: { bg: '#EDE9FE', accent: '#8B5CF6', text: '#5B21B6', gradient: 'linear-gradient(135deg, #8B5CF6, #7C3AED)' },
+                };
+                const t = themeMap[theme] || themeMap.blue;
+                const cardsHtml = items.slice(0, 3).map((item, i) => {
+                    const labels = ['是什么', '能做什么', '如何学习'];
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    return `
+                        <div class="edu-welcome-card" style="--card-accent: ${t.accent}">
+                            <div class="edu-welcome-card-bar" style="background: ${t.gradient}"></div>
+                            <div class="edu-welcome-card-label">${labels[i] || ''}</div>
+                            <div class="edu-welcome-card-title">${this._escapeHtml(item.subTitle || '')}</div>
+                            ${textHtml}
+                        </div>
+                    `;
+                }).join('');
+                const slogan = slide.slogan || items[3]?.text || '开始你的学习之旅吧！';
+                return `
+                    <div class="slide-v2-container layout-edu-welcome" style="--welcome-theme: ${t.accent}">
+                        <div class="edu-welcome-header">
+                            <div class="edu-welcome-badge" style="background: ${t.gradient}">欢迎学习</div>
+                            <h1 class="edu-welcome-title">${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="edu-welcome-body">${cardsHtml}</div>
+                        <div class="edu-welcome-slogan" style="background: ${t.gradient}">${this._escapeHtml(slogan)}</div>
+                    </div>
+                `;
+            },
+
+            _renderMediaShowcase(slide) {
+                const items = slide.content || [];
+                const mainItem = items[0] || {};
+                const videoUrl = mainItem.videoUrl || mainItem.video_url || '';
+                const imageUrl = mainItem.imageUrl || mainItem.image_url || '';
+                const descItems = items.slice(1);
+                const descHtml = descItems.map((item, i) => {
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    return `<div class="media-desc-item">${this._getIcon(item.icon)} ${textHtml}</div>`;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-media-showcase">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="media-showcase-body">
+                            <div class="media-showcase-stage">
+                                ${videoUrl ? `<video src="${this._escapeAttr(videoUrl)}" controls autoplay loop muted playsinline class="media-showcase-video"></video>` : ''}
+                                ${!videoUrl && imageUrl ? `<img src="${this._escapeAttr(imageUrl)}" alt="" class="media-showcase-image">` : ''}
+                                ${!videoUrl && !imageUrl ? '<div class="media-showcase-placeholder">📷 媒体内容将在此展示</div>' : ''}
+                            </div>
+                            ${descHtml ? `<div class="media-showcase-desc">${descHtml}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderEduProgrammingConcept(slide) {
+                const items = slide.content || [];
+                const conceptItem = items[0] || {};
+                const specItem = items[1] || {};
+                const typeItems = items.slice(2);
+                const conceptText = this._renderBulletsOrText({ bullets: conceptItem.bullets, text: conceptItem.text || '' });
+                const specText = this._renderBulletsOrText({ bullets: specItem.bullets, text: specItem.text || '' });
+                const typesHtml = typeItems.map((item, i) => {
+                    const code = item.codeSnippet || item.code_snippet || '';
+                    return `
+                        <div class="prog-type-card theme-${this._validateTheme(item.colorTheme)}">
+                            <div class="prog-type-name">${this._escapeHtml(item.subTitle || '')}</div>
+                            <div class="prog-type-desc">${this._escapeHtml(item.text || '')}</div>
+                            ${code ? `<div class="prog-type-code"><code>${this._escapeHtml(code)}</code></div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-edu-programming-concept">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="prog-concept-body">
+                            <div class="prog-concept-left">
+                                <div class="prog-section-title">💡 什么是这个概念？</div>
+                                ${conceptText ? `<div class="prog-concept-text">${conceptText}</div>` : ''}
+                            </div>
+                            <div class="prog-concept-right">
+                                <div class="prog-section-title">⚠️ 使用规范</div>
+                                ${specText ? `<div class="prog-concept-text">${specText}</div>` : ''}
+                            </div>
+                        </div>
+                        ${typesHtml ? `
+                            <div class="prog-types-section">
+                                <div class="prog-types-title">📋 类型与分类</div>
+                                <div class="prog-types-grid">${typesHtml}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            },
+
+            // ========== 已废弃的非教育布局（保留代码但不再注册） ==========
 
             _renderMagazineCover(slide) {
                 const item = slide.content?.[0];
@@ -1731,7 +2041,7 @@
                 } else if (firstSlide.content && Array.isArray(firstSlide.content) && firstSlide.content.length > 0) {
                     // SlideV2 format: use content + layout_type directly
                     cardData = {
-                        title: firstSlide.title || scene.title || '',
+                        title: this.SlideRenderer._stripThinkTags(firstSlide.title || scene.title || ''),
                         content: this.SlideRenderer._cycleCardThemes(firstSlide.content),
                         layoutType: firstSlide.layout_type || firstSlide.layoutType || 'two-column'
                     };
@@ -1786,6 +2096,8 @@
                 var m = headerText.content.match(/<h1[^>]*>([\s\S]+?)<\/h1>/i);
                 if (m) slideTitle = m[1].replace(/<[^>]+>/g, '').trim();
             }
+            // Strip <think> reasoning tags from title
+            slideTitle = this.SlideRenderer._stripThinkTags(slideTitle);
 
             // Group elements by card prefix: "card-1", "card-2", etc.
             var cardGroups = {};
@@ -1966,7 +2278,7 @@
                 if (!existingHeader) {
                     container.innerHTML = `
                         <div class="interactive-header">
-                            <h1 class="interactive-title">${this._escapeHtml(scene.title || '')}</h1>
+                            <h1 class="interactive-title">${this._escapeHtml(this.SlideRenderer._stripThinkTags(scene.title || ''))}</h1>
                             ${ttsHtml}
                         </div>
                         <div class="interactive-body"></div>
@@ -2318,7 +2630,7 @@
             if (!slide) {
                 this.slideContainer.innerHTML = `
                     <div class="slide-content slide-enter">
-                        <h1 class="slide-title animate-in">${scene.title}</h1>
+                        <h1 class="slide-title animate-in">${this.SlideRenderer._stripThinkTags(scene.title || '')}</h1>
                         <p class="slide-description animate-in" style="animation-delay:0.2s">${scene.description}</p>
                     </div>
                 `;
@@ -2330,7 +2642,7 @@
 
             let html = `<div class="slide-header-bar"></div>`;
             html += `<div class="slide-content slide-enter">`;
-            html += `<h1 class="slide-title animate-in">${slide.title || scene.title}</h1>`;
+            html += `<h1 class="slide-title animate-in">${this.SlideRenderer._stripThinkTags(slide.title || scene.title || '')}</h1>`;
             html += `<div class="slide-body">`;
 
             // Get theme colors for styling
@@ -3217,8 +3529,9 @@
             // Try MiniMax TTS first
             const ttsResult = await this.generateTTS(text, voiceId, speed);
 
-            if (ttsResult.success && this.audioPlayer) {
+            if (ttsResult.success && ttsResult.audioUrl && this.audioPlayer) {
                 // Play generated audio with sync
+                this.audioPlayer.load();
                 this.audioPlayer.src = ttsResult.audioUrl;
 
                 this.audioPlayer.onloadedmetadata = () => {
@@ -3232,6 +3545,7 @@
                     if (this.teacherAvatar) {
                         this.teacherAvatar.classList.remove('speaking');
                     }
+                    this.clearSpotlight();
                 };
 
                 this.audioPlayer.onerror = () => {
@@ -3285,6 +3599,7 @@
                     }
                     this.showSpeechSyncIndicator(false);
                     this.updateTeacherStatus('待机中', false);
+                    this.clearSpotlight();
                     resolve();
                 };
 
@@ -3337,17 +3652,57 @@
 
             // Fallback: 从当前 scene 的 slides_v2 content 中匹配 text
             var slideV2 = currentScene.slide || currentScene;
+            var slidesV2 = currentScene.slides_v2 || [];
+            var bestMatch = null;
+            var bestScore = 0;
+
+            // Helper: compute similarity score between two strings
+            function scoreMatch(a, b) {
+                if (!a || !b) return 0;
+                a = a.toLowerCase().trim();
+                b = b.toLowerCase().trim();
+                if (a === b) return 100;
+                if (a.indexOf(b) >= 0 || b.indexOf(a) >= 0) return 80;
+                var aWords = a.split(/\s+/);
+                var bWords = b.split(/\s+/);
+                var common = aWords.filter(function(w) { return bWords.indexOf(w) >= 0; });
+                return Math.round((common.length / Math.max(aWords.length, bWords.length)) * 60);
+            }
+
+            // Check slides_v2 content items
+            var allContent = [];
             if (slideV2.content) {
-                for (var k = 0; k < slideV2.content.length; k++) {
-                    var item = slideV2.content[k];
-                    if (item.narration === text || item.text === text ||
-                        (item.bullets && item.bullets.some(function(b) { return text.indexOf(b) >= 0; }))) {
-                        return 'card-' + (k + 1);
+                allContent = slideV2.content;
+            } else if (slidesV2.length > 0 && slidesV2[0].content) {
+                allContent = slidesV2[0].content;
+            }
+
+            for (var k = 0; k < allContent.length; k++) {
+                var item = allContent[k];
+                var candidates = [];
+                if (item.narration) candidates.push(item.narration);
+                if (item.text) candidates.push(item.text);
+                if (item.title) candidates.push(item.title);
+                if (item.subTitle) candidates.push(item.subTitle);
+                if (item.bullets) candidates = candidates.concat(item.bullets);
+
+                for (var c = 0; c < candidates.length; c++) {
+                    var score = scoreMatch(text, candidates[c]);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = 'card-' + (k + 1);
                     }
                 }
             }
 
-            return null;
+            // Also check title match
+            var title = currentScene.title || '';
+            if (scoreMatch(text, title) > bestScore) {
+                bestScore = scoreMatch(text, title);
+                bestMatch = 'card-1';
+            }
+
+            return bestScore >= 30 ? bestMatch : null;
         }
 
         async generateTTS(text, voiceId = null, speed = 1.0) {
@@ -3368,9 +3723,9 @@
 
                 const data = await response.json();
                 console.log('[Classroom] TTS response:', data);
-                if (data.success && data.audio_url) {
+                if (data.success && data.audio_url && typeof data.audio_url === 'string' && data.audio_url.trim().length > 0) {
                     console.log('[Classroom] TTS audioUrl:', data.audio_url);
-                    return { success: true, audioUrl: data.audio_url };
+                    return { success: true, audioUrl: data.audio_url.trim() };
                 }
                 if (data.error) {
                     console.error('[Classroom] TTS API error:', data.error);
@@ -3577,7 +3932,7 @@
             if (header) {
                 header.innerHTML = `
                     <i class="fas fa-pencil-alt"></i>
-                    <span>${quiz?.title || scene.title}</span>
+                    <span>${this.SlideRenderer._stripThinkTags(quiz?.title || scene.title || '')}</span>
                     <span class="quiz-progress">(${this.currentIndex + 1}/${this.scenes.length})</span>
                 `;
             }
@@ -3645,24 +4000,126 @@
             const answer = document.getElementById('exercise-answer');
             const submitBtn = document.getElementById('exercise-submit-btn');
 
+            const exercises = data?.exercises || [];
+            const hasCodeExercise = exercises.some(ex => ex.type === 'code' || ex.language);
+
             if (content) {
-                const exercises = data?.exercises || [];
-                content.innerHTML = exercises.length > 0
-                    ? exercises.map((ex, i) => `<div class="exercise-item"><h4>练习 ${i+1}</h4><p>${ex.instruction || ''}</p></div>`).join('')
-                    : `<h3>${scene.title}</h3><p>${scene.description}</p>`;
-            }
-            if (hints && data?.exercises?.[0]?.hints) {
-                hints.innerHTML = '<strong>提示：</strong>' + data.exercises[0].hints.map(h => `<span class="hint-badge">${h}</span>`).join('');
-                hints.style.display = 'block';
-            }
-            if (answer) answer.value = '';
-            if (submitBtn) submitBtn.onclick = () => {
-                const ans = answer?.value.trim();
-                if (ans) {
-                    this.addChatMessage('user', `练习答案：${ans}`);
-                    this.sendExerciseAnswer(scene, ans);
+                if (exercises.length === 0) {
+                    content.innerHTML = `<h3>${this.SlideRenderer._stripThinkTags(scene.title || '')}</h3><p>${scene.description || ''}</p>`;
+                } else {
+                    content.innerHTML = exercises.map((ex, i) => {
+                        if (ex.type === 'code' || ex.language) {
+                            return this._renderExerciseCodeEditor(ex, i);
+                        }
+                        return `<div class="exercise-item"><h4>练习 ${i+1}</h4><p>${ex.instruction || ''}</p></div>`;
+                    }).join('');
+
+                    // Bind code editor events for code exercises
+                    exercises.forEach((ex, i) => {
+                        if (ex.type === 'code' || ex.language) {
+                            this._bindExerciseCodeEditorEvents(ex, i);
+                        }
+                    });
                 }
-            };
+            }
+
+            if (hints) {
+                if (data?.exercises?.[0]?.hints && !hasCodeExercise) {
+                    hints.innerHTML = '<strong>提示：</strong>' + data.exercises[0].hints.map(h => `<span class="hint-badge">${h}</span>`).join('');
+                    hints.style.display = 'block';
+                } else {
+                    hints.style.display = 'none';
+                    hints.innerHTML = '';
+                }
+            }
+
+            if (answer) {
+                if (hasCodeExercise) {
+                    answer.style.display = 'none';
+                } else {
+                    answer.style.display = 'block';
+                    answer.value = '';
+                }
+            }
+
+            if (submitBtn) {
+                if (hasCodeExercise) {
+                    submitBtn.style.display = 'none';
+                } else {
+                    submitBtn.style.display = 'block';
+                    submitBtn.innerHTML = '<span>提交答案</span><i class="fas fa-arrow-right"></i>';
+                    submitBtn.onclick = () => {
+                        const ans = answer?.value.trim();
+                        if (ans) {
+                            this.addChatMessage('user', `练习答案：${ans}`);
+                            this.sendExerciseAnswer(scene, ans);
+                        }
+                    };
+                }
+            }
+        }
+
+        _renderExerciseCodeEditor(ex, index) {
+            const lang = ex.language || 'python';
+            const starterCode = ex.starter_code || ex.code || '';
+            const instruction = ex.instruction || '';
+            return `
+                <div class="exercise-code-editor" data-ex-index="${index}">
+                    <div class="exercise-code-header">
+                        <span class="exercise-code-title"><i class="fas fa-code"></i> 编程练习 ${index + 1}</span>
+                        <select class="exercise-code-lang" id="ex-code-lang-${index}">
+                            <option value="python" ${lang === 'python' ? 'selected' : ''}>Python</option>
+                            <option value="javascript" ${lang === 'javascript' ? 'selected' : ''}>JavaScript</option>
+                            <option value="html" ${lang === 'html' ? 'selected' : ''}>HTML</option>
+                        </select>
+                    </div>
+                    ${instruction ? `<div class="exercise-code-instruction">${this._escapeHtml(instruction)}</div>` : ''}
+                    <textarea class="exercise-code-area" id="ex-code-area-${index}" spellcheck="false" placeholder="// 在此输入代码...">${this._escapeHtml(starterCode)}</textarea>
+                    <div class="exercise-code-actions">
+                        <button class="exercise-code-run" id="ex-code-run-${index}"><i class="fas fa-play"></i> 运行代码</button>
+                        <button class="exercise-code-hint" id="ex-code-hint-${index}"><i class="fas fa-robot"></i> AI 提示</button>
+                    </div>
+                    <div class="exercise-code-output" id="ex-code-output-${index}" style="display:none;"></div>
+                </div>
+            `;
+        }
+
+        _bindExerciseCodeEditorEvents(ex, index) {
+            const textarea = document.getElementById(`ex-code-area-${index}`);
+            const runBtn = document.getElementById(`ex-code-run-${index}`);
+            const hintBtn = document.getElementById(`ex-code-hint-${index}`);
+            const output = document.getElementById(`ex-code-output-${index}`);
+            const langSelect = document.getElementById(`ex-code-lang-${index}`);
+
+            if (textarea) {
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        textarea.value = textarea.value.substring(0, start) + '    ' + textarea.value.substring(end);
+                        textarea.selectionStart = textarea.selectionEnd = start + 4;
+                    }
+                });
+            }
+
+            if (runBtn) {
+                runBtn.addEventListener('click', () => {
+                    const code = textarea ? textarea.value : '';
+                    const language = langSelect ? langSelect.value : 'python';
+                    if (!code.trim()) return;
+                    this._runCodeInScene(language, code, output);
+                });
+            }
+
+            if (hintBtn) {
+                hintBtn.addEventListener('click', () => {
+                    const code = textarea ? textarea.value : '';
+                    const language = langSelect ? langSelect.value : 'python';
+                    const scene = this.scenes[this.currentIndex];
+                    this._getCodeHintFromAI(scene, code, language, output);
+                });
+            }
         }
 
         renderInteractiveScene(scene) {
@@ -3675,19 +4132,24 @@
             const widgetType = interactiveData?.widget_type;
             const htmlContent = interactiveData?.html_content || interactiveData?.html;
 
+            // Detect code scene: widget type is 'code', or scene type is 'code', or has language data
+            const isCodeScene = widgetType === 'code' || scene.type === 'code' || scene.code_data || (interactiveData?.language);
+            if (isCodeScene) {
+                if (iframe) iframe.style.display = 'none';
+                this._renderCodeEditorScene(scene, interactiveData);
+                return;
+            }
+            const existingEditor = this.interactiveContainer.querySelector('.scene-code-editor-wrapper');
+            if (existingEditor) existingEditor.remove();
+            if (iframe) iframe.style.display = 'block';
+
             if (iframe) {
                 if (htmlContent) {
                     // Render actual interactive HTML content
                     iframe.srcdoc = htmlContent;
                 } else if (widgetType) {
-                    // Render placeholder with widget type
-                    iframe.srcdoc = `<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#1a1a2e;color:#e0e7ff;margin:0;">
-                        <div style="text-align:center;padding:2rem;">
-                            <div style="font-size:4rem;margin-bottom:1rem;">${widgetType === 'simulation' ? '🔬' : widgetType === 'diagram' ? '📊' : widgetType === 'code' ? '💻' : widgetType === 'game' ? '🎮' : widgetType === 'visualization3d' ? '🌐' : '🎯'}</div>
-                            <h2>${scene.title}</h2>
-                            <p style="color:#a0aec0;">${scene.description || '交互式学习内容'}</p>
-                            <p style="color:#6366f1;font-size:0.9rem;margin-top:1rem;">Widget类型: ${widgetType}</p>
-                        </div></body></html>`;
+                    // Render rich interactive widget based on type
+                    iframe.srcdoc = this._buildInteractiveWidgetHTML(scene, widgetType);
                 } else {
                     // Basic placeholder - show clear message
                     const safeHtml = this._escapeHtml ? this._escapeHtml.bind(this) : (v => v || '');
@@ -3699,6 +4161,854 @@
                             <p style="color:#6366f1;font-size:0.85rem;margin-top:1rem;">场景类型: ${safeHtml(scene.type)}</p>
                         </div></body></html>`;
                 }
+            }
+        }
+
+        _buildInteractiveWidgetHTML(scene, widgetType) {
+            const title = this.SlideRenderer._stripThinkTags(scene.title || '交互式学习');
+            const desc = scene.description || '';
+            const safe = (str) => String(str || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+            const config = scene.config || {};
+
+            const baseStyles = `
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+                    .widget-header { padding: 1.25rem 1.5rem; background: #1e293b; border-bottom: 1px solid #334155; }
+                    .widget-header h2 { font-size: 1.25rem; color: #f8fafc; margin-bottom: 0.25rem; }
+                    .widget-header p { font-size: 0.875rem; color: #94a3b8; line-height: 1.5; }
+                    .widget-body { flex: 1; padding: 1.5rem; overflow: auto; }
+                    .widget-footer { padding: 1rem 1.5rem; background: #1e293b; border-top: 1px solid #334155; font-size: 0.8rem; color: #64748b; display: flex; justify-content: space-between; align-items: center; }
+                    .btn { background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem; transition: background 0.2s; }
+                    .btn:hover { background: #2563eb; }
+                    .btn-secondary { background: #475569; }
+                    .btn-secondary:hover { background: #334155; }
+                    .panel { background: #1e293b; border-radius: 0.5rem; padding: 1rem; border: 1px solid #334155; }
+                    input[type="range"] { width: 100%; margin: 0.5rem 0; }
+                    label { font-size: 0.8rem; color: #94a3b8; }
+                </style>
+            `;
+
+            if (widgetType === 'simulation') {
+                const vars = config.variables || [{ name: 'angle', min: 0, max: 90, value: 45, label: '角度' }, { name: 'velocity', min: 1, max: 20, value: 10, label: '初速度' }];
+                const varInputs = vars.map((v, i) => `
+                    <div style="margin-bottom:1rem;">
+                        <label>${safe(v.label || v.name)}: <span id="val-${i}">${v.value}</span></label>
+                        <input type="range" id="var-${i}" min="${v.min}" max="${v.max}" value="${v.value}" step="${v.step || 1}">
+                    </div>
+                `).join('');
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}</head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body" style="display:flex;gap:1.5rem;flex-wrap:wrap;">
+                            <div class="panel" style="flex:1;min-width:260px;max-width:320px;">
+                                <h3 style="font-size:1rem;margin-bottom:1rem;color:#f8fafc;">参数控制</h3>
+                                ${varInputs}
+                                <button class="btn" id="run-btn" style="width:100%;margin-top:0.5rem;"><i class="fas fa-play"></i> 运行模拟</button>
+                            </div>
+                            <div class="panel" style="flex:2;min-width:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <canvas id="sim-canvas" width="500" height="320" style="background:#0f172a;border-radius:0.375rem;border:1px solid #334155;"></canvas>
+                                <div id="sim-result" style="margin-top:1rem;font-size:0.875rem;color:#94a3b8;min-height:1.5rem;"></div>
+                            </div>
+                        </div>
+                        <div class="widget-footer"><span>实时模拟</span><span id="sim-status">就绪</span></div>
+                        <script>
+                            const canvas = document.getElementById('sim-canvas');
+                            const ctx = canvas.getContext('2d');
+                            const vars = ${JSON.stringify(vars)};
+                            const values = vars.map((v,i) => ({ idx: i, val: v.value }));
+                            let animId = null;
+                            vars.forEach((v,i) => {
+                                const el = document.getElementById('var-'+i);
+                                if(!el) return;
+                                el.addEventListener('input', e => {
+                                    values[i].val = parseFloat(e.target.value);
+                                    document.getElementById('val-'+i).textContent = values[i].val;
+                                    drawStatic();
+                                });
+                            });
+                            function drawStatic() {
+                                ctx.clearRect(0,0,canvas.width,canvas.height);
+                                ctx.strokeStyle='#6366f1'; ctx.lineWidth=2;
+                                const angle = (values.find(v=>vars[v.idx].name==='angle')?.val || 45) * Math.PI/180;
+                                const v0 = values.find(v=>vars[v.idx].name==='velocity')?.val || 10;
+                                const g = 9.8, scale = 8;
+                                let x=20, y=canvas.height-20, t=0, pts=[];
+                                while(y<=canvas.height-20 && t<10) {
+                                    pts.push({x,y});
+                                    t+=0.05; x=20+v0*Math.cos(angle)*t*scale; y=canvas.height-20-(v0*Math.sin(angle)*t-0.5*g*t*t)*scale;
+                                }
+                                if(pts.length>1) {
+                                    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+                                    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+                                    ctx.stroke();
+                                }
+                                ctx.fillStyle='#f59e0b'; ctx.beginPath(); ctx.arc(pts[pts.length-1]?.x||20,pts[pts.length-1]?.y||canvas.height-20,6,0,Math.PI*2); ctx.fill();
+                                ctx.fillStyle='#94a3b8'; ctx.font='12px sans-serif'; ctx.fillText('抛物线模拟 (g=9.8)', 10, 20);
+                            }
+                            function animate() {
+                                let start = null; document.getElementById('sim-status').textContent='运行中...';
+                                function step(timestamp) {
+                                    if(!start) start=timestamp; const progress=(timestamp-start)/1000;
+                                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                                    drawStatic(); // keep trajectory
+                                    const angle=(values.find(v=>vars[v.idx].name==='angle')?.val||45)*Math.PI/180;
+                                    const v0=values.find(v=>vars[v.idx].name==='velocity')?.val||10;
+                                    const g=9.8, scale=8, t=progress;
+                                    const x=20+v0*Math.cos(angle)*t*scale;
+                                    const y=canvas.height-20-(v0*Math.sin(angle)*t-0.5*g*t*t)*scale;
+                                    if(y>canvas.height-20 || x>canvas.width) { document.getElementById('sim-status').textContent='完成'; return; }
+                                    ctx.fillStyle='#ef4444'; ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.fill();
+                                    animId=requestAnimationFrame(step);
+                                }
+                                if(animId) cancelAnimationFrame(animId);
+                                animId=requestAnimationFrame(step);
+                            }
+                            document.getElementById('run-btn').addEventListener('click', animate);
+                            drawStatic();
+                        <\/script>
+                    </body></html>`;
+            }
+
+            if (widgetType === 'diagram') {
+                const diagramType = config.diagram_type || 'flowchart';
+                const mermaidCode = config.mermaid_code || `flowchart TD\n    A[开始] --> B{判断}\n    B -->|是| C[执行A]\n    B -->|否| D[执行B]\n    C --> E[结束]\n    D --> E`;
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}
+                        <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\/script>
+                    </head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body">
+                            <div class="panel" style="max-width:800px;margin:0 auto;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                                    <span style="font-size:0.8rem;color:#94a3b8;">类型: ${safe(diagramType)}</span>
+                                    <button class="btn btn-secondary" id="refresh-btn">重新渲染</button>
+                                </div>
+                                <div id="mermaid-diagram" style="display:flex;justify-content:center;">
+                                    <div class="mermaid">${safe(mermaidCode)}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-footer"><span>交互式图表</span><span>Mermaid.js 驱动</span></div>
+                        <script>
+                            mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+                            document.getElementById('refresh-btn').addEventListener('click', () => {
+                                const container = document.getElementById('mermaid-diagram');
+                                const code = \`${safe(mermaidCode)}\`;
+                                container.innerHTML = '<div class="mermaid">' + code + '</div>';
+                                mermaid.init(undefined, container.querySelectorAll('.mermaid'));
+                            });
+                        <\/script>
+                    </body></html>`;
+            }
+
+            if (widgetType === 'game') {
+                const pairs = config.pairs || [
+                    { q: '牛顿第一定律', a: '惯性定律' },
+                    { q: 'E=mc²', a: '质能方程' },
+                    { q: 'H₂O', a: '水' },
+                    { q: '光合作用', a: '叶绿素' }
+                ];
+                const items = [];
+                pairs.forEach((p, i) => { items.push({ id: i+'q', text: p.q, match: i+'a' }); items.push({ id: i+'a', text: p.a, match: i+'q' }); });
+                items.sort(() => Math.random() - 0.5);
+                const cards = items.map(it => `
+                    <div class="game-card" data-id="${it.id}" data-match="${it.match}" style="background:#1e293b;border:2px solid #334155;border-radius:0.5rem;padding:1rem;cursor:pointer;text-align:center;transition:all 0.2s;min-height:80px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;user-select:none;">
+                        <span class="card-text" style="display:none;color:#f8fafc;">${safe(it.text)}</span>
+                        <span class="card-cover" style="font-size:1.5rem;">?</span>
+                    </div>
+                `).join('');
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}</head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <div style="display:flex;gap:1rem;margin-bottom:1.5rem;align-items:center;">
+                                <div style="font-size:0.9rem;color:#94a3b8;">得分: <span id="score" style="color:#f59e0b;font-weight:bold;">0</span></div>
+                                <div style="font-size:0.9rem;color:#94a3b8;">步数: <span id="moves" style="color:#3b82f6;font-weight:bold;">0</span></div>
+                                <button class="btn" id="reset-game" style="font-size:0.8rem;padding:0.35rem 0.75rem;">重新开始</button>
+                            </div>
+                            <div id="game-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;max-width:640px;width:100%;">${cards}</div>
+                            <div id="game-msg" style="margin-top:1rem;font-size:0.9rem;color:#94a3b8;min-height:1.5rem;"></div>
+                        </div>
+                        <div class="widget-footer"><span>记忆配对游戏</span><span>点击卡片翻转匹配</span></div>
+                        <script>
+                            let first=null, score=0, moves=0, lock=false, matched=0;
+                            const totalPairs = ${pairs.length};
+                            function update() { document.getElementById('score').textContent=score; document.getElementById('moves').textContent=moves; }
+                            function flip(card, show) {
+                                const text=card.querySelector('.card-text'), cover=card.querySelector('.card-cover');
+                                text.style.display=show?'block':'none'; cover.style.display=show?'none':'block';
+                                card.style.borderColor=show?'#3b82f6':'#334155';
+                            }
+                            function init() {
+                                first=null; score=0; moves=0; lock=false; matched=0; update();
+                                document.getElementById('game-msg').textContent='';
+                                document.querySelectorAll('.game-card').forEach(c=>{ flip(c,false); c.classList.remove('matched'); c.style.opacity='1'; });
+                            }
+                            document.getElementById('game-grid').addEventListener('click', e=>{
+                                const card=e.target.closest('.game-card'); if(!card||lock||card.classList.contains('matched')) return;
+                                if(first===card) return;
+                                flip(card,true);
+                                if(!first){ first=card; return; }
+                                moves++; update(); lock=true;
+                                const c1=first, c2=card;
+                                if(c1.dataset.match===c2.dataset.id){ score+=10; matched++; update(); c1.classList.add('matched'); c2.classList.add('matched'); c1.style.borderColor='#22c55e'; c2.style.borderColor='#22c55e'; first=null; lock=false; if(matched===totalPairs) document.getElementById('game-msg').textContent='🎉 恭喜完成全部配对！'; }
+                                else { setTimeout(()=>{ flip(c1,false); flip(c2,false); first=null; lock=false; },800); }
+                            });
+                            document.getElementById('reset-game').addEventListener('click', init);
+                        <\/script>
+                    </body></html>`;
+            }
+
+            if (widgetType === 'visualization3d') {
+                const shape = config.shape || 'cube';
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
+                    </head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <div id="three-container" style="width:100%;max-width:700px;height:400px;border-radius:0.5rem;border:1px solid #334155;overflow:hidden;background:#000;"></div>
+                            <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
+                                <button class="btn btn-secondary shape-btn" data-shape="cube">立方体</button>
+                                <button class="btn btn-secondary shape-btn" data-shape="sphere">球体</button>
+                                <button class="btn btn-secondary shape-btn" data-shape="torus">圆环</button>
+                                <button class="btn btn-secondary shape-btn" data-shape="cone">圆锥</button>
+                            </div>
+                        </div>
+                        <div class="widget-footer"><span>3D 可视化</span><span>Three.js 驱动</span></div>
+                        <script>
+                            const container = document.getElementById('three-container');
+                            const scene3d = new THREE.Scene();
+                            scene3d.background = new THREE.Color(0x0f172a);
+                            const camera = new THREE.PerspectiveCamera(60, container.clientWidth/container.clientHeight, 0.1, 1000);
+                            camera.position.z = 4;
+                            const renderer = new THREE.WebGLRenderer({ antialias: true });
+                            renderer.setSize(container.clientWidth, container.clientHeight);
+                            container.appendChild(renderer.domElement);
+                            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+                            const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+                            directional.position.set(2,2,2);
+                            scene3d.add(ambient, directional);
+                            let mesh = null;
+                            function createShape(type) {
+                                if(mesh){ scene3d.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); }
+                                let geo;
+                                if(type==='sphere') geo=new THREE.SphereGeometry(1,32,32);
+                                else if(type==='torus') geo=new THREE.TorusGeometry(0.8,0.3,16,50);
+                                else if(type==='cone') geo=new THREE.ConeGeometry(1,2,32);
+                                else geo=new THREE.BoxGeometry(1.5,1.5,1.5);
+                                const mat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.3, roughness: 0.4 });
+                                mesh = new THREE.Mesh(geo, mat);
+                                scene3d.add(mesh);
+                            }
+                            createShape('${shape}');
+                            function animate() { requestAnimationFrame(animate); if(mesh){ mesh.rotation.x+=0.005; mesh.rotation.y+=0.01; } renderer.render(scene3d, camera); }
+                            animate();
+                            document.querySelectorAll('.shape-btn').forEach(btn=>{
+                                btn.addEventListener('click',()=>{ createShape(btn.dataset.shape); });
+                            });
+                            window.addEventListener('resize',()=>{
+                                const w=container.clientWidth, h=container.clientHeight;
+                                camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+                            });
+                        <\/script>
+                    </body></html>`;
+            }
+
+            if (widgetType === 'terminal') {
+                const presetData = config.preset_data || {
+                    'name': { type: 'string', value: 'Alice' },
+                    'age': { type: 'string', value: '25' },
+                    'users:1': { type: 'hash', value: { name: 'Bob', email: 'bob@example.com', role: 'admin' } },
+                    'users:2': { type: 'hash', value: { name: 'Carol', email: 'carol@example.com', role: 'user' } },
+                    'tasks': { type: 'list', value: ['学习Redis', '练习命令', '完成测验'] },
+                    'course': { type: 'string', value: 'Redis基础入门' }
+                };
+                const presetJson = JSON.stringify(presetData).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}
+                        <style>
+                            .terminal-wrap { background:#0a0a0f; border-radius:0.5rem; border:1px solid #1e293b; overflow:hidden; display:flex; flex-direction:column; height:100%; max-height:520px; }
+                            .terminal-header { background:#1e293b; padding:0.5rem 1rem; display:flex; align-items:center; gap:0.5rem; border-bottom:1px solid #334155; }
+                            .term-btn { width:12px; height:12px; border-radius:50%; }
+                            .term-btn.r { background:#ef4444; } .term-btn.y { background:#eab308; } .term-btn.g { background:#22c55e; }
+                            .terminal-title { font-size:0.8rem; color:#94a3b8; margin-left:0.5rem; }
+                            .terminal-body { flex:1; padding:1rem; overflow-y:auto; font-family:'Consolas','Monaco','Courier New',monospace; font-size:0.9rem; line-height:1.6; }
+                            .terminal-line { margin:0.15rem 0; }
+                            .terminal-prompt { color:#22d3ee; }
+                            .terminal-input { color:#4ade80; background:transparent; border:none; outline:none; font-family:inherit; font-size:inherit; width:80%; }
+                            .terminal-output { color:#e2e8f0; }
+                            .terminal-error { color:#ef4444; }
+                            .terminal-success { color:#4ade80; }
+                            .terminal-info { color:#94a3b8; }
+                            .terminal-welcome { color:#f59e0b; margin-bottom:0.5rem; }
+                            .terminal-input-line { display:flex; align-items:center; gap:0.35rem; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <div class="terminal-wrap" style="width:100%;max-width:720px;">
+                                <div class="terminal-header">
+                                    <span class="term-btn r"></span><span class="term-btn y"></span><span class="term-btn g"></span>
+                                    <span class="terminal-title">Redis CLI 模拟器</span>
+                                </div>
+                                <div class="terminal-body" id="term-body">
+                                    <div class="terminal-welcome">🚀 欢迎使用 Redis CLI 模拟器！</div>
+                                    <div class="terminal-info">输入 HELP 查看可用命令列表</div>
+                                    <div class="terminal-info">当前已预加载一些示例数据，试着输入：GET name</div>
+                                </div>
+                                <div style="padding:0.5rem 1rem;background:#0a0a0f;border-top:1px solid #1e293b;">
+                                    <div class="terminal-input-line">
+                                        <span class="terminal-prompt">127.0.0.1:6379&gt;</span>
+                                        <input type="text" class="terminal-input" id="term-input" autocomplete="off" spellcheck="false" placeholder="输入命令...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="widget-footer"><span>Redis CLI 模拟器</span><span>纯客户端模拟，无后端通信</span></div>
+                        <script>
+                            const db = new Map();
+                            const preset = JSON.parse('${presetJson}');
+                            Object.keys(preset).forEach(k => {
+                                const v = preset[k];
+                                db.set(k, { type: v.type, value: JSON.parse(JSON.stringify(v.value)), expires: null });
+                            });
+                            const history = []; let histIdx = -1;
+                            const body = document.getElementById('term-body');
+                            const input = document.getElementById('term-input');
+                            function appendLine(text, cls) {
+                                const div = document.createElement('div');
+                                div.className = 'terminal-line ' + (cls || 'terminal-output');
+                                div.textContent = text;
+                                body.appendChild(div);
+                                body.scrollTop = body.scrollHeight;
+                            }
+                            function appendPrompt(cmd) {
+                                const div = document.createElement('div');
+                                div.className = 'terminal-line';
+                                div.innerHTML = '<span class="terminal-prompt">127.0.0.1:6379&gt;</span> ' + escapeHtml(cmd);
+                                body.appendChild(div);
+                                body.scrollTop = body.scrollHeight;
+                            }
+                            function escapeHtml(s) {
+                                return String(s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+                            }
+                            function checkExpired(key) {
+                                const entry = db.get(key);
+                                if (entry && entry.expires && Date.now() > entry.expires) { db.delete(key); return null; }
+                                return entry;
+                            }
+                            function execCmd(cmd) {
+                                const parts = cmd.trim().split(/\s+/);
+                                if (parts.length === 0) return;
+                                const c = parts[0].toUpperCase();
+                                if (c === 'HELP') {
+                                    appendLine('可用命令：', 'terminal-success');
+                                    appendLine('  SET key value        - 设置键值对', 'terminal-info');
+                                    appendLine('  GET key              - 获取键值', 'terminal-info');
+                                    appendLine('  DEL key              - 删除键', 'terminal-info');
+                                    appendLine('  EXISTS key           - 检查键是否存在', 'terminal-info');
+                                    appendLine('  KEYS pattern         - 查找键（支持 * 通配符）', 'terminal-info');
+                                    appendLine('  HSET key field value - 设置哈希字段', 'terminal-info');
+                                    appendLine('  HGET key field       - 获取哈希字段', 'terminal-info');
+                                    appendLine('  HGETALL key          - 获取哈希所有字段', 'terminal-info');
+                                    appendLine('  LPUSH key value      - 列表左侧插入', 'terminal-info');
+                                    appendLine('  LRANGE key start stop- 获取列表范围', 'terminal-info');
+                                    appendLine('  EXPIRE key seconds   - 设置过期时间', 'terminal-info');
+                                    appendLine('  TTL key              - 查看剩余时间', 'terminal-info');
+                                    appendLine('  CLEAR                - 清屏', 'terminal-info');
+                                    appendLine('  HELP                 - 显示此帮助', 'terminal-info');
+                                    return;
+                                }
+                                if (c === 'CLEAR') { body.innerHTML = ''; return; }
+                                if (c === 'SET' && parts.length >= 3) {
+                                    const key = parts[1];
+                                    const value = parts.slice(2).join(' ');
+                                    db.set(key, { type: 'string', value: value, expires: null });
+                                    appendLine('OK', 'terminal-success'); return;
+                                }
+                                if (c === 'GET' && parts.length >= 2) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(nil)', 'terminal-info'); return; }
+                                    if (entry.type !== 'string') { appendLine('(error) WRONGTYPE 该键不是字符串类型', 'terminal-error'); return; }
+                                    appendLine(String(entry.value), 'terminal-output'); return;
+                                }
+                                if (c === 'DEL' && parts.length >= 2) {
+                                    let count = 0;
+                                    for (let i = 1; i < parts.length; i++) { if (db.has(parts[i])) { db.delete(parts[i]); count++; } }
+                                    appendLine('(integer) ' + count, 'terminal-success'); return;
+                                }
+                                if (c === 'EXISTS' && parts.length >= 2) {
+                                    const entry = checkExpired(parts[1]);
+                                    appendLine('(integer) ' + (entry ? 1 : 0), 'terminal-success'); return;
+                                }
+                                if (c === 'KEYS' && parts.length >= 2) {
+                                    const pattern = parts[1];
+                                    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+                                    const matches = [];
+                                    db.forEach((v, k) => { if (regex.test(k) && checkExpired(k)) matches.push(k); });
+                                    if (matches.length === 0) { appendLine('(empty list)', 'terminal-info'); return; }
+                                    matches.forEach(k => appendLine(k, 'terminal-output'));
+                                    return;
+                                }
+                                if (c === 'HSET' && parts.length >= 4) {
+                                    const key = parts[1], field = parts[2];
+                                    const value = parts.slice(3).join(' ');
+                                    let entry = checkExpired(key);
+                                    if (!entry) { entry = { type: 'hash', value: {}, expires: null }; db.set(key, entry); }
+                                    if (entry.type !== 'hash') { appendLine('(error) WRONGTYPE', 'terminal-error'); return; }
+                                    const isNew = !(field in entry.value);
+                                    entry.value[field] = value;
+                                    appendLine('(integer) ' + (isNew ? 1 : 0), 'terminal-success'); return;
+                                }
+                                if (c === 'HGET' && parts.length >= 3) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(nil)', 'terminal-info'); return; }
+                                    if (entry.type !== 'hash') { appendLine('(error) WRONGTYPE', 'terminal-error'); return; }
+                                    appendLine(entry.value[parts[2]] !== undefined ? String(entry.value[parts[2]]) : '(nil)', 'terminal-output'); return;
+                                }
+                                if (c === 'HGETALL' && parts.length >= 2) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(empty list)', 'terminal-info'); return; }
+                                    if (entry.type !== 'hash') { appendLine('(error) WRONGTYPE', 'terminal-error'); return; }
+                                    Object.keys(entry.value).forEach(f => { appendLine(f, 'terminal-output'); appendLine(String(entry.value[f]), 'terminal-output'); });
+                                    return;
+                                }
+                                if (c === 'LPUSH' && parts.length >= 3) {
+                                    const key = parts[1];
+                                    const value = parts.slice(2).join(' ');
+                                    let entry = checkExpired(key);
+                                    if (!entry) { entry = { type: 'list', value: [], expires: null }; db.set(key, entry); }
+                                    if (entry.type !== 'list') { appendLine('(error) WRONGTYPE', 'terminal-error'); return; }
+                                    entry.value.unshift(value);
+                                    appendLine('(integer) ' + entry.value.length, 'terminal-success'); return;
+                                }
+                                if (c === 'LRANGE' && parts.length >= 4) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(empty list)', 'terminal-info'); return; }
+                                    if (entry.type !== 'list') { appendLine('(error) WRONGTYPE', 'terminal-error'); return; }
+                                    const start = parseInt(parts[2]), stop = parseInt(parts[3]);
+                                    const arr = entry.value.slice(start, stop + 1);
+                                    if (arr.length === 0) { appendLine('(empty list)', 'terminal-info'); return; }
+                                    arr.forEach((v, i) => appendLine((start + i) + ') "' + v + '"', 'terminal-output'));
+                                    return;
+                                }
+                                if (c === 'EXPIRE' && parts.length >= 3) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(integer) 0', 'terminal-success'); return; }
+                                    entry.expires = Date.now() + parseInt(parts[2]) * 1000;
+                                    appendLine('(integer) 1', 'terminal-success'); return;
+                                }
+                                if (c === 'TTL' && parts.length >= 2) {
+                                    const entry = checkExpired(parts[1]);
+                                    if (!entry) { appendLine('(integer) -2', 'terminal-success'); return; }
+                                    if (!entry.expires) { appendLine('(integer) -1', 'terminal-success'); return; }
+                                    const ttl = Math.ceil((entry.expires - Date.now()) / 1000);
+                                    appendLine('(integer) ' + (ttl > 0 ? ttl : -2), 'terminal-success'); return;
+                                }
+                                appendLine('(error) 未知命令或参数不足。输入 HELP 查看可用命令。', 'terminal-error');
+                            }
+                            input.addEventListener('keydown', e => {
+                                if (e.key === 'Enter') {
+                                    const cmd = input.value.trim();
+                                    if (cmd) {
+                                        history.push(cmd); histIdx = history.length;
+                                        appendPrompt(cmd);
+                                        execCmd(cmd);
+                                    }
+                                    input.value = '';
+                                } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    if (histIdx > 0) { histIdx--; input.value = history[histIdx]; }
+                                } else if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    if (histIdx < history.length - 1) { histIdx++; input.value = history[histIdx]; }
+                                    else if (histIdx >= history.length - 1) { histIdx = history.length; input.value = ''; }
+                                }
+                            });
+                            input.focus();
+                        <\/script>
+                    </body></html>`;
+            }
+
+            // Fallback for unknown widget types
+            return `
+                <!DOCTYPE html>
+                <html><head><meta charset="utf-8">${baseStyles}</head>
+                <body style="display:flex;align-items:center;justify-content:center;height:100vh;">
+                    <div style="text-align:center;padding:2rem;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">🔧</div>
+                        <h2>${safe(title)}</h2>
+                        <p style="color:#94a3b8;margin-top:0.5rem;">${safe(desc)}</p>
+                        <p style="color:#64748b;font-size:0.8rem;margin-top:1rem;">组件类型: ${safe(widgetType)}</p>
+                    </div>
+                </body></html>`;
+        }
+
+        renderPBLScene(scene) {
+            if (!this.interactiveContainer) return;
+            this.interactiveContainer.style.display = 'block';
+            const title = this.SlideRenderer._stripThinkTags(scene.title || '项目式学习');
+            const desc = scene.description || '';
+            const scenario = scene.scenario || scene.pbl_scenario || desc;
+            const objectives = scene.objectives || scene.pbl_objectives || ['理解核心概念', '应用知识解决实际问题', '培养批判性思维'];
+            const safe = (str) => String(str || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+
+            const html = `
+                <!DOCTYPE html>
+                <html><head><meta charset="utf-8">
+                <style>
+                    * { margin:0; padding:0; box-sizing:border-box; }
+                    body { font-family:'Segoe UI',system-ui,sans-serif; background:#0f172a; color:#e2e8f0; min-height:100vh; }
+                    .pbl-header { padding:1.5rem 2rem; background:#1e293b; border-bottom:1px solid #334155; }
+                    .pbl-header h2 { font-size:1.4rem; color:#f8fafc; margin-bottom:0.5rem; }
+                    .pbl-header .tag { display:inline-block; background:#3b82f6; color:white; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:9999px; margin-right:0.5rem; }
+                    .pbl-body { padding:2rem; max-width:960px; margin:0 auto; }
+                    .pbl-section { background:#1e293b; border-radius:0.5rem; padding:1.25rem; margin-bottom:1.25rem; border:1px solid #334155; }
+                    .pbl-section h3 { font-size:1rem; color:#f8fafc; margin-bottom:0.75rem; display:flex;align-items:center;gap:0.5rem; }
+                    .pbl-section p, .pbl-section li { font-size:0.9rem; color:#94a3b8; line-height:1.6; }
+                    .pbl-section ul { padding-left:1.25rem; }
+                    .pbl-section li { margin-bottom:0.35rem; }
+                    .pbl-workspace { background:#0f172a; border:1px dashed #475569; border-radius:0.5rem; padding:1rem; min-height:120px; }
+                    .pbl-workspace textarea { width:100%; min-height:100px; background:transparent; border:none; color:#e2e8f0; font-family:inherit; font-size:0.9rem; resize:vertical; outline:none; }
+                    .pbl-actions { display:flex; gap:0.75rem; margin-top:1rem; }
+                    .btn { background:#3b82f6; color:white; border:none; padding:0.6rem 1.2rem; border-radius:0.375rem; cursor:pointer; font-size:0.9rem; transition:background 0.2s; }
+                    .btn:hover { background:#2563eb; }
+                    .btn-outline { background:transparent; border:1px solid #475569; color:#94a3b8; }
+                    .btn-outline:hover { background:#334155; color:#e2e8f0; }
+                    .hint-box { display:none; background:#1e3a5f; border-left:3px solid #3b82f6; padding:0.75rem 1rem; margin-top:0.75rem; border-radius:0 0.25rem 0.25rem 0; font-size:0.85rem; color:#bfdbfe; }
+                </style>
+                </head>
+                <body>
+                    <div class="pbl-header">
+                        <div style="margin-bottom:0.5rem;"><span class="tag">PBL</span><span class="tag">项目式学习</span></div>
+                        <h2>${safe(title)}</h2>
+                        <p style="color:#94a3b8;font-size:0.9rem;margin-top:0.25rem;">${safe(desc)}</p>
+                    </div>
+                    <div class="pbl-body">
+                        <div class="pbl-section">
+                            <h3>🎯 问题场景</h3>
+                            <p>${safe(scenario)}</p>
+                        </div>
+                        <div class="pbl-section">
+                            <h3>📋 学习目标</h3>
+                            <ul>${objectives.map(o => '<li>' + safe(o) + '</li>').join('')}</ul>
+                        </div>
+                        <div class="pbl-section">
+                            <h3>🔍 分析步骤</h3>
+                            <div class="pbl-workspace">
+                                <textarea id="pbl-analysis" placeholder="在此记录你的分析思路..."></textarea>
+                            </div>
+                        </div>
+                        <div class="pbl-section">
+                            <h3>💡 解决方案</h3>
+                            <div class="pbl-workspace">
+                                <textarea id="pbl-solution" placeholder="在此描述你的解决方案..."></textarea>
+                            </div>
+                            <div id="pbl-hint" class="hint-box"></div>
+                            <div class="pbl-actions">
+                                <button class="btn" id="pbl-submit"><i class="fas fa-check"></i> 提交方案</button>
+                                <button class="btn btn-outline" id="pbl-hint-btn"><i class="fas fa-lightbulb"></i> 获取提示</button>
+                            </div>
+                        </div>
+                    </div>
+                </body></html>
+            `;
+
+            const iframe = document.getElementById('interactive-iframe');
+            const existingEditor = this.interactiveContainer.querySelector('.scene-code-editor-wrapper');
+            if (existingEditor) existingEditor.remove();
+            if (iframe) {
+                iframe.style.display = 'block';
+                iframe.srcdoc = html;
+            }
+        }
+
+        // ---- Interactive Code Editor ----
+
+        _generateDefaultCodeExercise(scene, existingData) {
+            const title = (scene.title || '').toLowerCase();
+            const desc = (scene.description || '').toLowerCase();
+            const combined = title + ' ' + desc;
+
+            // Infer language from title/description
+            let lang = 'python';
+            if (combined.includes('javascript') || combined.includes('js') || combined.includes('前端')) {
+                lang = 'javascript';
+            } else if (combined.includes('html') || combined.includes('网页') || combined.includes('页面')) {
+                lang = 'html';
+            } else if (combined.includes('sql') || combined.includes('数据库') || combined.includes('查询')) {
+                lang = 'sql';
+            }
+
+            // Generate starter code and instruction based on topic
+            let starterCode = '';
+            let instruction = '';
+            let expectedOutput = '';
+            let hints = [];
+
+            if (lang === 'python') {
+                starterCode = '# TODO: 请根据题目要求补全下面的代码\\n# 提示：可以先尝试运行，观察当前输出\\n\\ndef main():\\n    # 请在此编写你的代码\\n    pass\\n\\nif __name__ == "__main__":\\n    main()';
+                instruction = scene.description || ('请完成关于 "' + scene.title + '" 的编程练习。\\n\\n这是一个入门级别的练习，目的是帮助你熟悉基本的编程概念。请先阅读题目要求，然后补全代码中的 TODO 部分。');
+                expectedOutput = '（根据你的代码实现，输出可能不同）';
+                hints = [
+                    '先仔细阅读题目要求，理解需要实现什么功能',
+                    '从简单的实现开始，不要想得太复杂',
+                    '可以多次运行代码，观察输出结果来调整',
+                    '如果遇到困难，可以点击"AI提示"获取帮助'
+                ];
+            } else if (lang === 'javascript') {
+                starterCode = '// TODO: 请根据题目要求补全下面的代码\\n// 提示：可以先尝试运行，观察当前输出\\n\\nfunction main() {\\n    // 请在此编写你的代码\\n    console.log("Hello World!");\\n}\\n\\nmain();';
+                instruction = scene.description || ('请完成关于 "' + scene.title + '" 的编程练习。\\n\\n这是一个入门级别的练习。请先阅读题目要求，然后补全代码中的 TODO 部分。');
+                expectedOutput = '（根据你的代码实现，输出可能不同）';
+                hints = [
+                    'JavaScript 使用 console.log() 来输出内容',
+                    '仔细阅读题目要求，理解需要实现什么功能',
+                    '可以多次运行代码，观察输出结果来调整'
+                ];
+            } else if (lang === 'html') {
+                starterCode = '<!-- TODO: 请根据题目要求修改下面的 HTML 代码 -->\\n<!DOCTYPE html>\\n<html>\\n<head>\\n    <title>我的页面</title>\\n</head>\\n<body>\\n    <!-- 请在此添加你的 HTML 内容 -->\\n    <p>Hello World!</p>\\n</body>\\n</html>';
+                instruction = scene.description || ('请完成关于 "' + scene.title + '" 的HTML练习。\\n\\n这是一个入门级别的练习。请修改 HTML 代码来实现题目要求。');
+                expectedOutput = '（一个正确渲染的网页）';
+                hints = [
+                    'HTML 使用标签来组织内容，如 <p> 是段落标签',
+                    '注意标签要正确配对开启和关闭',
+                    '可以使用 <div> 来创建区块容器'
+                ];
+            }
+
+            return Object.assign({}, existingData, {
+                language: lang,
+                starter_code: starterCode,
+                instruction: instruction,
+                expected_output: expectedOutput,
+                hints: hints,
+                explanation: scene.description || ('关于 "' + scene.title + '" 的知识点讲解')
+            });
+        }
+
+        _renderCodeEditorScene(scene, interactiveData) {
+            const existing = this.interactiveContainer.querySelector('.scene-code-editor-wrapper');
+            if (existing) existing.remove();
+
+            let codeData = interactiveData || scene.code_data || {};
+
+            // If codeData is empty/incomplete, generate default exercise based on scene title/description
+            if (!codeData.starter_code && !codeData.code && !codeData.instruction) {
+                codeData = this._generateDefaultCodeExercise(scene, codeData);
+            }
+
+            const lang = codeData.language || 'python';
+            const starterCode = codeData.starter_code || codeData.code || '';
+            const instruction = codeData.instruction || scene.description || '';
+            const expectedOutput = codeData.expected_output || '';
+            const hints = codeData.hints || [];
+            const explanation = codeData.explanation || '';
+            const hasSlides = scene.slides_v2 && scene.slides_v2.length > 0;
+            const title = this.SlideRenderer._stripThinkTags(scene.title || '代码练习');
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'scene-code-editor-wrapper';
+            wrapper.innerHTML = `
+                <div class="scene-code-header">
+                    <h3 class="scene-code-title"><i class="fas fa-code"></i> ${title}</h3>
+                    <div class="scene-code-lang-wrap">
+                        <select class="scene-code-lang-select" id="scene-code-lang">
+                            <option value="python" ${lang === 'python' ? 'selected' : ''}>Python</option>
+                            <option value="javascript" ${lang === 'javascript' ? 'selected' : ''}>JavaScript</option>
+                            <option value="html" ${lang === 'html' ? 'selected' : ''}>HTML</option>
+                        </select>
+                    </div>
+                </div>
+                ${instruction ? `<div class="scene-code-instruction">${this._escapeHtml(instruction)}</div>` : ''}
+                ${expectedOutput ? `<div class="scene-code-expected"><div class="expected-label"><i class="fas fa-bullseye"></i> 预期输出</div><pre class="expected-text">${this._escapeHtml(expectedOutput)}</pre></div>` : ''}
+                <div class="scene-code-editor-wrap">
+                    <textarea class="scene-code-textarea" id="scene-code-input" spellcheck="false" placeholder="// 在此输入代码...">${this._escapeHtml(starterCode)}</textarea>
+                </div>
+                <div class="scene-code-toolbar">
+                    <button class="scene-code-run-btn" id="scene-code-run"><i class="fas fa-play"></i> 运行代码</button>
+                    <button class="scene-code-hint-btn" id="scene-code-hint"><i class="fas fa-robot"></i> AI 提示</button>
+                    ${hints.length > 0 ? `<button class="scene-code-hint-toggle-btn" id="scene-code-hint-toggle"><i class="fas fa-lightbulb"></i> 查看提示 (${hints.length})</button>` : ''}
+                    ${(hasSlides || explanation) ? `<button class="scene-code-explain-btn" id="scene-code-explain"><i class="fas fa-book"></i> 查看讲解</button>` : ''}
+                </div>
+                <div class="scene-code-hints-panel" id="scene-code-hints-panel" style="display:none;"></div>
+                <div class="scene-code-explanation" id="scene-code-explanation" style="display:none;"></div>
+                <div class="scene-code-output" id="scene-code-output" style="display:none;"></div>
+            `;
+            this.interactiveContainer.appendChild(wrapper);
+            this._bindCodeEditorSceneEvents(scene, wrapper, interactiveData);
+        }
+
+        _bindCodeEditorSceneEvents(scene, wrapper, interactiveData) {
+            const runBtn = wrapper.querySelector('#scene-code-run');
+            const hintBtn = wrapper.querySelector('#scene-code-hint');
+            const hintToggleBtn = wrapper.querySelector('#scene-code-hint-toggle');
+            const explainBtn = wrapper.querySelector('#scene-code-explain');
+            const textarea = wrapper.querySelector('#scene-code-input');
+            const output = wrapper.querySelector('#scene-code-output');
+            const hintsPanel = wrapper.querySelector('#scene-code-hints-panel');
+            const explanationEl = wrapper.querySelector('#scene-code-explanation');
+            const langSelect = wrapper.querySelector('#scene-code-lang');
+
+            const codeData = interactiveData || scene.code_data || {};
+            const hints = codeData.hints || [];
+            const explanation = codeData.explanation || '';
+            let revealedHintIndex = 0;
+
+            if (textarea) {
+                textarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        textarea.value = textarea.value.substring(0, start) + '    ' + textarea.value.substring(end);
+                        textarea.selectionStart = textarea.selectionEnd = start + 4;
+                    }
+                });
+            }
+
+            if (runBtn) {
+                runBtn.addEventListener('click', () => {
+                    const code = textarea ? textarea.value : '';
+                    const language = langSelect ? langSelect.value : 'python';
+                    if (!code.trim()) return;
+                    this._runCodeInScene(language, code, output);
+                });
+            }
+
+            if (hintBtn) {
+                hintBtn.addEventListener('click', () => {
+                    const code = textarea ? textarea.value : '';
+                    const language = langSelect ? langSelect.value : 'python';
+                    this._getCodeHintFromAI(scene, code, language, output);
+                });
+            }
+
+            if (hintToggleBtn && hintsPanel) {
+                hintToggleBtn.addEventListener('click', () => {
+                    if (hintsPanel.style.display === 'none') {
+                        hintsPanel.style.display = 'block';
+                        // Reveal next hint on each click
+                        if (revealedHintIndex < hints.length) {
+                            const hintItem = document.createElement('div');
+                            hintItem.className = 'hint-item';
+                            hintItem.innerHTML = `<div class="hint-number">提示 ${revealedHintIndex + 1}</div><div class="hint-text">${this._escapeHtml(hints[revealedHintIndex])}</div>`;
+                            hintsPanel.appendChild(hintItem);
+                            revealedHintIndex++;
+                        }
+                        if (revealedHintIndex >= hints.length) {
+                            hintToggleBtn.innerHTML = '<i class="fas fa-check"></i> 已显示全部提示';
+                            hintToggleBtn.disabled = true;
+                            hintToggleBtn.style.opacity = '0.6';
+                        }
+                    }
+                });
+            }
+
+            if (explainBtn && explanationEl) {
+                explainBtn.addEventListener('click', () => {
+                    if (explanationEl.style.display === 'none') {
+                        explanationEl.style.display = 'block';
+                        let contentHtml = '';
+                        if (explanation) {
+                            contentHtml += `<div class="explanation-section"><div class="explanation-label"><i class="fas fa-book-open"></i> 知识点讲解</div><div class="explanation-text">${this._escapeHtml(explanation).replace(/\n/g, '<br>')}</div></div>`;
+                        }
+                        if (scene.slides_v2 && scene.slides_v2.length > 0) {
+                            contentHtml += `<div class="explanation-section"><div class="explanation-label"><i class="fas fa-slideshare"></i> 概念幻灯片</div><div class="explanation-slides-note">请使用左右箭头切换查看相关概念讲解幻灯片</div></div>`;
+                        }
+                        explanationEl.innerHTML = contentHtml || '<div class="explanation-text">暂无讲解内容</div>';
+                        explainBtn.innerHTML = '<i class="fas fa-eye-slash"></i> 隐藏讲解';
+                    } else {
+                        explanationEl.style.display = 'none';
+                        explainBtn.innerHTML = '<i class="fas fa-book"></i> 查看讲解';
+                    }
+                });
+            }
+        }
+
+        async _runCodeInScene(language, code, outputEl) {
+            if (!outputEl) return;
+            outputEl.style.display = 'block';
+            outputEl.innerHTML = '<div class="code-running"><i class="fas fa-spinner fa-spin"></i> 执行中...</div>';
+
+            try {
+                if (language === 'javascript') {
+                    let result = '';
+                    const originalLog = console.log;
+                    const logs = [];
+                    console.log = (...args) => logs.push(args.join(' '));
+                    try {
+                        result = eval(code); // eslint-disable-line
+                    } catch (e) {
+                        result = 'Error: ' + e.message;
+                    } finally {
+                        console.log = originalLog;
+                    }
+                    const output = logs.length > 0 ? logs.join('\n') : (result !== undefined ? String(result) : '(无输出)');
+                    outputEl.innerHTML = `<div class="output-result"><div class="output-label">输出:</div><pre class="output-text">${this._escapeHtml(output)}</pre></div>`;
+                } else if (language === 'html') {
+                    outputEl.innerHTML = `<iframe class="html-preview-frame" sandbox="allow-scripts" srcdoc="${this._escapeHtml(code)}"></iframe>`;
+                } else {
+                    const resp = await fetch('/api/run_code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code: code, language: 'python' })
+                    });
+                    const result = await resp.json();
+                    if (result.success) {
+                        const statusClass = result.passed ? 'success' : 'error';
+                        const statusBadge = result.passed
+                            ? '<div class="pass-badge"><i class="fas fa-check"></i> 通过</div>'
+                            : '<div class="fail-badge"><i class="fas fa-times"></i> 未通过</div>';
+                        outputEl.innerHTML = `
+                            <div class="output-result ${statusClass}">
+                                <div class="output-label">输出:</div>
+                                <pre class="output-text">${this._escapeHtml(result.actual_output || '(无输出)')}</pre>
+                                ${statusBadge}
+                            </div>
+                        `;
+                    } else {
+                        outputEl.innerHTML = `<div class="code-error"><i class="fas fa-exclamation-triangle"></i> 错误: ${this._escapeHtml(result.error || '未知错误')}</div>`;
+                    }
+                }
+            } catch (e) {
+                outputEl.innerHTML = `<div class="code-error"><i class="fas fa-exclamation-triangle"></i> 执行失败: ${e.message}</div>`;
+            }
+        }
+
+        async _getCodeHintFromAI(scene, code, language, outputEl) {
+            if (!outputEl) return;
+            outputEl.style.display = 'block';
+            outputEl.innerHTML = '<div class="code-running"><i class="fas fa-spinner fa-spin"></i> AI 思考中...</div>';
+
+            try {
+                const resp = await fetch('/api/v2/course/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        student_id: this.courseData.metadata?.student_id || '',
+                        course_id: this.courseData.courseId || '',
+                        slide_index: this.currentIndex,
+                        slide_title: this.SlideRenderer._stripThinkTags(scene.title || ''),
+                        user_input: `请给以下${language}代码提供优化建议和提示：\n\`\`\`${language}\n${code}\n\`\`\`\n请简要指出代码中的问题和改进方向。`
+                    })
+                });
+                const data = await resp.json();
+                const hint = data.reply || data.message || '暂无提示';
+                outputEl.innerHTML = `<div class="ai-hint-box"><div class="ai-hint-label"><i class="fas fa-robot"></i> AI 提示</div><pre class="ai-hint-text">${this._escapeHtml(hint)}</pre></div>`;
+            } catch (e) {
+                outputEl.innerHTML = `<div class="code-error">获取提示失败: ${e.message}</div>`;
             }
         }
 
@@ -3721,37 +5031,304 @@
             if (renderer) renderer._initContainer();
         }
 
+        _animateWhiteboardOpen() {
+            if (this.whiteboardContainer) {
+                this.whiteboardContainer.style.display = 'flex';
+                void this.whiteboardContainer.offsetHeight;
+                this.whiteboardContainer.classList.add('wb-active');
+                this.whiteboardContainer.classList.remove('wb-exiting');
+            }
+        }
+
+        _animateWhiteboardClose() {
+            if (this.whiteboardContainer) {
+                this.whiteboardContainer.classList.add('wb-exiting');
+                this.whiteboardContainer.classList.remove('wb-active');
+            }
+            setTimeout(() => {
+                if (!this.whiteboardVisible && this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'none';
+                    this.whiteboardContainer.classList.remove('wb-exiting');
+                }
+            }, 320);
+        }
+
         toggleWhiteboard() {
-            this.whiteboardVisible = !this.whiteboardVisible;
+            const wasVisible = this.whiteboardVisible;
+            this.whiteboardVisible = !wasVisible;
             this.whiteboardToggleBtn?.classList.toggle('active', this.whiteboardVisible);
 
             if (this.whiteboardVisible) {
-                // Switch to whiteboard view
+                // Switch to whiteboard view with animation
                 this.stopAudio();
                 this.hideAllSceneContainers();
-                if (this.whiteboardContainer) {
-                    this.whiteboardContainer.style.display = 'flex';
-                }
+                this._animateWhiteboardOpen();
                 this._initWhiteboard();
+                // Show pen controls for students
+                if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
                 // Hide slide navigation during whiteboard
                 if (this.slideControls) this.slideControls.style.display = 'none';
                 if (this.progressBar) this.progressBar.style.display = 'none';
                 // Slide mode off when using whiteboard (more space available)
                 if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
             } else {
-                // Switch back to slide view
-                if (this.whiteboardContainer) {
-                    this.whiteboardContainer.style.display = 'none';
+                // Switch back to slide view with exit animation
+                this._animateWhiteboardClose();
+                const renderer = this._getWhiteboardRenderer();
+                if (renderer) {
+                    renderer.disablePenMode();
+                    renderer.disableEraserMode();
                 }
-                if (this.slideControls) this.slideControls.style.display = '';
-                if (this.progressBar) this.progressBar.style.display = '';
-                this.renderScene(this.currentIndex);
+                this.wbPenToggleBtn?.classList.remove('active');
+                this.wbEraserBtn?.classList.remove('active');
+                if (this.wbPenGroup) this.wbPenGroup.style.display = 'none';
+                // Restore slide view after animation
+                setTimeout(() => {
+                    if (this.slideControls) this.slideControls.style.display = '';
+                    if (this.progressBar) this.progressBar.style.display = '';
+                    this.renderScene(this.currentIndex);
+                }, 320);
             }
         }
 
         clearWhiteboard() {
             const renderer = this._getWhiteboardRenderer();
             if (renderer) renderer.clear();
+        }
+
+        // ---- Whiteboard Theme ----
+
+        _toggleWhiteboardTheme() {
+            const stage = this.whiteboardStage;
+            if (!stage) return;
+            this.wbTheme = this.wbTheme === 'light' ? 'dark' : 'light';
+            stage.classList.toggle('wb-dark', this.wbTheme === 'dark');
+            // Update renderer background awareness for pen color defaults
+            const renderer = this._getWhiteboardRenderer();
+            if (renderer) {
+                renderer._theme = this.wbTheme;
+            }
+        }
+
+        // ---- Whiteboard Text Input ----
+
+        _showTextInputModal() {
+            const modal = document.getElementById('wb-text-modal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const input = document.getElementById('wb-text-input');
+            if (input) { input.value = ''; input.focus(); }
+        }
+
+        _hideTextModal() {
+            const modal = document.getElementById('wb-text-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        _submitTextInput() {
+            const input = document.getElementById('wb-text-input');
+            const text = input?.value?.trim();
+            if (!text) return;
+            const size = parseInt(document.getElementById('wb-text-size')?.value, 10) || 20;
+            const activeColor = document.querySelector('.wb-text-color.active');
+            const color = activeColor?.dataset.color || '#1e293b';
+            this._addTextToWhiteboard(text, size, color);
+            this._hideTextModal();
+        }
+
+        _addTextToWhiteboard(text, fontSize, color) {
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) return;
+            // Pick a reasonable position near center with some randomness to avoid stacking
+            const x = 300 + Math.random() * 300;
+            const y = 200 + Math.random() * 150;
+            renderer.drawText({ content: text, x: x, y: y, fontSize: fontSize, color: color });
+        }
+
+        // ---- Whiteboard AI Draw Modal ----
+
+        _showAIDrawModal() {
+            const modal = document.getElementById('wb-ai-draw-modal');
+            if (!modal) return;
+            modal.style.display = 'flex';
+            const input = document.getElementById('wb-ai-draw-input');
+            if (input) { input.value = ''; input.focus(); }
+        }
+
+        _hideAIDrawModal() {
+            const modal = document.getElementById('wb-ai-draw-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async _submitAIDraw() {
+            const input = document.getElementById('wb-ai-draw-input');
+            const description = input?.value?.trim();
+            if (!description) return;
+            this._hideAIDrawModal();
+            await this._executeAIDraw(description);
+        }
+
+        async _executeAIDraw(description) {
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) {
+                alert('白板渲染器不可用');
+                return;
+            }
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'wb-ai-loading';
+            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 正在绘制...';
+            loadingDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 20px;background:rgba(15,23,42,0.9);border-radius:8px;color:#818cf8;font-size:14px;z-index:100;pointer-events:none;';
+            this.whiteboardContainer.appendChild(loadingDiv);
+
+            try {
+                const resp = await fetch('/api/whiteboard/draw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: description.trim(),
+                        is_custom_prompt: true
+                    })
+                });
+                const data = await resp.json();
+                if (data.success && data.actions) {
+                    // Execute actions with smoother sequential animation
+                    for (let i = 0; i < data.actions.length; i++) {
+                        renderer.execute(data.actions[i]);
+                        // Add a small delay between elements for a drawing feel
+                        await new Promise(r => setTimeout(r, 180));
+                    }
+                } else {
+                    alert(data.error || 'AI 绘图失败，请重试');
+                }
+            } catch (e) {
+                console.error('AI draw failed:', e);
+                alert('AI 绘图请求失败：' + e.message);
+            } finally {
+                loadingDiv.remove();
+            }
+        }
+
+        _togglePenMode() {
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) return;
+            if (renderer._penEnabled) {
+                renderer.disablePenMode();
+                this.wbPenToggleBtn?.classList.remove('active');
+            } else {
+                // Disable eraser when enabling pen
+                renderer.disableEraserMode();
+                this.wbEraserBtn?.classList.remove('active');
+                const activeColor = document.querySelector('.wb-pen-color.active');
+                const color = activeColor?.dataset.color || '#ef4444';
+                const width = parseInt(this.wbPenWidthInput?.value, 10) || 3;
+                renderer.enablePenMode(color, width);
+                this.wbPenToggleBtn?.classList.add('active');
+            }
+        }
+
+        _toggleEraserMode() {
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) return;
+            if (renderer._eraserEnabled) {
+                renderer.disableEraserMode();
+                this.wbEraserBtn?.classList.remove('active');
+            } else {
+                // Disable pen when enabling eraser
+                renderer.disablePenMode();
+                this.wbPenToggleBtn?.classList.remove('active');
+                renderer.enableEraserMode(20);
+                this.wbEraserBtn?.classList.add('active');
+            }
+        }
+
+        /**
+         * Auto-draw whiteboard content based on scene description.
+         * Called when a whiteboard-type scene is rendered.
+         */
+        async _autoDrawWhiteboardContent(description, scene) {
+            if (!description) return;
+            const renderer = this._getWhiteboardRenderer();
+            if (!renderer) {
+                console.warn('[Classroom] WhiteboardRenderer not available for auto-draw');
+                return;
+            }
+
+            // Temporarily disable pen/eraser mode during AI drawing
+            const penWasEnabled = renderer._penEnabled;
+            const eraserWasEnabled = renderer._eraserEnabled;
+            if (penWasEnabled) renderer.disablePenMode();
+            if (eraserWasEnabled) renderer.disableEraserMode();
+            this.wbPenToggleBtn?.classList.remove('active');
+            this.wbEraserBtn?.classList.remove('active');
+
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'wb-ai-loading';
+            loadingDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 正在绘制课程内容...';
+            loadingDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 20px;background:rgba(15,23,42,0.9);border-radius:8px;color:#818cf8;font-size:14px;z-index:100;pointer-events:none;';
+            this.whiteboardContainer.appendChild(loadingDiv);
+
+            try {
+                const resp = await fetch('/api/whiteboard/draw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        description: description.trim(),
+                        course_id: this.courseData?.courseId || '',
+                        scene_title: this.SlideRenderer._stripThinkTags(scene.title || ''),
+                        auto_mode: true
+                    })
+                });
+                const data = await resp.json();
+                if (data.success && data.actions && data.actions.length > 0) {
+                    // Create AI drawing cursor
+                    const cursor = document.createElement('div');
+                    cursor.className = 'wb-ai-cursor';
+                    cursor.innerHTML = '<i class="fas fa-pen-nib"></i>';
+                    cursor.style.cssText = 'position:absolute;width:24px;height:24px;display:flex;align-items:center;justify-content:center;color:#6366f1;font-size:14px;pointer-events:none;z-index:50;transition:top 400ms ease-out,left 400ms ease-out;opacity:0;';
+                    this.whiteboardContainer.appendChild(cursor);
+
+                    // Execute actions sequentially with small delay for visual effect
+                    for (let i = 0; i < data.actions.length; i++) {
+                        const action = data.actions[i];
+                        const params = action.params || {};
+                        // Move cursor to approximate target position before drawing
+                        let tx = params.x || params.startX || 500;
+                        let ty = params.y || params.startY || 300;
+                        if (action.type === 'wb_draw_text') { tx = params.x; ty = params.y; }
+                        if (action.type === 'wb_draw_shape') { tx = params.x + (params.width || 0) / 2; ty = params.y + (params.height || 0) / 2; }
+                        if (action.type === 'wb_draw_line') { tx = (params.startX + params.endX) / 2; ty = (params.startY + params.endY) / 2; }
+                        cursor.style.opacity = '1';
+                        cursor.style.left = `${tx}px`;
+                        cursor.style.top = `${ty}px`;
+                        await new Promise(r => setTimeout(r, 350));
+                        renderer.execute(action);
+                        await new Promise(r => setTimeout(r, 250));
+                    }
+                    cursor.style.opacity = '0';
+                    setTimeout(() => cursor.remove(), 400);
+                } else {
+                    console.warn('[Classroom] Auto-draw returned no actions:', data.error);
+                }
+            } catch (e) {
+                console.error('[Classroom] Auto-draw failed:', e);
+            } finally {
+                loadingDiv.remove();
+                // Re-enable pen mode if it was active before
+                if (penWasEnabled) {
+                    const activeColor = document.querySelector('.wb-pen-color.active');
+                    const color = activeColor?.dataset.color || '#ef4444';
+                    const width = parseInt(this.wbPenWidthInput?.value, 10) || 3;
+                    renderer.enablePenMode(color, width);
+                    this.wbPenToggleBtn?.classList.add('active');
+                }
+                // Re-enable eraser mode if it was active before
+                if (eraserWasEnabled) {
+                    renderer.enableEraserMode(20);
+                    this.wbEraserBtn?.classList.add('active');
+                }
+            }
         }
 
         /** Execute a whiteboard action (wb_*) from the AI teacher pipeline */
@@ -3776,10 +5353,10 @@
                 this.whiteboardToggleBtn?.classList.add('active');
                 this.stopAudio();
                 this.hideAllSceneContainers();
-                if (this.whiteboardContainer) {
-                    this.whiteboardContainer.style.display = 'flex';
-                }
+                this._animateWhiteboardOpen();
                 this._initWhiteboard();
+                // Show pen controls for students
+                if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
                 if (this.slideControls) this.slideControls.style.display = 'none';
                 if (this.progressBar) this.progressBar.style.display = 'none';
             }
@@ -3787,11 +5364,19 @@
             if (name === 'wb_close') {
                 this.whiteboardVisible = false;
                 this.whiteboardToggleBtn?.classList.remove('active');
-                if (this.whiteboardContainer) {
-                    this.whiteboardContainer.style.display = 'none';
+                this._animateWhiteboardClose();
+                const renderer = this._getWhiteboardRenderer();
+                if (renderer) {
+                    renderer.disablePenMode();
+                    renderer.disableEraserMode();
                 }
-                if (this.slideControls) this.slideControls.style.display = '';
-                if (this.progressBar) this.progressBar.style.display = '';
+                this.wbPenToggleBtn?.classList.remove('active');
+                this.wbEraserBtn?.classList.remove('active');
+                if (this.wbPenGroup) this.wbPenGroup.style.display = 'none';
+                setTimeout(() => {
+                    if (this.slideControls) this.slideControls.style.display = '';
+                    if (this.progressBar) this.progressBar.style.display = '';
+                }, 320);
                 this.renderScene(this.currentIndex);
                 return;
             }
@@ -3811,7 +5396,7 @@
             // narration from slides_v2 content (V2 format)
             const narration = scene.slides_v2?.[0]?.content?.[0]?.narration || '';
             const speech = scene.slide?.speech || scene.quiz?.speech || scene.description || narration;
-            const displayText = speech || `现在讲解：${scene.title}`;
+            const displayText = speech || `现在讲解：${this.SlideRenderer._stripThinkTags(scene.title || '')}`;
             this.speechText.textContent = displayText;
             this.updateTeacherSpeechText(displayText);
 
@@ -3848,8 +5433,9 @@
                 || scene.slide?.content?.elements?.find(el => el.audio_url)?.audio_url
                 || scene.slide?.content?.elements?.[0]?.audio_url;
 
-            if (url && this.audioPlayer) {
+            if (url && typeof url === 'string' && url.trim().length > 0 && this.audioPlayer) {
                 this.speechSync.style.display = 'flex';
+                this.audioPlayer.load();
                 this.audioPlayer.src = url;
                 this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
                 this.audioPlayer.onended = () => {
@@ -3876,12 +5462,14 @@
 
         async _playTTSWithVoice(text) {
             if (!text) return;
+            this.stopAudio();
             this.speechSync.style.display = 'flex';
             const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
             const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
             const result = await this.generateTTS(text, voiceId, speed);
             console.log('[Classroom] _playTTSWithVoice result:', result);
-            if (result.success && this.audioPlayer) {
+            if (result.success && result.audioUrl && this.audioPlayer) {
+                this.audioPlayer.load();
                 this.audioPlayer.src = result.audioUrl;
                 this.audioPlayer.onloadedmetadata = () => {
                     console.log('[Classroom] audio metadata loaded: duration=', this.audioPlayer.duration);
@@ -3903,9 +5491,11 @@
                         setTimeout(() => this.nextScene(), 800);
                     }
                 };
-                this.audioPlayer.play().catch(() => {});
+                this.audioPlayer.play().catch(() => {
+                    this.fallbackTTS({ slide: { speech: text } });
+                });
             } else {
-                this.speechSync.style.display = 'none';
+                this.fallbackTTS({ slide: { speech: text } });
             }
         }
 
@@ -3949,10 +5539,22 @@
         }
 
         stopAudio() {
-            if (this.audioPlayer) { this.audioPlayer.pause(); this.audioPlayer.src = ''; }
+            if (this.audioPlayer) {
+                // Remove event listeners first to prevent fallback TTS from firing when we clear src
+                this.audioPlayer.onloadedmetadata = null;
+                this.audioPlayer.onplay = null;
+                this.audioPlayer.onended = null;
+                this.audioPlayer.onerror = null;
+                this.audioPlayer.pause();
+                // Do NOT set src to empty string — it triggers MEDIA_ERR_SRC_NOT_SUPPORTED
+                // (code 4: MEDIA_ELEMENT_ERROR: Empty src attribute). Just pause and clear
+                // listeners; the next play call will set a new src.
+            }
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             if (this.openmaicPlayer) this.openmaicPlayer.stop({ keepSlide: true });
             if (this.speechSync) this.speechSync.style.display = 'none';
+            // Clear spotlight when audio stops
+            this.clearSpotlight();
             // Reset pause state
             this.audioPausedBefore = false;
             // Deactivate slide mode when audio stops
@@ -4099,25 +5701,43 @@
             this.openQuizPopup(quizScene);
         }
 
-        openQuizPopup(scene) {
+        openQuizPopup(scene, inlineMode = false) {
             if (!scene || scene.type !== 'quiz') return;
             this.currentQuizScene = scene;
             this.quizPhase = 'not_started';
             this.quizUserAnswers = {};
             this.quizResults = [];
+            this._quizInlineMode = inlineMode;
 
-            // Pause AI speech if currently playing
-            this._wasSpeakingBeforeQuiz = this.isPlaying;
-            if (this.isPlaying) {
-                this.isPlaying = false;
-                this.stopAudio();
-                var vi = this.voiceBtn?.querySelector('i');
-                if (vi) vi.className = 'fas fa-volume-up';
-            }
+            if (inlineMode) {
+                // Inline mode: show as part of slide viewer, no modal overlay
+                if (this.quizPopupOverlay) {
+                    this.quizPopupOverlay.classList.add('quiz-inline-mode');
+                    this.quizPopupOverlay.style.display = 'block';
+                }
+                // Hide close button in inline mode (user uses nav buttons)
+                if (this.quizCloseBtn) this.quizCloseBtn.style.display = 'none';
+            } else {
+                // Modal popup mode
+                if (this.quizPopupOverlay) {
+                    this.quizPopupOverlay.classList.remove('quiz-inline-mode');
+                    this.quizPopupOverlay.style.display = 'flex';
+                }
 
-            // Dim slide viewer to block interaction
-            if (this.slideViewer) {
-                this.slideViewer.classList.add('slide-viewer-dimmed');
+                // Pause AI speech if currently playing
+                this._wasSpeakingBeforeQuiz = this.isPlaying;
+                if (this.isPlaying) {
+                    this.isPlaying = false;
+                    this.stopAudio();
+                    var vi = this.voiceBtn?.querySelector('i');
+                    if (vi) vi.className = 'fas fa-volume-up';
+                }
+
+                // Dim slide viewer to block interaction
+                if (this.slideViewer) {
+                    this.slideViewer.classList.add('slide-viewer-dimmed');
+                }
+                if (this.quizCloseBtn) this.quizCloseBtn.style.display = 'block';
             }
 
             // Hide all phase containers
@@ -4126,14 +5746,8 @@
             if (this.quizGrading) this.quizGrading.style.display = 'none';
             if (this.quizReviewArea) this.quizReviewArea.style.display = 'none';
             if (this.quizPopupFooter) this.quizPopupFooter.style.display = 'none';
-            if (this.quizCloseBtn) this.quizCloseBtn.style.display = 'block';
             if (this.quizSubmitBtn) this.quizSubmitBtn.style.display = 'none';
             if (this.quizRetryBtn) this.quizRetryBtn.style.display = 'none';
-
-            // Show overlay
-            if (this.quizPopupOverlay) {
-                this.quizPopupOverlay.style.display = 'flex';
-            }
 
             // Render cover
             this._renderQuizCover(scene);
@@ -4146,7 +5760,7 @@
             var quiz = scene.quiz_data || scene.quiz;
             if (!quiz) {
                 if (this.quizCoverTitle) {
-                    this.quizCoverTitle.textContent = scene.title || '课堂测验';
+                    this.quizCoverTitle.textContent = this.SlideRenderer._stripThinkTags(scene.title || '课堂测验');
                 }
                 if (this.quizCoverMeta) {
                     this.quizCoverMeta.innerHTML =
@@ -4164,11 +5778,25 @@
             if (this.quizCoverTitle) {
                 this.quizCoverTitle.textContent = quiz.title || '课堂测验';
             }
+            // Calculate difficulty distribution
+            var diffCounts = { basic: 0, medium: 0, advanced: 0 };
+            questions.forEach(function(q) {
+                var d = q.difficulty || 'medium';
+                if (d === 'basic' || d === 'easy') diffCounts.basic++;
+                else if (d === 'advanced' || d === 'hard') diffCounts.advanced++;
+                else diffCounts.medium++;
+            });
+            var diffHtml = '';
+            if (diffCounts.basic > 0) diffHtml += '<span class="diff-tag diff-basic"><i class="fas fa-seedling"></i> 基础 ' + diffCounts.basic + '</span>';
+            if (diffCounts.medium > 0) diffHtml += '<span class="diff-tag diff-medium"><i class="fas fa-bolt"></i> 中等 ' + diffCounts.medium + '</span>';
+            if (diffCounts.advanced > 0) diffHtml += '<span class="diff-tag diff-advanced"><i class="fas fa-fire"></i> 挑战 ' + diffCounts.advanced + '</span>';
+
             if (this.quizCoverMeta) {
                 this.quizCoverMeta.innerHTML =
                     '<span><i class="fas fa-question-circle"></i> ' + questions.length + ' 道题</span>' +
                     '<span><i class="fas fa-star"></i> 总分 ' + totalPoints + '</span>' +
-                    '<span><i class="fas fa-check-circle"></i> 及格线 ' + passing + '%</span>';
+                    '<span><i class="fas fa-check-circle"></i> 及格线 ' + passing + '%</span>' +
+                    (diffHtml ? '<div style="width:100%;margin-top:0.5rem;display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">' + diffHtml + '</div>' : '');
             }
         }
 
@@ -4210,9 +5838,33 @@
                 return;
             }
 
+            // Sort questions by difficulty: basic → medium → advanced
+            var diffOrder = { basic: 0, easy: 0, medium: 1, advanced: 2, hard: 2 };
+            var sortedQuestions = questions.slice().sort(function(a, b) {
+                var da = diffOrder[a.difficulty || 'medium'] || 1;
+                var db = diffOrder[b.difficulty || 'medium'] || 1;
+                return da - db;
+            });
+
+            // Group by difficulty and render
             var html = '';
-            questions.forEach(function(q, i) {
-                html += self._renderQuestionCard(q, i);
+            var currentDiff = null;
+            var diffLabels = { basic: '基础题', easy: '基础题', medium: '中等题', advanced: '挑战题', hard: '挑战题' };
+            var diffClasses = { basic: 'diff-section-basic', easy: 'diff-section-basic', medium: 'diff-section-medium', advanced: 'diff-section-advanced', hard: 'diff-section-advanced' };
+
+            sortedQuestions.forEach(function(q, displayIndex) {
+                var d = q.difficulty || 'medium';
+                if (d !== currentDiff) {
+                    currentDiff = d;
+                    var label = diffLabels[d] || '题目';
+                    var cls = diffClasses[d] || '';
+                    html += '<div class="quiz-diff-section ' + cls + '">' +
+                        '<div class="quiz-diff-label"><i class="fas fa-layer-group"></i> ' + label + '</div>' +
+                        '</div>';
+                }
+                // Find original index for answer tracking
+                var origIndex = questions.indexOf(q);
+                html += self._renderQuestionCard(q, origIndex, displayIndex + 1);
             });
             if (this.quizQuestionsArea) {
                 this.quizQuestionsArea.innerHTML = html;
@@ -4258,7 +5910,7 @@
             });
         }
 
-        _renderQuestionCard(q, index) {
+        _renderQuestionCard(q, index, displayIndex) {
             var self = this;
             var esc = function(s) {
                 if (!s) return '';
@@ -4269,11 +5921,18 @@
             var typeLabels = { single: '单选题', multiple: '多选题', short_answer: '简答题' };
             var typeLabel = typeLabels[type] || '单选题';
             var typeClass = type === 'multiple' ? 'tag-multiple' : (type === 'short_answer' ? 'tag-short' : 'tag-single');
+            var diffLabels = { basic: '基础', easy: '基础', medium: '中等', advanced: '挑战', hard: '挑战' };
+            var diffClass = 'diff-' + (q.difficulty || 'medium');
+            var diffLabel = diffLabels[q.difficulty || 'medium'] || '';
+            var num = displayIndex !== undefined ? displayIndex : (index + 1);
 
             var html = '<div class="question-card" id="question-card-' + index + '">';
             html += '<div class="question-card-header">';
-            html += '<span class="question-card-num">第 ' + (index + 1) + ' 题</span>';
+            html += '<span class="question-card-num">第 ' + num + ' 题</span>';
             html += '<span class="question-type-tag ' + typeClass + '">' + typeLabel + '</span>';
+            if (diffLabel) {
+                html += '<span class="question-diff-tag ' + diffClass + '">' + diffLabel + '</span>';
+            }
             html += '<span class="question-card-points">' + points + ' 分</span>';
             html += '</div>';
             html += '<div class="question-body">' + esc(q.question) + '</div>';
@@ -4671,9 +6330,9 @@
                 // Show options in review mode
                 html += this._renderChoiceOptionsReview(q, index, result, type);
                 if (result.feedback) {
-                    html += '<div style="padding:8px 16px 14px;font-size:12px;color:var(--text-secondary);line-height:1.5;">';
-                    html += '<i class="fas fa-lightbulb" style="color:#fbbf24;margin-right:4px;"></i>';
-                    html += esc(result.feedback);
+                    html += '<div class="choice-feedback-box" id="choice-feedback-' + index + '" style="padding:10px 16px 14px;">';
+                    html += '<div class="choice-feedback-label"><i class="fas fa-robot"></i> AI 点评</div>';
+                    html += '<div class="choice-feedback-text" id="choice-feedback-text-' + index + '">' + esc(result.feedback) + '</div>';
                     html += '</div>';
                 }
             }
@@ -4785,10 +6444,11 @@
         closeQuizPopup() {
             if (this.quizPopupOverlay) {
                 this.quizPopupOverlay.style.display = 'none';
+                this.quizPopupOverlay.classList.remove('quiz-inline-mode');
             }
 
-            // Remove dimming
-            if (this.slideViewer) {
+            // Remove dimming (only in modal mode)
+            if (!this._quizInlineMode && this.slideViewer) {
                 this.slideViewer.classList.remove('slide-viewer-dimmed');
             }
 
@@ -4808,8 +6468,8 @@
             // Update toggle button
             if (this.quizToggleBtn) this.quizToggleBtn.classList.remove('active');
 
-            // Restore speech if it was playing before
-            if (this._wasSpeakingBeforeQuiz) {
+            // Restore speech if it was playing before (only in modal mode)
+            if (!this._quizInlineMode && this._wasSpeakingBeforeQuiz) {
                 this._wasSpeakingBeforeQuiz = false;
                 this.isPlaying = true;
                 this.voiceBtn?.classList.add('playing');
@@ -4817,6 +6477,7 @@
                 if (vi) vi.className = 'fas fa-volume-mute';
                 this.playSceneAudio(this.scenes[this.currentIndex]);
             }
+            this._quizInlineMode = false;
 
             // Check completion (quiz answers were already stored)
             this.checkCompletion();
@@ -4857,9 +6518,9 @@
                         ? '回答正确！'
                         : '回答不完整或有误。';
                 } else {
-                    // Short answer — can't grade locally
+                    // Short answer — can't grade locally, provide helpful fallback
                     score = Math.round(points * 0.5);
-                    feedback = '已收到你的答案（本地评分无法评估简答题，请联网后重试）。';
+                    feedback = '【AI评分服务暂不可用】已收到你的答案。联网后可获得AI的详细个性化评价（包括答案优缺点分析、遗漏知识点、改进建议等）。请继续完成其他题目。';
                 }
 
                 totalScore += score;
@@ -4898,7 +6559,7 @@
                         student_id: this.courseData.metadata?.student_id || '',
                         course_id: this.courseData.courseId || '',
                         slide_index: this.currentIndex,
-                        slide_title: scene.title,
+                        slide_title: this.SlideRenderer._stripThinkTags(scene.title || ''),
                         slide_content: JSON.stringify(scene.exercise || {}),
                         speech: scene.description || '',
                         user_input: `我的练习答案是：${answer}。请评估并给出反馈。`,

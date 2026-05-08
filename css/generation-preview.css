@@ -228,6 +228,7 @@ body {
 }
 
 .dot {
+    width: 6px;
     height: 6px;
     border-radius: 9999px;
     background: #cbd5e1;
@@ -386,6 +387,10 @@ body {
     color: rgba(6, 182, 212, 0.8);
 }
 
+.viz-requirement-analysis .pdf-icon i {
+    color: rgba(99, 102, 241, 0.9);
+}
+
 /* ============================================================
    Web Search Visualizer
    ============================================================ */
@@ -502,6 +507,35 @@ body {
 @keyframes resultPulse {
     0%, 100% { opacity: 0.5; }
     50% { opacity: 1; }
+}
+
+.result-title-text {
+    font-size: 13px;
+    color: #0f172a;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-url-text {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (prefers-color-scheme: dark) {
+    .result-title-text {
+        color: #e2e8f0;
+    }
+    .result-url-text {
+        color: #94a3b8;
+    }
 }
 
 .result-url {
