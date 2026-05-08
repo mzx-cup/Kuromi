@@ -47,8 +47,20 @@ class CourseGenerator:
     3. 每个大纲的幻灯片内容 + 教师台词
     """
 
+    ALL_LAYOUTS = {
+        "title-only", "two-column", "grid-cards", "magazine-cover", "photo-story",
+        "spotlight-focus", "kinetic-type", "isometric-cards", "timeline-steps", "comparison",
+        "fullwidth-banner", "three-column-cards", "asymmetric-split",
+        "orbit-ring", "numbered-list", "hero-center", "left-sidebar",
+        "film-strip", "floating-overlap", "grid-icon", "process-flow", "quote-wall",
+        "info-graphic", "tabbed-content", "dark-header", "gradient-split",
+        "circle-radial", "stair-step", "chapter-divider", "horizontal-scroll"
+    }
+
     def __init__(self, config: Optional[CourseGeneratorConfig] = None):
         self.config = config or CourseGeneratorConfig()
+        self._used_layouts: set[str] = set()
+        self._layout_pool: list[str] = []
 
     async def generate_course(
             self,
@@ -90,6 +102,12 @@ class CourseGenerator:
             self.config.enable_pdf_upload = enable_pdf_upload
             self.config.enable_web_search = enable_web_search
             self._pdf_text = pdf_text  # 存储PDF文本，供 _generate_outlines / _generate_scene_content_v2 使用
+
+            # 初始化课程级布局轮询池
+            import random
+            self._used_layouts.clear()
+            self._layout_pool = list(self.ALL_LAYOUTS - {"title-only"})
+            random.shuffle(self._layout_pool)
 
             try:
                 # ---- Phase 1: 分析需求 ----
@@ -262,18 +280,37 @@ class CourseGenerator:
                     }
                 }
 
+                # --- 只取前5个 slides_v2 用于首批进入课堂，剩余放入pending ---
+                first_batch_slides_v2 = slides_v2[:5]
+                remaining_slides_v2 = slides_v2[5:]
+                logger.info(f"[generate] first_batch_complete: first_batch_slides_v2={len(first_batch_slides_v2)}, remaining={len(remaining_slides_v2)}")
+
+                # --- 首批完成：通知前端可以进入课堂 ---
+                yield {
+                    "type": "first_batch_complete",
+                    "progress": 55,
+                    "data": {
+                        "session_id": session_id,
+                        "course_title": course_title,
+                        "outlines": [o.model_dump() for o in outlines],
+                        "agent_team": agent_team,
+                        "slides": [s.model_dump() for s in first_batch_slides],
+                        "slides_v2": [s.model_dump() for s in first_batch_slides_v2],
+                        "quiz_data": quiz_data.copy(),
+                        "exercise_data": exercise_data.copy(),
+                        "generated_count": first_batch_size,
+                        "total_outlines": total,
+                    }
+                }
+
                 # --- 保存首批后的pending状态到数据库 ---
                 try:
                     from db import save_course_generation_status
-                    pending_outlines = [
-                        {"id": outlines[j].id, "title": outlines[j].title, "type": outlines[j].type}
-                        for j in range(first_batch_size, total)
-                    ]
                     save_course_generation_status(
                         course_id=session_id,
                         total_outlines=total,
                         generated_count=first_batch_size,
-                        pending_slides_v2=[],  # pending are outlines, not slides_v2 yet
+                        pending_slides_v2=[s.model_dump() for s in remaining_slides_v2],  # 剩余的slides通过轮询获取
                         pending_quiz_data=[],
                         pending_exercise_data=[],
                         is_complete=0
@@ -369,26 +406,16 @@ class CourseGenerator:
                         logger.exception(f"[generate] 4b CRASH at outline[{i}] type={outline.type}: {e}")
                         raise
 
-                # --- 4b完成：yield first_batch_complete，前端可以进入课堂了 ---
+                # --- 4b完成：更新生成进度 ---
                 try:
                     from db import update_course_generation_status
                     update_course_generation_status(
                         course_id=session_id,
-                        generated_count=total,  # all outlines now generated
-                        pending_slides_v2=pending_slides_v2_for_db.copy() if pending_slides_v2_for_db else [],
-                        is_complete=1
+                        generated_count=total,
+                        pending_slides_v2=pending_slides_v2_for_db.copy() if pending_slides_v2_for_db else []
                     )
                 except Exception as e:
                     logger.warning(f"[generate] Failed to update generation status after 4b: {e}")
-
-                yield {
-                    "type": "first_batch_complete",
-                    "progress": 60,
-                    "data": {
-                        "generated_count": total,
-                        "total_outlines": total,
-                    }
-                }
 
                 # ---- Phase 5: 配图生成 ----
                 if enable_image:
@@ -948,29 +975,16 @@ class CourseGenerator:
                 layout_type = slide_data.get("layoutType") or slide_data.get("layout_type") or ""
 
                 # 校验 layout_type 合法性
-                allowed_layouts = {
-                    "title-only", "two-column", "grid-cards", "header-content", "quote-highlight",
-                    "center-focus", "media-left", "stats-row", "timeline-steps", "comparison",
-                    "fullwidth-banner", "three-column-cards", "asymmetric-split",
-                    "icon-vertical-stack", "numbered-list", "hero-center", "left-sidebar",
-                    "bottom-cards", "floating-overlap", "grid-icon", "process-flow", "quote-wall",
-                    "info-graphic", "tabbed-content", "dark-header", "gradient-split",
-                    "circle-radial", "stair-step", "minimal-center", "horizontal-scroll"
-                }
-                if layout_type not in allowed_layouts:
-                    # 均衡布局：排除 title-only，从其余27种中随机选择，确保布局多样性
+                if layout_type not in self.ALL_LAYOUTS:
+                    # 课程级轮询池：优先使用本课程尚未出现过的布局
                     import random
-                    fallback_layouts = [
-                        "two-column", "grid-cards", "header-content", "quote-highlight",
-                        "center-focus", "media-left", "stats-row", "timeline-steps", "comparison",
-                        "fullwidth-banner", "three-column-cards", "asymmetric-split",
-                        "icon-vertical-stack", "numbered-list", "hero-center", "left-sidebar",
-                        "bottom-cards", "floating-overlap", "grid-icon", "process-flow",
-                        "quote-wall", "info-graphic", "tabbed-content", "dark-header",
-                        "gradient-split", "circle-radial", "stair-step", "minimal-center",
-                        "horizontal-scroll"
-                    ]
-                    layout_type = random.choice(fallback_layouts)
+                    if not self._layout_pool:
+                        # 池子耗尽，重新填充并 shuffle
+                        self._layout_pool = list(self.ALL_LAYOUTS - {"title-only"})
+                        random.shuffle(self._layout_pool)
+                    layout_type = self._layout_pool.pop()
+                    logger.info(f"[_generate_scene_content_v2] fallback layout chosen: {layout_type} (pool remaining: {len(self._layout_pool)})")
+                self._used_layouts.add(layout_type)
 
                 # --- 第三层：逐卡片解析容错 ---
                 content_items: list[SlideContentItemV2] = []

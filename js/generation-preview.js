@@ -615,13 +615,69 @@
                     break;
 
                 case 'first_batch_complete':
+                    console.log('[generation-preview] first_batch_complete received:', {
+                        session_id: msg.session_id,
+                        slides_count: (msg.slides || []).length,
+                        slides_v2_count: (msg.slides_v2 || []).length,
+                        quiz_count: (msg.quiz_data || []).length,
+                        exercise_count: (msg.exercise_data || []).length,
+                        outlines_count: (msg.outlines || []).length,
+                    });
                     statusTitle.textContent = '首批内容已生成';
                     statusDesc.textContent = '即将进入课堂...';
                     // 隐藏abort按钮
                     if (abortBtn) abortBtn.style.display = 'none';
                     if (footerHint) footerHint.style.display = 'none';
+
+                    // 构建初步的 classroomData 用于课堂初始化
+                    const reqs = sessionData.requirements || sessionData || {};
+                    if (msg.session_id) {
+                        const initialCourseData = {
+                            courseId: msg.session_id,
+                            title: msg.course_title || '课程',
+                            outlines: msg.outlines || [],
+                            slides: msg.slides || [],
+                            slides_v2: msg.slides_v2 || [],
+                            agent_team: msg.agent_team || [],
+                            quiz_data: msg.quiz_data || [],
+                            exercise_data: msg.exercise_data || [],
+                            teacher: {
+                                name: '星识教师',
+                                avatar: '',
+                                role: '课程导师',
+                                voice_id: 0
+                            },
+                            tts_audio_urls: {},
+                            metadata: {
+                                session_id: msg.session_id,
+                                requirement: reqs.requirement || '',
+                                student_id: String(sessionData.student_id || ''),
+                                voice_id: reqs.voice_id || 'female-shaonv',
+                                agent_mode: reqs.agent_mode || 'preset',
+                                interactive_mode: reqs.interactive_mode || false,
+                            }
+                        };
+                        sessionStorage.setItem('classroomData', JSON.stringify(initialCourseData));
+                        sessionStorage.setItem('courseId', msg.session_id);
+                    }
+
+                    // 保存渐进式数据（用于 classroom 页面合并）
+                    if (msg.slides && msg.slides.length > 0) {
+                        sessionStorage.setItem('progressiveSlides', JSON.stringify(msg.slides));
+                    }
+                    if (msg.slides_v2 && msg.slides_v2.length > 0) {
+                        sessionStorage.setItem('progressiveSlidesV2', JSON.stringify(msg.slides_v2));
+                    }
+                    if (msg.quiz_data && msg.quiz_data.length > 0) {
+                        sessionStorage.setItem('progressiveQuizData', JSON.stringify(msg.quiz_data));
+                    }
+                    if (msg.exercise_data && msg.exercise_data.length > 0) {
+                        sessionStorage.setItem('progressiveExerciseData', JSON.stringify(msg.exercise_data));
+                    }
+
                     // 1秒后跳转到课堂
                     setTimeout(() => {
+                        console.log('[generation-preview] Navigating to classroom...');
                         navigateToClassroom();
                     }, 1000);
                     break;

@@ -5723,26 +5723,75 @@ async def generate_course_stream(request: CourseGenerationRequest):
     """
     流式生成课程（LLM驱动版）
     使用 CourseGenerator 进行真实的大模型调用，通过SSE返回进度
+    后台任务保证即使前端断开，生成仍然继续
     """
-    async def event_generator():
-        from course_generator import get_course_generator
-        generator = get_course_generator()
+    from course_generator import get_course_generator
+    generator = get_course_generator()
 
-        async for event in generator.generate_course(
-            requirement=request.requirement,
-            student_id=request.student_id or "",
-            enable_image=request.enable_image,
-            enable_tts=request.enable_tts,
-            enable_video=request.enable_video,
-            voice_id=request.voice_id,
-            agent_mode=request.agent_mode,
-            interactive_mode=request.interactive_mode,
-            enable_pdf_upload=request.enable_pdf_upload,
-            pdf_text=request.pdf_text,
-            enable_web_search=request.enable_web_search,
-        ):
-            event_type = event.pop("type", "message")
-            yield sse_event(event_type, event)
+    queue = asyncio.Queue(maxsize=500)
+
+    async def background_generate():
+        try:
+            async for event in generator.generate_course(
+                requirement=request.requirement,
+                student_id=request.student_id or "",
+                enable_image=request.enable_image,
+                enable_tts=request.enable_tts,
+                enable_video=request.enable_video,
+                voice_id=request.voice_id,
+                agent_mode=request.agent_mode,
+                interactive_mode=request.interactive_mode,
+                enable_pdf_upload=request.enable_pdf_upload,
+                pdf_text=request.pdf_text,
+                enable_web_search=request.enable_web_search,
+            ):
+                try:
+                    queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    # 丢弃最旧的事件，保留最新的
+                    try:
+                        queue.get_nowait()
+                        queue.put_nowait(event)
+                    except (asyncio.QueueEmpty, asyncio.QueueFull):
+                        pass
+        except Exception as e:
+            logger.exception("Background generation error")
+            try:
+                queue.put_nowait({
+                    "type": "error",
+                    "error": str(e),
+                    "progress": 0,
+                })
+            except asyncio.QueueFull:
+                pass
+        finally:
+            # 发送结束标记
+            try:
+                queue.put_nowait({"type": "__done__"})
+            except asyncio.QueueFull:
+                pass
+
+    # 启动后台生成任务（不跟随SSE连接生命周期）
+    asyncio.create_task(background_generate())
+
+    async def event_generator():
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
+                except asyncio.TimeoutError:
+                    # 发送心跳防止超时断开
+                    yield sse_event("status", {"progress": 0, "data": {"msg": "生成中..."}})
+                    continue
+
+                if event.get("type") == "__done__":
+                    break
+
+                event_type = event.pop("type", "message")
+                yield sse_event(event_type, event)
+        except asyncio.CancelledError:
+            # 客户端断开连接，不要取消后台任务
+            raise
 
     return StreamingResponse(
         event_generator(),

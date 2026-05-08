@@ -256,13 +256,14 @@
                 this.agentTeam = this.courseData.agent_team || [];
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
                 // 保存courseId用于后台轮询
-                this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || null;
+                this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || sessionStorage.getItem('courseId') || null;
 
                 // 加载渐进式生成的数据（测验、练习、新幻灯片）
                 try {
                     const progressiveQuiz = JSON.parse(sessionStorage.getItem('progressiveQuizData') || '[]');
                     const progressiveExercise = JSON.parse(sessionStorage.getItem('progressiveExerciseData') || '[]');
                     const progressiveSlides = JSON.parse(sessionStorage.getItem('progressiveSlides') || '[]');
+                    const progressiveSlidesV2 = JSON.parse(sessionStorage.getItem('progressiveSlidesV2') || '[]');
 
                     // 合并到courseData
                     if (progressiveQuiz.length > 0) {
@@ -274,6 +275,9 @@
                     if (progressiveSlides.length > 0) {
                         this.courseData.slides = (this.courseData.slides || []).concat(progressiveSlides);
                     }
+                    if (progressiveSlidesV2.length > 0) {
+                        this.courseData.slides_v2 = (this.courseData.slides_v2 || []).concat(progressiveSlidesV2);
+                    }
                 } catch (e) {
                     console.warn('[classroom] Failed to load progressive data:', e);
                 }
@@ -282,18 +286,37 @@
 
         // ---- 后台轮询：增量加载新幻灯片 ----
         startBackgroundPolling() {
-            if (!this.courseId) return;
+            if (!this.courseId) {
+                console.warn('[classroom] No courseId, skipping background polling');
+                return;
+            }
+            console.log('[classroom] Starting background polling for courseId:', this.courseId);
             const self = this;
             this.pollingInterval = setInterval(async function() {
                 try {
                     const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
-                    if (!resp.ok) return;
+                    if (!resp.ok) {
+                        console.warn('[classroom] Poll response not OK:', resp.status);
+                        return;
+                    }
                     const data = await resp.json();
-                    // Always consume pending slides first, even if complete
-                    if (data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
+                    console.log('[classroom] Poll result:', {
+                        pendingV2: (data.pending_slides_v2 || []).length,
+                        pendingQuiz: (data.pending_quiz_data || []).length,
+                        pendingExercise: (data.pending_exercise_data || []).length,
+                        isComplete: data.is_complete,
+                        generatedCount: data.generated_count,
+                        totalOutlines: data.total_outlines
+                    });
+                    // 处理 pending slides / quiz / exercise
+                    const hasPending = (data.pending_slides_v2 && data.pending_slides_v2.length > 0) ||
+                                       (data.pending_quiz_data && data.pending_quiz_data.length > 0) ||
+                                       (data.pending_exercise_data && data.pending_exercise_data.length > 0);
+                    if (hasPending) {
                         self.addNewScenes(data);
                     }
                     if (data.is_complete) {
+                        console.log('[classroom] Generation complete, stopping poll');
                         clearInterval(self.pollingInterval);
                         return;
                     }
@@ -382,11 +405,12 @@
             }
 
             pendingV2.forEach(function(slideV2) {
-                // Try to merge into existing scene by scene_id
+                // Try to merge into existing scene by scene_id or originalId
                 var merged = false;
                 if (slideV2.scene_id != null) {
                     var matchedScene = self.scenes.find(function(s) {
-                        return String(s.id) === String(slideV2.scene_id);
+                        return String(s.id) === String(slideV2.scene_id) ||
+                               String(s.originalId) === String(slideV2.scene_id);
                     });
                     if (matchedScene) {
                         // Check duplicate by title within the scene
@@ -396,6 +420,7 @@
                         if (!slideExists) {
                             matchedScene.slides_v2.push(slideV2);
                             addedCount++;
+                            console.log('[Classroom] Merged slide into scene:', matchedScene.id, 'title:', slideV2.title);
                         }
                         merged = true;
                     }
@@ -439,7 +464,7 @@
             });
 
             if (addedCount > 0) {
-                console.log(`[classroom] Added ${addedCount} new scenes`);
+                console.log(`[classroom] Added ${addedCount} new scenes, total now: ${this.scenes.length}`);
                 // 重新渲染侧边栏
                 this.renderSceneSidebar();
                 // 更新总页数
@@ -448,6 +473,12 @@
                 }
                 // 显示提示
                 this.showNewScenesToast(addedCount);
+                // 滚动侧边栏到底部以显示新场景
+                if (this.sceneThumbnails) {
+                    setTimeout(function() {
+                        self.sceneThumbnails.scrollTop = self.sceneThumbnails.scrollHeight;
+                    }, 100);
+                }
             }
         }
 
@@ -545,6 +576,7 @@
 
                 return {
                     id: sceneId,
+                    originalId: sceneId,
                     title: outline.title || ('Scene ' + sceneId),
                     type: outline.type || 'slide',
                     description: outline.description || '',
@@ -593,6 +625,7 @@
                 slides.forEach(function(slide, idx) {
                     expanded.push({
                         id: scene.id + '_slide_' + idx,
+                        originalId: scene.originalId || scene.id,
                         title: slide.title || scene.title || ('幻灯片 ' + (idx + 1)),
                         type: scene.type || 'slide',
                         description: scene.description || '',
@@ -726,14 +759,20 @@
 
         renderSceneSidebar() {
             if (!this.sceneThumbnails) return;
+            const currentIdx = this.currentIndex || 0;
             const icons = { slide: '📖', quiz: '📝', exercise: '✏️', interactive: '🎮', pbl: '🔬', code: '💻' };
             this.sceneThumbnails.innerHTML = this.scenes.map((s, i) => `
-                <div class="scene-thumb ${i === 0 ? 'active' : ''}" data-index="${i}" onclick="classroomController.goToScene(${i})">
+                <div class="scene-thumb ${i === currentIdx ? 'active' : ''}" data-index="${i}" onclick="classroomController.goToScene(${i})">
                     <span class="scene-thumb-icon">${icons[s.type] || '📖'}</span>
                     <span class="scene-thumb-label">${s.title.slice(0, 8)}</span>
                     <span class="scene-thumb-badge">${s.type}</span>
                 </div>
             `).join('');
+            // Auto-scroll to keep current scene visible
+            const activeThumb = this.sceneThumbnails.querySelector('.scene-thumb.active');
+            if (activeThumb) {
+                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
 
         updateSidebarActive(index) {
@@ -859,22 +898,21 @@
                     'title-only': this._renderTitleOnly.bind(this),
                     'two-column': this._renderTwoColumn.bind(this),
                     'grid-cards': this._renderGridCards.bind(this),
-                    'header-content': this._renderHeaderContent.bind(this),
-                    'quote-highlight': this._renderQuoteHighlight.bind(this),
-                    'center-focus': this._renderCenterFocus.bind(this),
-                    'media-left': this._renderMediaLeft.bind(this),
-                    'stats-row': this._renderStatsRow.bind(this),
+                    'magazine-cover': this._renderMagazineCover.bind(this),
+                    'photo-story': this._renderPhotoStory.bind(this),
+                    'spotlight-focus': this._renderSpotlightFocus.bind(this),
+                    'kinetic-type': this._renderKineticType.bind(this),
+                    'isometric-cards': this._renderIsometricCards.bind(this),
                     'timeline-steps': this._renderTimelineSteps.bind(this),
                     'comparison': this._renderComparison.bind(this),
                     'fullwidth-banner': this._renderFullwidthBanner.bind(this),
                     'three-column-cards': this._renderThreeColumnCards.bind(this),
                     'asymmetric-split': this._renderAsymmetricSplit.bind(this),
-                    'icon-vertical-stack': this._renderIconVerticalStack.bind(this),
+                    'orbit-ring': this._renderOrbitRing.bind(this),
                     'numbered-list': this._renderNumberedList.bind(this),
-                    // 新增 15 种布局
                     'hero-center': this._renderHeroCenter.bind(this),
                     'left-sidebar': this._renderLeftSidebar.bind(this),
-                    'bottom-cards': this._renderBottomCards.bind(this),
+                    'film-strip': this._renderFilmStrip.bind(this),
                     'floating-overlap': this._renderFloatingOverlap.bind(this),
                     'grid-icon': this._renderGridIcon.bind(this),
                     'process-flow': this._renderProcessFlow.bind(this),
@@ -885,7 +923,7 @@
                     'gradient-split': this._renderGradientSplit.bind(this),
                     'circle-radial': this._renderCircleRadial.bind(this),
                     'stair-step': this._renderStairStep.bind(this),
-                    'minimal-center': this._renderMinimalCenter.bind(this),
+                    'chapter-divider': this._renderChapterDivider.bind(this),
                     'horizontal-scroll': this._renderHorizontalScroll.bind(this),
                 };
                 return renderers[layoutType] || this._renderTwoColumn.bind(this);
@@ -923,76 +961,6 @@
                             <h1>${this._escapeHtml(slide.title || '')}</h1>
                         </div>
                         <div class="slide-body layout-grid-cards">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
-            _renderHeaderContent(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-header-content">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
-            _renderQuoteHighlight(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-quote-highlight">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
-            _renderCenterFocus(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container layout-center-focus">
-                        <div class="slide-header center-focus-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-center-content">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
-            _renderMediaLeft(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderMediaCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-media-left">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
-            _renderStatsRow(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderStatCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-stats-row">
                             ${cards}
                         </div>
                     </div>
@@ -1093,20 +1061,6 @@
                 `;
             },
 
-            _renderIconVerticalStack(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="slide-body layout-icon-vertical-stack">
-                            ${cards}
-                        </div>
-                    </div>
-                `;
-            },
-
             _renderNumberedList(slide) {
                 const items = slide.content || [];
                 const itemsHtml = items.map((item, i) => {
@@ -1158,18 +1112,6 @@
                             <h1>${this._escapeHtml(slide.title || '')}</h1>
                         </div>
                         <div class="sidebar-body">${cards}</div>
-                    </div>
-                `;
-            },
-
-            _renderBottomCards(slide) {
-                const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
-                return `
-                    <div class="slide-v2-container layout-bottom-cards">
-                        <div class="slide-header">
-                            <h1>${this._escapeHtml(slide.title || '')}</h1>
-                        </div>
-                        <div class="bottom-cards-scroll">${cards}</div>
                     </div>
                 `;
             },
@@ -1376,20 +1318,6 @@
                 `;
             },
 
-            _renderMinimalCenter(slide) {
-                const card = slide.content?.[0] ? this._renderContentCard(slide.content[0], 0) : '';
-                return `
-                    <div class="slide-v2-container layout-minimal-center">
-                        <div class="minimal-card">
-                            <div class="minimal-header">
-                                <h1>${this._escapeHtml(slide.title || '')}</h1>
-                            </div>
-                            ${card}
-                        </div>
-                    </div>
-                `;
-            },
-
             _renderHorizontalScroll(slide) {
                 const cards = (slide.content || []).map((item, i) => this._renderContentCard(item, i)).join('');
                 return `
@@ -1398,6 +1326,198 @@
                             <h1>${this._escapeHtml(slide.title || '')}</h1>
                         </div>
                         <div class="h-scroll-track">${cards}</div>
+                    </div>
+                `;
+            },
+
+            // ========== 8 种精美新布局渲染器 ==========
+
+            _renderMagazineCover(slide) {
+                const item = slide.content?.[0];
+                const imgUrl = item?.imageUrl || item?.image_url || '';
+                const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                return `
+                    <div class="slide-v2-container layout-magazine-cover">
+                        ${imgUrl ? `<div class="magazine-bg" style="background-image:url('${imgUrl}')"></div>` : '<div class="magazine-bg magazine-bg-fallback"></div>'}
+                        <div class="magazine-overlay"></div>
+                        <div class="magazine-content">
+                            <div class="magazine-tag">FEATURED</div>
+                            <h1 class="magazine-title">${this._escapeHtml(slide.title || '')}</h1>
+                            ${item?.subTitle ? `<div class="magazine-subtitle">${this._escapeHtml(item.subTitle)}</div>` : ''}
+                            ${textHtml ? `<div class="magazine-lead">${textHtml}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderPhotoStory(slide) {
+                const items = slide.content || [];
+                const leftItem = items[0];
+                const rightItems = items.slice(1);
+                const leftImg = leftItem?.imageUrl || leftItem?.image_url || '';
+                const leftText = leftItem ? this._renderBulletsOrText({ bullets: leftItem.bullets, text: leftItem.text || '' }) : '';
+                const rightHtml = rightItems.map((item, i) => this._renderContentCard(item, i)).join('');
+                return `
+                    <div class="slide-v2-container layout-photo-story">
+                        <div class="photo-story-visual">
+                            ${leftImg ? `<img src="${leftImg}" alt="" class="photo-story-img">` : '<div class="photo-story-img photo-story-img-fallback"></div>'}
+                            <div class="photo-story-caption">${this._escapeHtml(leftItem?.subTitle || slide.title || '')}</div>
+                        </div>
+                        <div class="photo-story-narrative">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                            ${leftText ? `<div class="photo-story-lead">${leftText}</div>` : ''}
+                            <div class="photo-story-cards">${rightHtml}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderSpotlightFocus(slide) {
+                const items = slide.content || [];
+                const centerItem = items[0];
+                const surroundItems = items.slice(1, 5);
+                const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
+                const centerText = centerItem ? this._renderBulletsOrText({ bullets: centerItem.bullets, text: centerItem.text || '' }) : '';
+                const surroundHtml = surroundItems.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    return `
+                        <div class="spotlight-satellite theme-${this._validateTheme(item.colorTheme)}">
+                            ${icon ? `<div class="spotlight-sat-icon">${icon}</div>` : ''}
+                            <div class="spotlight-sat-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-spotlight-focus">
+                        <div class="spotlight-vignette"></div>
+                        <div class="spotlight-center theme-${centerItem ? this._validateTheme(centerItem.colorTheme) : 'blue'}">
+                            ${centerIcon ? `<div class="spotlight-c-icon">${centerIcon}</div>` : ''}
+                            <h1 class="spotlight-c-title">${this._escapeHtml(slide.title || '')}</h1>
+                            ${centerItem?.subTitle ? `<div class="spotlight-c-sub">${this._escapeHtml(centerItem.subTitle)}</div>` : ''}
+                            ${centerText ? `<div class="spotlight-c-text">${centerText}</div>` : ''}
+                        </div>
+                        <div class="spotlight-surround">${surroundHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderKineticType(slide) {
+                const item = slide.content?.[0];
+                const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                const words = (slide.title || '').split('');
+                const kineticTitle = words.map((ch, i) => `<span class="kinetic-char" style="animation-delay:${i * 0.04}s">${this._escapeHtml(ch)}</span>`).join('');
+                return `
+                    <div class="slide-v2-container layout-kinetic-type">
+                        <div class="kinetic-accent-line"></div>
+                        <div class="kinetic-main">${kineticTitle}</div>
+                        ${item?.subTitle ? `<div class="kinetic-slant">${this._escapeHtml(item.subTitle)}</div>` : ''}
+                        ${textHtml ? `<div class="kinetic-body">${textHtml}</div>` : ''}
+                        <div class="kinetic-deco">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderIsometricCards(slide) {
+                const items = slide.content || [];
+                const cardsHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    const delay = (i + 1) * 0.15;
+                    return `
+                        <div class="iso-card theme-${this._validateTheme(item.colorTheme)}" style="animation-delay:${delay}s">
+                            <div class="iso-face iso-face-front">
+                                ${icon ? `<div class="iso-icon">${icon}</div>` : ''}
+                                <div class="iso-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                                ${textHtml ? `<div class="iso-text">${textHtml}</div>` : ''}
+                            </div>
+                            <div class="iso-face iso-face-side"></div>
+                            <div class="iso-face iso-face-top"></div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-isometric-cards">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="iso-stage">${cardsHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderOrbitRing(slide) {
+                const items = slide.content || [];
+                const centerItem = items[0];
+                const satellites = items.slice(1, 7);
+                const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
+                const satHtml = satellites.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    const angle = (360 / Math.max(satellites.length, 1)) * i;
+                    const radius = 140;
+                    const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+                    const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+                    return `
+                        <div class="orbit-satellite theme-${this._validateTheme(item.colorTheme)}" style="transform:translate(${x}px, ${y}px)">
+                            ${icon ? `<div class="orbit-sat-icon">${icon}</div>` : ''}
+                            <div class="orbit-sat-label">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-orbit-ring">
+                        <div class="orbit-system">
+                            <div class="orbit-center theme-${centerItem ? this._validateTheme(centerItem.colorTheme) : 'blue'}">
+                                ${centerIcon ? `<div class="orbit-c-icon">${centerIcon}</div>` : ''}
+                                <div class="orbit-c-title">${this._escapeHtml(slide.title || '')}</div>
+                            </div>
+                            <div class="orbit-ring-visual"></div>
+                            <div class="orbit-satellites">${satHtml}</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            _renderFilmStrip(slide) {
+                const items = slide.content || [];
+                const framesHtml = items.map((item, i) => {
+                    const icon = this._getIcon(item.icon);
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    const img = item.imageUrl || item.image_url || '';
+                    return `
+                        <div class="film-frame">
+                            <div class="film-frame-inner theme-${this._validateTheme(item.colorTheme)}">
+                                ${img ? `<img src="${img}" class="film-frame-img" alt="">` : ''}
+                                ${icon ? `<div class="film-frame-icon">${icon}</div>` : ''}
+                                <div class="film-frame-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                                ${textHtml ? `<div class="film-frame-text">${textHtml}</div>` : ''}
+                            </div>
+                            <div class="film-sprocket"></div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="slide-v2-container layout-film-strip">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="film-track">${framesHtml}</div>
+                    </div>
+                `;
+            },
+
+            _renderChapterDivider(slide) {
+                const item = slide.content?.[0];
+                const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                const chapterNum = item?.subTitle || '01';
+                return `
+                    <div class="slide-v2-container layout-chapter-divider">
+                        <div class="chapter-number">${this._escapeHtml(chapterNum)}</div>
+                        <div class="chapter-line"></div>
+                        <h1 class="chapter-title">${this._escapeHtml(slide.title || '')}</h1>
+                        ${item?.subTitle ? `<div class="chapter-sub">${this._escapeHtml(item.subTitle)}</div>` : ''}
+                        ${textHtml ? `<div class="chapter-desc">${textHtml}</div>` : ''}
                     </div>
                 `;
             },
