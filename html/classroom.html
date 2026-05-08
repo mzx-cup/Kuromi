@@ -531,6 +531,17 @@ document.addEventListener('click', function(e) {
         document.getElementById('voice-dropdown-menu')?.classList.remove('show');
     }
 });
+
+// Scene thumbnail click delegation - fix goToScene error
+document.addEventListener('click', function(e) {
+    const thumb = e.target.closest('.scene-thumb');
+    if (thumb && window.classroomController) {
+        const index = parseInt(thumb.dataset.index, 10);
+        if (!isNaN(index)) {
+            window.classroomController.goToScene(index);
+        }
+    }
+});
 </script>
 <script src="../js/slide-v2-adapter.js"></script>
 <script src="../js/openmaic-slide-player.js"></script>
