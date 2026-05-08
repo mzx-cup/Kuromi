@@ -110,10 +110,41 @@
         loadSession();
         setupEventListeners();
         if (sessionData) {
+            displayAssignedTeacher();
             startGeneration();
         } else {
             showError('未找到生成会话，请返回首页重试');
             backBtn.style.display = 'flex';
+        }
+    }
+
+    // 显示分配的AI教师
+    function displayAssignedTeacher() {
+        const display = document.getElementById('teacher-assign-display');
+        if (!display || !sessionData) return;
+
+        const teacherName = sessionData.requirements?.teacher_name;
+        const teacherIcon = sessionData.requirements?.teacher_icon;
+        const teacherProfession = sessionData.requirements?.teacher_profession;
+        const teacherPersonality = sessionData.requirements?.teacher_personality;
+        const teacherStyle = sessionData.requirements?.teacher_teaching_style;
+
+        if (!teacherName) return;
+
+        display.style.display = 'block';
+
+        display.querySelector('.teacher-assign-icon').textContent = teacherIcon || '👨‍🏫';
+        display.querySelector('.teacher-assign-name').textContent = teacherName;
+        display.querySelector('.teacher-assign-profession').textContent = teacherProfession;
+        display.querySelector('.teacher-personality').textContent = teacherPersonality;
+        display.querySelector('.teacher-style').textContent = teacherStyle;
+
+        const agentMode = sessionData.requirements?.agent_mode;
+        const matchReason = display.querySelector('.teacher-match-reason');
+        if (agentMode === 'auto') {
+            matchReason.textContent = '根据课程内容自动分配';
+        } else {
+            matchReason.textContent = '手动选择';
         }
     }
 
