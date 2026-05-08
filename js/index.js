@@ -2119,6 +2119,19 @@ async function startCourseGeneration(requirement) {
     const interactivePill = document.getElementById('openmaic-interactive-pill');
     const agentMode = document.getElementById('openmaic-agent-mode')?.value || 'preset';
     const voiceId = document.getElementById('openmaic-voice-select')?.value || 'female-shaonv';
+    const teacherId = document.getElementById('openmaic-teacher-select')?.value || '';
+
+    let finalTeacher = null;
+    if (agentMode === 'auto') {
+        // 自动模式：根据课程内容匹配老师
+        const matchResult = typeof matchTeacher === 'function' ? matchTeacher(requirement) : null;
+        if (matchResult) {
+            finalTeacher = matchResult.teacher;
+        }
+    } else {
+        // 手动模式：使用用户选择的老師
+        finalTeacher = typeof getTeacherById === 'function' ? getTeacherById(teacherId) : null;
+    }
 
     // 处理PDF文件上传
     let pdfText = '';
@@ -2190,6 +2203,14 @@ async function startCourseGeneration(requirement) {
             pdf_text: pdfText,
             voice_id: voiceId,
             agent_mode: agentMode,
+            teacher_id: finalTeacher?.id || '',
+            teacher_name: finalTeacher?.name || '',
+            teacher_profession: finalTeacher?.profession || '',
+            teacher_personality: finalTeacher?.personality || '',
+            teacher_teaching_style: finalTeacher?.teachingStyle || '',
+            teacher_icon: finalTeacher?.icon || '',
+            teacher_system_prompt: finalTeacher?.systemPrompt || '',
+            teacher_greeting: finalTeacher?.greeting || '',
             pdf_files: pdfFiles.map(f => f.name),
         },
         student_id: storedUser.id,
