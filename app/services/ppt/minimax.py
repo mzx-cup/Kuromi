@@ -884,17 +884,15 @@ class MiniMaxPPTProvider:
 
         # 从全部28种布局中随机选择，让连续幻灯片布局自然差异化
         base_layouts = [
-            "title-only", "two-column", "quote-highlight", "stats-row",
-            "header-content", "asymmetric-split", "timeline-steps", "comparison",
-            "grid-cards", "center-focus", "media-left", "fullwidth-banner",
-            "three-column-cards", "hero-center",
+            "title-only", "two-column", "header-content", "timeline-steps",
+            "comparison", "grid-cards", "fullwidth-banner",
+            "three-column-cards", "hero-center", "chapter-divider",
+            "numbered-list", "asymmetric-split",
         ]
-        # 扩展布局池（额外14种）
+        # 教育专用扩展布局
         extra_layouts = [
-            "info-card", "feature-list", "hero-split", "numbered-list",
-            "quote-card", "grid-highlight", "vertical-stack", "diagonal-split",
-            "circle-accent", "sidebar-layout", "banner-strip",
-            "icon-vertical-stack", "bottom-cards", "floating-overlap",
+            "edu-definition", "edu-keypoints", "edu-example", "edu-summary",
+            "edu-welcome", "media-showcase", "edu-programming-concept",
         ]
         all_layouts = base_layouts + extra_layouts
         return random.choice(all_layouts)

@@ -394,5 +394,35 @@
       "created_at": "local",
       "updated_at": "local"
     }
+  ],
+  "user_flashcard_progress": [
+    {
+      "user_id": 1,
+      "card_hash": "test123",
+      "course_id": "bigdata",
+      "chapter_name": "test",
+      "front": "Q?",
+      "back": "A!",
+      "hint": "hint",
+      "is_mastered": 1,
+      "is_favorite": 0,
+      "difficulty": "medium",
+      "user_note": "",
+      "review_count": 1
+    },
+    {
+      "user_id": 1,
+      "card_hash": "test456",
+      "course_id": "bigdata",
+      "chapter_name": "test",
+      "front": "Q2?",
+      "back": "A2!",
+      "hint": "hint2",
+      "is_mastered": 0,
+      "is_favorite": 1,
+      "difficulty": "easy",
+      "user_note": "note",
+      "review_count": 2
+    }
   ]
 }

@@ -153,6 +153,18 @@
         };
     }
 
+    function makeCardVideo(videoUrl, left, top, width, height, cardIdx, sceneId) {
+        return {
+            type: 'video',
+            id: 'el-' + sceneId + '-card-' + cardIdx + '-vid',
+            left: left, top: top, width: width, height: height,
+            src: videoUrl,
+            autoplay: true,
+            loop: true,
+            muted: true
+        };
+    }
+
     // ---- Layout Templates ----
 
     function layoutTitleOnly(normalized, sceneId) {
@@ -377,16 +389,25 @@
         var bodyH = height - titleH - 12;
         var hasCode = !!(item.code_snippet && String(item.code_snippet).trim());
         var hasImage = !!(item.image_url && String(item.image_url).trim());
-        if (hasCode && hasImage) {
+        var hasVideo = !!(item.video_url && String(item.video_url).trim());
+        if (hasCode && (hasImage || hasVideo)) {
             var codeW = width * 0.55;
-            var imgW = width - codeW - 20;
+            var mediaW = width - codeW - 20;
             elements.push(makeCardBody(item.text, theme, left + 10, bodyTop, codeW, bodyH, cardIdx, sceneId));
             elements.push(makeCardCode(item.code_snippet, theme, left + 10, bodyTop + bodyH * 0.55, codeW, bodyH * 0.45, cardIdx, sceneId));
-            elements.push(makeCardImage(item.image_url, left + codeW + 20, bodyTop, imgW, bodyH, cardIdx, sceneId));
+            if (hasVideo) {
+                elements.push(makeCardVideo(item.video_url, left + codeW + 20, bodyTop, mediaW, bodyH, cardIdx, sceneId));
+            } else {
+                elements.push(makeCardImage(item.image_url, left + codeW + 20, bodyTop, mediaW, bodyH, cardIdx, sceneId));
+            }
         } else if (hasCode) {
             var textH = bodyH * 0.45;
             elements.push(makeCardBody(item.text, theme, left + 10, bodyTop, width, textH, cardIdx, sceneId));
             elements.push(makeCardCode(item.code_snippet, theme, left + 10, bodyTop + textH + 4, width, bodyH - textH - 4, cardIdx, sceneId));
+        } else if (hasVideo) {
+            var txtW = width * 0.6;
+            elements.push(makeCardBody(item.text, theme, left + 10, bodyTop, txtW, bodyH, cardIdx, sceneId));
+            elements.push(makeCardVideo(item.video_url, left + txtW + 10, bodyTop, width - txtW - 20, bodyH, cardIdx, sceneId));
         } else if (hasImage) {
             var txtW = width * 0.6;
             elements.push(makeCardBody(item.text, theme, left + 10, bodyTop, txtW, bodyH, cardIdx, sceneId));
@@ -414,7 +435,8 @@
                 icon: item.icon || 'book',
                 color_theme: item.color_theme || item.colorTheme || 'blue',
                 code_snippet: item.code_snippet || item.codeSnippet || '',
-                image_url: item.image_url || item.imageUrl || ''
+                image_url: item.image_url || item.imageUrl || '',
+                video_url: item.video_url || item.videoUrl || ''
             };
         });
         return {

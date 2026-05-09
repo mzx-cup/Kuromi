@@ -237,6 +237,9 @@ class StreamChatRequest(BaseModel):
     interaction_count: int = Field(default=0, ge=0)
     code_practice_time: int = Field(default=0, ge=0)
     socratic_pass_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    persona: str = Field(default="patient_tutor", description="AI 教学风格人格 ID")
+    agent: str = Field(default="geek-senior", description="AI 学科领域身份 ID")
+    agent_system_prompt: str = Field(default="", description="AI 学科领域身份的系统提示词")
 
     @field_validator("user_input", mode="after")
     @classmethod
@@ -463,13 +466,11 @@ class SlideV2(BaseModel):
     @field_validator('layout_type')
     @classmethod
     def validate_layout_type(cls, v):
-        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'quote-highlight',
-                   'center-focus', 'media-left', 'stats-row', 'timeline-steps', 'comparison',
-                   'fullwidth-banner', 'three-column-cards', 'asymmetric-split',
-                   'icon-vertical-stack', 'numbered-list', 'hero-center', 'left-sidebar',
-                   'bottom-cards', 'floating-overlap', 'grid-icon', 'process-flow', 'quote-wall',
-                   'info-graphic', 'tabbed-content', 'dark-header', 'gradient-split',
-                   'circle-radial', 'stair-step', 'minimal-center', 'horizontal-scroll'}
+        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'timeline-steps',
+                   'comparison', 'fullwidth-banner', 'three-column-cards', 'asymmetric-split',
+                   'numbered-list', 'hero-center', 'chapter-divider',
+                   'edu-definition', 'edu-keypoints', 'edu-example', 'edu-summary',
+                   'edu-welcome', 'media-showcase', 'edu-programming-concept'}
         return v if v in allowed else 'two-column'
 
 
@@ -566,6 +567,7 @@ class CourseData(BaseModel):
     quiz_data: list[dict[str, Any]] = Field(default_factory=list)
     exercise_data: list[dict[str, Any]] = Field(default_factory=list)
     interactive_data: list[dict[str, Any]] = Field(default_factory=list)
+    code_data: list[dict[str, Any]] = Field(default_factory=list)  # code场景数据
     tts_audio_urls: dict[str, str] = Field(default_factory=dict)  # scene_id -> audio_url
     scene_actions: list[SceneActions] = Field(default_factory=list)  # 每场景的动作列表
     metadata: dict[str, Any] = Field(default_factory=dict)

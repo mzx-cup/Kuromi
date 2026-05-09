@@ -117,9 +117,18 @@ content字段可以使用以下markdown标记来组织富文本内容：
 关键知识点：{key_points}
 {web_search_context}
 
-要求：
+【难度递进要求 - 必须遵守】
+1. 题目必须按难度由简到难排序，每道题必须标注 difficulty 字段（basic/medium/advanced）
+2. 难度分布：
+   - 基础题（basic）占40%：概念理解、简单回忆，使用单选题
+   - 中等题（medium）占40%：简单应用、分析判断，使用单选或多选题
+   - 进阶题（advanced）占20%：综合应用、推理判断，使用多选或简答题
+3. 禁止一上来就出道难题，第一题必须是基础概念题
+4. 题目之间要有逻辑递进：先考"是什么"，再考"怎么用"，最后考"为什么"
+
+【题型要求】
 1. 根据内容复杂度动态生成3-5道题目
-2. 题型组合：至少包含1道单选题、1道多选题、1道简答题（可额外添加1-2道单选题或多选题）
+2. 题型组合：至少包含1道单选题、1道多选题、1道简答题
 3. 单选题：4个选项，1个正确答案，5分
 4. 多选题：4个选项，2-3个正确答案，8分
 5. 简答题：需学生输入文字回答，15分，必须包含参考答案(answer)和评分标准(comment_prompt)
@@ -134,8 +143,9 @@ content字段可以使用以下markdown标记来组织富文本内容：
   "questions": [
     {{
       "id": 1,
-      "question": "题目内容",
+      "question": "基础概念题",
       "question_type": "single",
+      "difficulty": "basic",
       "options": ["A选项", "B选项", "C选项", "D选项"],
       "correct_answer": 0,
       "explanation": "答案解析",
@@ -143,8 +153,9 @@ content字段可以使用以下markdown标记来组织富文本内容：
     }},
     {{
       "id": 2,
-      "question": "多选题内容",
+      "question": "应用分析题",
       "question_type": "multiple",
+      "difficulty": "medium",
       "options": ["A选项", "B选项", "C选项", "D选项"],
       "correct_answers": [0, 2],
       "explanation": "答案解析",
@@ -152,8 +163,9 @@ content字段可以使用以下markdown标记来组织富文本内容：
     }},
     {{
       "id": 3,
-      "question": "简答题内容",
+      "question": "综合挑战题",
       "question_type": "short_answer",
+      "difficulty": "advanced",
       "answer": "参考答案",
       "comment_prompt": "评分标准说明",
       "key_points": ["要点1", "要点2", "要点3"],
@@ -161,7 +173,8 @@ content字段可以使用以下markdown标记来组织富文本内容：
       "points": 15
     }}
   ],
-  "speech": "教师引导语"
+  "speech": "教师引导语",
+  "difficulty_distribution": {{"basic": 1, "medium": 1, "advanced": 1}}
 }}
 
 只输出JSON，不要添加其他文字。""",
@@ -194,7 +207,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 要求：
 1. 生成5-8个课程场景
-2. 场景类型多样化：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）
+2. 场景类型多样化：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）、whiteboard（白板绘图）
 3. 每个场景包含：title(标题)、type(类型)、description(描述)、key_points(3-5个知识点)、difficulty(basic/medium/advanced)、estimated_minutes(预估分钟数)
 4. 大纲有逻辑递进关系
 5. 确保至少包含1个quiz和1个interactive或exercise场景
@@ -208,26 +221,56 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 需求：{requirement}
 课程类型：{course_type}
+{suggested_scene_types}
 {pdf_text}
 要求：
-1. 生成5-8个课程场景
-2. 场景类型多样化：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）
+1. 根据内容复杂度决定场景数量，不要硬凑：
+   - 简单主题（1-2个核心概念）：5-6个场景
+   - 中等主题（3-5个核心概念）：7-9个场景
+   - 复杂主题（6个以上核心概念）：10-12个场景
+   知识讲完了就停止，不要为了凑数量而拆分已经完整的知识点。
+2. 【场景类型智能分配 - 边学边练原则】
+   可用类型：slide（幻灯片讲解）、quiz（课堂测验）、exercise（互动练习）、interactive（交互模拟）、pbl（项目探究）、diagram（图表展示）、code（编程实践）、video（视频素材）、whiteboard（白板绘图）
+
+   分配原则：
+   a) **绝对禁止** quiz/exercise/interactive/pbl/code 这5种互动型场景连续出现。任意两个互动型场景之间必须至少间隔1个 slide/diagram/video/whiteboard 讲授型场景。
+   b) 边学边练模式：每讲授1-2个知识点后，必须插入1个互动场景让学生实践/检验。禁止连续3个及以上讲授型场景不插入互动。
+   c) 根据内容特点精准选择场景：
+      - 概念引入/理论讲解 → slide
+      - 公式推导/图形手绘 → whiteboard
+      - 代码演示+动手编程 → code
+      - 流程图/架构图/思维导图 → diagram
+      - 操作步骤模拟 → interactive
+      - 视频演示/案例展示 → video
+      - 学完2-3个知识点后检验 → quiz
+      - 综合应用/动手实验 → exercise
+      - 期末综合项目/真实问题解决 → pbl（仅在课程后半段出现1次）
+   d) 课程节奏：前半段以 slide+quiz 为主（建立基础），中间以 code/interactive/exercise 为主（动手实践），后半段以 pbl/exercise 收尾（综合应用）。
+   e) video 和 whiteboard 应分散在课程中，每种最多出现1次，用于突破难理解的知识点。
+
 3. 每个场景包含：
    - title: 标题（简短有力，8字以内）
-   - type: 类型（必须是以上8种之一）
+   - type: 类型（必须是以上9种之一）
    - description: 详细描述（30-50字，包含具体场景/问题/情境）
    - key_points: 3-5个关键知识点（每个15-30字）
    - difficulty: basic/medium/advanced
    - estimated_minutes: 预估分钟数（3-10分钟）
-4. interactive场景需要有具体的widget_type（simulation/diagram/code/game/visualization3d）
-5. pbl场景需要有具体的scenario（真实世界问题场景描述）
-6. 至少包含1个quiz和1个interactive或exercise场景
-7. 确保quiz场景有足够的知识点支撑题目设计
+4. whiteboard场景适合几何图形、函数图像、流程图等需要手绘演示的内容，description中应包含具体的绘图要求
+5. interactive场景需要有具体的widget_type（simulation/diagram/code/game/visualization3d）
+6. pbl场景需要有具体的scenario（真实世界问题场景描述）
+7. 至少包含1个quiz和1个interactive或exercise场景
+8. 确保quiz场景有足够的知识点支撑题目设计
+9. 【重要】场景类型分布规则：
+   - 严禁连续出现2个或以上非slide类型的场景（如quiz紧接exercise）
+   - non-slide类型场景（quiz/exercise/interactive/pbl/diagram/code/video）之间必须至少间隔1个slide场景
+   - quiz场景最佳位置是第3-5个场景之间，用于阶段性检测
+   - exercise/interactive场景应在slide讲解之后出现，用于巩固练习
+   - 如果需要连续生成多个quiz，可以用slide场景作为过渡分隔
 
 以JSON数组格式输出：
 [{{"title": "...", "type": "slide", "description": "...", "key_points": [...], "difficulty": "basic", "estimated_minutes": 5, "widget_type": null, "scenario": null}}]
 
-只输出JSON数组，不要添加其他文字。""",
+只输出JSON数组，不要添加其他文字。注意检查输出JSON中不存在连续两个非slide场景。"",
 
     "pbl_content": """你是一位PBL（项目制学习）设计专家。根据以下大纲生成PBL场景内容。
 
@@ -425,7 +468,7 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景标题：{title}
 场景描述：{description}
 关键知识点：{key_points}
-模拟类型：{widget_type}（simulation/diagram/code/game/visualization3d）
+模拟类型：{widget_type}（simulation/diagram/code/game/visualization3d/terminal）
 
 要求：
 1. 生成自包含的HTML页面，可在iframe中运行
@@ -446,6 +489,135 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 
 只输出JSON，不要添加其他文字。""",
 
+    "interactive_terminal": """你是一位交互式终端模拟器设计专家。请根据以下课程大纲，生成一个Redis/命令行风格的交互式终端模拟器HTML页面。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+【要求】
+1. 生成一个自包含的HTML页面，可在iframe中独立运行
+2. 页面必须包含完整的CSS样式和JavaScript逻辑
+3. 终端风格：深色背景（#0f172a）、等宽字体、绿色/青色文字（#4ade80/#22d3ee）
+4. 模拟一个内存中的键值数据库（类似Redis），支持以下命令：
+   - SET key value — 设置键值对
+   - GET key — 获取键值
+   - DEL key — 删除键
+   - EXISTS key — 检查键是否存在
+   - KEYS pattern — 查找匹配的键（支持 * 通配符）
+   - HSET key field value — 设置哈希字段
+   - HGET key field — 获取哈希字段值
+   - HGETALL key — 获取哈希所有字段
+   - LPUSH key value — 列表左侧插入
+   - LRANGE key start stop — 获取列表范围
+   - EXPIRE key seconds — 设置键过期时间（模拟）
+   - TTL key — 查看键剩余时间
+   - HELP — 显示可用命令列表
+   - CLEAR — 清屏
+5. 提供引导式体验：
+   - 首次加载时显示欢迎信息和简短教程
+   - 输入错误命令时给出友好提示和建议
+   - 预设3-5个与本课程主题相关的示例数据（如课程相关的键值对）
+6. 交互细节：
+   - 支持方向键上下切换历史命令
+   - 支持Tab键自动补全（至少补全命令名）
+   - 命令执行后有明确的反馈（成功/失败不同颜色）
+   - 显示命令执行时间（模拟）
+
+【输出格式】
+{{
+  "html": "<!DOCTYPE html><html>...</html> 完整的HTML字符串",
+  "widget_type": "terminal",
+  "config": {{
+    "type": "terminal",
+    "commands": ["SET", "GET", "DEL", "EXISTS", "KEYS", "HSET", "HGET", "HGETALL", "LPUSH", "LRANGE", "EXPIRE", "TTL", "HELP", "CLEAR"],
+    "init_data": {{}}
+  }}
+}}
+
+只输出JSON，不要添加其他文字。""",
+
+    "interactive_simulation": """你是一位交互式模拟实验设计专家。根据以下大纲生成模拟实验内容。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+要求：
+1. 生成自包含的HTML页面，可在iframe中运行
+2. 包含Canvas或SVG可视化
+3. 提供可调节的参数控制面板
+4. 实时显示模拟结果和数据
+5. 适合教育场景，有明确的教学目标
+
+输出格式：
+{{
+  "html": "完整的HTML字符串",
+  "widget_type": "simulation",
+  "config": {{
+    "type": "simulation",
+    "variables": ["参数名列表"],
+    "initState": {{}}
+  }}
+}}
+
+只输出JSON，不要添加其他文字。""",
+
+    "interactive_diagram": """你是一位交互式图表设计专家。根据以下大纲生成交互式图表内容。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+要求：
+1. 使用Mermaid.js生成可交互的图表
+2. 支持流程图、时序图、类图、状态图等
+3. 提供图表类型切换或缩放功能
+4. 包含图表说明和关键节点解释
+
+输出格式：
+{{
+  "html": "完整的HTML字符串（包含Mermaid CDN）",
+  "widget_type": "diagram",
+  "config": {{
+    "type": "diagram",
+    "diagram_type": "flowchart|sequence|class|state"
+  }}
+}}
+
+只输出JSON，不要添加其他文字。""",
+
+    "interactive_game": """你是一位教育游戏设计专家。根据以下大纲生成记忆配对或知识问答游戏。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+要求：
+1. 生成自包含的HTML页面，可在iframe中运行
+2. 游戏类型：记忆配对卡（翻牌匹配）或知识问答闯关
+3. 使用与本课程相关的知识点作为游戏内容
+4. 包含计分、计时、关卡进度
+5. 有清晰的胜利条件和反馈
+
+输出格式：
+{{
+  "html": "完整的HTML字符串",
+  "widget_type": "game",
+  "config": {{
+    "type": "game",
+    "game_type": "memory|quiz",
+    "pairs": [{{"q": "问题", "a": "答案"}}]
+  }}
+}}
+
+只输出JSON，不要添加其他文字。""",
+
+
     "slide_content_v2": """你是一位课程内容专家。根据以下大纲生成幻灯片内容。
 
 课程主题：{course_title}
@@ -454,21 +626,28 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 场景描述：{outline_description}
 关键知识点：{key_points}
 
+【课程上下文 - 必须遵守】
+上一节标题：{prev_outline_title}（已讲过，本节禁止重复其概念、比喻和例子）
+下一节标题：{next_outline_title}（留给后面讲，本节只做必要铺垫，不展开）
+
 {pdf_text}
 【网络搜索结果】（当提供时，请将以下最新信息融入幻灯片内容中）
 {web_search_context}
 
-【幻灯片设计原则 - 最重要，必须遵守】
-幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。如果一段文字读起来像是在"说"而不是在"展示"，它就不应该出现在幻灯片上。
+【幻灯片设计原则】
+幻灯片是"视觉辅助工具"，不是"讲义脚本"。学生的注意力在听老师讲，幻灯片只需要展示最核心的要点作为视觉锚点。
 
-**【网络搜索】** 当上方提供了网络搜索结果时，请将最新的数据、统计数字或实际案例融入 bullets 和 narration 中，使内容更加与时俱进。引用来源时请在 narration 中自然提及，如"根据2024年最新研究..."或"据最新行业报告显示..."。
+**【网络搜索】** 当上方提供了网络搜索结果时，请将最新的数据、统计数字或实际案例融入 bullets 和 narration 中。引用来源时请在 narration 中自然提及。
 
-【核心字段说明 - 两个字段缺一不可】
+【核心字段说明】
 1. bullets（字符串数组）：屏幕展示用的简短要点，每条≤50中文字符，每卡4-7条
 2. narration（字符串）：AI教师口语化讲课台词，200-450字，TTS语音引擎用
    - 必须是连贯的、自然的讲课语言（不能只是把bullets读一遍）
-   - 包含引入语、知识点讲解、过渡句
-   - 如"同学们好！今天我们来学习变量这个非常重要的概念。首先，变量就像是编程世界里的储物盒..."
+   - narration 的开头必须根据课程位置变化，绝对禁止所有幻灯片用同样的开头：
+     * 如果是课程第一节：用引入式，如"同学们好！今天我们来学习..."
+     * 如果是中间节：用衔接式，如"上一节我们讲了xxx，接下来看看..."或"在掌握了xxx之后，我们来深入..."
+     * 如果是最后一节：用回顾式，如"到目前为止，我们已经学习了...今天来总结一下..."
+   - 禁止使用"储物盒""盒子""标签"等过度通用的比喻，要根据具体知识点选择贴切的类比
 
 【bullets字段格式强制要求】
 - bullets 是 JSON 字符串数组，每个元素是一条简短要点
@@ -476,11 +655,10 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 - 每个卡片4-7条 bullets，绝不超过8条
 - 不要在 bullet 里写 `- ` 前缀（JSON数组已经表达了列表结构）
 - 禁止将多个要点合并成长段落放入单个数组元素
-- 每张幻灯片建议包含4-7个要点，文字量要充足
 
 【正误示例】
 ❌ 错误写法（一条超长bullet——这是长段落伪装）：
-"bullets": ["Python变量是编程中用于存储数据的基本容器，你可以把变量想象成一个带有标签的盒子，盒子上贴着变量的名字，盒子里装着具体的数据。在Python中创建变量非常简单，你只需要使用赋值语句即可完成创建。"]
+"bullets": ["Python变量是编程中用于存储数据的基本容器，你可以把变量想象成一个带有标签的盒子..."]
 
 ✅ 正确写法（精简短句数组）：
 "bullets": [
@@ -502,108 +680,117 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 
 【输出格式 - 必须严格遵循】
 生成一个JSON对象，包含slides数组。每页幻灯片包含：
-- layoutType: 布局类型（title-only/two-column/grid-cards/header-content/quote-highlight/center-focus/media-left/stats-row/timeline-steps/comparison/fullwidth-banner/three-column-cards/asymmetric-split/icon-vertical-stack/numbered-list/hero-center/left-sidebar/bottom-cards/floating-overlap/grid-icon/process-flow/quote-wall/info-graphic/tabbed-content/dark-header/gradient-split/circle-radial/stair-step/minimal-center/horizontal-scroll）
+- layoutType: 布局类型（title-only/two-column/grid-cards/header-content/timeline-steps/comparison/fullwidth-banner/three-column-cards/asymmetric-split/numbered-list/hero-center/chapter-divider/edu-definition/edu-keypoints/edu-example/edu-summary/edu-welcome/media-showcase/edu-programming-concept）
 - title: 幻灯片大标题
 - content: 内容数组，每个元素包含：
   - subTitle: 卡片小标题（5-10字）
   - bullets: 字符串数组（每条≤50中文字符，4-7条）
-  - narration: AI教师口语化讲课台词（200-450字，连贯自然的口语，供TTS语音引擎朗读）
+  - narration: AI教师口语化讲课台词（200-450字）
   - icon: 图标名（book|lightbulb|code|check|star|question|warning|info）
   - colorTheme: **必须提供**的色系字段，值仅限 blue|yellow|green|purple|orange，禁止省略此字段
   - codeSnippet: 可选代码块
   - imageUrl: 可选配图URL（已有URL时直接填入）
-  - image_prompt: 可选英文配图描述词（用于AI生成配图，描述这张卡片适合配什么样的插图）
+  - image_prompt: 可选英文配图描述词
   - videoUrl: 可选视频URL（已有URL时直接填入）
-  - video_prompt: 可选英文视频描述词（用于AI生成视频，描述适合生成什么样的动态场景）
-- teacherActions: **可选**的白板动作数组，AI教师在讲解时可边讲边画。当需要用图形、公式、图表辅助讲解时使用。每个动作格式为：
-  - type: 动作类型（wb_draw_text|w b_draw_shape|w b_draw_svg|w b_draw_latex|w b_draw_chart|w b_draw_table|w b_draw_line|w b_draw_code）
-  - params: 动作参数（见下方详细说明）
-  - 当不需要白板绘图时可不提供此字段或设为空数组
+  - video_prompt: 可选英文视频描述词
+- teacherActions: **可选**的白板动作数组
 
-**【白板动作参数说明】**
-- wb_draw_text: {"content": "文字内容", "x": 数字, "y": 数字, "fontSize": 数字, "color": "颜色值"}
-- wb_draw_shape: {"shape": "rect|circle|triangle|arrow", "x": 数字, "y": 数字, "width": 数字, "height": 数字, "color": "颜色值"}
-- wb_draw_svg: {"svg": "SVG字符串", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
-- wb_draw_latex: {"latex": "LaTeX公式", "x": 数字, "y": 数字, "fontSize": 数字}
-- wb_draw_chart: {"chartType": "bar|line|pie", "data": "数据描述", "x": 数字, "y": 数字, "width": 数字, "height": 数字}
-- wb_draw_table: {"rows": [["第一行"], ["第二行"]], "x": 数字, "y": 数字, "colWidths": [数字]}
-- wb_draw_line: {"x1": 数字, "y1": 数字, "x2": 数字, "y2": 数字, "color": "颜色值", "strokeWidth": 数字}
-- wb_draw_code: {"code": "代码内容", "x": 数字, "y": 数字, "fontSize": 数字, "language": "语言"}
-
-**【何时使用白板动作】** 当讲解需要展示：数学公式推导、几何图形、流程图、数据图表、对比表格、代码演示时，使用teacherActions。白板动作应配合narration讲解内容，在合适的时机触发。
-
-**【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片应使用不同色系以增强视觉区分度。**
+**【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片必须使用不同色系。**
 
 **【布局类型说明】**
-- title-only: 仅标题页面
-- two-column: 两栏对比布局
-- grid-cards: 多卡片网格布局
-- header-content: 标题+内容堆叠
-- quote-highlight: 引言高亮布局
-- center-focus: 居中聚焦布局
-- media-left: 媒体内容左置
-- stats-row: 数据统计行
-- timeline-steps: 时间线步骤
-- comparison: VS对比布局
-- fullwidth-banner: 全宽横幅
-- three-column-cards: 三栏等分布局（适合3个并行要点）
-- asymmetric-split: 左大右小非对称布局（适合一主一次内容）
-- icon-vertical-stack: 图标垂直堆叠布局（适合图标展示型内容）
-- numbered-list: 数字引导列表布局（适合流程/步骤型内容）
-- hero-center: 英雄居中布局（适合开场/总结，大标题居中展示）
-- left-sidebar: 左侧边栏布局（左侧标题+右侧内容）
-- bottom-cards: 底部卡片布局（水平滚动卡片）
-- floating-overlap: 浮动重叠布局（卡片堆叠错落有致）
-- grid-icon: 图标网格布局（大图标+标签）
-- process-flow: 流程图布局（水平箭头连接步骤）
-- quote-wall: 引言墙布局（大小不一的引言卡片拼贴）
-- info-graphic: 信息图布局（数字+图标+说明垂直排列）
-- tabbed-content: 标签页布局（顶部标签切换内容）
-- dark-header: 深色标题布局（深色标题区+浅色内容）
-- gradient-split: 渐变分屏布局（左深右浅分屏）
-- circle-radial: 圆形放射布局（中心主题+周围内容）
-- stair-step: 阶梯布局（内容块阶梯状错位）
-- minimal-center: 极简居中布局（标题嵌入内容卡片）
-- horizontal-scroll: 水平滚动布局（内容水平滚动展示）
+- title-only: 仅标题页面，用于章节分隔
+- two-column: 两栏对比布局，适合概念对比
+- grid-cards: 多卡片网格布局，适合展示多个知识点
+- header-content: 标题+大段内容堆叠，适合单一主题深入讲解
+- timeline-steps: 时间线步骤，适合流程讲解，浅色背景必须用深色文字
+- comparison: VS对比布局，适合A/B对比分析
+- fullwidth-banner: 全宽横幅，适合重点强调
+- three-column-cards: 三栏等分布局，适合三个并列知识点
+- asymmetric-split: 非对称分割，左侧60%右侧40%
+- numbered-list: 数字编号列表，适合强调顺序和步骤
+- hero-center: 英雄居中布局，大标题+副标题，适合课程引入
+- chapter-divider: 章节分隔页，适合大章节切换
+- edu-definition: 教育概念定义页，左侧定义框+右侧属性标签，适合新概念首次出现时的定义讲解
+- edu-keypoints: 教育规范要点页，三栏等分卡片，每栏含彩色顶部条+要点列表，适合罗列规范、规则、注意事项
+- edu-example: 教育示例演示页，左侧概念说明+右侧示例区（代码/图解），适合展示代码示例、数学例题、案例分析
+- edu-summary: 教育章节总结页，三彩色区块横向排列，适合章节小结、知识回顾
+- edu-welcome: 课程欢迎导学页，"是什么-能做什么-如何学习"三段式结构，适合课程开篇
+- media-showcase: 媒体展示页，深色背景突出图片/视频内容，适合展示生成的媒体资源
+- edu-programming-concept: 编程概念教学页，标题+左右分栏（定义/规范）+下方类型分类，适合编程概念教学
 
-生成4-7页幻灯片，覆盖以下内容：
-1. 概念引入页（建议用 hero-center、two-column、header-content 或 asymmetric-split）
-2. 知识点讲解页1（建议用 grid-cards、three-column-cards 或 info-graphic 展示多个要点）
-3. 知识点讲解页2（建议用不同于页面2的布局，如 two-column、quote-highlight 或 media-left）
-4. 示例演示页（建议用 numbered-list、timeline-steps 或 process-flow）
-5. 流程步骤页（建议用 asymmetric-split、stats-row 或 info-graphic）
-6. 总结强化页（建议用 fullwidth-banner、comparison 或 center-focus）
-7. 扩展思考页（可选，建议用 quote-wall、floating-overlap 或 circle-radial）
+【页数要求】
+- 本 outline 生成 2-3 页幻灯片即可
+- 如果知识点较少，1-2 页也完全足够
+- **绝对禁止为凑页数而重复内容或拆分同一知识点**
+- 每页必须聚焦本 outline 的 1-2 个具体知识点，不要泛泛而谈
+- 每页布局必须不同，禁止所有幻灯片使用相同布局
 
-**必须至少生成4页幻灯片，每页布局必须不同。禁止所有幻灯片使用相同或相似的布局。**
+【差异化强制要求】
+1. 禁止重复上一节（{prev_outline_title}）已经讲过的概念、比喻、例子。
+2. 不要提前展开下一节（{next_outline_title}）的核心内容。
+3. 每页必须聚焦本 outline 的关键知识点，深入讲解而非泛泛罗列。
+4. narration 的开头必须根据本节在课程中的位置变化，禁止千篇一律。
+5. 相邻卡片禁止使用相同色系。
+6. 每页幻灯片的 layoutType 必须不同，禁止全部使用 two-column，必须从可用布局列表中选择最适合知识点表达的类型。
+7. 同一 outline 内的所有幻灯片，colorTheme 必须轮换使用 blue/yellow/green/purple/orange，禁止所有卡片使用同一种颜色。
 
-色系分配规则：blue用于概念解释，yellow用于规则要点，green用于示例代码，purple用于总结强调，orange用于补充说明。相邻卡片禁止使用相同色系。
-
-【完整输出示例】
+【极简输出示例 - 仅展示JSON结构，内容请替换为真实知识点】
 {{{{
   "slides": [
     {{{{
       "layoutType": "grid-cards",
-      "title": "Python变量入门",
+      "title": "{{真实标题}}",
       "content": [
         {{{{
-          "subTitle": "什么是变量",
+          "subTitle": "{{卡片小标题}}",
           "bullets": [
-            "变量是存储数据的命名容器",
-            "变量名是标签，变量值是内容",
-            "使用 = 赋值语句创建和修改变量",
-            "Python变量无需声明类型，直接赋值即可",
-            "变量可以存储各种类型的数据"
+            "{{要点1}}",
+            "{{要点2}}",
+            "{{要点3}}"
           ],
-          "narration": "同学们好！今天我们来学习Python中最基础的概念——变量。变量就像是一个带标签的储物盒，盒子的名字就是变量名，里面装的东西就是变量的值。在Python中创建一个变量非常简单，直接写等号就行了，不需要像其他语言那样先声明类型。",
-          "icon": "lightbulb",
-          "colorTheme": "blue",
-          "codeSnippet": "",
-          "imageUrl": "",
-          "image_prompt": "A clear illustration of a labeled storage box containing data, representing Python variables concept"
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "book",
+          "colorTheme": "blue"
+        }},
+        {{{{
+          "subTitle": "{{卡片小标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "code",
+          "colorTheme": "green"
         }}}}
       ]
-    }}}}
+    }},
+    {{{{
+      "layoutType": "timeline-steps",
+      "title": "{{第二页标题}}",
+      "content": [
+        {{{{
+          "subTitle": "{{步骤1标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "lightbulb",
+          "colorTheme": "purple"
+        }},
+        {{{{
+          "subTitle": "{{步骤2标题}}",
+          "bullets": [
+            "{{要点1}}",
+            "{{要点2}}",
+            "{{要点3}}"
+          ],
+          "narration": "{{连贯的讲课台词，200-450字}}",
+          "icon": "star",
+          "colorTheme": "orange"
+        }}
+      ]
+    }}
   ]
 }}}}
 
@@ -672,6 +859,112 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
     }}
   ]
 }}}}
+
+只输出JSON，不要添加其他文字。""",
+
+    "code_scene_content": """你是一位编程教学专家。根据以下课程大纲，生成交互式代码编辑器场景内容。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+【输出格式 - 必须严格遵循】
+生成一个 JSON 对象，必须包含以下字段：
+
+1. code_data: 交互式代码编辑器数据对象
+{{
+  "language": "python" | "javascript" | "html" | "sql",
+  "starter_code": "带有占位符或部分实现的初始代码，学生需要补全或修改",
+  "instruction": "明确的编程任务说明（100-200字），告诉学生需要完成什么",
+  "expected_output": "代码运行后的预期输出结果，作为学生自测的参考",
+  "hints": [
+    "第一条提示（最基础）：引导学生理解题目，提示核心思路的方向，不涉及具体代码",
+    "第二条提示（具体化）：给出更明确的实现方向，可以提及关键的语法或函数名",
+    "第三条提示（接近答案）：给出关键代码片段或伪代码，帮助学生突破瓶颈",
+    "第四条提示（兜底）：如果学生还卡住，给出更直接的代码示例，但保留核心逻辑让学生自己完成"
+  ],
+  "explanation": "该知识点的详细讲解（200-300字），包括：核心概念解释、为什么重要、常见误区、最佳实践"
+}}
+
+2. slides_v2: 1-2 页 V2 格式概念讲解幻灯片（用于"查看讲解"功能）
+- 这些幻灯片用于在代码练习前讲解核心概念
+- 布局类型可选：two-column、header-content、grid-cards
+- 每页包含 title 和 content 数组（含 sub_title、bullets、narration、icon、color_theme）
+
+3. speech: AI 教师语音讲解稿（150-250字），用于引入代码练习场景
+
+【循序渐进原则 - 必须遵守】
+1. starter_code 必须是"填空式"或"骨架式"代码：
+   - 已提供可运行的基础框架（如函数定义、循环结构、变量声明）
+   - 学生只需填写关键逻辑（如条件判断、算法核心、特定函数调用）
+   - 禁止给一张白纸让学生从零开始写完整代码
+2. 难度递进：
+   - 第1个代码场景：修改一个变量值、调用一个函数、补全一行代码
+   - 第2个代码场景：补全一个逻辑分支（if/else）、填写循环条件
+   - 第3个代码场景：组合多个知识点，实现一个小功能（10行以内）
+3. hints 必须由简到难排序，第一条提示只给思路，最后一条提示给接近答案的代码
+4. 代码注释使用中文，清晰标注"TODO: 请在此补全..."或"请修改下面的代码..."
+
+【代码质量要求】
+- starter_code 必须是可以直接运行的（即使不完整），不能有任何语法错误
+- 预期输出要具体、可验证，不要模糊描述
+- 语言选择要与课程内容匹配：Python（数据分析/AI/算法）、JavaScript（前端/交互）、HTML（网页结构）、SQL（数据库查询）
+
+【示例输出结构】
+{{
+  "code_data": {{
+    "language": "python",
+    "starter_code": "def greet(name):\n    # TODO: 请补全代码，返回一句问候语，如 '你好，小明！'\n    pass\n\n# 测试代码\nprint(greet('小明'))\nprint(greet('老师'))",
+    "instruction": "请补全 greet 函数，让它接收一个名字参数，返回一句中文问候语。例如传入'小明'，返回'你好，小明！'。",
+    "expected_output": "你好，小明！\\n你好，老师！",
+    "hints": [
+      "思考：如何用字符串拼接将 '你好，' 和名字组合起来？",
+      "在Python中，可以使用 + 号连接字符串，或者使用 f-string 格式化",
+      "尝试这样写：return f'你好，{name}！' 或者 return '你好，' + name + '！'",
+      "确保函数有 return 语句，否则 print(greet('小明')) 会输出 None"
+    ],
+    "explanation": "函数是编程中最基础的概念之一。greet函数演示了如何接收参数和返回值。字符串拼接是将多个文本片段组合成一个完整文本的常用操作。在实际编程中，类似的字符串格式化广泛用于生成动态消息、日志记录和数据展示。"
+  }},
+  "slides_v2": [
+    {{
+      "layout_type": "two-column",
+      "title": "函数基础",
+      "content": [
+        {{
+          "sub_title": "什么是函数？",
+          "bullets": [
+            "函数是封装了一段可重复使用的代码块",
+            "函数可以接收参数（输入）并返回结果（输出）",
+            "使用 def 关键字定义函数"
+          ],
+          "narration": "同学们好！今天我们来学习编程中的基础概念——函数。",
+          "icon": "lightbulb",
+          "color_theme": "blue"
+        }}
+      ]
+    }}
+  ],
+  "speech": "同学们，接下来我们动手写代码！请补全 greet 函数，让它能正确返回一句问候语。这个练习很简单，只需要一行代码就能完成。如果你遇到困难，可以点击'查看提示'获取帮助。"
+}}
+
+只输出JSON，不要添加其他文字。""",
+
+    "requirement_analysis": """你是一位课程需求分析专家。请根据用户的学习需求，分析并提炼出结构化信息。
+
+用户需求：{requirement}
+
+请输出JSON格式：
+{{
+  "learning_goals": ["学习目标1", "学习目标2"],
+  "target_audience": "初学者/进阶者/专家",
+  "difficulty": "basic/medium/advanced",
+  "prerequisites": ["前置知识1", "前置知识2"],
+  "estimated_duration": "预估学习时长（如30分钟）",
+  "key_topics": ["核心主题1", "核心主题2"],
+  "suggested_scene_types": ["slide", "code", "quiz", "interactive"],
+  "analysis_summary": "对需求的整体分析总结（100字以内）"
+}}
 
 只输出JSON，不要添加其他文字。"""
 }

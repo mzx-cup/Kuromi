@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import time
 import logging
 from datetime import datetime
@@ -27,6 +28,7 @@ class TaskStatus(str, Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 class SubTaskInfo(BaseModel):
@@ -68,7 +70,6 @@ class AsyncTaskState(BaseModel):
 RESOURCE_AGENTS = {
     "document_generator": "知识文档生成",
     "mindmap_generator": "思维导图生成",
-    "video_content": "视频内容检索",
     "exercise_generator": "实操练习生成",
 }
 
@@ -346,7 +347,6 @@ async def run_agent_with_retry(
             output_key_map = {
                 "document_generator": "document_output",
                 "mindmap_generator": "mindmap_output",
-                "video_content": "video_output",
                 "exercise_generator": "exercise_output",
             }
             output_key = output_key_map.get(agent_name, f"{agent_name}_output")
@@ -386,16 +386,70 @@ async def run_agent_with_retry(
     return state
 
 
+async def _should_generate_resources(state: "StudentState") -> bool:
+    """判断当前对话是否值得生成学习资源。"""
+    messages = state.get_recent_messages(5)
+    user_msgs = [m for m in messages if m.role.value == "student"]
+    ai_msgs = [m for m in messages if m.role.value != "student"]
+
+    if not user_msgs:
+        return False
+
+    user_question = user_msgs[-1].content
+    ai_answer = ai_msgs[-1].content if ai_msgs else ""
+
+    # 简单启发式过滤（无需 LLM，节省成本）
+    trivial_patterns = [
+        r"中午吃什么", r"晚上吃什么", r"你好", r"在吗", r"谢谢", r"再见",
+        r"^(hi|hello|hey)\b", r"^\d+$",
+        r"天气", r"时间", r"几点",
+    ]
+    for p in trivial_patterns:
+        if re.search(p, user_question, re.I):
+            return False
+
+    # 长度过滤：用户问题太短（< 5 字）且 AI 回答也短（< 100 字）
+    if len(user_question) < 5 and len(ai_answer) < 100:
+        return False
+
+    # 如果启发式无法确定，调用轻量级 LLM 判断
+    try:
+        from llm_stream import call_llm_async
+        prompt = f"""判断以下对话是否涉及知识学习/技术讨论/教育内容。如果是闲聊、问候、生活琐事，回答"否"。只回答"是"或"否"。
+
+用户问题：{user_question[:200]}
+AI回答摘要：{ai_answer[:300]}"""
+        result = await call_llm_async(
+            "你是一个内容分类器，只回答'是'或'否'。",
+            prompt,
+            temperature=0.1,
+        )
+        return "是" in result or "yes" in result.lower()
+    except Exception:
+        return True  # 默认生成，宁可多不可少
+
+
 async def dispatch_resource_tasks(
     state: "StudentState",
     context_id: str,
     controller: Any,
 ) -> None:
-    from agents import DocumentGeneratorAgent, MindmapGeneratorAgent, VideoContentAgent, ExerciseGeneratorAgent
+    from agents import DocumentGeneratorAgent, MindmapGeneratorAgent, ExerciseGeneratorAgent
 
     manager = get_task_manager()
 
     task = await manager.create_task(context_id, state.student_id)
+
+    # 相关性判断：闲聊类问题不触发资源生成
+    should_generate = await _should_generate_resources(state)
+    if not should_generate:
+        for agent_name in RESOURCE_AGENTS:
+            await manager.update_subtask(
+                context_id, agent_name,
+                status=TaskStatus.SKIPPED, progress=100,
+            )
+        logger.info(f"Resource generation skipped for context {context_id} (trivial chat)")
+        return
 
     agents_to_run = []
     for agent_name in RESOURCE_AGENTS:
@@ -405,8 +459,6 @@ async def dispatch_resource_tasks(
                 agent = DocumentGeneratorAgent()
             elif agent_name == "mindmap_generator":
                 agent = MindmapGeneratorAgent()
-            elif agent_name == "video_content":
-                agent = VideoContentAgent()
             elif agent_name == "exercise_generator":
                 agent = ExerciseGeneratorAgent()
         agents_to_run.append(agent)
@@ -428,7 +480,6 @@ async def dispatch_resource_tasks(
                 output_key_map = {
                     "document_generator": "document_output",
                     "mindmap_generator": "mindmap_output",
-                    "video_content": "video_output",
                     "exercise_generator": "exercise_output",
                 }
                 output_key = output_key_map.get(agent.name, f"{agent.name}_output")

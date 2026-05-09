@@ -300,12 +300,33 @@ class DocumentGeneratorAgent(BaseAgent):
 
     async def _generate(self, state: StudentState) -> GeneratorOutput:
         user_input = state.get_recent_messages(1)
-        text = user_input[0].content if user_input else ""
-        mock_content = f"关于「{text[:20]}」的知识文档\n\n## 核心概念\n\n这是由文档生成智能体创建的结构化内容。\n\n## 要点总结\n\n1. 关键概念解析\n2. 应用场景分析\n3. 常见误区提醒"
+        user_question = user_input[0].content if user_input else ""
+
+        ai_messages = [m for m in state.dialogue_history if m.role.value != "student"]
+        ai_answer = ai_messages[-1].content if ai_messages else ""
+
+        from llm_stream import call_llm_async
+        prompt = f"""基于以下用户问题和 AI 回答，生成一份结构化的知识文档。
+
+用户问题：{user_question}
+AI回答摘要：{ai_answer[:800]}
+
+要求：
+1. 使用 Markdown 格式
+2. 包含「核心概念」章节，提炼关键知识点
+3. 包含「要点总结」章节，用 3-5 个 bullet points 归纳
+4. 包含「延伸阅读」章节，推荐相关学习方向
+5. 文档长度控制在 300-600 字
+6. 使用中文"""
+
+        result = await call_llm_async(
+            "你是一位专业的知识文档撰写专家，擅长将对话内容整理成结构清晰的学习文档。",
+            prompt,
+            temperature=0.4,
+        )
         return GeneratorOutput(
-            text_content=mock_content,
+            text_content=result.strip(),
             content_type=ContentType.DOCUMENT,
-            resources=[ResourceLink(url="https://ebook.hep.com.cn", title="参考教材", resource_type=ContentType.DOCUMENT)],
         )
 
 
@@ -330,10 +351,48 @@ class MindmapGeneratorAgent(BaseAgent):
 
     async def _generate(self, state: StudentState) -> GeneratorOutput:
         user_input = state.get_recent_messages(1)
-        text = user_input[0].content if user_input else ""
-        mermaid = f"```mermaid\ngraph TD\n    A[核心概念] --> B[子概念1]\n    A --> C[子概念2]\n    A --> D[子概念3]\n    B --> E[细节1]\n    B --> F[细节2]\n```"
+        user_question = user_input[0].content if user_input else ""
+
+        ai_messages = [m for m in state.dialogue_history if m.role.value != "student"]
+        ai_answer = ai_messages[-1].content if ai_messages else ""
+
+        from llm_stream import call_llm_async
+        prompt = f"""基于以下用户问题和 AI 回答，生成一个 Mermaid 思维导图。
+
+用户问题：{user_question}
+AI回答摘要：{ai_answer[:800]}
+
+要求：
+1. 使用 `graph TD` 或 `mindmap` 语法
+2. 中心节点是核心主题
+3. 分出 3-5 个主要分支，每个分支下再有 2-3 个子节点
+4. 节点文本简洁，不超过 8 个字
+5. 只输出 Mermaid 代码块，不要额外解释
+6. 使用中文节点标签
+
+示例格式：
+```mermaid
+graph TD
+    A[核心主题] --> B[分支1]
+    A --> C[分支2]
+    B --> D[细节1]
+```"""
+
+        result = await call_llm_async(
+            "你是一位思维导图设计专家，擅长将知识结构转化为清晰的 Mermaid 图表。",
+            prompt,
+            temperature=0.4,
+        )
+        # 提取 mermaid 代码块
+        content = result.strip()
+        if "```mermaid" in content:
+            content = content.split("```mermaid")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+        if not content.startswith("graph") and not content.startswith("mindmap"):
+            content = f"graph TD\n    A[{user_question[:10] or '核心概念'}] --> B[子概念1]\n    A --> C[子概念2]\n    A --> D[子概念3]"
         return GeneratorOutput(
-            text_content=mermaid,
+            text_content=f"```mermaid\n{content}\n```",
             content_type=ContentType.MERMAID,
         )
 
@@ -358,11 +417,37 @@ class ExerciseGeneratorAgent(BaseAgent):
         return state
 
     async def _generate(self, state: StudentState) -> GeneratorOutput:
+        user_input = state.get_recent_messages(1)
+        user_question = user_input[0].content if user_input else ""
+
+        ai_messages = [m for m in state.dialogue_history if m.role.value != "student"]
+        ai_answer = ai_messages[-1].content if ai_messages else ""
+
         diff = state.profile.cognitive_level
         diff_str = diff.value if isinstance(diff, DifficultyLevel) else str(diff)
-        mock_exercise = f"📝 题目：大数据处理实践\n\n题目描述：请实现一个MapReduce程序，完成以下任务...\n\n难度级别：{diff_str}\n\n输入格式：第一行包含整数n...\n输出格式：一行结果..."
+
+        from llm_stream import call_llm_async
+        prompt = f"""基于以下用户问题和 AI 回答，生成 1-2 道编程/技术练习题。
+
+用户问题：{user_question}
+AI回答摘要：{ai_answer[:800]}
+学生难度级别：{diff_str}
+
+要求：
+1. 题目要与用户问题和 AI 回答的内容直接相关
+2. 每道题包含：题目描述、输入格式、输出格式、示例
+3. 难度标注（简单/中等/困难）
+4. 可以包含一道选择题和一道编程题，或两道编程题
+5. 使用中文，代码示例使用 Python 或 Java（根据上下文判断）
+6. 总长度控制在 400-700 字"""
+
+        result = await call_llm_async(
+            "你是一位技术面试和编程练习设计专家，擅长根据知识点生成有针对性的编程题目。",
+            prompt,
+            temperature=0.5,
+        )
         return GeneratorOutput(
-            text_content=mock_exercise,
+            text_content=result.strip(),
             content_type=ContentType.EXERCISE,
         )
 

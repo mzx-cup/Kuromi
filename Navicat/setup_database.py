@@ -101,6 +101,28 @@ MYSQL_TABLES = [
     """,
 
     # ──────────────────────────────────────────────────────
+    # 4.5 user_evaluations - 用户评估指标历史
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        interaction_count INT DEFAULT 0,
+        socratic_pass_rate FLOAT DEFAULT 0.0,
+        difficulty_level VARCHAR(20) DEFAULT 'basic',
+        code_practice_time INT DEFAULT 0,
+        focus_time_today INT DEFAULT 0,
+        flashcards_studied INT DEFAULT 0,
+        streak_days INT DEFAULT 0,
+        eval_json LONGTEXT,
+        record_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_eval_user_date (user_id, record_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
     # 5. user_preferences - 用户偏好设置
     # ──────────────────────────────────────────────────────
     """
@@ -452,6 +474,55 @@ MYSQL_TABLES = [
         INDEX idx_course_id (course_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 27. user_flashcard_progress - 用户胶囊卡片进度
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_flashcard_progress (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        card_hash VARCHAR(64) NOT NULL,
+        course_id VARCHAR(100) DEFAULT 'bigdata',
+        chapter_name VARCHAR(255) DEFAULT '',
+        front_text TEXT NOT NULL,
+        back_text TEXT NOT NULL,
+        hint_text VARCHAR(500) DEFAULT '',
+        is_mastered TINYINT DEFAULT 0,
+        is_favorite TINYINT DEFAULT 0,
+        difficulty VARCHAR(20) DEFAULT 'medium',
+        user_note VARCHAR(1000) DEFAULT '',
+        review_count INT DEFAULT 0,
+        first_seen_at TIMESTAMP NULL,
+        last_reviewed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_user_card (user_id, card_hash)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 28. user_flashcard_sessions - 用户胶囊学习会话
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_flashcard_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_date DATE NOT NULL,
+        course_id VARCHAR(100) DEFAULT 'bigdata',
+        chapter_name VARCHAR(255) DEFAULT '',
+        cards_total INT DEFAULT 0,
+        cards_answered INT DEFAULT 0,
+        cards_mastered INT DEFAULT 0,
+        cards_favorited INT DEFAULT 0,
+        duration_seconds INT DEFAULT 0,
+        session_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_user_date (user_id, session_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -460,6 +531,7 @@ TABLE_NAMES = [
     "learning_records",
     "learning_path",
     "user_profile",
+    "user_evaluations",
     "user_preferences",
     "user_garden",
     "user_pet",
@@ -482,6 +554,8 @@ TABLE_NAMES = [
     "weekly_summary",
     "classroom_records",
     "course_generation_status",
+    "user_flashcard_progress",
+    "user_flashcard_sessions",
 ]
 
 
@@ -533,12 +607,14 @@ def mysql_to_sqlite(sql):
     sql = sql.replace("TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
                       "TEXT DEFAULT (datetime('now','localtime'))")
     sql = sql.replace("TIMESTAMP NULL DEFAULT NULL", "TEXT")
+    sql = sql.replace("TIMESTAMP NULL", "TEXT")
 
     # 7. 通用类型映射
     sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT")
     sql = sql.replace("LONGTEXT", "TEXT")
     sql = sql.replace("BIGINT DEFAULT 0", "INTEGER DEFAULT 0")
     sql = sql.replace("BIGINT", "INTEGER")
+    sql = sql.replace("TINYINT", "INTEGER")
     sql = sql.replace("INT NOT NULL UNIQUE", "INTEGER NOT NULL UNIQUE")
     sql = sql.replace("INT NOT NULL", "INTEGER NOT NULL")
     sql = re.sub(r'\bINT\s+DEFAULT\s+', 'INTEGER DEFAULT ', sql)

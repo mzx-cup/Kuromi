@@ -48,6 +48,7 @@ async def call_llm_async(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
+        "max_tokens": 4096,
     }
 
     # Try xunfei first
@@ -73,6 +74,7 @@ async def call_llm_async(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
+        "max_tokens": 4096,
     }
 
     try:

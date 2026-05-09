@@ -187,16 +187,22 @@ async def search_minimax(query: str) -> SearchResponse | None:
 
             data = response.json()
 
-            # 解析 tool_calls — MiniMax 返回搜索结果在 tool_calls 中
+            # 解析 MiniMax 返回 —— 搜索结果在 message.content 中
             message = data.get("choices", [{}])[0].get("message", {})
+            content = message.get("content", "")
             tool_calls = message.get("tool_calls", [])
+
+            # MiniMax 在 function calling 模式下，搜索结果通常在 content 中返回
+            if content:
+                logger.info("MiniMax search: got answer in content, len=%d, query=%s", len(content), query[:80])
+                return SearchResponse(query=query, answer=content, results=[], source_count=0)
 
             if not tool_calls:
                 # 没有触发 web_search 工具，返回 None 降级
-                logger.warning("MiniMax search: no tool_calls triggered, query=%s", query[:80])
+                logger.warning("MiniMax search: no tool_calls triggered and no content, query=%s", query[:80])
                 return None
 
-            # 解析 tool_call 结果
+            # 备用：解析 tool_call 结果（部分 MiniMax 版本可能在 tool_calls 中返回）
             results = []
             answer = ""
             for tc in tool_calls:
@@ -206,17 +212,13 @@ async def search_minimax(query: str) -> SearchResponse | None:
                     try:
                         import json as _json
                         args = _json.loads(args_str)
-                        # 搜索结果在 function_response 中
-                        fc_id = tc.get("id", "")
-                        # MiniMax 会在后续 turn 返回 function_response，这里暂取 arguments 作为查询记录
                         logger.info("MiniMax web_search triggered with query: %s", args.get("query", ""))
                     except Exception:
                         pass
 
-            # MiniMax 通过 tool_calls 触发搜索后，结果在后续的 function_call 或 answer 中
-            # 实际搜索结果需要从 function_response 中提取
-            # 此处返回带 answer 的空结果，触发降级逻辑
-            return SearchResponse(query=query, answer=answer, results=results, source_count=0)
+            # 如果 content 为空且 tool_calls 也无实质结果，返回 None 降级到 Tavily
+            logger.warning("MiniMax search: no content in response, falling back to Tavily, query=%s", query[:80])
+            return None
 
     except httpx.TimeoutException:
         logger.error("MiniMax search timeout for query: %s", query[:80])
