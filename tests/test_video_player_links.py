@@ -2,40 +2,52 @@ import unittest
 from pathlib import Path
 
 
-PYTHON_INTRO_VIDEO_URL = "https://www.bilibili.com/video/BV1hxQBYcE5C/"
+class VideoPlayerShellTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.page = Path("html/video-player.html").read_text(encoding="utf-8")
+
+    def test_uses_local_course_video_instead_of_bilibili_embed(self):
+        self.assertIn('id="course-video"', self.page)
+        self.assertIn("<video", self.page)
+        self.assertIn("data-empty-state", self.page)
+        self.assertIn("video/", self.page)
+        self.assertNotIn("www.bilibili.com", self.page)
+
+    def test_contains_bilibili_style_theater_layout(self):
+        for token in (
+            "bili-theater",
+            "player-column",
+            "player-side-panel",
+            "episode-list",
+            "danmaku-form",
+        ):
+            self.assertIn(token, self.page)
+
+    def test_contains_episode_and_ai_notes_tabs(self):
+        for token in (
+            'data-tab="episodes"',
+            'data-tab="ai-notes"',
+            "AI伴学笔记",
+            "note-timeline",
+            "重点问题",
+        ):
+            self.assertIn(token, self.page)
+
+    def test_contains_local_video_empty_state_guidance(self):
+        self.assertIn("请将视频放入 Kuromi 根目录的 video/ 文件夹", self.page)
+        self.assertIn(".mp4 / .webm / .mov", self.page)
 
 
-class VideoPlayerLinksTest(unittest.TestCase):
-    def test_python_intro_video_link_is_available_in_curriculum(self):
-        hub_html = Path("html/video-player.html").read_text(encoding="utf-8")
+    def test_video_player_script_wires_local_video_features(self):
+        video_js = Path("js/video-player.js").read_text(encoding="utf-8")
 
-        self.assertIn("Python 基础入门", hub_html)
-        self.assertIn(PYTHON_INTRO_VIDEO_URL, hub_html)
-        self.assertIn("data-video-url", hub_html)
-
-    def test_video_player_opens_external_video_links(self):
-        video_player_js = Path("js/video-player.js").read_text(encoding="utf-8")
-
-        self.assertIn("dataset.videoUrl", video_player_js)
-        self.assertIn("window.open(videoUrl, '_blank', 'noopener,noreferrer')", video_player_js)
-
-    def test_holographic_video_page_uses_learning_theater_layout(self):
-        video_html = Path("html/video-player.html").read_text(encoding="utf-8")
-
-        self.assertIn("learning-theater", video_html)
-        self.assertIn("stage-panel", video_html)
-        self.assertIn("learning-rail", video_html)
-        self.assertIn("本节重点", video_html)
-        self.assertIn("学习轨道", video_html)
-        self.assertIn("继续学习", video_html)
-
-    def test_left_stage_is_labeled_as_preview_not_real_video(self):
-        video_html = Path("html/video-player.html").read_text(encoding="utf-8")
-
-        self.assertIn("学习进度预览", video_html)
-        self.assertIn("点击预览当前章节", video_html)
-        self.assertIn("右侧推荐入口可打开完整视频", video_html)
-        self.assertNotIn("点击播放课程视频", video_html)
+        self.assertIn("const videoCatalog", video_js)
+        self.assertIn("src: '/video/python-algorithm-03.mp4'", video_js)
+        self.assertIn("localStorage.setItem(STORAGE_PREFIX", video_js)
+        self.assertIn("function seekToNote(time)", video_js)
+        self.assertIn("function launchDanmaku(text)", video_js)
+        self.assertIn("SPEED_OPTIONS", video_js)
 
 
 if __name__ == "__main__":

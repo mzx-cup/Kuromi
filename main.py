@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import time
 import httpx
 import numpy as np
+from urllib.parse import quote
 import db as database
 import pymysql
 from db import (
@@ -49,14 +50,7 @@ from agent_utils import (
 )
 from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
-from app.services.teacher.personas import get_persona_manager
 from config import settings
-from app.services.dashboard_data import (
-    build_calendar_payload,
-    build_focus_event,
-    build_focus_payload,
-    build_progress_summary,
-)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
@@ -64,6 +58,7 @@ CSS_DIR = os.path.join(BASE_DIR, "css")
 JS_DIR = os.path.join(BASE_DIR, "js")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
+VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
 app = FastAPI()
 
@@ -91,19 +86,6 @@ app.add_middleware(
 # ---- V2 API routes (Star-Learn 2.0) ----
 from app.api import router as v2_router
 app.include_router(v2_router)
-
-
-def _plain_dict_list(rows):
-    result = []
-    for row in rows or []:
-        if isinstance(row, dict):
-            result.append(row)
-        else:
-            try:
-                result.append(dict(row))
-            except Exception:
-                result.append(row)
-    return result
 
 
 @app.middleware("http")
@@ -670,6 +652,54 @@ def serve_audio(filename: str):
         return FileResponse(file_path, media_type="audio/mpeg")
     raise HTTPException(status_code=404, detail="音频文件未找到")
 
+@app.get("/video/{filename}")
+def serve_video(filename: str):
+    video_ext = os.path.splitext(filename)[1].lower()
+    media_types = {
+        ".mp4": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+        ".m4v": "video/mp4",
+    }
+    media_type = media_types.get(video_ext)
+    if media_type is None:
+        raise HTTPException(status_code=404, detail="视频文件未找到")
+    file_path = os.path.join(VIDEO_DIR, filename)
+    if os.path.exists(file_path):
+        return FileResponse(file_path, media_type=media_type)
+    raise HTTPException(status_code=404, detail="视频文件未找到")
+
+@app.get("/api/local-videos")
+def list_local_videos():
+    video_exts = {".mp4", ".webm", ".mov", ".m4v"}
+    if not os.path.isdir(VIDEO_DIR):
+        return {"videos": []}
+
+    def natural_sort_key(filename: str):
+        return [
+            int(part) if part.isdigit() else part.lower()
+            for part in re.split(r"(\d+)", filename)
+        ]
+
+    def clean_video_title(filename: str):
+        title = os.path.splitext(filename)[0]
+        title = re.sub(r"\(Av[^)]*\)", "", title).strip()
+        title = re.sub(r"^\d+(?:\.\d+)*\.?", "", title).strip()
+        return title or os.path.splitext(filename)[0]
+
+    videos = []
+    for filename in sorted(os.listdir(VIDEO_DIR), key=natural_sort_key):
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in video_exts:
+            continue
+        videos.append({
+            "id": hashlib.md5(filename.encode("utf-8")).hexdigest()[:12],
+            "filename": filename,
+            "title": clean_video_title(filename),
+            "src": f"/video/{quote(filename)}",
+        })
+    return {"videos": videos}
+
 @app.post("/api/register")
 def register(request: RegisterRequest):
     if not request.username or not request.password:
@@ -862,7 +892,6 @@ def save_user_progress(request: SaveProgressRequest):
 
         database.save_user_profile(user_id, profile_json, evaluation_json, grade_record)
         database.save_learning_path(user_id, path_json)
-        database.save_user_evaluation(user_id, request.evaluation)
 
         return {"success": True, "message": "进度保存成功"}
     except Exception as e:
@@ -1914,24 +1943,6 @@ def load_user_progress(request: LoadProgressRequest):
         if path_data:
             result["currentPath"] = coerce_learning_path(path_data.get("path_json"))
 
-        # 加载最近 7 天的 evaluation 历史，用于趋势图
-        eval_history = database.get_user_evaluation_history(user_id, days=7)
-        if eval_history and result["evaluation"]:
-            history = []
-            for row in eval_history:
-                if isinstance(row, dict):
-                    history.append({
-                        "date": str(row.get("record_date", "")),
-                        "count": row.get("interaction_count", 0),
-                    })
-                else:
-                    history.append({
-                        "date": str(row[8]) if len(row) > 8 else "",
-                        "count": row[0] if len(row) > 0 else 0,
-                    })
-            history.reverse()
-            result["evaluation"]["interactionHistory"] = history
-
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载失败: {str(e)}")
@@ -2281,8 +2292,6 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         code_practice_time=body.code_practice_time,
         socratic_pass_rate=body.socratic_pass_rate,
     )
-    state.metadata["persona"] = body.persona or "patient_tutor"
-    state.metadata["agent"] = body.agent or "geek-senior"
 
     async def push_agent_log(agent_name: str, content: str):
         if not disconnected.is_set():
@@ -2398,26 +2407,7 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 else:
                     instruction = textual_instruction
 
-                persona_mgr = get_persona_manager()
-                persona = persona_mgr.get(body.persona or "patient_tutor")
-                persona_prompt = f"""# 角色：{persona.name}
-
-## 角色定位
-{persona.identity}
-
-## 核心教学策略
-{persona.teaching_strategy}
-
-## 语气语调
-{persona.tone}
-
-## 行为准则
-{"\n".join(f"- {r}" for r in persona.behavior_rules)}
-"""
-
-                agent_prompt = getattr(body, 'agent_system_prompt', '') or ''
-                sys_prompt = f"""{persona_prompt}
-{('\n【学科领域身份背景】\n' + agent_prompt) if agent_prompt else ''}
+                sys_prompt = f"""你是一位专业的大数据与AI高校导师。
 【必须遵守规则】：
 1. 基于[教材参考]回答并标注引用。
 [教材参考开始]
@@ -3811,8 +3801,10 @@ async def report_struggle(request: Request):
             # fallback for pydantic v1
             event = StruggleEvent(**payload)
     except Exception as ve:
-        req_logger.warning(f"Struggle event validation failed: payload={payload}, error={ve}")
-        raise HTTPException(status_code=400, detail=f"Invalid struggle event payload: {ve}")
+        # Log the validation error for debugging
+        req_logger.warning(f"Struggle event validation failed: {ve}")
+        # Provide readable detail to client
+        raise HTTPException(status_code=422, detail=f"Invalid struggle event payload: {ve}")
 
     if not event.user_id:
         raise HTTPException(status_code=400, detail="user_id is required")
@@ -4718,15 +4710,6 @@ class FocusSaveRequest(BaseModel):
     userId: int
     focusData: list = []
 
-class FocusRecordRequest(BaseModel):
-    userId: int
-    studyMinutes: int = 0
-    focusMinutes: int = 0
-    pageSwitches: int = 0
-    completedFocus: bool = False
-    source: str = "activity"
-    timestamp: Optional[str] = None
-
 class EcoSaveRequest(BaseModel):
     userId: int
     ecoData: dict = {}
@@ -5326,39 +5309,6 @@ def get_trend_data(user_id: int, days: int = 7):
         return {"success": True, "trend": []}
 
 
-@app.get("/api/progress/summary/{user_id}")
-def get_progress_summary(user_id: int, range: str = "month"):
-    """Return DB-backed data needed by progress.html."""
-    try:
-        range_key = range if range in ("week", "month", "year", "all") else "month"
-        today_dt = datetime.now()
-        today = today_dt.strftime("%Y-%m-%d")
-        start_date = None
-        if range_key == "week":
-            start_date = (today_dt - timedelta(days=today_dt.weekday())).strftime("%Y-%m-%d")
-        elif range_key == "month":
-            start_date = today_dt.replace(day=1).strftime("%Y-%m-%d")
-        elif range_key == "year":
-            start_date = today_dt.replace(month=1, day=1).strftime("%Y-%m-%d")
-
-        stats = database.get_user_stats(user_id) or {}
-        sessions = database.get_study_sessions(user_id, start_date, today) if start_date else database.get_study_sessions(user_id)
-        goals = database.get_learning_goals(user_id, active_only=False)
-        mastery = database.get_user_knowledge_mastery(user_id)
-        summary = build_progress_summary(
-            user_id=user_id,
-            range_key=range_key,
-            today=today,
-            stats=stats,
-            sessions=_plain_dict_list(sessions),
-            goals=_plain_dict_list(goals),
-            mastery=_plain_dict_list(mastery),
-        )
-        return {"success": True, "summary": summary}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"加载学习进度失败: {str(e)}")
-
-
 # ── 通知 ──
 
 @app.post("/api/notifications/save")
@@ -5470,47 +5420,11 @@ def save_focus(request: FocusSaveRequest):
         raise HTTPException(status_code=500, detail=f"保存专注历史失败: {str(e)}")
 
 
-@app.post("/api/focus/record")
-def record_focus(request: FocusRecordRequest):
-    try:
-        focus = database.get_user_focus_history(request.userId) or []
-        if not isinstance(focus, list):
-            focus = []
-        event = build_focus_event(
-            study_minutes=request.studyMinutes,
-            focus_minutes=request.focusMinutes,
-            page_switches=request.pageSwitches,
-            completed_focus=request.completedFocus,
-            timestamp=request.timestamp,
-            source=request.source,
-        )
-        focus.append(event)
-        focus = focus[-240:]
-        database.save_user_focus_history(request.userId, focus)
-        focus_summary = build_focus_payload(focus)
-        return {
-            "success": True,
-            "event": event,
-            "focusData": focus,
-            "focusSummary": focus_summary,
-            **focus_summary,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"璁板綍涓撴敞鍘嗗彶澶辫触: {str(e)}")
-
-
 @app.get("/api/focus/load/{user_id}")
 def load_focus(user_id: int):
     try:
         focus = database.get_user_focus_history(user_id)
-        focus_data = focus if focus else []
-        focus_summary = build_focus_payload(focus_data)
-        return {
-            "success": True,
-            "focusData": focus_data,
-            "focusSummary": focus_summary,
-            **focus_summary,
-        }
+        return {"success": True, "focusData": focus if focus else []}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载专注历史失败: {str(e)}")
 
@@ -5780,18 +5694,7 @@ def save_calendar_events(request: CalendarEventsSaveRequest):
 def load_calendar_events(user_id: int):
     try:
         events = database.get_user_calendar_events(user_id)
-        events_data = events if events else {}
-        sessions = database.get_study_sessions(user_id)
-        calendar_data = build_calendar_payload(
-            events_data=events_data,
-            sessions=_plain_dict_list(sessions),
-            today=datetime.now().strftime("%Y-%m-%d"),
-        )
-        return {
-            "success": True,
-            "eventsData": events_data,
-            "calendarData": calendar_data,
-        }
+        return {"success": True, "eventsData": events if events else {}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载日历事件失败: {str(e)}")
 
@@ -5935,15 +5838,14 @@ async def generate_course_stream(request: CourseGenerationRequest):
     """
     流式生成课程（LLM驱动版）
     使用 CourseGenerator 进行真实的大模型调用，通过SSE返回进度
-    后台任务保证即使前端断开，生成仍然继续
     """
-    from course_generator import get_course_generator
-    generator = get_course_generator()
+    async def event_generator():
+        from course_generator import get_course_generator
+        generator = get_course_generator()
 
     queue = asyncio.Queue(maxsize=500)
 
     async def background_generate():
-        final_course_data = None
         try:
             async for event in generator.generate_course(
                 requirement=request.requirement,
@@ -5958,8 +5860,6 @@ async def generate_course_stream(request: CourseGenerationRequest):
                 pdf_text=request.pdf_text,
                 enable_web_search=request.enable_web_search,
             ):
-                if event.get("type") == "done":
-                    final_course_data = event.get("data")
                 try:
                     queue.put_nowait(event)
                 except asyncio.QueueFull:
@@ -5985,28 +5885,6 @@ async def generate_course_stream(request: CourseGenerationRequest):
                 queue.put_nowait({"type": "__done__"})
             except asyncio.QueueFull:
                 pass
-            # 后台生成完成后自动保存到数据库（防止前端提前离开导致未保存）
-            if final_course_data:
-                try:
-                    from state import CourseData
-                    course = CourseData(**final_course_data)
-                    user_id = 0
-                    if request.student_id:
-                        try:
-                            user_id = int(request.student_id)
-                        except ValueError:
-                            logger.warning(f"student_id '{request.student_id}' 不是有效数字，跳过数据库自动保存")
-                    if user_id and course.courseId:
-                        full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
-                        ppt_pages = request.ppt_pages if hasattr(request, 'ppt_pages') and request.ppt_pages else (
-                            len(course.slides_v2) if course.slides_v2 else (
-                                len(course.slides) if course.slides else 0
-                            )
-                        )
-                        save_classroom_record(user_id, course.courseId, course.title, full_data, ppt_pages)
-                        logger.info(f"课程生成完成，已自动保存到数据库: {course.courseId}")
-                except Exception as e:
-                    logger.warning(f"课程生成完成后自动保存失败（非致命）: {e}")
 
     # 启动后台生成任务（不跟随SSE连接生命周期）
     asyncio.create_task(background_generate())
@@ -6101,76 +5979,12 @@ async def extract_pdf_text(request: Request):
         else:
             raise HTTPException(status_code=400, detail="未提供PDF内容或URL")
 
-        # Extract text using pdfplumber with structure awareness
+        # Extract text using pdfplumber
         with pdfplumber.open(tmp_path) as pdf:
-            for page_num, page in enumerate(pdf.pages, 1):
-                # 1. Try layout-aware text extraction first
-                page_text = page.extract_text(layout=True)
-                if not page_text:
-                    page_text = page.extract_text()
-
+            for page in pdf.pages:
+                page_text = page.extract_text()
                 if page_text:
-                    # 2. Detect headings by font size changes
-                    structured_lines = []
-                    chars = page.chars
-                    if chars:
-                        # Group chars by line (y-coordinate)
-                        line_groups = {}
-                        for c in chars:
-                            y = round(c.get('top', 0), 1)
-                            if y not in line_groups:
-                                line_groups[y] = []
-                            line_groups[y].append(c)
-
-                        # Sort lines by y-position
-                        sorted_y = sorted(line_groups.keys())
-                        for y in sorted_y:
-                            line_chars = line_groups[y]
-                            if not line_chars:
-                                continue
-                            # Get font size stats for this line
-                            sizes = [c.get('size', 12) for c in line_chars if c.get('size')]
-                            if sizes:
-                                avg_size = sum(sizes) / len(sizes)
-                                max_size = max(sizes)
-                                text = ''.join(c.get('text', '') for c in sorted(line_chars, key=lambda x: x.get('x0', 0)))
-                                text = text.strip()
-                                if not text:
-                                    continue
-                                # Heuristic: large font + short text = heading
-                                if max_size >= 14 and len(text) < 80 and not text.startswith('-') and not text.startswith('*'):
-                                    level = 1 if max_size >= 18 else 2
-                                    structured_lines.append(f"{'#' * level} {text}")
-                                else:
-                                    structured_lines.append(text)
-                            else:
-                                text = ''.join(c.get('text', '') for c in sorted(line_chars, key=lambda x: x.get('x0', 0)))
-                                text = text.strip()
-                                if text:
-                                    structured_lines.append(text)
-
-                        if structured_lines:
-                            page_text = '\n'.join(structured_lines)
-
-                    text_content += f"\n--- 第 {page_num} 页 ---\n\n"
                     text_content += page_text + "\n\n"
-
-                # 3. Extract tables in markdown format
-                tables = page.extract_tables()
-                if tables:
-                    for tidx, table in enumerate(tables, 1):
-                        if not table or len(table) < 2:
-                            continue
-                        text_content += f"\n### 表格 {tidx} (第 {page_num} 页)\n\n"
-                        # Header row
-                        headers = [str(cell or '').strip() for cell in table[0]]
-                        text_content += "| " + " | ".join(headers) + " |\n"
-                        text_content += "| " + " | ".join(["---"] * len(headers)) + " |\n"
-                        # Data rows
-                        for row in table[1:]:
-                            cells = [str(cell or '').strip() for cell in row]
-                            text_content += "| " + " | ".join(cells) + " |\n"
-                        text_content += "\n"
 
         # Cleanup temp file
         os.unlink(tmp_path)
@@ -6256,22 +6070,6 @@ async def course_chat(request: CourseChatRequest):
         except Exception:
             pass
 
-    # 加载PDF文本（如果课程包含PDF上传）
-    pdf_context = ""
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                course = json.load(f)
-            pdf_text = course.get("pdf_text", "")
-            if pdf_text:
-                # 简单关键词匹配判断问题是否与PDF相关
-                pdf_keywords = ["文档", "PDF", "资料", "文件", "上传", "材料"]
-                is_pdf_question = any(kw in request.user_input for kw in pdf_keywords)
-                if is_pdf_question:
-                    pdf_context = f"\n\n## 参考文档内容（学生上传的PDF）\n{pdf_text[:2000]}\n"
-        except Exception:
-            pass
-
     # 使用增强提示词模板
     try:
         if hasattr(request, 'agent_role') and request.agent_role:
@@ -6297,7 +6095,6 @@ async def course_chat(request: CourseChatRequest):
 教师台词: {request.speech[:300]}
 课程大纲: {course_context[:500]}
 {web_context}
-{pdf_context}
 
 请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
 
@@ -6310,7 +6107,6 @@ async def course_chat(request: CourseChatRequest):
         system_prompt = f"""你是课堂AI助教。当前课程: {course_title}
 当前讲解: {request.slide_title}
 {web_context}
-{pdf_context}
 请回答学生问题，简洁有教育意义。"""
         user_prompt = request.user_input
 
@@ -6698,8 +6494,7 @@ async def get_course(course_id: str):
 
 @app.get("/api/v2/course/{course_id}/slides/pending")
 async def get_pending_slides(course_id: str):
-    """获取课程待生成的幻灯片（用于后台增量生成）。
-    返回后自动清空 pending_slides_v2，避免前端重复获取。"""
+    """获取课程待生成的幻灯片（用于后台增量生成）"""
     status = get_course_generation_status(course_id)
     if not status:
         return {
@@ -6711,19 +6506,9 @@ async def get_pending_slides(course_id: str):
             "total_outlines": 0,
             "is_complete": True
         }
-    pending_v2 = status.get("pending_slides_v2", [])
-    # 清空已返回的 pending slides，防止重复推送
-    if pending_v2:
-        try:
-            update_course_generation_status(
-                course_id=course_id,
-                pending_slides_v2=[]
-            )
-        except Exception as e:
-            logger.warning(f"Failed to clear pending slides after poll: {e}")
     return {
         "pending_slides": [],
-        "pending_slides_v2": pending_v2,
+        "pending_slides_v2": status.get("pending_slides_v2", []),
         "pending_quiz_data": status.get("pending_quiz_data", []),
         "pending_exercise_data": status.get("pending_exercise_data", []),
         "generated_count": status.get("generated_count", 0),
@@ -6805,554 +6590,6 @@ async def grade_quiz(data: dict[str, Any] = {}):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/v2/grade/batch")
-async def grade_batch(data: dict[str, Any] = {}):
-    """批量批改测验答案，每道题都有AI个性化评价（支持单选/多选/简答）"""
-    from course_generator import get_course_generator
-
-    generator = get_course_generator()
-    questions = data.get("questions", [])
-    answers = data.get("answers", [])
-
-    if not questions:
-        return {"results": [], "total_score": 0, "total_points": 0, "percentage": 0, "passed": False, "graded_count": 0}
-
-    try:
-        result = await generator.grade_quiz_answers(questions, answers)
-        return result
-    except Exception as e:
-        logger.error(f"Batch grading failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============================================================
-# Whiteboard Drawing Templates — Pre-computed precise geometry
-# ============================================================
-
-def _wb_draw_text(content: str, x: float, y: float, fontSize: int = 14, color: str = "#334155") -> dict:
-    return {"type": "wb_draw_text", "params": {"content": content, "x": x, "y": y, "fontSize": fontSize, "color": color}}
-
-def _wb_draw_svg(svg: str, x: float = 0, y: float = 0, width: float = 1000, height: float = 600) -> dict:
-    return {"type": "wb_draw_svg", "params": {"svg": svg, "x": x, "y": y, "width": width, "height": height}}
-
-def _wb_draw_line(startX: float, startY: float, endX: float, endY: float, color: str = "#94a3b8", width: float = 1) -> dict:
-    return {"type": "wb_draw_line", "params": {"startX": startX, "startY": startY, "endX": endX, "endY": endY, "color": color, "width": width}}
-
-def _match_drawing_template(description: str) -> list[dict] | None:
-    """Match user description to a pre-computed precise geometry template.
-    Returns actions list if matched, None otherwise."""
-    desc = description.lower()
-    import math
-
-    def _arrowhead_polygon(x1: float, y1: float, x2: float, y2: float, color: str = "#334155", size: float = 8) -> str:
-        """Return an SVG polygon for an arrowhead at (x2, y2) pointing from (x1, y1)."""
-        dx, dy = x2 - x1, y2 - y1
-        length = math.hypot(dx, dy)
-        if length < 0.001:
-            return ""
-        ux, uy = dx / length, dy / length
-        px, py = -uy, ux  # perpendicular
-        bx, by = x2 - size * 0.8 * ux, y2 - size * 0.8 * uy
-        wx1, wy1 = bx + size * 0.35 * px, by + size * 0.35 * py
-        wx2, wy2 = bx - size * 0.35 * px, by - size * 0.35 * py
-        return f'<polygon points="{x2:.1f},{y2:.1f} {wx1:.1f},{wy1:.1f} {wx2:.1f},{wy2:.1f}" fill="{color}"/>'
-
-    # ========== Template 1: Circle ==========
-    if any(k in desc for k in ["圆", "circle", "圆周", "圆形"]):
-        cx, cy, r = 500, 300, 140
-        actions = [
-            _wb_draw_text("圆的几何性质", 440, 50, 18, "#1E293B"),
-            # The circle with subtle fill
-            _wb_draw_svg(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="rgba(99,102,241,0.06)" stroke="#6366f1" stroke-width="2.5"/>'),
-            # Center point
-            _wb_draw_svg(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#ef4444"/>'),
-            _wb_draw_text("O", cx + 8, cy - 8, 14, "#ef4444"),
-            # Radius line (from center to right edge)
-            _wb_draw_svg(f'<line x1="{cx}" y1="{cy}" x2="{cx + r}" y2="{cy}" stroke="#334155" stroke-width="1.2" stroke-dasharray="5,3"/>{_arrowhead_polygon(cx, cy, cx + r, cy, "#334155", 7)}'),
-            _wb_draw_text("r", cx + r / 2 - 6, cy - 10, 14, "#334155"),
-            # Diameter line (below the circle, with endpoints aligned to actual diameter)
-            _wb_draw_svg(f'<line x1="{cx - r}" y1="{cy + r + 35}" x2="{cx + r}" y2="{cy + r + 35}" stroke="#334155" stroke-width="1.2" stroke-dasharray="5,3"/>{_arrowhead_polygon(cx - r, cy + r + 35, cx + r, cy + r + 35, "#334155", 7)}{_arrowhead_polygon(cx + r, cy + r + 35, cx - r, cy + r + 35, "#334155", 7)}'),
-            _wb_draw_text(f"d = 2r = {2 * r}", cx - 35, cy + r + 55, 13, "#334155"),
-            # Circumference and area formulas (top-right)
-            _wb_draw_text(f"C = 2πr ≈ {2 * math.pi * r:.1f}", cx + r + 20, cy - r + 10, 13, "#6366f1"),
-            _wb_draw_text(f"S = πr² ≈ {math.pi * r * r:.0f}", cx + r + 20, cy - r + 30, 13, "#6366f1"),
-            # A point on circumference
-            _wb_draw_svg(f'<circle cx="{cx + r}" cy="{cy}" r="4" fill="#10b981"/>'),
-            _wb_draw_text("A", cx + r + 8, cy - 4, 14, "#10b981"),
-        ]
-        return actions
-
-    # ========== Template 2: Right Triangle ==========
-    if any(k in desc for k in ["直角三角", "right triangle", "直角三角形"]):
-        # Right angle at A, legs along axes-like orientation
-        ax, ay = 250, 380
-        leg_a, leg_b = 180, 240  # vertical, horizontal
-        bx, by = ax, ay - leg_a   # top vertex
-        cx, cy = ax + leg_b, ay   # right vertex
-        hyp = math.sqrt(leg_a**2 + leg_b**2)
-        actions = [
-            _wb_draw_text("直角三角形", 430, 55, 18, "#1E293B"),
-            # Triangle sides
-            _wb_draw_svg(f'<polygon points="{ax},{ay} {bx},{by} {cx},{cy}" fill="rgba(99,102,241,0.08)" stroke="#6366f1" stroke-width="3" stroke-linejoin="round"/>'),
-            # Right angle marker (small square)
-            _wb_draw_svg(f'<rect x="{ax}" y="{ay - 25}" width="25" height="25" fill="none" stroke="#ef4444" stroke-width="1.5"/>'),
-            # Vertices
-            _wb_draw_svg(f'<circle cx="{ax}" cy="{ay}" r="4" fill="#ef4444"/>'),
-            _wb_draw_text("A (直角)", ax - 55, ay + 18, 14, "#ef4444"),
-            _wb_draw_svg(f'<circle cx="{bx}" cy="{by}" r="4" fill="#10b981"/>'),
-            _wb_draw_text("B", bx - 8, by - 12, 14, "#10b981"),
-            _wb_draw_svg(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#f59e0b"/>'),
-            _wb_draw_text("C", cx + 8, cy + 18, 14, "#f59e0b"),
-            # Side labels
-            _wb_draw_text(f"a = {leg_a}", ax - 45, ay - leg_a / 2, 13, "#334155"),
-            _wb_draw_text(f"b = {leg_b}", ax + leg_b / 2 - 15, ay + 28, 13, "#334155"),
-            _wb_draw_text(f"c = √{leg_a**2 + leg_b**2:.0f} ≈ {hyp:.1f}", (bx + cx) / 2 + 10, (by + cy) / 2 - 15, 13, "#334155"),
-            # Pythagorean theorem
-            _wb_draw_text(f"a² + b² = c²  →  {leg_a}² + {leg_b}² = {hyp:.1f}²", 600, 150, 14, "#6366f1"),
-        ]
-        return actions
-
-    # ========== Template 3: Equilateral Triangle ==========
-    if any(k in desc for k in ["等边三角", "equilateral triangle", "正三角"]):
-        side = 280
-        height = side * math.sqrt(3) / 2
-        cx, cy = 500, 320  # centroid-ish
-        # vertices: A at top, B bottom-left, C bottom-right
-        ax, ay = cx, cy - height * 2 / 3
-        bx, by = cx - side / 2, cy + height / 3
-        cx_v, cy_v = cx + side / 2, cy + height / 3
-        actions = [
-            _wb_draw_text("等边三角形", 430, 55, 18, "#1E293B"),
-            _wb_draw_svg(f'<polygon points="{ax},{ay} {bx},{by} {cx_v},{cy_v}" fill="rgba(16,185,129,0.08)" stroke="#10b981" stroke-width="3" stroke-linejoin="round"/>'),
-            # Height line
-            _wb_draw_svg(f'<line x1="{ax}" y1="{ay}" x2="{cx}" y2="{cy_v}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="5,3"/>'),
-            _wb_draw_text(f"h = {height:.1f}", cx + 8, cy, 13, "#f59e0b"),
-            # Vertices
-            _wb_draw_svg(f'<circle cx="{ax}" cy="{ay}" r="4" fill="#ef4444"/>'),
-            _wb_draw_text("A", ax - 8, ay - 10, 14, "#ef4444"),
-            _wb_draw_svg(f'<circle cx="{bx}" cy="{by}" r="4" fill="#6366f1"/>'),
-            _wb_draw_text("B", bx - 18, by + 5, 14, "#6366f1"),
-            _wb_draw_svg(f'<circle cx="{cx_v}" cy="{cy_v}" r="4" fill="#6366f1"/>'),
-            _wb_draw_text("C", cx_v + 8, cy_v + 5, 14, "#6366f1"),
-            # Side labels
-            _wb_draw_text(f"a = b = c = {side}", cx - 45, cy_v + 35, 14, "#334155"),
-            _wb_draw_text("∠A = ∠B = ∠C = 60°", 620, 200, 14, "#6366f1"),
-        ]
-        return actions
-
-    # ========== Template 4: Coordinate System + Parabola ==========
-    if any(k in desc for k in ["抛物线", "parabola", "二次函数", "y=x", "y = x"]):
-        ox, oy = 500, 380  # origin
-        x_len, y_len = 350, 280
-        scale = 180  # x^2 scaling factor for display
-        path_d = f"M{ox - 180},{oy - scale * (-0.6)**2} Q{ox},{oy} {ox + 180},{oy - scale * (0.6)**2}"
-        actions = [
-            _wb_draw_text("抛物线 y = x²", 430, 50, 18, "#1E293B"),
-            # Axes with arrowheads
-            _wb_draw_svg(f'<line x1="{ox - x_len}" y1="{oy}" x2="{ox + x_len}" y2="{oy}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox - x_len, oy, ox + x_len, oy, "#334155")}'),
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + y_len}" x2="{ox}" y2="{oy - y_len}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox, oy + y_len, ox, oy - y_len, "#334155")}'),
-            _wb_draw_text("x", ox + x_len - 10, oy + 22, 16, "#334155"),
-            _wb_draw_text("y", ox - 18, oy - y_len + 15, 16, "#334155"),
-            _wb_draw_text("O", ox - 16, oy + 18, 14, "#64748b"),
-            # X-axis tick marks (every 60px ≈ unit ticks)
-            _wb_draw_svg(f'<line x1="{ox - 120}" y1="{oy - 4}" x2="{ox - 120}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox - 120}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">-2</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 60}" y1="{oy - 4}" x2="{ox - 60}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox - 60}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">-1</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 60}" y1="{oy - 4}" x2="{ox + 60}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 60}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">1</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 120}" y1="{oy - 4}" x2="{ox + 120}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 120}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">2</text>'),
-            # Y-axis tick marks
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - 60}" x2="{ox + 4}" y2="{oy - 60}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - 56}" font-size="11" fill="#64748b" text-anchor="end">1</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - 120}" x2="{ox + 4}" y2="{oy - 120}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - 116}" font-size="11" fill="#64748b" text-anchor="end">4</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - 180}" x2="{ox + 4}" y2="{oy - 180}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - 176}" font-size="11" fill="#64748b" text-anchor="end">9</text>'),
-            # Parabola path (upward, vertex at origin)
-            _wb_draw_svg(f'<path d="{path_d}" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>'),
-            # Vertex highlight
-            _wb_draw_svg(f'<circle cx="{ox}" cy="{oy}" r="5" fill="#ef4444"/>'),
-            _wb_draw_text("顶点 (0, 0)", ox + 12, oy - 12, 14, "#ef4444"),
-            # Symmetry axis (dashed)
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy}" x2="{ox}" y2="{oy - y_len}" stroke="#ef4444" stroke-width="1" stroke-dasharray="5,3" opacity="0.4"/>'),
-            _wb_draw_text("对称轴 x=0", ox + 8, oy - y_len + 18, 12, "#ef4444"),
-            # Formula box
-            _wb_draw_text("y = x²  (a=1, b=0, c=0)", 660, 100, 14, "#6366f1"),
-            _wb_draw_text("开口向上，顶点为最小值", 660, 120, 12, "#64748b"),
-        ]
-        return actions
-
-    # ========== Template 5: Coordinate System + Straight Line ==========
-    if any(k in desc for k in ["直线", "线性函数", "一次函数", "斜率", "y=kx", "y = kx", "linear"]):
-        ox, oy = 500, 380
-        # Line: y = 0.8x + 40 (passing through origin area with positive slope)
-        lx1, ly1 = ox - 200, oy + 100
-        lx2, ly2 = ox + 250, oy - 200
-        actions = [
-            _wb_draw_text("一次函数 y = kx + b", 400, 55, 18, "#1E293B"),
-            # Axes with arrowheads
-            _wb_draw_svg(f'<line x1="{ox - 350}" y1="{oy}" x2="{ox + 350}" y2="{oy}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox - 350, oy, ox + 350, oy, "#334155")}'),
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + 250}" x2="{ox}" y2="{oy - 250}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox, oy + 250, ox, oy - 250, "#334155")}'),
-            _wb_draw_text("x", ox + 340, oy + 22, 16, "#334155"),
-            _wb_draw_text("y", ox - 18, oy - 240, 16, "#334155"),
-            _wb_draw_text("O", ox - 16, oy + 18, 14, "#64748b"),
-            # X-axis tick marks
-            _wb_draw_svg(f'<line x1="{ox - 200}" y1="{oy - 4}" x2="{ox - 200}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox - 200}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">-2</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 100}" y1="{oy - 4}" x2="{ox - 100}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox - 100}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">-1</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 100}" y1="{oy - 4}" x2="{ox + 100}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 100}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">1</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 200}" y1="{oy - 4}" x2="{ox + 200}" y2="{oy + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 200}" y="{oy + 18}" font-size="11" fill="#64748b" text-anchor="middle">2</text>'),
-            # Y-axis tick marks
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - 100}" x2="{ox + 4}" y2="{oy - 100}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - 96}" font-size="11" fill="#64748b" text-anchor="end">1</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - 200}" x2="{ox + 4}" y2="{oy - 200}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - 196}" font-size="11" fill="#64748b" text-anchor="end">2</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy + 100}" x2="{ox + 4}" y2="{oy + 100}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy + 104}" font-size="11" fill="#64748b" text-anchor="end">-1</text>'),
-            # The line
-            _wb_draw_svg(f'<line x1="{lx1}" y1="{ly1}" x2="{lx2}" y2="{ly2}" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>'),
-            # Rise-run triangle (slope visualization)
-            _wb_draw_svg(f'<line x1="{ox + 100}" y1="{oy - 80}" x2="{ox + 100}" y2="{oy + 20}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>'),
-            _wb_draw_svg(f'<line x1="{ox + 100}" y1="{oy + 20}" x2="{ox + 200}" y2="{oy + 20}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>'),
-            _wb_draw_text("Δy", ox + 105, oy - 25, 12, "#f59e0b"),
-            _wb_draw_text("Δx", ox + 145, oy + 35, 12, "#f59e0b"),
-            # Intercept point (where line crosses y-axis, approx at x=0)
-            _wb_draw_svg(f'<circle cx="{ox}" cy="{oy - 40}" r="5" fill="#ef4444"/>'),
-            _wb_draw_text("(0, b)", ox + 10, oy - 48, 12, "#ef4444"),
-            # Formula box
-            _wb_draw_text("k = Δy/Δx ≈ 0.8 (斜率)", 660, 130, 14, "#6366f1"),
-            _wb_draw_text("y 截距 b = 0.4", 660, 150, 13, "#10b981"),
-            _wb_draw_text("y = 0.8x + 0.4", 660, 175, 14, "#6366f1"),
-        ]
-        return actions
-
-    # ========== Template 6: Sine Wave ==========
-    if any(k in desc for k in ["正弦", "sin", "sine", "三角函数", "波形", "波浪"]):
-        ox, oy = 180, 320
-        actions = [
-            _wb_draw_text("正弦函数 y = sin(x)", 400, 55, 18, "#1E293B"),
-            # Axes
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + 120}" x2="{ox + 640}" y2="{oy + 120}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox, oy + 120, ox + 640, oy + 120, "#334155")}'),
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + 120}" x2="{ox}" y2="{oy - 150}" stroke="#334155" stroke-width="2"/>{_arrowhead_polygon(ox, oy + 120, ox, oy - 150, "#334155")}'),
-            _wb_draw_text("x", ox + 630, oy + 135, 16, "#334155"),
-            _wb_draw_text("y", ox - 12, oy - 140, 16, "#334155"),
-            _wb_draw_text("O", ox - 16, oy + 108, 14, "#64748b"),
-        ]
-        # Sine wave path (2 periods)
-        amp = 80
-        points = []
-        for i in range(121):
-            x = ox + i * 5
-            y = oy - amp * math.sin(i * math.pi / 30)
-            points.append(f"{x:.1f},{y:.1f}")
-        path_d = "M" + " L".join(points)
-        actions.extend([
-            _wb_draw_svg(f'<path d="{path_d}" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round"/>'),
-            # X-axis tick marks with π labels
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + 120 - 4}" x2="{ox}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">0</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 75}" y1="{oy + 120 - 4}" x2="{ox + 75}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 75}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">π/2</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 150}" y1="{oy + 120 - 4}" x2="{ox + 150}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 150}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">π</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 225}" y1="{oy + 120 - 4}" x2="{ox + 225}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 225}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">3π/2</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 300}" y1="{oy + 120 - 4}" x2="{ox + 300}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 300}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">2π</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 450}" y1="{oy + 120 - 4}" x2="{ox + 450}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 450}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">3π</text>'),
-            _wb_draw_svg(f'<line x1="{ox + 600}" y1="{oy + 120 - 4}" x2="{ox + 600}" y2="{oy + 120 + 4}" stroke="#64748b" stroke-width="1"/><text x="{ox + 600}" y="{oy + 120 + 18}" font-size="12" fill="#64748b" text-anchor="middle">4π</text>'),
-            # Y-axis tick marks (amplitude)
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy - amp}" x2="{ox + 4}" y2="{oy - amp}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy - amp + 4}" font-size="11" fill="#64748b" text-anchor="end">1</text>'),
-            _wb_draw_svg(f'<line x1="{ox - 4}" y1="{oy + amp}" x2="{ox + 4}" y2="{oy + amp}" stroke="#64748b" stroke-width="1"/><text x="{ox - 8}" y="{oy + amp + 4}" font-size="11" fill="#64748b" text-anchor="end">-1</text>'),
-            # Key points
-            _wb_draw_svg(f'<circle cx="{ox}" cy="{oy}" r="4" fill="#ef4444"/>'),
-            _wb_draw_text("(0, 0)", ox - 50, oy - 10, 12, "#ef4444"),
-            _wb_draw_svg(f'<circle cx="{ox + 150}" cy="{oy - amp}" r="4" fill="#10b981"/>'),
-            _wb_draw_text("(π, 0) → 零点", ox + 155, oy - 10, 12, "#f59e0b"),
-            _wb_draw_svg(f'<circle cx="{ox + 75}" cy="{oy - amp}" r="4" fill="#10b981"/>'),
-            _wb_draw_text("最大值 1", ox + 80, oy - amp - 8, 12, "#10b981"),
-            _wb_draw_svg(f'<circle cx="{ox + 225}" cy="{oy + amp}" r="4" fill="#10b981"/>'),
-            _wb_draw_text("最小值 -1", ox + 230, oy + amp + 18, 12, "#10b981"),
-            # Amplitude annotation (vertical dashed line at peak)
-            _wb_draw_svg(f'<line x1="{ox + 75}" y1="{oy}" x2="{ox + 75}" y2="{oy - amp}" stroke="#10b981" stroke-width="1" stroke-dasharray="4,2" opacity="0.5"/>'),
-            _wb_draw_text("振幅 A=1", ox + 80, oy - amp / 2, 12, "#10b981"),
-            # Period annotation
-            _wb_draw_svg(f'<line x1="{ox}" y1="{oy + amp + 25}" x2="{ox + 300}" y2="{oy + amp + 25}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,2"/>'),
-            _wb_draw_text("周期 T = 2π", ox + 120, oy + amp + 40, 12, "#f59e0b"),
-            # Formula
-            _wb_draw_text("y = A·sin(ωx + φ)", 680, 130, 14, "#6366f1"),
-            _wb_draw_text("A=1, ω=1, φ=0", 680, 150, 12, "#64748b"),
-        ])
-        return actions
-
-    # ========== Template 7: Binary Tree ==========
-    if any(k in desc for k in ["二叉树", "binary tree", "树形", "tree structure"]):
-        node_r = 26
-        # Level 0 (root)
-        n0_x, n0_y = 500, 80
-        # Level 1
-        n1_x, n1_y = 330, 190
-        n2_x, n2_y = 670, 190
-        # Level 2
-        n3_x, n3_y = 210, 310
-        n4_x, n4_y = 450, 310
-        n5_x, n5_y = 550, 310
-        n6_x, n6_y = 790, 310
-        actions = [
-            _wb_draw_text("二叉树结构 (深度 2)", 420, 50, 18, "#1E293B"),
-            # Level indicator lines (subtle, on the left)
-            _wb_draw_text("Level 0", 60, n0_y + 5, 11, "#94a3b8"),
-            _wb_draw_text("Level 1", 60, n1_y + 5, 11, "#94a3b8"),
-            _wb_draw_text("Level 2", 60, n3_y + 5, 11, "#94a3b8"),
-            # Edges (drawn before nodes for proper layering)
-            _wb_draw_svg(f'<line x1="{n0_x}" y1="{n0_y + node_r}" x2="{n1_x}" y2="{n1_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            _wb_draw_svg(f'<line x1="{n0_x}" y1="{n0_y + node_r}" x2="{n2_x}" y2="{n2_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            _wb_draw_svg(f'<line x1="{n1_x}" y1="{n1_y + node_r}" x2="{n3_x}" y2="{n3_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            _wb_draw_svg(f'<line x1="{n1_x}" y1="{n1_y + node_r}" x2="{n4_x}" y2="{n4_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            _wb_draw_svg(f'<line x1="{n2_x}" y1="{n2_y + node_r}" x2="{n5_x}" y2="{n5_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            _wb_draw_svg(f'<line x1="{n2_x}" y1="{n2_y + node_r}" x2="{n6_x}" y2="{n6_y - node_r}" stroke="#94a3b8" stroke-width="2"/>'),
-            # Root node (A)
-            _wb_draw_svg(f'<circle cx="{n0_x}" cy="{n0_y}" r="{node_r}" fill="rgba(99,102,241,0.15)" stroke="#6366f1" stroke-width="2.5"/>'),
-            _wb_draw_text("A", n0_x - 6, n0_y + 6, 16, "#6366f1"),
-            # Level 1 nodes (B, C)
-            _wb_draw_svg(f'<circle cx="{n1_x}" cy="{n1_y}" r="{node_r}" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="2.5"/>'),
-            _wb_draw_text("B", n1_x - 6, n1_y + 6, 16, "#10b981"),
-            _wb_draw_svg(f'<circle cx="{n2_x}" cy="{n2_y}" r="{node_r}" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="2.5"/>'),
-            _wb_draw_text("C", n2_x - 6, n2_y + 6, 16, "#10b981"),
-            # Level 2 leaf nodes (D, E, F, G)
-            _wb_draw_svg(f'<circle cx="{n3_x}" cy="{n3_y}" r="{node_r}" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="2.5"/>'),
-            _wb_draw_text("D", n3_x - 6, n3_y + 6, 16, "#f59e0b"),
-            _wb_draw_svg(f'<circle cx="{n4_x}" cy="{n4_y}" r="{node_r}" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="2.5"/>'),
-            _wb_draw_text("E", n4_x - 6, n4_y + 6, 16, "#f59e0b"),
-            _wb_draw_svg(f'<circle cx="{n5_x}" cy="{n5_y}" r="{node_r}" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="2.5"/>'),
-            _wb_draw_text("F", n5_x - 6, n5_y + 6, 16, "#f59e0b"),
-            _wb_draw_svg(f'<circle cx="{n6_x}" cy="{n6_y}" r="{node_r}" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="2.5"/>'),
-            _wb_draw_text("G", n6_x - 6, n6_y + 6, 16, "#f59e0b"),
-            # Legend
-            _wb_draw_text("根节点", 850, 400, 12, "#6366f1"),
-            _wb_draw_svg(f'<circle cx="{830}" cy="{396}" r="8" fill="rgba(99,102,241,0.15)" stroke="#6366f1" stroke-width="1.5"/>'),
-            _wb_draw_text("中间节点", 850, 425, 12, "#10b981"),
-            _wb_draw_svg(f'<circle cx="{830}" cy="{421}" r="8" fill="rgba(16,185,129,0.15)" stroke="#10b981" stroke-width="1.5"/>'),
-            _wb_draw_text("叶子节点", 850, 450, 12, "#f59e0b"),
-            _wb_draw_svg(f'<circle cx="{830}" cy="{446}" r="8" fill="rgba(245,158,11,0.15)" stroke="#f59e0b" stroke-width="1.5"/>'),
-            # Property annotations
-            _wb_draw_text("节点数 n = 7", 850, 480, 12, "#64748b"),
-            _wb_draw_text("深度 h = 2", 850, 500, 12, "#64748b"),
-        ]
-        return actions
-
-    # ========== Template 8: Flowchart ==========
-    if any(k in desc for k in ["流程图", "flowchart", "流程", "flow chart", "flow diagram"]):
-        box_w, box_h = 130, 50
-        diamond_size = 55  # half-width/height for diamond
-        # Node definitions: (label, x, y, color, shape)
-        # shapes: "rect" (rounded), "diamond", "pill" (start/end)
-        nodes = [
-            ("开始", 500, 100, "#6366f1", "pill"),
-            ("输入数据", 500, 190, "#10b981", "rect"),
-            ("条件判断", 500, 290, "#f59e0b", "diamond"),
-            ("处理A", 320, 390, "#10b981", "rect"),
-            ("处理B", 680, 390, "#10b981", "rect"),
-            ("输出结果", 500, 480, "#6366f1", "rect"),
-            ("结束", 500, 560, "#ef4444", "pill"),
-        ]
-        actions = [_wb_draw_text("流程图示例", 450, 55, 18, "#1E293B")]
-        for label, x, y, color, shape in nodes:
-            if shape == "diamond":
-                # Diamond shape using polygon
-                ds = diamond_size
-                actions.append(_wb_draw_svg(
-                    f'<polygon points="{x},{y - ds} {x + ds},{y} {x},{y + ds} {x - ds},{y}" '
-                    f'fill="rgba{tuple(list(int(color[i:i+2], 16) for i in (1, 3, 5)) + [0.1])}" '
-                    f'stroke="{color}" stroke-width="2" stroke-linejoin="round"/>'
-                ))
-                actions.append(_wb_draw_text(label, x - len(label) * 7, y + 5, 14, color))
-            elif shape == "pill":
-                # Rounded rectangle with full corner radius
-                actions.append(_wb_draw_svg(
-                    f'<rect x="{x - box_w / 2}" y="{y - box_h / 2}" width="{box_w}" height="{box_h}" '
-                    f'rx="25" ry="25" fill="rgba{tuple(list(int(color[i:i+2], 16) for i in (1, 3, 5)) + [0.1])}" '
-                    f'stroke="{color}" stroke-width="2"/>'
-                ))
-                actions.append(_wb_draw_text(label, x - len(label) * 7, y + 5, 14, color))
-            else:
-                # Standard rounded rectangle
-                actions.append(_wb_draw_svg(
-                    f'<rect x="{x - box_w / 2}" y="{y - box_h / 2}" width="{box_w}" height="{box_h}" '
-                    f'rx="8" ry="8" fill="rgba{tuple(list(int(color[i:i+2], 16) for i in (1, 3, 5)) + [0.1])}" '
-                    f'stroke="{color}" stroke-width="2"/>'
-                ))
-                actions.append(_wb_draw_text(label, x - len(label) * 7, y + 5, 14, color))
-        # Connections with arrowheads
-        connections = [
-            (500, 125, 500, 165),      # 开始 -> 输入
-            (500, 215, 500, 235),      # 输入 -> 判断
-            (500, 345, 320, 365),      # 判断 -> 处理A
-            (500, 345, 680, 365),      # 判断 -> 处理B
-            (320, 415, 500, 455),      # 处理A -> 输出
-            (680, 415, 500, 455),      # 处理B -> 输出
-            (500, 505, 500, 535),      # 输出 -> 结束
-        ]
-        for x1, y1, x2, y2 in connections:
-            actions.append(_wb_draw_svg(
-                f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#94a3b8" stroke-width="2"/>'
-                f'{_arrowhead_polygon(x1, y1, x2, y2, "#94a3b8")}'
-            ))
-        # Yes/No labels near decision branches
-        actions.append(_wb_draw_text("是", 395, 360, 12, "#64748b"))
-        actions.append(_wb_draw_text("否", 605, 360, 12, "#64748b"))
-        return actions
-
-    # No template matched
-    return None
-
-
-@app.post("/api/whiteboard/draw")
-async def whiteboard_draw(data: dict[str, Any] = {}):
-    """AI 白板绘图：根据自然语言描述生成白板绘图指令"""
-    from course_generator import get_course_generator
-    import json
-
-    description = data.get("description", "")
-    scene_title = data.get("scene_title", "")
-    is_custom_prompt = data.get("is_custom_prompt", False)
-
-    if not description:
-        return {"success": False, "error": "缺少描述参数"}
-
-    # Try template match first for geometric accuracy
-    template_actions = _match_drawing_template(description)
-    if template_actions:
-        return {"success": True, "actions": template_actions}
-
-    generator = get_course_generator()
-
-    if is_custom_prompt:
-        system_prompt = (
-            "你是一位顶尖 SVG 图形艺术家。你的任务是将用户的描述绘制为一幅精美、和谐、富有设计感的 SVG 插图。\n\n"
-            "【美学原则 - 必须遵守】\n"
-            "1. 色彩方案：使用现代、协调的配色。主色调推荐 #6366f1（靛蓝）、#8b5cf6（紫）、#ec4899（粉）、#14b8a6（青绿）。"
-            "   禁止使用刺眼的高饱和色（如纯红 #ff0000、纯绿 #00ff00）。背景永远用纯白或极浅的渐变。\n"
-            "2. 留白与呼吸感：元素之间保持充足间距（≥40px），不要塞满整个画布。四周留出 60px 以上边距。\n"
-            "3. 圆角与柔和：所有矩形使用 rx/ry 圆角（8~16px），线条使用 stroke-linecap=\"round\"，让视觉更柔和。\n"
-            "4. 层次感：使用微妙的阴影（filter=\"drop-shadow(...)\"）或半透明填充（rgba fill 0.08~0.15）来创造深度。\n"
-            "5. 图标化：将描述中的概念抽象为简洁的几何图标，避免复杂的写实细节。Less is more。\n\n"
-            "【构图要求】\n"
-            "- 画布范围 x ∈ [60, 940], y ∈ [60, 500]，严格禁止越界。\n"
-            "- 标题（如有）放在顶部居中，y≈80，fontSize 20~24，颜色 #1e293b，使用较轻的 font-weight。\n"
-            "- 主体内容占据画布中央偏上区域（y 120~420），保持视觉重心平衡。\n"
-            "- 所有文字使用无衬线风格配色（#334155、#475569、#64748b），禁止纯黑。\n\n"
-            "【绘制技巧】\n"
-            "- 优先使用 wb_draw_svg + path 绘制有机曲线和自定义形状。\n"
-            "- 简单几何可用 wb_draw_shape（圆角矩形、正圆）。\n"
-            "- 文字用 wb_draw_text，字号层级分明：标题 20~24px，正文 14~16px，标注 12~14px。\n"
-            "- 连接线和箭头用 wb_draw_svg 中的 line + polygon 组合。\n\n"
-            "【输出格式】\n"
-            "严格返回 JSON：{\"actions\": [...]}"
-        )
-        user_prompt = f"""请根据以下描述创作一幅精美的 SVG 插图。
-
-描述：{description}
-
-要求：
-1. 纯粹根据描述内容绘制，不要添加与描述无关的课程或教学元素
-2. 追求美观、简洁、现代的设计风格
-3. 色彩搭配和谐，避免高饱和刺眼颜色
-4. 充分利用画布空间但保持留白，不要拥挤
-5. 返回严格 JSON 格式
-
-坐标约束：
-- 画布范围：x 60~940, y 60~500
-- 主体图形放在中央区域（x 100~900, y 120~420）
-- 元素间距 ≥ 40px
-
-请返回："""
-    else:
-        system_prompt = (
-            "你是一位精通 SVG 绘图的图形设计专家。你的任务是将用户的自然语言描述转换为结构化的白板绘图指令。"
-            "为了让绘制效果更生动、不生硬，你必须优先使用 SVG path 路径（贝塞尔曲线）来绘制平滑的图形和曲线，"
-            "避免使用生硬的简单几何形状拼凑。\n\n"
-            "【构图规划要求】\n"
-            "1. 在绘制任何元素之前，先在脑海中规划整体构图：标题位置（顶部留白 30px）、主体区域（中央）、标注位置（元素附近）。\n"
-            "2. 所有元素的坐标必须限制在画布范围内：x ∈ [40, 960], y ∈ [40, 520]，禁止超出边界。\n"
-            "3. 元素之间必须保持至少 20px 的间距，禁止任何两个元素重叠或紧贴。\n"
-            "4. 文字标签必须位于对应元素的上方、下方或右侧，且与元素的间距 ≤ 30px。\n\n"
-            "【绘制顺序要求】\n"
-            "你必须按以下顺序输出 actions：\n"
-            "① 背景/框架元素（如坐标轴、边框、参考线）\n"
-            "② 主体元素（如图形、曲线、形状）\n"
-            "③ 标注元素（文字标签、数值、箭头）\n"
-            "每个主体元素之后必须紧跟至少一个对应的文字标注（text），说明该元素的含义。\n\n"
-            "【动作类型说明】\n"
-            "- wb_draw_svg: ★推荐★ 使用原始SVG元素字符串绘制。这是最灵活的方式，支持 path（贝塞尔曲线）、circle、rect、ellipse、line、polyline、polygon、text 等任意SVG标签。"
-            "  svg 参数为完整的SVG元素字符串（如 '<path d=\"M100,200 Q250,50 400,200\" stroke=\"#6366f1\" fill=\"none\" stroke-width=\"3\"/>'）。"
-            "  x/y/width/height 定义该 SVG 组的位移和缩放区域。优先使用 path 的贝塞尔曲线（Q/C 指令）绘制平滑线条！\n"
-            "- wb_draw_shape: 绘制简单形状。shape 可选 rect/circle/ellipse/triangle。fill 使用 rgba(r,g,b,0.1~0.3) 半透明色。stroke 使用深色描边。仅在没有曲线需求时使用。\n"
-            "- wb_draw_line: 绘制直线/箭头。startX/startY/endX/endY 定义线段。color 使用 #334155 或 #6366f1。仅用于坐标轴、指引线等直线场景。\n"
-            "- wb_draw_text: 绘制文字。content 为文本内容，fontSize 14~18，color #1E293B 或 #334155。\n\n"
-            "【平滑绘图技巧】\n"
-            "1. 曲线优先使用 wb_draw_svg 的 path 元素，用 Q（二次贝塞尔）或 C（三次贝塞尔）指令绘制平滑曲线。\n"
-            "2. 例如抛物线：'<path d=\"M100,300 Q250,50 400,300\" stroke=\"#6366f1\" fill=\"none\" stroke-width=\"3\"/>'\n"
-            "3. 圆形/椭圆可直接用 wb_draw_shape，但弧线、波浪线必须用 path。\n"
-            "4. 流程图的连接线请用 line + polygon 组合绘制箭头，不要用 marker-end 引用：'<line x1=\"200\" y1=\"150\" x2=\"200\" y2=\"220\" stroke=\"#334155\" stroke-width=\"2\"/><polygon points=\"200,220 192,217 192,223\" fill=\"#334155\"/>'\n"
-            "5. 颜色搭配要和谐：主色使用 #6366f1（靛蓝），辅色使用 #10b981（绿）、#f59e0b（橙）、#ef4444（红），文字用 #1E293B 或 #334155。\n"
-            "6. 视觉柔和：所有矩形使用 rx/ry 圆角（8~12px），线条使用 stroke-linecap=\"round\"，让图形更柔和不生硬。\n"
-            "7. 层次感：使用半透明填充 rgba(r,g,b,0.1~0.2) 和浅色描边，避免色块过于厚重。\n"
-            "8. 禁止高饱和刺眼色：不要使用纯红 #ff0000、纯绿 #00ff00、纯蓝 #0000ff 等刺眼颜色。\n\n"
-            "【输出格式】\n"
-            "严格返回 JSON 格式：{\"actions\": [...]}，每个 action 包含 type 和 params。"
-        )
-        user_prompt = f"""请将以下描述转换为白板绘图指令。
-
-描述：{description}
-课程场景：{scene_title}
-
-请严格按照以下步骤思考并输出：
-1. 分析描述中涉及的所有图形元素，识别哪些需要曲线/平滑绘制
-2. 曲线元素优先使用 wb_draw_svg + path 贝塞尔曲线；简单形状可用 wb_draw_shape
-3. 为每个元素分配合适的坐标和尺寸，确保不重叠、不越界
-4. 按「背景→主体→标注」的顺序组织 actions
-5. 每个主体形状后紧跟文字标注说明其含义
-6. 返回严格 JSON 格式
-
-坐标约束：
-- 画布范围：x 40~960, y 40~520
-- 标题文字放在顶部居中（y≈50）
-- 主体图形放在中央区域（x 100~900, y 120~450）
-- 元素间距 ≥ 20px
-
-示例1（抛物线 - 使用 path 贝塞尔曲线）：
-{{
-  "actions": [
-    {{"type": "wb_draw_text", "params": {{"content": "y = x² 抛物线", "x": 450, "y": 60, "fontSize": 18, "color": "#1E293B"}}}},
-    {{"type": "wb_draw_line", "params": {{"startX": 100, "startY": 350, "endX": 900, "endY": 350, "color": "#94a3b8", "width": 1}}}},
-    {{"type": "wb_draw_line", "params": {{"startX": 500, "startY": 100, "endX": 500, "endY": 400, "color": "#94a3b8", "width": 1}}}},
-    {{"type": "wb_draw_text", "params": {{"content": "X", "x": 910, "y": 355, "fontSize": 14, "color": "#64748b"}}}},
-    {{"type": "wb_draw_text", "params": {{"content": "Y", "x": 505, "y": 90, "fontSize": 14, "color": "#64748b"}}}},
-    {{"type": "wb_draw_svg", "params": {{"svg": "<path d=\\"M200,350 Q350,50 500,350 T800,350\\" stroke=\\"#6366f1\\" fill=\\"none\\" stroke-width=\\"3\\" stroke-linecap=\\"round\\"/>", "x": 0, "y": 0, "width": 1000, "height": 600}}}},
-    {{"type": "wb_draw_svg", "params": {{"svg": "<circle cx=\\"500\\" cy=\\"350\\" r=\\"5\\" fill=\\"#ef4444\\"/>", "x": 0, "y": 0, "width": 1000, "height": 600}}}},
-    {{"type": "wb_draw_text", "params": {{"content": "顶点 (0,0)", "x": 510, "y": 340, "fontSize": 14, "color": "#ef4444"}}}}
-  ]
-}}
-
-示例2（流程图 - 使用 path 连接）：
-{{
-  "actions": [
-    {{"type": "wb_draw_text", "params": {{"content": "数据流程图", "x": 450, "y": 60, "fontSize": 18, "color": "#1E293B"}}}},
-    {{"type": "wb_draw_shape", "params": {{"shape": "rect", "x": 200, "y": 120, "width": 120, "height": 50, "fill": "rgba(99,102,241,0.1)", "stroke": "#6366f1", "strokeWidth": 2}}}},
-    {{"type": "wb_draw_text", "params": {{"content": "开始", "x": 245, "y": 150, "fontSize": 14, "color": "#6366f1"}}}},
-    {{"type": "wb_draw_svg", "params": {{"svg": "<path d=\\"M260,170 L260,210\\" stroke=\\"#94a3b8\\" stroke-width=\\"2\\"/><polygon points=\\"260,210 252,207 252,213\\" fill=\\"#94a3b8\\"/>", "x": 0, "y": 0, "width": 1000, "height": 600}}}},
-    {{"type": "wb_draw_shape", "params": {{"shape": "rect", "x": 200, "y": 220, "width": 120, "height": 50, "fill": "rgba(16,185,129,0.1)", "stroke": "#10b981", "strokeWidth": 2}}}},
-    {{"type": "wb_draw_text", "params": {{"content": "处理", "x": 245, "y": 250, "fontSize": 14, "color": "#10b981"}}}}
-  ]
-}}
-
-请返回："""
-
-    try:
-        raw = await generator._call_llm_with_retry(system_prompt, user_prompt, temperature=0.5)
-        parsed = json.loads(raw) if raw.strip().startswith("{") else {}
-        if not parsed:
-            # Try extract from markdown code block
-            import re
-            match = re.search(r'```json\s*(.*?)\s*```', raw, re.DOTALL)
-            if match:
-                parsed = json.loads(match.group(1))
-        actions = parsed.get("actions", [])
-        if not actions:
-            return {"success": False, "error": "AI 未能生成有效的绘图指令"}
-        return {"success": True, "actions": actions}
-    except Exception as e:
-        logger.error(f"Whiteboard AI draw failed: {e}")
-        return {"success": False, "error": str(e)}
 
 
 # ============================================================
