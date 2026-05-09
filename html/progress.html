@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -40,7 +40,7 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-value" id="total-hours">156</span>
+                    <span class="stat-value" id="total-hours">0</span>
                     <span class="stat-unit">小时</span>
                 </div>
                 <span class="stat-label">总学习时长</span>
@@ -53,7 +53,7 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-value" id="completed-courses">12</span>
+                    <span class="stat-value" id="completed-courses">0</span>
                     <span class="stat-unit">门</span>
                 </div>
                 <span class="stat-label">已完成课程</span>
@@ -66,7 +66,7 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-value" id="current-streak">15</span>
+                    <span class="stat-value" id="current-streak">0</span>
                     <span class="stat-unit">天</span>
                 </div>
                 <span class="stat-label">连续学习</span>
@@ -79,7 +79,7 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-value" id="avg-daily">2.5</span>
+                    <span class="stat-value" id="avg-daily">0.0</span>
                     <span class="stat-unit">小时</span>
                 </div>
                 <span class="stat-label">日均学习</span>
@@ -95,36 +95,7 @@
                     <span class="chart-subtitle">每日学习时长分布</span>
                 </div>
                 <div class="weekly-chart" id="weekly-chart">
-                    <div class="bar-chart">
-                        <div class="chart-bar" data-day="周一" data-hours="2.5">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">2.5h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周二" data-hours="3.2">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">3.2h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周三" data-hours="1.8">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">1.8h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周四" data-hours="4.0">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">4.0h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周五" data-hours="2.8">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">2.8h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周六" data-hours="3.5">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">3.5h</span>
-                        </div>
-                        <div class="chart-bar" data-day="周日" data-hours="2.0">
-                            <div class="bar-fill" style="height: 0%"></div>
-                            <span class="bar-value">2.0h</span>
-                        </div>
-                    </div>
+                    <div class="empty-state">正在加载学习活动...</div>
                 </div>
             </div>
 
@@ -135,66 +106,7 @@
                     <span class="chart-subtitle">各分类学习完成率</span>
                 </div>
                 <div class="course-progress-list" id="course-progress-list">
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="progress-icon">🐍</span>
-                            <span class="progress-name">Python</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill python" style="width: 0%"></div>
-                            </div>
-                            <span class="progress-percent">75%</span>
-                        </div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="progress-icon">🧮</span>
-                            <span class="progress-name">算法</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill algorithm" style="width: 0%"></div>
-                            </div>
-                            <span class="progress-percent">50%</span>
-                        </div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="progress-icon">☕</span>
-                            <span class="progress-name">Java</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill java" style="width: 0%"></div>
-                            </div>
-                            <span class="progress-percent">30%</span>
-                        </div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="progress-icon">🗄️</span>
-                            <span class="progress-name">数据库</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill database" style="width: 0%"></div>
-                            </div>
-                            <span class="progress-percent">45%</span>
-                        </div>
-                    </div>
-                    <div class="progress-item">
-                        <div class="progress-info">
-                            <span class="progress-icon">🌐</span>
-                            <span class="progress-name">Web开发</span>
-                        </div>
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-track">
-                                <div class="progress-bar-fill web" style="width: 0%"></div>
-                            </div>
-                            <span class="progress-percent">60%</span>
-                        </div>
-                    </div>
+                    <div class="empty-state">正在加载课程进度...</div>
                 </div>
             </div>
         </div>
@@ -252,56 +164,7 @@
                     <span class="chart-subtitle">近期学习动态</span>
                 </div>
                 <div class="timeline" id="learning-timeline">
-                    <div class="timeline-item">
-                        <div class="timeline-dot completed"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-title">完成章节「排序算法」</span>
-                                <span class="timeline-time">今天 14:30</span>
-                            </div>
-                            <p class="timeline-desc">数据结构与算法 - 第8章</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot completed"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-title">完成课程「MySQL 进阶」</span>
-                                <span class="timeline-time">昨天 21:15</span>
-                            </div>
-                            <p class="timeline-desc">数据库 - 索引优化与事务处理</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot completed"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-title">完成章节「装饰器」</span>
-                                <span class="timeline-time">昨天 18:40</span>
-                            </div>
-                            <p class="timeline-desc">Python 进阶 - 高级特性</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot in-progress"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-title">开始学习「Spring Boot」</span>
-                                <span class="timeline-time">4月11日</span>
-                            </div>
-                            <p class="timeline-desc">Java 企业级开发</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot pending"></div>
-                        <div class="timeline-content">
-                            <div class="timeline-header">
-                                <span class="timeline-title">计划学习「微服务架构」</span>
-                                <span class="timeline-time">4月15日</span>
-                            </div>
-                            <p class="timeline-desc">系统设计 - 服务拆分与治理</p>
-                        </div>
-                    </div>
+                    <div class="empty-state">正在加载学习记录...</div>
                 </div>
             </div>
         </div>
@@ -351,3 +214,5 @@
     <script src="/js/progress.js"></script>
 </body>
 </html>
+
+

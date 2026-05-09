@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     initVideoPlayer();
     initChapterList();
+    initExternalVideoLinks();
     initAICompanion();
 });
 
@@ -17,6 +18,11 @@ function initVideoPlayer() {
 
     if (playBtn) {
         playBtn.addEventListener('click', togglePlay);
+    }
+
+    const continueBtn = document.getElementById('continue-learning-btn');
+    if (continueBtn) {
+        continueBtn.addEventListener('click', togglePlay);
     }
 
     if (videoPlayer) {
@@ -69,12 +75,12 @@ function togglePlay() {
     if (isPlaying) {
         playIcon.classList.add('hidden');
         pauseIcon.classList.remove('hidden');
-        showToast('▶️ 播放中', 'success');
+        showToast('进度预览中', 'success');
         startProgressSimulation();
     } else {
         playIcon.classList.remove('hidden');
         pauseIcon.classList.add('hidden');
-        showToast('⏸️ 已暂停', 'info');
+        showToast('已暂停预览', 'info');
         stopProgressSimulation();
     }
 }
@@ -165,6 +171,12 @@ function initChapterList() {
 
     chapters.forEach(chapter => {
         chapter.addEventListener('click', function() {
+            const videoUrl = this.dataset.videoUrl;
+            if (videoUrl) {
+                openExternalVideo(videoUrl);
+                return;
+            }
+
             if (this.classList.contains('locked')) {
                 showToast('🔒 完成当前章节后解锁', 'warning');
                 return;
@@ -176,6 +188,21 @@ function initChapterList() {
             }
         });
     });
+}
+
+function initExternalVideoLinks() {
+    document.querySelectorAll('button[data-video-url]').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openExternalVideo(this.dataset.videoUrl);
+        });
+    });
+}
+
+function openExternalVideo(videoUrl) {
+    if (!videoUrl) return;
+    window.open(videoUrl, '_blank', 'noopener,noreferrer');
+    showToast('正在打开 Python 基础入门视频', 'success');
 }
 
 function initAICompanion() {

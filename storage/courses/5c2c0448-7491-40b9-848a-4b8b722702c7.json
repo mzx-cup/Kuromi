@@ -1,0 +1,496 @@
+{
+  "courseId": "5c2c0448-7491-40b9-848a-4b8b722702c7",
+  "title": "Python零基础入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Python初识与环境",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Python语言的发展历史与主要应用领域",
+        "Python解释器的安装与环境变量配置",
+        "PyCharm或VS Code编辑器的基本使用"
+      ],
+      "description": "介绍Python语言的历史背景、应用领域，并演示开发环境的安装与配置过程。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "变量的命名规则与赋值操作",
+        "整数、浮点数与字符串数据类型",
+        "使用type()函数查看变量类型"
+      ],
+      "description": "通过交互式练习，学习变量的定义命名规则，以及数字、字符串等基础数据类型。"
+    },
+    {
+      "id": 3,
+      "title": "基础语法小测",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "合法的变量命名规则判断",
+        "不同数据类型之间的强制转换",
+        "算术运算符与比较运算符的使用"
+      ],
+      "description": "针对变量命名规范、数据类型转换及基本运算符进行随堂测验，巩固基础知识。"
+    },
+    {
+      "id": 4,
+      "title": "流程控制逻辑图",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "if-elif-else条件判断语句逻辑",
+        "for循环与while循环的执行流程",
+        "break与continue关键字的作用"
+      ],
+      "description": "利用流程图可视化工具，模拟if条件判断与循环结构的执行路径，理解程序流向。"
+    },
+    {
+      "id": 5,
+      "title": "列表与字典操作",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "列表的索引访问、切片与常用方法",
+        "字典的键值对创建与数据访问",
+        "列表与字典的嵌套使用场景"
+      ],
+      "description": "在代码编辑器中实战演练，学习如何创建、修改列表和字典，并进行数据增删改查。"
+    },
+    {
+      "id": 6,
+      "title": "函数定义与调用",
+      "type": "video",
+      "points": 3,
+      "key_points": [
+        "函数的定义规范与文档字符串编写",
+        "位置参数、关键字参数与默认参数",
+        "函数返回值与变量作用域概念"
+      ],
+      "description": "观看教学视频，深入理解函数的封装思想、参数传递机制以及返回值的使用方法。"
+    },
+    {
+      "id": 7,
+      "title": "数据分析小助手",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "使用pandas库读取与处理CSV数据",
+        "数据清洗与基础统计分析方法",
+        "使用matplotlib库绘制数据图表"
+      ],
+      "description": "基于真实案例，读取销售数据文件，利用Python进行清洗、统计并生成可视化图表。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "hero-center",
+      "title": "Python初识与环境搭建",
+      "content": [
+        {
+          "sub_title": "语言简介",
+          "bullets": [
+            "诞生于1989年，由Guido van Rossum创建",
+            "简洁优雅，接近自然语言，易于上手",
+            "开源免费，拥有庞大的开发者社区",
+            "TIOBE排行榜常驻前三，流行度极高"
+          ],
+          "narration": "同学们好！欢迎来到Python零基础入门的第一课。今天我们将正式推开编程世界的大门。Python这门语言诞生于1989年的圣诞节，由Guido van Rossum创建。它最大的特点就是简洁优雅，非常接近我们人类的自然语言，所以即使是零基础的同学也能快速上手。根据最新的TIOBE编程语言排行榜显示，Python常年稳居前三，是目前最流行的编程语言之一。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A futuristic glowing Python logo floating in a dark blue digital space with binary code streams in background, representing the beginning of a programming journey",
+          "video_url": null,
+          "video_prompt": "Cinematic animation of a glowing Python logo emerging from digital particles, slowly rotating in a dark blue space with flowing binary code streams, representing the birth of Python language"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "Python应用领域全景",
+      "content": [
+        {
+          "sub_title": "数据科学",
+          "bullets": [
+            "数据分析与可视化首选工具",
+            "机器学习与人工智能核心语言",
+            "NumPy、Pandas、TensorFlow等库支持"
+          ],
+          "narration": "首先我们来看Python的应用领域。在数据科学领域，Python几乎是统治级的地位。无论是数据分析、数据可视化，还是现在最火热的人工智能和机器学习，Python都是首选语言。像NumPy、Pandas、TensorFlow这些强大的库，让Python在处理数据时如虎添翼。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Data visualization dashboard with colorful charts, graphs and neural network diagrams floating above a laptop screen",
+          "video_url": null,
+          "video_prompt": "Dynamic data visualization animation showing colorful charts and neural network connections forming and transforming on a futuristic holographic display"
+        },
+        {
+          "sub_title": "Web开发",
+          "bullets": [
+            "Django、Flask等成熟框架",
+            "Instagram、Pinterest等大厂都在用",
+            "开发效率高，适合快速迭代"
+          ],
+          "narration": "在Web开发领域，Python同样表现出色。Django和Flask这两个框架非常成熟，很多知名互联网公司如Instagram、Pinterest都在大规模使用Python进行后端开发。它的开发效率非常高，非常适合创业公司快速迭代产品。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Modern web application interface with code editor on one side and responsive website preview on the other, connected by glowing lines",
+          "video_url": null,
+          "video_prompt": "Animation of code being typed in an editor, with a web application interface building itself in real-time on the right side, showing the development process"
+        },
+        {
+          "sub_title": "自动化运维",
+          "bullets": [
+            "脚本编写简单，自动化办公利器",
+            "系统运维、测试自动化首选",
+            "可快速处理Excel、文件批量操作"
+          ],
+          "narration": "第三个重要领域是自动化运维。Python脚本编写简单，是自动化办公的神器。无论是处理Excel表格、批量重命名文件，还是系统运维、自动化测试，Python都能帮你从繁琐的重复劳动中解放出来，这也是很多非程序员学习Python的主要原因。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Robot arm organizing files and documents automatically, with gear icons and automation symbols floating around in an office setting",
+          "video_url": null,
+          "video_prompt": "Animation of a robot arm sorting files into folders while gear icons rotate, symbolizing automated workflow and batch processing in Python"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "Python解释器：代码的翻译官",
+      "content": [
+        {
+          "sub_title": "工作原理",
+          "bullets": [
+            "开发者编写Python代码（.py文件）",
+            "Python解释器将代码翻译成机器码",
+            "计算机执行机器码并返回结果",
+            "解释器充当\"翻译官\"角色"
+          ],
+          "narration": "在安装环境之前，我们需要先理解一个核心概念——Python解释器。很多同学会问，为什么写完代码不能直接运行？因为计算机只认识0和1组成的机器码，而我们写的是人类可读的Python代码。这时候就需要解释器充当\"翻译官\"的角色，它把我们写的Python代码翻译成计算机能理解的机器码，计算机才能执行。所以安装Python环境，本质上就是安装这个翻译官软件。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Diagram showing three stages: Python code file on left, interpreter gear in middle translating, and binary code on right with arrows connecting them",
+          "video_url": null,
+          "video_prompt": "Animated flow diagram showing Python source code flowing into a glowing interpreter machine, which then outputs streams of binary 0s and 1s, illustrating the translation process"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "环境安装与配置步骤",
+      "content": [
+        {
+          "sub_title": "安装流程",
+          "bullets": [
+            "1. 访问python.org官网下载最新版安装包",
+            "2. 运行安装程序，务必勾选\"Add to PATH\"",
+            "3. 验证安装：命令行输入 python --version",
+            "4. 安装编辑器：推荐VS Code或PyCharm",
+            "5. 安装Python扩展插件，完成环境配置"
+          ],
+          "narration": "接下来我们进入实操环节。首先访问python.org官网下载最新版本的安装包。这里有一个非常关键的步骤——安装时一定要勾选\"Add Python to PATH\"这个选项，这会把Python添加到系统环境变量中，让你在任何位置都能使用Python命令。安装完成后，打开命令行输入python --version，如果显示版本号就说明安装成功了。最后，推荐大家安装VS Code或PyCharm作为代码编辑器，它们都有强大的Python插件支持。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Step-by-step installation guide screenshot showing Python installer interface with 'Add to PATH' checkbox highlighted, and terminal window showing successful version check",
+          "video_url": null,
+          "video_prompt": "Screen recording style animation showing the Python installation process step by step, with the 'Add to PATH' checkbox being clicked and a terminal window opening to show version verification"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "comparison",
+      "title": "编辑器选择：VS Code vs PyCharm",
+      "content": [
+        {
+          "sub_title": "VS Code",
+          "bullets": [
+            "轻量级，启动速度快",
+            "免费开源，插件生态丰富",
+            "适合初学者和多语言开发者"
+          ],
+          "narration": "关于编辑器的选择，VS Code和PyCharm各有优势。VS Code是微软出品的轻量级编辑器，启动速度快，完全免费开源，插件生态非常丰富。它不仅支持Python，还支持几乎所有主流编程语言，非常适合初学者和多语言开发者使用。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Split screen comparison showing VS Code interface on left with minimalist design and PyCharm interface on right with feature-rich IDE layout",
+          "video_url": null,
+          "video_prompt": "Animated comparison showing VS Code launching quickly with a clean interface on the left, while PyCharm opens with more complex IDE panels on the right, highlighting the difference in approach"
+        },
+        {
+          "sub_title": "PyCharm",
+          "bullets": [
+            "专业Python IDE，功能强大",
+            "智能代码提示，调试功能完善",
+            "社区版免费，专业版需付费"
+          ],
+          "narration": "PyCharm则是专业的Python IDE，功能更加强大，智能代码提示和调试功能都非常完善。它有社区版和专业版两个版本，社区版免费，对于初学者来说已经足够使用了。如果你的电脑配置较好，且专注于Python开发，PyCharm会是一个不错的选择。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "PyCharm IDE interface showing Python code with intelligent code completion popup, debugger panel, and project structure sidebar",
+          "video_url": null,
+          "video_prompt": "Animation of PyCharm IDE showing intelligent code completion in action, with suggestions appearing as code is typed and debugger stepping through code execution"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍变量与数据类型的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习变量与数据类型的相关内容。",
+          "text": "本节将介绍变量与数据类型的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "流程控制逻辑图",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍流程控制逻辑图的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习流程控制逻辑图的相关内容。",
+          "text": "本节将介绍流程控制逻辑图的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "列表与字典操作",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍列表与字典操作的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习列表与字典操作的相关内容。",
+          "text": "本节将介绍列表与字典操作的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数定义与调用",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍函数定义与调用的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习函数定义与调用的相关内容。",
+          "text": "本节将介绍函数定义与调用的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "数据分析小助手",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍数据分析小助手的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习数据分析小助手的相关内容。",
+          "text": "本节将介绍数据分析小助手的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [
+    {
+      "scene_id": 3,
+      "title": "基础语法小测",
+      "questions": [
+        {
+          "id": 1,
+          "question": "在Python中，下列哪个变量名是合法的？",
+          "question_type": "single",
+          "options": [
+            "1st_player",
+            "my-score",
+            "_count",
+            "class"
+          ],
+          "correct_answer": 2,
+          "explanation": "Python变量命名规则规定：变量名必须以字母、下划线或美元符号开头，不能以数字开头，故A错误；变量名中不能包含连字符'-'，应使用下划线，故B错误；'class'是Python的保留关键字，不能用作变量名，故D错误。'_count'以下划线开头，符合命名规则。",
+          "points": 5
+        },
+        {
+          "id": 2,
+          "question": "关于Python中的数据类型转换，以下说法正确的是？",
+          "question_type": "multiple",
+          "options": [
+            "使用int()函数可以将浮点数转换为整数",
+            "使用str()函数可以将数字转换为字符串",
+            "任何类型的字符串都可以直接转换为整数",
+            "数据类型转换只能由系统自动完成，无法手动操作"
+          ],
+          "correct_answers": [
+            0,
+            1
+          ],
+          "explanation": "int()函数确实可以将浮点数转换为整数（向下取整），A正确；str()函数用于将其他类型转换为字符串，B正确；只有包含数字的字符串才能转换为整数，包含字母的字符串转换会报错，C错误；Python支持手动强制类型转换，如int('5')，D错误。",
+          "points": 8
+        },
+        {
+          "id": 3,
+          "question": "请写出以下Python代码的运行结果，并解释原因。\n\na = 10\nb = 3\nprint(a // b)\nprint(a % b)",
+          "question_type": "short_answer",
+          "answer": "代码运行结果为：\n3\n1\n原因：'//'是整除运算符，计算结果为商的整数部分，10除以3商3余1，所以结果是3；'%'是取模（取余）运算符，计算结果为除法后的余数，10除以3的余数是1。",
+          "comment_prompt": "评分标准：\n1. 正确写出两个输出结果（3和1），得5分；\n2. 正确解释'//'为整除运算符，得5分；\n3. 正确解释'%'为取模或取余运算符，得5分。\n总分15分。",
+          "key_points": [
+            "输出结果为3和1",
+            "//表示整除运算",
+            "%表示取模/取余运算"
+          ],
+          "explanation": "本题考查算术运算符的使用。'//'运算符执行地板除（floor division），返回商的整数部分；'%'运算符返回除法的余数。掌握这两个运算符的区别对于处理数值计算非常重要。",
+          "points": 15
+        }
+      ],
+      "speech": "同学们好！欢迎来到基础语法小测环节。刚才我们已经学习了变量命名、数据类型转换和运算符的相关知识。现在请大家准备好键盘，认真审题，通过这几道题目来检验一下自己的学习成果吧！"
+    }
+  ],
+  "exercise_data": [
+    {
+      "id": 2,
+      "scene_id": 2,
+      "title": "Python变量与数据类型基础练习",
+      "exercises": [
+        {
+          "instruction": "请定义一个名为 'user_name' 的变量，并将其赋值为字符串 'Python新手'。",
+          "hints": [
+            "变量名要在等号左边，值在右边。",
+            "字符串内容需要用引号（单引号或双引号）包裹。"
+          ],
+          "expected_answer": "user_name = 'Python新手'"
+        },
+        {
+          "instruction": "定义一个整数变量 'age' 赋值为 18，再定义一个浮点数变量 'price' 赋值为 59.9。",
+          "hints": [
+            "整数直接写数字，不需要引号。",
+            "浮点数是包含小数点的数字。"
+          ],
+          "expected_answer": "age = 18\nprice = 59.9"
+        },
+        {
+          "instruction": "使用 type() 函数检查变量 'price' 的数据类型，并打印结果。",
+          "hints": [
+            "type() 函数用于查看变量类型。",
+            "打印结果需要使用 print() 函数。"
+          ],
+          "expected_answer": "print(type(price))"
+        }
+      ],
+      "speech": "同学们好，欢迎来到Python变量与数据类型的实战环节。变量就像一个个贴了标签的盒子，用来存储不同的数据。在练习中，大家要注意命名规则，区分字符串与数字的书写方式。特别是使用 type() 函数时，它能帮我们确认盒子里到底装了什么类型的数据。请大家动手尝试，感受Python赋值的魅力吧！"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习python",
+    "student_id": "1",
+    "session_id": "5c2c0448-7491-40b9-848a-4b8b722702c7",
+    "generated_at": "2026-05-05 12:04:07",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

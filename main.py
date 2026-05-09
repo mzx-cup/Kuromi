@@ -50,6 +50,12 @@ from agent_utils import (
 from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
 from config import settings
+from app.services.dashboard_data import (
+    build_calendar_payload,
+    build_focus_event,
+    build_focus_payload,
+    build_progress_summary,
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
@@ -84,6 +90,19 @@ app.add_middleware(
 # ---- V2 API routes (Star-Learn 2.0) ----
 from app.api import router as v2_router
 app.include_router(v2_router)
+
+
+def _plain_dict_list(rows):
+    result = []
+    for row in rows or []:
+        if isinstance(row, dict):
+            result.append(row)
+        else:
+            try:
+                result.append(dict(row))
+            except Exception:
+                result.append(row)
+    return result
 
 
 @app.middleware("http")
@@ -4597,6 +4616,15 @@ class FocusSaveRequest(BaseModel):
     userId: int
     focusData: list = []
 
+class FocusRecordRequest(BaseModel):
+    userId: int
+    studyMinutes: int = 0
+    focusMinutes: int = 0
+    pageSwitches: int = 0
+    completedFocus: bool = False
+    source: str = "activity"
+    timestamp: Optional[str] = None
+
 class EcoSaveRequest(BaseModel):
     userId: int
     ecoData: dict = {}
@@ -5196,6 +5224,39 @@ def get_trend_data(user_id: int, days: int = 7):
         return {"success": True, "trend": []}
 
 
+@app.get("/api/progress/summary/{user_id}")
+def get_progress_summary(user_id: int, range: str = "month"):
+    """Return DB-backed data needed by progress.html."""
+    try:
+        range_key = range if range in ("week", "month", "year", "all") else "month"
+        today_dt = datetime.now()
+        today = today_dt.strftime("%Y-%m-%d")
+        start_date = None
+        if range_key == "week":
+            start_date = (today_dt - timedelta(days=today_dt.weekday())).strftime("%Y-%m-%d")
+        elif range_key == "month":
+            start_date = today_dt.replace(day=1).strftime("%Y-%m-%d")
+        elif range_key == "year":
+            start_date = today_dt.replace(month=1, day=1).strftime("%Y-%m-%d")
+
+        stats = database.get_user_stats(user_id) or {}
+        sessions = database.get_study_sessions(user_id, start_date, today) if start_date else database.get_study_sessions(user_id)
+        goals = database.get_learning_goals(user_id, active_only=False)
+        mastery = database.get_user_knowledge_mastery(user_id)
+        summary = build_progress_summary(
+            user_id=user_id,
+            range_key=range_key,
+            today=today,
+            stats=stats,
+            sessions=_plain_dict_list(sessions),
+            goals=_plain_dict_list(goals),
+            mastery=_plain_dict_list(mastery),
+        )
+        return {"success": True, "summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载学习进度失败: {str(e)}")
+
+
 # ── 通知 ──
 
 @app.post("/api/notifications/save")
@@ -5307,11 +5368,47 @@ def save_focus(request: FocusSaveRequest):
         raise HTTPException(status_code=500, detail=f"保存专注历史失败: {str(e)}")
 
 
+@app.post("/api/focus/record")
+def record_focus(request: FocusRecordRequest):
+    try:
+        focus = database.get_user_focus_history(request.userId) or []
+        if not isinstance(focus, list):
+            focus = []
+        event = build_focus_event(
+            study_minutes=request.studyMinutes,
+            focus_minutes=request.focusMinutes,
+            page_switches=request.pageSwitches,
+            completed_focus=request.completedFocus,
+            timestamp=request.timestamp,
+            source=request.source,
+        )
+        focus.append(event)
+        focus = focus[-240:]
+        database.save_user_focus_history(request.userId, focus)
+        focus_summary = build_focus_payload(focus)
+        return {
+            "success": True,
+            "event": event,
+            "focusData": focus,
+            "focusSummary": focus_summary,
+            **focus_summary,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"璁板綍涓撴敞鍘嗗彶澶辫触: {str(e)}")
+
+
 @app.get("/api/focus/load/{user_id}")
 def load_focus(user_id: int):
     try:
         focus = database.get_user_focus_history(user_id)
-        return {"success": True, "focusData": focus if focus else []}
+        focus_data = focus if focus else []
+        focus_summary = build_focus_payload(focus_data)
+        return {
+            "success": True,
+            "focusData": focus_data,
+            "focusSummary": focus_summary,
+            **focus_summary,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载专注历史失败: {str(e)}")
 
@@ -5581,7 +5678,18 @@ def save_calendar_events(request: CalendarEventsSaveRequest):
 def load_calendar_events(user_id: int):
     try:
         events = database.get_user_calendar_events(user_id)
-        return {"success": True, "eventsData": events if events else {}}
+        events_data = events if events else {}
+        sessions = database.get_study_sessions(user_id)
+        calendar_data = build_calendar_payload(
+            events_data=events_data,
+            sessions=_plain_dict_list(sessions),
+            today=datetime.now().strftime("%Y-%m-%d"),
+        )
+        return {
+            "success": True,
+            "eventsData": events_data,
+            "calendarData": calendar_data,
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载日历事件失败: {str(e)}")
 

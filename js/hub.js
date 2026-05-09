@@ -4,7 +4,8 @@
 let focusTracker = {
     baseFlowValue: 94,
     currentFlow: 94,
-    updateInterval: null
+    updateInterval: null,
+    focusSummary: null
 };
 
 function getPageVisits() {
@@ -32,13 +33,69 @@ function calcFlowScore() {
 }
 
 function updateFocusValue() {
-    const { score, count } = calcFlowScore();
+    const fallback = calcFlowScore();
+    const score = focusTracker.focusSummary ? (Number(focusTracker.focusSummary.score) || 0) : fallback.score;
+    const count = fallback.count;
     focusTracker.currentFlow = score;
 
     const el = document.getElementById('nav-flow-value');
     if (el) {
         el.textContent = score + '%';
-        el.style.color = count >= 4 ? '#ef4444' : '';
+        el.style.color = score < 55 || count >= 4 ? '#ef4444' : '';
+    }
+    updateFlowResonanceCard();
+}
+
+function updateFlowResonanceCard() {
+    const summary = focusTracker.focusSummary;
+    const score = focusTracker.currentFlow || 0;
+    const headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child');
+    if (headerStats[0]) headerStats[0].textContent = `${score}%`;
+    if (headerStats[1]) {
+        const timeline = summary?.timeline || [];
+        const avg = timeline.length
+            ? Math.round(timeline.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / timeline.length)
+            : score;
+        headerStats[1].textContent = `${avg}%`;
+    }
+
+    const footer = document.querySelector('.flow-resonance-footer');
+    if (!footer) return;
+
+    if (!summary || !Array.isArray(summary.timeline) || summary.timeline.length === 0) {
+        footer.innerHTML = `
+            <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>暂无心流记录</span></div>
+            <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>开始学习后生成波段</span></div>
+            <div class="flow-stat"><span class="flow-stat-dot low"></span><span>当前分数: ${score}%</span></div>
+        `;
+        return;
+    }
+
+    const segments = summary.segments || {};
+    footer.innerHTML = `
+        <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>深度专注: ${segments.deep || 0}段</span></div>
+        <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>预警波段: ${segments.warning || 0}次</span></div>
+        <div class="flow-stat"><span class="flow-stat-dot low"></span><span>浅层专注: ${segments.shallow || 0}段</span></div>
+    `;
+}
+
+async function loadFocusData() {
+    try {
+        const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        if (!user.id) return;
+        const response = await fetch(`/api/focus/load/${user.id}`);
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.detail || 'load focus failed');
+        focusTracker.focusSummary = data.focusSummary || {
+            score: Number(data.score) || 0,
+            timeline: data.timeline || [],
+            segments: data.segments || { deep: 0, shallow: 0, warning: 0 }
+        };
+    } catch (error) {
+        console.error('加载心流数据失败:', error);
+        focusTracker.focusSummary = null;
+    } finally {
+        updateFocusValue();
     }
 }
 
@@ -59,7 +116,7 @@ function initFocusTracker() {
         }
     });
 
-    updateFocusValue();
+    loadFocusData();
     focusTracker.updateInterval = setInterval(updateFocusValue, 1000);
 }
 
@@ -948,6 +1005,7 @@ async function syncLearningMinute() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id }),
         });
+        window.StarFocusSync?.recordStudyMinute(1);
         localStorage.setItem('starlearn_learning_update', String(Date.now()));
     } catch (e) { /* silent */ }
 }
@@ -3369,6 +3427,18 @@ window.addEventListener('storage', (e) => {
         loadFocusTasks();
         loadFocusCalendar();
         loadLearningDomains();
+    }
+    if (e.key === 'starlearn_focus_update') {
+        loadFocusData();
+    }
+});
+
+window.addEventListener('starlearn:focus-updated', (event) => {
+    if (event.detail) {
+        focusTracker.focusSummary = event.detail;
+        updateFocusValue();
+    } else {
+        loadFocusData();
     }
 });
 

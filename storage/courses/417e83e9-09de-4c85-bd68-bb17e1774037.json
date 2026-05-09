@@ -1,0 +1,479 @@
+{
+  "courseId": "417e83e9-09de-4c85-bd68-bb17e1774037",
+  "title": "Python快速入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Python概述",
+      "type": "slide",
+      "points": 4,
+      "key_points": [
+        "Python由Guido van Rossum于1989年圣诞节期间发明",
+        "设计哲学强调代码可读性和简洁性",
+        "主要应用领域：Web开发、数据分析、AI、自动化",
+        "Python拥有丰富的第三方库和活跃的社区支持"
+      ],
+      "description": "通过生动的幻灯片介绍Python语言的诞生历史、设计哲学、应用领域和优势特点，让零基础学员建立对Python的整体认知框架"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 4,
+      "key_points": [
+        "变量是存储数据的容器，通过等号赋值",
+        "基本数据类型包括：整数、浮点数、字符串、布尔值",
+        "使用type()函数可以查看变量类型",
+        "不同数据类型之间可以相互转换"
+      ],
+      "description": "通过交互式模拟器，让学员在动态界面中直观理解变量赋值、数据类型转换规则，通过拖拽和点击操作感受不同数据类型的行为特征"
+    },
+    {
+      "id": 3,
+      "title": "编写第一个程序",
+      "type": "code",
+      "points": 4,
+      "key_points": [
+        "使用print()函数向屏幕输出信息",
+        "字符串可以用单引号或双引号包裹",
+        "井号(#)用于添加单行注释",
+        "学会解读和修复基本的语法错误"
+      ],
+      "description": "在集成编程环境中完成Hello World程序，实践print函数使用、代码注释规范、常见错误诊断和程序运行流程"
+    },
+    {
+      "id": 4,
+      "title": "语法闯关练习",
+      "type": "exercise",
+      "points": 4,
+      "key_points": [
+        "变量命名必须以字母或下划线开头，不能使用关键字",
+        "算术运算符：加减乘除、整除、求余、幂运算",
+        "字符串支持拼接、重复和格式化操作",
+        "掌握常见的代码规范和最佳实践"
+      ],
+      "description": "完成一系列阶梯式编程挑战，包括变量命名、运算符使用、字符串拼接等任务，系统即时反馈和错误提示帮助强化语法记忆"
+    },
+    {
+      "id": 5,
+      "title": "流程控制检测",
+      "type": "quiz",
+      "points": 4,
+      "key_points": [
+        "条件语句使用if、elif、else关键字进行分支判断",
+        "比较运算符和逻辑运算符用于构建复杂条件",
+        "for循环适合遍历已知次数的场景",
+        "while循环适用于条件未知的重复执行"
+      ],
+      "description": "通过选择题、判断题和填空题全面检验学员对条件语句和循环结构的理解程度，题目涵盖if-elif-else结构和for-while循环的用法"
+    },
+    {
+      "id": 6,
+      "title": "循环结构图解",
+      "type": "diagram",
+      "points": 4,
+      "key_points": [
+        "流程图使用不同形状表示开始、过程、判断和结束",
+        "循环结构包含初始化、条件和循环体三个部分",
+        "break和continue控制循环的执行流程",
+        "嵌套循环可用于处理多维数据问题"
+      ],
+      "description": "通过动态流程图清晰展示for循环和while循环的执行流程、分支结构的判断路径，配合动画效果帮助理解程序的执行顺序"
+    },
+    {
+      "id": 7,
+      "title": "数据分析初探",
+      "type": "pbl",
+      "points": 4,
+      "key_points": [
+        "使用列表存储和操作一组数据",
+        "利用函数封装可复用的数据处理逻辑",
+        "使用字典管理结构化数据记录",
+        "结合数据分析和可视化解决实际问题"
+      ],
+      "description": "面对真实的气象数据统计问题，团队协作完成数据清洗、计算平均温度、找出最高最低值，并生成可视化报表的全流程项目实践"
+    },
+    {
+      "id": 8,
+      "title": "函数封装原理",
+      "type": "video",
+      "points": 4,
+      "key_points": [
+        "使用def关键字定义函数并命名",
+        "函数参数可以是必需参数或默认参数",
+        "return语句用于返回函数执行结果",
+        "良好的函数设计遵循单一职责原则"
+      ],
+      "description": "通过专家讲解视频，系统学习函数的定义语法、参数传递方式、返回值机制，理解为什么要封装函数以及如何设计良好的函数接口"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "Python概述",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍Python概述的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习Python概述的相关内容。",
+          "text": "本节将介绍Python概述的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍变量与数据类型的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习变量与数据类型的相关内容。",
+          "text": "本节将介绍变量与数据类型的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "编写第一个程序",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍编写第一个程序的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习编写第一个程序的相关内容。",
+          "text": "本节将介绍编写第一个程序的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "语法闯关练习",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍语法闯关练习的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习语法闯关练习的相关内容。",
+          "text": "本节将介绍语法闯关练习的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "循环结构流程图解",
+      "content": [
+        {
+          "sub_title": "流程图符号体系",
+          "bullets": [
+            "椭圆形：表示程序的开始与结束",
+            "矩形：表示处理步骤或计算过程",
+            "菱形：表示条件判断，有是/否两个出口",
+            "平行四边形：表示输入输出操作",
+            "箭头：连接各符号，指示执行方向"
+          ],
+          "narration": "同学们好！在深入代码之前，我们先来认识一下程序设计的'地图'——流程图。流程图通过标准化的图形符号，让看不见的程序逻辑变得清晰可见。根据ProcessOn等平台的规范，椭圆形代表起点和终点，矩形代表具体的处理步骤，而最重要的菱形则代表判断。这些符号通过箭头连接，形成了一条清晰的执行路径，帮助我们理解程序的走向。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A clean educational diagram showing standard flowchart symbols: oval for start/end, rectangle for process, diamond for decision, with labels and connecting arrows on white background",
+          "video_url": null,
+          "video_prompt": "Animated flowchart symbols appearing one by one with glowing effects, arrows drawing themselves to connect the shapes, demonstrating the flow of program logic"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "For循环 vs While循环",
+      "content": [
+        {
+          "sub_title": "For循环执行流程",
+          "bullets": [
+            "初始化：自动遍历序列元素",
+            "判断：检查是否还有元素",
+            "循环体：执行当前元素操作",
+            "自动迭代：移动到下一元素",
+            "适用场景：已知次数的遍历"
+          ],
+          "narration": "首先我们来看for循环。For循环就像是一个自动计数器，它的执行流程非常清晰：首先进行初始化，获取要遍历的序列；然后判断序列中是否还有元素；如果有，就进入循环体执行相应操作；执行完毕后自动迭代到下一个元素。这种结构特别适合已知循环次数的场景，比如遍历列表中的每一个数据。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "for i in range(5):\n    print(i)",
+          "image_url": "",
+          "image_prompt": "Left panel showing for loop flowchart with sequence iteration, elements being picked one by one from a list container",
+          "video_url": null,
+          "video_prompt": "Animation of for loop: a hand picking numbered balls from a container one by one, processing each ball, then moving to the next, with a counter incrementing"
+        },
+        {
+          "sub_title": "While循环执行流程",
+          "bullets": [
+            "初始化：手动设置计数器变量",
+            "条件判断：检查条件是否为真",
+            "循环体：执行操作并更新变量",
+            "循环控制：需手动更新条件",
+            "适用场景：不确定循环次数"
+          ],
+          "narration": "接下来是while循环。While循环更像是一个条件守门员，它的特点是'先判断，后执行'。根据CSDN等技术社区的总结，while循环需要先手动初始化变量，然后判断条件是否满足；条件为真时执行循环体，并且必须在循环体内更新条件变量，否则会陷入死循环。这种结构适合不确定具体循环次数的场景。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "count = 0\nwhile count < 5:\n    print(count)\n    count += 1",
+          "image_url": "",
+          "image_prompt": "Right panel showing while loop flowchart with condition diamond at top, emphasizing the manual counter update step",
+          "video_url": null,
+          "video_prompt": "Animation of while loop: a gatekeeper checking a condition meter, opening the gate when green, closing when red, showing repeated checking process"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "循环控制语句详解",
+      "content": [
+        {
+          "sub_title": "break语句",
+          "bullets": [
+            "作用：立即终止整个循环",
+            "执行后跳出循环结构",
+            "常用于满足条件时提前退出",
+            "循环不再继续执行"
+          ],
+          "narration": "Break语句就像是循环的紧急出口。当程序执行到break时，会立即终止整个循环，直接跳出循环结构。这在搜索场景中特别有用——当你找到目标后，就不需要继续浪费时间遍历剩余的数据了。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "for i in range(10):\n    if i == 5:\n        break",
+          "image_url": "",
+          "image_prompt": "Flowchart showing break statement jumping out of the loop structure, with a door opening symbol representing exit",
+          "video_url": null,
+          "video_prompt": "Animation of a runner on a circular track suddenly stopping and jumping out through an emergency exit door when reaching a checkpoint"
+        },
+        {
+          "sub_title": "continue语句",
+          "bullets": [
+            "作用：跳过本次循环剩余部分",
+            "直接进入下一次循环迭代",
+            "常用于过滤特定数据",
+            "循环整体继续执行"
+          ],
+          "narration": "Continue语句则像是循环中的跳过按钮。当执行到continue时，会跳过本次循环剩余的代码，直接回到循环开头进行下一次迭代。这在处理数据时很有用，可以跳过不需要处理的数据项。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "for i in range(5):\n    if i == 2:\n        continue\n    print(i)",
+          "image_url": "",
+          "image_prompt": "Flowchart showing continue statement skipping back to loop start, with a curved arrow bypassing part of the loop body",
+          "video_url": null,
+          "video_prompt": "Animation of a conveyor belt with items, one item being lifted over a processing station and placed back on the belt, showing skip behavior"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "info-graphic",
+      "title": "嵌套循环执行机制",
+      "content": [
+        {
+          "sub_title": "嵌套循环流程",
+          "bullets": [
+            "外层循环执行一次，内层循环完整执行一轮",
+            "内层循环全部完成后，外层才进入下一次迭代",
+            "总执行次数 = 外层次数 × 内层次数",
+            "常用于处理二维数据结构",
+            "break/continue默认只影响所在层循环"
+          ],
+          "narration": "最后我们来理解嵌套循环。根据CSDN博客的技术解析，嵌套循环的本质是把内层循环当作外层循环的循环体。这意味着外层循环每执行一次，内层循环就要完整地跑完一轮。比如一个2x3的嵌套循环，总执行次数就是6次。这种结构非常适合处理矩阵、表格这样的二维数据。需要注意的是，break和continue默认只能控制它们所在的那一层循环，不会影响外层。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "purple",
+          "code_snippet": "for i in range(3):\n    for j in range(4):\n        print(f\"({i},{j})\")",
+          "image_url": "",
+          "image_prompt": "Nested loops visualization with outer loop as large circle and inner loops as smaller circles inside, showing hierarchical structure",
+          "video_url": null,
+          "video_prompt": "Animation of clock gears: a large slow gear (outer loop) driving a small fast gear (inner loop), showing the relationship between iteration speeds"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "comparison",
+      "title": "循环结构知识总结",
+      "content": [
+        {
+          "sub_title": "核心要点回顾",
+          "bullets": [
+            "流程图用形状区分功能：椭圆起止、矩形处理、菱形判断",
+            "循环三要素：初始化、条件判断、循环体",
+            "For循环适合已知次数，While循环适合条件驱动",
+            "Break终止循环，Continue跳过当次",
+            "嵌套循环处理多维数据，注意层级控制"
+          ],
+          "narration": "让我们来总结今天学习的循环结构知识。流程图是理解程序逻辑的重要工具，不同形状代表不同功能。无论是for循环还是while循环，都包含初始化、条件判断和循环体三个核心要素。Break和continue让我们能灵活控制循环流程，而嵌套循环则拓展了我们处理复杂数据的能力。掌握这些流程控制结构，是编写高效Python程序的基础。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Summary infographic combining all loop concepts with icons and brief labels, arranged in a visually balanced composition",
+          "video_url": null,
+          "video_prompt": "Animated summary showing all loop types appearing in sequence with connecting lines, forming a complete knowledge map with pulsing highlights"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "数据分析初探",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍数据分析初探的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习数据分析初探的相关内容。",
+          "text": "本节将介绍数据分析初探的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数封装原理",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍函数封装原理的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习函数封装原理的相关内容。",
+          "text": "本节将介绍函数封装原理的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 8
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [],
+  "exercise_data": [
+    {
+      "id": 4,
+      "scene_id": 4,
+      "title": "Python语法闯关练习",
+      "exercises": [
+        {
+          "instruction": "请定义一个变量用于存储用户年龄，变量名为 'user_age'，并将其赋值为 25。请在一行代码中完成。",
+          "hints": [
+            "变量命名必须以字母或下划线开头，且不能包含空格。",
+            "赋值运算符使用等号 '='。",
+            "确保变量名全部小写，符合蛇形命名法规范。"
+          ],
+          "expected_answer": "user_age = 25"
+        },
+        {
+          "instruction": "已知圆的半径 radius = 5，请编写代码计算圆的面积（公式：π * r²）。使用变量 3.14 代替 π，并使用幂运算符计算平方。",
+          "hints": [
+            "幂运算符使用 '**'，例如 2 的 3 次方写作 2**3。",
+            "乘法使用 '*' 符号。",
+            "注意运算符优先级，或使用括号明确计算顺序。"
+          ],
+          "expected_answer": "area = 3.14 * radius ** 2"
+        },
+        {
+          "instruction": "请将字符串 'Hello' 和 'World' 拼接，中间添加一个空格，并将结果赋值给变量 greeting。",
+          "hints": [
+            "字符串拼接使用加号 '+' 运算符。",
+            "不要忘记在两个单词中间加上空格字符串 ' '。",
+            "字符串需要使用引号（单引号或双引号）包裹。"
+          ],
+          "expected_answer": "greeting = 'Hello' + ' ' + 'World'"
+        }
+      ],
+      "speech": "欢迎来到语法闯关环节！大家请注意，Python的变量命名必须遵循规则，只能以字母或下划线开头，且绝不能使用系统关键字。在刚才的运算练习中，我们复习了算术运算符，特别是幂运算符'**'的用法。最后，字符串拼接时别忘了处理空格，否则输出结果会连在一起。这些基础语法是编程的基石，请大家务必熟练掌握，规范书写。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习python",
+    "student_id": "2",
+    "session_id": "417e83e9-09de-4c85-bd68-bb17e1774037",
+    "generated_at": "2026-05-05 13:12:33",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

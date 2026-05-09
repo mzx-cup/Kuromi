@@ -215,6 +215,142 @@
       "completed": [],
       "generated_at": "2026-04-28T11:00:31.219870",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础知识入门",
+          "description": "观看高等数学基础概念视频课程",
+          "type": "study",
+          "duration": 35,
+          "subject": "数学",
+          "difficulty": "easy",
+          "taskUrl": "/video-player.html"
+        },
+        {
+          "id": 2,
+          "title": "编程实战训练",
+          "description": "完成Python基础语法练习题5道",
+          "type": "practice",
+          "duration": 50,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "AI概念问答",
+          "description": "与AI讨论数学核心概念理解",
+          "type": "study",
+          "duration": 20,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 4,
+          "title": "专注力训练",
+          "description": "完成25分钟番茄钟专注训练",
+          "type": "practice",
+          "duration": 25,
+          "subject": "方法",
+          "difficulty": "medium",
+          "taskUrl": "/flow-meter.html"
+        },
+        {
+          "id": 5,
+          "title": "虚拟宠物互动",
+          "description": "喂食虚拟宠物，放松学习压力",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        },
+        {
+          "id": 6,
+          "title": "查看学习进度",
+          "description": "回顾今日学习成果和知识点掌握",
+          "type": "review",
+          "duration": 10,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/progress.html"
+        }
+      ],
+      "date": "2026-05-07",
+      "completed": [],
+      "generated_at": "2026-05-07T21:22:37.591304",
+      "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "观看基础知识视频",
+          "description": "学习本学科核心概念入门课程",
+          "type": "study",
+          "duration": 20,
+          "subject": "通识",
+          "difficulty": "easy",
+          "taskUrl": "video-player.html"
+        },
+        {
+          "id": 2,
+          "title": "完成基础练习题",
+          "description": "完成5道基础知识练习题巩固所学",
+          "type": "practice",
+          "duration": 25,
+          "subject": "通识",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "专注力训练",
+          "description": "完成15分钟番茄钟专注力训练",
+          "type": "study",
+          "duration": 15,
+          "subject": "通用",
+          "difficulty": "easy",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 4,
+          "title": "AI问答学习",
+          "description": "通过苏格拉底式提问学习基础概念",
+          "type": "study",
+          "duration": 15,
+          "subject": "通识",
+          "difficulty": "medium",
+          "taskUrl": "socratic-ai.html"
+        },
+        {
+          "id": 5,
+          "title": "梳理今日所学",
+          "description": "用概念图梳理今天学习的知识点",
+          "type": "review",
+          "duration": 15,
+          "subject": "通识",
+          "difficulty": "medium",
+          "taskUrl": "concept-analyzer.html"
+        },
+        {
+          "id": 6,
+          "title": "放松小游戏",
+          "description": "喂养你的像素宠物放松一下吧",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-05-09",
+      "completed": [],
+      "generated_at": "2026-05-09T09:28:47.136108",
+      "user_id": 1
     }
   ],
   "classroom_records": [

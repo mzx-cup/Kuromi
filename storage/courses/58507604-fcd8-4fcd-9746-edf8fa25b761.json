@@ -1,0 +1,513 @@
+{
+  "courseId": "58507604-fcd8-4fcd-9746-edf8fa25b761",
+  "title": "Java编程入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "Java世界初探",
+      "type": "slide",
+      "points": 4,
+      "key_points": [
+        "Java语言跨平台原理与JVM虚拟机机制",
+        "JDK安装配置及环境变量设置详解",
+        "编写并运行第一个Java程序",
+        "Java程序的基本结构与main方法"
+      ],
+      "description": "通过幻灯片介绍Java发展历史、应用领域及开发环境搭建，展示Hello World程序。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 4,
+      "key_points": [
+        "八种基本数据类型及其存储空间占用",
+        "变量的声明、初始化与作用域范围",
+        "基本数据类型与引用数据类型的区别",
+        "自动类型转换与强制类型转换规则"
+      ],
+      "description": "通过交互式模拟，学习Java基本数据类型分类及变量声明与赋值操作。"
+    },
+    {
+      "id": 3,
+      "title": "流程控制逻辑",
+      "type": "diagram",
+      "points": 4,
+      "key_points": [
+        "if-else条件语句的嵌套与逻辑运算",
+        "switch语句的语法结构与穿透特性",
+        "for、while与do-while循环的区别",
+        "break与continue关键字控制跳转"
+      ],
+      "description": "利用流程图展示if-else条件分支与switch语句的执行路径，直观理解逻辑走向。"
+    },
+    {
+      "id": 4,
+      "title": "基础语法测验",
+      "type": "quiz",
+      "points": 4,
+      "key_points": [
+        "变量命名规则与数据类型转换陷阱",
+        "算术、关系与逻辑运算符的使用",
+        "条件语句与循环语句的执行顺序",
+        "常见语法错误与代码调试技巧"
+      ],
+      "description": "针对变量类型、运算符优先级及流程控制语句进行随堂测验，巩固基础知识。"
+    },
+    {
+      "id": 5,
+      "title": "数组操作实战",
+      "type": "code",
+      "points": 4,
+      "key_points": [
+        "一维数组的声明与静态/动态初始化",
+        "数组索引访问与ArrayIndexOutOfBoundsException",
+        "使用for循环与增强for循环遍历数组",
+        "冒泡排序算法原理与代码实现"
+      ],
+      "description": "在集成开发环境中练习一维数组的声明、初始化及遍历，实现冒泡排序算法。"
+    },
+    {
+      "id": 6,
+      "title": "面向对象编程",
+      "type": "exercise",
+      "points": 4,
+      "key_points": [
+        "类与对象的关系及对象的创建过程",
+        "封装性：private修饰符与getter/setter",
+        "继承extends关键字与方法重写Override",
+        "多态性的体现：向上转型与动态绑定"
+      ],
+      "description": "通过互动练习设计类图，定义属性与方法，理解封装、继承与多态的核心概念。"
+    },
+    {
+      "id": 7,
+      "title": "学生管理系统",
+      "type": "pbl",
+      "points": 4,
+      "key_points": [
+        "ArrayList集合框架的使用与数据存储",
+        "文件IO流实现数据的持久化保存",
+        "模块化编程思想与MVC分层架构",
+        "异常处理机制保证程序健壮性"
+      ],
+      "description": "运用集合框架与IO流技术，开发一个具有增删改查功能的学生信息管理系统。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "hero-center",
+      "title": "Java世界初探",
+      "content": [
+        {
+          "sub_title": "走进Java",
+          "bullets": [
+            "Java：不仅是语言，更是强大的技术平台",
+            "起源于Sun公司，广泛应用于分布式网络环境",
+            "三大版本：Java SE（标准版）、Java EE（企业版）、Java ME（微型版）",
+            "核心优势：一次编写，到处运行",
+            "Android开发底层正是利用Java调用Linux内核"
+          ],
+          "narration": "同学们好！欢迎来到Java编程的世界。很多人初学者认为Java仅仅是一种编程语言，但根据行业标准的定义，Java实际上是一个完整的技术平台。它不仅提供了开发类库，还包含了运行环境和部署环境等一系列支持。Java最初由Sun公司开发，专门应用于分布式网络环境。如今，它已经成为了真正意义上的语言标准。大家熟悉的Android开发，底层正是利用Java调用Linux内核操作来实现的。根据应用范围的不同，Java分为三个主要版本：用于桌面和基础开发的Java SE，用于企业级应用的Java EE，以及用于嵌入式设备的Java ME。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A futuristic digital world map with Java logo in the center, connected nodes representing global applications, tech-blue color scheme",
+          "video_url": null,
+          "video_prompt": "Dynamic animation of Java logo emerging from digital particles, expanding to show a global network of connected devices and applications, with smooth camera zoom and glowing connections"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "跨平台原理与JVM机制",
+      "content": [
+        {
+          "sub_title": "一次编译，到处运行",
+          "bullets": [
+            "Java源文件（.java）首先被编译为字节码（.class）",
+            "字节码是通用的中间格式，与操作系统无关",
+            "JVM（Java虚拟机）充当字节码与硬件之间的翻译官",
+            "不同操作系统安装不同版本的JVM，提供统一接口",
+            "JVM将字节码解释或编译为对应平台的机器码执行"
+          ],
+          "narration": "Java最著名的特性就是跨平台性，这背后的功臣就是JVM虚拟机机制。根据最新的技术文档解释，Java程序并不是直接在操作系统上运行的，而是先通过编译器将源代码编译成一种称为'字节码'的中间格式。这种字节码文件是通用的，与具体的操作系统无关。接下来，JVM虚拟机登场了。JVM就像一位精通多国语言的翻译官，它负责将字节码翻译成当前操作系统能够理解的机器码。需要注意的是，JVM本身并不是跨平台的，每个操作系统都有专门定制的JVM版本。正是因为不同平台提供了相同的JVM接口，Java程序才能实现'一次编译，到处运行'的神奇效果。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Flow diagram showing Java source code compiling to bytecode, then JVM translating to different OS machine codes (Windows, Linux, Mac)",
+          "video_url": null,
+          "video_prompt": "Animated flowchart with particles flowing from Java source file to bytecode container, then splitting into three streams going to different OS icons, each stream transforming through a JVM gateway"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "JDK安装与环境配置",
+      "content": [
+        {
+          "sub_title": "开发环境搭建四步走",
+          "bullets": [
+            "第一步：从Oracle官网下载适合系统的JDK安装包",
+            "第二步：运行安装程序，选择安装路径（建议无空格路径）",
+            "第三步：配置JAVA_HOME环境变量，指向JDK安装目录",
+            "第四步：编辑Path变量，添加%JAVA_HOME%\\bin路径",
+            "验证：命令行输入java -version和javac -version测试"
+          ],
+          "narration": "工欲善其事，必先利其器。要开始Java编程，我们首先需要搭建开发环境。JDK，即Java Development Kit，是Java开发工具包，它包含了JRE运行环境和编译器等开发工具。安装过程分为四个关键步骤。首先，从Oracle官网下载适合你操作系统的JDK版本。安装时，建议选择一个不含空格和中文的路径，比如直接放在C盘根目录下。接下来是关键的配置环节：我们需要设置两个环境变量。第一是JAVA_HOME，它指向JDK的安装目录；第二是Path变量，我们需要把JDK的bin目录路径追加进去。这样配置后，系统就能在任何位置识别java和javac命令了。最后，打开命令行输入java -version，如果显示版本信息，恭喜你，环境搭建成功！",
+          "text": "",
+          "icon": "check",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Step-by-step installation wizard interface screenshots with numbered callouts, clean technical illustration style",
+          "video_url": null,
+          "video_prompt": "Screen recording style animation showing cursor clicking through JDK installation steps, with numbered step indicators appearing sequentially and environment variable dialog boxes highlighting key fields"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "media-left",
+      "title": "第一个Java程序：Hello World",
+      "content": [
+        {
+          "sub_title": "代码解析",
+          "bullets": [
+            "public class Hello：类声明，类名必须与文件名完全一致",
+            "public static void main(String[] args)：程序入口主方法",
+            "System.out.println()：标准输出语句，打印内容到控制台",
+            "编译命令：javac Hello.java 生成字节码文件",
+            "运行命令：java Hello 执行程序（无需.class后缀）"
+          ],
+          "narration": "现在，让我们亲手编写第一个Java程序——经典的Hello World。请看屏幕左侧的代码示例。第一行public class Hello是类声明，注意Java规定类名必须与文件名完全一致，所以这个文件必须保存为Hello.java。接下来是main方法，它是Java程序的入口点，JVM运行程序时会从这里开始执行。public表示公开访问，static表示静态方法，void表示无返回值。方法体内的System.out.println语句用于向控制台输出文字。编写完成后，我们打开命令行，先用javac命令编译源文件，这会生成Hello.class字节码文件。然后用java命令运行，注意这里不需要加.class后缀。看到屏幕上打印出'Hello, World!'，你的第一个Java程序就成功运行了！",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "public class Hello {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, World!\");\n    }\n}",
+          "image_url": "",
+          "image_prompt": "Split view showing Java code editor on left side and terminal console output on right side, with syntax highlighting",
+          "video_url": null,
+          "video_prompt": "Code typing animation with characters appearing one by one, then split screen showing compilation process with progress bar, finally terminal window displaying 'Hello, World!' output with celebratory particle effect"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "grid-cards",
+      "title": "Java程序结构核心要素",
+      "content": [
+        {
+          "sub_title": "结构组成",
+          "bullets": [
+            "源文件：Java程序的最外层容器，扩展名为.java",
+            "类：Java程序的基本单元，一个文件可含多个类",
+            "方法：类的行为定义，包含具体执行的代码语句",
+            "语句：程序的最小执行单位，以分号结尾"
+          ],
+          "narration": "让我们深入理解Java程序的基本结构。Java程序采用层次化的组织方式，从外到内依次是源文件、类、方法和语句。源文件是Java程序的物理存储单位，扩展名必须是.java。类是Java程序的逻辑构建块，一个源文件中可以包含多个类，但public修饰的类只能有一个，且必须与文件名同名。方法定义了类的行为和功能，我们编写的代码逻辑就放在方法体中。而语句则是程序执行的最小单位，每条语句必须以分号结束。理解这个层级结构，对于后续学习面向对象编程至关重要。",
+          "text": "",
+          "icon": "book",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Hierarchical diagram showing nested boxes: Source File containing Class containing Methods containing Statements, with labels",
+          "video_url": null,
+          "video_prompt": "Animated nested containers expanding outward from center, each layer lighting up sequentially with labels appearing, showing the hierarchical structure of Java programs with smooth transitions"
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍变量与数据类型的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习变量与数据类型的相关内容。",
+          "text": "本节将介绍变量与数据类型的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "if-else条件分支流程",
+      "content": [
+        {
+          "sub_title": "条件判断路径",
+          "bullets": [
+            "流程起始于条件表达式的计算",
+            "条件为真(true)时进入if语句块",
+            "条件为假(false)时进入else语句块",
+            "嵌套结构通过多层菱形判断框展示",
+            "逻辑运算符连接多个复合条件",
+            "所有分支最终汇聚至统一出口点"
+          ],
+          "narration": "同学们好！今天我们来深入探讨Java中的流程控制逻辑。首先看到的是if-else条件分支的流程图。大家看屏幕上的动态演示，程序就像流水一样，遇到菱形的判断框就会分流。如果条件计算结果是true，水流就流向左侧的if语句块；如果是false，则流向右侧的else语句块。在实际开发中，我们经常需要处理复杂的逻辑，这时就会用到嵌套结构，也就是在判断框里再套一个判断框，层层递进。根据CSDN的技术文档建议，为了避免逻辑过于复杂，我们应当尽量避免深层嵌套，保持代码的清晰度。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "blue",
+          "code_snippet": "if (score >= 90) {\n    grade = 'A';\n} else if (score >= 60) {\n    grade = 'C';\n} else {\n    grade = 'D';\n}",
+          "image_url": "",
+          "image_prompt": "Flowchart diagram showing if-else branching logic with diamond decision shapes and rectangular process boxes, clean technical illustration",
+          "video_url": null,
+          "video_prompt": "Animated flowchart where a glowing particle travels down the path, splitting at a diamond decision node based on true/false conditions, demonstrating program flow branching with smooth camera movement"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "comparison",
+      "title": "switch语句与穿透特性",
+      "content": [
+        {
+          "sub_title": "switch执行逻辑",
+          "bullets": [
+            "表达式值与case常量逐一匹配",
+            "匹配成功后从该case处开始执行",
+            "若无break将继续执行后续case",
+            "穿透现象可用于合并多个case处理",
+            "default分支处理所有未匹配情况"
+          ],
+          "narration": "接下来我们看switch语句的执行路径。大家注意看中间的对比图，左侧是标准的switch结构。当程序执行时，它会拿着表达式的值去和case后面的常量一一比对。一旦匹配成功，程序就会跳入那个case开始执行。这里有个非常关键的点——如果没有遇到break关键字，程序会像滑滑梯一样继续往下滑，执行后面所有的case，这就是著名的'case穿透'现象。根据阿里云开发者社区的技术文章，我们在使用switch时必须警惕这一点，要么利用break明确终止，要么巧妙利用穿透特性来合并处理多个条件。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "switch (day) {\n    case 1: case 2: case 3:\n        System.out.println(\"工作日\");\n        break;\n    default:\n        System.out.println(\"休息日\");\n}",
+          "image_url": "",
+          "image_prompt": "Comparison diagram showing switch statement structure with and without break, highlighting fall-through behavior with arrows",
+          "video_url": null,
+          "video_prompt": "Animated switch statement execution where a value enters a multi-lane highway, showing the car 'falling through' multiple case exits when no break barrier is present, versus stopping at a break barrier"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "三大循环结构对比",
+      "content": [
+        {
+          "sub_title": "for循环",
+          "bullets": [
+            "适合已知循环次数的场景",
+            "初始化、条件、迭代三要素集中",
+            "结构紧凑，代码可读性强"
+          ],
+          "narration": "现在我们来看循环结构。首先是for循环，它最适合用在那些我们明确知道要循环多少次的场景。比如遍历一个数组，或者计算1到100的和。它的语法结构非常紧凑，把初始化、条件判断和迭代步长都放在一行里，一眼就能看懂循环的逻辑。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "for (int i = 0; i < 5; i++) {\n    System.out.println(i);\n}",
+          "image_url": "",
+          "image_prompt": "Circular loop diagram representing for loop with counter variable visualization",
+          "video_url": null,
+          "video_prompt": "A rotating gear mechanism with a counter display showing iterations 0 to 4, each tick triggering an action, representing the fixed iteration nature of for loops"
+        },
+        {
+          "sub_title": "while循环",
+          "bullets": [
+            "先判断条件，后执行循环体",
+            "适合不确定循环次数的场景",
+            "可能一次都不执行循环体"
+          ],
+          "narration": "第二个是while循环。它的特点是'先看后做'——先判断条件满不满足，满足了才进循环体。这就意味着，如果一开始条件就是假的，循环体可能一次都不会执行。它特别适合那些我们不知道具体要循环多少次，只知道结束条件的场景。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "orange",
+          "code_snippet": "while (x < 10) {\n    x++;\n}",
+          "image_url": "",
+          "image_prompt": "Flowchart showing while loop with condition check before process box",
+          "video_url": null,
+          "video_prompt": "A runner on a track approaching a conditional gate, only continuing to run laps while the gate remains open, stopping immediately when condition becomes false"
+        },
+        {
+          "sub_title": "do-while循环",
+          "bullets": [
+            "先执行循环体，后判断条件",
+            "循环体至少执行一次",
+            "语法末尾需加分号"
+          ],
+          "narration": "最后是do-while循环。它和while正好相反，是'先做后看'。不管条件成不成立，它都会先跑一遍循环体，然后再去检查要不要继续。这种结构在像'输入密码，错了重输'这种至少需要执行一次的场景中非常实用。这三种循环的区别在CSDN的教程中有非常详细的实例演示，大家课后可以去对比练习一下。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "do {\n    input = getInput();\n} while (!input.isValid());",
+          "image_url": "",
+          "image_prompt": "Activity diagram showing do-while loop with process before condition check",
+          "video_url": null,
+          "video_prompt": "A person entering a room and performing an action first, then checking a condition at the exit door to decide whether to go back and repeat, ensuring at least one action cycle"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "asymmetric-split",
+      "title": "跳转控制：break与continue",
+      "content": [
+        {
+          "sub_title": "流程跳转机制",
+          "bullets": [
+            "break：强制终止当前循环或switch语句块",
+            "continue：跳过本次迭代，直接进入下一次循环",
+            "break常用于找到目标即停止的搜索场景",
+            "continue用于过滤不符合条件的数据处理",
+            "在嵌套循环中可配合标签实现多层跳出"
+          ],
+          "narration": "最后我们来学习两个控制循环跳转的关键字。请看左侧的流程图演示，当程序遇到break时，就像踩了急刹车，直接跳出整个循环，继续执行循环后面的代码。而continue则像是'跳过'，它只跳过本次循环剩下的部分，直接回到循环开头进行下一次迭代。举个例子，我们在遍历学生成绩时，如果只想统计及格人数，遇到不及格的就可以用continue跳过。根据zihengCat的技术博客提醒，continue只能在循环里用，而break在switch和循环里都能用。这两个关键字让我们对程序流程有了更精细的控制能力。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "for (int i = 0; i < 10; i++) {\n    if (i == 4) break;     // 遇4停止\n    if (i % 2 == 0) continue; // 跳过偶数\n    System.out.println(i);\n}",
+          "image_url": "",
+          "image_prompt": "Split diagram showing break exiting a loop structure versus continue jumping back to loop start",
+          "video_url": null,
+          "video_prompt": "Animation of a ball rolling through a pipe loop: when hitting a 'break' wall it exits the pipe system entirely; when hitting a 'continue' ramp it jumps back to the start of the loop"
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "two-column",
+      "title": "数组操作实战",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍数组操作实战的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习数组操作实战的相关内容。",
+          "text": "本节将介绍数组操作实战的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "two-column",
+      "title": "面向对象编程",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍面向对象编程的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习面向对象编程的相关内容。",
+          "text": "本节将介绍面向对象编程的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "学生管理系统",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍学生管理系统的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习学生管理系统的相关内容。",
+          "text": "本节将介绍学生管理系统的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 7
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [],
+  "exercise_data": [
+    {
+      "id": 6,
+      "scene_id": 6,
+      "title": "Java面向对象编程核心概念实战",
+      "exercises": [
+        {
+          "instruction": "定义一个名为 'Student' 的类，实现封装性。要求：1. 使用 private 修饰符定义 'name' 和 'age' 属性；2. 为这两个属性提供 public 的 getter 和 setter 方法；3. 在 setAge 方法中加入逻辑判断，若传入年龄小于0则拒绝赋值。",
+          "hints": [
+            "属性前加 private 关键字实现私有化。",
+            "setter方法命名规范为 setAttributeName，且通常无返回值。",
+            "使用 if 语句在 setter 中进行逻辑校验。"
+          ],
+          "expected_answer": "public class Student { private String name; private int age; public String getName() { return name; } public void setName(String name) { this.name = name; } public int getAge() { return age; } public void setAge(int age) { if (age >= 0) { this.age = age; } } }"
+        },
+        {
+          "instruction": "基于已有的 'Animal' 父类，创建一个 'Dog' 子类。要求：1. 使用 extends 关键字继承 Animal；2. 重写 Animal 中的 sound() 方法，输出 “Dog barks”；3. 在 main 方法中演示向上转型：创建 Dog 对象赋值给 Animal 引用，并调用 sound() 方法验证多态性。",
+          "hints": [
+            "继承使用 extends 关键字。",
+            "重写方法需要保持方法签名一致，建议加上 @Override 注解。",
+            "向上转型语法：ParentClass ref = new ChildClass();"
+          ],
+          "expected_answer": "class Dog extends Animal { @Override public void sound() { System.out.println(\"Dog barks\"); } public static void main(String[] args) { Animal myDog = new Dog(); myDog.sound(); } }"
+        }
+      ],
+      "speech": "同学们，现在我们通过代码来感受面向对象的魅力。第一个练习聚焦于“封装”，请大家思考如何保护数据安全，利用private隐藏属性，通过公开接口访问。第二个练习则展示“继承与多态”，大家要注意子类如何扩展父类功能，以及向上转型时，程序运行时究竟调用了哪个类的方法——这就是动态绑定的精髓。动手试试吧！"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习java编程",
+    "student_id": "1",
+    "session_id": "58507604-fcd8-4fcd-9746-edf8fa25b761",
+    "generated_at": "2026-05-05 12:54:17",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

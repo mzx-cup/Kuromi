@@ -1476,7 +1476,7 @@ html body #chat-container {
 #chat-container .msg-row > div {
     display: flex !important;
     flex-direction: column !important;
-    max-width: 90% !important;
+    max-width: 96% !important;
     width: auto !important;
 }
 
@@ -1595,6 +1595,216 @@ html body .msg-bubble,
 .msg-bubble pre { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; overflow-x: visible !important; max-width: 100%; }
 .msg-bubble code { word-break: break-word !important; overflow-wrap: break-word !important; white-space: pre-wrap !important; }
 .msg-bubble pre code { white-space: pre-wrap !important; word-break: break-word !important; overflow-wrap: break-word !important; }
+.answer-readable {
+    white-space: normal !important;
+    line-height: 1.78;
+    color: var(--text-primary);
+}
+.answer-readable > *:first-child { margin-top: 0 !important; }
+.answer-readable > *:last-child { margin-bottom: 0 !important; }
+.answer-readable p {
+    margin: 0 0 12px;
+}
+.answer-readable ul,
+.answer-readable ol {
+    margin: 10px 0 14px 0;
+    padding-left: 1.3rem;
+}
+.answer-readable li {
+    margin: 6px 0;
+    padding-left: 2px;
+}
+.answer-readable h1,
+.answer-readable h2,
+.answer-readable h3,
+.answer-readable h4 {
+    margin: 18px 0 10px;
+    line-height: 1.35;
+    font-weight: 750;
+    color: var(--text-primary);
+}
+.answer-readable h1 { font-size: 1.2rem; }
+.answer-readable h2 { font-size: 1.1rem; }
+.answer-readable h3,
+.answer-readable h4 { font-size: 1rem; }
+.answer-readable blockquote {
+    margin: 12px 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+    border-radius: 0 10px 10px 0;
+    color: var(--text-secondary);
+}
+.answer-readable hr {
+    margin: 18px 0;
+    border: 0;
+    border-top: 1px solid var(--border-glass);
+}
+.answer-readable table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 12px 0;
+}
+.answer-readable th,
+.answer-readable td {
+    border: 1px solid var(--border-glass);
+    padding: 8px 10px;
+    vertical-align: top;
+}
+.answer-readable th {
+    background: var(--surface-glass);
+    font-weight: 700;
+}
+.readable-table-cards {
+    display: grid;
+    gap: 10px;
+    margin: 12px 0 16px;
+}
+.readable-table-card {
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-glass) 84%, transparent);
+    overflow: hidden;
+}
+.readable-table-row {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.28fr) 1fr;
+    gap: 12px;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--border-glass);
+}
+.readable-table-row:last-child {
+    border-bottom: 0;
+}
+.readable-table-label {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 700;
+}
+.readable-table-value {
+    min-width: 0;
+    color: var(--text-primary);
+}
+.answer-user {
+    color: var(--text-on-accent);
+}
+.assistant-message-head {
+    flex-wrap: wrap;
+}
+.debate-inline-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border-glass);
+    background: var(--surface-glass);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+.debate-inline-toggle:hover {
+    transform: translateY(-1px);
+    background: var(--surface-glass-hover);
+    color: var(--text-primary);
+}
+.debate-inline-toggle.thinking {
+    color: var(--primary-light);
+    border-color: color-mix(in srgb, var(--primary) 36%, transparent);
+}
+.debate-inline-toggle.complete {
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.10);
+}
+.debate-inline-details {
+    width: min(100%, 900px);
+    margin: 2px 0 10px 4px;
+    padding: 12px;
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--surface-glass) 88%, transparent);
+    box-shadow: var(--shadow-sm);
+}
+.debate-inline-agents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.debate-inline-agent {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--agent-color, var(--primary)) 24%, transparent);
+    background: color-mix(in srgb, var(--agent-color, var(--primary)) 8%, transparent);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 750;
+}
+.debate-inline-agent[data-status="complete"],
+.debate-inline-agent[data-status="commented"] {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--agent-color, var(--primary)) 52%, transparent);
+}
+.debate-inline-round {
+    padding-bottom: 9px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    font-size: 12px;
+    font-weight: 700;
+}
+.debate-inline-list {
+    display: grid;
+    gap: 10px;
+    max-height: 42vh;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.debate-inline-card {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-glass);
+    border-left: 4px solid var(--agent-color, var(--primary));
+    background: color-mix(in srgb, var(--bg-main) 72%, transparent);
+}
+.debate-inline-card.judge {
+    border-left-color: #f59e0b;
+}
+.debate-inline-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+.debate-inline-card-head strong {
+    font-size: 13px;
+}
+.debate-inline-card-head em {
+    margin-left: auto;
+    font-size: 11px;
+    font-style: normal;
+    color: var(--agent-color, var(--primary));
+    background: color-mix(in srgb, var(--agent-color, var(--primary)) 10%, transparent);
+    border-radius: 999px;
+    padding: 2px 8px;
+}
+.debate-inline-empty {
+    color: var(--text-tertiary);
+    font-size: 13px;
+    padding: 8px 2px;
+}
 .msg-bubble-user::before, .msg-bubble-bot::before {
     content: '';
     position: absolute; top: 0; left: -100%;
@@ -3322,6 +3532,56 @@ body.light-theme .path-tree-empty {
     transform: translateY(-1px);
 }
 .focus-duration-start:active { transform: scale(0.98) translateY(0); }
+
+.focus-reward-toast {
+    position: fixed;
+    top: 72px;
+    right: 24px;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(360px, calc(100vw - 32px));
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--border-glass);
+    background: color-mix(in srgb, var(--surface-glass) 94%, transparent);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    opacity: 0;
+    transform: translateY(-12px);
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.focus-reward-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.focus-reward-toast-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(34, 197, 94, 0.14);
+    font-size: 20px;
+}
+.focus-reward-toast-body {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+.focus-reward-toast-body strong {
+    font-size: 14px;
+}
+.focus-reward-toast-body span {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
 
 @keyframes focusSuccessPulse {
     0% { transform: scale(1); }
@@ -5185,26 +5445,23 @@ body.light-theme .path-tree-empty {
 
 /* ========== 辩论面板样式 (浮动底部展开面板) ========== */
 .debate-panel-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
+    position: relative;
+    z-index: 3;
     background: var(--surface-glass);
-    border-radius: 20px 20px 0 0;
+    border-radius: 18px;
     border: 1px solid var(--border-glass);
-    border-bottom: none;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     height: 48px;
     overflow: hidden;
     transition: height 0.3s ease;
-    margin: 0;
-    box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.15);
+    margin: 12px 16px 0;
+    box-shadow: var(--shadow-md);
+    flex-shrink: 0;
 }
 
 .debate-panel-container.expanded {
-    height: 340px;
+    height: min(52vh, 520px);
 }
 
 /* 可折叠标题栏 */
@@ -5213,7 +5470,7 @@ body.light-theme .path-tree-empty {
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(59, 130, 246, 0.12));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(59, 130, 246, 0.10));
     border-bottom: 1px solid var(--border-glass);
     height: 48px;
     box-sizing: border-box;
@@ -5237,11 +5494,13 @@ body.light-theme .path-tree-empty {
     border-radius: 20px;
     background: var(--surface-glass);
     color: var(--text-secondary);
+    font-weight: 700;
+    white-space: nowrap;
 }
 
 .debate-status.thinking {
-    background: rgba(245, 158, 11, 0.15);
-    color: #f59e0b;
+    background: color-mix(in srgb, var(--primary) 14%, transparent);
+    color: var(--primary-light);
 }
 
 .debate-status.complete {
@@ -5271,7 +5530,7 @@ body.light-theme .path-tree-empty {
 /* 展开后的内容区域 */
 .debate-panel-body {
     display: none;
-    height: calc(340px - 48px);
+    height: calc(100% - 48px);
     overflow: hidden;
     flex-direction: column;
 }
@@ -5284,22 +5543,23 @@ body.light-theme .path-tree-empty {
 /* AI身份卡片行 */
 .debate-agents-row {
     display: flex;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 10px;
+    padding: 12px 18px 8px;
     overflow-x: auto;
-    background: rgba(0, 0, 0, 0.02);
+    background: color-mix(in srgb, var(--surface-glass) 64%, transparent);
     flex-shrink: 0;
 }
 
 .debate-agent-card {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 8px 12px;
-    border-radius: 12px;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 999px;
     background: var(--surface-glass);
     border: 1px solid transparent;
-    min-width: 80px;
+    min-width: max-content;
     transition: all 0.3s ease;
     cursor: default;
 }
@@ -5314,21 +5574,22 @@ body.light-theme .path-tree-empty {
 }
 
 .debate-agent-card .agent-avatar {
-    font-size: 24px;
-    margin-bottom: 4px;
+    font-size: 18px;
+    line-height: 1;
+    margin: 0;
 }
 
 .debate-agent-card .agent-name {
-    font-size: 10px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 650;
     color: var(--text-secondary);
     text-align: center;
     white-space: nowrap;
 }
 
 .debate-agent-card .status-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--text-tertiary);
     margin-top: 4px;
@@ -5352,31 +5613,32 @@ body.light-theme .path-tree-empty {
 /* 辩论消息区域 */
 .debate-content-area {
     flex: 1;
-    padding: 12px 16px;
+    padding: 14px 18px 18px;
     overflow-y: auto;
     min-height: 0;
 }
 
 .debate-round-label {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 750;
     color: var(--text-secondary);
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px dashed var(--border-glass);
+    margin: 2px 0 14px;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--border-glass);
 }
 
 .debate-messages {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
 }
 
 .debate-bubble {
-    background: var(--surface-glass);
-    border-radius: 12px;
-    padding: 10px 12px;
-    border-left: 3px solid var(--agent-color, #6366f1);
+    background: color-mix(in srgb, var(--surface-glass) 90%, transparent);
+    border-radius: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border-glass);
+    border-left: 4px solid var(--agent-color, #6366f1);
     animation: bubbleSlideIn 0.3s ease-out;
 }
 
@@ -5386,20 +5648,41 @@ body.light-theme .path-tree-empty {
 }
 
 .debate-bubble .bubble-header {
-    font-weight: 600;
-    font-size: 12px;
-    margin-bottom: 4px;
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    color: var(--text-primary);
+}
+
+.debate-bubble .bubble-avatar {
+    font-size: 18px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--agent-color, #6366f1) 14%, transparent);
+}
+
+.debate-bubble .bubble-type {
+    margin-left: auto;
+    color: var(--agent-color, var(--primary));
+    background: color-mix(in srgb, var(--agent-color, #6366f1) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--agent-color, #6366f1) 30%, transparent);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 .debate-bubble .bubble-content {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-primary);
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
+    line-height: 1.75;
 }
 
 .debate-bubble .bubble-content p {
@@ -5503,7 +5786,7 @@ body.light-theme .path-tree-empty {
     font-size: 14px;
     line-height: 1.7;
     color: var(--text-primary);
-    white-space: pre-wrap;
+    white-space: normal;
     word-break: break-word;
     overflow-y: auto;
     padding: 16px;
@@ -5532,16 +5815,16 @@ body.light-theme .path-tree-empty {
     }
 
     .debate-agent-card {
-        min-width: 60px;
+        min-width: max-content;
         padding: 6px 8px;
     }
 
     .debate-agent-card .agent-avatar {
-        font-size: 20px;
+        font-size: 16px;
     }
 
     .debate-agent-card .agent-name {
-        font-size: 9px;
+        font-size: 11px;
     }
 }
 
@@ -6026,16 +6309,16 @@ input, textarea, select {
     }
 
     .debate-agent-card {
-        min-width: 50px;
+        min-width: max-content;
         padding: 4px 6px;
     }
 
     .debate-agent-card .agent-avatar {
-        font-size: 16px;
+        font-size: 15px;
     }
 
     .debate-agent-card .agent-name {
-        font-size: 8px;
+        font-size: 10px;
     }
 }
 
@@ -7518,7 +7801,6 @@ body.openmaic-mode #mini-player,
 body.openmaic-mode #flow-dynamic-island,
 body.openmaic-mode #flow-overlay,
 body.openmaic-mode #lightbox-overlay,
-body.openmaic-mode #plant-reward-modal,
 body.openmaic-mode .sidebar-expand-btn,
 body.openmaic-mode .agent-fab-main {
     opacity: 0 !important;

@@ -8,43 +8,46 @@ let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
 let selectedDate = null;
+let calendarData = { days: {}, month_summary: {}, upcoming: [] };
+let eventsData = {};
 
-const learningData = {
-    2026: {
-        4: {
-            1: { status: 'completed', tasks: [{ name: 'Python 基础', duration: '2h', done: true }, { name: '算法练习', duration: '1h', done: true }] },
-            2: { status: 'completed', tasks: [{ name: '数据结构', duration: '2h', done: true }] },
-            3: { status: 'completed', tasks: [{ name: 'MySQL 基础', duration: '1.5h', done: true }, { name: '数据库设计', duration: '1.5h', done: true }] },
-            4: { status: 'completed', tasks: [{ name: 'Web 开发', duration: '2h', done: true }] },
-            5: { status: 'completed', tasks: [{ name: 'JavaScript', duration: '1.5h', done: true }, { name: 'CSS 布局', duration: '1h', done: true }] },
-            6: { status: 'completed', tasks: [{ name: '算法专项', duration: '3h', done: true }] },
-            7: { status: 'completed', tasks: [{ name: '机器学习', duration: '2h', done: true }] },
-            8: { status: 'completed', tasks: [{ name: '深度学习', duration: '2h', done: true }] },
-            9: { status: 'completed', tasks: [{ name: '项目实战', duration: '3h', done: true }] },
-            10: { status: 'completed', tasks: [{ name: '代码审查', duration: '1h', done: true }] },
-            11: { status: 'completed', tasks: [{ name: '系统设计', duration: '2h', done: true }] },
-            12: { status: 'completed', tasks: [{ name: '分布式系统', duration: '2h', done: true }] },
-            13: { status: 'completed', tasks: [{ name: '微服务架构', duration: '2h', done: true }] },
-            14: { status: 'partial', tasks: [{ name: 'Docker 基础', duration: '1h', done: true }, { name: 'Kubernetes', duration: '1h', done: false }] },
-            15: { status: 'partial', tasks: [{ name: '算法练习', duration: '2h', done: false }] },
-            16: { status: 'partial', tasks: [] },
-            17: { status: 'partial', tasks: [] },
-            18: { status: 'partial', tasks: [] }
-        }
+function getCurrentUserId() {
+    try {
+        const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        return user.id || 1;
+    } catch (error) {
+        return 1;
     }
-};
+}
 
-function initCalendar() {
-    renderCalendar(currentMonth, currentYear);
+async function initCalendar() {
     setupMonthNavigation();
     updateMonthTitle();
+    await loadCalendarData();
+    renderCalendar(currentMonth, currentYear);
+}
+
+async function loadCalendarData() {
+    try {
+        const response = await fetch(`/api/calendar-events/load/${getCurrentUserId()}`);
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.detail || 'load calendar failed');
+        eventsData = data.eventsData || {};
+        calendarData = data.calendarData || { days: {}, month_summary: {}, upcoming: [] };
+    } catch (error) {
+        console.error('加载学习日历失败:', error);
+        eventsData = {};
+        calendarData = { days: {}, month_summary: {}, upcoming: [] };
+    }
+    updateSummary();
+    renderUpcomingEvents();
 }
 
 function renderCalendar(month, year) {
     const grid = document.getElementById('calendar-grid');
-    const weekdays = grid.querySelectorAll('.calendar-weekday');
+    if (!grid) return;
+    const weekdays = Array.from(grid.querySelectorAll('.calendar-weekday'));
     grid.innerHTML = '';
-
     weekdays.forEach(day => grid.appendChild(day));
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -63,22 +66,16 @@ function renderCalendar(month, year) {
         dayEl.textContent = day;
         dayEl.dataset.day = day;
 
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const dateStr = formatDate(year, month, day);
         dayEl.dataset.date = dateStr;
 
         if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
             dayEl.classList.add('today');
         }
 
-        const monthData = learningData[year]?.[month + 1]?.[day];
-        if (monthData) {
-            if (monthData.status === 'completed') {
-                dayEl.classList.add('completed');
-            } else if (monthData.status === 'partial') {
-                dayEl.classList.add('partial');
-            } else if (monthData.status === 'scheduled') {
-                dayEl.classList.add('scheduled');
-            }
+        const dayData = calendarData.days?.[dateStr];
+        if (dayData && dayData.status && dayData.status !== 'empty') {
+            dayEl.classList.add(dayData.status);
         }
 
         dayEl.addEventListener('click', () => selectDay(dayEl, day, month, year));
@@ -87,41 +84,41 @@ function renderCalendar(month, year) {
 }
 
 function setupMonthNavigation() {
-    document.getElementById('prev-month').addEventListener('click', () => {
+    document.getElementById('prev-month')?.addEventListener('click', () => {
         currentMonth--;
         if (currentMonth < 0) {
             currentMonth = 11;
             currentYear--;
         }
         updateMonthTitle();
+        updateSummary();
         renderCalendar(currentMonth, currentYear);
     });
 
-    document.getElementById('next-month').addEventListener('click', () => {
+    document.getElementById('next-month')?.addEventListener('click', () => {
         currentMonth++;
         if (currentMonth > 11) {
             currentMonth = 0;
             currentYear++;
         }
         updateMonthTitle();
+        updateSummary();
         renderCalendar(currentMonth, currentYear);
     });
 }
 
 function updateMonthTitle() {
     const title = document.getElementById('month-title');
-    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-    title.textContent = `${currentYear}年${monthNames[currentMonth]}`;
+    if (title) title.textContent = `${currentYear}年${currentMonth + 1}月`;
 }
 
 function initDaySelection() {
     const dayDetail = document.getElementById('day-detail');
-    dayDetail.addEventListener('click', (e) => {
+    dayDetail?.addEventListener('click', (e) => {
         const checkbox = e.target.closest('.task-checkbox');
         if (checkbox) {
             checkbox.classList.toggle('checked');
-            const taskItem = checkbox.closest('.task-item');
-            taskItem.classList.toggle('completed');
+            checkbox.closest('.task-item')?.classList.toggle('completed');
         }
     });
 }
@@ -131,40 +128,43 @@ function selectDay(dayEl, day, month, year) {
     dayEl.classList.add('selected');
 
     selectedDate = { day, month, year };
-    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     const dateObj = new Date(year, month, day);
+    const dateStr = formatDate(year, month, day);
+    const dayData = calendarData.days?.[dateStr];
 
-    document.getElementById('detail-date').textContent = `${monthNames[month]}${day}日`;
-    document.getElementById('detail-day').textContent = weekdays[dateObj.getDay()];
+    setText('detail-date', `${month + 1}月${day}日`);
+    setText('detail-day', weekdays[dateObj.getDay()]);
+    renderDayTasks(dayData);
+}
 
-    const monthData = learningData[year]?.[month + 1]?.[day];
+function renderDayTasks(dayData) {
     const content = document.getElementById('detail-content');
+    if (!content) return;
 
-    if (monthData && monthData.tasks.length > 0) {
-        content.innerHTML = `
-            <div class="task-list">
-                ${monthData.tasks.map(task => `
-                    <div class="task-item ${task.done ? 'completed' : ''}">
-                        <div class="task-checkbox ${task.done ? 'checked' : ''}"></div>
-                        <div class="task-info">
-                            <div class="task-name">${task.name}</div>
-                            <div class="task-meta">${task.duration}</div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-    } else {
+    const tasks = dayData?.tasks || [];
+    if (!tasks.length) {
         content.innerHTML = `
             <div class="empty-state">
-                <svg class="w-12 h-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                <p>暂无学习记录<br>点击右上角添加学习计划</p>
+                <p>暂无学习记录或计划<br>点击右上角添加学习计划</p>
             </div>
         `;
+        return;
     }
+
+    content.innerHTML = `
+        <div class="task-list">
+            ${tasks.map(task => `
+                <div class="task-item ${task.done ? 'completed' : ''}">
+                    <div class="task-checkbox ${task.done ? 'checked' : ''}"></div>
+                    <div class="task-info">
+                        <div class="task-name">${escapeHtml(task.name || '学习计划')}</div>
+                        <div class="task-meta">${escapeHtml(task.duration || '')}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 
 function initModal() {
@@ -174,44 +174,125 @@ function initModal() {
     const cancelBtn = document.getElementById('cancel-btn');
     const form = document.getElementById('event-form');
 
-    addBtn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
-        const today = new Date();
-        document.getElementById('event-date').value = today.toISOString().split('T')[0];
+    addBtn?.addEventListener('click', () => {
+        modal?.classList.remove('hidden');
+        const date = selectedDate ? formatDate(selectedDate.year, selectedDate.month, selectedDate.day) : new Date().toISOString().split('T')[0];
+        document.getElementById('event-date').value = date;
     });
 
-    closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    closeBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
+    cancelBtn?.addEventListener('click', () => modal?.classList.add('hidden'));
 
-    modal.addEventListener('click', (e) => {
+    modal?.addEventListener('click', (e) => {
         if (e.target === modal) modal.classList.add('hidden');
     });
 
-    form.addEventListener('submit', (e) => {
+    form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const title = document.getElementById('event-title').value;
-        const date = document.getElementById('event-date').value;
-        const duration = document.getElementById('event-duration').value;
-        const category = document.querySelector('input[name="event-category"]:checked').value;
-
-        if (title && date) {
-            const [year, month, day] = date.split('-').map(Number);
-            const monthKey = month;
-
-            if (!learningData[year]) learningData[year] = {};
-            if (!learningData[year][monthKey]) learningData[year][monthKey] = {};
-            if (!learningData[year][monthKey][day]) learningData[year][monthKey][day] = { status: 'scheduled', tasks: [] };
-
-            learningData[year][monthKey][day].tasks.push({
-                name: title,
-                duration: `${duration}h`,
-                done: false
-            });
-
-            renderCalendar(currentMonth, currentYear);
-
-            form.reset();
-            modal.classList.add('hidden');
-        }
+        await saveEvent(form, modal);
     });
+}
+
+async function saveEvent(form, modal) {
+    const title = document.getElementById('event-title').value.trim();
+    const date = document.getElementById('event-date').value;
+    const duration = document.getElementById('event-duration').value;
+    const category = document.querySelector('input[name="event-category"]:checked')?.value || 'study';
+    const desc = document.getElementById('event-desc')?.value.trim() || '';
+
+    if (!title || !date) return;
+
+    if (!Array.isArray(eventsData[date])) eventsData[date] = [];
+    eventsData[date].push({
+        name: title,
+        duration: `${duration}h`,
+        category,
+        desc,
+        done: false
+    });
+
+    try {
+        const response = await fetch('/api/calendar-events/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: getCurrentUserId(), eventsData })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.detail || 'save calendar failed');
+        await loadCalendarData();
+        renderCalendar(currentMonth, currentYear);
+        form.reset();
+        modal?.classList.add('hidden');
+    } catch (error) {
+        console.error('保存学习计划失败:', error);
+    }
+}
+
+function updateSummary() {
+    const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+    const days = Object.entries(calendarData.days || {})
+        .filter(([date]) => date.startsWith(prefix))
+        .map(([, day]) => day);
+    const studyDays = days.filter(day => (Number(day.study_minutes) || 0) > 0).length;
+    const totalMinutes = days.reduce((sum, day) => sum + (Number(day.study_minutes) || 0), 0);
+    const completedTasks = days.reduce((sum, day) => {
+        return sum + (day.tasks || []).filter(task => task.done).length;
+    }, 0);
+    setText('study-days', studyDays);
+    setText('total-hours-month', (totalMinutes / 60).toFixed(1));
+    setText('completed-tasks', completedTasks);
+}
+
+function renderUpcomingEvents() {
+    const list = document.getElementById('events-list');
+    if (!list) return;
+
+    const upcoming = calendarData.upcoming || [];
+    if (!upcoming.length) {
+        list.innerHTML = `<div class="empty-state">暂无近期学习计划</div>`;
+        return;
+    }
+
+    list.innerHTML = upcoming.map(event => {
+        const date = parseDate(event.date);
+        return `
+            <div class="event-item">
+                <div class="event-date">
+                    <span class="event-day">${date.day}</span>
+                    <span class="event-month">${date.month}月</span>
+                </div>
+                <div class="event-content">
+                    <h4 class="event-title">${escapeHtml(event.name || '学习计划')}</h4>
+                    <p class="event-desc">${escapeHtml(event.desc || '')}</p>
+                    <div class="event-meta">
+                        <span class="event-tag ${escapeHtml(event.category || 'study')}">${escapeHtml(event.category || 'study')}</span>
+                        <span class="event-duration">${escapeHtml(event.duration || '')}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatDate(year, month, day) {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function parseDate(value) {
+    const [, month = '1', day = '1'] = String(value || '').split('-');
+    return { month: Number(month), day: Number(day) };
+}
+
+function setText(elementId, value) {
+    const element = document.getElementById(elementId);
+    if (element) element.textContent = value;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }

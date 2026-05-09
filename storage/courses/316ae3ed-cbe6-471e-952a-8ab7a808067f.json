@@ -1,0 +1,464 @@
+{
+  "courseId": "316ae3ed-cbe6-471e-952a-8ab7a808067f",
+  "title": "Python基础入门",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "初识Python世界",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "Python语言的发展历史与主要特性",
+        "Python在数据科学与Web开发中的应用",
+        "Python解释器的安装与环境配置"
+      ],
+      "description": "通过生动的幻灯片介绍Python的发展历史、应用领域及开发环境搭建，激发学习兴趣。"
+    },
+    {
+      "id": 2,
+      "title": "变量与数据类型",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "变量的命名规则与赋值操作原理",
+        "整数、浮点数、字符串数据类型的特征",
+        "使用type()函数查看变量类型的方法"
+      ],
+      "description": "在交互式界面中动态演示变量的创建过程，直观理解整数、字符串等数据类型的区别。"
+    },
+    {
+      "id": 3,
+      "title": "运算符与表达式",
+      "type": "exercise",
+      "points": 3,
+      "key_points": [
+        "加减乘除等基础算术运算符的使用",
+        "取模与幂运算符的特殊应用场景",
+        "运算符优先级对表达式结果的影响"
+      ],
+      "description": "通过填空和改错练习，掌握算术运算符的优先级及表达式的计算逻辑。"
+    },
+    {
+      "id": 4,
+      "title": "流程控制逻辑",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "if-elif-else条件分支语句的执行流程",
+        "for循环与while循环的适用场景区别",
+        "break与continue关键字对循环的控制"
+      ],
+      "description": "利用流程图清晰展示if条件判断与for/while循环的执行路径，辅助理解逻辑结构。"
+    },
+    {
+      "id": 5,
+      "title": "基础语法测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "Python变量的作用域与生命周期概念",
+        "复杂表达式中运算符优先级的判断",
+        "条件语句中缩进规范的正确使用"
+      ],
+      "description": "针对变量类型、运算优先级及条件判断逻辑进行综合测验，巩固基础知识点。"
+    },
+    {
+      "id": 6,
+      "title": "列表操作实战",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "列表的创建、索引访问与切片操作",
+        "使用append、pop等方法修改列表内容",
+        "列表推导式的简洁语法与生成逻辑"
+      ],
+      "description": "在集成开发环境中编写代码，练习列表的增删改查操作及切片技巧。"
+    },
+    {
+      "id": 7,
+      "title": "函数的定义与调用",
+      "type": "video",
+      "points": 3,
+      "key_points": [
+        "函数定义的语法结构与规范",
+        "位置参数与关键字参数的传递方式",
+        "return语句的作用与返回值的接收"
+      ],
+      "description": "观看教学视频，深入理解函数的封装思想、参数传递机制及返回值处理。"
+    },
+    {
+      "id": 8,
+      "title": "简易计算器开发",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "用户输入数据的获取与类型转换",
+        "多条件分支逻辑处理不同运算符号",
+        "代码模块化设计与函数封装实践"
+      ],
+      "description": "综合运用变量、条件判断与函数知识，开发一个支持四则运算的命令行计算器程序。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "初识Python世界",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍初识Python世界的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习初识Python世界的相关内容。",
+          "text": "本节将介绍初识Python世界的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "two-column",
+      "title": "变量与数据类型",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍变量与数据类型的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习变量与数据类型的相关内容。",
+          "text": "本节将介绍变量与数据类型的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "运算符与表达式",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍运算符与表达式的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习运算符与表达式的相关内容。",
+          "text": "本节将介绍运算符与表达式的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "hero-center",
+      "title": "程序的大脑：流程控制逻辑",
+      "content": [
+        {
+          "sub_title": "逻辑决定路径",
+          "bullets": [
+            "流程控制是编程的灵魂，决定代码执行顺序",
+            "条件判断让程序学会“思考”，根据情况选择路径",
+            "循环结构让程序拥有“耐力”，重复执行特定任务",
+            "break与continue是循环中的“方向盘”，精准控制流向"
+          ],
+          "narration": "同学们好！欢迎来到Python基础入门课程。今天我们要探讨一个非常核心的话题——流程控制逻辑。如果说数据是程序的原料，那么流程控制就是程序的大脑。它决定了代码该往哪个方向走，是执行这条分支还是那条分支，是继续循环还是停止。通过流程图的可视化展示，我们将清晰地看到if条件判断和for、while循环是如何引导程序一步步执行的。掌握了这些，你们就能写出真正有“智慧”的程序。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A central glowing brain connected to multiple branching paths representing decision logic, digital art style",
+          "video_url": null,
+          "video_prompt": "Animated glowing neural network paths branching out from a central brain, representing decision flow in programming, cinematic style"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "条件分支：if-elif-else执行流程",
+      "content": [
+        {
+          "sub_title": "决策路径图",
+          "bullets": [
+            "if语句：首先判断条件，为真则执行代码块",
+            "elif语句：若if为假，依次检查后续elif条件",
+            "else语句：所有条件均不满足时执行的兜底路径",
+            "顺序执行：一旦某条件成立，立即跳出整个结构"
+          ],
+          "narration": "首先我们来看条件判断。if-elif-else结构就像一个多岔路口。程序会从if开始，按顺序检查每个条件。根据Python官方文档的说明，if-elif-else语句会按顺序检查条件，一旦某个条件为真，就执行对应的代码块，然后直接跳出整个判断结构，不会再去检查后面的条件。这意味着条件的顺序非常重要。如果所有条件都不满足，else作为兜底选项就会被执行。这种机制确保了程序能够根据不同的情况做出精准的反应。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "score = 85\nif score >= 90:\n    print('优秀')\nelif score >= 60:\n    print('及格')\nelse:\n    print('不及格')",
+          "image_url": "",
+          "image_prompt": "Flowchart diagram showing diamond-shaped decision nodes for if-elif-else logic with arrows indicating true/false paths",
+          "video_url": null,
+          "video_prompt": "Animated flowchart with glowing decision diamonds, arrows lighting up sequentially as conditions are evaluated, showing the path selection process"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "comparison",
+      "title": "循环结构：for与while的适用场景",
+      "content": [
+        {
+          "sub_title": "for循环",
+          "bullets": [
+            "遍历序列：依次访问列表、字符串等每个元素",
+            "已知次数：明确知道循环要执行多少次",
+            "迭代器模式：自动处理迭代过程，代码简洁",
+            "典型场景：遍历文件行、处理列表数据"
+          ],
+          "narration": "接下来我们对比两种循环结构。for循环适合用于“已知次数”的场景，比如你要遍历一个列表、字符串或者执行固定次数的操作。它会自动处理迭代过程，代码非常简洁。而while循环则不同，它更适合“未知次数”的场景，只要条件满足就会一直执行下去。比如读取用户输入，直到用户输入特定的退出命令为止。值得注意的是，while循环需要特别注意终止条件，否则很容易陷入死循环。选择哪种循环，取决于你的具体需求。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "# for循环：遍历列表\nfor i in [1, 2, 3]:\n    print(i)\n\n# while循环：条件控制\ncount = 0\nwhile count < 3:\n    print(count)\n    count += 1",
+          "image_url": "",
+          "image_prompt": "Split comparison diagram showing for loop iterating over items on left and while loop checking a condition gate on right",
+          "video_url": null,
+          "video_prompt": "Side-by-side animation: left shows items being picked one by one from a conveyor belt, right shows a gate that opens only when a condition meter turns green"
+        },
+        {
+          "sub_title": "while循环",
+          "bullets": [
+            "条件驱动：只要条件为真就持续执行",
+            "未知次数：不确定循环何时结束",
+            "灵活控制：需手动更新条件变量",
+            "典型场景：用户交互、等待特定事件"
+          ],
+          "narration": "",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A circular loop diagram with a condition check at the entry point, representing while loop structure",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "循环控制：break与continue的区别",
+      "content": [
+        {
+          "sub_title": "break：彻底终止",
+          "bullets": [
+            "立即结束当前整个循环结构",
+            "跳出循环体，执行后续代码",
+            "常用于找到目标后提前退出",
+            "与if搭配使用才有逻辑意义"
+          ],
+          "narration": "最后我们来学习循环中的两个重要控制关键字。根据CSDN技术博客的说明，break用于结束这一层循环，返回上一层。它的作用是“彻底终止”，一旦执行break，整个循环立即结束。而continue则温和得多，它只是“跳过本次迭代”，直接进入下一次循环的判断。举个例子，你在找东西，break是找到后直接离开房间，continue是发现这个位置没有就跳过，继续找下一个位置。Python文档还提到一个有趣的点：循环可以搭配else子句，当循环正常结束（未执行break）时会执行else块。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "purple",
+          "code_snippet": "# break示例：找到即停止\nfor i in range(5):\n    if i == 3:\n        break  # 输出 0,1,2\n    print(i)",
+          "image_url": "",
+          "image_prompt": "Diagram showing a loop path with a break gate that exits the loop entirely, contrasted with continue skipping one iteration",
+          "video_url": null,
+          "video_prompt": "Animation of a runner on a circular track: break shows the runner exiting the track completely, continue shows the runner skipping one lap and continuing"
+        },
+        {
+          "sub_title": "continue：跳过当前",
+          "bullets": [
+            "跳过本次循环剩余代码",
+            "直接进入下一次迭代判断",
+            "用于过滤不符合条件的情况",
+            "循环本身不会终止"
+          ],
+          "narration": "",
+          "text": "",
+          "icon": "check",
+          "color_theme": "blue",
+          "code_snippet": "# continue示例：跳过特定值\nfor i in range(5):\n    if i == 3:\n        continue  # 输出 0,1,2,4\n    print(i)",
+          "image_url": "",
+          "image_prompt": "Flow diagram showing continue arrow bypassing the current iteration block and returning to loop condition",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "fullwidth-banner",
+      "title": "流程控制核心要点总结",
+      "content": [
+        {
+          "sub_title": "掌握逻辑，驾驭代码",
+          "bullets": [
+            "if-elif-else：顺序判断，条件成立即退出，else兜底",
+            "for循环：适合已知次数的遍历场景，简洁高效",
+            "while循环：适合未知次数的条件驱动场景，警惕死循环",
+            "break：彻底终止循环，提前退出",
+            "continue：跳过本次迭代，继续下一轮"
+          ],
+          "narration": "同学们，今天我们系统学习了Python的流程控制逻辑。让我们回顾一下核心要点：条件判断if-elif-else采用顺序检查机制，条件成立即退出；for循环适合已知次数的遍历，while循环适合条件驱动的场景；break和continue分别用于终止和跳过循环。这些控制结构是编程的基础，熟练掌握它们，你们就能编写出逻辑清晰、功能完善的程序。建议大家多动手实践，尝试画出流程图来辅助理解，这会让你的编程思维更加严谨。下节课我们将进入函数的学习，敬请期待！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A comprehensive summary infographic showing all control flow structures connected in a unified diagram, professional educational style",
+          "video_url": null,
+          "video_prompt": "Animated summary showing all flow control concepts merging into a central knowledge core, with icons representing each concept pulsing around it"
+        }
+      ],
+      "scene_id": 4
+    },
+    {
+      "layout_type": "two-column",
+      "title": "列表操作实战",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍列表操作实战的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习列表操作实战的相关内容。",
+          "text": "本节将介绍列表操作实战的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "函数的定义与调用",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍函数的定义与调用的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习函数的定义与调用的相关内容。",
+          "text": "本节将介绍函数的定义与调用的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 7
+    },
+    {
+      "layout_type": "two-column",
+      "title": "简易计算器开发",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍简易计算器开发的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习简易计算器开发的相关内容。",
+          "text": "本节将介绍简易计算器开发的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "",
+          "video_url": null,
+          "video_prompt": null
+        }
+      ],
+      "scene_id": 8
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [],
+  "exercise_data": [
+    {
+      "id": 3,
+      "scene_id": 3,
+      "title": "Python算术运算符与表达式实战",
+      "exercises": [
+        {
+          "instruction": "【填空题】请补全下方代码，计算并输出 5 的 3 次方结果。\n代码：result = 5 __ 3\nprint(result)",
+          "hints": [
+            "Python中幂运算使用双星号符号。",
+            "该运算符位于键盘数字键8的上档键位。"
+          ],
+          "expected_answer": "**"
+        },
+        {
+          "instruction": "【改错题】以下代码意图计算 20 除以 7 的余数，但存在错误，请修正。\n错误代码：remainder = 20 % 7\nprint(remainder)",
+          "hints": [
+            "请仔细检查取模运算符的书写格式。",
+            "实际上该代码语法正确，若运行结果为6，则逻辑无误；若原意为整除，应使用//。此处假设题目意在考察整除与取模的区别，修正为求整数商：remainder = 20 // 7"
+          ],
+          "expected_answer": "remainder = 20 // 7"
+        },
+        {
+          "instruction": "【计算题】不使用代码运行，请写出表达式 `3 + 2 * 5 ** 2` 的计算结果。\n请简述计算过程。",
+          "hints": [
+            "牢记优先级顺序：幂运算 > 乘除 > 加减。",
+            "先计算5的2次方，再进行乘法，最后加法。"
+          ],
+          "expected_answer": "结果：53。计算过程：先算5**2得25，再算2*25得50，最后3+50得53。"
+        }
+      ],
+      "speech": "同学们，运算符是Python逻辑构建的基石。在刚才的练习中，填空题考察了幂运算符的书写，这是Python区别于其他语言的特色；改错题提醒我们要区分取模与整除的应用场景；计算题则重点演练了优先级，记住“幂乘除加减”的口诀，能有效避免逻辑错误。掌握这些规则，才能写出精准的表达式。"
+    }
+  ],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "学习python基础",
+    "student_id": "1",
+    "session_id": "316ae3ed-cbe6-471e-952a-8ab7a808067f",
+    "generated_at": "2026-05-05 12:18:50",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": false
+  }
+}

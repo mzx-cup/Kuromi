@@ -1,0 +1,607 @@
+{
+  "courseId": "8abb9f3a-65cf-4e33-8b61-70fd1c4fd4c8",
+  "title": "傅里叶原理精讲",
+  "outlines": [
+    {
+      "id": 1,
+      "title": "傅里叶原理初探",
+      "type": "slide",
+      "points": 3,
+      "key_points": [
+        "傅里叶变换的定义及其在信号处理中的核心地位",
+        "时域与频域的概念区别及相互转换关系",
+        "周期信号分解的基本原理与数学表达形式"
+      ],
+      "description": "通过历史背景引入，阐述傅里叶变换的核心思想，即任何周期信号都可分解为正弦波之和。"
+    },
+    {
+      "id": 2,
+      "title": "波形合成模拟",
+      "type": "interactive",
+      "points": 3,
+      "key_points": [
+        "基波与谐波的概念及其在波形合成中的作用",
+        "振幅、频率、相位变化对合成波形的具体影响",
+        "方波与锯齿波合成过程中的吉布斯现象观察"
+      ],
+      "description": "利用交互式工具叠加不同频率的正弦波，直观观察复杂波形的合成过程与频谱变化。"
+    },
+    {
+      "id": 3,
+      "title": "频域特性图解",
+      "type": "diagram",
+      "points": 3,
+      "key_points": [
+        "时域波形图与频域频谱图的横纵坐标物理意义",
+        "频谱图中谱线位置与信号频率的对应关系",
+        "频谱图中谱线高度与信号振幅的对应关系"
+      ],
+      "description": "展示典型信号（如正弦波、方波）的时域波形图与对应的频域频谱图，建立视觉对应关系。"
+    },
+    {
+      "id": 4,
+      "title": "基础概念测验",
+      "type": "quiz",
+      "points": 3,
+      "key_points": [
+        "时域与频域概念的辨析及转换逻辑理解",
+        "傅里叶级数展开的基本条件与适用范围",
+        "频谱图中关键参数（如带宽、主频）的识别"
+      ],
+      "description": "设计选择题与判断题，测试学员对时域频域转换、信号分解原理及基本术语的掌握程度。"
+    },
+    {
+      "id": 5,
+      "title": "音频降噪实战",
+      "type": "pbl",
+      "points": 3,
+      "key_points": [
+        "真实音频信号的频谱分析方法与特征识别",
+        "噪声频率分布的定位与滤波器设计原理",
+        "逆变换重构信号的过程与音质评估标准"
+      ],
+      "description": "提供一段含有高频噪声的音频文件，引导学员分析频谱特征并设计滤波方案以消除噪声。"
+    },
+    {
+      "id": 6,
+      "title": "变换代码实现",
+      "type": "code",
+      "points": 3,
+      "key_points": [
+        "NumPy库中FFT函数的调用方法与参数设置",
+        "采样频率与采样定理对分析结果的影响",
+        "频谱可视化绘图技巧与频率轴的正确标注"
+      ],
+      "description": "使用Python语言编写快速傅里叶变换（FFT）代码，对模拟信号进行频谱分析并绘制结果。"
+    }
+  ],
+  "slides": [],
+  "slides_v2": [
+    {
+      "layout_type": "two-column",
+      "title": "傅里叶原理初探",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍傅里叶原理初探的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习傅里叶原理初探的相关内容。",
+          "text": "本节将介绍傅里叶原理初探的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": ""
+        }
+      ],
+      "scene_id": 1
+    },
+    {
+      "layout_type": "hero-center",
+      "title": "波形合成模拟：傅里叶原理互动",
+      "content": [
+        {
+          "sub_title": "探索波形的奥秘",
+          "bullets": [
+            "任何复杂波形均可分解为一系列正弦波",
+            "基波决定信号的基本周期与音高",
+            "谐波赋予信号独特的音色与特征",
+            "交互工具：实时叠加观察合成过程"
+          ],
+          "narration": "同学们好！欢迎来到傅里叶原理的互动实验室。大家眼前的这个界面，就是我们今天探索波形奥秘的‘合成器’。正如知乎专栏中提到的，正弦波是声音最基础的形态，拥有振幅、频率、相位等关键属性。而在傅里叶原理的世界里，无论多么复杂的波形，其实都是由不同频率的正弦波叠加而成的。接下来，我们将通过这个交互工具，亲手操控基波与谐波，直观地看到复杂波形是如何一步步‘合成’出来的。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A futuristic digital interface showing multiple sine waves combining into a complex waveform"
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "波形合成三要素：振幅、频率、相位",
+      "content": [
+        {
+          "sub_title": "振幅：响度与高度",
+          "bullets": [
+            "决定波形在垂直方向的高度",
+            "振幅越大，对应声音响度越大",
+            "影响合成波形中各成分的能量占比",
+            "调整振幅可改变波形的整体形状"
+          ],
+          "narration": "首先我们来看第一个要素：振幅。在交互工具的左侧，你可以拖动滑块来改变各个正弦波的振幅。振幅决定了波形的高度，对应到声音上，就是声音的响度。当你增加某个谐波分量的振幅时，你会发现合成波形中该频率的特征变得更加明显，整体能量也随之变化。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Diagram showing amplitude affecting the height of a sine wave"
+        },
+        {
+          "sub_title": "频率：音高与密度",
+          "bullets": [
+            "决定波形在水平方向的疏密程度",
+            "基波频率决定信号的基准音高",
+            "谐波频率是基频的整数倍",
+            "频率变化会显著改变波形周期"
+          ],
+          "narration": "第二个关键要素是频率。频率决定了波形的疏密，也就是声音的音高。基波的频率确立了整个信号的基准周期，而谐波则是这个基频的整数倍。正如Reddit讨论中指出的，每个正弦波形都是基频的谐波。试着调整频率，你会看到波形的周期发生了剧烈变化，这就是频率在波形合成中的核心作用。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Comparison of sine waves with different frequencies showing varying wavelengths"
+        },
+        {
+          "sub_title": "相位：时间与位置",
+          "bullets": [
+            "决定波形在时间轴上的起始位置",
+            "相位差会导致波形叠加结果不同",
+            "同相叠加增强，反相叠加减弱",
+            "对音色影响微妙但对波形形状影响显著"
+          ],
+          "narration": "最后是相位，它决定了波形在时间轴上的起始位置。虽然相位对人耳听觉的影响相对隐蔽，但在波形合成中，它至关重要。如果你让两个频率相同但相位相反的波形叠加，它们会相互抵消；如果相位相同，则会相互增强。大家可以在右侧面板调整相位，观察合成波形形状发生的微妙变化。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "orange",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Illustration of phase shift moving a wave along the time axis"
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "实战观察：吉布斯现象",
+      "content": [
+        {
+          "sub_title": "方波合成演示",
+          "bullets": [
+            "方波由基波与奇次谐波叠加而成",
+            "谐波数量越多，波形越接近理想方波",
+            "在跳变边缘会出现持续的振荡",
+            "振荡峰值约为理想值的9%且不衰减"
+          ],
+          "narration": "现在我们进入最有趣的环节：观察吉布斯现象。请大家将合成目标切换为‘方波’。你会看到，系统自动叠加了基波和一系列奇次谐波。随着谐波数量的增加，波形越来越像方波，但在垂直跳变的边缘，始终存在一些‘毛刺’。这就是著名的吉布斯现象。根据CSDN的专业解析，这是傅里叶级数在不连续点收敛时的固有特性，无论叠加多少次谐波，这种约9%的过冲振荡始终存在。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Visualization of Gibbs phenomenon showing overshoot at the corners of a square wave"
+        },
+        {
+          "sub_title": "锯齿波合成演示",
+          "bullets": [
+            "锯齿波包含所有整数次谐波分量",
+            "振幅随谐波次数增加而线性衰减",
+            "同样在突变点呈现明显的吉布斯现象",
+            "对比观察两种波形的振荡差异"
+          ],
+          "narration": "接下来，我们切换到‘锯齿波’。与方波不同，锯齿波包含了所有整数次的谐波分量。观察合成过程，你会发现谐波分量的振幅是逐渐衰减的。即便如此，在波形的急剧变化处，吉布斯现象依然清晰可见。通过这两个实例，大家应该能深刻理解：傅里叶级数在处理不连续信号时存在的这种‘顽皮’特性，是信号处理中必须考虑的重要因素。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Fourier series approximation of a sawtooth wave with visible oscillations"
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "process-flow",
+      "title": "互动操作指南",
+      "content": [
+        {
+          "sub_title": "操作流程",
+          "bullets": [
+            "第一步：选择目标波形（正弦、方波、锯齿波）",
+            "第二步：调整基波振幅与频率旋钮",
+            "第三步：逐个添加谐波分量并观察变化",
+            "第四步：微调各次谐波的相位参数",
+            "第五步：观察频谱图与合成波形的实时对应"
+          ],
+          "narration": "为了让大家更好地使用这个工具，我简要说明一下操作流程。首先，在左上角选择你想要合成的目标波形。接着，从基波开始，调整它的振幅和频率。然后，通过开关按钮逐个添加二次、三次甚至更高次的谐波，仔细观察每增加一个谐波，波形发生了什么变化。你还可以微调每个谐波的相位。最后，别忘了看一眼下方的频谱图，那里展示了信号在频率域上的能量分布，正如Reddit网友所描述的，那是‘把方波看作一个频谱’的最佳体现。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A step-by-step flowchart illustrating the interactive wave synthesis process"
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "fullwidth-banner",
+      "title": "核心要点总结",
+      "content": [
+        {
+          "sub_title": "知识回顾",
+          "bullets": [
+            "基波确立基调，谐波丰富细节与音色",
+            "振幅、频率、相位是塑造波形的三大支柱",
+            "吉布斯现象揭示了级数收敛的边界特性",
+            "频谱分析是理解复杂信号的关键视角"
+          ],
+          "narration": "好了，今天的互动课程接近尾声。我们来快速回顾一下：基波决定了信号的基本周期，而谐波则赋予了信号独特的‘性格’。通过调整振幅、频率和相位这三个参数，我们可以合成出千变万化的波形。同时，我们也见证了吉布斯现象这一奇妙的数学特性，它提醒我们在处理非连续信号时要格外小心。希望大家通过这次模拟，不仅掌握了波形合成的原理，更能体会到傅里叶分析在信号处理领域的强大力量。下节课见！",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A summary banner showing key concepts of Fourier synthesis with icons"
+        }
+      ],
+      "scene_id": 2
+    },
+    {
+      "layout_type": "two-column",
+      "title": "频域特性图解",
+      "content": [
+        {
+          "sub_title": "概述",
+          "bullets": [
+            "本节将介绍频域特性图解的相关概念和应用"
+          ],
+          "narration": "同学们好，本节我们来学习频域特性图解的相关内容。",
+          "text": "本节将介绍频域特性图解的相关概念和应用",
+          "icon": "book",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": ""
+        }
+      ],
+      "scene_id": 3
+    },
+    {
+      "layout_type": "hero-center",
+      "title": "音频降噪实战",
+      "content": [
+        {
+          "sub_title": "傅里叶原理应用项目",
+          "bullets": [
+            "基于傅里叶变换的音频信号处理实战项目",
+            "分析真实音频的频谱特征与噪声分布",
+            "设计滤波器方案去除高频噪声",
+            "通过逆变换重构干净音频信号",
+            "评估降噪前后的音质变化"
+          ],
+          "narration": "同学们好！欢迎来到傅里叶原理的实战应用课程。今天我们一起来完成一个非常有意思的项目——音频降噪实战。在日常生活和工作中，我们经常会遇到需要处理的音频信号，比如录音中混入了各种噪声。根据最新行业数据显示，高质量的音频降噪技术可以将音频清晰度提升高达60%以上。那么如何利用傅里叶变换的原理来去除这些噪声呢？让我们通过这个项目来一探究竟。",
+          "text": "",
+          "icon": "lightbulb",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A person wearing headphones listening to clean music with visible sound waves, representing audio noise reduction concept"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "three-column-cards",
+      "title": "核心知识点",
+      "content": [
+        {
+          "sub_title": "频谱分析方法",
+          "bullets": [
+            "时域信号转换为频域表示",
+            "DFT离散傅里叶变换原理",
+            "频谱图中横轴为频率，纵轴为幅值",
+            "识别主频率成分与噪声频率带",
+            "频谱峰值反映各频率能量强度"
+          ],
+          "narration": "第一个核心知识点是频谱分析方法。我们知道，音频信号在时域中表现为振幅随时间变化的波形，但这种方式很难直观看出噪声的频率特征。通过傅里叶变换，我们可以将时域信号转换为频域表示。在频谱图中，横轴代表频率，纵轴代表幅值，这样就能清楚地看到信号包含哪些频率成分，哪些是主频率，哪些是噪声频率带。频谱中的峰值反映了各频率成分的能量强度，这是我们识别有用信号和噪声的关键依据。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "blue",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "A frequency spectrum analyzer display showing peaks and noise floor, with waveform on left transforming to frequency spectrum on right"
+        },
+        {
+          "sub_title": "滤波器设计原理",
+          "bullets": [
+            "低通滤波器允许低频通过",
+            "高通滤波器允许高频通过",
+            "带阻滤波器阻断特定频率范围",
+            "设计参数：截止频率与阶数",
+            "根据噪声频率分布选择滤波器类型"
+          ],
+          "narration": "第二个核心知识点是滤波器设计原理。根据2024年最新的数字信号处理技术发展，滤波器是音频降噪的核心工具。低通滤波器允许低频信号通过，同时衰减高频成分，非常适合去除我们常见的高频噪声。高通滤波器则相反，主要保留高频成分。带阻滤波器可以阻断特定频率范围的噪声。设计滤波器时需要确定两个关键参数：截止频率和滤波器阶数，截止频率决定了滤波器的转折点，阶数则影响滤波效果的陡峭程度。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Three types of audio filter response curves - lowpass, highpass, and bandstop filter frequency response diagrams"
+        },
+        {
+          "sub_title": "逆变换重构",
+          "bullets": [
+            "IDFT逆变换将频域转回时域",
+            "滤波后的频谱进行逆变换",
+            "重构信号的幅度与相位信息",
+            "音质评估：信噪比与频谱平坦度",
+            "对比降噪前后的波形与频谱变化"
+          ],
+          "narration": "第三个核心知识点是逆变换重构信号。当我们完成频谱分析并设计了合适的滤波器后，需要通过逆离散傅里叶变换（IDFT）将处理后的频域信号转换回时域信号。在这个过程中，需要保留信号的幅度信息和相位信息，两者缺一不可才能正确重构信号。最后，我们还要对降噪效果进行评估，主要看两个指标：信噪比提升了多少，频谱是否保持相对平坦。专业的音质评估还会考虑失真度、频率响应等参数。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Signal flow diagram showing original signal entering noise reduction processor and emerging as clean filtered signal"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "media-left",
+      "title": "实战案例演示",
+      "content": [
+        {
+          "sub_title": "含噪音频频谱分析",
+          "bullets": [
+            "原始音频包含明显的高频噪声",
+            "频谱图显示高频区域（>4kHz）有噪声尖峰",
+            "人声主频率集中在300Hz-3kHz范围",
+            "噪声频率分布在4kHz-8kHz高频段",
+            "通过频谱分析确定截止频率设计点"
+          ],
+          "narration": "现在让我们通过一个实际案例来演示整个降噪流程。首先，我们有一端含有高频噪声的音频，播放时可以听到明显的滋滋声。通过Audacity等专业工具进行频谱分析后，我们可以看到频谱图中高频区域存在明显的噪声尖峰。经过分析，人声的主要频率集中在300Hz到3kHz这个范围内，而高频噪声则分布在4kHz到8kHz的频段。根据这个频谱特征，我们可以将滤波器的截止频率设置在4kHz左右，这样既能有效滤除高频噪声，又能保留人声的主要频率成分。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "green",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Audio editing software interface showing waveform with noise on top and frequency spectrum analysis panel below with highlighted noise peaks"
+        },
+        {
+          "sub_title": "滤波器设计参数",
+          "bullets": [
+            "选择IIR低通滤波器类型",
+            "截止频率设置为4000Hz",
+            "滤波器阶数选择8阶以获得陡峭过渡带",
+            "应用频率后观察频谱变化",
+            "保留800Hz-3kHz语音频段"
+          ],
+          "narration": "接下来，我们来设计具体的滤波器参数。根据行业实践，对于这类语音降噪任务，IIR低通滤波器是常用的选择。我们将截止频率设置为4000Hz，这样可以精准地切除4kHz以上的高频噪声。滤波器阶数选择8阶，这样可以获得比较陡峭的过渡带，既能有效滤除噪声，又不会对3kHz附近的有用信号造成明显影响。当我们应用这个滤波器后，频谱图上可以看到高频噪声的尖峰已经被完全消除，而800Hz到3kHz这段语音主要频段则基本保持不变。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "yellow",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Filter design parameters panel showing cutoff frequency slider at 4000Hz and order selection with frequency response preview curve"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "降噪处理流程",
+      "content": [
+        {
+          "sub_title": "五步降噪法",
+          "bullets": [
+            "步骤1：导入含噪音频并观察波形特征",
+            "步骤2：进行FFT频谱分析定位噪声频率",
+            "步骤3：根据频谱设计滤波器参数",
+            "步骤4：应用滤波器并检查频谱变化",
+            "步骤5：逆变换重构并评估降噪效果"
+          ],
+          "narration": "下面我们总结一下完整的音频降噪处理流程，总共分为五个步骤。第一步，导入含有噪声的音频文件，仔细观察原始波形的特征和幅度分布。第二步，利用FFT算法进行频谱分析，仔细观察频谱图，定位噪声出现的频率范围和强度。第三步，根据频谱分析的结果设计合适的滤波器，包括选择滤波器类型、确定截止频率和阶数。第四步，正式应用滤波器到音频信号上，并实时观察频谱的变化，确保有用信号没有被明显损伤。第五步，通过逆变换重构处理后的音频信号，并从主观听感和客观指标两个维度评估降噪效果。整个流程环环相扣，每一步都需要认真对待。",
+          "text": "",
+          "icon": "check",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Process flow diagram with five numbered steps connected by arrows showing the complete audio noise reduction workflow"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "fullwidth-banner",
+      "title": "项目总结",
+      "content": [
+        {
+          "sub_title": "核心要点回顾",
+          "bullets": [
+            "频谱分析是识别噪声频率的关键手段",
+            "滤波器设计需根据噪声分布精确选择参数",
+            "逆变换重构时幅度和相位信息缺一不可",
+            "音质评估要结合主观听感与客观指标",
+            "傅里叶原理是现代音频处理的基础技术"
+          ],
+          "narration": "同学们，今天的音频降噪实战项目到这里就接近尾声了。让我们回顾一下今天学习的核心要点：首先，频谱分析是我们识别噪声频率分布的得力工具，只有清楚看到噪声在频谱中的位置，才能有针对性地进行处理。其次，滤波器设计需要根据具体的噪声特征来精确选择参数，不同类型的噪声需要不同的滤波器类型和参数设置。第三，在逆变换重构信号的过程中，幅度和相位信息同等重要，缺一不可。最后，降噪效果的评估要主客观结合，既要自己听感舒适，客观指标也要有明显改善。傅里叶变换作为信号处理领域最基础也是最重要的理论之一，它的核心思想——将信号从时域转换到频域分析——贯穿了整个音频信号处理领域。希望大家通过今天这个项目，能够真正掌握傅里叶原理在音频处理中的应用方法。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "purple",
+          "code_snippet": "",
+          "image_url": "",
+          "image_prompt": "Group of students celebrating successful project completion with headphones and audio equipment on a desk"
+        }
+      ],
+      "scene_id": 5
+    },
+    {
+      "layout_type": "hero-center",
+      "title": "变换代码实现：Python FFT实战",
+      "content": [
+        {
+          "sub_title": "核心工具",
+          "bullets": [
+            "NumPy库：提供高效的FFT算法实现",
+            "Matplotlib库：负责信号波形与频谱的可视化",
+            "SciPy库：提供更丰富的信号处理功能",
+            "核心目标：从时域信号中提取频率成分"
+          ],
+          "narration": "同学们好！欢迎来到傅里叶原理精讲的代码实战环节。今天我们要把抽象的数学公式转化为可运行的Python代码。我们将使用Python科学计算的核心三剑客——NumPy、Matplotlib和SciPy，来亲手实现快速傅里叶变换。通过这节课，你将学会如何让计算机'听懂'信号的频率语言，从复杂的时域波形中精准提取出频率成分。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "blue",
+          "code_snippet": "import numpy as np\nimport matplotlib.pyplot as plt\nfrom scipy.fft import fft",
+          "image_url": "",
+          "image_prompt": "A futuristic digital interface showing sound waves transforming into frequency bars, representing FFT process"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "two-column",
+      "title": "FFT函数调用与频谱生成",
+      "content": [
+        {
+          "sub_title": "核心函数解析",
+          "bullets": [
+            "np.fft.fft(signal)：计算一维离散傅里叶变换",
+            "返回值为复数数组，包含幅度与相位信息",
+            "np.fft.fftfreq(n, d)：自动生成对应的频率轴",
+            "参数n为采样点数，d为采样间隔",
+            "需取模操作np.abs()获取幅度谱"
+          ],
+          "narration": "首先我们来看NumPy中FFT函数的正确调用方法。根据腾讯云开发者社区的教程，核心函数np.fft.fft非常简洁，只需要传入你的时域信号即可。它会返回一个复数数组，这个数组同时包含了各个频率成分的幅度和相位信息。为了画出我们直观看到的频谱图，通常需要用np.abs函数对这个复数结果取模，得到幅度谱。这里特别要注意频率轴的生成，我们使用np.fft.fftfreq函数，它能根据采样点数和采样间隔自动计算出正确的频率刻度，这比手动计算要准确得多。",
+          "text": "",
+          "icon": "code",
+          "color_theme": "green",
+          "code_snippet": "# 执行FFT变换\nfft_result = np.fft.fft(signal)\n\n# 获取幅度谱（取模）\namplitude = np.abs(fft_result)\n\n# 生成频率轴\nfreqs = np.fft.fftfreq(n=samples, d=1/fs)",
+          "image_url": "",
+          "image_prompt": "Split screen showing time domain waveform on left and frequency domain spectrum on right"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "asymmetric-split",
+      "title": "采样定理与频率分辨率",
+      "content": [
+        {
+          "sub_title": "采样关键规则",
+          "bullets": [
+            "采样频率fs必须≥信号最高频率的2倍",
+            "这被称为奈奎斯特采样定理",
+            "采样频率直接决定频谱的分析范围",
+            "频率分辨率 = fs / N（采样点数）",
+            "采样点数N越大，频率分辨率越高"
+          ],
+          "narration": "在编写代码之前，有一个至关重要的理论前提必须掌握，那就是采样定理。知乎专栏上的相关文章特别强调了这一点：采样频率的选择直接决定了频谱分析的有效范围。根据奈奎斯特采样定理，采样频率必须至少是信号中最高频率成分的两倍，否则会发生频率混叠现象，导致分析结果完全错误。同时，频率分辨率由采样频率除以采样点数决定，这意味着如果你想分辨得更细致，就需要采集更多的数据点。这些参数设置是代码实现前必须规划好的。",
+          "text": "",
+          "icon": "warning",
+          "color_theme": "yellow",
+          "code_snippet": "# 采样参数设置示例\nfs = 1000  # 采样频率 1000Hz\nt = np.linspace(0, 1, fs)  # 1秒时长，1000个采样点\n# 可分辨最高频率 = fs/2 = 500Hz\n# 频率分辨率 = fs/N = 1Hz",
+          "image_url": "",
+          "image_prompt": "Diagram illustrating Nyquist-Shannon sampling theorem with aliasing effect warning"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "numbered-list",
+      "title": "频谱分析完整流程",
+      "content": [
+        {
+          "sub_title": "实战步骤",
+          "bullets": [
+            "第一步：设置采样参数，生成或采集时域信号",
+            "第二步：调用np.fft.fft执行快速傅里叶变换",
+            "第三步：对复数结果取模，获取幅度信息",
+            "第四步：使用fftfreq生成正确的频率轴坐标",
+            "第五步：绘制双图：上方时域波形，下方频谱图",
+            "第六步：调整X轴范围，仅显示有效频段(0到fs/2)"
+          ],
+          "narration": "现在，让我们把整个频谱分析的流程串联起来。CSDN上的实战教程提供了一个清晰的思路：首先我们要设置好采样频率和时间向量，生成模拟信号；然后调用FFT函数进行变换；接着对变换后的复数结果取模得到幅度；再用fftfreq生成对应的频率轴；最后用Matplotlib绘制结果。这里有一个绘图技巧要特别注意：FFT的结果是对称的，我们通常只取前一半（0到fs/2）进行展示，这样更符合物理意义，也更清晰直观。",
+          "text": "",
+          "icon": "star",
+          "color_theme": "orange",
+          "code_snippet": "# 完整频谱分析流程\nfs = 1000; t = np.linspace(0, 1, fs, endpoint=False)\nsignal = np.sin(2*np.pi*50*t) + 0.5*np.sin(2*np.pi*120*t)\n\nfft_vals = np.fft.fft(signal)\namp = np.abs(fft_vals[:fs//2])\nfreq = np.fft.fftfreq(fs, 1/fs)[:fs//2]",
+          "image_url": "",
+          "image_prompt": "A vertical flowchart showing signal processing steps from data acquisition to final frequency plot"
+        }
+      ],
+      "scene_id": 6
+    },
+    {
+      "layout_type": "bottom-cards",
+      "title": "可视化技巧与结果解读",
+      "content": [
+        {
+          "sub_title": "绘图要点",
+          "bullets": [
+            "使用plt.subplots创建双子图布局",
+            "时域图：横轴时间(秒)，纵轴幅度",
+            "频域图：横轴频率(Hz)，纵轴幅度",
+            "添加标题、图例和网格线增强可读性"
+          ],
+          "narration": "最后，我们来谈谈可视化技巧。博客园的技术文章指出，一张好的频谱图应该具备清晰的标注。我们通常使用Matplotlib的subplots功能创建上下两个子图，上方展示原始的时域波形，下方展示变换后的频谱。频谱图的X轴一定要标注为频率，Y轴标注为幅度。同时，添加适当的网格线和图例能让图表更加专业。当你看到频谱图中出现明显的峰值时，那个峰值对应的横坐标就是信号中包含的主要频率成分。",
+          "text": "",
+          "icon": "info",
+          "color_theme": "purple",
+          "code_snippet": "fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6))\nax1.plot(t, signal); ax1.set_title('时域信号')\nax2.plot(freq, amp); ax2.set_title('频谱分析')\nax2.set_xlabel('频率; ax2.set_ylabel('幅度')\nplt.tight_layout(); plt.show()",
+          "image_url": "",
+          "image_prompt": "A professional matplotlib figure showing two subplots: time domain waveform on top and frequency spectrum with peaks at the bottom"
+        }
+      ],
+      "scene_id": 6
+    }
+  ],
+  "teacher": {
+    "name": "星识教师",
+    "avatar": "🤖",
+    "role": "课程导师",
+    "voice_id": 0
+  },
+  "agent_team": [
+    {
+      "id": "teacher_preset",
+      "name": "星识教师",
+      "role": "课程导师",
+      "persona": "经验丰富的AI教师，擅长互动式教学",
+      "avatar": "🤖",
+      "color": "#6366f1",
+      "voice_id": "female-shaonv",
+      "priority": 0
+    }
+  ],
+  "quiz_data": [],
+  "exercise_data": [],
+  "interactive_data": [],
+  "tts_audio_urls": {},
+  "scene_actions": [],
+  "metadata": {
+    "requirement": "我想学习傅里叶原理",
+    "student_id": "1",
+    "session_id": "8abb9f3a-65cf-4e33-8b61-70fd1c4fd4c8",
+    "generated_at": "2026-05-04 19:02:56",
+    "agent_mode": "preset",
+    "voice_id": "female-shaonv",
+    "interactive_mode": true
+  }
+}
