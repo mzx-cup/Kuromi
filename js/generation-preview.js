@@ -882,7 +882,15 @@
         });
 
         // Save to server
-        const studentId = String(sessionData?.student_id || '');
+        const currentUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        const studentId = String(currentUser.id || sessionData?.student_id || '');
+        // 确保 courseData 有 courseId
+        if (!courseData.courseId && !courseData.course_id) {
+            const savedCourseId = sessionStorage.getItem('courseId');
+            if (savedCourseId) {
+                courseData.courseId = savedCourseId;
+            }
+        }
         // 计算页数时优先使用 slides_v2（新格式），与 classroom.js 中 scenes 数量保持一致
         const slides = courseData.slides || [];
         const slidesV2 = courseData.slides_v2 || [];

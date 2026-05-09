@@ -51,6 +51,7 @@ from agent_utils import (
 from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
 from config import settings
+from app.services.teacher.personas import get_persona_manager
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
@@ -2407,7 +2408,26 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 else:
                     instruction = textual_instruction
 
-                sys_prompt = f"""你是一位专业的大数据与AI高校导师。
+                # 根据 agent/persona 动态构建角色设定
+                if body.agent == "default" and body.persona:
+                    try:
+                        mgr = get_persona_manager()
+                        persona_obj = mgr.get(body.persona)
+                        identity_prompt = (
+                            f"{persona_obj.identity}\n\n"
+                            f"教学策略：\n{persona_obj.teaching_strategy}\n\n"
+                            f"语气要求：\n{persona_obj.tone}\n\n"
+                            f"行为准则：\n" + "\n".join(f"- {r}" for r in persona_obj.behavior_rules)
+                        )
+                    except Exception:
+                        identity_prompt = "你是一位专业的大数据与AI高校导师。"
+                elif body.agent_system_prompt:
+                    identity_prompt = body.agent_system_prompt
+                else:
+                    identity_prompt = "你是一位专业的大数据与AI高校导师。"
+
+                sys_prompt = f"""{identity_prompt}
+
 【必须遵守规则】：
 1. 基于[教材参考]回答并标注引用。
 [教材参考开始]
@@ -5839,9 +5859,8 @@ async def generate_course_stream(request: CourseGenerationRequest):
     流式生成课程（LLM驱动版）
     使用 CourseGenerator 进行真实的大模型调用，通过SSE返回进度
     """
-    async def event_generator():
-        from course_generator import get_course_generator
-        generator = get_course_generator()
+    from course_generator import get_course_generator
+    generator = get_course_generator()
 
     queue = asyncio.Queue(maxsize=500)
 
@@ -6451,9 +6470,15 @@ def _get_course_path(course_id: str) -> str:
 async def save_course(request: CourseSaveRequest):
     """保存课程数据到服务端"""
     course = request.course_data
+    # 兼容前端的 course_id / courseId 写法
+    course_id = course.courseId or getattr(course, 'course_id', '') or ''
+    if not course_id:
+        course_id = f"course_{int(time.time())}_{os.urandom(4).hex()}"
+        course.courseId = course_id
+
     if request.student_id:
         course.metadata["student_id"] = request.student_id
-    filepath = _get_course_path(course.courseId)
+    filepath = _get_course_path(course_id)
 
     # 保存到JSON文件
     with open(filepath, "w", encoding="utf-8") as f:
@@ -6467,7 +6492,7 @@ async def save_course(request: CourseSaveRequest):
         except ValueError:
             print(f"警告: student_id '{request.student_id}' 不是有效数字，无法保存到数据库课堂记录")
 
-    if user_id and course.courseId:
+    if course_id:
         try:
             full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
             ppt_pages = request.ppt_pages if request.ppt_pages else (
@@ -6475,11 +6500,11 @@ async def save_course(request: CourseSaveRequest):
                     len(course.slides) if course.slides else 0
                 )
             )
-            save_classroom_record(user_id, course.courseId, course.title, full_data, ppt_pages)
+            save_classroom_record(user_id, course_id, course.title, full_data, ppt_pages)
         except Exception as e:
             print(f"数据库保存失败（非致命）: {e}")
 
-    return {"success": True, "course_id": course.courseId}
+    return {"success": True, "course_id": course_id}
 
 
 @app.get("/api/v2/course/{course_id}")
@@ -6497,6 +6522,11 @@ async def get_pending_slides(course_id: str):
     """获取课程待生成的幻灯片（用于后台增量生成）"""
     status = get_course_generation_status(course_id)
     if not status:
+        # 如果数据库中没有记录，说明生成状态尚未保存或已清理，返回 is_complete=False 让前端继续轮询
+        # 同时检查本地存储中是否有该课程的文件作为后备判断
+        courses_dir = os.path.join(STORAGE_DIR, "courses")
+        course_file = os.path.join(courses_dir, f"{course_id}.json")
+        has_local_file = os.path.exists(course_file)
         return {
             "pending_slides": [],
             "pending_slides_v2": [],
@@ -6504,7 +6534,7 @@ async def get_pending_slides(course_id: str):
             "pending_exercise_data": [],
             "generated_count": 0,
             "total_outlines": 0,
-            "is_complete": True
+            "is_complete": has_local_file  # 只有本地文件存在时才认为已完成
         }
     return {
         "pending_slides": [],
@@ -6515,6 +6545,38 @@ async def get_pending_slides(course_id: str):
         "total_outlines": status.get("total_outlines", 0),
         "is_complete": status.get("is_complete", False)
     }
+
+
+@app.post("/api/v2/course/{course_id}/slides/consume")
+async def consume_pending_slides(course_id: str, request: Request):
+    """前端消费 pending slides 后调用，清空已消费的 slides"""
+    try:
+        body = await request.json()
+        consumed_slide_titles = body.get("consumed_slide_titles", [])
+    except Exception:
+        consumed_slide_titles = []
+
+    status = get_course_generation_status(course_id)
+    if not status:
+        return {"success": True, "message": "No status found"}
+
+    pending_v2 = status.get("pending_slides_v2", [])
+    if consumed_slide_titles:
+        # 根据 title 移除已消费的 slides
+        new_pending_v2 = [s for s in pending_v2 if s.get("title") not in consumed_slide_titles]
+    else:
+        # 如果没有提供具体消费的 titles，清空全部 pending（前端已自行合并）
+        new_pending_v2 = []
+
+    try:
+        update_course_generation_status(
+            course_id=course_id,
+            pending_slides_v2=new_pending_v2
+        )
+        return {"success": True, "removed_count": len(pending_v2) - len(new_pending_v2)}
+    except Exception as e:
+        logger.error(f"Failed to consume pending slides for {course_id}: {e}")
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/v2/course/list/{student_id}")

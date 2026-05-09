@@ -565,6 +565,7 @@ body {
     position: relative;
     animation: slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: block;
+    color: #1E293B;
 }
 
 .slide-container::before {
@@ -3972,6 +3973,7 @@ body {
     padding: 40px;
     overflow-y: auto;
     background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 30%);
+    color: #1E293B;
 }
 
 /* 2. 核心区：解除宽度限制！ */
@@ -4013,6 +4015,7 @@ body {
     flex-direction: column;
     animation: cardFadeUp 0.5s ease-out forwards;
     opacity: 0;
+    color: #1E293B;
 }
 
 .content-card:hover {

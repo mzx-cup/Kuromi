@@ -483,6 +483,16 @@
                 });
                 if (exists) return;
 
+                // 检测是否为欢迎页：去重且置顶
+                const isWelcome = (slideV2.layout_type || slideV2.layoutType) === 'edu-welcome';
+                if (isWelcome) {
+                    const hasWelcome = self.scenes.some(function(s) {
+                        return s.slides_v2 && s.slides_v2.length > 0 &&
+                               (s.slides_v2[0].layout_type === 'edu-welcome' || s.slides_v2[0].layoutType === 'edu-welcome');
+                    });
+                    if (hasWelcome) return; // 跳过重复的欢迎页
+                }
+
                 // Create new scene
                 const newScene = {
                     id: slideV2.scene_id || ('scene_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
@@ -508,7 +518,11 @@
                 });
                 if (matchedExercise) newScene.exercise = matchedExercise;
 
-                self.scenes.push(newScene);
+                if (isWelcome) {
+                    self.scenes.unshift(newScene); // 欢迎页插入到开头
+                } else {
+                    self.scenes.push(newScene);
+                }
                 addedCount++;
             });
 
