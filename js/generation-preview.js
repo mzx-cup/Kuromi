@@ -906,6 +906,35 @@
         // Store for classroom and navigate
         sessionStorage.setItem('classroomData', JSON.stringify(courseData));
 
+        // 保存到 localStorage 的 courseHistory（供首页最近课堂显示）
+        try {
+            const historyKey = 'courseHistory';
+            let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            const courseEntry = {
+                courseId: courseData.course_id || courseData.courseId || '',
+                title: courseData.title || '未命名课程',
+                createdAt: Date.now(),
+                slideCount: pageCount,
+                _dbRecord: {
+                    course_id: courseData.course_id || courseData.courseId || '',
+                    title: courseData.title || '未命名课程',
+                    ppt_pages: pageCount,
+                    created_at: new Date().toISOString()
+                }
+            };
+            // 去重：如果已存在同courseId的记录，先移除
+            history = history.filter(c => c.courseId !== courseEntry.courseId);
+            // 添加到开头
+            history.unshift(courseEntry);
+            // 只保留最近20条
+            if (history.length > 20) {
+                history = history.slice(0, 20);
+            }
+            localStorage.setItem(historyKey, JSON.stringify(history));
+        } catch (e) {
+            console.warn('Failed to save course to local history:', e);
+        }
+
         const agents = courseData?.agent_team;
         if (agents && agents.length > 0 && sessionData.requirements?.agent_mode === 'auto') {
             // Show agent reveal modal

@@ -474,6 +474,55 @@ MYSQL_TABLES = [
         INDEX idx_course_id (course_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 27. user_flashcard_progress - 用户胶囊卡片进度
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_flashcard_progress (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        card_hash VARCHAR(64) NOT NULL,
+        course_id VARCHAR(100) DEFAULT 'bigdata',
+        chapter_name VARCHAR(255) DEFAULT '',
+        front_text TEXT NOT NULL,
+        back_text TEXT NOT NULL,
+        hint_text TEXT DEFAULT '',
+        is_mastered TINYINT DEFAULT 0,
+        is_favorite TINYINT DEFAULT 0,
+        difficulty VARCHAR(20) DEFAULT 'medium',
+        user_note TEXT DEFAULT '',
+        review_count INT DEFAULT 0,
+        first_seen_at TIMESTAMP NULL,
+        last_reviewed_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_user_card (user_id, card_hash)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 28. user_flashcard_sessions - 用户胶囊学习会话
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_flashcard_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_date DATE NOT NULL,
+        course_id VARCHAR(100) DEFAULT 'bigdata',
+        chapter_name VARCHAR(255) DEFAULT '',
+        cards_total INT DEFAULT 0,
+        cards_answered INT DEFAULT 0,
+        cards_mastered INT DEFAULT 0,
+        cards_favorited INT DEFAULT 0,
+        duration_seconds INT DEFAULT 0,
+        session_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_user_date (user_id, session_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -504,6 +553,8 @@ TABLE_NAMES = [
     "weekly_summary",
     "classroom_records",
     "course_generation_status",
+    "user_flashcard_progress",
+    "user_flashcard_sessions",
 ]
 
 

@@ -1278,7 +1278,6 @@ body {
     background: #4a3728;
     border-radius: 50%;
     position: relative;
-    animation: blink 3.5s ease-in-out infinite;
 }
 
 .eye::after {
@@ -1292,12 +1291,26 @@ body {
     border-radius: 50%;
 }
 
-.eye-left { animation-delay: 0s; }
-.eye-right { animation-delay: 0.15s; }
+.eye.blinking-single {
+    animation: teacherEyeBlink 300ms ease-in-out 1;
+}
 
-@keyframes blink {
-    0%, 46%, 54%, 100% { transform: scaleY(1); }
+.eye.blinking-double {
+    animation: teacherEyeBlinkDouble 600ms ease-in-out 1;
+}
+
+.eye.blinking-wink {
+    animation: teacherEyeBlink 350ms ease-in-out 1;
+}
+
+@keyframes teacherEyeBlink {
+    0%, 100% { transform: scaleY(1); }
     50% { transform: scaleY(0.05); }
+}
+
+@keyframes teacherEyeBlinkDouble {
+    0%, 20%, 40%, 100% { transform: scaleY(1); }
+    10%, 30% { transform: scaleY(0.05); }
 }
 
 .teacher-avatar-mouth {

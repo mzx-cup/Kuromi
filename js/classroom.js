@@ -262,6 +262,7 @@
             this.updateNav();
             this.initTeacherAreaInteraction();
             this.loadSettings(); // Load saved settings
+            this.startEyeBlinkScheduler();
             // 启动后台轮询（如果courseId存在且生成未完成）
             this.startBackgroundPolling();
         }
@@ -936,6 +937,55 @@
             this.quizRetryBtn?.addEventListener('click', () => this.retryQuiz());
             document.addEventListener('keydown', e => this.onKey(e));
             this.initChatVoiceInput();
+        }
+
+        // ---- Eye Blink Scheduler ----
+
+        startEyeBlinkScheduler() {
+            this._eyeBlinkTimer = null;
+            this.scheduleNextBlink();
+        }
+
+        scheduleNextBlink() {
+            if (this._eyeBlinkTimer) clearTimeout(this._eyeBlinkTimer);
+            const interval = Math.random() * 4000 + 2000; // 2-6s
+            this._eyeBlinkTimer = setTimeout(() => this.triggerRandomBlink(), interval);
+        }
+
+        triggerRandomBlink() {
+            const eyes = this.teacherAvatar?.querySelectorAll('.eye');
+            if (!eyes || eyes.length === 0) {
+                this.scheduleNextBlink();
+                return;
+            }
+            const r = Math.random();
+            let className, duration, targetEyes;
+            if (r < 0.55) {
+                // 55% 单眨
+                className = 'blinking-single';
+                duration = 400;
+                targetEyes = eyes;
+            } else if (r < 0.80) {
+                // 25% 双眨
+                className = 'blinking-double';
+                duration = 700;
+                targetEyes = eyes;
+            } else {
+                // 20% wink（单眼眨）
+                className = 'blinking-wink';
+                duration = 450;
+                const eyeIdx = Math.random() < 0.5 ? 0 : 1;
+                targetEyes = [eyes[eyeIdx]];
+            }
+            eyes.forEach(eye => {
+                eye.classList.remove('blinking-single', 'blinking-double', 'blinking-wink');
+                void eye.offsetWidth; // force reflow
+            });
+            targetEyes.forEach(eye => eye.classList.add(className));
+            setTimeout(() => {
+                eyes.forEach(eye => eye.classList.remove(className));
+                this.scheduleNextBlink();
+            }, duration);
         }
 
         onKey(e) {

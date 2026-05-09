@@ -1662,6 +1662,314 @@ def save_user_eco_data(user_id, eco_data_dict):
 
 
 # ============================================================
+# 胶囊卡片进度
+# ============================================================
+
+def save_flashcard_progress(user_id, card_data):
+    """保存单张胶囊卡片进度（掌握度、收藏、难度、笔记）"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                is_mastered = card_data.get('is_mastered', 0)
+                is_favorite = card_data.get('is_favorite', 0)
+                difficulty = card_data.get('difficulty', 'medium')
+                user_note = card_data.get('user_note', '')
+                review_count = card_data.get('review_count', 0)
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """INSERT INTO user_flashcard_progress
+                           (user_id, card_hash, course_id, chapter_name, front_text, back_text, hint_text,
+                            is_mastered, is_favorite, difficulty, user_note, review_count,
+                            first_seen_at, last_reviewed_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'), datetime('now','localtime'))
+                           ON CONFLICT(user_id, card_hash) DO UPDATE SET
+                               is_mastered=excluded.is_mastered,
+                               is_favorite=excluded.is_favorite,
+                               difficulty=excluded.difficulty,
+                               user_note=excluded.user_note,
+                               review_count=excluded.review_count,
+                               last_reviewed_at=datetime('now','localtime')""",
+                        (user_id, card_data.get('card_hash', ''), card_data.get('course_id', 'bigdata'),
+                         card_data.get('chapter_name', ''), card_data.get('front', ''), card_data.get('back', ''),
+                         card_data.get('hint', ''), is_mastered, is_favorite, difficulty, user_note, review_count))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """INSERT INTO user_flashcard_progress
+                           (user_id, card_hash, course_id, chapter_name, front_text, back_text, hint_text,
+                            is_mastered, is_favorite, difficulty, user_note, review_count,
+                            first_seen_at, last_reviewed_at)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                           ON DUPLICATE KEY UPDATE
+                               is_mastered=%s, is_favorite=%s, difficulty=%s,
+                               user_note=%s, review_count=%s, last_reviewed_at=NOW()""",
+                        (user_id, card_data.get('card_hash', ''), card_data.get('course_id', 'bigdata'),
+                         card_data.get('chapter_name', ''), card_data.get('front', ''), card_data.get('back', ''),
+                         card_data.get('hint', ''), is_mastered, is_favorite, difficulty, user_note, review_count,
+                         is_mastered, is_favorite, difficulty, user_note, review_count))
+                conn.commit()
+                cursor.close()
+                return
+            except Exception as e:
+                print(f"[DB] save_flashcard_progress failed: {e}")
+
+        storage = load_local_storage()
+        progress_list = storage.get('user_flashcard_progress', [])
+        found = False
+        for p in progress_list:
+            if p.get('user_id') == user_id and p.get('card_hash') == card_data.get('card_hash'):
+                p.update(card_data)
+                found = True
+                break
+        if not found:
+            progress_list.append({'user_id': user_id, **card_data})
+        storage['user_flashcard_progress'] = progress_list
+        save_local_storage(storage)
+
+
+def get_flashcard_progress(user_id, course_id=None, chapter_name=None):
+    """获取用户胶囊卡片进度列表"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    if course_id and chapter_name:
+                        cursor.execute(
+                            """SELECT * FROM user_flashcard_progress
+                               WHERE user_id = ? AND course_id = ? AND chapter_name = ?""",
+                            (user_id, course_id, chapter_name))
+                    elif course_id:
+                        cursor.execute(
+                            "SELECT * FROM user_flashcard_progress WHERE user_id = ? AND course_id = ?",
+                            (user_id, course_id))
+                    else:
+                        cursor.execute(
+                            "SELECT * FROM user_flashcard_progress WHERE user_id = ?",
+                            (user_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    if course_id and chapter_name:
+                        cursor.execute(
+                            """SELECT * FROM user_flashcard_progress
+                               WHERE user_id = %s AND course_id = %s AND chapter_name = %s""",
+                            (user_id, course_id, chapter_name))
+                    elif course_id:
+                        cursor.execute(
+                            "SELECT * FROM user_flashcard_progress WHERE user_id = %s AND course_id = %s",
+                            (user_id, course_id))
+                    else:
+                        cursor.execute(
+                            "SELECT * FROM user_flashcard_progress WHERE user_id = %s",
+                            (user_id,))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for row in rows:
+                    if isinstance(row, dict):
+                        result.append(row)
+                    else:
+                        result.append({
+                            'card_hash': row[1], 'course_id': row[2], 'chapter_name': row[3],
+                            'front_text': row[4], 'back_text': row[5], 'hint_text': row[6],
+                            'is_mastered': row[7], 'is_favorite': row[8], 'difficulty': row[9],
+                            'user_note': row[10], 'review_count': row[11],
+                            'first_seen_at': row[12], 'last_reviewed_at': row[13],
+                        })
+                return result
+            except Exception as e:
+                print(f"[DB] get_flashcard_progress failed: {e}")
+
+        storage = load_local_storage()
+        progress_list = storage.get('user_flashcard_progress', [])
+        result = []
+        for p in progress_list:
+            if p.get('user_id') != user_id:
+                continue
+            if course_id and p.get('course_id') != course_id:
+                continue
+            if chapter_name and p.get('chapter_name') != chapter_name:
+                continue
+            result.append(p)
+        return result
+
+
+def get_flashcard_stats(user_id):
+    """获取用户胶囊学习统计"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                stats = {}
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM user_flashcard_progress WHERE user_id = ?",
+                        (user_id,))
+                    stats['total_cards'] = cursor.fetchone()[0]
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM user_flashcard_progress WHERE user_id = ? AND is_mastered = 1",
+                        (user_id,))
+                    stats['total_mastered'] = cursor.fetchone()[0]
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM user_flashcard_progress WHERE user_id = ? AND is_favorite = 1",
+                        (user_id,))
+                    stats['total_favorited'] = cursor.fetchone()[0]
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM user_flashcard_sessions WHERE user_id = ? AND session_date = date('now','localtime')",
+                        (user_id,))
+                    stats['today_sessions'] = cursor.fetchone()[0]
+                    cursor.execute(
+                        """SELECT SUM(cards_answered) FROM user_flashcard_sessions
+                           WHERE user_id = ? AND session_date = date('now','localtime')""",
+                        (user_id,))
+                    row = cursor.fetchone()
+                    stats['today_answered'] = row[0] or 0
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT COUNT(*) as c FROM user_flashcard_progress WHERE user_id = %s",
+                        (user_id,))
+                    stats['total_cards'] = cursor.fetchone()['c']
+                    cursor.execute(
+                        "SELECT COUNT(*) as c FROM user_flashcard_progress WHERE user_id = %s AND is_mastered = 1",
+                        (user_id,))
+                    stats['total_mastered'] = cursor.fetchone()['c']
+                    cursor.execute(
+                        "SELECT COUNT(*) as c FROM user_flashcard_progress WHERE user_id = %s AND is_favorite = 1",
+                        (user_id,))
+                    stats['total_favorited'] = cursor.fetchone()['c']
+                    cursor.execute(
+                        "SELECT COUNT(*) as c FROM user_flashcard_sessions WHERE user_id = %s AND session_date = CURDATE()",
+                        (user_id,))
+                    stats['today_sessions'] = cursor.fetchone()['c']
+                    cursor.execute(
+                        """SELECT SUM(cards_answered) as s FROM user_flashcard_sessions
+                           WHERE user_id = %s AND session_date = CURDATE()""",
+                        (user_id,))
+                    row = cursor.fetchone()
+                    stats['today_answered'] = row['s'] or 0
+                cursor.close()
+                return stats
+            except Exception as e:
+                print(f"[DB] get_flashcard_stats failed: {e}")
+
+        storage = load_local_storage()
+        progress_list = storage.get('user_flashcard_progress', [])
+        user_progress = [p for p in progress_list if p.get('user_id') == user_id]
+        session_list = storage.get('user_flashcard_sessions', [])
+        today = datetime.now().strftime('%Y-%m-%d')
+        today_sessions = [s for s in session_list if s.get('user_id') == user_id and s.get('session_date') == today]
+        return {
+            'total_cards': len(user_progress),
+            'total_mastered': sum(1 for p in user_progress if p.get('is_mastered')),
+            'total_favorited': sum(1 for p in user_progress if p.get('is_favorite')),
+            'today_sessions': len(today_sessions),
+            'today_answered': sum(s.get('cards_answered', 0) for s in today_sessions),
+        }
+
+
+def save_flashcard_session(user_id, session_data):
+    """保存一次胶囊学习会话"""
+    session_json = json.dumps(session_data, ensure_ascii=False)
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """INSERT INTO user_flashcard_sessions
+                           (user_id, session_date, course_id, chapter_name, cards_total, cards_answered,
+                            cards_mastered, cards_favorited, duration_seconds, session_json)
+                           VALUES (?, date('now','localtime'), ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (user_id, session_data.get('course_id', 'bigdata'),
+                         session_data.get('chapter_name', ''),
+                         session_data.get('cards_total', 0),
+                         session_data.get('cards_answered', 0),
+                         session_data.get('cards_mastered', 0),
+                         session_data.get('cards_favorited', 0),
+                         session_data.get('duration_seconds', 0),
+                         session_json))
+                else:
+                    import pymysql
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """INSERT INTO user_flashcard_sessions
+                           (user_id, session_date, course_id, chapter_name, cards_total, cards_answered,
+                            cards_mastered, cards_favorited, duration_seconds, session_json)
+                           VALUES (%s, CURDATE(), %s, %s, %s, %s, %s, %s, %s, %s)""",
+                        (user_id, session_data.get('course_id', 'bigdata'),
+                         session_data.get('chapter_name', ''),
+                         session_data.get('cards_total', 0),
+                         session_data.get('cards_answered', 0),
+                         session_data.get('cards_mastered', 0),
+                         session_data.get('cards_favorited', 0),
+                         session_data.get('duration_seconds', 0),
+                         session_json))
+                conn.commit()
+                cursor.close()
+                return
+            except Exception as e:
+                print(f"[DB] save_flashcard_session failed: {e}")
+
+        storage = load_local_storage()
+        session_list = storage.get('user_flashcard_sessions', [])
+        session_list.append({
+            'id': len(session_list) + 1,
+            'user_id': user_id,
+            'session_date': datetime.now().strftime('%Y-%m-%d'),
+            **session_data,
+        })
+        storage['user_flashcard_sessions'] = session_list
+        save_local_storage(storage)
+
+
+def get_flashcard_sessions(user_id, limit=30):
+    """获取用户最近的胶囊学习会话"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT * FROM user_flashcard_sessions WHERE user_id = ?
+                           ORDER BY created_at DESC LIMIT ?""",
+                        (user_id, limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT * FROM user_flashcard_sessions WHERE user_id = %s
+                           ORDER BY created_at DESC LIMIT %s""",
+                        (user_id, limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for row in rows:
+                    if isinstance(row, dict):
+                        result.append(row)
+                    else:
+                        result.append({
+                            'session_date': row[2], 'course_id': row[3], 'chapter_name': row[4],
+                            'cards_total': row[5], 'cards_answered': row[6],
+                            'cards_mastered': row[7], 'cards_favorited': row[8],
+                            'duration_seconds': row[9], 'session_json': row[10],
+                        })
+                return result
+            except Exception as e:
+                print(f"[DB] get_flashcard_sessions failed: {e}")
+
+        storage = load_local_storage()
+        session_list = storage.get('user_flashcard_sessions', [])
+        user_sessions = [s for s in session_list if s.get('user_id') == user_id]
+        user_sessions.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        return user_sessions[:limit]
+
+
+# ============================================================
 # 全息知识生态 - SM2 间隔重复算法
 # ============================================================
 

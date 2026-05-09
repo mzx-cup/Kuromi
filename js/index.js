@@ -457,6 +457,9 @@ function initSubjectDropdown() {
             menu.classList.add('hidden');
             btn.classList.remove('open');
         } else {
+            const rect = btn.getBoundingClientRect();
+            menu.style.left = rect.left + 'px';
+            menu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
             menu.classList.remove('hidden');
             btn.classList.add('open');
         }
@@ -468,6 +471,16 @@ function initSubjectDropdown() {
             btn.classList.remove('open');
         }
     });
+
+    window.addEventListener('resize', () => {
+        menu.classList.add('hidden');
+        btn.classList.remove('open');
+    });
+
+    window.addEventListener('scroll', () => {
+        menu.classList.add('hidden');
+        btn.classList.remove('open');
+    }, true);
 }
 
 function updateSubjectDropdownUI() {
@@ -1565,6 +1578,7 @@ async function loadRecentCourses() {
 
     // 优先从数据库API获取课堂列表（仅针对已登录用户）
     let history = [];
+    let dbRecords = [];
     if (isLoggedIn) {
         try {
             const resp = await fetch(`/api/v2/classroom/list/${currentUser.id}`);
@@ -1572,7 +1586,7 @@ async function loadRecentCourses() {
                 const data = await resp.json();
                 if (data.success && data.records && data.records.length > 0) {
                     // 将数据库记录转换为前端需要的格式
-                    history = data.records.map(record => ({
+                    dbRecords = data.records.map(record => ({
                         courseId: record.course_id,
                         title: record.title,
                         createdAt: new Date(record.created_at).getTime(),
@@ -1580,8 +1594,6 @@ async function loadRecentCourses() {
                         // 保留完整数据供后续使用
                         _dbRecord: record
                     }));
-                    // 按时间倒序（数据库查询已排序，但确保一致）
-                    history.sort((a, b) => b.createdAt - a.createdAt);
                 }
             }
         } catch (e) {
@@ -1589,10 +1601,24 @@ async function loadRecentCourses() {
         }
     }
 
-    // 如果数据库没有记录或用户未登录，回退到localStorage
-    if (history.length === 0) {
-        history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
-    }
+    // 同时读取本地缓存（可能包含刚生成但尚未同步到数据库的最新记录）
+    const localHistory = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+
+    // 合并数据库记录和本地记录，按 courseId 去重，本地优先（更新的记录）
+    const mergedMap = new Map();
+    dbRecords.forEach(item => mergedMap.set(item.courseId, item));
+    localHistory.forEach(item => {
+        if (item.courseId) {
+            const existing = mergedMap.get(item.courseId);
+            if (!existing || (item.createdAt && item.createdAt > existing.createdAt)) {
+                mergedMap.set(item.courseId, item);
+            }
+        }
+    });
+    history = Array.from(mergedMap.values());
+
+    // 按时间倒序排列
+    history.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     if (countEl) {
         countEl.textContent = history.length;
@@ -1655,8 +1681,9 @@ async function openCourse(courseId) {
     let history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
     let course = history.find(c => c.courseId === courseId);
 
-    // 2. 如果localStorage没有，尝试从数据库API获取完整数据
-    if (!course) {
+    // 2. 如果localStorage没有，或只有摘要信息（缺少完整课程数据），尝试从数据库API获取
+    const hasFullData = course && (course.slides || course.slides_v2 || course.outlines || course.agent_team);
+    if (!hasFullData) {
         try {
             const resp = await fetch(`/api/v2/classroom/${courseId}`);
             if (resp.ok) {
@@ -2241,7 +2268,7 @@ async function startCourseGeneration(requirement) {
     const videoToggle = document.getElementById('openmaic-video-toggle');
     const webSearchPill = document.getElementById('openmaic-websearch-pill');
     const interactivePill = document.getElementById('openmaic-interactive-pill');
-    const agentMode = document.getElementById('openmaic-agent-mode')?.value || 'preset';
+    const agentMode = document.getElementById('openmaic-agent-select')?.value || 'preset';
     const voiceId = document.getElementById('openmaic-voice-select')?.value || 'female-shaonv';
     const teacherId = document.getElementById('openmaic-teacher-select')?.value || '';
 
@@ -6768,7 +6795,7 @@ class MusicPanel {
                 artist: this._genreArtist(item.genre),
                 genre: item.genre,
                 duration: this._estimateDuration(item.file),
-                audioUrl: `/audio/${item.file}`
+                audioUrl: `/static/audio/${item.file}`
             };
         });
 

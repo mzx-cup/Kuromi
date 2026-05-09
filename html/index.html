@@ -19,54 +19,148 @@
         /* AI教师选择器样式 */
         .teacher-select-wrapper {
             margin-top: 16px;
-            display: none;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transform: translateY(-8px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            padding: 0 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid transparent;
+            border-radius: 14px;
+            backdrop-filter: blur(12px);
         }
 
         .teacher-select-wrapper.visible {
-            display: block;
+            max-height: 220px;
+            opacity: 1;
+            transform: translateY(0);
+            padding: 12px 10px;
+            border-color: rgba(99, 102, 241, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            margin-bottom: 6px;
+        }
+
+        .openmaic-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 10px;
+            letter-spacing: 0.02em;
         }
 
         .teacher-cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin-top: 8px;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        @media (max-width: 640px) {
+            .teacher-cards {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .teacher-cards {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 6px;
+            }
         }
 
         .teacher-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 16px 12px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 10px;
+            padding: 10px 6px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            transform: scale(0.92);
+            opacity: 0;
+        }
+
+        .teacher-select-wrapper.visible .teacher-card {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .teacher-select-wrapper.visible .teacher-card:nth-child(1) { transition-delay: 0.05s; }
+        .teacher-select-wrapper.visible .teacher-card:nth-child(2) { transition-delay: 0.1s; }
+        .teacher-select-wrapper.visible .teacher-card:nth-child(3) { transition-delay: 0.15s; }
+        .teacher-select-wrapper.visible .teacher-card:nth-child(4) { transition-delay: 0.2s; }
+        .teacher-select-wrapper.visible .teacher-card:nth-child(5) { transition-delay: 0.25s; }
+
+        .teacher-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .teacher-card:hover {
-            border-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.1);
+        }
+
+        .teacher-card:hover::before {
+            opacity: 1;
         }
 
         .teacher-card.selected {
-            border-color: var(--primary, #6366f1);
-            background: rgba(99, 102, 241, 0.15);
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.12);
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .teacher-card.selected::after {
+            content: '\2713';
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 14px;
+            height: 14px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: white;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
         }
 
         .teacher-card-icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
+            font-size: 1.5rem;
+            margin-bottom: 6px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
 
         .teacher-card-name {
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 4px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 2px;
+            font-size: 0.75rem;
         }
 
         .teacher-card-profession {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.625rem;
+            color: #94a3b8;
+            letter-spacing: 0.01em;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -544,16 +638,6 @@
         </div>
     </div>
 
-    <div id="agent-menu-wrapper" data-ref="agent-menu-wrapper" style="position: fixed; bottom: 24px; right: 96px; z-index: 50;">
-        <div id="agent-fab-panel" data-ref="agent-fab-panel" class="agent-fab-panel">
-            <div id="agent-fab-list" data-ref="agent-fab-list" class="agent-fab-list"></div>
-        </div>
-        <button id="agent-fab-btn" data-ref="agent-fab-btn" class="agent-fab-main" onclick="handleMenuButtonClick(event)" aria-label="切换智能体">
-            <span id="agent-fab-icon" class="agent-fab-icon"></span>
-            <span id="agent-fab-name" class="agent-fab-name"></span>
-        </button>
-    </div>
-
     <div id="music-panel" class="music-panel">
         <div class="music-panel-header shrink-0">
             <div class="music-panel-title">
@@ -813,6 +897,130 @@
         <source src="https://cdn.pixabay.com/audio/2022/02/22/audio_d1718ab41b.mp3" type="audio/mpeg">
     </audio>
 
+    <!-- ============================================
+         星轨胶囊舱沉浸层
+         ============================================ -->
+    <div id="capsule-immersive" class="capsule-immersive">
+        <canvas id="capsule-nebula-canvas" class="capsule-nebula-canvas"></canvas>
+
+        <div class="capsule-orbit-track" id="capsule-orbit-track">
+            <div class="capsule-orbit-curve" id="capsule-orbit-curve"></div>
+        </div>
+
+        <div class="capsule-top-bar">
+            <div class="capsule-title"><i data-lucide="layers" class="w-4 h-4"></i> 知识胶囊</div>
+            <div class="capsule-session-info" id="capsule-session-info">已掌握 0 / 0</div>
+            <button class="capsule-close-btn" onclick="window.flashcardUI.exitImmersive()" aria-label="关闭">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-card-stage" id="capsule-card-stage">
+            <div class="capsule-card-container" onclick="window.flashcardUI.flip()">
+                <div class="capsule-card-3d" id="capsule-card-3d">
+                    <div class="capsule-card-face capsule-card-front" id="capsule-card-front">
+                        <div class="capsule-card-hint">点击翻转查看答案</div>
+                        <div class="capsule-card-text" id="capsule-front-text"></div>
+                        <div class="capsule-card-badge" id="capsule-front-badges"></div>
+                    </div>
+                    <div class="capsule-card-face capsule-card-back" id="capsule-card-back">
+                        <div class="capsule-card-text" id="capsule-back-text"></div>
+                        <div class="capsule-card-hint-text" id="capsule-hint-text"></div>
+                        <div class="capsule-card-badge" id="capsule-back-badges"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="capsule-control-bar">
+                <button class="capsule-ctrl-btn" id="capsule-fav-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleFavorite()" title="收藏 (F)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </button>
+                <button class="capsule-ctrl-btn capsule-ctrl-master" id="capsule-master-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleMastered()" title="标记已掌握 (M)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>已掌握</span>
+                </button>
+                <button class="capsule-ctrl-btn" id="capsule-note-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleNotePanel()" title="笔记 (N)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+            </div>
+
+            <div class="capsule-note-panel collapsed" id="capsule-note-panel">
+                <textarea id="capsule-note-input" placeholder="添加你的学习笔记..." onblur="window.flashcardUI.saveNote(this.value)"></textarea>
+            </div>
+
+            <div class="capsule-nav">
+                <button class="capsule-nav-btn" onclick="window.flashcardUI.prev()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    上一张
+                </button>
+                <span class="capsule-counter" id="capsule-counter">1 / 10</span>
+                <button class="capsule-nav-btn" onclick="window.flashcardUI.next()">
+                    下一张
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="capsule-data-pod collapsed" id="capsule-data-pod">
+            <div class="capsule-data-pod-inner">
+                <div class="capsule-stat-ring">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="stat-ring-bg" cx="50" cy="50" r="42"/>
+                        <circle class="stat-ring-fill" id="capsule-stat-ring-fill" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
+                    </svg>
+                    <div class="capsule-stat-center">
+                        <div class="capsule-stat-percent" id="capsule-stat-percent">0%</div>
+                        <div class="capsule-stat-label">掌握率</div>
+                    </div>
+                </div>
+                <div class="capsule-stat-row">
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-today">0</div>
+                        <div class="capsule-stat-label">今日</div>
+                    </div>
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-total">0</div>
+                        <div class="capsule-stat-label">累计</div>
+                    </div>
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-streak">0</div>
+                        <div class="capsule-stat-label">连续</div>
+                    </div>
+                </div>
+            </div>
+            <button class="capsule-pod-trigger" id="capsule-data-trigger" onclick="window.flashcardUI.toggleDataPod()" aria-label="统计">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-nav-pod collapsed" id="capsule-nav-pod">
+            <div class="capsule-nav-pod-inner">
+                <div class="capsule-nav-pod-header">
+                    <span>胶囊列表</span>
+                    <div class="capsule-nav-pod-filter">
+                        <button class="filter-btn active" data-filter="all" onclick="window.flashcardUI.filterCards('all')">全部</button>
+                        <button class="filter-btn" data-filter="unmastered" onclick="window.flashcardUI.filterCards('unmastered')">未掌握</button>
+                        <button class="filter-btn" data-filter="favorite" onclick="window.flashcardUI.filterCards('favorite')">收藏</button>
+                    </div>
+                </div>
+                <div class="capsule-nav-pod-list" id="capsule-nav-pod-list"></div>
+            </div>
+            <button class="capsule-pod-trigger" id="capsule-nav-trigger" onclick="window.flashcardUI.toggleNavPod()" aria-label="列表">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-completion hidden" id="capsule-completion">
+            <div class="capsule-completion-stars"></div>
+            <div class="capsule-completion-content">
+                <div class="capsule-completion-icon">🎉</div>
+                <h2>本轮完成！</h2>
+                <p id="capsule-completion-text">已掌握 0 / 0 张胶囊</p>
+                <button class="capsule-completion-btn" onclick="window.flashcardUI.exitImmersive()">返回学习</button>
+            </div>
+        </div>
+    </div>
+
     <div id="lightbox-overlay" class="lightbox-overlay" role="dialog" aria-label="图片预览">
         <div class="lightbox-backdrop"></div>
         <div class="lightbox-content">
@@ -896,7 +1104,7 @@
                             <!-- 自定义下拉菜单：预设教师 -->
                             <div class="custom-select" id="openmaic-agent-select-wrapper">
                                 <div class="custom-select-trigger">
-                                    <span class="custom-select-value">预设教师</span>
+                                    <span class="custom-select-value">AI自动生成教师</span>
                                     <span class="custom-select-arrow">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                             <polyline points="6 9 12 15 18 9"></polyline>
@@ -904,24 +1112,15 @@
                                     </span>
                                 </div>
                                 <div class="custom-select-dropdown">
-                                    <div class="custom-select-option active" data-value="preset">预设教师</div>
-                                    <div class="custom-select-option" data-value="auto">AI自动生成教师</div>
+                                    <div class="custom-select-option" data-value="preset">预设教师</div>
+                                    <div class="custom-select-option active" data-value="auto">AI自动生成教师</div>
                                 </div>
                             </div>
                             <!-- 隐藏的原 selects（供其他代码引用） -->
-                            <select id="openmaic-agent-mode" style="display:none;">
-                                <option value="preset" selected>预设教师</option>
-                                <option value="auto">AI自动生成教师</option>
+                            <select id="openmaic-agent-select" style="display:none;">
+                                <option value="preset">预设教师</option>
+                                <option value="auto" selected>AI自动生成教师</option>
                             </select>
-                            <!-- AI教师选择区域 -->
-                            <div id="teacher-select-wrapper" class="teacher-select-wrapper">
-                                <label class="openmaic-label">
-                                    <i class="fas fa-chalkboard-teacher"></i> 选择AI教师
-                                </label>
-                                <div class="teacher-cards">
-                                    <!-- 动态渲染老师卡片 -->
-                                </div>
-                            </div>
 
                             <!-- 自定义下拉菜单：音色选择 -->
                             <div class="custom-select" id="openmaic-voice-select-wrapper">
@@ -952,6 +1151,16 @@
                             <select id="openmaic-teacher-select" style="display:none;">
                                 <!-- 动态填充 -->
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- AI教师选择区域（移出agent-bar，独立块级布局） -->
+                    <div id="teacher-select-wrapper" class="teacher-select-wrapper">
+                        <label class="openmaic-label">
+                            <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> 选择AI教师
+                        </label>
+                        <div class="teacher-cards">
+                            <!-- 动态渲染老师卡片 -->
                         </div>
                     </div>
 
@@ -1182,7 +1391,7 @@
             renderTeacherCards();
 
             // 监听agent-mode切换
-            const agentMode = document.getElementById('openmaic-agent-mode');
+            const agentMode = document.getElementById('openmaic-agent-select');
             const teacherWrapper = document.getElementById('teacher-select-wrapper');
             if (agentMode && teacherWrapper) {
                 agentMode.addEventListener('change', () => {
@@ -1197,7 +1406,29 @@
                     teacherWrapper.classList.add('visible');
                 }
             }
+
+            // 创建漂浮粒子背景效果
+            createFloatingParticles();
         });
+
+        // 漂浮粒子效果
+        function createFloatingParticles() {
+            const bgDecor = document.querySelector('.openmaic-bg-decor');
+            if (!bgDecor) return;
+
+            const particleCount = 20;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'openmaic-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
+                particle.style.width = (Math.random() * 3 + 2) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.opacity = Math.random() * 0.3 + 0.1;
+                bgDecor.appendChild(particle);
+            }
+        }
     </script>
     <div id="persona-tooltip"></div>
 

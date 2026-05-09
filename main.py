@@ -3838,6 +3838,33 @@ class FlashcardRequest(BaseModel):
     chapter_content: str = Field("", min_length=1)
 
 
+class FlashcardProgressRequest(BaseModel):
+    user_id: int
+    card_hash: str
+    course_id: str = "bigdata"
+    chapter_name: str = ""
+    front: str = ""
+    back: str = ""
+    hint: str = ""
+    is_mastered: int = 0
+    is_favorite: int = 0
+    difficulty: str = "medium"
+    user_note: str = ""
+    review_count: int = 0
+
+
+class FlashcardSessionRequest(BaseModel):
+    user_id: int
+    course_id: str = "bigdata"
+    chapter_name: str = ""
+    cards_total: int = 0
+    cards_answered: int = 0
+    cards_mastered: int = 0
+    cards_favorited: int = 0
+    duration_seconds: int = 0
+    session_json: str = ""
+
+
 @app.post("/api/v2/flashcard/generate")
 async def generate_flashcards(req: FlashcardRequest):
     from agents import FlashcardAgent
@@ -3852,6 +3879,42 @@ async def generate_flashcards(req: FlashcardRequest):
     state = await agent.run(state, chapter_content=req.chapter_content, chapter_name=req.chapter_name)
     result = state.metadata.get("flashcards", {"flashcards": []})
     return {"success": True, "data": result}
+
+
+@app.post("/api/v2/flashcard/progress")
+async def save_flashcard_progress_api(req: FlashcardProgressRequest):
+    try:
+        db.save_flashcard_progress(req.user_id, req.dict())
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/v2/flashcard/progress")
+async def get_flashcard_progress_api(user_id: int, course_id: str = "bigdata"):
+    try:
+        progress = db.get_flashcard_progress(user_id, course_id)
+        return {"success": True, "data": progress}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/v2/flashcard/session")
+async def save_flashcard_session_api(req: FlashcardSessionRequest):
+    try:
+        db.save_flashcard_session(req.user_id, req.dict())
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/v2/flashcard/stats")
+async def get_flashcard_stats_api(user_id: int):
+    try:
+        stats = db.get_flashcard_stats(user_id)
+        return {"success": True, "data": stats}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 class TextbookChapterRequest(BaseModel):
