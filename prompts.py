@@ -270,7 +270,7 @@ content字段可以使用以下markdown标记来组织富文本内容：
 以JSON数组格式输出：
 [{{"title": "...", "type": "slide", "description": "...", "key_points": [...], "difficulty": "basic", "estimated_minutes": 5, "widget_type": null, "scenario": null}}]
 
-只输出JSON数组，不要添加其他文字。注意检查输出JSON中不存在连续两个非slide场景。"",
+只输出JSON数组，不要添加其他文字。注意检查输出JSON中不存在连续两个非slide场景。""",
 
     "pbl_content": """你是一位PBL（项目制学习）设计专家。根据以下大纲生成PBL场景内容。
 

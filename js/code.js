@@ -467,6 +467,8 @@ const state = {
     },
     reviewReports: {},
     gradeReports: {},
+    editorFontSize: 13.5,
+    runStartTime: null,
     learningState: createDefaultLearningState()
 };
 
@@ -535,6 +537,17 @@ function cacheElements() {
     elements.terminalMode = document.getElementById('terminal-mode');
     elements.terminalToken = document.getElementById('terminal-token');
     elements.terminalCpu = document.getElementById('terminal-cpu');
+    elements.copyCodeBtn = document.getElementById('copy-code-btn');
+    elements.fontDecreaseBtn = document.getElementById('font-decrease-btn');
+    elements.fontIncreaseBtn = document.getElementById('font-increase-btn');
+    elements.statusLines = document.getElementById('status-lines');
+    elements.statusChars = document.getElementById('status-chars');
+    elements.statusTodos = document.getElementById('status-todos');
+    elements.statusCursor = document.getElementById('status-cursor');
+    elements.statusFont = document.getElementById('status-font');
+    elements.saveIndicator = document.getElementById('save-indicator');
+    elements.editorStatusBar = document.getElementById('editor-status-bar');
+    elements.outputMeta = document.getElementById('output-meta');
 }
 
 function bindEvents() {
@@ -583,10 +596,47 @@ function bindEvents() {
     elements.codeInput?.addEventListener('input', () => {
         updateLineNumbers();
         updateIssueBadge();
+        updateEditorStatusBar();
+        scheduleAutoSave();
     });
 
     elements.codeInput?.addEventListener('scroll', () => {
         syncLineNumberScroll();
+    });
+
+    elements.codeInput?.addEventListener('keyup', () => {
+        updateEditorStatusBar();
+    });
+
+    elements.codeInput?.addEventListener('click', () => {
+        updateEditorStatusBar();
+    });
+
+    elements.copyCodeBtn?.addEventListener('click', () => {
+        copyCode();
+    });
+
+    elements.fontDecreaseBtn?.addEventListener('click', () => {
+        changeFontSize(-1);
+    });
+
+    elements.fontIncreaseBtn?.addEventListener('click', () => {
+        changeFontSize(1);
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.target === elements.codeInput) {
+            if (event.key === 'F5' || (event.ctrlKey && event.key.toLowerCase() === 'r')) {
+                event.preventDefault();
+                handleRun();
+                return;
+            }
+            if (event.ctrlKey && event.key.toLowerCase() === 'enter') {
+                event.preventDefault();
+                handleRun();
+                return;
+            }
+        }
     });
 }
 
@@ -661,6 +711,7 @@ function renderStaticFrame() {
         elements.masteryProgress.style.width = '0%';
     }
 
+    updateEditorStatusBar();
     renderQuickActions();
 }
 
@@ -1157,6 +1208,8 @@ function renderTask(task) {
 
     document.title = `${task.title} - 代码工坊`;
     updateIssueBadge();
+    updateEditorStatusBar();
+    loadAutoSave();
 }
 
 function buildWindowTitle(task) {
@@ -1362,6 +1415,97 @@ function updateLineNumbers() {
     const lineCount = Math.max(1, elements.codeInput.value.split('\n').length);
     const numbers = Array.from({ length: lineCount }, (_, index) => `<span>${index + 1}</span>`).join('');
     elements.lineNumbers.innerHTML = numbers;
+    updateEditorStatusBar();
+}
+
+function updateEditorStatusBar() {
+    if (!elements.codeInput) return;
+    const code = elements.codeInput.value;
+    const lines = code.split('\n').length;
+    const chars = code.length;
+    const todos = countTodoSlots(code);
+
+    const pos = elements.codeInput.selectionStart || 0;
+    const before = code.slice(0, pos);
+    const lineNum = before.split('\n').length;
+    const colNum = before.split('\n').pop().length + 1;
+
+    if (elements.statusLines) elements.statusLines.textContent = `${lines} 行`;
+    if (elements.statusChars) elements.statusChars.textContent = `${chars} 字符`;
+    if (elements.statusTodos) {
+        elements.statusTodos.textContent = `${todos} 处 TODO`;
+        elements.statusTodos.style.color = todos > 0 ? 'var(--warning)' : 'var(--text-dim)';
+    }
+    if (elements.statusCursor) elements.statusCursor.textContent = `Ln ${lineNum}, Col ${colNum}`;
+}
+
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        if (!state.currentTask || !elements.codeInput) return;
+        const key = `code_autosave_${state.currentTask.id}`;
+        try {
+            localStorage.setItem(key, elements.codeInput.value);
+            showSaveIndicator();
+        } catch (e) { /* ignore */ }
+    }, 1200);
+}
+
+function showSaveIndicator() {
+    if (!elements.saveIndicator) return;
+    elements.saveIndicator.classList.add('visible');
+    setTimeout(() => {
+        elements.saveIndicator.classList.remove('visible');
+    }, 1500);
+}
+
+function loadAutoSave() {
+    if (!state.currentTask || !elements.codeInput) return;
+    const key = `code_autosave_${state.currentTask.id}`;
+    try {
+        const saved = localStorage.getItem(key);
+        if (saved && saved !== elements.codeInput.value) {
+            elements.codeInput.value = saved;
+            updateLineNumbers();
+            updateIssueBadge();
+            updateEditorStatusBar();
+        }
+    } catch (e) { /* ignore */ }
+}
+
+async function copyCode() {
+    if (!elements.codeInput) return;
+    const code = elements.codeInput.value;
+    try {
+        await navigator.clipboard.writeText(code);
+        if (elements.copyCodeBtn) {
+            const original = elements.copyCodeBtn.innerHTML;
+            elements.copyCodeBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            elements.copyCodeBtn.style.color = 'var(--success)';
+            setTimeout(() => {
+                elements.copyCodeBtn.innerHTML = original;
+                elements.copyCodeBtn.style.color = '';
+            }, 1200);
+        }
+    } catch (err) {
+        setOutput('error', '复制失败：' + err.message);
+    }
+}
+
+function changeFontSize(delta) {
+    const min = 11;
+    const max = 18;
+    state.editorFontSize = clamp(state.editorFontSize + delta, min, max);
+    if (elements.codeInput) {
+        elements.codeInput.style.fontSize = `${state.editorFontSize}px`;
+    }
+    if (elements.lineNumbers) {
+        elements.lineNumbers.style.fontSize = `${state.editorFontSize}px`;
+    }
+    if (elements.statusFont) {
+        elements.statusFont.textContent = `${state.editorFontSize}px`;
+    }
 }
 
 function syncLineNumberScroll() {
@@ -1434,6 +1578,7 @@ async function handleRun() {
     updateTerminalState('loading', '运行中');
     updateCpuMeter(true);
     setOutput('loading', '正在运行代码...');
+    state.runStartTime = Date.now();
 
     try {
         const result = await runPythonCode(code);
@@ -1449,6 +1594,7 @@ async function handleRun() {
         setBusy('run', false);
         updateAssistantStatus('就绪', 'ready');
         updateCpuMeter(false);
+        state.runStartTime = null;
     }
 }
 
@@ -1893,17 +2039,44 @@ function createStreamingMessage(label) {
 function addMessage(role, content, options = {}) {
     const row = document.createElement('div');
     row.className = `message-row ${role === 'user' ? 'user' : 'ai'}`;
+    const formattedContent = options.html ? content : formatMessageContent(content);
     row.innerHTML = `
         <div class="message-avatar">${role === 'user' ? '我' : 'AI'}</div>
         <div class="message-card">
             <div class="message-meta">${escapeHtml(options.label || (role === 'user' ? '我' : 'AI 导师'))} · ${getTimeString()}</div>
-            <div class="message-content">${options.html ? content : formatPlainText(content)}</div>
+            <div class="message-content">${formattedContent}</div>
         </div>
     `;
 
     elements.messageContainer?.appendChild(row);
     scrollMessagesToBottom();
     return row;
+}
+
+function formatMessageContent(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    // Protect code blocks during paragraph formatting
+    const codeBlocks = [];
+    html = html.replace(/```([a-zA-Z]*)\n?([\s\S]*?)\n?```/g, (match, lang, code) => {
+        codeBlocks.push(`<pre><code>${code.trim()}</code></pre>`);
+        return `\n\n__CODE_BLOCK_${codeBlocks.length - 1}__\n\n`;
+    });
+    // Format inline code: `code`
+    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    // Format bold: **text**
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Format emphasis: *text*
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    // Format paragraphs
+    html = html.split('\n\n').map(p => {
+        p = p.trim();
+        if (!p) return '';
+        const blockMatch = p.match(/^__CODE_BLOCK_(\d+)__$/);
+        if (blockMatch) return codeBlocks[Number(blockMatch[1])];
+        return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+    return html;
 }
 
 function renderReviewReport(report, task, title = 'AI 批阅报告') {
@@ -2276,6 +2449,14 @@ function renderExecutionOutput(result) {
     const success = returnCode === 0;
     elements.outputContent.dataset.state = success ? 'success' : 'error';
     elements.outputContent.innerHTML = '';
+
+    const duration = state.runStartTime ? Math.max(1, Date.now() - state.runStartTime) : 0;
+    const timeStr = duration > 0 ? ` · ${duration}ms` : '';
+    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    if (elements.outputMeta) {
+        elements.outputMeta.textContent = `${timestamp}${timeStr} · 退出码 ${Number.isFinite(returnCode) ? returnCode : '?'}`;
+    }
 
     appendTerminalLine('正在编译运行...', 'system');
 

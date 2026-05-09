@@ -419,6 +419,13 @@ function switchAgent(agentId) {
     renderAgentFab();
     closeMenu();
     localStorage.setItem('starlearn_agent', agentId);
+    // 同步更新学科下拉菜单 UI
+    if (typeof updateSubjectDropdownUI === 'function') {
+        updateSubjectDropdownUI();
+    }
+    if (typeof togglePersonaChips === 'function') {
+        togglePersonaChips(agent.id === 'default');
+    }
 }
 
 function renderAgentFab() {
@@ -458,6 +465,26 @@ function getAgentSystemPrompt() {
     return currentAgent.systemPrompt;
 }
 
+// 全局处理器：供 HTML onclick 直接调用，确保事件必达
+function handleSubjectItemClick(agentId) {
+    console.log('[SubjectDropdown] handleSubjectItemClick called with:', agentId);
+    const agent = AGENTS_CONFIG.find(a => a.id === agentId);
+    if (!agent) {
+        console.warn('[SubjectDropdown] Agent not found for id:', agentId);
+        return;
+    }
+    currentAgent = agent;
+    localStorage.setItem('starlearn_agent', agentId);
+    console.log('[SubjectDropdown] Switched to agent:', agent.name);
+    updateSubjectDropdownUI();
+    renderAgentFab();
+    const menu = document.getElementById('subject-dropdown-menu');
+    const btn = document.getElementById('subject-dropdown-btn');
+    if (menu) menu.classList.add('hidden');
+    if (btn) btn.classList.remove('open');
+    togglePersonaChips(agent.id === 'default');
+}
+
 function initSubjectDropdown() {
     const wrapper = document.getElementById('subject-dropdown-wrapper');
     const btn = document.getElementById('subject-dropdown-btn');
@@ -468,60 +495,49 @@ function initSubjectDropdown() {
     }
 
     updateSubjectDropdownUI();
+    console.log('[SubjectDropdown] initSubjectDropdown completed');
 
+    // 按钮点击：显式切换 hidden / open
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = !menu.classList.contains('hidden');
+        const m = document.getElementById('subject-dropdown-menu');
+        const b = document.getElementById('subject-dropdown-btn');
+        if (!m || !b) return;
+        const isOpen = !m.classList.contains('hidden');
+        console.log('[SubjectDropdown] Button clicked, isOpen:', isOpen);
         if (isOpen) {
-            menu.classList.add('hidden');
-            btn.classList.remove('open');
+            m.classList.add('hidden');
+            b.classList.remove('open');
         } else {
-            menu.classList.remove('hidden');
-            btn.classList.add('open');
+            m.classList.remove('hidden');
+            b.classList.add('open');
         }
     });
 
-    // 使用事件委托处理菜单项点击
-    menu.addEventListener('click', (e) => {
-        console.log('[SubjectDropdown] menu click', e.target, e.target.tagName, e.target.className);
-        const item = e.target.closest('.subject-dropdown-item');
-        if (!item) {
-            console.log('[SubjectDropdown] 未找到菜单项元素');
-            return;
-        }
-        e.stopPropagation();
-        e.preventDefault();
-        const agentId = item.dataset.agentId;
-        console.log('[SubjectDropdown] 点击菜单项, agentId:', agentId);
-        const agent = AGENTS_CONFIG.find(a => a.id === agentId);
-        console.log('[SubjectDropdown] 找到agent:', agent ? agent.name : '未找到');
-        if (agent) {
-            currentAgent = agent;
-            localStorage.setItem('starlearn_agent', agentId);
-            console.log('[SubjectDropdown] 已切换agent为:', agent.name);
-            updateSubjectDropdownUI();
-            renderAgentFab();
-            menu.classList.add('hidden');
-            btn.classList.remove('open');
-            togglePersonaChips(agent.id === 'default');
-        }
-    });
-
+    // 点击外部关闭
     document.addEventListener('click', (e) => {
-        if (!wrapper.contains(e.target)) {
-            menu.classList.add('hidden');
-            btn.classList.remove('open');
+        const w = document.getElementById('subject-dropdown-wrapper');
+        const m = document.getElementById('subject-dropdown-menu');
+        const b = document.getElementById('subject-dropdown-btn');
+        if (!w || !m) return;
+        if (!w.contains(e.target)) {
+            m.classList.add('hidden');
+            if (b) b.classList.remove('open');
         }
     });
 
     window.addEventListener('resize', () => {
-        menu.classList.add('hidden');
-        btn.classList.remove('open');
+        const m = document.getElementById('subject-dropdown-menu');
+        const b = document.getElementById('subject-dropdown-btn');
+        if (m) m.classList.add('hidden');
+        if (b) b.classList.remove('open');
     });
 
     window.addEventListener('scroll', () => {
-        menu.classList.add('hidden');
-        btn.classList.remove('open');
+        const m = document.getElementById('subject-dropdown-menu');
+        const b = document.getElementById('subject-dropdown-btn');
+        if (m) m.classList.add('hidden');
+        if (b) b.classList.remove('open');
     }, true);
 }
 
@@ -544,7 +560,10 @@ function togglePersonaChips(show) {
 function updateSubjectDropdownUI() {
     const btn = document.getElementById('subject-dropdown-btn');
     const menu = document.getElementById('subject-dropdown-menu');
-    if (!btn || !menu) return;
+    if (!btn || !menu) {
+        console.warn('[SubjectDropdown] updateSubjectDropdownUI: missing elements');
+        return;
+    }
 
     const iconSpan = btn.querySelector('.subject-dropdown-icon');
     const nameSpan = btn.querySelector('.subject-dropdown-name');
@@ -556,7 +575,10 @@ function updateSubjectDropdownUI() {
     btn.style.setProperty('--agent-theme-color', themeColor);
     btn.style.setProperty('--agent-theme-glow', themeColor + '40');
 
-    menu.innerHTML = AGENTS_CONFIG.map(agent => {
+    // 清空菜单并逐个创建元素，避免 innerHTML 解析问题并直接绑定事件
+    menu.innerHTML = '';
+    console.log('[SubjectDropdown] Rendering menu items, count:', AGENTS_CONFIG.length);
+    AGENTS_CONFIG.forEach(agent => {
         const agentColor = agent.themeColor || '#6366f1';
         let rgbaColor;
         try {
@@ -564,31 +586,33 @@ function updateSubjectDropdownUI() {
         } catch (e) {
             rgbaColor = 'rgba(99, 102, 241, 0.15)';
         }
-        return `
-        <div class="subject-dropdown-item ${agent.id === currentAgent.id ? 'active' : ''}" data-agent-id="${agent.id}" role="button" tabindex="0" style="--item-theme-color: ${agentColor}; --item-theme-color-rgb: ${rgbaColor};">
-            <span class="item-icon">${agent.icon}</span>
-            <span class="item-name">${agent.name}</span>
-        </div>
-    `}).join('');
 
-    // 为每个菜单项直接绑定点击事件
-    menu.querySelectorAll('.subject-dropdown-item').forEach(item => {
+        const item = document.createElement('div');
+        item.className = 'subject-dropdown-item' + (agent.id === currentAgent.id ? ' active' : '');
+        item.dataset.agentId = agent.id;
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        item.style.setProperty('--item-theme-color', agentColor);
+        item.style.setProperty('--item-theme-color-rgb', rgbaColor);
+        item.innerHTML = `<span class="item-icon">${agent.icon}</span><span class="item-name">${agent.name}</span>`;
+
+        // 直接绑定 click（最可靠的方式）
         item.addEventListener('click', (e) => {
+            console.log('[SubjectDropdown] Item clicked:', agent.id, agent.name);
             e.stopPropagation();
             e.preventDefault();
-            const agentId = item.dataset.agentId;
-            console.log('[SubjectDropdown] 直接绑定点击, agentId:', agentId);
-            const agent = AGENTS_CONFIG.find(a => a.id === agentId);
-            if (agent) {
-                currentAgent = agent;
-                localStorage.setItem('starlearn_agent', agentId);
-                updateSubjectDropdownUI();
-                renderAgentFab();
-                menu.classList.add('hidden');
-                btn.classList.remove('open');
-                togglePersonaChips(agent.id === 'default');
+            handleSubjectItemClick(agent.id);
+        });
+
+        // 键盘支持
+        item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSubjectItemClick(agent.id);
             }
         });
+
+        menu.appendChild(item);
     });
 
     togglePersonaChips(currentAgent.id === 'default');
@@ -4443,7 +4467,28 @@ function renderPathTree() {
         return;
     }
 
-    container.innerHTML = currentPath.map((node, idx) => {
+    // 计算总体进度
+    const totalNodes = currentPath.length;
+    const completedNodes = currentPath.filter(n => n.status === 'completed').length;
+    const inProgressNodes = currentPath.filter(n => n.status === 'in_progress').length;
+    const progressPercent = Math.round(((completedNodes + inProgressNodes * 0.5) / totalNodes) * 100);
+
+    let html = `<div class="path-progress-header">
+        <div class="path-progress-meta">
+            <span class="path-progress-label">总体进度</span>
+            <span class="path-progress-value">${progressPercent}%</span>
+        </div>
+        <div class="path-progress-bar-bg">
+            <div class="path-progress-bar-fill" style="width: ${progressPercent}%;"></div>
+        </div>
+        <div class="path-progress-stats">
+            <span class="path-stat-completed">${completedNodes} 已完成</span>
+            <span class="path-stat-inprogress">${inProgressNodes} 进行中</span>
+            <span class="path-stat-locked">${totalNodes - completedNodes - inProgressNodes} 待解锁</span>
+        </div>
+    </div>`;
+
+    html += currentPath.map((node, idx) => {
         const status = node.status || 'locked';
         const dotClass = status === 'completed' ? 'completed' : status === 'in_progress' ? 'in-progress' : 'locked';
         const isImportant = node.importance === 'high' || node.importance === 'core';
@@ -4481,6 +4526,7 @@ function renderPathTree() {
         return html;
     }).join('');
 
+    container.innerHTML = html;
     if (window.lucide) lucide.createIcons();
 }
 
@@ -4505,6 +4551,7 @@ function showPathNodeDetail(idx) {
     const node = currentPath[idx];
     if (!node) return;
 
+    // 关闭已有的详情面板
     const existing = document.getElementById('path-node-detail');
     if (existing) existing.remove();
 
@@ -4513,27 +4560,128 @@ function showPathNodeDetail(idx) {
     const prerequisites = node.prerequisites || [];
     const time = node.estimated_time || node.estimatedMinutes || '';
     const status = node.status || 'locked';
-    const canComplete = status === 'in_progress' || status === 'locked';
+    const isCompleted = status === 'completed';
+    const isInProgress = status === 'in_progress';
+    const isLocked = status === 'locked';
+    const canComplete = isInProgress || isLocked;
+    const totalNodes = currentPath.length;
+    const nodePosition = idx + 1;
+
+    // 状态标签映射
+    const statusConfig = {
+        completed: { label: '已完成', colorClass: 'path-status-completed', icon: '✓' },
+        in_progress: { label: '进行中', colorClass: 'path-status-inprogress', icon: '▶' },
+        locked: { label: '待解锁', colorClass: 'path-status-locked', icon: '🔒' }
+    };
+    const cfg = statusConfig[status] || statusConfig.locked;
+
+    // 构建子节点预览HTML
+    let childrenPreview = '';
+    if (node.children && node.children.length > 0) {
+        const childItems = node.children.map(child => {
+            const childName = child.topic || child.name || child.title || '子任务';
+            const childStatus = child.status || 'locked';
+            const childDone = childStatus === 'completed';
+            return `<div class="path-detail-child-item">
+                <div class="path-detail-child-dot ${childDone ? 'completed' : 'pending'}"></div>
+                <span class="path-detail-child-name ${childDone ? 'done' : ''}">${escapeHtml(childName)}</span>
+            </div>`;
+        }).join('');
+        childrenPreview = `
+            <div class="path-detail-section">
+                <div class="path-detail-section-title">子任务 (${node.children.length})</div>
+                <div class="path-detail-children-list">${childItems}</div>
+            </div>`;
+    }
 
     const panel = document.createElement('div');
     panel.id = 'path-node-detail';
-    panel.className = 'path-node-detail-panel glass-eval-card';
+    panel.className = 'path-node-detail-panel';
     panel.innerHTML = `
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-sm font-bold">${escapeHtml(displayName)}</span>
-            <button onclick="this.closest('.path-node-detail-panel').remove()" class="text-xs" style="color: var(--text-tertiary);">✕</button>
+        <div class="path-detail-header">
+            <div class="path-detail-title-row">
+                <span class="path-detail-name">${escapeHtml(displayName)}</span>
+                <button onclick="this.closest('.path-node-detail-panel').remove()" class="path-detail-close" title="关闭">✕</button>
+            </div>
+            <div class="path-detail-meta-row">
+                <span class="path-detail-status ${cfg.colorClass}">${cfg.icon} ${cfg.label}</span>
+                <span class="path-detail-position">${nodePosition} / ${totalNodes}</span>
+            </div>
         </div>
-        <div class="text-xs mb-2" style="color: var(--text-secondary);">${escapeHtml(description)}</div>
-        ${prerequisites.length ? `<div class="text-xs mb-2"><span style="color: var(--text-tertiary);">前置:</span> ${prerequisites.map(p => escapeHtml(p)).join(', ')}</div>` : ''}
-        ${time ? `<div class="text-xs mb-2" style="color: var(--text-tertiary);">预计时长: ${time}min</div>` : ''}
-        ${canComplete ? `<button onclick="markPathNodeComplete(${idx}); this.closest('.path-node-detail-panel').remove();"
-            class="w-full py-1.5 px-3 rounded-lg text-xs font-bold mt-1"
-            style="background: var(--success-bg); color: var(--success); border: 1px solid var(--success);">标记完成</button>` : ''}
+
+        <div class="path-detail-body">
+            <div class="path-detail-desc">${escapeHtml(description)}</div>
+
+            ${prerequisites.length ? `
+            <div class="path-detail-section">
+                <div class="path-detail-section-title">前置知识</div>
+                <div class="path-detail-prereqs">
+                    ${prerequisites.map(p => `<span class="path-detail-prereq-tag">${escapeHtml(p)}</span>`).join('')}
+                </div>
+            </div>` : ''}
+
+            <div class="path-detail-info-row">
+                ${time ? `<div class="path-detail-info-item"><span class="path-detail-info-label">⏱ 预计时长</span><span class="path-detail-info-value">${time} min</span></div>` : ''}
+                ${node.importance ? `<div class="path-detail-info-item"><span class="path-detail-info-label">⭐ 重要程度</span><span class="path-detail-info-value">${node.importance === 'core' || node.importance === 'high' ? '核心节点' : '普通节点'}</span></div>` : ''}
+            </div>
+
+            ${childrenPreview}
+        </div>
+
+        <div class="path-detail-actions">
+            ${isLocked ? `
+                <button onclick="startPathNodeStudy(${idx});" class="path-detail-btn path-detail-btn-primary">
+                    <span>🔓 解锁学习</span>
+                </button>
+            ` : `
+                <button onclick="startPathNodeStudy(${idx});" class="path-detail-btn path-detail-btn-primary">
+                    <span>${isCompleted ? '🔁 再次学习' : '▶ 开始学习'}</span>
+                </button>
+            `}
+            ${canComplete ? `
+                <button onclick="markPathNodeComplete(${idx}); document.getElementById('path-node-detail')?.remove();" class="path-detail-btn path-detail-btn-success">
+                    <span>✓ 标记完成</span>
+                </button>
+            ` : ''}
+        </div>
     `;
 
-    const treeContainer = document.getElementById('path-tree-container');
-    if (treeContainer) {
-        treeContainer.appendChild(panel);
+    // 插入到被点击的节点下方
+    const targetNode = document.querySelector(`.path-tree-node[data-idx="${idx}"]`);
+    if (targetNode) {
+        targetNode.insertAdjacentElement('afterend', panel);
+    } else {
+        const treeContainer = document.getElementById('path-tree-container');
+        if (treeContainer) treeContainer.appendChild(panel);
+    }
+}
+
+function startPathNodeStudy(idx) {
+    const node = currentPath[idx];
+    if (!node) return;
+    const displayName = node.topic || node.name || node.title || '学习任务';
+
+    // 如果节点被锁定，先解锁
+    if (node.status === 'locked') {
+        node.status = 'in_progress';
+        renderPathTree();
+        renderPath();
+    }
+
+    // 关闭详情面板
+    const panel = document.getElementById('path-node-detail');
+    if (panel) panel.remove();
+
+    // 将学习主题填入输入框并聚焦
+    const notionInput = document.getElementById('notion-input');
+    const msgInput = document.getElementById('message-input');
+    const studyPrompt = `我想学习「${displayName}」，请帮我详细讲解一下这个知识点`;
+    if (notionInput) {
+        notionInput.innerText = studyPrompt;
+        notionInput.focus();
+    } else if (msgInput) {
+        msgInput.value = studyPrompt;
+        msgInput.focus();
     }
 }
 
@@ -4560,6 +4708,41 @@ async function handleSendStream() {
     clearInput();
     setInputDisabled(true);
     if (sendButton) sendButton.disabled = true;
+
+    // 本地实时更新评估指标
+    evaluation.interactionCount = (evaluation.interactionCount || 0) + 1;
+    evaluation.focusTimeToday = (evaluation.focusTimeToday || 0) + 1;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!evaluation.lastStudyDate || evaluation.lastStudyDate !== today) {
+        const last = evaluation.lastStudyDate ? new Date(evaluation.lastStudyDate) : null;
+        const now = new Date();
+        if (last) {
+            const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                evaluation.streakDays = (evaluation.streakDays || 0) + 1;
+            } else if (diffDays > 1) {
+                evaluation.streakDays = 1;
+            }
+        } else {
+            evaluation.streakDays = 1;
+        }
+        evaluation.lastStudyDate = today;
+    }
+    // 更新今日交互历史
+    if (!Array.isArray(evaluation.interactionHistory)) {
+        evaluation.interactionHistory = [];
+    }
+    const lastEntry = evaluation.interactionHistory[evaluation.interactionHistory.length - 1];
+    if (lastEntry && lastEntry.date === today) {
+        lastEntry.count = evaluation.interactionCount;
+    } else {
+        evaluation.interactionHistory.push({ date: today, count: evaluation.interactionCount });
+        if (evaluation.interactionHistory.length > 7) {
+            evaluation.interactionHistory.shift();
+        }
+    }
+    renderEvaluation();
+    saveProgress();
 
     messages.push({ role: 'user', content: userMsg });
     renderMessages();
@@ -5171,11 +5354,8 @@ async function loadProgress() {
 document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     
-    const savedAgentId = localStorage.getItem('starlearn_agent');
-    if (savedAgentId) {
-        const savedAgent = AGENTS_CONFIG.find(a => a.id === savedAgentId);
-        if (savedAgent) currentAgent = savedAgent;
-    }
+    // 初始默认使用"默认"身份，不读取 localStorage 中保存的历史身份
+    currentAgent = AGENTS_CONFIG[0];
     renderAgentFab();
 
     // 初始化 persona chip 状态
@@ -5213,7 +5393,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 初始化学科领域下拉菜单
+    console.log('[SubjectDropdown] Initializing dropdown...');
     initSubjectDropdown();
+    console.log('[SubjectDropdown] Dropdown initialized');
 
     const notionInput = document.getElementById('notion-input');
     const msgInput = document.getElementById('message-input');
@@ -6193,6 +6375,16 @@ class FlashcardUI {
         this._nebularAF = null;
         this._immersiveKeyHandler = null;
         this.userId = null;
+        // 沉浸模式倒计时
+        this.immersiveCountdown = {
+            active: false,
+            timeLeft: 0,
+            totalTime: 0,
+            interval: null,
+            timer: null,
+            startTs: 0,
+        };
+        this.immersiveCountdownDelay = parseInt(localStorage.getItem('starlearn_flashcard_duration') || '15') * 1000;
     }
 
     async open() {
@@ -6209,6 +6401,7 @@ class FlashcardUI {
         this._initNebula();
         this.renderOrbitTrack();
         this.renderCardImmersive();
+        this._initImmersiveCountdown();
         this.updateStatsUI();
         this.renderNavPodList();
         document.addEventListener('keydown', this._immersiveKeyHandler = (e) => this._handleImmersiveKey(e));
@@ -6403,7 +6596,23 @@ class FlashcardUI {
         const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
         const evaluation = JSON.parse(localStorage.getItem('starlearn_evaluation') || '{}');
         const recentContent = evaluation.lastTopics || '大数据基础';
+        // 尝试从多处获取更丰富的学习上下文
+        let chapterContent = recentContent;
         try {
+            const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            const recentTopics = studyData.recentTopics || studyData.lastChapter || '';
+            if (recentTopics && recentTopics.length > chapterContent.length) {
+                chapterContent = recentTopics;
+            }
+        } catch (e) {}
+        try {
+            const prefs = JSON.parse(localStorage.getItem('starlearn_preferences') || '{}');
+            if (prefs.currentChapter && prefs.currentChapter.length > chapterContent.length) {
+                chapterContent = prefs.currentChapter;
+            }
+        } catch (e) {}
+
+        const makeRequest = async () => {
             const res = await fetch(`${API_BASE}/api/v2/flashcard/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -6411,35 +6620,52 @@ class FlashcardUI {
                     student_id: user.id || user.name || 'anonymous',
                     course_id: user.currentTask || 'bigdata',
                     chapter_name: recentContent,
-                    chapter_content: recentContent,
+                    chapter_content: chapterContent,
                 }),
             });
-            const data = await res.json();
+            return await res.json();
+        };
+
+        let cards = null;
+        try {
+            const data = await makeRequest();
             if (data.success && data.data?.flashcards?.length > 0) {
-                this.cards = data.data.flashcards;
-            } else {
-                this.cards = this._fallbackCards(recentContent);
+                cards = data.data.flashcards;
             }
         } catch (err) {
-            console.warn('[Flashcard] Generate failed:', err);
-            this.cards = this._fallbackCards(recentContent);
+            console.warn('[Flashcard] Generate failed (attempt 1):', err);
         }
+        // 重试一次
+        if (!cards) {
+            try {
+                await new Promise(r => setTimeout(r, 600));
+                const data = await makeRequest();
+                if (data.success && data.data?.flashcards?.length > 0) {
+                    cards = data.data.flashcards;
+                }
+            } catch (err) {
+                console.warn('[Flashcard] Generate failed (attempt 2):', err);
+            }
+        }
+        this.cards = cards && cards.length > 0 ? cards : this._fallbackCards(recentContent);
         this.currentIndex = 0;
         this.flipped = false;
     }
 
     _fallbackCards(topic) {
+        // 回退卡片也提供有教育意义的具体答案，而非空洞提示
+        const t = this._escapeHtml(topic);
         return [
-            { front: `${topic}的核心概念是什么？`, back: '请通过对话学习获取详细内容', hint: '尝试用自己的话总结' },
-            { front: `${topic}有哪些常见应用场景？`, back: '结合实际案例理解更深刻', hint: '思考日常生活中的例子' },
-            { front: `${topic}与其他相关概念有何区别？`, back: '对比分析有助于深入理解', hint: '关注本质差异而非表面' },
-            { front: `${topic}的底层原理是什么？`, back: '理解原理才能灵活运用', hint: '从机制层面思考' },
-            { front: `${topic}有哪些常见误区？`, back: '识别误区是正确理解的关键', hint: '回忆自己是否犯过类似错误' },
-            { front: `${topic}的发展历程是怎样的？`, back: '了解演进有助于把握趋势', hint: '关注关键转折点' },
-            { front: `${topic}的核心特征有哪些？`, back: '特征是识别和分类的基础', hint: '列举最本质的3-5个特征' },
-            { front: `${topic}在实际中如何应用？`, back: '理论联系实际加深记忆', hint: '寻找身边的真实案例' },
-            { front: `${topic}有哪些限制条件？`, back: '了解边界才能正确使用', hint: '思考什么情况下不适用' },
-            { front: `如何系统学习${topic}？`, back: '系统学习需要建立知识框架', hint: '从整体到局部逐步深入' },
+            { front: `【概念】${t}的定义是什么？`, back: `${t}是计算机科学与数据工程领域的一个重要概念，指围绕该主题形成的一套理论、方法与技术体系。其核心在于通过系统化的手段解决特定领域的问题。`, hint: '关注定义中的关键词和适用范围' },
+            { front: `【原理】${t}的底层工作原理是什么？`, back: '其底层机制通常包含数据输入→处理转换→输出生成的三段式流程，依赖分布式计算、内存优化与算法调度等核心技术实现高效运转。', hint: '从数据流转角度理解' },
+            { front: `【特征】${t}有哪些关键特征？`, back: '主要特征包括：1) 高扩展性，支持海量数据；2) 容错性，自动处理节点故障；3) 并行性，充分利用多核/多机资源；4) 抽象性，屏蔽底层复杂细节。', hint: '列举3-5个最本质的特征' },
+            { front: `【对比】${t}与传统方案有何区别？`, back: '与传统单机或关系型方案相比，它在横向扩展能力、实时处理性能和成本效益上具有明显优势，但引入了更高的系统复杂度和运维门槛。', hint: '从扩展性、性能、成本三个维度对比' },
+            { front: `【应用】${t}的典型应用场景有哪些？`, back: '典型场景包括：海量日志分析、实时推荐系统、用户行为画像、金融风控建模、IoT数据汇聚与可视化大屏等。', hint: '联系你熟悉的行业或产品' },
+            { front: `【组件】${t}的核心组件/模块有哪些？`, back: '通常包含存储层（分布式文件系统）、计算层（批处理/流处理引擎）、资源调度层（集群管理器）以及服务接口层（SQL/REST API）。', hint: '按层次结构梳理组件' },
+            { front: `【优化】使用${t}时常见的性能优化手段？`, back: '常见优化：数据本地化减少网络传输、内存缓存热点数据、合理设置并行度、压缩减少IO、避免数据倾斜以及预聚合降低计算量。', hint: '从计算、存储、网络三个层面思考' },
+            { front: `【安全】${t}涉及哪些安全与隐私问题？`, back: '主要涉及：数据访问权限控制（认证授权）、传输与存储加密、敏感数据脱敏、审计日志追踪以及合规性（如GDPR、等保）要求。', hint: '从数据生命周期角度思考' },
+            { front: `【趋势】${t}的未来发展趋势如何？`, back: '趋势包括：云原生与Serverless化、AI驱动的自动化调优、实时化与边缘计算融合、湖仓一体架构统一以及更低代码的使用门槛。', hint: '关注技术演进和业界动态' },
+            { front: `【实践】学习${t}的最佳实践路径？`, back: '建议路径：1) 理解基础概念与架构；2) 搭建本地环境动手实验；3) 阅读官方文档与经典论文；4) 参与开源项目或复现案例；5) 在生产环境中逐步落地。', hint: '理论→实验→项目→生产' },
         ];
     }
 
@@ -6554,6 +6780,7 @@ class FlashcardUI {
     // ========== 沉浸模式方法 ==========
     exitImmersive() {
         this.immersiveMode = false;
+        this._clearImmersiveCountdown();
         this.sessionStats.duration = Math.floor((Date.now() - this.sessionStats.startTime) / 1000);
         if (this.userId) this._saveSessionToDB();
         this._destroyNebula();
@@ -6605,12 +6832,26 @@ class FlashcardUI {
         front.innerHTML = `
             <div class="capsule-card-label">问题</div>
             <div class="capsule-card-content">${this._escapeHtml(card.front)}</div>
+            <div class="capsule-countdown-bar" id="capsule-countdown-bar">
+                <div class="capsule-countdown-fill" id="capsule-countdown-fill"></div>
+            </div>
+            <div class="capsule-countdown-text" id="capsule-countdown-text">${this._formatTime(Math.floor(this.immersiveCountdownDelay / 1000))}</div>
+            <div class="capsule-card-hint" id="capsule-flip-hint">思考后方可翻转</div>
             ${card.hint ? `<div class="capsule-card-hint">💡 ${this._escapeHtml(card.hint)}</div>` : ''}
+            <div class="capsule-thinking-overlay" id="capsule-thinking-overlay">
+                <div class="capsule-thinking-spinner"></div>
+                <div class="capsule-thinking-text">深度思考中…</div>
+                <div class="capsule-thinking-sub">倒计时结束后可查看答案</div>
+            </div>
         `;
         back.innerHTML = `
             <div class="capsule-card-label">答案</div>
             <div class="capsule-card-content">${this._escapeHtml(card.back)}</div>
             ${card.hint ? `<div class="capsule-card-hint">💡 ${this._escapeHtml(card.hint)}</div>` : ''}
+            <div class="capsule-ai-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                AI 生成
+            </div>
         `;
         if (counter) counter.textContent = `${this.currentIndex + 1} / ${this.cards.length}`;
         if (sessionInfo) sessionInfo.textContent = `已掌握 ${this.sessionStats.cardsMastered} / ${this.cards.length}`;
@@ -6642,6 +6883,11 @@ class FlashcardUI {
             }
             return;
         }
+        // 沉浸模式：倒计时结束前禁止翻转
+        if (this.immersiveCountdown.active && this.immersiveCountdown.timeLeft > 0) {
+            this._showNoFlipHint();
+            return;
+        }
         const card3d = document.getElementById('capsule-card-3d');
         if (!card3d) return;
         this.flipped = !this.flipped;
@@ -6650,6 +6896,25 @@ class FlashcardUI {
             this.sessionStats.cardsAnswered++;
             this.updateStatsUI();
         }
+        // 翻转后隐藏倒计时条
+        const bar = document.getElementById('capsule-countdown-bar');
+        const text = document.getElementById('capsule-countdown-text');
+        if (bar) bar.classList.add('hidden');
+        if (text) text.style.opacity = '0';
+    }
+
+    _showNoFlipHint() {
+        const container = document.querySelector('.capsule-card-container');
+        if (!container) return;
+        container.classList.remove('no-flip');
+        void container.offsetWidth; // force reflow
+        container.classList.add('no-flip');
+        const overlay = document.getElementById('capsule-thinking-overlay');
+        if (overlay) {
+            overlay.classList.add('active');
+            setTimeout(() => overlay.classList.remove('active'), 800);
+        }
+        setTimeout(() => container.classList.remove('no-flip'), 400);
     }
 
     async toggleMastered() {
@@ -6774,12 +7039,14 @@ class FlashcardUI {
             card3d.classList.add(direction > 0 ? 'slide-out-left' : 'slide-out-right');
             setTimeout(() => {
                 this.renderCardImmersive();
+                this._restartImmersiveCountdown();
                 card3d.classList.remove('slide-out-left', 'slide-out-right');
                 card3d.classList.add(direction > 0 ? 'slide-in-right' : 'slide-in-left');
                 setTimeout(() => card3d.classList.remove('slide-in-right', 'slide-in-left'), 300);
             }, 250);
         } else {
             this.renderCardImmersive();
+            this._restartImmersiveCountdown();
         }
     }
 
@@ -6866,7 +7133,14 @@ class FlashcardUI {
             case 'Escape': this.exitImmersive(); break;
             case 'ArrowLeft': e.preventDefault(); this.prev(); break;
             case 'ArrowRight': e.preventDefault(); this.next(); break;
-            case ' ': e.preventDefault(); this.flip(); break;
+            case ' ':
+                e.preventDefault();
+                if (this.immersiveCountdown.active && this.immersiveCountdown.timeLeft > 0) {
+                    this._showNoFlipHint();
+                } else {
+                    this.flip();
+                }
+                break;
             case 'f': case 'F': this.toggleFavorite(); break;
             case 'm': case 'M': this.toggleMastered(); break;
             case 'n': case 'N': this.toggleNotePanel(); break;
@@ -6940,6 +7214,76 @@ class FlashcardUI {
         this.nebulaCanvas = null;
         this.nebulaCtx = null;
         this.particles = [];
+    }
+
+    // ========== 沉浸模式倒计时 ==========
+    _initImmersiveCountdown() {
+        this._clearImmersiveCountdown();
+        const totalSec = Math.floor(this.immersiveCountdownDelay / 1000);
+        this.immersiveCountdown.totalTime = totalSec;
+        this.immersiveCountdown.timeLeft = totalSec;
+        this.immersiveCountdown.active = true;
+        this.immersiveCountdown.startTs = Date.now();
+        this._updateImmersiveCountdownUI();
+        this.immersiveCountdown.interval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - this.immersiveCountdown.startTs) / 1000);
+            this.immersiveCountdown.timeLeft = Math.max(0, this.immersiveCountdown.totalTime - elapsed);
+            this._updateImmersiveCountdownUI();
+            if (this.immersiveCountdown.timeLeft <= 0) {
+                this._clearImmersiveCountdown();
+            }
+        }, 1000);
+        this.immersiveCountdown.timer = setTimeout(() => {
+            this._clearImmersiveCountdown();
+        }, this.immersiveCountdownDelay);
+    }
+
+    _restartImmersiveCountdown() {
+        this._initImmersiveCountdown();
+    }
+
+    _clearImmersiveCountdown() {
+        if (this.immersiveCountdown.interval) {
+            clearInterval(this.immersiveCountdown.interval);
+            this.immersiveCountdown.interval = null;
+        }
+        if (this.immersiveCountdown.timer) {
+            clearTimeout(this.immersiveCountdown.timer);
+            this.immersiveCountdown.timer = null;
+        }
+        this.immersiveCountdown.active = false;
+        this.immersiveCountdown.timeLeft = 0;
+        this._updateImmersiveCountdownUI(true);
+    }
+
+    _updateImmersiveCountdownUI(expired = false) {
+        const bar = document.getElementById('capsule-countdown-fill');
+        const text = document.getElementById('capsule-countdown-text');
+        const hint = document.getElementById('capsule-flip-hint');
+        if (!bar || !text) return;
+        const timeLeft = this.immersiveCountdown.timeLeft;
+        const total = this.immersiveCountdown.totalTime;
+        const pct = total > 0 ? (timeLeft / total) * 100 : 0;
+        bar.style.width = pct + '%';
+        text.textContent = this._formatTime(timeLeft);
+        text.classList.remove('warning', 'expired');
+        bar.classList.remove('warning', 'expired');
+        if (expired || timeLeft <= 0) {
+            text.classList.add('expired');
+            bar.classList.add('expired');
+            if (hint) hint.textContent = '点击翻转查看答案';
+        } else if (timeLeft <= 10) {
+            text.classList.add('warning');
+            bar.classList.add('warning');
+        }
+    }
+
+    _formatTime(seconds) {
+        if (typeof seconds !== 'number' || !isFinite(seconds) || seconds <= 0) return '00:00';
+        const totalSec = Math.floor(Math.max(0, seconds));
+        const mins = Math.floor(totalSec / 60);
+        const secs = totalSec % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
     // ========== 视觉反馈 ==========

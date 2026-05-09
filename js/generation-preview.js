@@ -883,9 +883,15 @@
 
         // Save to server
         const studentId = String(sessionData?.student_id || '');
-        const pageCount = (courseData.slides && courseData.slides.length > 0)
-            ? courseData.slides.length
-            : 0;
+        // 计算页数时优先使用 slides_v2（新格式），与 classroom.js 中 scenes 数量保持一致
+        const slides = courseData.slides || [];
+        const slidesV2 = courseData.slides_v2 || [];
+        const outlines = courseData.outlines || [];
+        const pageCount = (slidesV2.length > 0)
+            ? slidesV2.length
+            : (slides.length > 0)
+                ? slides.length
+                : outlines.length;
         try {
             const response = await fetch('/api/v2/course/save', {
                 method: 'POST',

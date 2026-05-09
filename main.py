@@ -3903,7 +3903,7 @@ async def generate_flashcards(req: FlashcardRequest):
 @app.post("/api/v2/flashcard/progress")
 async def save_flashcard_progress_api(req: FlashcardProgressRequest):
     try:
-        db.save_flashcard_progress(req.user_id, req.dict())
+        database.save_flashcard_progress(req.user_id, req.dict())
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -3912,7 +3912,7 @@ async def save_flashcard_progress_api(req: FlashcardProgressRequest):
 @app.get("/api/v2/flashcard/progress")
 async def get_flashcard_progress_api(user_id: int, course_id: str = "bigdata"):
     try:
-        progress = db.get_flashcard_progress(user_id, course_id)
+        progress = database.get_flashcard_progress(user_id, course_id)
         return {"success": True, "data": progress}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -3921,7 +3921,7 @@ async def get_flashcard_progress_api(user_id: int, course_id: str = "bigdata"):
 @app.post("/api/v2/flashcard/session")
 async def save_flashcard_session_api(req: FlashcardSessionRequest):
     try:
-        db.save_flashcard_session(req.user_id, req.dict())
+        database.save_flashcard_session(req.user_id, req.dict())
         return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -3930,7 +3930,7 @@ async def save_flashcard_session_api(req: FlashcardSessionRequest):
 @app.get("/api/v2/flashcard/stats")
 async def get_flashcard_stats_api(user_id: int):
     try:
-        stats = db.get_flashcard_stats(user_id)
+        stats = database.get_flashcard_stats(user_id)
         return {"success": True, "data": stats}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -5943,6 +5943,7 @@ async def generate_course_stream(request: CourseGenerationRequest):
     queue = asyncio.Queue(maxsize=500)
 
     async def background_generate():
+        final_course_data = None
         try:
             async for event in generator.generate_course(
                 requirement=request.requirement,
@@ -5957,6 +5958,8 @@ async def generate_course_stream(request: CourseGenerationRequest):
                 pdf_text=request.pdf_text,
                 enable_web_search=request.enable_web_search,
             ):
+                if event.get("type") == "done":
+                    final_course_data = event.get("data")
                 try:
                     queue.put_nowait(event)
                 except asyncio.QueueFull:
@@ -5982,6 +5985,28 @@ async def generate_course_stream(request: CourseGenerationRequest):
                 queue.put_nowait({"type": "__done__"})
             except asyncio.QueueFull:
                 pass
+            # 后台生成完成后自动保存到数据库（防止前端提前离开导致未保存）
+            if final_course_data:
+                try:
+                    from state import CourseData
+                    course = CourseData(**final_course_data)
+                    user_id = 0
+                    if request.student_id:
+                        try:
+                            user_id = int(request.student_id)
+                        except ValueError:
+                            logger.warning(f"student_id '{request.student_id}' 不是有效数字，跳过数据库自动保存")
+                    if user_id and course.courseId:
+                        full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
+                        ppt_pages = request.ppt_pages if hasattr(request, 'ppt_pages') and request.ppt_pages else (
+                            len(course.slides_v2) if course.slides_v2 else (
+                                len(course.slides) if course.slides else 0
+                            )
+                        )
+                        save_classroom_record(user_id, course.courseId, course.title, full_data, ppt_pages)
+                        logger.info(f"课程生成完成，已自动保存到数据库: {course.courseId}")
+                except Exception as e:
+                    logger.warning(f"课程生成完成后自动保存失败（非致命）: {e}")
 
     # 启动后台生成任务（不跟随SSE连接生命周期）
     asyncio.create_task(background_generate())

@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/index.css?v=2">
     <link rel="stylesheet" href="/css/notifications.css">
     <style>
         .mermaid { visibility: hidden; height: 0; overflow: hidden; }
@@ -194,7 +194,7 @@
     <script src="/js/data-layer.js"></script>
     <script src="/js/voice-input.js"></script>
     <script src="/js/teachers-config.js"></script>
-    <script src="/js/index.js"></script>
+    <script src="/js/index.js?v=3"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
     <div id="dynamic-bg-layer" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 1;"></div>
@@ -926,9 +926,14 @@
                         <div class="capsule-card-badge" id="capsule-front-badges"></div>
                     </div>
                     <div class="capsule-card-face capsule-card-back" id="capsule-card-back">
+                        <div class="capsule-card-label">答案</div>
                         <div class="capsule-card-text" id="capsule-back-text"></div>
                         <div class="capsule-card-hint-text" id="capsule-hint-text"></div>
                         <div class="capsule-card-badge" id="capsule-back-badges"></div>
+                        <div class="capsule-ai-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                            AI 生成
+                        </div>
                     </div>
                 </div>
             </div>

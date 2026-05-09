@@ -423,6 +423,20 @@
       "difficulty": "easy",
       "user_note": "note",
       "review_count": 2
+    },
+    {
+      "user_id": 999,
+      "card_hash": "c_test456",
+      "course_id": "bigdata",
+      "chapter_name": "Hadoop分布式文件系统",
+      "front": "HDFS是什么？",
+      "back": "Hadoop分布式文件系统",
+      "hint": "关注高吞吐量设计",
+      "is_mastered": 1,
+      "is_favorite": 1,
+      "difficulty": "medium",
+      "user_note": "测试笔记内容",
+      "review_count": 2
     }
   ]
 }

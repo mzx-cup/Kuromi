@@ -361,6 +361,8 @@
                     if (data.is_complete) {
                         console.log('[classroom] Generation complete, stopping poll');
                         clearInterval(self.pollingInterval);
+                        // 生成完成后保存到本地历史，确保最近课堂能显示
+                        self._saveToRecentHistory();
                         return;
                     }
                 } catch (e) {
@@ -464,6 +466,10 @@
                             matchedScene.slides_v2.push(slideV2);
                             addedCount++;
                             console.log('[Classroom] Merged slide into scene:', matchedScene.id, 'title:', slideV2.title);
+                            // 如果当前正在查看该场景，实时刷新内容
+                            if (self.currentIndex === self.scenes.indexOf(matchedScene)) {
+                                self.renderScene(self.currentIndex);
+                            }
                         }
                         merged = true;
                     }
@@ -481,7 +487,7 @@
                 const newScene = {
                     id: slideV2.scene_id || ('scene_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
                     title: slideV2.title || '新页面',
-                    type: slideV2.layout_type || 'slide',
+                    type: 'slide',
                     slides_v2: [slideV2],
                     slide: null,
                     quiz: null,
@@ -541,6 +547,41 @@
             }, 3000);
         }
 
+        _saveToRecentHistory() {
+            try {
+                const courseId = this.courseId || this.courseData?.courseId || '';
+                const title = this.courseData?.title || '未命名课程';
+                if (!courseId) return;
+                const historyKey = 'courseHistory';
+                let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                const existingIndex = history.findIndex(function(c) { return c.courseId === courseId; });
+                const entry = {
+                    courseId: courseId,
+                    title: title,
+                    createdAt: Date.now(),
+                    slideCount: this.scenes.length || 0,
+                    _dbRecord: {
+                        course_id: courseId,
+                        title: title,
+                        ppt_pages: this.scenes.length || 0,
+                        created_at: new Date().toISOString()
+                    }
+                };
+                if (existingIndex >= 0) {
+                    history[existingIndex] = entry;
+                } else {
+                    history.unshift(entry);
+                }
+                if (history.length > 20) {
+                    history = history.slice(0, 20);
+                }
+                localStorage.setItem(historyKey, JSON.stringify(history));
+                console.log('[classroom] Saved to recent history:', courseId);
+            } catch (e) {
+                console.warn('[classroom] Failed to save recent history:', e);
+            }
+        }
+
         buildScenes() {
             const outlines = this.courseData.outlines || [];
             const slides = this.courseData.slides || [];
@@ -581,6 +622,7 @@
             // slides_v2 now includes scene_id from MiniMax PPT provider
             // Use findSceneDataAll for scene_id matching (Strategy 1), fallback to index for legacy
             var usedSlideV2Indices = new Set();
+            var usedSlideIndices = new Set();
             this.scenes = outlines.map(function(outline, i) {
                 var sceneId = outline.id || i + 1;
                 var matchedSlide = findSceneData(slides, outline);
@@ -613,6 +655,12 @@
                         var matchedIdx = slidesV2.indexOf(s);
                         if (matchedIdx >= 0) usedSlideV2Indices.add(matchedIdx);
                     });
+                }
+
+                // Track which legacy slides are matched to outlines
+                if (matchedSlide) {
+                    var matchedSlideIdx = slides.indexOf(matchedSlide);
+                    if (matchedSlideIdx >= 0) usedSlideIndices.add(matchedSlideIdx);
                 }
 
                 var matchedQuiz = findSceneData(quizData, outline);
@@ -655,6 +703,26 @@
                         code_data: null,
                         audioUrl: null,
                         imageUrl: null,
+                    });
+                }
+            }, this);
+
+            // Add remaining legacy slides that weren't matched to any outline as extra scenes
+            slides.forEach(function(slide, i) {
+                if (!usedSlideIndices.has(i)) {
+                    this.scenes.push({
+                        id: slide.scene_id || slide.sceneId || slide.id || ('slide-' + i),
+                        title: slide.title || ('幻灯片 ' + (i + 1)),
+                        type: 'slide',
+                        description: '',
+                        keyPoints: [],
+                        slide: slide,
+                        slides_v2: [],
+                        quiz: null,
+                        exercise: null,
+                        code_data: null,
+                        audioUrl: null,
+                        imageUrl: (slide.content && slide.content.elements && slide.content.elements[0] && slide.content.elements[0].image_url) || null,
                     });
                 }
             }, this);
@@ -794,6 +862,27 @@
             if (this.totalSlidesEl) {
                 this.totalSlidesEl.textContent = this.scenes.length;
             }
+            // 同步实际页数到本地历史记录，确保首页显示与课堂一致
+            try {
+                const actualPageCount = this.scenes.length;
+                const courseId = this.courseData.courseId || this.courseData.course_id || '';
+                if (courseId && actualPageCount > 0) {
+                    // 更新 courseData
+                    this.courseData.ppt_pages = actualPageCount;
+                    // 更新 localStorage 的 courseHistory
+                    const historyKey = 'courseHistory';
+                    let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                    const idx = history.findIndex(c => c.courseId === courseId);
+                    if (idx >= 0) {
+                        history[idx].slideCount = actualPageCount;
+                        history[idx].createdAt = Date.now(); // 更新时间确保合并时本地优先
+                        if (history[idx]._dbRecord) {
+                            history[idx]._dbRecord.ppt_pages = actualPageCount;
+                        }
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                    }
+                }
+            } catch (e) { /* silent */ }
             // Set teacher avatar - use image if available, otherwise keep kawaii style
             if (this.courseData.teacher) {
                 const teacher = this.courseData.teacher;
@@ -993,8 +1082,8 @@
             // Block navigation when quiz popup is open
             var quizOpen = this.quizPopupOverlay && this.quizPopupOverlay.style.display === 'flex';
             switch (e.key) {
-                case 'ArrowLeft': if (!this.whiteboardVisible && !quizOpen) this.prevScene(); break;
-                case 'ArrowRight': if (!this.whiteboardVisible && !quizOpen) this.nextScene(); break;
+                case 'ArrowLeft': if (!quizOpen) this.prevScene(); break;
+                case 'ArrowRight': if (!quizOpen) this.nextScene(); break;
                 case ' ': e.preventDefault(); this.toggleVoice(); break;
                 case 'w': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); this.toggleWhiteboard(); } break;
             }
@@ -1047,6 +1136,26 @@
             const scene = this.scenes[index];
             this.hideAllSceneContainers();
 
+            // If navigating away from whiteboard scene, close it and restore controls
+            if (scene.type !== 'whiteboard' && this.whiteboardVisible) {
+                this.whiteboardVisible = false;
+                this.whiteboardToggleBtn?.classList.remove('active');
+                if (this.whiteboardContainer) {
+                    this.whiteboardContainer.style.display = 'none';
+                    this.whiteboardContainer.classList.remove('wb-active', 'wb-exiting');
+                }
+                const renderer = this._getWhiteboardRenderer();
+                if (renderer) {
+                    renderer.disablePenMode();
+                    renderer.disableEraserMode();
+                }
+                this.wbPenToggleBtn?.classList.remove('active');
+                this.wbEraserBtn?.classList.remove('active');
+                if (this.wbPenGroup) this.wbPenGroup.style.display = 'none';
+                if (this.slideControls) this.slideControls.style.display = '';
+                if (this.progressBar) this.progressBar.style.display = '';
+            }
+
             switch (scene.type) {
                 case 'quiz': this.openQuizPopup(scene, true); break;
                 case 'exercise': this.renderExerciseScene(scene); break;
@@ -1057,8 +1166,6 @@
                     this.whiteboardToggleBtn?.classList.add('active');
                     this._animateWhiteboardOpen();
                     this._initWhiteboard();
-                    if (this.slideControls) this.slideControls.style.display = 'none';
-                    if (this.progressBar) this.progressBar.style.display = 'none';
                     if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
                     // Show pen controls for students
                     if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
@@ -1850,15 +1957,18 @@
             _renderSpotlightFocus(slide) {
                 const items = slide.content || [];
                 const centerItem = items[0];
-                const surroundItems = items.slice(1, 5);
+                const surroundItems = items.slice(1, 7);
                 const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
                 const centerText = centerItem ? this._renderBulletsOrText({ bullets: centerItem.bullets, text: centerItem.text || '' }) : '';
                 const surroundHtml = surroundItems.map((item, i) => {
                     const icon = this._getIcon(item.icon);
+                    const satText = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
                     return `
                         <div class="spotlight-satellite theme-${this._validateTheme(item.colorTheme)}">
                             ${icon ? `<div class="spotlight-sat-icon">${icon}</div>` : ''}
                             <div class="spotlight-sat-title">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                            ${satText && !satText.startsWith('<ul') ? `<div class="spotlight-sat-text">${satText}</div>` : ''}
+                            ${satText && satText.startsWith('<ul') ? satText : ''}
                         </div>
                     `;
                 }).join('');
@@ -1877,16 +1987,28 @@
             },
 
             _renderKineticType(slide) {
-                const item = slide.content?.[0];
+                const items = slide.content || [];
+                const item = items[0];
                 const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
                 const words = (slide.title || '').split('');
                 const kineticTitle = words.map((ch, i) => `<span class="kinetic-char" style="animation-delay:${i * 0.04}s">${this._escapeHtml(ch)}</span>`).join('');
+                // Render additional content items beyond the first
+                const extraItems = items.slice(1, 4).map((it, i) => {
+                    const extraText = this._renderBulletsOrText({ bullets: it.bullets, text: it.text || '' });
+                    return `
+                        <div class="kinetic-extra" style="animation-delay:${0.8 + i * 0.2}s">
+                            <div class="kinetic-extra-title">${this._escapeHtml(it.subTitle || it.title || '')}</div>
+                            ${extraText ? `<div class="kinetic-extra-text">${extraText}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
                 return `
                     <div class="slide-v2-container layout-kinetic-type">
                         <div class="kinetic-accent-line"></div>
                         <div class="kinetic-main">${kineticTitle}</div>
                         ${item?.subTitle ? `<div class="kinetic-slant">${this._escapeHtml(item.subTitle)}</div>` : ''}
                         ${textHtml ? `<div class="kinetic-body">${textHtml}</div>` : ''}
+                        ${extraItems ? `<div class="kinetic-extras">${extraItems}</div>` : ''}
                         <div class="kinetic-deco">
                             <span></span><span></span><span></span>
                         </div>
@@ -1927,8 +2049,10 @@
                 const centerItem = items[0];
                 const satellites = items.slice(1, 7);
                 const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
+                const centerText = centerItem ? this._renderBulletsOrText({ bullets: centerItem.bullets, text: centerItem.text || '' }) : '';
                 const satHtml = satellites.map((item, i) => {
                     const icon = this._getIcon(item.icon);
+                    const satText = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
                     const angle = (360 / Math.max(satellites.length, 1)) * i;
                     const radius = 140;
                     const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
@@ -1937,6 +2061,8 @@
                         <div class="orbit-satellite theme-${this._validateTheme(item.colorTheme)}" style="transform:translate(${x}px, ${y}px)">
                             ${icon ? `<div class="orbit-sat-icon">${icon}</div>` : ''}
                             <div class="orbit-sat-label">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                            ${satText && !satText.startsWith('<ul') ? `<div class="orbit-sat-text">${satText}</div>` : ''}
+                            ${satText && satText.startsWith('<ul') ? satText : ''}
                         </div>
                     `;
                 }).join('');
@@ -1946,6 +2072,8 @@
                             <div class="orbit-center theme-${centerItem ? this._validateTheme(centerItem.colorTheme) : 'blue'}">
                                 ${centerIcon ? `<div class="orbit-c-icon">${centerIcon}</div>` : ''}
                                 <div class="orbit-c-title">${this._escapeHtml(slide.title || '')}</div>
+                                ${centerText && !centerText.startsWith('<ul') ? `<div class="orbit-c-text">${centerText}</div>` : ''}
+                                ${centerText && centerText.startsWith('<ul') ? centerText : ''}
                             </div>
                             <div class="orbit-ring-visual"></div>
                             <div class="orbit-satellites">${satHtml}</div>
@@ -1983,9 +2111,20 @@
             },
 
             _renderChapterDivider(slide) {
-                const item = slide.content?.[0];
+                const items = slide.content || [];
+                const item = items[0];
                 const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
                 const chapterNum = item?.subTitle || '01';
+                // Render additional content items as extra description blocks
+                const extraDesc = items.slice(1, 4).map((it, i) => {
+                    const extraText = this._renderBulletsOrText({ bullets: it.bullets, text: it.text || '' });
+                    return `
+                        <div class="chapter-extra" style="animation-delay:${0.6 + i * 0.15}s">
+                            <div class="chapter-extra-title">${this._escapeHtml(it.subTitle || it.title || '')}</div>
+                            ${extraText ? `<div class="chapter-extra-text">${extraText}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
                 return `
                     <div class="slide-v2-container layout-chapter-divider">
                         <div class="chapter-number">${this._escapeHtml(chapterNum)}</div>
@@ -1993,6 +2132,7 @@
                         <h1 class="chapter-title">${this._escapeHtml(slide.title || '')}</h1>
                         ${item?.subTitle ? `<div class="chapter-sub">${this._escapeHtml(item.subTitle)}</div>` : ''}
                         ${textHtml ? `<div class="chapter-desc">${textHtml}</div>` : ''}
+                        ${extraDesc ? `<div class="chapter-extras">${extraDesc}</div>` : ''}
                     </div>
                 `;
             },
@@ -5231,9 +5371,6 @@
                 this._initWhiteboard();
                 // Show pen controls for students
                 if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
-                // Hide slide navigation during whiteboard
-                if (this.slideControls) this.slideControls.style.display = 'none';
-                if (this.progressBar) this.progressBar.style.display = 'none';
                 // Slide mode off when using whiteboard (more space available)
                 if (this.teacherArea) this.teacherArea.classList.remove('slide-mode');
             } else {
@@ -5522,8 +5659,6 @@
                 this._initWhiteboard();
                 // Show pen controls for students
                 if (this.wbPenGroup) this.wbPenGroup.style.display = 'flex';
-                if (this.slideControls) this.slideControls.style.display = 'none';
-                if (this.progressBar) this.progressBar.style.display = 'none';
             }
             // Handle wb_close - switch back to slides
             if (name === 'wb_close') {

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/code.css?v=20260429-ui">
+    <link rel="stylesheet" href="/css/code.css?v=20260509-ui">
 </head>
 <body class="code-body">
     <div class="app-shell">
@@ -121,6 +121,16 @@
                             </div>
 
                             <div class="editor-actions">
+                                <button class="toolbar-btn" id="copy-code-btn" type="button" title="复制代码 (Ctrl+Shift+C)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                </button>
+                                <button class="toolbar-btn" id="font-decrease-btn" type="button" title="减小字体">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                </button>
+                                <button class="toolbar-btn" id="font-increase-btn" type="button" title="增大字体">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                                </button>
+                                <div class="editor-action-divider"></div>
                                 <button class="ghost-btn" id="quick-hint-btn" type="button">补全提示</button>
                                 <button class="ghost-btn" id="reset-btn" type="button">重置代码</button>
                                 <button class="action-btn success" id="run-btn" type="button">运行代码</button>
@@ -151,9 +161,24 @@
                             </div>
                         </div>
 
+                        <div class="editor-status-bar" id="editor-status-bar">
+                            <div class="status-bar-left">
+                                <span class="status-item" id="status-lines">0 行</span>
+                                <span class="status-item" id="status-chars">0 字符</span>
+                                <span class="status-item" id="status-todos">0 处 TODO</span>
+                                <span class="status-item" id="status-cursor">Ln 1, Col 1</span>
+                            </div>
+                            <div class="status-bar-right">
+                                <span class="status-item save-indicator" id="save-indicator">已自动保存</span>
+                                <span class="status-item" id="status-font">13.5px</span>
+                            </div>
+                        </div>
                         <div class="output-panel">
                             <div class="output-header">
-                                <span>运行结果</span>
+                                <div class="output-header-left">
+                                    <span>运行结果</span>
+                                    <span class="output-meta" id="output-meta"></span>
+                                </div>
                                 <button class="clear-btn" id="clear-output" type="button">清空</button>
                             </div>
                             <div
@@ -220,6 +245,6 @@
     </div>
 
     <script src="/js/data-layer.js"></script>
-    <script src="/js/code.js?v=20260421-9"></script>
+    <script src="/js/code.js?v=20260509-1"></script>
 </body>
 </html>
