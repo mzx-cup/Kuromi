@@ -21,255 +21,155 @@
                 <span class="brand-mark">SL</span>
                 <div>
                     <h1 class="nav-title">全息视界</h1>
-                    <p class="nav-subtitle">Python 学习驾驶舱</p>
+                    <p class="nav-subtitle">本地视频学习驾驶舱</p>
                 </div>
             </div>
             <div class="nav-status">
                 <span class="status-dot"></span>
-                <span>学习同步中</span>
+                <span>video/ 已接入</span>
             </div>
         </div>
     </nav>
 
     <main class="video-main">
-        <section class="learning-theater">
-            <div class="stage-panel">
-                <div class="stage-header">
-                    <div>
-                        <p class="section-kicker">沉浸式课堂舞台</p>
-                        <h2>Python 数据结构与算法</h2>
-                        <p class="stage-copy">从基础语法到算法思维，按章节推进。左侧是学习进度预览，右侧推荐入口可打开完整视频。</p>
-                    </div>
-                    <div class="stage-actions">
-                        <button class="primary-action" type="button" id="continue-learning-btn">继续学习</button>
-                        <button class="ghost-action" type="button">收藏课程</button>
-                    </div>
-                </div>
-
-                <div class="video-player" id="video-player">
-                    <div class="video-placeholder">
-                        <div class="video-scanline"></div>
-                        <div class="video-overlay-info">
-                            <div class="ai-badge">
-                                <span class="ai-icon">AI</span>
-                                <span class="ai-text">智能讲解</span>
-                            </div>
-                            <span class="duration-badge">45:30</span>
+        <section class="bili-theater">
+            <div class="player-column">
+                <section class="player-shell">
+                    <div class="player-heading">
+                        <div>
+                            <p class="section-kicker">本地视频播放</p>
+                            <h2 id="video-title">算法复杂度分析</h2>
+                            <p id="video-subtitle" class="stage-copy">从时间复杂度、空间复杂度到代码层级分析，建立算法效率判断框架。</p>
                         </div>
-                        <div class="placeholder-content">
+                    </div>
+
+                    <div class="video-player" id="video-player" data-empty-state>
+                        <video id="course-video" preload="auto" playsinline muted></video>
+                        <div class="video-empty-state" id="video-empty-state">
                             <div class="play-circle">
                                 <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M8 5v14l11-7z"/>
                                 </svg>
                             </div>
-                                <p class="placeholder-text">点击预览当前章节</p>
-                                <p class="placeholder-subtext">学习进度预览 · 第三课：算法复杂度分析</p>
+                            <p class="placeholder-text">请将视频放入 Kuromi 根目录的 video/ 文件夹</p>
+                            <p class="placeholder-subtext">支持 .mp4 / .webm / .mov，播放器会使用 /video/ 路径读取本地视频。</p>
+                        </div>
+                        <div class="danmaku-stage" id="danmaku-stage" aria-live="polite"></div>
+
+                        <div class="player-controls" id="player-controls">
+                            <div class="progress-container">
+                                <div class="progress-track" id="progress-track">
+                                    <div class="progress-fill" id="progress-fill">
+                                        <div class="progress-glow"></div>
+                                    </div>
+                                    <div class="progress-thumb" id="progress-thumb"></div>
+                                </div>
+                            </div>
+
+                            <div class="control-bar">
+                                <div class="control-left">
+                                    <button class="control-btn play-btn" id="play-btn" type="button" aria-label="播放或暂停">
+                                        <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M8 5v14l11-7z"/>
+                                        </svg>
+                                        <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                        </svg>
+                                    </button>
+                                    <button class="control-btn volume-btn" id="volume-btn" type="button" aria-label="静音">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+                                        </svg>
+                                    </button>
+                                    <div class="time-display">
+                                        <span id="current-time">00:00</span>
+                                        <span class="time-separator">/</span>
+                                        <span id="total-time">00:00</span>
+                                    </div>
+                                </div>
+                                <div class="control-right">
+                                    <button class="control-btn speed-btn" id="speed-btn" type="button"><span id="speed-text">1x</span></button>
+                                    <button class="control-btn quality-btn" id="quality-btn" type="button"><span>本地</span></button>
+                                    <button class="control-btn fullscreen-btn" id="fullscreen-btn" type="button" aria-label="全屏">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="player-controls" id="player-controls">
-                        <div class="progress-container">
-                            <div class="progress-track">
-                                <div class="progress-fill" id="progress-fill" style="width: 35%;">
-                                    <div class="progress-glow"></div>
-                                </div>
-                                <div class="knowledge-markers">
-                                    <div class="marker" data-position="15" data-title="数组基础" data-time="06:45">
-                                        <div class="marker-dot"></div>
-                                        <div class="marker-tooltip">数组基础 06:45</div>
-                                    </div>
-                                    <div class="marker" data-position="35" data-title="时间复杂度" data-time="15:45">
-                                        <div class="marker-dot"></div>
-                                        <div class="marker-tooltip">时间复杂度 15:45</div>
-                                    </div>
-                                    <div class="marker active" data-position="58" data-title="空间复杂度" data-time="26:15">
-                                        <div class="marker-dot"></div>
-                                        <div class="marker-tooltip">空间复杂度 26:15</div>
-                                    </div>
-                                    <div class="marker" data-position="82" data-title="LeetCode 实战" data-time="37:00">
-                                        <div class="marker-dot"></div>
-                                        <div class="marker-tooltip">LeetCode 实战 37:00</div>
-                                    </div>
-                                </div>
-                                <div class="progress-thumb" id="progress-thumb" style="left: 35%;"></div>
-                            </div>
-                        </div>
+                    <form class="danmaku-form" id="danmaku-form">
+                        <input class="danmaku-input" id="danmaku-input" type="text" maxlength="40" placeholder="发一条本地弹幕笔记">
+                        <button class="danmaku-send" type="submit">发送</button>
+                    </form>
+                </section>
 
-                        <div class="control-bar">
-                            <div class="control-left">
-                                <button class="control-btn play-btn" id="play-btn" type="button" aria-label="播放或暂停">
-                                    <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M8 5v14l11-7z"/>
-                                    </svg>
-                                    <svg class="icon-pause hidden" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                                    </svg>
-                                </button>
-                                <button class="control-btn volume-btn" id="volume-btn" type="button" aria-label="音量">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
-                                    </svg>
-                                </button>
-                                <div class="time-display">
-                                    <span class="current-time">15:45</span>
-                                    <span class="time-separator">/</span>
-                                    <span class="total-time">45:30</span>
-                                </div>
-                            </div>
-                            <div class="control-right">
-                                <button class="control-btn speed-btn" id="speed-btn" type="button"><span class="speed-text">1.5x</span></button>
-                                <button class="control-btn quality-btn" id="quality-btn" type="button"><span>1080P</span></button>
-                                <button class="control-btn fullscreen-btn" id="fullscreen-btn" type="button" aria-label="全屏">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                <section class="video-info-panel">
+                    <div>
+                        <span class="panel-label">当前视频</span>
+                        <h3 id="info-title">算法复杂度分析</h3>
+                        <p id="info-description">掌握 O(1)、O(n)、O(log n) 的判断方法，并能用 Python 代码解释时间与空间消耗。</p>
                     </div>
-                </div>
-
-                <div class="stage-dashboard">
-                    <article class="insight-panel">
-                        <span class="panel-label">本节重点</span>
-                        <h3>算法复杂度分析</h3>
-                        <p>掌握 O(1)、O(n)、O(log n) 的判断方法，并能用 Python 代码解释时间与空间消耗。</p>
-                    </article>
-                    <article class="metric-panel">
-                        <span class="metric-value">35%</span>
-                        <span class="metric-label">当前进度</span>
-                    </article>
-                    <article class="metric-panel">
-                        <span class="metric-value">4</span>
-                        <span class="metric-label">知识标记</span>
-                    </article>
-                </div>
+                    <div class="info-metrics">
+                        <article class="metric-panel">
+                            <span class="metric-value" id="progress-percent">0%</span>
+                            <span class="metric-label">当前进度</span>
+                        </article>
+                        <article class="metric-panel">
+                            <span class="metric-value" id="note-count">0</span>
+                            <span class="metric-label">AI笔记</span>
+                        </article>
+                    </div>
+                </section>
             </div>
 
-            <aside class="learning-rail">
-                <section class="rail-card intro-card">
-                    <div class="rail-card-header">
-                        <span class="section-kicker">推荐入口</span>
-                        <span class="rail-pill">外部视频</span>
-                    </div>
-                    <h3>Python 基础入门</h3>
-                    <p>从解释器安装、第一个程序、变量、数据类型和流程控制开始补齐基础。</p>
-                    <button class="intro-video-button" type="button" data-video-url="https://www.bilibili.com/video/BV1hxQBYcE5C/">打开视频</button>
-                </section>
+            <aside class="player-side-panel">
+                <div class="side-tabs" role="tablist" aria-label="全息视界侧栏">
+                    <button class="side-tab active" type="button" data-tab="episodes">选集</button>
+                    <button class="side-tab" type="button" data-tab="ai-notes">AI伴学笔记</button>
+                </div>
 
-                <section class="rail-card curriculum-card">
-                    <div class="curriculum-header">
+                <section class="side-panel-section active" id="episodes-panel">
+                    <div class="side-section-header">
                         <div>
-                            <span class="section-kicker">学习轨道</span>
-                            <h3 class="curriculum-title">课程章节</h3>
+                            <span class="section-kicker">video/ 本地仓库</span>
+                            <h3>课程选集</h3>
                         </div>
-                        <span class="curriculum-progress">3/12</span>
+                        <span class="rail-pill" id="episode-count">0 个视频</span>
                     </div>
-
-                    <div class="chapter-list" id="chapter-list">
-                        <div class="chapter-item intro-link" data-chapter="intro" data-video-url="https://www.bilibili.com/video/BV1hxQBYcE5C/">
-                            <div class="chapter-index">00</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">推荐视频</span>
-                                    <span class="chapter-duration">外部链接</span>
-                                </div>
-                                <h4 class="chapter-name">Python 基础入门</h4>
-                                <p class="chapter-desc">变量、数据类型、输入输出、条件与循环</p>
-                            </div>
-                        </div>
-
-                        <div class="chapter-item completed" data-chapter="1">
-                            <div class="chapter-index">01</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">第一章</span>
-                                    <span class="chapter-duration">32:15</span>
-                                </div>
-                                <h4 class="chapter-name">Python 基础回顾</h4>
-                                <p class="chapter-desc">语法、数据类型、函数基础</p>
-                            </div>
-                        </div>
-
-                        <div class="chapter-item completed" data-chapter="2">
-                            <div class="chapter-index">02</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">第二章</span>
-                                    <span class="chapter-duration">45:30</span>
-                                </div>
-                                <h4 class="chapter-name">数据结构基础</h4>
-                                <p class="chapter-desc">列表、栈、队列、链表实现</p>
-                            </div>
-                        </div>
-
-                        <div class="chapter-item active" data-chapter="3">
-                            <div class="chapter-index">03</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">第三章</span>
-                                    <span class="chapter-duration current">15:45 / 45:30</span>
-                                </div>
-                                <h4 class="chapter-name">算法复杂度分析</h4>
-                                <p class="chapter-desc">时间/空间复杂度、主定理</p>
-                                <div class="current-progress">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 35%;"></div>
-                                    </div>
-                                    <span class="progress-text">35%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="chapter-item" data-chapter="4">
-                            <div class="chapter-index">04</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">第四章</span>
-                                    <span class="chapter-duration">38:20</span>
-                                </div>
-                                <h4 class="chapter-name">排序算法详解</h4>
-                                <p class="chapter-desc">冒泡、选择、快速、归并排序</p>
-                            </div>
-                        </div>
-
-                        <div class="chapter-item locked" data-chapter="6">
-                            <div class="chapter-index">06</div>
-                            <div class="chapter-content">
-                                <div class="chapter-header">
-                                    <span class="chapter-number">第六章</span>
-                                    <span class="chapter-duration">55:00</span>
-                                </div>
-                                <h4 class="chapter-name">高级数据结构</h4>
-                                <p class="chapter-desc">红黑树、B+树、跳表</p>
-                                <span class="locked-badge">完成后解锁</span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="episode-list" id="episode-list"></div>
                 </section>
 
-                <section class="rail-card ai-companion-card">
-                    <div class="companion-header">
-                        <div class="companion-avatar">AI</div>
-                        <div class="companion-info">
-                            <span class="companion-name">AI 星宝伴学</span>
-                            <span class="companion-status">在线解析知识点</span>
+                <section class="side-panel-section" id="ai-notes-panel">
+                    <div class="side-section-header">
+                        <div>
+                            <span class="section-kicker">AI Companion</span>
+                            <h3>AI伴学笔记</h3>
                         </div>
+                        <span class="rail-pill">可跳转</span>
                     </div>
-                    <div class="companion-messages">
-                        <div class="message bot">
-                            <span class="message-icon">AI</span>
-                            <p class="message-text">本节课建议先看复杂度定义，再对照代码循环层级。你也可以先打开 Python 基础入门视频补齐语法。</p>
-                        </div>
+                    <article class="ai-summary">
+                        <span class="panel-label">本节摘要</span>
+                        <p id="ai-summary-text"></p>
+                    </article>
+                    <div>
+                        <span class="panel-label">时间戳笔记</span>
+                        <div class="note-timeline" id="note-timeline"></div>
                     </div>
-                    <div class="companion-input">
-                        <input type="text" placeholder="向 AI 伴学提问..." class="input-field">
-                        <button class="send-btn" type="button" aria-label="发送">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-                            </svg>
-                        </button>
+                    <div>
+                        <span class="panel-label">我的笔记</span>
+                        <div class="student-note-list" id="student-note-list"></div>
                     </div>
+                    <div>
+                        <span class="panel-label">重点问题</span>
+                        <div class="question-list" id="question-list"></div>
+                    </div>
+                    <article class="ai-suggestion">
+                        <span class="panel-label">学习建议</span>
+                        <p id="ai-suggestion-text"></p>
+                    </article>
                 </section>
             </aside>
         </section>
