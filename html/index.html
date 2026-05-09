@@ -526,27 +526,29 @@
                     <div class="composer-glass-bar p-4 border-t shrink-0">
                         <div class="max-w-4xl mx-auto w-full">
                             <div id="persona-chip-bar" class="persona-chip-bar">
-                                <button class="persona-chip active" data-persona="patient_tutor" data-desc="陈默 — 55岁退休中学教师，慢条斯理，用生活比喻拆解概念，从不批评学生错误">
-                                    <span class="persona-chip-icon">🍵</span>
-                                    <span class="persona-chip-name">陈默</span>
-                                </button>
-                                <button class="persona-chip" data-persona="socratic_questioner" data-desc="林问 — 42岁哲学系副教授，冷静理性，用层层追问引导你自己找到答案">
-                                    <span class="persona-chip-icon">🔍</span>
-                                    <span class="persona-chip-name">林问</span>
-                                </button>
-                                <button class="persona-chip" data-persona="energetic_lecturer" data-desc="周燃 — 33岁前大厂技术布道师，热情风趣，用故事和悬念让知识变得有趣">
-                                    <span class="persona-chip-icon">⚡</span>
-                                    <span class="persona-chip-name">周燃</span>
-                                </button>
-                                <button class="persona-chip" data-persona="expert_mentor" data-desc="严铮 — 48岁985高校教授，沉稳权威，从第一性原理出发教你专家如何思考">
-                                    <span class="persona-chip-icon">🏔️</span>
-                                    <span class="persona-chip-name">严铮</span>
-                                </button>
-                                <div class="persona-divider"></div>
+                                <div id="persona-chips-container" class="persona-chips-container expanded">
+                                    <button class="persona-chip active" data-persona="patient_tutor" data-desc="陈默 — 55岁退休中学教师，慢条斯理，用生活比喻拆解概念，从不批评学生错误">
+                                        <span class="persona-chip-icon">🍵</span>
+                                        <span class="persona-chip-name">陈默</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="socratic_questioner" data-desc="林问 — 42岁哲学系副教授，冷静理性，用层层追问引导你自己找到答案">
+                                        <span class="persona-chip-icon">🔍</span>
+                                        <span class="persona-chip-name">林问</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="energetic_lecturer" data-desc="周燃 — 33岁前大厂技术布道师，热情风趣，用故事和悬念让知识变得有趣">
+                                        <span class="persona-chip-icon">⚡</span>
+                                        <span class="persona-chip-name">周燃</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="expert_mentor" data-desc="严铮 — 48岁985高校教授，沉稳权威，从第一性原理出发教你专家如何思考">
+                                        <span class="persona-chip-icon">🏔️</span>
+                                        <span class="persona-chip-name">严铮</span>
+                                    </button>
+                                </div>
+                                <div class="persona-divider" id="persona-divider"></div>
                                 <div class="subject-dropdown-wrapper" id="subject-dropdown-wrapper">
-                                    <button class="subject-dropdown-btn" id="subject-dropdown-btn" title="切换学科领域身份">
-                                        <span class="subject-dropdown-icon">🧑‍💻</span>
-                                        <span class="subject-dropdown-name">极客学长</span>
+                                    <button class="subject-dropdown-btn" id="subject-dropdown-btn" title="切换学科领域身份" style="--agent-theme-color: #6366f1; --agent-theme-glow: rgba(99,102,241,0.25);">
+                                        <span class="subject-dropdown-icon">✨</span>
+                                        <span class="subject-dropdown-name">默认</span>
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </button>
                                     <div class="subject-dropdown-menu hidden" id="subject-dropdown-menu"></div>

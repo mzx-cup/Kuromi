@@ -51,6 +51,22 @@ async function syncLearningMinute() {
 
 const AGENTS_CONFIG = [
     {
+        id: 'default',
+        name: '默认',
+        icon: '✨',
+        greeting: (userName) => `**${userName}同学，你好！** ✨ 我是你的学习助手。
+
+你可以选择不同的性格身份来与我交流：
+- 🍵 **陈默** — 耐心温和的退休教师
+- 🔍 **林问** — 苏格拉底式追问者
+- ⚡ **周燃** — 热情风趣的技术布道师
+- 🏔️ **严铮** — 沉稳权威的大学教授
+
+或者切换上方的学科领域，获得更专业的指导！`,
+        themeColor: '#6366f1',
+        systemPrompt: `你是一个温暖、专业的学习助手。你的任务是根据用户选择的性格身份（陈默、林问、周燃、严铮）来调整自己的回应风格，或者当用户没有特别选择时，保持友好、清晰、有耐心的默认教学风格。你会尽力帮助学生理解知识，回答问题，并提供有价值的学习建议。`
+    },
+    {
         id: 'bigdata-architect',
         name: '大数据架构导师',
         icon: '🧙‍♂️',
@@ -267,7 +283,7 @@ const projects = [
     }
 ];
 
-let currentAgent = AGENTS_CONFIG[4]; // 默认极客学长
+let currentAgent = AGENTS_CONFIG[0]; // 默认"默认"身份
 let currentPersona = localStorage.getItem('starlearn_persona') || 'patient_tutor'; // 默认陈默
 
 let agentMenuState = {
@@ -446,7 +462,10 @@ function initSubjectDropdown() {
     const wrapper = document.getElementById('subject-dropdown-wrapper');
     const btn = document.getElementById('subject-dropdown-btn');
     const menu = document.getElementById('subject-dropdown-menu');
-    if (!wrapper || !btn || !menu) return;
+    if (!wrapper || !btn || !menu) {
+        console.warn('[SubjectDropdown] 初始化失败：缺少必要DOM元素');
+        return;
+    }
 
     updateSubjectDropdownUI();
 
@@ -457,11 +476,34 @@ function initSubjectDropdown() {
             menu.classList.add('hidden');
             btn.classList.remove('open');
         } else {
-            const rect = btn.getBoundingClientRect();
-            menu.style.left = rect.left + 'px';
-            menu.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
             menu.classList.remove('hidden');
             btn.classList.add('open');
+        }
+    });
+
+    // 使用事件委托处理菜单项点击
+    menu.addEventListener('click', (e) => {
+        console.log('[SubjectDropdown] menu click', e.target, e.target.tagName, e.target.className);
+        const item = e.target.closest('.subject-dropdown-item');
+        if (!item) {
+            console.log('[SubjectDropdown] 未找到菜单项元素');
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        const agentId = item.dataset.agentId;
+        console.log('[SubjectDropdown] 点击菜单项, agentId:', agentId);
+        const agent = AGENTS_CONFIG.find(a => a.id === agentId);
+        console.log('[SubjectDropdown] 找到agent:', agent ? agent.name : '未找到');
+        if (agent) {
+            currentAgent = agent;
+            localStorage.setItem('starlearn_agent', agentId);
+            console.log('[SubjectDropdown] 已切换agent为:', agent.name);
+            updateSubjectDropdownUI();
+            renderAgentFab();
+            menu.classList.add('hidden');
+            btn.classList.remove('open');
+            togglePersonaChips(agent.id === 'default');
         }
     });
 
@@ -483,6 +525,22 @@ function initSubjectDropdown() {
     }, true);
 }
 
+function togglePersonaChips(show) {
+    const container = document.getElementById('persona-chips-container');
+    const divider = document.getElementById('persona-divider');
+    if (!container) return;
+
+    if (show) {
+        container.classList.remove('collapsed');
+        container.classList.add('expanded');
+        if (divider) divider.style.display = 'block';
+    } else {
+        container.classList.remove('expanded');
+        container.classList.add('collapsed');
+        if (divider) divider.style.display = 'none';
+    }
+}
+
 function updateSubjectDropdownUI() {
     const btn = document.getElementById('subject-dropdown-btn');
     const menu = document.getElementById('subject-dropdown-menu');
@@ -493,26 +551,55 @@ function updateSubjectDropdownUI() {
     if (iconSpan) iconSpan.textContent = currentAgent.icon;
     if (nameSpan) nameSpan.textContent = currentAgent.name;
 
-    menu.innerHTML = AGENTS_CONFIG.map(agent => `
-        <button class="subject-dropdown-item ${agent.id === currentAgent.id ? 'active' : ''}" data-agent-id="${agent.id}">
+    // 为主按钮设置当前学科的主题色CSS变量
+    const themeColor = currentAgent.themeColor || '#6366f1';
+    btn.style.setProperty('--agent-theme-color', themeColor);
+    btn.style.setProperty('--agent-theme-glow', themeColor + '40');
+
+    menu.innerHTML = AGENTS_CONFIG.map(agent => {
+        const agentColor = agent.themeColor || '#6366f1';
+        let rgbaColor;
+        try {
+            rgbaColor = hexToRgba(agentColor, 0.15);
+        } catch (e) {
+            rgbaColor = 'rgba(99, 102, 241, 0.15)';
+        }
+        return `
+        <div class="subject-dropdown-item ${agent.id === currentAgent.id ? 'active' : ''}" data-agent-id="${agent.id}" role="button" tabindex="0" style="--item-theme-color: ${agentColor}; --item-theme-color-rgb: ${rgbaColor};">
             <span class="item-icon">${agent.icon}</span>
             <span class="item-name">${agent.name}</span>
-        </button>
-    `).join('');
+        </div>
+    `}).join('');
 
+    // 为每个菜单项直接绑定点击事件
     menu.querySelectorAll('.subject-dropdown-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
             const agentId = item.dataset.agentId;
+            console.log('[SubjectDropdown] 直接绑定点击, agentId:', agentId);
             const agent = AGENTS_CONFIG.find(a => a.id === agentId);
             if (agent) {
                 currentAgent = agent;
                 localStorage.setItem('starlearn_agent', agentId);
                 updateSubjectDropdownUI();
+                renderAgentFab();
                 menu.classList.add('hidden');
                 btn.classList.remove('open');
+                togglePersonaChips(agent.id === 'default');
             }
         });
     });
+
+    togglePersonaChips(currentAgent.id === 'default');
+}
+
+// 辅助函数：hex颜色转rgba
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 class ProactiveTutorClient {
