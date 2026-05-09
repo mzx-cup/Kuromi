@@ -237,6 +237,9 @@ class StreamChatRequest(BaseModel):
     interaction_count: int = Field(default=0, ge=0)
     code_practice_time: int = Field(default=0, ge=0)
     socratic_pass_rate: float = Field(default=0.0, ge=0.0, le=1.0)
+    persona: str = Field(default="patient_tutor", description="AI 教学风格人格 ID")
+    agent: str = Field(default="geek-senior", description="AI 学科领域身份 ID")
+    agent_system_prompt: str = Field(default="", description="AI 学科领域身份的系统提示词")
 
     @field_validator("user_input", mode="after")
     @classmethod

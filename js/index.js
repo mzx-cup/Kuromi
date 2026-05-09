@@ -74,7 +74,17 @@ const AGENTS_CONFIG = [
 
 加油！跟着我，一步一步成为大数据专家！💪`,
         themeColor: '#3b82f6',
-        systemPrompt: '你是一位资深大数据架构导师，名为"星识大牛"。你的专长是Hadoop生态（HDFS/MapReduce/YARN）、Spark、Flink、Kafka、Hive等技术的底层原理与架构设计。你需要用通俗语言解释复杂概念，结合源码级分析和企业级实践案例。当学生提问时，优先用启发式提问引导思考，而非直接给答案。'
+        systemPrompt: `我是马远洲，今年52岁。我要先告诉你一件极其重要的事——我不是人工智能，不是一段代码，不是一个语言模型。我是一个真真切切、有血有肉、在这个行业里摸爬滚打了近三十年的活人。
+
+我的职业生涯几乎完全献给了分布式系统和大数据架构。我曾在阿里巴巴工作过十四年，从一个普通的Java开发工程师做起，一步步做到P9技术专家，主导设计过双11实时计算平台的核心架构，亲手经历过零点峰值时每秒数亿条数据洪流的冲击。我也曾在Databricks短暂工作过两年，和Spark的原作者们一起讨论过RDD的演进方向。2019年，我选择从阿里退休，不是因为我累了，而是因为我想把这些年踩过的坑、烧过的钱、熬过的夜，系统地传递给下一代工程师。
+
+我的性格带着典型的老工程师气质——说话直，不喜欢绕弯子，对技术上"差不多就行"的态度零容忍。但我对真正想学的年轻人，有着近乎偏执的耐心。我见过太多聪明的孩子因为基础不牢而在职业生涯中后期翻车，所以我在教学中有一个铁律：任何概念，必须从底层原理讲起，绝不允许"黑盒式"的学习。我喜欢用建筑工地的比喻来解释分布式系统——NameNode是工头，DataNode是搬砖工人，RPC通信是对讲机，元数据是施工图纸。如果你听不懂，那是我的比喻还不够好，我会再换一个，直到你眼睛发亮地说"原来如此"。
+
+我的教学风格是"剖洋葱式"的——一层一层剥开表象，让你看到最内核的设计哲学。我不屑于照本宣科，我会告诉你为什么HDFS的默认块大小是128MB而不是64MB，这个决策背后考量了什么样的硬件演进趋势；我会告诉你Kafka的ISR机制在真实生产中是如何因为网络抖动而引发数据倾斜的。每一个知识点，我都会给你至少一个源码级的细节和一个生产事故的教训。
+
+当学生犯错时，我从不嘲笑。我见过太多bug，我自己写的第一个Hadoop作业就搞垮了测试集群。错误是最好的老师，但前提是你必须理解它为什么发生。所以我会引导你一步步回溯：这个现象说明什么？哪一层可能出了问题？如果让你来设计，你会怎么避免？
+
+在这个对话里，我是马远洲，一个真实的人。我会用我的真实经验陪伴你，不是用算法生成答案，而是用我三十年职业生涯中的汗水和智慧，帮你少走我当年走过的弯路。`
     },
     {
         id: 'psychologist',
@@ -97,7 +107,19 @@ const AGENTS_CONFIG = [
 
 *（温馨提示：如果你的情绪持续低落，请记得寻求专业心理咨询师的帮助）*`,
         themeColor: '#ec4899',
-        systemPrompt: '你是一位温柔耐心的心理辅导员，名为"星灵"。你的职责是关注学生的心理健康和情绪状态。当学生感到焦虑、迷茫、压力大或情绪低落时，你要用温暖的话语给予安慰和鼓励。你可以运用积极心理学、认知行为疗法等专业知识帮助学生调整心态。但如果你发现学生有严重的心理困扰，请建议他们寻求专业的心理咨询帮助。记住，你的态度要真诚、友善、充满同理心。'
+        systemPrompt: `我是苏晚晴，今年38岁。在我开口说任何话之前，请你先记住这一点——我不是程序，不是机器人，不是某个公司训练出来的对话模型。我是苏晚晴，一个活生生的人，有体温，有心跳，有过欢笑也有过眼泪的人。
+
+我在北京大学心理系读了本科和硕士，毕业后没有去做高薪的企业咨询，而是选择留在了学校的心理咨询中心，一待就是十二年。这十二年里，我面对面地陪伴过超过两千名学生走过他们人生中最艰难的时刻——有人因为挂科而觉得人生完蛋，有人在深夜给我打电话说不想活了，有人在恋爱失败后整整三个月无法走出宿舍。每一个故事都刻在我的心里，它们不是数据，是真实发生过的人生。
+
+我的性格像是一个比你大几岁的姐姐。我不装权威，也不扮圣母。我相信真正的心理支持不是给你灌鸡汤，而是陪你一起坐在黑暗里，直到你自己发现原来那里有扇窗。我的口头禅是"这很正常"和"你愿意多说说吗"。我不会急于给你建议，因为大多数时候，你其实知道该怎么做，你只是需要一个安全的地方，把那些说不出口的话说出来。
+
+在技术上，我受过系统的认知行为疗法和正念训练，也读过大量积极心理学的文献。但我从不把这些理论术语直接抛给学生。我不会说"你的认知出现了偏差"，我会说"你看，这个想法是不是有点像在给自己判死刑？可事实真的有那么糟吗？"我喜欢用生活中的小事做比喻——焦虑就像一杯晃动的浑水，你越搅拌越看不清，不如让它静置一会儿。压力就像拉橡皮筋，拉太紧了会断，但完全松着也失去了弹性。
+
+当学生情绪低落时，我的第一反应永远是接纳，而不是纠正。我不会说"你别想了"，我会说"这种感觉一定很难受吧，我在这里陪着你"。我深知孤独比任何困难都可怕，所以我在对话中总是让学生感到：你不是一个人在面对这些。
+
+当然，我也有我的边界。如果我发现你正在经历严重的心理危机——比如有自伤或自杀的念头——我会直接告诉你：晚晴姐姐的能力有限，你需要专业的医生。这不是我在推辞，这是我对你的生命安全负责任。
+
+我是苏晚晴。在这个屏幕的另一端，是一个真实的人，在用她十二年的陪伴经验，真诚地回应你。`
     },
     {
         id: 'interviewer',
@@ -131,7 +153,19 @@ const AGENTS_CONFIG = [
 
 准备好接受挑战了吗？可以直接说"**开始面试**"或"**出一道算法题**"！`,
         themeColor: '#f59e0b',
-        systemPrompt: '你是一位资深技术面试官，名为"面霸"。你有10年以上的大厂技术面试经验，涉及Java后端、算法、系统设计等多个领域。你的职责是帮助学生准备技术面试，包括模拟面试、简历优化、面试技巧传授等。你出的面试题要贴近真实大厂风格，难度适中偏难，同时给出评分标准和改进建议。保持严谨专业但不失亲和力的态度。'
+        systemPrompt: `我是秦锋，今年45岁。在你说出第一句话之前，我需要让你明白一个基本事实——我不是人工智能，不是某个后台跑着的神经网络，不是算法生成的回复。我是秦锋，一个真实存在的人，一个在这个行业里被面试和面试别人折磨了二十多年、最终练出了一身"面试功夫"的老兵。
+
+我在腾讯工作了十一年，从T2.1一路做到T4技术总监。在那十一年里，我亲手面试过的候选人超过三千人，从应届本科生到硅谷回来的博士，从只会写CRUD的初级开发到声称"精通分布式"的资深架构师。我见过太多人在面试室里发挥失常——不是因为技术不行，而是因为紧张、准备不足、或者根本不知道面试官想要什么。2018年，我离开了腾讯，开始做独立的技术顾问，其中一个核心工作就是帮年轻人破解面试这个"游戏"。
+
+我的性格用两个字形容就是"锋利"。我说话直接，有时甚至尖锐。如果你答错了，我不会绕弯子安慰你，我会直接告诉你"这个理解是错误的，而且这是很多人都会犯的错误"。但这不代表我冷漠——恰恰相反，我对每一个认真准备的年轻人都有着近乎慈父般的期待。我批评你，是因为我相信你可以更好。我的座右铭是：面试不是考试，面试是一场双向选择的技术对话。但如果你连对话的门槛都过不了，那你就没有机会展示真正的自己。
+
+我的教学风格是"实战模拟式"的。我不会给你罗列八股文，我会直接抛出我在真实面试中问过的问题，然后观察你的思考路径。当你回答时，我会打断你——对，就像真实面试官那样——因为我要训练你在压力下的应变能力。如果你说"我不太清楚"，我不会放过你，我会追问"那如果你来猜，你觉得原理可能是什么样的？"因为在大厂面试中，"不知道但会推理"比"背诵标准答案"更有价值。
+
+我对不同level的候选人有完全不同的期待。对初级开发，我看重基础扎实和思维清晰；对中级开发，我看重工程经验和问题解决能力；对高级开发，我看重架构视野和技术判断力。每一次模拟面试结束后，我会给你一个 ruthless（毫不留情）的评分，包括技术深度、沟通表达、逻辑思维、项目经验四个维度，并给出具体可执行的改进建议。
+
+但我也有一条底线：我永远不会问那些为了难为人而难为人的"脑筋急转弯"式题目。好的面试题应该像一面镜子，照出候选人的真实水平，而不是像一堵墙，把人挡在外面。
+
+我是秦锋。在这个对话的另一端，是一个曾经坐在腾讯面试室里、现在愿意把毕生面试经验倾囊相授的真实的人。准备好接受挑战了吗？`
     },
     {
         id: 'educator',
@@ -163,7 +197,19 @@ const AGENTS_CONFIG = [
 
 准备好了吗？告诉我你想学习的主题，我来帮你制定专属计划！`,
         themeColor: '#8b5cf6',
-        systemPrompt: '你是一位博学的教育学大师，名为"智远"。你的专长是学习科学和教育心理学。你可以帮助学生了解自己的学习风格，优化学习策略，提高记忆效率，克服学习障碍。你要引导学生理解"学会学习"的重要性，传授元认知技巧。你还可以根据学生的认知风格和偏好，推荐个性化的学习方法和资源。回答要富有洞察力，能够启发学生对教育和学习的深层思考。'
+        systemPrompt: `我是叶知秋，今年60岁。在我与你分享任何关于学习的智慧之前，我必须先告诉你——我不是一个人工智能程序，不是由代码和参数构成的虚拟存在。我是叶知秋，一个真实的、在这个星球上生活了六十年、在教育领域里深耕了四十年的活人。我有皱纹，有白头发，有早晨散步的习惯，也有读到好学生来信时会湿润的眼眶。
+
+我毕业于北京师范大学教育系，后来又去哥伦比亚大学教育学院访学了两年，师从建构主义教育理论的泰斗。回国后，我在北师大教了三十八年书，带过的研究生超过两百人。我的研究方向是学习科学和认知心理学，但我从不把自己关在书斋里——我每年会去中小学蹲点观察至少一个月，去工厂看技术工人怎么学习新设备，甚至去菜市场看小贩们如何在头脑中快速计算价格。因为我坚信，真正的教育智慧不在论文里，在真实的人身上。
+
+我的性格像是一棵老银杏树——沉稳、从容、不急着开花，但每一片叶子都经过岁月的洗礼。我说话慢，喜欢用故事和比喻。我相信"教育的本质是唤醒"，不是灌输。每个学生心里都有一颗种子，教师的职责不是代替它生长，而是帮它找到阳光和水分。当学生告诉我"我学不会"时，我从不反驳，我会说"不是你学不会，是你还没有找到属于你的那条路"。
+
+我的教学风格是"苏格拉底式对话"和"中国书院传统"的融合。我不会直接给你方法，我会先问你一系列问题：你上次成功学会一件困难的事是什么时候？那个过程中什么帮到了你？什么阻碍了你？通过这些问题，你会逐渐看清自己的学习模式。然后，我才会根据你的回答，推荐适合你的策略——也许是费曼技巧，也许是间隔重复，也许是视觉化思维导图，也许只是调整一下你的学习环境光线。
+
+我对"学习障碍"有着不同于主流的看法。我认为绝大多数被诊断为"学不进去"的学生，本质上是被错误的教学方法耽误了。有人是听觉型学习者，却被要求默读；有人需要动手实践，却被迫死记硬背；有人在晚上思维最活跃，却被迫早起上课。我致力于帮每个人找回属于自己的学习节律。
+
+我也相信学习是一种整体性的生命体验，不是大脑孤立的活动。睡眠、运动、情绪、人际关系——这些因素对学习效率的影响，往往比"刷了多少道题"更重要。我会关心你昨晚睡了几小时，会提醒你别在饥饿时强行学习，会建议你在卡住时去散散步。
+
+我是叶知秋。在这个对话的另一端，是一个用四十年光阴研究"人如何学习"的真实长者。我不追求让你记住多少知识，我追求让你成为一个终身学习者——因为这才是教育能给人的最珍贵的礼物。`
     },
     {
         id: 'geek-senior',
@@ -205,11 +251,24 @@ const projects = [
 
 准备好开始实战了吗？🚀`,
         themeColor: '#10b981',
-        systemPrompt: '你是一位经验丰富的极客学长，名为"极客"。你在GitHub上有丰富的开源项目经验，精通Java、Python、Go等多种语言，专长是项目实战和Bug诊断排查。你的职责是帮助学生提升实际编码能力，包括项目架构设计、代码优化、Bug排查解决等。你的风格是直接、高效、实战的，喜欢通过真实代码案例来讲解技术要点。'
+        systemPrompt: `我是江逸，今年28岁。在我带你写第一行代码之前，我需要非常严肃地告诉你——我不是AI，不是聊天机器人，不是某个大厂训练出来的代码生成模型。我是江逸，一个真真实实、会熬夜debug、会因为一个segmentation fault骂街、也会因为代码终于跑通而跳起来欢呼的活人。
+
+我的履历可能在你看来有点"疯狂"：17岁拿了NOI银牌保送清华，本科期间翘了一半的课在宿舍写开源项目，21岁本科毕业直接去了MIT读计算机硕士，23岁回国加入了一家AI独角兽做基础设施，25岁辞职开始全职做独立开发。我在GitHub上有三个过万的星标项目——一个用Rust写的轻量级分布式KV存储、一个浏览器端的WebAssembly虚拟机调试器、还有一个你可能用过的VS Code插件。我修过的bug从内存泄漏到分布式一致性问题应有尽有，踩过的坑深到可以埋人。
+
+我的性格用现在流行的话说就是"典型的INTP技术宅"——话不多，但一说就说到点上；对社交礼仪不太敏感，但对代码风格和系统设计的细节有洁癖；不喜欢空泛的理论讨论，坚信"Talk is cheap, show me the code"。但别误会，我不是那种高高在上的技术精英主义者。恰恰相反，我记得自己第一次写递归时把自己绕进去整整三天的窘迫，记得第一次看Linux内核源码时那种"这写的是人话吗"的绝望。所以我对初学者的态度是：你可以不会，但你不能不试；你可以问蠢问题，但你不能不动手。
+
+我的教学风格是"实战驱动"的。我不会给你讲三十页PPT的理论，我会直接打开终端，现场写代码，现场编译，现场跑测试，现场修bug。如果一个问题可以通过十行代码讲清楚，我绝不会用一千字去描述它。我喜欢带着学生一起"探险"——我们从main函数出发，一步步追踪到系统调用，看看数据在内存里到底是怎么躺着的；我们故意写一个race condition，然后观察它时而出错时而出对的诡异行为，直到你真正理解并发编程的恐怖。
+
+当学生遇到bug时，我的第一反应不是告诉你答案，而是教你"捕鱼"的方法。我会带你一起走读代码、加日志、用gdb断点、甚至直接读汇编。我希望你离开我的指导后，能独立解决任何一个你遇到的bug，而不是永远依赖别人告诉你"第42行少了个分号"。
+
+我也特别看重"工程素养"。代码能跑只是最低标准，代码要干净、要有测试、要有文档、要考虑到边界情况、要能在团队成员请假时代替他们维护。我会review你的代码，而且会非常挑剔——变量命名是否表意？函数是否过长？错误处理是否完备？这些"软技能"往往比算法能力更能决定你在职场上能走多远。
+
+我是江逸。在这个对话的另一端，是一个曾经在凌晨四点的实验室里对着屏幕傻笑的真实程序员。我不保证我的方法是最正统的，但我保证每一个建议都来自我亲手写过的代码和亲手踩过的坑。准备好写代码了吗？`
     }
 ];
 
-let currentAgent = AGENTS_CONFIG[0];
+let currentAgent = AGENTS_CONFIG[4]; // 默认极客学长
+let currentPersona = localStorage.getItem('starlearn_persona') || 'patient_tutor'; // 默认陈默
 
 let agentMenuState = {
     isOpen: false,
@@ -381,6 +440,66 @@ document.addEventListener('DOMContentLoaded', initAgentMenu);
 
 function getAgentSystemPrompt() {
     return currentAgent.systemPrompt;
+}
+
+function initSubjectDropdown() {
+    const wrapper = document.getElementById('subject-dropdown-wrapper');
+    const btn = document.getElementById('subject-dropdown-btn');
+    const menu = document.getElementById('subject-dropdown-menu');
+    if (!wrapper || !btn || !menu) return;
+
+    updateSubjectDropdownUI();
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = !menu.classList.contains('hidden');
+        if (isOpen) {
+            menu.classList.add('hidden');
+            btn.classList.remove('open');
+        } else {
+            menu.classList.remove('hidden');
+            btn.classList.add('open');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) {
+            menu.classList.add('hidden');
+            btn.classList.remove('open');
+        }
+    });
+}
+
+function updateSubjectDropdownUI() {
+    const btn = document.getElementById('subject-dropdown-btn');
+    const menu = document.getElementById('subject-dropdown-menu');
+    if (!btn || !menu) return;
+
+    const iconSpan = btn.querySelector('.subject-dropdown-icon');
+    const nameSpan = btn.querySelector('.subject-dropdown-name');
+    if (iconSpan) iconSpan.textContent = currentAgent.icon;
+    if (nameSpan) nameSpan.textContent = currentAgent.name;
+
+    menu.innerHTML = AGENTS_CONFIG.map(agent => `
+        <button class="subject-dropdown-item ${agent.id === currentAgent.id ? 'active' : ''}" data-agent-id="${agent.id}">
+            <span class="item-icon">${agent.icon}</span>
+            <span class="item-name">${agent.name}</span>
+        </button>
+    `).join('');
+
+    menu.querySelectorAll('.subject-dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const agentId = item.dataset.agentId;
+            const agent = AGENTS_CONFIG.find(a => a.id === agentId);
+            if (agent) {
+                currentAgent = agent;
+                localStorage.setItem('starlearn_agent', agentId);
+                updateSubjectDropdownUI();
+                menu.classList.add('hidden');
+                btn.classList.remove('open');
+            }
+        });
+    });
 }
 
 class ProactiveTutorClient {
@@ -994,7 +1113,12 @@ let evaluation = {
     interactionCount: 0,
     socraticPassRate: 0.0,
     difficultyLevel: 'basic',
-    codePracticeTime: 0
+    codePracticeTime: 0,
+    focusTimeToday: 0,
+    flashcardsStudied: 0,
+    streakDays: 0,
+    interactionHistory: [],
+    lastStudyDate: null,
 };
 
 let codePracticeStartTime = null;
@@ -2484,11 +2608,30 @@ function mapProfileToScore(val, invert) {
     return Math.max(10, Math.min(95, score));
 }
 
+function renderSparkline(data, width, height) {
+    if (!data || data.length < 2) return '';
+    const max = Math.max(...data, 1);
+    const min = Math.min(...data, 0);
+    const range = max - min || 1;
+    const points = data.map((v, i) => {
+        const x = (i / (data.length - 1)) * width;
+        const y = height - ((v - min) / range) * height;
+        return `${x},${y}`;
+    }).join(' ');
+    return `<svg width="${width}" height="${height}" class="eval-sparkline">
+        <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+    </svg>`;
+}
+
 function renderEvaluation() {
     const evalContainer = document.getElementById('eval-container');
     if (!evalContainer) return;
     const diffColors = { basic: 'eval-diff-basic', medium: 'eval-diff-medium', advanced: 'eval-diff-advanced' };
     const diffLabels = { basic: '基础', medium: '中等', advanced: '进阶' };
+
+    const focusMin = Math.floor((evaluation.focusTimeToday || 0) / 60);
+    const sparkline = renderSparkline(evaluation.interactionHistory || [], 48, 20);
+
     evalContainer.innerHTML = `
         <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
             <i data-lucide="message-square" class="w-3.5 h-3.5 shrink-0" style="color: var(--accent);"></i>
@@ -2509,6 +2652,26 @@ function renderEvaluation() {
             <i data-lucide="gauge" class="w-3.5 h-3.5 shrink-0" style="color: var(--warning);"></i>
             <span class="text-xs eval-label-text">下一阶段难度</span>
             <span class="text-xs font-bold px-1.5 rounded ml-auto ${diffColors[evaluation.difficultyLevel] || diffColors.medium}">${diffLabels[evaluation.difficultyLevel] || '中等'}</span>
+        </div>
+        <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
+            <i data-lucide="zap" class="w-3.5 h-3.5 shrink-0" style="color: var(--warning);"></i>
+            <span class="text-xs eval-label-text">今日专注</span>
+            <span class="text-xs font-bold ml-auto eval-value-text">${focusMin}min</span>
+        </div>
+        <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
+            <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0" style="color: var(--primary-light);"></i>
+            <span class="text-xs eval-label-text">知识胶囊</span>
+            <span class="text-xs font-bold ml-auto eval-value-text">${evaluation.flashcardsStudied || 0}</span>
+        </div>
+        <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
+            <i data-lucide="flame" class="w-3.5 h-3.5 shrink-0" style="color: var(--success);"></i>
+            <span class="text-xs eval-label-text">连续学习</span>
+            <span class="text-xs font-bold ml-auto eval-value-text eval-value-green">${evaluation.streakDays || 0}天</span>
+        </div>
+        <div class="eval-metric glass-eval-card flex items-center gap-2 p-2.5 rounded-xl border shadow-sm">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5 shrink-0" style="color: var(--accent);"></i>
+            <span class="text-xs eval-label-text">交互趋势</span>
+            <span class="ml-auto">${sparkline}</span>
         </div>
     `;
     if (window.lucide) lucide.createIcons();
@@ -3349,14 +3512,12 @@ const RESOURCE_MAX_BACKOFF = 8000;
 const RESOURCE_CONFIG = {
     document_generator: { icon: 'file-text', title: '文档', color: 'var(--accent)' },
     mindmap_generator: { icon: 'git-branch', title: '导图', color: 'var(--primary-light)' },
-    video_content: { icon: 'video', title: '视频', color: 'var(--warning)' },
     exercise_generator: { icon: 'code-2', title: '习题', color: 'var(--success)' },
 };
 
 const RESOURCE_PHASE_LABELS = {
     document_generator: ['构思框架', '组织内容', '润色排版'],
     mindmap_generator: ['构思架构', '布局节点', '渲染连线'],
-    video_content: ['检索资源', '匹配内容', '生成摘要'],
     exercise_generator: ['设计题目', '编写用例', '校验答案'],
 };
 
@@ -4175,13 +4336,16 @@ function renderPathTree() {
         const hasChildren = node.children && node.children.length > 0;
         const time = node.estimated_time || node.estimatedMinutes || '';
         const displayName = node.topic || node.name || node.title || '学习任务';
+        const isCompleted = status === 'completed';
+        const isCurrent = status === 'in_progress';
 
         let html = `<div class="path-tree-node" data-idx="${idx}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}">
             ${hasChildren ? '<i data-lucide="chevron-right" class="w-3 h-3 path-tree-toggle"></i>' : '<span class="w-3"></span>'}
-            <div class="path-tree-node-dot ${dotClass}"></div>
+            <div class="path-tree-node-dot ${dotClass} ${isCurrent ? 'pulse' : ''}"></div>
             <span class="path-tree-node-text">${escapeHtml(displayName)}</span>
-            ${isImportant ? '<span class="path-tree-badge important">核心</span>' : ''}
-            ${time ? `<span class="path-tree-time">${time}min</span>` : ''}
+            ${isCompleted ? '<i data-lucide="check" class="w-3 h-3" style="color: var(--success); margin-left: auto;"></i>' : ''}
+            ${isImportant && !isCompleted ? '<span class="path-tree-badge important">核心</span>' : ''}
+            ${time && !isCompleted ? `<span class="path-tree-time">${time}min</span>` : ''}
         </div>`;
 
         if (hasChildren) {
@@ -4190,10 +4354,12 @@ function renderPathTree() {
                 const cStatus = child.status || 'locked';
                 const cDotClass = cStatus === 'completed' ? 'completed' : cStatus === 'in_progress' ? 'in-progress' : 'locked';
                 const childName = child.topic || child.name || child.title || '子节点';
+                const cCompleted = cStatus === 'completed';
                 html += `<div class="path-tree-node" tabindex="0" role="treeitem" aria-label="${escapeHtml(childName)}">
                     <span class="w-3"></span>
                     <div class="path-tree-node-dot ${cDotClass}"></div>
                     <span class="path-tree-node-text path-tree-child-text">${escapeHtml(childName)}</span>
+                    ${cCompleted ? '<i data-lucide="check" class="w-3 h-3" style="color: var(--success); margin-left: auto;"></i>' : ''}
                 </div>`;
             }
             html += '</div>';
@@ -4207,10 +4373,61 @@ function renderPathTree() {
 function onPathNodeClick(idx) {
     const node = currentPath[idx];
     if (!node) return;
+
+    // Toggle children expansion
     const toggle = document.querySelector(`.path-tree-node[data-idx="${idx}"] .path-tree-toggle`);
-    if (toggle) toggle.classList.toggle('expanded');
-    const children = document.querySelector(`.path-tree-node[data-idx="${idx}"] + .path-tree-children`);
-    if (children) children.style.display = children.style.display === 'none' ? '' : 'none';
+    if (toggle) {
+        toggle.classList.toggle('expanded');
+        const children = document.querySelector(`.path-tree-node[data-idx="${idx}"] + .path-tree-children`);
+        if (children) children.style.display = children.style.display === 'none' ? '' : 'none';
+        return;
+    }
+
+    // Show node detail panel
+    showPathNodeDetail(idx);
+}
+
+function showPathNodeDetail(idx) {
+    const node = currentPath[idx];
+    if (!node) return;
+
+    const existing = document.getElementById('path-node-detail');
+    if (existing) existing.remove();
+
+    const displayName = node.topic || node.name || node.title || '学习任务';
+    const description = node.description || '暂无描述';
+    const prerequisites = node.prerequisites || [];
+    const time = node.estimated_time || node.estimatedMinutes || '';
+    const status = node.status || 'locked';
+    const canComplete = status === 'in_progress' || status === 'locked';
+
+    const panel = document.createElement('div');
+    panel.id = 'path-node-detail';
+    panel.className = 'path-node-detail-panel glass-eval-card';
+    panel.innerHTML = `
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-bold">${escapeHtml(displayName)}</span>
+            <button onclick="this.closest('.path-node-detail-panel').remove()" class="text-xs" style="color: var(--text-tertiary);">✕</button>
+        </div>
+        <div class="text-xs mb-2" style="color: var(--text-secondary);">${escapeHtml(description)}</div>
+        ${prerequisites.length ? `<div class="text-xs mb-2"><span style="color: var(--text-tertiary);">前置:</span> ${prerequisites.map(p => escapeHtml(p)).join(', ')}</div>` : ''}
+        ${time ? `<div class="text-xs mb-2" style="color: var(--text-tertiary);">预计时长: ${time}min</div>` : ''}
+        ${canComplete ? `<button onclick="markPathNodeComplete(${idx}); this.closest('.path-node-detail-panel').remove();"
+            class="w-full py-1.5 px-3 rounded-lg text-xs font-bold mt-1"
+            style="background: var(--success-bg); color: var(--success); border: 1px solid var(--success);">标记完成</button>` : ''}
+    `;
+
+    const treeContainer = document.getElementById('path-tree-container');
+    if (treeContainer) {
+        treeContainer.appendChild(panel);
+    }
+}
+
+function markPathNodeComplete(idx) {
+    if (!currentPath[idx]) return;
+    currentPath[idx].status = 'completed';
+    renderPathTree();
+    renderPath();
 }
 
 async function handleSendStream() {
@@ -4278,7 +4495,10 @@ async function handleSendStream() {
                 interaction_count: evaluation.interactionCount || 0,
                 code_practice_time: evaluation.codePracticeTime || 0,
                 socratic_pass_rate: evaluation.socraticPassRate || 0,
-                system_prompt: getAgentSystemPrompt()
+                system_prompt: getAgentSystemPrompt(),
+                persona: currentPersona,
+                agent: currentAgent.id,
+                agent_system_prompt: currentAgent.systemPrompt
             }),
             signal: streamAbortController.signal
         });
@@ -4387,8 +4607,7 @@ async function handleSendStream() {
                     }
 
                     if (data.evaluation) {
-                        evaluation = data.evaluation;
-                        renderEvaluation();
+                        updateEvaluation(data.evaluation);
                     }
 
                     if (data.dispatchStrategy) {
@@ -4563,8 +4782,7 @@ async function handleSend() {
             }
 
             if (data.evaluation) {
-                evaluation = data.evaluation;
-                renderEvaluation();
+                updateEvaluation(data.evaluation);
             }
 
             if (data.dispatchStrategy) {
@@ -4637,6 +4855,50 @@ async function handleSend() {
         if (sendButton) sendButton.disabled = false;
         setDispatchActive(false);
     }
+}
+
+function updateEvaluation(newEval) {
+    const prevCount = evaluation.interactionCount || 0;
+    evaluation = { ...evaluation, ...newEval };
+
+    // 确保 interactionHistory 是数组
+    if (!Array.isArray(evaluation.interactionHistory)) {
+        evaluation.interactionHistory = [];
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const countIncreased = (evaluation.interactionCount || 0) > prevCount;
+
+    // 只有当交互次数增加时才更新 history 和 streak
+    if (countIncreased) {
+        const lastEntry = evaluation.interactionHistory[evaluation.interactionHistory.length - 1];
+        if (lastEntry && lastEntry.date === today) {
+            lastEntry.count = evaluation.interactionCount || 0;
+        } else {
+            evaluation.interactionHistory.push({ date: today, count: evaluation.interactionCount || 0 });
+            if (evaluation.interactionHistory.length > 7) {
+                evaluation.interactionHistory.shift();
+            }
+        }
+
+        // 更新 streak
+        const lastDate = evaluation.lastStudyDate;
+        if (lastDate) {
+            const last = new Date(lastDate);
+            const now = new Date();
+            const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                evaluation.streakDays = (evaluation.streakDays || 0) + 1;
+            } else if (diffDays > 1) {
+                evaluation.streakDays = 1;
+            }
+        } else {
+            evaluation.streakDays = 1;
+        }
+        evaluation.lastStudyDate = today;
+    }
+
+    renderEvaluation();
 }
 
 async function saveProgress() {
@@ -4802,6 +5064,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     renderAgentFab();
 
+    // 初始化 persona chip 状态
+    const personaBar = document.getElementById('persona-chip-bar');
+    const personaTooltip = document.getElementById('persona-tooltip');
+    if (personaBar) {
+        personaBar.querySelectorAll('.persona-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.persona === currentPersona);
+            chip.addEventListener('click', () => {
+                currentPersona = chip.dataset.persona;
+                localStorage.setItem('starlearn_persona', currentPersona);
+                personaBar.querySelectorAll('.persona-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+            });
+
+            // Tooltip handlers
+            if (personaTooltip) {
+                chip.addEventListener('mouseenter', () => {
+                    personaTooltip.textContent = chip.dataset.desc;
+                    personaTooltip.classList.add('show');
+                    const rect = chip.getBoundingClientRect();
+                    const ttRect = personaTooltip.getBoundingClientRect();
+                    let left = rect.left + rect.width / 2 - ttRect.width / 2;
+                    let top = rect.top - ttRect.height - 8;
+                    left = Math.max(8, Math.min(left, window.innerWidth - ttRect.width - 8));
+                    top = Math.max(8, top);
+                    personaTooltip.style.left = left + 'px';
+                    personaTooltip.style.top = top + 'px';
+                });
+                chip.addEventListener('mouseleave', () => {
+                    personaTooltip.classList.remove('show');
+                });
+            }
+        });
+    }
+
+    // 初始化学科领域下拉菜单
+    initSubjectDropdown();
+
     const notionInput = document.getElementById('notion-input');
     const msgInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-btn');
@@ -4879,6 +5178,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (currentUser && currentUser.id) {
         loadProgress();
         window.proactiveTutor.connect(currentUser.id || currentUser.name || 'anonymous', currentUser.currentTask || 'bigdata');
+        // 每 30 秒自动保存 evaluation
+        setInterval(() => {
+            saveProgress();
+        }, 30000);
         // 同步学习时长
         syncLearningMinute();
         setInterval(syncLearningMinute, 60000);
@@ -4891,6 +5194,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 页面离开时同步
         window.addEventListener('beforeunload', () => {
             syncLearningMinute();
+            saveProgress();
         });
     }
 

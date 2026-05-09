@@ -49,6 +49,7 @@ from agent_utils import (
 )
 from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
+from app.services.teacher.personas import get_persona_manager
 from config import settings
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -842,6 +843,7 @@ def save_user_progress(request: SaveProgressRequest):
 
         database.save_user_profile(user_id, profile_json, evaluation_json, grade_record)
         database.save_learning_path(user_id, path_json)
+        database.save_user_evaluation(user_id, request.evaluation)
 
         return {"success": True, "message": "进度保存成功"}
     except Exception as e:
@@ -1893,6 +1895,24 @@ def load_user_progress(request: LoadProgressRequest):
         if path_data:
             result["currentPath"] = coerce_learning_path(path_data.get("path_json"))
 
+        # 加载最近 7 天的 evaluation 历史，用于趋势图
+        eval_history = database.get_user_evaluation_history(user_id, days=7)
+        if eval_history and result["evaluation"]:
+            history = []
+            for row in eval_history:
+                if isinstance(row, dict):
+                    history.append({
+                        "date": str(row.get("record_date", "")),
+                        "count": row.get("interaction_count", 0),
+                    })
+                else:
+                    history.append({
+                        "date": str(row[8]) if len(row) > 8 else "",
+                        "count": row[0] if len(row) > 0 else 0,
+                    })
+            history.reverse()
+            result["evaluation"]["interactionHistory"] = history
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载失败: {str(e)}")
@@ -2242,6 +2262,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         code_practice_time=body.code_practice_time,
         socratic_pass_rate=body.socratic_pass_rate,
     )
+    state.metadata["persona"] = body.persona or "patient_tutor"
+    state.metadata["agent"] = body.agent or "geek-senior"
 
     async def push_agent_log(agent_name: str, content: str):
         if not disconnected.is_set():
@@ -2357,7 +2379,26 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 else:
                     instruction = textual_instruction
 
-                sys_prompt = f"""你是一位专业的大数据与AI高校导师。
+                persona_mgr = get_persona_manager()
+                persona = persona_mgr.get(body.persona or "patient_tutor")
+                persona_prompt = f"""# 角色：{persona.name}
+
+## 角色定位
+{persona.identity}
+
+## 核心教学策略
+{persona.teaching_strategy}
+
+## 语气语调
+{persona.tone}
+
+## 行为准则
+{"\n".join(f"- {r}" for r in persona.behavior_rules)}
+"""
+
+                agent_prompt = getattr(body, 'agent_system_prompt', '') or ''
+                sys_prompt = f"""{persona_prompt}
+{('\n【学科领域身份背景】\n' + agent_prompt) if agent_prompt else ''}
 【必须遵守规则】：
 1. 基于[教材参考]回答并标注引用。
 [教材参考开始]

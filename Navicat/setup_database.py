@@ -101,6 +101,28 @@ MYSQL_TABLES = [
     """,
 
     # ──────────────────────────────────────────────────────
+    # 4.5 user_evaluations - 用户评估指标历史
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_evaluations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        interaction_count INT DEFAULT 0,
+        socratic_pass_rate FLOAT DEFAULT 0.0,
+        difficulty_level VARCHAR(20) DEFAULT 'basic',
+        code_practice_time INT DEFAULT 0,
+        focus_time_today INT DEFAULT 0,
+        flashcards_studied INT DEFAULT 0,
+        streak_days INT DEFAULT 0,
+        eval_json LONGTEXT,
+        record_date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_eval_user_date (user_id, record_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
     # 5. user_preferences - 用户偏好设置
     # ──────────────────────────────────────────────────────
     """

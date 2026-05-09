@@ -738,6 +738,115 @@ def save_student_portrait(user_id: int, portrait: dict) -> bool:
 
 
 # ============================================================
+# 用户评估指标持久化
+# ============================================================
+
+def save_user_evaluation(user_id, evaluation_data):
+    """保存用户每日评估指标到 user_evaluations 表，同一天只保留一条记录（更新覆盖）。"""
+    from datetime import date
+    record_date = date.today().isoformat()
+
+    interaction_count = evaluation_data.get('interactionCount', 0) if isinstance(evaluation_data, dict) else 0
+    socratic_pass_rate = evaluation_data.get('socraticPassRate', 0.0) if isinstance(evaluation_data, dict) else 0.0
+    difficulty_level = evaluation_data.get('difficultyLevel', 'basic') if isinstance(evaluation_data, dict) else 'basic'
+    code_practice_time = evaluation_data.get('codePracticeTime', 0) if isinstance(evaluation_data, dict) else 0
+    focus_time_today = evaluation_data.get('focusTimeToday', 0) if isinstance(evaluation_data, dict) else 0
+    flashcards_studied = evaluation_data.get('flashcardsStudied', 0) if isinstance(evaluation_data, dict) else 0
+    streak_days = evaluation_data.get('streakDays', 0) if isinstance(evaluation_data, dict) else 0
+    eval_json = json.dumps(evaluation_data, ensure_ascii=False) if isinstance(evaluation_data, dict) else str(evaluation_data)
+
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """INSERT INTO user_evaluations
+                           (user_id, interaction_count, socratic_pass_rate, difficulty_level,
+                            code_practice_time, focus_time_today, flashcards_studied, streak_days,
+                            eval_json, record_date)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                           ON CONFLICT(user_id, record_date) DO UPDATE SET
+                               interaction_count=excluded.interaction_count,
+                               socratic_pass_rate=excluded.socratic_pass_rate,
+                               difficulty_level=excluded.difficulty_level,
+                               code_practice_time=excluded.code_practice_time,
+                               focus_time_today=excluded.focus_time_today,
+                               flashcards_studied=excluded.flashcards_studied,
+                               streak_days=excluded.streak_days,
+                               eval_json=excluded.eval_json""",
+                        (user_id, interaction_count, socratic_pass_rate, difficulty_level,
+                         code_practice_time, focus_time_today, flashcards_studied, streak_days,
+                         eval_json, record_date))
+                else:
+                    cursor.execute(
+                        """INSERT INTO user_evaluations
+                           (user_id, interaction_count, socratic_pass_rate, difficulty_level,
+                            code_practice_time, focus_time_today, flashcards_studied, streak_days,
+                            eval_json, record_date)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           ON DUPLICATE KEY UPDATE
+                               interaction_count=%s,
+                               socratic_pass_rate=%s,
+                               difficulty_level=%s,
+                               code_practice_time=%s,
+                               focus_time_today=%s,
+                               flashcards_studied=%s,
+                               streak_days=%s,
+                               eval_json=%s""",
+                        (user_id, interaction_count, socratic_pass_rate, difficulty_level,
+                         code_practice_time, focus_time_today, flashcards_studied, streak_days,
+                         eval_json, record_date,
+                         interaction_count, socratic_pass_rate, difficulty_level,
+                         code_practice_time, focus_time_today, flashcards_studied, streak_days,
+                         eval_json))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"保存 user_evaluations 失败: {e}")
+                return False
+    return False
+
+
+def get_user_evaluation_history(user_id, days=7):
+    """获取用户最近 N 天的评估指标历史。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT interaction_count, socratic_pass_rate, difficulty_level,
+                                  code_practice_time, focus_time_today, flashcards_studied,
+                                  streak_days, eval_json, record_date
+                           FROM user_evaluations
+                           WHERE user_id = ?
+                           ORDER BY record_date DESC
+                           LIMIT ?""",
+                        (user_id, days))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT interaction_count, socratic_pass_rate, difficulty_level,
+                                  code_practice_time, focus_time_today, flashcards_studied,
+                                  streak_days, eval_json, record_date
+                           FROM user_evaluations
+                           WHERE user_id = %s
+                           ORDER BY record_date DESC
+                           LIMIT %s""",
+                        (user_id, days))
+                rows = cursor.fetchall()
+                cursor.close()
+                return rows if rows else []
+            except Exception as e:
+                print(f"查询 user_evaluations 失败: {e}")
+                return []
+    return []
+
+
+# ============================================================
 # 用户偏好设置
 # ============================================================
 
