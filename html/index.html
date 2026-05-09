@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 全息智控学习舱</title>
+    <title>星识 Star-Learn - 全息智控学习舱 V5.0</title>
     <link rel="stylesheet" href="/css/tailwind.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -193,11 +193,7 @@
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/voice-input.js"></script>
-<<<<<<< HEAD
-    <script src="/js/focus-sync.js"></script>
-=======
     <script src="/js/teachers-config.js"></script>
->>>>>>> 304c9b02d6ce461470e115651c8b7702d9b22dda
     <script src="/js/index.js"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
@@ -218,6 +214,7 @@
                 <i data-lucide="brain-circuit" class="w-5 h-5" style="color: var(--primary-light);"></i>
                 <h1 class="text-base font-bold tracking-wider sidebar-title-text">星识 Star-Learn</h1>
             </div>
+            <p class="text-[10px]" style="color: var(--text-tertiary);">V5.0: 全息智控学习舱</p>
         </div>
 
         <div class="p-3">
@@ -410,11 +407,55 @@
                     </div>
                 </div>
 
+                <!-- 展开沙盘按钮 (移到容器外，始终可见) -->
                 <button id="sandbox-expand-btn" class="sidebar-expand-btn sidebar-expand-left sandbox-expand-btn-styled" aria-label="展开沙盘" title="展开沙盘">
                     <i data-lucide="chevron-right" class="w-4 h-4" id="sandbox-expand-icon"></i>
                 </button>
 
                 <div id="track-b" class="track-chat flex-1 flex flex-col min-h-0 min-w-0">
+                    <!-- 辩论面板 (浮动底部展开面板) -->
+                    <div id="debate-panel" class="hidden debate-panel-container shrink-0">
+                        <!-- 可折叠标题栏 -->
+                        <div class="debate-panel-header" id="debate-panel-header">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="message-square"></i>
+                                <span class="font-semibold text-sm">多视角辩论</span>
+                                <span class="debate-status" id="debate-status">等待提问...</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="debate-panel-expand-btn" class="debate-panel-btn" title="展开">
+                                    <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                                </button>
+                                <button id="debate-panel-collapse-btn" class="debate-panel-btn hidden" title="收起">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 展开后的内容 -->
+                        <div class="debate-panel-body" id="debate-panel-body">
+                            <div class="debate-agents-row" id="debate-agents-row"></div>
+                            <div class="debate-content-area">
+                                <div class="debate-round-label" id="debate-round-label">第一轮：独立观点</div>
+                                <div class="debate-messages" id="debate-messages"></div>
+                            </div>
+                        </div>
+
+                        <!-- 裁判悬浮卡片 -->
+                        <div class="debate-judge-float-card" id="debate-judge-float-card">
+                            <div class="float-card-header">
+                                <div class="flex items-center gap-2 text-amber-400">
+                                    <i data-lucide="scale"></i>
+                                    <span class="font-semibold text-sm">裁判综合判定</span>
+                                </div>
+                                <button id="debate-judge-close-btn" class="float-card-close" title="关闭">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="judge-content" id="judge-content"></div>
+                        </div>
+                    </div>
+
                     <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
 
                     <!-- OpenMAIC风格课程生成输入区 -->
@@ -996,7 +1037,27 @@
     </button>
     <button id="right-expand-btn" class="sidebar-expand-btn sidebar-expand-right" onclick="window.sidebarManager.toggleRight()" aria-label="展开右侧面板" title="展开学习路径">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>`r`n<!-- ============================================
+    </button>
+
+    <!-- Plant Reward Modal -->
+    <div id="plant-reward-modal" class="crop-modal hidden">
+        <div class="crop-modal-backdrop"></div>
+        <div class="crop-modal-content plant-reward-content">
+            <div class="plant-reward-glow"></div>
+            <div class="plant-reward-icon">🎁</div>
+            <h2 class="plant-reward-title">恭喜你！</h2>
+            <p class="plant-reward-text">通过深度专注，你获得了一株神秘植物种子 🎁</p>
+            <div class="plant-reward-seed-count">
+                <span>当前种子数：</span>
+                <span id="plant-reward-seed-count" class="plant-reward-seeds">1</span>
+            </div>
+            <button class="plant-reward-btn" onclick="goToPlantFarm()">
+                🌱 前往林场种植
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================
          OpenMAIC风格课程生成全屏覆盖层
          ============================================ -->
     <div id="openmaic-overlay" class="openmaic-overlay hidden">
@@ -1373,4 +1434,3 @@
 
 </body>
 </html>
-

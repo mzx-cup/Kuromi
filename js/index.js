@@ -45,7 +45,6 @@ async function syncLearningMinute() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id }),
         });
-        window.StarFocusSync?.recordStudyMinute(1);
         localStorage.setItem('starlearn_learning_update', String(Date.now()));
     } catch (e) { /* silent */ }
 }
@@ -1062,7 +1061,7 @@ function showContextAppliedToast(courseName) {
 // 根据评估数据生成个性化欢迎消息
 function generateWelcomeMessage(assessment, profile) {
     if (!assessment) {
-        return '同学你好，我是 **十大智能体协同伴学系统**。\n\n我具备以下核心能力：\n- **6维动态画像**：自动构建你的学情状态机\n- **认知风格路由**：视觉型多画图，实践型多推代码\n- **苏格拉底诊断**：说"我不懂"时，我会引导你自主思考\n- **引用溯源**：每个知识点标注教材出处\n- **微课动画**：视觉型同学可享受动态讲解\n- **智能任务切换**：提到C语言不懂时，自动切换到C语言学习任务\n\n试试问我："HDFS是怎么工作的？给我画个图" 或 "我不太懂C语言"';
+        return '同学你好，我是 **V4.0 十大智能体协同伴学系统**。\n\n我具备以下核心能力：\n- **6维动态画像**：自动构建你的学情状态机\n- **认知风格路由**：视觉型多画图，实践型多推代码\n- **苏格拉底诊断**：说"我不懂"时，我会引导你自主思考\n- **引用溯源**：每个知识点标注教材出处\n- **微课动画**：视觉型同学可享受动态讲解\n- **智能任务切换**：提到C语言不懂时，自动切换到C语言学习任务\n\n试试问我："HDFS是怎么工作的？给我画个图" 或 "我不太懂C语言"';
     }
 
     const dirStr = profile.learningDirection || '大数据技术';
@@ -3084,136 +3083,6 @@ function processDocRefs(html) {
     });
 }
 
-function renderReadableMarkdown(content) {
-    const processedContent = preprocessContent(content || '');
-    let htmlContent = processedContent;
-    try {
-        if (window.marked) {
-            htmlContent = marked.parse(processedContent);
-        } else {
-            htmlContent = escapeHtml(processedContent).replace(/\n/g, '<br>');
-        }
-    } catch (e) {
-        console.warn('[renderReadableMarkdown] marked.parse error:', e);
-        htmlContent = escapeHtml(processedContent).replace(/\n/g, '<br>');
-    }
-    return enhanceReadableHtml(processDocRefs(htmlContent));
-}
-
-function enhanceReadableHtml(html) {
-    const template = document.createElement('template');
-    template.innerHTML = html || '';
-
-    template.content.querySelectorAll('table').forEach((table) => {
-        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
-        const rows = Array.from(table.querySelectorAll('tbody tr'));
-        if (!headers.length || !rows.length || headers.length <= 2) return;
-
-        const cards = document.createElement('div');
-        cards.className = 'readable-table-cards';
-        rows.forEach((row) => {
-            const cells = Array.from(row.children);
-            const card = document.createElement('div');
-            card.className = 'readable-table-card';
-            cells.forEach((cell, index) => {
-                const item = document.createElement('div');
-                item.className = 'readable-table-row';
-                const label = document.createElement('span');
-                label.className = 'readable-table-label';
-                label.textContent = headers[index] || `字段 ${index + 1}`;
-                const value = document.createElement('div');
-                value.className = 'readable-table-value';
-                value.innerHTML = cell.innerHTML;
-                item.append(label, value);
-                card.appendChild(item);
-            });
-            cards.appendChild(card);
-        });
-        table.replaceWith(cards);
-    });
-
-    return template.innerHTML;
-}
-
-function shouldShowDebateInline(msg) {
-    return msg?.debateInline === true;
-}
-
-function renderDebateInlineControl() {
-    if (!debateState.isActive && !debateState.isComplete) return '';
-    const status = debateState.statusLabel || (debateState.isComplete ? `已思考（${formatDebateElapsed(debateState.elapsedSeconds)}）` : `思考中（${formatDebateElapsed(debateState.elapsedSeconds)}）`);
-    const icon = debateState.inlineOpen ? 'chevron-down' : 'chevron-right';
-    return `
-        <button class="debate-inline-toggle ${debateState.isComplete ? 'complete' : 'thinking'}" onclick="toggleDebateInline()" type="button">
-            <i data-lucide="${icon}" class="w-3 h-3"></i>
-            <span>${escapeHtml(status)}</span>
-        </button>
-    `;
-}
-
-function renderDebateInlineDetails() {
-    if (!debateState.inlineOpen || (!debateState.isActive && !debateState.isComplete)) return '';
-    const agentChips = AGENTS_CONFIG.map(agent => {
-        const hasAnswer = debateState.answerDrafts[agent.id] || debateState.agentResponses[agent.id];
-        const hasComment = debateState.commentDrafts[agent.id] || debateState.crossComments[agent.id];
-        const status = hasComment ? 'commented' : hasAnswer ? 'complete' : 'thinking';
-        return `
-            <span class="debate-inline-agent" data-status="${status}" style="--agent-color:${agent.themeColor}">
-                <span>${agent.icon}</span>
-                <span>${escapeHtml(agent.name)}</span>
-            </span>
-        `;
-    }).join('');
-
-    const sections = [];
-    AGENTS_CONFIG.forEach(agent => {
-        const answer = debateState.answerDrafts[agent.id] || debateState.agentResponses[agent.id] || '';
-        const comment = debateState.commentDrafts[agent.id] || debateState.crossComments[agent.id] || '';
-        if (answer) {
-            sections.push(renderDebateInlineSection(agent, '独立观点', answer));
-        }
-        if (comment) {
-            sections.push(renderDebateInlineSection(agent, '交叉评论', comment));
-        }
-    });
-    if (debateState.judgeDraft) {
-        sections.push(`
-            <section class="debate-inline-card judge">
-                <div class="debate-inline-card-head"><span>⚖️</span><strong>裁判综合判定</strong><em>最终整合</em></div>
-                <div class="answer-readable">${renderReadableMarkdown(debateState.judgeDraft)}</div>
-            </section>
-        `);
-    }
-
-    return `
-        <div class="debate-inline-details">
-            <div class="debate-inline-agents">${agentChips}</div>
-            <div class="debate-inline-round">${escapeHtml(getDebateRoundText())}</div>
-            <div class="debate-inline-list">${sections.join('') || '<div class="debate-inline-empty">各身份正在形成观点...</div>'}</div>
-        </div>
-    `;
-}
-
-function renderDebateInlineSection(agent, type, content) {
-    return `
-        <section class="debate-inline-card" style="--agent-color:${agent.themeColor}">
-            <div class="debate-inline-card-head">
-                <span>${agent.icon}</span>
-                <strong>${escapeHtml(agent.name)}</strong>
-                <em>${type}</em>
-            </div>
-            <div class="answer-readable">${renderReadableMarkdown(content)}</div>
-        </section>
-    `;
-}
-
-function getDebateRoundText() {
-    if (debateState.isComplete) return '辩论已完成，可展开回看各身份观点';
-    if (debateState.currentRound >= 2) return '裁判正在整合观点';
-    if (debateState.currentRound === 1) return '第二轮：交叉评论';
-    return '第一轮：独立观点';
-}
-
 async function renderMessages() {
     const container = document.getElementById('chat-container');
     if (!container) return;
@@ -3221,17 +3090,27 @@ async function renderMessages() {
     const streamBubble = container.querySelector('.stream-bubble');
 
     container.innerHTML = messages.map(msg => {
-        const htmlContent = msg.role === 'user' ? escapeHtml(msg.content).replace(/\n/g, '<br>') : renderReadableMarkdown(msg.content);
+        const processedContent = msg.role === 'user' ? msg.content : preprocessContent(msg.content);
+        let htmlContent = processedContent;
+        if (msg.role !== 'user') {
+            try {
+                if (window.marked) {
+                    htmlContent = marked.parse(processedContent);
+                }
+            } catch (e) {
+                console.warn('[renderMessages] marked.parse error:', e);
+                htmlContent = escapeHtml(processedContent);
+            }
+            htmlContent = processDocRefs(htmlContent);
+        }
         const isSocratic = msg.role === 'assistant' && msg.socratic;
-        const debateInline = msg.role !== 'user' && shouldShowDebateInline(msg);
         return `
         <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
-            <div class="${msg.role === 'user' ? 'max-w-[86%]' : 'max-w-[96%]'} flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
-                ${msg.role !== 'user' ? `<span class="assistant-message-head text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${debateInline ? renderDebateInlineControl() : ''}</span>` : ''}
-                ${debateInline ? renderDebateInlineDetails() : ''}
-                ${htmlContent.trim() ? `<div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible">
-                    <div class="prose prose-sm max-w-none answer-readable ${msg.role === 'user' ? 'answer-user' : ''}">${htmlContent}</div>
-                </div>` : ''}
+            <div class="max-w-[90%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
+                ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}</span>` : ''}
+                <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible">
+                    <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -3647,17 +3526,9 @@ let debateState = {
     agentResponses: {},
     crossComments: {},
     debateHistory: [],
-    isComplete: false,
-    startedAt: 0,
-    elapsedSeconds: 0,
-    inlineOpen: false,
-    answerDrafts: {},
-    commentDrafts: {},
-    judgeDraft: '',
-    statusLabel: ''
+    isComplete: false
 };
 let debateAbortController = null;
-let debateElapsedTimer = null;
 const RESOURCE_SHORT_TIMEOUT = 10000;
 const RESOURCE_LONG_TIMEOUT = 30000;
 
@@ -4310,12 +4181,22 @@ function renderStreamingMessage() {
     let streamBubble = container.querySelector('.stream-bubble');
     if (!streamBubble) return;
 
-    const htmlContent = renderReadableMarkdown(currentAssistantContent);
+    const processedContent = preprocessContent(currentAssistantContent);
+    let htmlContent = currentAssistantContent;
+    try {
+        if (window.marked) {
+            htmlContent = marked.parse(processedContent);
+        }
+    } catch (e) {
+        console.warn('[renderStreamingMessage] marked.parse error:', e);
+        htmlContent = escapeHtml(currentAssistantContent);
+    }
+    htmlContent = processDocRefs(htmlContent);
 
     const isSocratic = messages[currentAssistantIdx]?.socratic;
     const headerHtml = `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}</span>`;
 
-    streamBubble.innerHTML = `<div class="max-w-[96%] flex flex-col items-start min-w-0">${headerHtml}<div class="msg-bubble p-4 rounded-2xl msg-bubble-bot rounded-tl-none w-full min-w-0 overflow-x-visible"><div class="prose prose-sm max-w-none answer-readable">${htmlContent}<span class="typing-cursor-inline"></span></div></div></div>`;
+    streamBubble.innerHTML = `<div class="max-w-[90%] flex flex-col items-start min-w-0">${headerHtml}<div class="msg-bubble p-4 rounded-2xl msg-bubble-bot rounded-tl-none w-full min-w-0 overflow-x-auto"><div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}<span class="typing-cursor-inline"></span></div></div></div>`;
 
     const chatScroll = container.closest('.chat-glass-scroll') || container;
     const isNearBottom = chatScroll.scrollHeight - chatScroll.scrollTop - chatScroll.clientHeight < 150;
@@ -4594,6 +4475,7 @@ async function handleSendStream() {
     if (sendButton) sendButton.disabled = true;
 
     messages.push({ role: 'user', content: userMsg });
+    renderMessages();
 
     sandboxLogs = [];
     activeAgents = new Set();
@@ -5570,6 +5452,12 @@ document.addEventListener('DOMContentLoaded', function() {
         window.focusDurationPanel.init();
     }
 
+    // 辩论面板展开/收起按钮
+    document.getElementById('debate-panel-expand-btn')?.addEventListener('click', () => toggleDebatePanel(true));
+    document.getElementById('debate-panel-collapse-btn')?.addEventListener('click', () => toggleDebatePanel(false));
+    document.getElementById('debate-judge-close-btn')?.addEventListener('click', () => {
+        document.getElementById('debate-judge-float-card')?.classList.remove('visible');
+    });
 });
 
 class FlowTimerState {
@@ -5894,7 +5782,6 @@ class FlowModeManager {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, minutes }),
                 }).then(() => {
-                    window.StarFocusSync?.recordFocusComplete(minutes);
                     localStorage.setItem('starlearn_learning_update', String(Date.now()));
                 }).catch(() => {});
             }
@@ -5905,7 +5792,15 @@ class FlowModeManager {
         if (this.currentMode === 'rest') return;
         const seeds = parseInt(localStorage.getItem('starlearn_seeds') || '0');
         localStorage.setItem('starlearn_seeds', String(seeds + 1));
-        showFocusRewardToast(seeds + 1);
+        const modal = document.getElementById('plant-reward-modal');
+        const countEl = document.getElementById('plant-reward-seed-count');
+        if (countEl) countEl.textContent = seeds + 1;
+        if (modal) {
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => modal.classList.add('visible'));
+            });
+        }
     }
 
     _updateIslandPlayIcon(isPaused) {
@@ -7104,29 +6999,12 @@ function toggleSection(sectionId, btnEl) {
 window.flowMode = new FlowModeManager();
 window.flashcardUI = new FlashcardUI();
 
-function showFocusRewardToast(seedCount, duration = 5000) {
-    let toast = document.getElementById('focus-reward-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'focus-reward-toast';
-        toast.className = 'focus-reward-toast';
-        document.body.appendChild(toast);
-    }
-    toast.innerHTML = `
-        <div class="focus-reward-toast-icon">🎁</div>
-        <div class="focus-reward-toast-body">
-            <strong>专注完成</strong>
-            <span>获得神秘植物种子，当前种子数：${seedCount}</span>
-        </div>
-    `;
-    toast.classList.add('visible');
-    clearTimeout(toast._hideTimer);
-    toast._hideTimer = setTimeout(() => {
-        toast.classList.remove('visible');
-    }, duration);
-}
-
 function goToPlantFarm() {
+    const modal = document.getElementById('plant-reward-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
     window.location.href = '/plant.html';
 }
 
@@ -8159,44 +8037,23 @@ function initDebatePanel() {
 }
 
 function toggleDebatePanel(expand) {
-    debateState.inlineOpen = expand === undefined ? !debateState.inlineOpen : !!expand;
-    renderMessages();
-}
+    const panel = document.getElementById('debate-panel');
+    const expandBtn = document.getElementById('debate-panel-expand-btn');
+    const collapseBtn = document.getElementById('debate-panel-collapse-btn');
+    if (!panel) return;
 
-function toggleDebateInline() {
-    debateState.inlineOpen = !debateState.inlineOpen;
-    renderMessages();
-}
-
-function formatDebateElapsed(seconds) {
-    const value = Math.max(0, Math.round(seconds || 0));
-    return `用时 ${value} 秒`;
-}
-
-function setDebateThoughtStatus(label, type = 'thinking') {
-    const elapsed = debateState.elapsedSeconds || 0;
-    updateDebateStatus(`${label}（${formatDebateElapsed(elapsed)}）`, type);
-}
-
-function startDebateElapsedTimer() {
-    stopDebateElapsedTimer();
-    debateState.startedAt = Date.now();
-    debateState.elapsedSeconds = 0;
-    setDebateThoughtStatus('思考中', 'thinking');
-    debateElapsedTimer = setInterval(() => {
-        if (!debateState.isActive || debateState.isComplete) return;
-        debateState.elapsedSeconds = Math.round((Date.now() - debateState.startedAt) / 1000);
-        setDebateThoughtStatus('思考中', 'thinking');
-    }, 1000);
-}
-
-function stopDebateElapsedTimer() {
-    if (debateElapsedTimer) {
-        clearInterval(debateElapsedTimer);
-        debateElapsedTimer = null;
+    if (expand === undefined) {
+        expand = !panel.classList.contains('expanded');
     }
-    if (debateState.startedAt) {
-        debateState.elapsedSeconds = Math.round((Date.now() - debateState.startedAt) / 1000);
+
+    if (expand) {
+        panel.classList.add('expanded');
+        expandBtn?.classList.add('hidden');
+        collapseBtn?.classList.remove('hidden');
+    } else {
+        panel.classList.remove('expanded');
+        expandBtn?.classList.remove('hidden');
+        collapseBtn?.classList.add('hidden');
     }
 }
 
@@ -8207,15 +8064,28 @@ function resetDebateState() {
         agentResponses: {},
         crossComments: {},
         debateHistory: [],
-        isComplete: false,
-        startedAt: Date.now(),
-        elapsedSeconds: 0,
-        inlineOpen: true,
-        answerDrafts: {},
-        commentDrafts: {},
-        judgeDraft: '',
-        statusLabel: ''
+        isComplete: false
     };
+
+    const panel = document.getElementById('debate-panel');
+    if (panel) {
+        panel.classList.remove('hidden');
+        toggleDebatePanel(true);
+    }
+
+    const messagesEl = document.getElementById('debate-messages');
+    if (messagesEl) messagesEl.innerHTML = '';
+
+    // 隐藏旧的 judge-area（兼容旧结构）
+    const judgeArea = document.getElementById('debate-judge-area');
+    if (judgeArea) judgeArea.classList.add('hidden');
+
+    // 隐藏裁判悬浮卡片
+    const floatCard = document.getElementById('debate-judge-float-card');
+    if (floatCard) floatCard.classList.remove('visible');
+
+    const judgeContent = document.getElementById('judge-content');
+    if (judgeContent) judgeContent.textContent = '';
 
     // 重置所有身份卡片状态
     document.querySelectorAll('.debate-agent-card').forEach(card => {
@@ -8224,19 +8094,16 @@ function resetDebateState() {
         if (dot) dot.className = 'status-dot';
     });
 
-    startDebateElapsedTimer();
+    updateDebateStatus('正在召集AI身份...');
     updateDebateRoundLabel('第一轮：独立观点');
 }
 
 function updateDebateStatus(status, type = '') {
-    debateState.statusLabel = status;
     const el = document.getElementById('debate-status');
-    if (el) {
-        el.textContent = status;
-        el.className = 'debate-status';
-        if (type) el.classList.add(type);
-    }
-    renderMessages();
+    if (!el) return;
+    el.textContent = status;
+    el.className = 'debate-status';
+    if (type) el.classList.add(type);
 }
 
 function updateDebateRoundLabel(label) {
@@ -8258,21 +8125,49 @@ function updateDebateAgentStatus(agentId, status) {
 }
 
 function appendDebateAgentResponse(agentId, content, isComment = false) {
-    const normalized = content.replace(/\n{3,}/g, '\n\n');
-    const target = isComment ? debateState.commentDrafts : debateState.answerDrafts;
-    target[agentId] = (target[agentId] || '') + normalized;
-    renderMessages();
+    const container = document.getElementById('debate-messages');
+    if (!container) return;
+
+    let bubble = container.querySelector(`.debate-bubble[data-agent="${agentId}"][data-type="${isComment ? 'comment' : 'answer'}"]`);
+    if (!bubble) {
+        const agent = AGENTS_CONFIG.find(a => a.id === agentId);
+        bubble = document.createElement('div');
+        bubble.className = 'debate-bubble';
+        bubble.dataset.agent = agentId;
+        bubble.dataset.type = isComment ? 'comment' : 'answer';
+        bubble.style.setProperty('--agent-color', agent?.themeColor || '#666');
+        bubble.innerHTML = `
+            <div class="bubble-header" style="color: ${agent?.themeColor || '#666'}">
+                <span class="bubble-agent-name">${agent?.name || agentId}${isComment ? ' (评论)' : ''}</span>
+            </div>
+            <div class="bubble-content"></div>
+        `;
+        container.appendChild(bubble);
+    }
+
+    const contentEl = bubble.querySelector('.bubble-content');
+    if (contentEl) {
+        // 压缩多余换行：超过2个连续换行压缩为最多2个，避免段落间间距过大
+        const normalized = content.replace(/\n{3,}/g, '\n\n');
+        contentEl.textContent += normalized;
+    }
+
+    // 滚动到底部
+    const contentArea = document.getElementById('debate-content-area');
+    if (contentArea) contentArea.scrollTop = contentArea.scrollHeight;
 }
 
 function showDebateJudgeArea() {
-    debateState.inlineOpen = true;
-    renderMessages();
+    const floatCard = document.getElementById('debate-judge-float-card');
+    if (floatCard) floatCard.classList.add('visible');
 }
 
 function appendDebateJudgeContent(content) {
-    const normalized = content.replace(/\n{3,}/g, '\n\n');
-    debateState.judgeDraft = (debateState.judgeDraft || '') + normalized;
-    renderMessages();
+    const judgeContent = document.getElementById('judge-content');
+    if (judgeContent) {
+        const normalized = content.replace(/\n{3,}/g, '\n\n');
+        judgeContent.textContent += normalized;
+    }
 }
 
 function addDebateSandboxLog(agentId, content) {
@@ -8312,9 +8207,6 @@ async function handleDebateStream(userMsg) {
     // 初始化辩论面板
     initDebatePanel();
     resetDebateState();
-    messages.push({ role: 'assistant', content: '', debateInline: true });
-    currentAssistantIdx = messages.length - 1;
-    renderMessages();
 
     debateAbortController = new AbortController();
 
@@ -8371,7 +8263,6 @@ async function handleDebateStream(userMsg) {
             return;
         }
         console.error('辩论错误:', error);
-        stopDebateElapsedTimer();
         updateDebateStatus('辩论出错', 'error');
         addDebateSandboxLog('system', `辩论过程出错: ${error.message}`);
 
@@ -8388,7 +8279,7 @@ async function handleDebateStream(userMsg) {
 function handleDebateEvent(event) {
     switch (event.type) {
         case 'debate_start':
-            setDebateThoughtStatus('思考中', 'thinking');
+            updateDebateStatus('辩论开始');
             addDebateSandboxLog('system', '辩论开始，各AI身份正在思考...');
             break;
 
@@ -8411,7 +8302,7 @@ function handleDebateEvent(event) {
             debateState.currentRound = event.round;
             if (event.round === 1) {
                 updateDebateRoundLabel('第二轮：交叉评论');
-                setDebateThoughtStatus('思考中', 'thinking');
+                updateDebateStatus('交叉评论中...');
             }
             addDebateSandboxLog('system', `第${event.round}轮完成`);
             break;
@@ -8433,7 +8324,7 @@ function handleDebateEvent(event) {
         case 'judge_start':
             showDebateJudgeArea();
             updateDebateRoundLabel('裁判综合判定');
-            setDebateThoughtStatus('思考中', 'thinking');
+            updateDebateStatus('裁判判定中...', 'thinking');
             addDebateSandboxLog('judge', '裁判开始综合评估...');
             break;
 
@@ -8447,19 +8338,12 @@ function handleDebateEvent(event) {
 
         case 'debate_complete':
             debateState.isComplete = true;
-            debateState.isActive = false;
-            stopDebateElapsedTimer();
-            setDebateThoughtStatus('已思考', 'complete');
-            toggleDebatePanel(false);
+            updateDebateStatus('辩论完成', 'complete');
             updateSandboxStatus('完成', 'bg-green-100 text-green-600');
 
+            // 将最终答案添加到消息列表
             const finalAnswer = event.final_answer || '辩论完成，请查看上方各身份观点。';
-            if (currentAssistantIdx >= 0 && messages[currentAssistantIdx]?.debateInline) {
-                messages[currentAssistantIdx].content = finalAnswer;
-            } else {
-                messages.push({ role: 'assistant', content: finalAnswer, debateInline: true });
-                currentAssistantIdx = messages.length - 1;
-            }
+            messages.push({ role: 'assistant', content: finalAnswer });
             renderMessages();
 
             addDebateSandboxLog('system', '辩论结束');
@@ -8470,7 +8354,6 @@ function handleDebateEvent(event) {
             break;
 
         case 'error':
-            stopDebateElapsedTimer();
             updateDebateStatus('出错', 'error');
             addDebateSandboxLog('system', `错误: ${event.message}`);
             break;
