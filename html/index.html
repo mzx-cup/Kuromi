@@ -140,6 +140,20 @@
             </div>
         </div>
 
+        <div class="p-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
+            </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('profile-section', this)" data-section="profile-section" aria-expanded="true" aria-controls="profile-section" title="展开/收起学情画像">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
+            <div class="sidebar-section-content space-y-2" id="profile-section">
+                <div class="space-y-2" id="profile-container"></div>
+            </div>
+        </div>
+
         <div class="px-3 pb-3">
             <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                 <i data-lucide="cpu" class="w-4 h-4" style="color: var(--primary-light);"></i>
@@ -185,20 +199,6 @@
                     <span class="agent-status-name">学情评估</span>
                     <span class="agent-status-label">待命</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="p-3">
-            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
-                <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
-                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
-            </div>
-            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('profile-section', this)" data-section="profile-section" aria-expanded="true" aria-controls="profile-section" title="展开/收起学情画像">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
-                <span class="expand-text text-xs font-medium">收起</span>
-            </button>
-            <div class="sidebar-section-content space-y-2" id="profile-section">
-                <div class="space-y-2" id="profile-container"></div>
             </div>
         </div>
         </div>

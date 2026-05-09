@@ -43,7 +43,8 @@
       "Edit(*)",
       "Bash(pnpm *)",
       "Bash(node *)",
-      "Bash(npx *)"
+      "Bash(npx *)",
+      "Bash(grep -E \"^\\\\+.*\\\\}$\")"
     ]
   }
 }
