@@ -68,6 +68,7 @@
             this.currentIndex = 0;
             this.scenes = [];
             this.agentTeam = [];
+            this.currentTeacher = null;
             this.quizAnswers = {};
             this.visitedScenes = new Set();
             this.isPlaying = false;
@@ -272,6 +273,20 @@
             }
             if (this.courseData) {
                 this.agentTeam = this.courseData.agent_team || [];
+
+                // 加载分配的老师配置
+                if (this.courseData && this.courseData.teacher) {
+                    this.currentTeacher = this.courseData.teacher;
+                } else if (this.courseData && this.courseData.agent_team && this.courseData.agent_team.length > 0) {
+                    // 兼容旧的agent_team结构
+                    this.currentTeacher = this.courseData.agent_team[0];
+                }
+
+                // 如果有指定音色，优先使用老师的音色
+                if (this.currentTeacher && this.currentTeacher.voiceId) {
+                    TTS_CONFIG.voice = this.currentTeacher.voiceId;
+                }
+
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
                 // 保存courseId用于后台轮询
                 this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || sessionStorage.getItem('courseId') || null;
@@ -645,6 +660,100 @@
 
             // Expand scenes that contain multiple slides into individual scenes
             this.expandMultiSlideScenes();
+
+            // Redistribute consecutive non-slide scenes to prevent clustering
+            this.redistributeConsecutiveNonSlideScenes();
+        }
+
+        redistributeConsecutiveNonSlideScenes() {
+            // AI-driven scene placement: redistribute consecutive non-slide scenes
+            // to appear at pedagogically appropriate positions with good spacing
+            const NON_SLIDE_TYPES = new Set(['quiz', 'exercise', 'interactive', 'pbl', 'diagram', 'code', 'video']);
+
+            if (this.scenes.length < 4) return;
+
+            // Identify consecutive non-slide clusters (only clusters with 2+ non-slides)
+            const clusters = [];
+            let clusterStart = -1;
+            let consecutiveNonSlides = 0;
+            let prevNonSlide = false;
+
+            for (let i = 0; i < this.scenes.length; i++) {
+                const isNonSlide = NON_SLIDE_TYPES.has(this.scenes[i].type);
+                if (isNonSlide) {
+                    if (!prevNonSlide) {
+                        clusterStart = i;
+                        consecutiveNonSlides = 1;
+                    } else {
+                        consecutiveNonSlides++;
+                    }
+                } else {
+                    if (consecutiveNonSlides >= 2) {
+                        clusters.push({ start: clusterStart, end: i - 1, count: consecutiveNonSlides });
+                    }
+                    consecutiveNonSlides = 0;
+                }
+                prevNonSlide = isNonSlide;
+            }
+            // Handle trailing cluster
+            if (consecutiveNonSlides >= 2) {
+                clusters.push({ start: clusterStart, end: this.scenes.length - 1, count: consecutiveNonSlides });
+            }
+
+            if (clusters.length === 0) return;
+
+            // Build new order: remove clusters and re-distribute non-slide scenes with spacing
+            const newOrder = [];
+            const nonSlideScenes = [];
+
+            // First pass: collect non-slide scenes and build slide-only order
+            for (let i = 0; i < this.scenes.length; i++) {
+                const scene = this.scenes[i];
+                const inCluster = clusters.some(c => i >= c.start && i <= c.end);
+
+                if (NON_SLIDE_TYPES.has(scene.type) && inCluster) {
+                    nonSlideScenes.push(scene);
+                } else {
+                    newOrder.push(scene);
+                }
+            }
+
+            // Second pass: redistribute non-slide scenes by interleaving with slides
+            // Insert each non-slide after the next available slide
+            const result = [];
+            let slideIdx = 0;
+            const slideCount = newOrder.filter(s => !NON_SLIDE_TYPES.has(s.type)).length;
+
+            if (slideCount === 0 || nonSlideScenes.length === 0) {
+                // No slides to interleave with, keep original order
+                return;
+            }
+
+            // Calculate spread: each non-slide should be roughly slideCount / nonSlideScenes slides apart
+            const interval = Math.max(1, Math.floor(slideCount / nonSlideScenes.length));
+
+            for (let i = 0; i < newOrder.length; i++) {
+                result.push(newOrder[i]);
+
+                // Check if we should insert a non-slide scene after this slide
+                const nonSlideCount = result.filter(s => NON_SLIDE_TYPES.has(s.type)).length;
+                if (nonSlideCount < nonSlideScenes.length) {
+                    const insertAfter = (i + 1) % (interval + 1) === 0 ||
+                                        i === newOrder.length - 1 && nonSlideCount < nonSlideScenes.length;
+                    if (insertAfter && slideIdx < nonSlideScenes.length) {
+                        result.push(nonSlideScenes[slideIdx++]);
+                    }
+                }
+            }
+
+            // Apply if order changed
+            const originalOrder = this.scenes.map(s => s.id).join(',');
+            const newOrderIds = result.map(s => s.id).join(',');
+
+            if (originalOrder !== newOrderIds) {
+                console.log('[Classroom] Redistributed consecutive non-slide scenes');
+                this.scenes = result;
+            }
         }
 
         expandMultiSlideScenes() {
@@ -848,17 +957,23 @@
             const currentIdx = this.currentIndex || 0;
             const icons = { slide: '📖', quiz: '📝', exercise: '✏️', interactive: '🎮', pbl: '🔬', code: '💻' };
             this.sceneThumbnails.innerHTML = this.scenes.map((s, i) => `
-                <div class="scene-thumb ${i === currentIdx ? 'active' : ''}" data-index="${i}" onclick="classroomController.goToScene(${i})">
+                <div class="scene-thumb ${i === currentIdx ? 'active' : ''}" data-index="${i}">
                     <span class="scene-thumb-icon">${icons[s.type] || '📖'}</span>
                     <span class="scene-thumb-label">${this.SlideRenderer._stripThinkTags(s.title || '').slice(0, 8)}</span>
                     <span class="scene-thumb-badge">${s.type}</span>
                 </div>
             `).join('');
-            // Auto-scroll to keep current scene visible
-            const activeThumb = this.sceneThumbnails.querySelector('.scene-thumb.active');
-            if (activeThumb) {
-                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
+
+            // Event delegation for scene thumbnail clicks
+            this.sceneThumbnails.onclick = (e) => {
+                const thumb = e.target.closest('.scene-thumb');
+                if (thumb) {
+                    const index = parseInt(thumb.dataset.index, 10);
+                    if (!isNaN(index)) {
+                        this.goToScene(index);
+                    }
+                }
+            };
         }
 
         updateSidebarActive(index) {

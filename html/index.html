@@ -15,6 +15,59 @@
     <style>
         .mermaid { visibility: hidden; height: 0; overflow: hidden; }
         .mermaid-error { display: none !important; }
+
+        /* AI教师选择器样式 */
+        .teacher-select-wrapper {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .teacher-select-wrapper.visible {
+            display: block;
+        }
+
+        .teacher-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .teacher-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .teacher-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .teacher-card.selected {
+            border-color: var(--primary, #6366f1);
+            background: rgba(99, 102, 241, 0.15);
+        }
+
+        .teacher-card-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .teacher-card-name {
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .teacher-card-profession {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
@@ -46,6 +99,7 @@
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/voice-input.js"></script>
+    <script src="/js/teachers-config.js"></script>
     <script src="/js/index.js"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
@@ -839,6 +893,15 @@
                                 <option value="preset" selected>预设教师</option>
                                 <option value="auto">AI自动生成教师</option>
                             </select>
+                            <!-- AI教师选择区域 -->
+                            <div id="teacher-select-wrapper" class="teacher-select-wrapper">
+                                <label class="openmaic-label">
+                                    <i class="fas fa-chalkboard-teacher"></i> 选择AI教师
+                                </label>
+                                <div class="teacher-cards">
+                                    <!-- 动态渲染老师卡片 -->
+                                </div>
+                            </div>
 
                             <!-- 自定义下拉菜单：音色选择 -->
                             <div class="custom-select" id="openmaic-voice-select-wrapper">
@@ -865,6 +928,9 @@
                                 <option value="female-danyun">知性女声</option>
                                 <option value="male-qingshu">青涩少年</option>
                                 <option value="male-shaoshuai">磁性男声</option>
+                            </select>
+                            <select id="openmaic-teacher-select" style="display:none;">
+                                <!-- 动态填充 -->
                             </select>
                         </div>
                     </div>
@@ -1066,5 +1132,52 @@
         </div>
     </div>
 
+    <script>
+        // 渲染老师选择卡片
+        function renderTeacherCards() {
+            const container = document.querySelector('.teacher-cards');
+            if (!container || typeof TEACHERS_CONFIG === 'undefined') return;
+
+            container.innerHTML = TEACHERS_CONFIG.map(teacher => `
+                <div class="teacher-card" data-teacher-id="${teacher.id}">
+                    <div class="teacher-card-icon">${teacher.icon}</div>
+                    <div class="teacher-card-name">${teacher.name}</div>
+                    <div class="teacher-card-profession">${teacher.profession}</div>
+                </div>
+            `).join('');
+
+            // 绑定点击事件
+            container.querySelectorAll('.teacher-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    container.querySelectorAll('.teacher-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    const select = document.getElementById('openmaic-teacher-select');
+                    if (select) select.value = card.dataset.teacherId;
+                });
+            });
+        }
+
+        // 初始化老师卡片和切换逻辑
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTeacherCards();
+
+            // 监听agent-mode切换
+            const agentMode = document.getElementById('openmaic-agent-mode');
+            const teacherWrapper = document.getElementById('teacher-select-wrapper');
+            if (agentMode && teacherWrapper) {
+                agentMode.addEventListener('change', () => {
+                    if (agentMode.value === 'preset') {
+                        teacherWrapper.classList.add('visible');
+                    } else {
+                        teacherWrapper.classList.remove('visible');
+                    }
+                });
+                // 初始状态
+                if (agentMode.value === 'preset') {
+                    teacherWrapper.classList.add('visible');
+                }
+            }
+        });
+    </script>
 </body>
 </html>

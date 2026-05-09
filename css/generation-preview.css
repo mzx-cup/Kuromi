@@ -1267,6 +1267,97 @@ body {
 }
 
 /* ============================================================
+   AI教师分配展示
+   ============================================================ */
+.teacher-assign-display {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+@media (prefers-color-scheme: light) {
+    .teacher-assign-display {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(226, 232, 240, 0.5);
+    }
+}
+
+.teacher-assign-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 24px;
+    padding: 8px 20px;
+    margin-bottom: 12px;
+}
+
+.teacher-assign-icon {
+    font-size: 1.5rem;
+}
+
+.teacher-assign-name {
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #fff;
+}
+
+@media (prefers-color-scheme: light) {
+    .teacher-assign-name {
+        color: #0f172a;
+    }
+}
+
+.teacher-assign-profession {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+}
+
+@media (prefers-color-scheme: light) {
+    .teacher-assign-profession {
+        color: #64748b;
+    }
+}
+
+.teacher-assign-detail {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.teacher-personality,
+.teacher-style {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+@media (prefers-color-scheme: light) {
+    .teacher-personality,
+    .teacher-style {
+        background: rgba(99, 102, 241, 0.1);
+        color: #64748b;
+    }
+}
+
+.teacher-match-reason {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}
+
+@media (prefers-color-scheme: light) {
+    .teacher-match-reason {
+        color: #94a3b8;
+    }
+}
+
+/* ============================================================
    Feature Cards
    ============================================================ */
 .feature-cards {

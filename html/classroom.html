@@ -565,6 +565,28 @@ document.addEventListener('click', function(e) {
         document.getElementById('voice-dropdown-menu')?.classList.remove('show');
     }
 });
+
+// Scene thumbnail click delegation - fix goToScene error
+// Remove inline onclick handlers from scene-thumb elements
+document.addEventListener('click', function(e) {
+    const thumb = e.target.closest('.scene-thumb');
+    if (thumb) {
+        // Check if this is a scene thumbnail with inline onclick
+        const onclickAttr = thumb.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes('classroomController')) {
+            e.stopPropagation();
+            const match = onclickAttr.match(/goToScene\((\d+)\)/);
+            if (match && window.classroomController) {
+                window.classroomController.goToScene(parseInt(match[1], 10));
+            }
+        } else if (window.classroomController) {
+            const index = parseInt(thumb.dataset.index, 10);
+            if (!isNaN(index)) {
+                window.classroomController.goToScene(index);
+            }
+        }
+    }
+});
 </script>
 
 <!-- Whiteboard AI Draw Modal -->

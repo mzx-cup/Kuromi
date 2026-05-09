@@ -260,11 +260,17 @@ content字段可以使用以下markdown标记来组织富文本内容：
 6. pbl场景需要有具体的scenario（真实世界问题场景描述）
 7. 至少包含1个quiz和1个interactive或exercise场景
 8. 确保quiz场景有足够的知识点支撑题目设计
+9. 【重要】场景类型分布规则：
+   - 严禁连续出现2个或以上非slide类型的场景（如quiz紧接exercise）
+   - non-slide类型场景（quiz/exercise/interactive/pbl/diagram/code/video）之间必须至少间隔1个slide场景
+   - quiz场景最佳位置是第3-5个场景之间，用于阶段性检测
+   - exercise/interactive场景应在slide讲解之后出现，用于巩固练习
+   - 如果需要连续生成多个quiz，可以用slide场景作为过渡分隔
 
 以JSON数组格式输出：
 [{{"title": "...", "type": "slide", "description": "...", "key_points": [...], "difficulty": "basic", "estimated_minutes": 5, "widget_type": null, "scenario": null}}]
 
-只输出JSON数组，不要添加其他文字。""",
+只输出JSON数组，不要添加其他文字。注意检查输出JSON中不存在连续两个非slide场景。"",
 
     "pbl_content": """你是一位PBL（项目制学习）设计专家。根据以下大纲生成PBL场景内容。
 
