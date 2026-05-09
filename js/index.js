@@ -6091,35 +6091,47 @@ class FlashcardUI {
         this._visibilityHandler = null;
         this._beforeUnloadHandler = null;
         this._destroyed = false;
+        // 沉浸模式属性
+        this.immersiveMode = false;
+        this.immersiveEl = null;
+        this.cardProgress = {};
+        this.sessionStats = { cardsTotal: 0, cardsAnswered: 0, cardsMastered: 0, cardsFavorited: 0, startTime: 0, duration: 0 };
+        this.userStats = { totalCards: 0, totalMastered: 0, totalFavorited: 0, todayCount: 0, streakDays: 0 };
+        this.filterMode = 'all';
+        this.dataPodOpen = false;
+        this.navPodOpen = false;
+        this.nebulaCanvas = null;
+        this.nebulaCtx = null;
+        this.particles = [];
+        this._nebularAF = null;
+        this._immersiveKeyHandler = null;
+        this.userId = null;
     }
 
     async open() {
         if (this._destroyed) return;
-        if (!this.container) {
-            this.container = document.createElement('div');
-            this.container.id = 'flashcard-modal';
-            this.container.style.cssText = `
-                position: fixed; inset: 0; z-index: 300;
-                display: flex; align-items: center; justify-content: center;
-                background: rgba(0,0,0,0.6); backdrop-filter: blur(20px);
-                -webkit-backdrop-filter: blur(20px);
-                opacity: 0; visibility: hidden;
-                transition: opacity 300ms ease, visibility 300ms ease;
-            `;
-            document.body.appendChild(this.container);
-        }
-        this.container.style.opacity = '1';
-        this.container.style.visibility = 'visible';
-        this.AUTO_FLIP_DELAY = parseInt(localStorage.getItem('starlearn_flashcard_duration') || '180') * 1000;
+        this.immersiveMode = true;
+        const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        this.userId = user.id || null;
+        this.immersiveEl = document.getElementById('capsule-immersive');
+        if (!this.immersiveEl) return;
+        this.immersiveEl.classList.add('active');
         await this.generateCards();
-        this._restoreCountdownState();
-        this.renderCard();
-        document.addEventListener('keydown', this._keyHandler);
-        this._bindVisibilityChange();
-        this._bindBeforeUnload();
+        this.sessionStats = { cardsTotal: this.cards.length, cardsAnswered: 0, cardsMastered: 0, cardsFavorited: 0, startTime: Date.now(), duration: 0 };
+        if (this.userId) await this._loadProgressFromDB();
+        this._initNebula();
+        this.renderOrbitTrack();
+        this.renderCardImmersive();
+        this.updateStatsUI();
+        this.renderNavPodList();
+        document.addEventListener('keydown', this._immersiveKeyHandler = (e) => this._handleImmersiveKey(e));
     }
 
     close() {
+        if (this.immersiveMode) {
+            this.exitImmersive();
+            return;
+        }
         this._forceClearAllTimers();
         this._clearCountdownState();
         if (this.container) {
@@ -6441,11 +6453,519 @@ class FlashcardUI {
     }
 
     prev() {
+        if (this.immersiveMode) {
+            this._navigateCard(-1);
+            return;
+        }
         if (this.currentIndex > 0) {
             this.currentIndex--;
             this._clearCountdownState();
             this.renderCard();
         }
+    }
+
+    // ========== 沉浸模式方法 ==========
+    exitImmersive() {
+        this.immersiveMode = false;
+        this.sessionStats.duration = Math.floor((Date.now() - this.sessionStats.startTime) / 1000);
+        if (this.userId) this._saveSessionToDB();
+        this._destroyNebula();
+        if (this.immersiveEl) this.immersiveEl.classList.remove('active');
+        if (this._immersiveKeyHandler) {
+            document.removeEventListener('keydown', this._immersiveKeyHandler);
+            this._immersiveKeyHandler = null;
+        }
+        const completion = document.getElementById('capsule-completion');
+        if (completion) completion.classList.add('hidden');
+    }
+
+    renderOrbitTrack() {
+        const curve = document.getElementById('capsule-orbit-curve');
+        if (!curve) return;
+        curve.innerHTML = '';
+        this.cards.forEach((_, i) => {
+            const star = document.createElement('div');
+            star.className = 'capsule-orbit-star';
+            star.dataset.index = i;
+            if (i === this.currentIndex) star.classList.add('current');
+            const hash = this._hashCard(this.cards[i].front, this.cards[i].back);
+            const prog = this.cardProgress[hash];
+            if (prog?.is_mastered) star.classList.add('mastered');
+            if (prog?.is_favorite) star.classList.add('favorite');
+            curve.appendChild(star);
+        });
+    }
+
+    updateOrbitCurrent() {
+        document.querySelectorAll('.capsule-orbit-star').forEach((star, i) => {
+            star.classList.remove('current');
+            if (i === this.currentIndex) star.classList.add('current');
+        });
+    }
+
+    renderCardImmersive() {
+        const front = document.getElementById('capsule-card-front');
+        const back = document.getElementById('capsule-card-back');
+        const card3d = document.getElementById('capsule-card-3d');
+        const counter = document.getElementById('capsule-counter');
+        const sessionInfo = document.getElementById('capsule-session-info');
+        if (!front || !back || !card3d) return;
+        const card = this.cards[this.currentIndex];
+        const hash = this._hashCard(card.front, card.back);
+        const prog = this.cardProgress[hash] || {};
+        this.flipped = false;
+        card3d.classList.remove('flipped');
+        front.innerHTML = `
+            <div class="capsule-card-label">问题</div>
+            <div class="capsule-card-content">${this._escapeHtml(card.front)}</div>
+            ${card.hint ? `<div class="capsule-card-hint">💡 ${this._escapeHtml(card.hint)}</div>` : ''}
+        `;
+        back.innerHTML = `
+            <div class="capsule-card-label">答案</div>
+            <div class="capsule-card-content">${this._escapeHtml(card.back)}</div>
+            ${card.hint ? `<div class="capsule-card-hint">💡 ${this._escapeHtml(card.hint)}</div>` : ''}
+        `;
+        if (counter) counter.textContent = `${this.currentIndex + 1} / ${this.cards.length}`;
+        if (sessionInfo) sessionInfo.textContent = `已掌握 ${this.sessionStats.cardsMastered} / ${this.cards.length}`;
+        const masterBtn = document.getElementById('capsule-master-btn');
+        const favBtn = document.getElementById('capsule-fav-btn');
+        const notePanel = document.getElementById('capsule-note-panel');
+        const noteInput = document.getElementById('capsule-note-input');
+        if (masterBtn) masterBtn.classList.toggle('mastered', !!prog.is_mastered);
+        if (favBtn) favBtn.classList.toggle('favorited', !!prog.is_favorite);
+        if (notePanel) notePanel.classList.add('collapsed');
+        if (noteInput) noteInput.value = prog.user_note || '';
+        this.updateOrbitCurrent();
+        this.renderNavPodList();
+    }
+
+    flip() {
+        if (!this.immersiveMode) {
+            const card = document.getElementById('flashcard-card');
+            if (card) {
+                this.flipped = !this.flipped;
+                card.classList.toggle('flipped', this.flipped);
+                this._clearAutoFlip();
+                const hintEl = document.getElementById('flashcard-auto-flip-hint');
+                if (this.flipped && hintEl) hintEl.style.opacity = '0';
+                if (this.flipped) {
+                    this._clearCountdown();
+                    this._clearCountdownState();
+                }
+            }
+            return;
+        }
+        const card3d = document.getElementById('capsule-card-3d');
+        if (!card3d) return;
+        this.flipped = !this.flipped;
+        card3d.classList.toggle('flipped', this.flipped);
+        if (this.flipped && !this._hasAnsweredCurrent()) {
+            this.sessionStats.cardsAnswered++;
+            this.updateStatsUI();
+        }
+    }
+
+    async toggleMastered() {
+        const card = this.cards[this.currentIndex];
+        const hash = this._hashCard(card.front, card.back);
+        const prog = this.cardProgress[hash] || {};
+        const newState = !prog.is_mastered;
+        prog.is_mastered = newState ? 1 : 0;
+        prog.is_favorite = prog.is_favorite || 0;
+        prog.difficulty = prog.difficulty || 'medium';
+        prog.user_note = prog.user_note || '';
+        prog.review_count = (prog.review_count || 0) + 1;
+        this.cardProgress[hash] = prog;
+        if (newState) {
+            this.sessionStats.cardsMastered++;
+            this._showMasteryBurst();
+        } else {
+            this.sessionStats.cardsMastered = Math.max(0, this.sessionStats.cardsMastered - 1);
+        }
+        const btn = document.getElementById('capsule-master-btn');
+        if (btn) btn.classList.toggle('mastered', newState);
+        this.updateOrbitCurrent();
+        this.renderNavPodList();
+        this.updateStatsUI();
+        if (this.userId) await this._saveProgressToDB(card, prog);
+        this.checkCompletion();
+    }
+
+    async toggleFavorite() {
+        const card = this.cards[this.currentIndex];
+        const hash = this._hashCard(card.front, card.back);
+        const prog = this.cardProgress[hash] || {};
+        const newState = !prog.is_favorite;
+        prog.is_favorite = newState ? 1 : 0;
+        prog.is_mastered = prog.is_mastered || 0;
+        prog.difficulty = prog.difficulty || 'medium';
+        prog.user_note = prog.user_note || '';
+        this.cardProgress[hash] = prog;
+        if (newState) this.sessionStats.cardsFavorited++;
+        else this.sessionStats.cardsFavorited = Math.max(0, this.sessionStats.cardsFavorited - 1);
+        const btn = document.getElementById('capsule-fav-btn');
+        if (btn) btn.classList.toggle('favorited', newState);
+        this.updateOrbitCurrent();
+        this.renderNavPodList();
+        if (this.userId) await this._saveProgressToDB(card, prog);
+    }
+
+    toggleNotePanel() {
+        const panel = document.getElementById('capsule-note-panel');
+        if (panel) panel.classList.toggle('collapsed');
+    }
+
+    async saveNote(text) {
+        const card = this.cards[this.currentIndex];
+        const hash = this._hashCard(card.front, card.back);
+        const prog = this.cardProgress[hash] || {};
+        prog.user_note = text;
+        this.cardProgress[hash] = prog;
+        if (this.userId) await this._saveProgressToDB(card, prog);
+    }
+
+    toggleDataPod() {
+        this.dataPodOpen = !this.dataPodOpen;
+        const pod = document.getElementById('capsule-data-pod');
+        if (pod) pod.classList.toggle('collapsed', !this.dataPodOpen);
+        if (this.dataPodOpen) this.updateStatsUI();
+    }
+
+    toggleNavPod() {
+        this.navPodOpen = !this.navPodOpen;
+        const pod = document.getElementById('capsule-nav-pod');
+        if (pod) pod.classList.toggle('collapsed', !this.navPodOpen);
+        if (this.navPodOpen) this.renderNavPodList();
+    }
+
+    renderNavPodList() {
+        const list = document.getElementById('capsule-nav-pod-list');
+        if (!list) return;
+        list.innerHTML = '';
+        const filtered = this.cards.map((c, i) => ({ card: c, index: i })).filter(({ card }) => {
+            const hash = this._hashCard(card.front, card.back);
+            const prog = this.cardProgress[hash] || {};
+            if (this.filterMode === 'unmastered') return !prog.is_mastered;
+            if (this.filterMode === 'favorite') return prog.is_favorite;
+            return true;
+        });
+        filtered.forEach(({ card, index }) => {
+            const hash = this._hashCard(card.front, card.back);
+            const prog = this.cardProgress[hash] || {};
+            const item = document.createElement('div');
+            item.className = 'capsule-nav-pod-item';
+            if (index === this.currentIndex) item.classList.add('current');
+            if (prog.is_mastered) item.classList.add('mastered');
+            if (prog.is_favorite) item.classList.add('favorite');
+            item.innerHTML = `
+                <div class="item-index">${index + 1}</div>
+                <div class="item-text">${this._escapeHtml(card.front.slice(0, 30))}${card.front.length > 30 ? '...' : ''}</div>
+                <div class="item-badges">
+                    ${prog.is_mastered ? '<div class="item-badge mastered"></div>' : ''}
+                    ${prog.is_favorite ? '<div class="item-badge favorite"></div>' : ''}
+                </div>
+            `;
+            item.onclick = () => this.jumpToCard(index);
+            list.appendChild(item);
+        });
+    }
+
+    filterCards(mode) {
+        this.filterMode = mode;
+        document.querySelectorAll('.capsule-nav-pod-filter .filter-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.filter === mode);
+        });
+        this.renderNavPodList();
+    }
+
+    jumpToCard(index) {
+        if (index < 0 || index >= this.cards.length || index === this.currentIndex) return;
+        const direction = index > this.currentIndex ? 1 : -1;
+        this.currentIndex = index;
+        const card3d = document.getElementById('capsule-card-3d');
+        if (card3d) {
+            card3d.classList.add(direction > 0 ? 'slide-out-left' : 'slide-out-right');
+            setTimeout(() => {
+                this.renderCardImmersive();
+                card3d.classList.remove('slide-out-left', 'slide-out-right');
+                card3d.classList.add(direction > 0 ? 'slide-in-right' : 'slide-in-left');
+                setTimeout(() => card3d.classList.remove('slide-in-right', 'slide-in-left'), 300);
+            }, 250);
+        } else {
+            this.renderCardImmersive();
+        }
+    }
+
+    _navigateCard(direction) {
+        const nextIndex = this.currentIndex + direction;
+        if (nextIndex >= 0 && nextIndex < this.cards.length) {
+            this.jumpToCard(nextIndex);
+        }
+    }
+
+    next() {
+        if (this.immersiveMode) {
+            this._navigateCard(1);
+            return;
+        }
+        if (this.currentIndex < this.cards.length - 1) {
+            this.currentIndex++;
+            this._clearCountdownState();
+            this.renderCard();
+        }
+    }
+
+    updateStatsUI() {
+        const total = this.cards.length;
+        const mastered = this.sessionStats.cardsMastered;
+        const percent = total > 0 ? Math.round((mastered / total) * 100) : 0;
+        const ringFill = document.getElementById('capsule-stat-ring-fill');
+        if (ringFill) {
+            const circumference = 2 * Math.PI * 42;
+            ringFill.style.strokeDashoffset = circumference - (percent / 100) * circumference;
+        }
+        const percentEl = document.getElementById('capsule-stat-percent');
+        if (percentEl) percentEl.textContent = percent + '%';
+        const todayEl = document.getElementById('capsule-stat-today');
+        if (todayEl) todayEl.textContent = this.sessionStats.cardsAnswered;
+        const totalEl = document.getElementById('capsule-stat-total');
+        if (totalEl) totalEl.textContent = this.userStats.totalCards + this.sessionStats.cardsAnswered;
+        const streakEl = document.getElementById('capsule-stat-streak');
+        if (streakEl) streakEl.textContent = this.userStats.streakDays;
+        const sessionInfo = document.getElementById('capsule-session-info');
+        if (sessionInfo) sessionInfo.textContent = `已掌握 ${mastered} / ${total}`;
+    }
+
+    checkCompletion() {
+        const total = this.cards.length;
+        const mastered = this.sessionStats.cardsMastered;
+        if (total > 0 && mastered >= total) {
+            setTimeout(() => this.showCompletion(), 600);
+        }
+    }
+
+    showCompletion() {
+        const completion = document.getElementById('capsule-completion');
+        const text = document.getElementById('capsule-completion-text');
+        if (text) text.textContent = `已掌握 ${this.sessionStats.cardsMastered}/${this.cards.length} 张胶囊`;
+        if (completion) completion.classList.remove('hidden');
+        this._fireConfetti();
+    }
+
+    _hasAnsweredCurrent() {
+        const card = this.cards[this.currentIndex];
+        const hash = this._hashCard(card.front, card.back);
+        return (this.cardProgress[hash]?.review_count || 0) > 0;
+    }
+
+    _hashCard(front, back) {
+        let h = 0;
+        const str = (front || '') + '|' + (back || '');
+        for (let i = 0; i < str.length; i++) {
+            h = ((h << 5) - h) + str.charCodeAt(i);
+            h |= 0;
+        }
+        return 'c' + Math.abs(h).toString(36);
+    }
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    _handleImmersiveKey(e) {
+        switch (e.key) {
+            case 'Escape': this.exitImmersive(); break;
+            case 'ArrowLeft': e.preventDefault(); this.prev(); break;
+            case 'ArrowRight': e.preventDefault(); this.next(); break;
+            case ' ': e.preventDefault(); this.flip(); break;
+            case 'f': case 'F': this.toggleFavorite(); break;
+            case 'm': case 'M': this.toggleMastered(); break;
+            case 'n': case 'N': this.toggleNotePanel(); break;
+            case 'd': case 'D': this.toggleDataPod(); break;
+            case 'l': case 'L': this.toggleNavPod(); break;
+        }
+    }
+
+    // ========== 星云粒子动画 ==========
+    _initNebula() {
+        const canvas = document.getElementById('capsule-nebula-canvas');
+        if (!canvas) return;
+        this.nebulaCanvas = canvas;
+        this.nebulaCtx = canvas.getContext('2d');
+        this._resizeNebula();
+        this.particles = [];
+        for (let i = 0; i < 80; i++) {
+            this.particles.push(this._createParticle());
+        }
+        this._animateNebula();
+        window.addEventListener('resize', this._resizeNebula);
+    }
+
+    _createParticle() {
+        const w = this.nebulaCanvas?.width || window.innerWidth;
+        const h = this.nebulaCanvas?.height || window.innerHeight;
+        return {
+            x: Math.random() * w,
+            y: Math.random() * h,
+            r: Math.random() * 2 + 0.5,
+            dx: (Math.random() - 0.5) * 0.3,
+            dy: (Math.random() - 0.5) * 0.3,
+            alpha: Math.random() * 0.5 + 0.1,
+            color: ['rgba(100,149,237,', 'rgba(139,92,246,', 'rgba(59,130,246,', 'rgba(147,197,253,'][Math.floor(Math.random() * 4)]
+        };
+    }
+
+    _resizeNebula = () => {
+        if (!this.nebulaCanvas) return;
+        this.nebulaCanvas.width = window.innerWidth;
+        this.nebulaCanvas.height = window.innerHeight;
+    }
+
+    _animateNebula = () => {
+        if (!this.nebulaCtx || !this.nebulaCanvas) return;
+        const ctx = this.nebulaCtx;
+        const w = this.nebulaCanvas.width;
+        const h = this.nebulaCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+        this.particles.forEach(p => {
+            p.x += p.dx;
+            p.y += p.dy;
+            if (p.x < 0) p.x = w;
+            if (p.x > w) p.x = 0;
+            if (p.y < 0) p.y = h;
+            if (p.y > h) p.y = 0;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fillStyle = p.color + p.alpha + ')';
+            ctx.fill();
+        });
+        this._nebularAF = requestAnimationFrame(this._animateNebula);
+    }
+
+    _destroyNebula() {
+        if (this._nebularAF) {
+            cancelAnimationFrame(this._nebularAF);
+            this._nebularAF = null;
+        }
+        window.removeEventListener('resize', this._resizeNebula);
+        this.nebulaCanvas = null;
+        this.nebulaCtx = null;
+        this.particles = [];
+    }
+
+    // ========== 视觉反馈 ==========
+    _showMasteryBurst() {
+        const stage = document.getElementById('capsule-card-stage');
+        if (!stage) return;
+        const burst = document.createElement('div');
+        burst.className = 'mastery-burst';
+        const rect = stage.getBoundingClientRect();
+        burst.style.left = rect.left + rect.width / 2 + 'px';
+        burst.style.top = rect.top + rect.height / 2 + 'px';
+        for (let i = 0; i < 12; i++) {
+            const p = document.createElement('div');
+            p.className = 'mastery-burst-particle';
+            const angle = (Math.PI * 2 / 12) * i;
+            const dist = 60 + Math.random() * 40;
+            p.style.setProperty('--tx', Math.cos(angle) * dist + 'px');
+            p.style.setProperty('--ty', Math.sin(angle) * dist + 'px');
+            burst.appendChild(p);
+        }
+        document.body.appendChild(burst);
+        setTimeout(() => burst.remove(), 900);
+    }
+
+    _fireConfetti() {
+        const colors = ['#fbbf24', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ef4444'];
+        for (let i = 0; i < 60; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.style.cssText = `
+                    position: fixed; z-index: 9999; width: 8px; height: 8px; border-radius: 50%;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    left: 50%; top: 50%;
+                    pointer-events: none;
+                `;
+                const dx = (Math.random() - 0.5) * 600;
+                const dy = (Math.random() - 0.5) * 600 - 100;
+                el.style.transition = 'all 1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                document.body.appendChild(el);
+                requestAnimationFrame(() => {
+                    el.style.transform = `translate(${dx}px, ${dy}px) scale(0)`;
+                    el.style.opacity = '0';
+                });
+                setTimeout(() => el.remove(), 1000);
+            }, i * 20);
+        }
+    }
+
+    // ========== 数据库同步 ==========
+    async _saveProgressToDB(card, prog) {
+        if (!this.userId) return;
+        try {
+            const body = {
+                user_id: this.userId,
+                card_hash: this._hashCard(card.front, card.back),
+                course_id: 'bigdata',
+                chapter_name: card.chapter || '',
+                front: card.front,
+                back: card.back,
+                hint: card.hint || '',
+                is_mastered: prog.is_mastered ? 1 : 0,
+                is_favorite: prog.is_favorite ? 1 : 0,
+                difficulty: prog.difficulty || 'medium',
+                user_note: prog.user_note || '',
+                review_count: prog.review_count || 0,
+            };
+            await fetch(`${API_BASE}/api/v2/flashcard/progress`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+        } catch (e) { console.warn('[Flashcard] Save progress failed:', e); }
+    }
+
+    async _loadProgressFromDB() {
+        if (!this.userId) return;
+        try {
+            const res = await fetch(`${API_BASE}/api/v2/flashcard/progress?user_id=${this.userId}&course_id=bigdata`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                data.data.forEach(p => {
+                    this.cardProgress[p.card_hash] = p;
+                });
+            }
+        } catch (e) { console.warn('[Flashcard] Load progress failed:', e); }
+        try {
+            const res = await fetch(`${API_BASE}/api/v2/flashcard/stats?user_id=${this.userId}`);
+            const data = await res.json();
+            if (data.success && data.data) {
+                this.userStats = { ...this.userStats, ...data.data };
+            }
+        } catch (e) { console.warn('[Flashcard] Load stats failed:', e); }
+    }
+
+    async _saveSessionToDB() {
+        if (!this.userId) return;
+        try {
+            const session = {
+                user_id: this.userId,
+                course_id: 'bigdata',
+                cards_total: this.sessionStats.cardsTotal,
+                cards_answered: this.sessionStats.cardsAnswered,
+                cards_mastered: this.sessionStats.cardsMastered,
+                cards_favorited: this.sessionStats.cardsFavorited,
+                duration_seconds: this.sessionStats.duration,
+                session_json: JSON.stringify({ cardProgress: this.cardProgress }),
+            };
+            await fetch(`${API_BASE}/api/v2/flashcard/session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(session),
+            });
+        } catch (e) { console.warn('[Flashcard] Save session failed:', e); }
     }
 }
 

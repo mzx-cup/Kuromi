@@ -1771,13 +1771,15 @@ def get_flashcard_progress(user_id, course_id=None, chapter_name=None):
                 for row in rows:
                     if isinstance(row, dict):
                         result.append(row)
+                    elif hasattr(row, 'keys'):
+                        result.append({key: row[key] for key in row.keys()})
                     else:
                         result.append({
-                            'card_hash': row[1], 'course_id': row[2], 'chapter_name': row[3],
-                            'front_text': row[4], 'back_text': row[5], 'hint_text': row[6],
-                            'is_mastered': row[7], 'is_favorite': row[8], 'difficulty': row[9],
-                            'user_note': row[10], 'review_count': row[11],
-                            'first_seen_at': row[12], 'last_reviewed_at': row[13],
+                            'card_hash': row[2], 'course_id': row[3], 'chapter_name': row[4],
+                            'front_text': row[5], 'back_text': row[6], 'hint_text': row[7],
+                            'is_mastered': row[8], 'is_favorite': row[9], 'difficulty': row[10],
+                            'user_note': row[11], 'review_count': row[12],
+                            'first_seen_at': row[13], 'last_reviewed_at': row[14],
                         })
                 return result
             except Exception as e:
@@ -1951,6 +1953,8 @@ def get_flashcard_sessions(user_id, limit=30):
                 for row in rows:
                     if isinstance(row, dict):
                         result.append(row)
+                    elif hasattr(row, 'keys'):
+                        result.append({key: row[key] for key in row.keys()})
                     else:
                         result.append({
                             'session_date': row[2], 'course_id': row[3], 'chapter_name': row[4],

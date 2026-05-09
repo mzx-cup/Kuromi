@@ -487,11 +487,11 @@ MYSQL_TABLES = [
         chapter_name VARCHAR(255) DEFAULT '',
         front_text TEXT NOT NULL,
         back_text TEXT NOT NULL,
-        hint_text TEXT DEFAULT '',
+        hint_text VARCHAR(500) DEFAULT '',
         is_mastered TINYINT DEFAULT 0,
         is_favorite TINYINT DEFAULT 0,
         difficulty VARCHAR(20) DEFAULT 'medium',
-        user_note TEXT DEFAULT '',
+        user_note VARCHAR(1000) DEFAULT '',
         review_count INT DEFAULT 0,
         first_seen_at TIMESTAMP NULL,
         last_reviewed_at TIMESTAMP NULL,
@@ -531,6 +531,7 @@ TABLE_NAMES = [
     "learning_records",
     "learning_path",
     "user_profile",
+    "user_evaluations",
     "user_preferences",
     "user_garden",
     "user_pet",
@@ -606,12 +607,14 @@ def mysql_to_sqlite(sql):
     sql = sql.replace("TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
                       "TEXT DEFAULT (datetime('now','localtime'))")
     sql = sql.replace("TIMESTAMP NULL DEFAULT NULL", "TEXT")
+    sql = sql.replace("TIMESTAMP NULL", "TEXT")
 
     # 7. 通用类型映射
     sql = sql.replace("AUTO_INCREMENT", "AUTOINCREMENT")
     sql = sql.replace("LONGTEXT", "TEXT")
     sql = sql.replace("BIGINT DEFAULT 0", "INTEGER DEFAULT 0")
     sql = sql.replace("BIGINT", "INTEGER")
+    sql = sql.replace("TINYINT", "INTEGER")
     sql = sql.replace("INT NOT NULL UNIQUE", "INTEGER NOT NULL UNIQUE")
     sql = sql.replace("INT NOT NULL", "INTEGER NOT NULL")
     sql = re.sub(r'\bINT\s+DEFAULT\s+', 'INTEGER DEFAULT ', sql)
