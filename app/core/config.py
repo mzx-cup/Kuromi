@@ -40,5 +40,5 @@ def get_config() -> AppConfig:
 
 DATABASE_URL: str = os.getenv(
     "DATABASE_URL",
-    "sqlite+aiosqlite:///./starlearn_v2.db",
+    "mysql+asyncmy://root:@localhost:3306/xingshi",
 )

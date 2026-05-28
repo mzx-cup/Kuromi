@@ -19,6 +19,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.services.teacher.grading import Grader, GradeResult, get_grader
+from app.api.learning_path import generate_path_for_user
 
 logger = logging.getLogger("starlearn.api.grading")
 
@@ -122,6 +123,15 @@ async def _do_grade(req: GradeRequest, persist: bool = True) -> GradeResponse:
                 "Quiz result saved: student=%s, quiz=%s, score=%.1f/%.1f, correct=%s",
                 req.student_id, req.quiz_id, result.score, result.total_points, result.is_correct,
             )
+            # 测验结果保存后，异步触发学习路径刷新
+            try:
+                import asyncio
+                sid = int(req.student_id) if req.student_id.isdigit() else 0
+                if sid:
+                    asyncio.create_task(generate_path_for_user(sid, force_refresh=False))
+                    logger.info("Learning path refresh triggered after quiz: student=%s", req.student_id)
+            except Exception as refresh_err:
+                logger.warning("Failed to trigger learning path refresh: %s", refresh_err)
         except Exception as e:
             logger.error("Failed to persist quiz result: %s", e)
             # 持久化失败不影响评分返回

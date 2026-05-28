@@ -10376,3 +10376,121 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 
+
+
+/* ============================================================
+   学习路径实时更新样式
+   ============================================================ */
+
+/* 路径顶部刷新栏 */
+.path-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 2px;
+}
+
+/* 路径加载指示条 */
+.path-tree-loading {
+    width: 100%;
+    height: 2px;
+    background: var(--surface-glass-hover);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.path-tree-loading:not(.hidden) {
+    opacity: 1;
+}
+.path-loading-bar {
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--primary-light));
+    border-radius: 2px;
+    animation: pathLoadingSlide 1.2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--accent-bg);
+}
+@keyframes pathLoadingSlide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+}
+
+/* 刷新按钮旋转动画 */
+#path-refresh-btn.spinning #path-refresh-icon {
+    animation: refreshSpin 0.8s linear infinite;
+}
+@keyframes refreshSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 路径节点更新动画 */
+.path-tree-node.path-node-enter {
+    animation: pathNodeEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes pathNodeEnter {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.path-tree-node.path-node-updated {
+    animation: pathNodeUpdated 0.6s ease both;
+}
+@keyframes pathNodeUpdated {
+    0% { background: var(--accent-bg); box-shadow: 0 0 12px var(--accent-bg); }
+    100% { background: transparent; box-shadow: none; }
+}
+
+/* 路径节点 tooltip */
+.path-tree-node {
+    position: relative;
+}
+.path-tree-node[data-reason]::after {
+    content: attr(data-reason);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 8px;
+    padding: 6px 10px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 100;
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.path-tree-node[data-reason]:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 路径状态标签 */
+.path-status-completed { color: var(--success); }
+.path-status-inprogress { color: var(--accent); }
+.path-status-locked { color: var(--text-tertiary); }
+
+/* 路径子节点过渡 */
+.path-tree-children {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}

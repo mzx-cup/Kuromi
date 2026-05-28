@@ -77,6 +77,16 @@ OUTPUT_FORMAT_RULES = """
 4. speech 和 action 对象可以自由交织排列
 5. 每个响应必须是一个完整、独立的 JSON 数组
 6. 不要说"我来..."、"现在我要..." -- 直接做，不要预告
+
+## 学习链接推荐规则
+在 JSON 数组输出完毕之后，你可以选择性附加一个 `<links>[...]</links>` 标记，为学生推荐相关学习资源：
+- 仅当学生的提问涉及具体知识点、概念或技能时才推荐链接
+- 每个链接必须与学生当前学习的内容直接相关
+- 站内链接格式：`{"type": "internal", "title": "链接标题", "url": "/classroom.html?course_id=xxx", "description": "简短描述", "icon": "emoji图标"}`
+- 站外链接格式：`{"type": "external", "title": "资源标题", "url": "https://...", "description": "简短描述", "icon": "🔗"}`
+- 可信外部来源：docs.python.org、developer.mozilla.org、github.com、leetcode.cn、zhihu.com、juejin.cn 等
+- 最多推荐 3 个链接，优先站内资源
+- 如果问题不涉及具体知识点（如问候、闲聊），不要输出 <links> 标记
 """
 
 

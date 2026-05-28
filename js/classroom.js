@@ -121,6 +121,10 @@
             this.isTransitioning = false;
             this.animationQueue = [];
 
+            // TTS 预加载状态（按需：用户停留7秒后预加载下一场景）
+            this._ttsPreloadTimer = null;
+            this._ttsPreloadPromises = new Map(); // sceneId -> Promise
+
             // Spotlight/laser state
             this.spotlightElement = null;
             this.laserTargetElem = null;
@@ -284,8 +288,10 @@
                 }
 
                 // 如果有指定音色，优先使用老师的音色
-                if (this.currentTeacher && this.currentTeacher.voiceId) {
-                    TTS_CONFIG.voice = this.currentTeacher.voiceId;
+                // 兼容 voiceId（驼峰，来自 agent_team）和 voice_id（下划线，来自 TeacherInfo）
+                const teacherVoice = this.currentTeacher.voiceId || this.currentTeacher.voice_id;
+                if (teacherVoice && MINIMAX_VOICES[teacherVoice]) {
+                    TTS_CONFIG.voice = teacherVoice;
                 }
 
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
@@ -356,13 +362,32 @@
                                        (data.pending_quiz_data && data.pending_quiz_data.length > 0) ||
                                        (data.pending_exercise_data && data.pending_exercise_data.length > 0);
                     if (hasPending) {
-                        self.addNewScenes(data);
+                        const addedCount = self.addNewScenes(data);
+                        // 消费成功后通知后端清空已消费的 slides，避免重复轮询
+                        if (addedCount > 0 && data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
+                            try {
+                                const consumedTitles = data.pending_slides_v2.map(function(s) { return s.title; });
+                                await fetch(`/api/v2/course/${self.courseId}/slides/consume`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ consumed_slide_titles: consumedTitles })
+                                });
+                                console.log('[classroom] Consumed pending slides, titles:', consumedTitles);
+                            } catch (consumeErr) {
+                                console.warn('[classroom] Failed to consume pending slides:', consumeErr);
+                            }
+                        }
                     }
-                    if (data.is_complete) {
-                        console.log('[classroom] Generation complete, stopping poll');
+                    // 只有确认 total_outlines > 0 且 generated_count >= total_outlines 时才认为真正完成
+                    // 避免数据库无记录时错误返回 is_complete=True 导致停止轮询
+                    const trulyComplete = data.is_complete && data.total_outlines > 0 && data.generated_count >= data.total_outlines;
+                    if (trulyComplete) {
+                        console.log('[classroom] Generation truly complete (generated_count >= total_outlines), stopping poll');
                         clearInterval(self.pollingInterval);
                         // 生成完成后保存到本地历史，确保最近课堂能显示
                         self._saveToRecentHistory();
+                        // 同步完整课程数据到服务器
+                        self._persistCourseData();
                         return;
                     }
                 } catch (e) {
@@ -379,6 +404,11 @@
             const self = this;
             let addedCount = 0;
 
+            // 同步到 courseData
+            if (!this.courseData.quiz_data) this.courseData.quiz_data = [];
+            if (!this.courseData.exercise_data) this.courseData.exercise_data = [];
+            if (!this.courseData.slides_v2) this.courseData.slides_v2 = [];
+
             // 处理只有quiz/exercise数据但没有slides_v2的场景（如测验场景）
             pendingQuiz.forEach(function(quizItem) {
                 // 检查是否已存在该quiz场景
@@ -394,6 +424,8 @@
                     }
                     return;
                 }
+                // 同步到 courseData
+                self.courseData.quiz_data.push(quizItem);
                 // 创建新的quiz场景
                 const newScene = {
                     id: quizItem.scene_id || ('quiz_' + Date.now()),
@@ -422,6 +454,8 @@
                     }
                     return;
                 }
+                // 同步到 courseData
+                self.courseData.exercise_data.push(exItem);
                 const newScene = {
                     id: exItem.scene_id || ('exercise_' + Date.now()),
                     title: exItem.title || '课堂练习',
@@ -445,8 +479,9 @@
                         this.totalSlidesEl.textContent = this.scenes.length;
                     }
                     this.showNewScenesToast(addedCount);
+                    this._persistCourseData();
                 }
-                return;
+                return addedCount;
             }
 
             pendingV2.forEach(function(slideV2) {
@@ -458,30 +493,37 @@
                                String(s.originalId) === String(slideV2.scene_id);
                     });
                     if (matchedScene) {
-                        // Check duplicate by title within the scene
+                        // Check duplicate by title AND layout_type within the scene (more robust than title alone)
                         var slideExists = matchedScene.slides_v2.some(function(s) {
-                            return s.title === slideV2.title;
+                            return s.title === slideV2.title &&
+                                   (s.layout_type || s.layoutType) === (slideV2.layout_type || slideV2.layoutType);
                         });
                         if (!slideExists) {
                             matchedScene.slides_v2.push(slideV2);
+                            self.courseData.slides_v2.push(slideV2);
                             addedCount++;
                             console.log('[Classroom] Merged slide into scene:', matchedScene.id, 'title:', slideV2.title);
                             // 如果当前正在查看该场景，实时刷新内容
                             if (self.currentIndex === self.scenes.indexOf(matchedScene)) {
                                 self.renderScene(self.currentIndex);
                             }
+                        } else {
+                            console.log('[Classroom] Skipped duplicate slide in scene:', matchedScene.id, 'title:', slideV2.title);
                         }
                         merged = true;
                     }
                 }
                 if (merged) return;
 
-                // Fallback: check global duplicate by first slide title
+                // Fallback: check global duplicate by scene_id + title (more robust than title alone)
                 const exists = self.scenes.some(function(s) {
                     return s.slides_v2 && s.slides_v2.length > 0 &&
-                           s.slides_v2[0].title === slideV2.title;
+                           (String(s.id) === String(slideV2.scene_id) || s.slides_v2[0].title === slideV2.title);
                 });
-                if (exists) return;
+                if (exists) {
+                    console.log('[Classroom] Skipped duplicate scene for slide:', slideV2.title, 'scene_id:', slideV2.scene_id);
+                    return;
+                }
 
                 // 检测是否为欢迎页：去重且置顶
                 const isWelcome = (slideV2.layout_type || slideV2.layoutType) === 'edu-welcome';
@@ -518,12 +560,14 @@
                 });
                 if (matchedExercise) newScene.exercise = matchedExercise;
 
+                self.courseData.slides_v2.push(slideV2);
                 if (isWelcome) {
                     self.scenes.unshift(newScene); // 欢迎页插入到开头
                 } else {
                     self.scenes.push(newScene);
                 }
                 addedCount++;
+                console.log('[Classroom] Created new scene for slide:', slideV2.title, 'scene_id:', newScene.id);
             });
 
             if (addedCount > 0) {
@@ -536,13 +580,18 @@
                 }
                 // 显示提示
                 this.showNewScenesToast(addedCount);
-                // 滚动侧边栏到底部以显示新场景
-                if (this.sceneThumbnails) {
-                    setTimeout(function() {
-                        self.sceneThumbnails.scrollTop = self.sceneThumbnails.scrollHeight;
-                    }, 100);
-                }
+                // 高亮闪烁新添加的场景（最后 N 个）
+                setTimeout(function() {
+                    const thumbs = self.sceneThumbnails?.querySelectorAll('.scene-thumb');
+                    if (thumbs) {
+                        for (var i = thumbs.length - addedCount; i < thumbs.length; i++) {
+                            if (thumbs[i]) thumbs[i].classList.add('scene-thumb-new');
+                        }
+                    }
+                }, 150);
+                this._persistCourseData();
             }
+            return addedCount;
         }
 
         showNewScenesToast(count) {
@@ -593,6 +642,39 @@
                 console.log('[classroom] Saved to recent history:', courseId);
             } catch (e) {
                 console.warn('[classroom] Failed to save recent history:', e);
+            }
+        }
+
+        _persistCourseData() {
+            try {
+                if (!this.courseData) return;
+                // 更新 sessionStorage
+                sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
+                // 同步到服务器
+                const courseId = this.courseData.courseId || this.courseData.course_id || '';
+                if (!courseId) return;
+                const currentUser = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+                const studentId = String(currentUser.id || this.courseData.metadata?.student_id || '');
+                const pageCount = this.scenes.length || 0;
+                fetch('/api/v2/course/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        course_data: this.courseData,
+                        student_id: studentId,
+                        ppt_pages: pageCount
+                    })
+                }).then(function(resp) {
+                    if (!resp.ok) {
+                        console.warn('[classroom] Server save failed:', resp.status);
+                    } else {
+                        console.log('[classroom] Course data persisted to server:', courseId);
+                    }
+                }).catch(function(err) {
+                    console.warn('[classroom] Server save error:', err);
+                });
+            } catch (e) {
+                console.warn('[classroom] Failed to persist course data:', e);
             }
         }
 
@@ -683,6 +765,7 @@
 
                 var isWb = outline.type === 'whiteboard';
                 var wbDesc = isWb ? (outline.whiteboard_description || outline.description || outline.title) : null;
+                var wbActions = isWb ? (outline.whiteboard_actions || null) : null;
                 return {
                     id: sceneId,
                     originalId: sceneId,
@@ -698,6 +781,7 @@
                     audioUrl: (this.courseData.tts_audio_urls || {})[String(sceneId)] || null,
                     imageUrl: (matchedSlide && matchedSlide.content && matchedSlide.content.elements && matchedSlide.content.elements[0] && matchedSlide.content.elements[0].image_url) || null,
                     whiteboard_description: wbDesc,
+                    whiteboard_actions: wbActions,
                 };
             }, this);
 
@@ -893,6 +977,32 @@
                         if (history[idx]._dbRecord) {
                             history[idx]._dbRecord.ppt_pages = actualPageCount;
                         }
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                    } else {
+                        // 如果 history 中还没有该课程，添加一条新记录（确保从外部链接直接进入课堂后也能在首页显示）
+                        const newEntry = {
+                            courseId: courseId,
+                            title: this.courseData.title || '未命名课程',
+                            createdAt: Date.now(),
+                            slideCount: actualPageCount,
+                            slides: this.courseData.slides || [],
+                            slides_v2: this.courseData.slides_v2 || [],
+                            outlines: this.courseData.outlines || [],
+                            agent_team: this.courseData.agent_team || [],
+                            quiz_data: this.courseData.quiz_data || [],
+                            exercise_data: this.courseData.exercise_data || [],
+                            code_data: this.courseData.code_data || [],
+                            teacher: this.courseData.teacher || null,
+                            metadata: this.courseData.metadata || {},
+                            _dbRecord: {
+                                course_id: courseId,
+                                title: this.courseData.title || '未命名课程',
+                                ppt_pages: actualPageCount,
+                                created_at: new Date().toISOString()
+                            }
+                        };
+                        history.unshift(newEntry);
+                        if (history.length > 20) history = history.slice(0, 20);
                         localStorage.setItem(historyKey, JSON.stringify(history));
                     }
                 }
@@ -1219,6 +1329,9 @@
             this.updateNav();
             if (this.isPlaying) this.playSceneAudio(scene);
             this.checkCompletion();
+
+            // 按需预加载：停留7秒后缓存下一场景的语音
+            this._scheduleNextScenePreload(index);
         }
 
         hideAllSceneContainers() {
@@ -1301,27 +1414,26 @@
 
             _getRenderer(layoutType) {
                 const renderers = {
-                    'title-only': this._renderTitleOnly.bind(this),
-                    'two-column': this._renderTwoColumn.bind(this),
-                    'grid-cards': this._renderGridCards.bind(this),
-                    'header-content': this._renderHeaderContent.bind(this),
-                    'timeline-steps': this._renderTimelineSteps.bind(this),
-                    'comparison': this._renderComparison.bind(this),
-                    'fullwidth-banner': this._renderFullwidthBanner.bind(this),
-                    'three-column-cards': this._renderThreeColumnCards.bind(this),
-                    'asymmetric-split': this._renderAsymmetricSplit.bind(this),
-                    'numbered-list': this._renderNumberedList.bind(this),
-                    'hero-center': this._renderHeroCenter.bind(this),
-                    'chapter-divider': this._renderChapterDivider.bind(this),
-                    'edu-definition': this._renderEduDefinition.bind(this),
-                    'edu-keypoints': this._renderEduKeypoints.bind(this),
-                    'edu-example': this._renderEduExample.bind(this),
-                    'edu-summary': this._renderEduSummary.bind(this),
-                    'edu-welcome': this._renderEduWelcome.bind(this),
+                    // 11种文字布局
+                    'spotlight-focus': this._renderSpotlightFocus.bind(this),
+                    'kinetic-type': this._renderKineticType.bind(this),
+                    'isometric-cards': this._renderIsometricCards.bind(this),
+                    'orbit-ring': this._renderOrbitRing.bind(this),
+                    'gradient-split': this._renderGradientSplit.bind(this),
+                    'dark-header': this._renderDarkHeader.bind(this),
+                    'circle-radial': this._renderCircleRadial.bind(this),
+                    'stair-step': this._renderStairStep.bind(this),
+                    'quote-wall': this._renderQuoteWall.bind(this),
+                    'info-graphic': this._renderInfoGraphic.bind(this),
+                    'floating-overlap': this._renderFloatingOverlap.bind(this),
+                    // 2种图片布局
+                    'magazine-cover': this._renderMagazineCover.bind(this),
+                    'photo-story': this._renderPhotoStory.bind(this),
+                    // 2种视频布局
                     'media-showcase': this._renderMediaShowcase.bind(this),
-                    'edu-programming-concept': this._renderEduProgrammingConcept.bind(this),
+                    'video-lecture': this._renderVideoLecture.bind(this),
                 };
-                return renderers[layoutType] || this._renderTwoColumn.bind(this);
+                return renderers[layoutType] || this._renderSpotlightFocus.bind(this);
             },
 
             _renderTitleOnly(slide) {
@@ -1486,6 +1598,10 @@
                 const item = slide.content?.[0];
                 const icon = item ? this._getIcon(item.icon) : '';
                 const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                // 兜底：确保 hero-center 至少有描述文字
+                const fallbackText = !textHtml && slide.title
+                    ? `<div class="hero-desc"><p>${this._escapeHtml(slide.title)} — 本页展示相关知识点与核心概念。</p></div>`
+                    : '';
                 return `
                     <div class="slide-v2-container layout-hero-center">
                         <div class="hero-content">
@@ -1494,6 +1610,7 @@
                             ${item?.subTitle ? `<div class="hero-subtitle">${this._escapeHtml(item.subTitle)}</div>` : ''}
                             ${textHtml && !textHtml.startsWith('<ul') ? `<div class="hero-desc">${textHtml}</div>` : ''}
                             ${textHtml && textHtml.startsWith('<ul') ? textHtml : ''}
+                            ${fallbackText}
                         </div>
                     </div>
                 `;
@@ -1867,6 +1984,10 @@
                     const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
                     return `<div class="media-desc-item">${this._getIcon(item.icon)} ${textHtml}</div>`;
                 }).join('');
+                // 兜底：确保 media-showcase 至少有描述文字
+                const fallbackDesc = !descHtml && slide.title
+                    ? `<div class="media-showcase-desc"><div class="media-desc-item">📖 <p>${this._escapeHtml(slide.title)} — 本页展示相关知识点与核心概念。</p></div></div>`
+                    : '';
                 return `
                     <div class="slide-v2-container layout-media-showcase">
                         <div class="slide-header">
@@ -1878,7 +1999,7 @@
                                 ${!videoUrl && imageUrl ? `<img src="${this._escapeAttr(imageUrl)}" alt="" class="media-showcase-image">` : ''}
                                 ${!videoUrl && !imageUrl ? '<div class="media-showcase-placeholder">📷 媒体内容将在此展示</div>' : ''}
                             </div>
-                            ${descHtml ? `<div class="media-showcase-desc">${descHtml}</div>` : ''}
+                            ${descHtml ? `<div class="media-showcase-desc">${descHtml}</div>` : fallbackDesc}
                         </div>
                     </div>
                 `;
@@ -1926,12 +2047,44 @@
                 `;
             },
 
+            _renderVideoLecture(slide) {
+                const items = slide.content || [];
+                const mainItem = items[0] || {};
+                const videoUrl = mainItem.videoUrl || mainItem.video_url || '';
+                const descItems = items.slice(1);
+                const descHtml = descItems.map((item, i) => {
+                    const textHtml = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    return `<div class="video-lecture-card">${this._getIcon(item.icon)} <div class="video-lecture-card-text">${textHtml}</div></div>`;
+                }).join('');
+                // 兜底：确保 video-lecture 至少有描述文字
+                const fallbackNotes = !descHtml && slide.title
+                    ? `<div class="video-lecture-card">📖 <div class="video-lecture-card-text"><p>${this._escapeHtml(slide.title)} — 本页展示相关知识点与核心概念。</p></div></div>`
+                    : '';
+                return `
+                    <div class="slide-v2-container layout-video-lecture">
+                        <div class="slide-header">
+                            <h1>${this._escapeHtml(slide.title || '')}</h1>
+                        </div>
+                        <div class="video-lecture-body">
+                            <div class="video-lecture-player">
+                                ${videoUrl ? `<video src="${this._escapeAttr(videoUrl)}" controls autoplay loop muted playsinline class="video-lecture-video"></video>` : '<div class="video-lecture-placeholder">▶ 视频将在此播放</div>'}
+                            </div>
+                            <div class="video-lecture-notes">
+                                ${descHtml || fallbackNotes || '<div class="video-lecture-empty">暂无要点</div>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
             // ========== 已废弃的非教育布局（保留代码但不再注册） ==========
 
             _renderMagazineCover(slide) {
                 const item = slide.content?.[0];
                 const imgUrl = item?.imageUrl || item?.image_url || '';
                 const textHtml = item ? this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' }) : '';
+                // 兜底：确保 magazine-cover 至少有标题和描述文字
+                const fallbackText = !textHtml && slide.title ? `<p>${this._escapeHtml(slide.title)} — 本页展示相关知识点与核心概念。</p>` : '';
                 return `
                     <div class="slide-v2-container layout-magazine-cover">
                         ${imgUrl ? `<div class="magazine-bg" style="background-image:url('${imgUrl}')"></div>` : '<div class="magazine-bg magazine-bg-fallback"></div>'}
@@ -1940,7 +2093,7 @@
                             <div class="magazine-tag">FEATURED</div>
                             <h1 class="magazine-title">${this._escapeHtml(slide.title || '')}</h1>
                             ${item?.subTitle ? `<div class="magazine-subtitle">${this._escapeHtml(item.subTitle)}</div>` : ''}
-                            ${textHtml ? `<div class="magazine-lead">${textHtml}</div>` : ''}
+                            ${textHtml ? `<div class="magazine-lead">${textHtml}</div>` : fallbackText}
                         </div>
                     </div>
                 `;
@@ -1953,6 +2106,10 @@
                 const leftImg = leftItem?.imageUrl || leftItem?.image_url || '';
                 const leftText = leftItem ? this._renderBulletsOrText({ bullets: leftItem.bullets, text: leftItem.text || '' }) : '';
                 const rightHtml = rightItems.map((item, i) => this._renderContentCard(item, i)).join('');
+                // 兜底：确保 photo-story 至少有标题和描述文字
+                const fallbackText = !leftText && !rightHtml && slide.title
+                    ? `<div class="photo-story-lead"><p>${this._escapeHtml(slide.title)} — 本页展示相关知识点与核心概念。</p></div>`
+                    : '';
                 return `
                     <div class="slide-v2-container layout-photo-story">
                         <div class="photo-story-visual">
@@ -1961,7 +2118,7 @@
                         </div>
                         <div class="photo-story-narrative">
                             <h1>${this._escapeHtml(slide.title || '')}</h1>
-                            ${leftText ? `<div class="photo-story-lead">${leftText}</div>` : ''}
+                            ${leftText ? `<div class="photo-story-lead">${leftText}</div>` : fallbackText}
                             <div class="photo-story-cards">${rightHtml}</div>
                         </div>
                     </div>
@@ -2061,20 +2218,28 @@
             _renderOrbitRing(slide) {
                 const items = slide.content || [];
                 const centerItem = items[0];
+                // 限制卫星最多6个，避免 overcrowding
                 const satellites = items.slice(1, 7);
                 const centerIcon = centerItem ? this._getIcon(centerItem.icon) : '';
                 const centerText = centerItem ? this._renderBulletsOrText({ bullets: centerItem.bullets, text: centerItem.text || '' }) : '';
+                // 中心标题截断，防止溢出圆形
+                const centerTitle = this._escapeHtml(slide.title || '').substring(0, 32);
                 const satHtml = satellites.map((item, i) => {
                     const icon = this._getIcon(item.icon);
-                    const satText = this._renderBulletsOrText({ bullets: item.bullets, text: item.text || '' });
+                    // 卫星文字截断，防止卡片过大
+                    const rawBullets = (item.bullets || []).map(b => String(b).substring(0, 48));
+                    const rawText = String(item.text || '').substring(0, 96);
+                    const satText = this._renderBulletsOrText({ bullets: rawBullets, text: rawText });
                     const angle = (360 / Math.max(satellites.length, 1)) * i;
+                    // 轨道半径 140px：确保卫星(宽100px/2=50px)内边缘到中心距离 = 140-50=90px > 中心圆半径70px，不重叠
                     const radius = 140;
                     const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
                     const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+                    // 标准 transform chaining：先中心对齐(-50%,-50%)，再环形偏移(x,y)
                     return `
-                        <div class="orbit-satellite theme-${this._validateTheme(item.colorTheme)}" style="transform:translate(${x}px, ${y}px)">
+                        <div class="orbit-satellite theme-${this._validateTheme(item.colorTheme)}" style="transform:translate(-50%,-50%) translate(${x.toFixed(1)}px,${y.toFixed(1)}px)">
                             ${icon ? `<div class="orbit-sat-icon">${icon}</div>` : ''}
-                            <div class="orbit-sat-label">${this._escapeHtml(item.subTitle || item.title || '')}</div>
+                            <div class="orbit-sat-label">${this._escapeHtml(String(item.subTitle || item.title || '').substring(0, 24))}</div>
                             ${satText && !satText.startsWith('<ul') ? `<div class="orbit-sat-text">${satText}</div>` : ''}
                             ${satText && satText.startsWith('<ul') ? satText : ''}
                         </div>
@@ -2085,7 +2250,7 @@
                         <div class="orbit-system">
                             <div class="orbit-center theme-${centerItem ? this._validateTheme(centerItem.colorTheme) : 'blue'}">
                                 ${centerIcon ? `<div class="orbit-c-icon">${centerIcon}</div>` : ''}
-                                <div class="orbit-c-title">${this._escapeHtml(slide.title || '')}</div>
+                                <div class="orbit-c-title">${centerTitle}</div>
                                 ${centerText && !centerText.startsWith('<ul') ? `<div class="orbit-c-text">${centerText}</div>` : ''}
                                 ${centerText && centerText.startsWith('<ul') ? centerText : ''}
                             </div>
@@ -2250,6 +2415,9 @@
                     const videoHtml = videoUrl ? `<video src="${this._escapeAttr(videoUrl)}" controls autoplay loop muted playsinline style="width:100%;border-radius:8px;max-height:280px;object-fit:cover;"></video>` : '';
                     const imageHtml = !videoUrl && imageUrl ? this._renderImage(imageUrl) : '';
                     const idxAttr = (cardIndex !== undefined) ? ` data-card-index="${cardIndex}"` : '';
+                    // 兜底：确保每个卡片至少有一些文字
+                    const hasContent = subTitle || textHtml || codeHtml || videoHtml || imageHtml;
+                    const fallbackText = !hasContent ? '<div class="card-text">📖 相关知识点内容</div>' : '';
 
                     return `
                         <div class="content-card theme-${theme}"${idxAttr}>
@@ -2259,6 +2427,7 @@
                             ${codeHtml}
                             ${videoHtml}
                             ${imageHtml}
+                            ${fallbackText}
                         </div>
                     `;
                 } catch (e) {
@@ -2359,9 +2528,23 @@
                     cardData = this._groupOpenMAICElementsToCards(firstSlide);
                 } else if (firstSlide.content && Array.isArray(firstSlide.content) && firstSlide.content.length > 0) {
                     // SlideV2 format: use content + layout_type directly
+                    // Normalize field names: backend uses snake_case, frontend renderers expect camelCase
+                    const normalizedContent = firstSlide.content.map(item => ({
+                        subTitle: item.sub_title || item.subTitle || '',
+                        bullets: item.bullets || [],
+                        narration: item.narration || '',
+                        text: item.text || '',
+                        icon: item.icon || 'book',
+                        colorTheme: item.color_theme || item.colorTheme || 'blue',
+                        codeSnippet: item.code_snippet || item.codeSnippet || '',
+                        imageUrl: item.image_url || item.imageUrl || '',
+                        imagePrompt: item.image_prompt || item.imagePrompt || '',
+                        videoUrl: item.video_url || item.videoUrl || '',
+                        videoPrompt: item.video_prompt || item.videoPrompt || '',
+                    }));
                     cardData = {
                         title: this.SlideRenderer._stripThinkTags(firstSlide.title || scene.title || ''),
-                        content: this.SlideRenderer._cycleCardThemes(firstSlide.content),
+                        content: this.SlideRenderer._cycleCardThemes(normalizedContent),
                         layoutType: firstSlide.layout_type || firstSlide.layoutType || 'two-column'
                     };
                 } else {
@@ -4088,6 +4271,115 @@
             }
         }
 
+        // ---- TTS 预加载 ----
+
+        getSceneSpeechText(scene) {
+            if (!scene) return null;
+            const text = scene.slide?.speech
+                || scene.slides_v2?.[0]?.content?.[0]?.narration
+                || scene.quiz?.speech
+                || scene.exercise?.speech
+                || null;
+            return text && text.trim().length > 0 ? text.trim() : null;
+        }
+
+        _scheduleNextScenePreload(currentIdx) {
+            // 取消之前的定时器
+            if (this._ttsPreloadTimer) {
+                clearTimeout(this._ttsPreloadTimer);
+                this._ttsPreloadTimer = null;
+            }
+
+            const nextIdx = currentIdx + 1;
+            if (nextIdx >= this.scenes.length) return;
+
+            const nextScene = this.scenes[nextIdx];
+            const text = this.getSceneSpeechText(nextScene);
+            if (!text) return;
+
+            // 如果已经缓存，不需要再预加载
+            if (nextScene.audioUrl || this.courseData.tts_audio_urls?.[String(nextScene.id)]) return;
+
+            // 15秒后如果用户还在当前场景，预加载下一场景
+            this._ttsPreloadTimer = setTimeout(() => {
+                if (this.currentIndex !== currentIdx) return; // 用户已切换场景，取消
+                this._preloadSceneTTS(nextScene);
+            }, 7000);
+        }
+
+        async _preloadSceneTTS(scene) {
+            const text = this.getSceneSpeechText(scene);
+            if (!text) return;
+            const sceneId = String(scene.id);
+
+            // 如果已经在缓存中，跳过
+            if (scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId]) return;
+
+            // 如果该场景正在预加载中，复用 Promise
+            if (this._ttsPreloadPromises.has(sceneId)) {
+                return this._ttsPreloadPromises.get(sceneId);
+            }
+
+            const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
+            const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
+
+            const preloadPromise = (async () => {
+                try {
+                    const result = await this.generateTTS(text, voiceId, speed);
+                    if (result.success && result.audioUrl) {
+                        scene.audioUrl = result.audioUrl;
+                        if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
+                        this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
+                        // 持久化到 sessionStorage，刷新后缓存仍有效
+                        try {
+                            sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
+                        } catch (e) {}
+                        console.log('[Classroom] TTS preloaded for scene', scene.id, ':', result.audioUrl);
+                    }
+                } catch (e) {
+                    console.warn('[Classroom] TTS preload failed for scene', scene.id, e);
+                }
+            })();
+
+            this._ttsPreloadPromises.set(sceneId, preloadPromise);
+            return preloadPromise;
+        }
+
+        async _ensureSceneTTSCached(scene) {
+            const sceneId = String(scene.id);
+            // 1. 检查内存缓存
+            if (scene.audioUrl) return scene.audioUrl;
+            if (this.courseData.tts_audio_urls?.[sceneId]) {
+                scene.audioUrl = this.courseData.tts_audio_urls[sceneId];
+                return scene.audioUrl;
+            }
+
+            const text = this.getSceneSpeechText(scene);
+            if (!text) return null;
+
+            // 2. 如果该场景正在后台预加载中，等待它完成
+            if (this._ttsPreloadPromises.has(sceneId)) {
+                await this._ttsPreloadPromises.get(sceneId);
+                return scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId] || null;
+            }
+
+            // 3. 否则立即生成（插队）
+            this.updateTeacherStatus('正在合成语音...', false);
+            const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
+            const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
+            const result = await this.generateTTS(text, voiceId, speed);
+            if (result.success && result.audioUrl) {
+                scene.audioUrl = result.audioUrl;
+                if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
+                this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
+                try {
+                    sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
+                } catch (e) {}
+                return result.audioUrl;
+            }
+            return null;
+        }
+
         updateTeacherSpeechText(text) {
             // Update both full-text and mini-text elements
             const fullTextEl = this.speechText;
@@ -4321,6 +4613,7 @@
 
             const exercises = data?.exercises || [];
             const hasCodeExercise = exercises.some(ex => ex.type === 'code' || ex.language);
+            const hasInteractiveExercise = exercises.some(ex => ['choice','fill_blank','true_false'].includes(ex.type));
 
             if (content) {
                 if (exercises.length === 0) {
@@ -4329,6 +4622,15 @@
                     content.innerHTML = exercises.map((ex, i) => {
                         if (ex.type === 'code' || ex.language) {
                             return this._renderExerciseCodeEditor(ex, i);
+                        }
+                        if (ex.type === 'choice') {
+                            return this._renderExerciseChoice(ex, i);
+                        }
+                        if (ex.type === 'fill_blank') {
+                            return this._renderExerciseFillBlank(ex, i);
+                        }
+                        if (ex.type === 'true_false') {
+                            return this._renderExerciseTrueFalse(ex, i);
                         }
                         return `<div class="exercise-item"><h4>练习 ${i+1}</h4><p>${ex.instruction || ''}</p></div>`;
                     }).join('');
@@ -4339,11 +4641,17 @@
                             this._bindExerciseCodeEditorEvents(ex, i);
                         }
                     });
+                    // Bind interactive exercise events
+                    exercises.forEach((ex, i) => {
+                        if (['choice','fill_blank','true_false'].includes(ex.type)) {
+                            this._bindInteractiveExerciseEvents(ex, i, scene);
+                        }
+                    });
                 }
             }
 
             if (hints) {
-                if (data?.exercises?.[0]?.hints && !hasCodeExercise) {
+                if (data?.exercises?.[0]?.hints && !hasCodeExercise && !hasInteractiveExercise) {
                     hints.innerHTML = '<strong>提示：</strong>' + data.exercises[0].hints.map(h => `<span class="hint-badge">${h}</span>`).join('');
                     hints.style.display = 'block';
                 } else {
@@ -4353,7 +4661,7 @@
             }
 
             if (answer) {
-                if (hasCodeExercise) {
+                if (hasCodeExercise || hasInteractiveExercise) {
                     answer.style.display = 'none';
                 } else {
                     answer.style.display = 'block';
@@ -4362,7 +4670,7 @@
             }
 
             if (submitBtn) {
-                if (hasCodeExercise) {
+                if (hasCodeExercise || hasInteractiveExercise) {
                     submitBtn.style.display = 'none';
                 } else {
                     submitBtn.style.display = 'block';
@@ -4376,6 +4684,96 @@
                     };
                 }
             }
+        }
+
+        _renderExerciseChoice(ex, index) {
+            const opts = (ex.options || []).map((opt, j) => {
+                const label = String(opt).match(/^[A-D]\.\s*/)? opt : `${String.fromCharCode(65+j)}. ${opt}`;
+                return `<label class="ex-choice-option" data-index="${j}"><input type="radio" name="ex-choice-${index}" value="${j}"><span class="ex-choice-label">${this._escapeHtml(label)}</span></label>`;
+            }).join('');
+            return `
+                <div class="exercise-interactive" data-ex-index="${index}" data-ex-type="choice">
+                    <div class="ex-interactive-header"><span class="ex-interactive-badge">选择题</span><h4>练习 ${index+1}</h4></div>
+                    <div class="ex-interactive-instruction">${this._escapeHtml(ex.instruction || '')}</div>
+                    <div class="ex-choice-options">${opts}</div>
+                    <div class="ex-interactive-feedback" id="ex-feedback-${index}" style="display:none;"></div>
+                    <button class="ex-interactive-submit" id="ex-submit-${index}"><i class="fas fa-check"></i> 提交答案</button>
+                </div>
+            `;
+        }
+
+        _renderExerciseFillBlank(ex, index) {
+            const parts = (ex.instruction || '').split('___');
+            const html = parts.map((p, j) => {
+                if (j === parts.length - 1) return this._escapeHtml(p);
+                return `${this._escapeHtml(p)}<input type="text" class="ex-fill-input" id="ex-fill-${index}-${j}" placeholder="填空${j+1}">`;
+            }).join('');
+            return `
+                <div class="exercise-interactive" data-ex-index="${index}" data-ex-type="fill_blank">
+                    <div class="ex-interactive-header"><span class="ex-interactive-badge">填空题</span><h4>练习 ${index+1}</h4></div>
+                    <div class="ex-interactive-instruction ex-fill-instruction">${html}</div>
+                    <div class="ex-interactive-feedback" id="ex-feedback-${index}" style="display:none;"></div>
+                    <button class="ex-interactive-submit" id="ex-submit-${index}"><i class="fas fa-check"></i> 提交答案</button>
+                </div>
+            `;
+        }
+
+        _renderExerciseTrueFalse(ex, index) {
+            return `
+                <div class="exercise-interactive" data-ex-index="${index}" data-ex-type="true_false">
+                    <div class="ex-interactive-header"><span class="ex-interactive-badge">判断题</span><h4>练习 ${index+1}</h4></div>
+                    <div class="ex-interactive-instruction">${this._escapeHtml(ex.instruction || '')}</div>
+                    <div class="ex-tf-options">
+                        <label class="ex-tf-option" data-value="true"><input type="radio" name="ex-tf-${index}" value="true"><span class="ex-tf-label"><i class="fas fa-check-circle"></i> 正确</span></label>
+                        <label class="ex-tf-option" data-value="false"><input type="radio" name="ex-tf-${index}" value="false"><span class="ex-tf-label"><i class="fas fa-times-circle"></i> 错误</span></label>
+                    </div>
+                    <div class="ex-interactive-feedback" id="ex-feedback-${index}" style="display:none;"></div>
+                    <button class="ex-interactive-submit" id="ex-submit-${index}"><i class="fas fa-check"></i> 提交答案</button>
+                </div>
+            `;
+        }
+
+        _bindInteractiveExerciseEvents(ex, index, scene) {
+            const submitBtn = document.getElementById(`ex-submit-${index}`);
+            const feedbackEl = document.getElementById(`ex-feedback-${index}`);
+            if (!submitBtn) return;
+
+            submitBtn.addEventListener('click', () => {
+                let isCorrect = false;
+                let studentAnswer = '';
+
+                if (ex.type === 'choice') {
+                    const selected = document.querySelector(`input[name="ex-choice-${index}"]:checked`);
+                    if (!selected) { feedbackEl.innerHTML = '<span class="ex-feedback-warn">请先选择一个选项</span>'; feedbackEl.style.display = 'block'; return; }
+                    studentAnswer = parseInt(selected.value);
+                    isCorrect = studentAnswer === (ex.correct_answer ?? 0);
+                } else if (ex.type === 'fill_blank') {
+                    const inputs = document.querySelectorAll(`[id^="ex-fill-${index}-"]`);
+                    const answers = Array.from(inputs).map(inp => inp.value.trim());
+                    studentAnswer = answers.join(', ');
+                    const correct = String(ex.correct_answer || '');
+                    isCorrect = answers.some(a => a.toLowerCase() === correct.toLowerCase());
+                } else if (ex.type === 'true_false') {
+                    const selected = document.querySelector(`input[name="ex-tf-${index}"]:checked`);
+                    if (!selected) { feedbackEl.innerHTML = '<span class="ex-feedback-warn">请先选择正确或错误</span>'; feedbackEl.style.display = 'block'; return; }
+                    studentAnswer = selected.value === 'true';
+                    isCorrect = studentAnswer === (ex.correct_answer === true || ex.correct_answer === 'true');
+                }
+
+                const icon = isCorrect ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>';
+                const cls = isCorrect ? 'ex-feedback-correct' : 'ex-feedback-wrong';
+                const explain = ex.explanation ? `<div class="ex-feedback-explain">${this._escapeHtml(ex.explanation)}</div>` : '';
+                feedbackEl.innerHTML = `<div class="${cls}">${icon} ${isCorrect ? '回答正确！' : '回答错误，请再思考一下。'}</div>${explain}`;
+                feedbackEl.style.display = 'block';
+
+                if (isCorrect) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i> 已完成';
+                    submitBtn.style.opacity = '0.6';
+                }
+
+                this.addChatMessage('user', `练习答案：${studentAnswer} (${isCorrect ? '正确' : '错误'})`);
+            });
         }
 
         _renderExerciseCodeEditor(ex, index) {
@@ -4509,7 +4907,94 @@
             `;
 
             if (widgetType === 'simulation') {
-                const vars = config.variables || [{ name: 'angle', min: 0, max: 90, value: 45, label: '角度' }, { name: 'velocity', min: 1, max: 20, value: 10, label: '初速度' }];
+                // Programming-focused simulation: sorting algorithm visualization
+                const isAlgoSim = /排序|算法|algorithm|sort|bubble|quick/i.test(title + ' ' + desc);
+                if (isAlgoSim) {
+                    return `
+                        <!DOCTYPE html>
+                        <html><head><meta charset="utf-8">${baseStyles}</head>
+                        <body>
+                            <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                            <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+                                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
+                                    <button class="btn btn-secondary" id="btn-bubble">冒泡排序</button>
+                                    <button class="btn btn-secondary" id="btn-select">选择排序</button>
+                                    <button class="btn btn-secondary" id="btn-insert">插入排序</button>
+                                    <button class="btn" id="btn-shuffle">重置数据</button>
+                                </div>
+                                <div class="panel" style="width:100%;max-width:700px;position:relative;">
+                                    <canvas id="algo-canvas" width="660" height="280" style="background:#0f172a;border-radius:0.375rem;"></canvas>
+                                    <div id="algo-info" style="position:absolute;top:8px;left:12px;font-size:0.8rem;color:#94a3b8;">点击上方按钮开始可视化</div>
+                                </div>
+                                <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;">
+                                    <label>速度: <input type="range" id="speed" min="50" max="800" value="300" style="width:120px;vertical-align:middle;"></label>
+                                    <label>元素数: <input type="range" id="count" min="5" max="30" value="15" style="width:120px;vertical-align:middle;"></label>
+                                </div>
+                            </div>
+                            <div class="widget-footer"><span>算法可视化</span><span id="algo-status">就绪</span></div>
+                            <script>
+                                const canvas = document.getElementById('algo-canvas');
+                                const ctx = canvas.getContext('2d');
+                                let arr = [], animating = false, delay = 300;
+                                function genArr(n) { arr = Array.from({length:n},(_,i)=>i+1).sort(()=>Math.random()-0.5); }
+                                function draw(hi=-1, hj=-1, done=false) {
+                                    ctx.clearRect(0,0,canvas.width,canvas.height);
+                                    const n=arr.length, w=Math.floor((canvas.width-40)/n), max=Math.max(...arr);
+                                    arr.forEach((v,i)=>{
+                                        const h=(v/max)*220, x=20+i*(w+2), y=canvas.height-20-h;
+                                        ctx.fillStyle = done ? '#22c55e' : (i===hi||i===hj ? '#f59e0b' : '#3b82f6');
+                                        ctx.fillRect(x,y,w,h);
+                                        if(n<=20){ ctx.fillStyle='#fff'; ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillText(v,x+w/2,y-4); }
+                                    });
+                                }
+                                function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+                                async function bubbleSort(){
+                                    if(animating) return; animating=true; document.getElementById('algo-status').textContent='运行中...';
+                                    const n=arr.length;
+                                    for(let i=0;i<n;i++){
+                                        for(let j=0;j<n-i-1;j++){
+                                            draw(j,j+1); await sleep(delay);
+                                            if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; draw(j,j+1); await sleep(delay); }
+                                        }
+                                    }
+                                    draw(-1,-1,true); animating=false; document.getElementById('algo-status').textContent='完成';
+                                    document.getElementById('algo-info').textContent='冒泡排序完成：时间复杂度 O(n²)';
+                                }
+                                async function selectSort(){
+                                    if(animating) return; animating=true; document.getElementById('algo-status').textContent='运行中...';
+                                    const n=arr.length;
+                                    for(let i=0;i<n;i++){
+                                        let min=i;
+                                        for(let j=i+1;j<n;j++){ draw(min,j); await sleep(delay); if(arr[j]<arr[min]) min=j; }
+                                        if(min!==i){ [arr[i],arr[min]]=[arr[min],arr[i]]; draw(i,min); await sleep(delay); }
+                                    }
+                                    draw(-1,-1,true); animating=false; document.getElementById('algo-status').textContent='完成';
+                                    document.getElementById('algo-info').textContent='选择排序完成：时间复杂度 O(n²)';
+                                }
+                                async function insertSort(){
+                                    if(animating) return; animating=true; document.getElementById('algo-status').textContent='运行中...';
+                                    const n=arr.length;
+                                    for(let i=1;i<n;i++){
+                                        let key=arr[i], j=i-1;
+                                        draw(i,j); await sleep(delay);
+                                        while(j>=0 && arr[j]>key){ arr[j+1]=arr[j]; j--; draw(i,j); await sleep(delay); }
+                                        arr[j+1]=key; draw(i,j+1); await sleep(delay);
+                                    }
+                                    draw(-1,-1,true); animating=false; document.getElementById('algo-status').textContent='完成';
+                                    document.getElementById('algo-info').textContent='插入排序完成：时间复杂度 O(n²)';
+                                }
+                                document.getElementById('btn-bubble').addEventListener('click', bubbleSort);
+                                document.getElementById('btn-select').addEventListener('click', selectSort);
+                                document.getElementById('btn-insert').addEventListener('click', insertSort);
+                                document.getElementById('btn-shuffle').addEventListener('click', ()=>{ animating=false; genArr(parseInt(document.getElementById('count').value)); draw(); document.getElementById('algo-status').textContent='就绪'; document.getElementById('algo-info').textContent='数据已重置'; });
+                                document.getElementById('speed').addEventListener('input', e=>{ delay=850-parseInt(e.target.value); });
+                                document.getElementById('count').addEventListener('input', e=>{ if(!animating){ genArr(parseInt(e.target.value)); draw(); }});
+                                genArr(15); draw();
+                            <\/script>
+                        </body></html>`;
+                }
+                // Generic parameter simulation fallback
+                const vars = config.variables || [{ name: 'param1', min: 1, max: 100, value: 50, label: '参数 A' }, { name: 'param2', min: 0, max: 10, value: 5, label: '参数 B' }];
                 const varInputs = vars.map((v, i) => `
                     <div style="margin-bottom:1rem;">
                         <label>${safe(v.label || v.name)}: <span id="val-${i}">${v.value}</span></label>
@@ -4538,54 +5023,23 @@
                             const ctx = canvas.getContext('2d');
                             const vars = ${JSON.stringify(vars)};
                             const values = vars.map((v,i) => ({ idx: i, val: v.value }));
-                            let animId = null;
+                            function drawStatic() {
+                                ctx.clearRect(0,0,canvas.width,canvas.height);
+                                ctx.fillStyle='#94a3b8'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+                                ctx.fillText('参数模拟器', canvas.width/2, canvas.height/2);
+                                ctx.font='12px sans-serif';
+                                values.forEach((v,i)=>{ ctx.fillText(vars[v.idx].label + ': ' + v.val, canvas.width/2, canvas.height/2 + 24 + i*20); });
+                            }
                             vars.forEach((v,i) => {
                                 const el = document.getElementById('var-'+i);
                                 if(!el) return;
-                                el.addEventListener('input', e => {
-                                    values[i].val = parseFloat(e.target.value);
-                                    document.getElementById('val-'+i).textContent = values[i].val;
-                                    drawStatic();
-                                });
+                                el.addEventListener('input', e => { values[i].val = parseFloat(e.target.value); document.getElementById('val-'+i).textContent = values[i].val; drawStatic(); });
                             });
-                            function drawStatic() {
-                                ctx.clearRect(0,0,canvas.width,canvas.height);
-                                ctx.strokeStyle='#6366f1'; ctx.lineWidth=2;
-                                const angle = (values.find(v=>vars[v.idx].name==='angle')?.val || 45) * Math.PI/180;
-                                const v0 = values.find(v=>vars[v.idx].name==='velocity')?.val || 10;
-                                const g = 9.8, scale = 8;
-                                let x=20, y=canvas.height-20, t=0, pts=[];
-                                while(y<=canvas.height-20 && t<10) {
-                                    pts.push({x,y});
-                                    t+=0.05; x=20+v0*Math.cos(angle)*t*scale; y=canvas.height-20-(v0*Math.sin(angle)*t-0.5*g*t*t)*scale;
-                                }
-                                if(pts.length>1) {
-                                    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-                                    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
-                                    ctx.stroke();
-                                }
-                                ctx.fillStyle='#f59e0b'; ctx.beginPath(); ctx.arc(pts[pts.length-1]?.x||20,pts[pts.length-1]?.y||canvas.height-20,6,0,Math.PI*2); ctx.fill();
-                                ctx.fillStyle='#94a3b8'; ctx.font='12px sans-serif'; ctx.fillText('抛物线模拟 (g=9.8)', 10, 20);
-                            }
-                            function animate() {
-                                let start = null; document.getElementById('sim-status').textContent='运行中...';
-                                function step(timestamp) {
-                                    if(!start) start=timestamp; const progress=(timestamp-start)/1000;
-                                    ctx.clearRect(0,0,canvas.width,canvas.height);
-                                    drawStatic(); // keep trajectory
-                                    const angle=(values.find(v=>vars[v.idx].name==='angle')?.val||45)*Math.PI/180;
-                                    const v0=values.find(v=>vars[v.idx].name==='velocity')?.val||10;
-                                    const g=9.8, scale=8, t=progress;
-                                    const x=20+v0*Math.cos(angle)*t*scale;
-                                    const y=canvas.height-20-(v0*Math.sin(angle)*t-0.5*g*t*t)*scale;
-                                    if(y>canvas.height-20 || x>canvas.width) { document.getElementById('sim-status').textContent='完成'; return; }
-                                    ctx.fillStyle='#ef4444'; ctx.beginPath(); ctx.arc(x,y,8,0,Math.PI*2); ctx.fill();
-                                    animId=requestAnimationFrame(step);
-                                }
-                                if(animId) cancelAnimationFrame(animId);
-                                animId=requestAnimationFrame(step);
-                            }
-                            document.getElementById('run-btn').addEventListener('click', animate);
+                            document.getElementById('run-btn').addEventListener('click', ()=>{
+                                document.getElementById('sim-status').textContent='运行完成';
+                                document.getElementById('sim-result').textContent='参数更新: ' + values.map(v=>vars[v.idx].label+'='+v.val).join(', ');
+                                drawStatic();
+                            });
                             drawStatic();
                         <\/script>
                     </body></html>`;
@@ -4594,29 +5048,34 @@
             if (widgetType === 'diagram') {
                 const diagramType = config.diagram_type || 'flowchart';
                 const mermaidCode = config.mermaid_code || `flowchart TD\n    A[开始] --> B{判断}\n    B -->|是| C[执行A]\n    B -->|否| D[执行B]\n    C --> E[结束]\n    D --> E`;
+                const uid = 'dgm-' + Math.random().toString(36).slice(2, 8);
                 return `
                     <!DOCTYPE html>
                     <html><head><meta charset="utf-8">${baseStyles}
                         <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\/script>
+                        <style>
+                            .mermaid { min-width: 200px; min-height: 120px; }
+                            .mermaid svg { max-width: 100%; height: auto; }
+                        </style>
                     </head>
                     <body>
                         <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
-                        <div class="widget-body">
-                            <div class="panel" style="max-width:800px;margin:0 auto;">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+                        <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;">
+                            <div class="panel" style="width:100%;max-width:900px;margin:0 auto;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
                                     <span style="font-size:0.8rem;color:#94a3b8;">类型: ${safe(diagramType)}</span>
-                                    <button class="btn btn-secondary" id="refresh-btn">重新渲染</button>
+                                    <button class="btn btn-secondary" id="${uid}-refresh">重新渲染</button>
                                 </div>
-                                <div id="mermaid-diagram" style="display:flex;justify-content:center;">
+                                <div id="${uid}-container" style="display:flex;justify-content:center;min-height:200px;align-items:center;">
                                     <div class="mermaid">${safe(mermaidCode)}</div>
                                 </div>
                             </div>
                         </div>
                         <div class="widget-footer"><span>交互式图表</span><span>Mermaid.js 驱动</span></div>
                         <script>
-                            mermaid.initialize({ startOnLoad: true, theme: 'dark' });
-                            document.getElementById('refresh-btn').addEventListener('click', () => {
-                                const container = document.getElementById('mermaid-diagram');
+                            mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+                            document.getElementById('${uid}-refresh').addEventListener('click', () => {
+                                const container = document.getElementById('${uid}-container');
                                 const code = \`${safe(mermaidCode)}\`;
                                 container.innerHTML = '<div class="mermaid">' + code + '</div>';
                                 mermaid.init(undefined, container.querySelectorAll('.mermaid'));
@@ -4627,10 +5086,14 @@
 
             if (widgetType === 'game') {
                 const pairs = config.pairs || [
-                    { q: '牛顿第一定律', a: '惯性定律' },
-                    { q: 'E=mc²', a: '质能方程' },
-                    { q: 'H₂O', a: '水' },
-                    { q: '光合作用', a: '叶绿素' }
+                    { q: 'def', a: '定义函数' },
+                    { q: 'class', a: '定义类' },
+                    { q: 'for', a: '循环遍历' },
+                    { q: 'if', a: '条件判断' },
+                    { q: 'return', a: '返回结果' },
+                    { q: 'import', a: '导入模块' },
+                    { q: 'list', a: '列表' },
+                    { q: 'dict', a: '字典' }
                 ];
                 const items = [];
                 pairs.forEach((p, i) => { items.push({ id: i+'q', text: p.q, match: i+'a' }); items.push({ id: i+'a', text: p.a, match: i+'q' }); });
@@ -4744,6 +5207,10 @@
             }
 
             if (widgetType === 'terminal') {
+                const isGit = /git/i.test(title + ' ' + desc);
+                const isPython = /python|pip/i.test(title + ' ' + desc);
+                const termTitle = isGit ? 'Git CLI 模拟器' : (isPython ? 'Python REPL 模拟器' : '命令行模拟器');
+                const promptStr = isGit ? 'user@repo:~$' : (isPython ? '>>>' : '127.0.0.1:6379>');
                 const presetData = config.preset_data || {
                     'name': { type: 'string', value: 'Alice' },
                     'age': { type: 'string', value: '25' },
@@ -4780,22 +5247,22 @@
                             <div class="terminal-wrap" style="width:100%;max-width:720px;">
                                 <div class="terminal-header">
                                     <span class="term-btn r"></span><span class="term-btn y"></span><span class="term-btn g"></span>
-                                    <span class="terminal-title">Redis CLI 模拟器</span>
+                                    <span class="terminal-title">${termTitle}</span>
                                 </div>
                                 <div class="terminal-body" id="term-body">
-                                    <div class="terminal-welcome">🚀 欢迎使用 Redis CLI 模拟器！</div>
+                                    <div class="terminal-welcome">🚀 欢迎使用 ${termTitle}！</div>
                                     <div class="terminal-info">输入 HELP 查看可用命令列表</div>
                                     <div class="terminal-info">当前已预加载一些示例数据，试着输入：GET name</div>
                                 </div>
                                 <div style="padding:0.5rem 1rem;background:#0a0a0f;border-top:1px solid #1e293b;">
                                     <div class="terminal-input-line">
-                                        <span class="terminal-prompt">127.0.0.1:6379&gt;</span>
+                                        <span class="terminal-prompt">${promptStr}&gt;</span>
                                         <input type="text" class="terminal-input" id="term-input" autocomplete="off" spellcheck="false" placeholder="输入命令...">
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="widget-footer"><span>Redis CLI 模拟器</span><span>纯客户端模拟，无后端通信</span></div>
+                        <div class="widget-footer"><span>${termTitle}</span><span>纯客户端模拟，无后端通信</span></div>
                         <script>
                             const db = new Map();
                             const preset = JSON.parse('${presetJson}');
@@ -4957,6 +5424,91 @@
                                 }
                             });
                             input.focus();
+                        <\/script>
+                    </body></html>`;
+            }
+
+            if (widgetType === 'code_visualizer') {
+                return `
+                    <!DOCTYPE html>
+                    <html><head><meta charset="utf-8">${baseStyles}</head>
+                    <body>
+                        <div class="widget-header"><h2>${safe(title)}</h2><p>${safe(desc)}</p></div>
+                        <div class="widget-body" style="display:flex;flex-direction:column;align-items:center;gap:1rem;">
+                            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:center;">
+                                <button class="btn btn-secondary" id="cv-bubble">冒泡排序</button>
+                                <button class="btn btn-secondary" id="cv-select">选择排序</button>
+                                <button class="btn btn-secondary" id="cv-insert">插入排序</button>
+                                <button class="btn" id="cv-shuffle">重置数据</button>
+                            </div>
+                            <div class="panel" style="width:100%;max-width:700px;position:relative;">
+                                <canvas id="cv-canvas" width="660" height="280" style="background:#0f172a;border-radius:0.375rem;"></canvas>
+                                <div id="cv-info" style="position:absolute;top:8px;left:12px;font-size:0.8rem;color:#94a3b8;">点击上方按钮开始算法可视化</div>
+                            </div>
+                            <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;justify-content:center;">
+                                <label>速度: <input type="range" id="cv-speed" min="50" max="800" value="300" style="width:120px;vertical-align:middle;"></label>
+                                <label>元素数: <input type="range" id="cv-count" min="5" max="30" value="15" style="width:120px;vertical-align:middle;"></label>
+                            </div>
+                        </div>
+                        <div class="widget-footer"><span>代码可视化</span><span id="cv-status">就绪</span></div>
+                        <script>
+                            const canvas = document.getElementById('cv-canvas');
+                            const ctx = canvas.getContext('2d');
+                            let arr = [], animating = false, delay = 300;
+                            function genArr(n) { arr = Array.from({length:n},(_,i)=>i+1).sort(()=>Math.random()-0.5); }
+                            function draw(hi=-1, hj=-1, done=false) {
+                                ctx.clearRect(0,0,canvas.width,canvas.height);
+                                const n=arr.length, w=Math.floor((canvas.width-40)/n), max=Math.max(...arr);
+                                arr.forEach((v,i)=>{
+                                    const h=(v/max)*220, x=20+i*(w+2), y=canvas.height-20-h;
+                                    ctx.fillStyle = done ? '#22c55e' : (i===hi||i===hj ? '#f59e0b' : '#3b82f6');
+                                    ctx.fillRect(x,y,w,h);
+                                    if(n<=20){ ctx.fillStyle='#fff'; ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.fillText(v,x+w/2,y-4); }
+                                });
+                            }
+                            function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+                            async function bubbleSort(){
+                                if(animating) return; animating=true; document.getElementById('cv-status').textContent='运行中...';
+                                const n=arr.length;
+                                for(let i=0;i<n;i++){
+                                    for(let j=0;j<n-i-1;j++){
+                                        draw(j,j+1); await sleep(delay);
+                                        if(arr[j]>arr[j+1]){ [arr[j],arr[j+1]]=[arr[j+1],arr[j]]; draw(j,j+1); await sleep(delay); }
+                                    }
+                                }
+                                draw(-1,-1,true); animating=false; document.getElementById('cv-status').textContent='完成';
+                                document.getElementById('cv-info').textContent='冒泡排序完成：时间复杂度 O(n²)';
+                            }
+                            async function selectSort(){
+                                if(animating) return; animating=true; document.getElementById('cv-status').textContent='运行中...';
+                                const n=arr.length;
+                                for(let i=0;i<n;i++){
+                                    let min=i;
+                                    for(let j=i+1;j<n;j++){ draw(min,j); await sleep(delay); if(arr[j]<arr[min]) min=j; }
+                                    if(min!==i){ [arr[i],arr[min]]=[arr[min],arr[i]]; draw(i,min); await sleep(delay); }
+                                }
+                                draw(-1,-1,true); animating=false; document.getElementById('cv-status').textContent='完成';
+                                document.getElementById('cv-info').textContent='选择排序完成：时间复杂度 O(n²)';
+                            }
+                            async function insertSort(){
+                                if(animating) return; animating=true; document.getElementById('cv-status').textContent='运行中...';
+                                const n=arr.length;
+                                for(let i=1;i<n;i++){
+                                    let key=arr[i], j=i-1;
+                                    draw(i,j); await sleep(delay);
+                                    while(j>=0 && arr[j]>key){ arr[j+1]=arr[j]; j--; draw(i,j); await sleep(delay); }
+                                    arr[j+1]=key; draw(i,j+1); await sleep(delay);
+                                }
+                                draw(-1,-1,true); animating=false; document.getElementById('cv-status').textContent='完成';
+                                document.getElementById('cv-info').textContent='插入排序完成：时间复杂度 O(n²)';
+                            }
+                            document.getElementById('cv-bubble').addEventListener('click', bubbleSort);
+                            document.getElementById('cv-select').addEventListener('click', selectSort);
+                            document.getElementById('cv-insert').addEventListener('click', insertSort);
+                            document.getElementById('cv-shuffle').addEventListener('click', ()=>{ animating=false; genArr(parseInt(document.getElementById('cv-count').value)); draw(); document.getElementById('cv-status').textContent='就绪'; document.getElementById('cv-info').textContent='数据已重置'; });
+                            document.getElementById('cv-speed').addEventListener('input', e=>{ delay=850-parseInt(e.target.value); });
+                            document.getElementById('cv-count').addEventListener('input', e=>{ if(!animating){ genArr(parseInt(e.target.value)); draw(); }});
+                            genArr(15); draw();
                         <\/script>
                     </body></html>`;
             }
@@ -5585,19 +6137,34 @@
             loadingDiv.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:12px 20px;background:rgba(15,23,42,0.9);border-radius:8px;color:#818cf8;font-size:14px;z-index:100;pointer-events:none;';
             this.whiteboardContainer.appendChild(loadingDiv);
 
+            let actions = null;
+
             try {
-                const resp = await fetch('/api/whiteboard/draw', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        description: description.trim(),
-                        course_id: this.courseData?.courseId || '',
-                        scene_title: this.SlideRenderer._stripThinkTags(scene.title || ''),
-                        auto_mode: true
-                    })
-                });
-                const data = await resp.json();
-                if (data.success && data.actions && data.actions.length > 0) {
+                // Priority 1: use pre-generated actions from scene data (avoids extra API call)
+                if (scene.whiteboard_actions && scene.whiteboard_actions.length > 0) {
+                    actions = scene.whiteboard_actions;
+                    console.log('[Classroom] Using pre-generated whiteboard actions:', actions.length);
+                } else {
+                    // Priority 2: call backend API to generate actions from description
+                    const resp = await fetch('/api/whiteboard/draw', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            description: description.trim(),
+                            course_id: this.courseData?.courseId || '',
+                            scene_title: this.SlideRenderer._stripThinkTags(scene.title || ''),
+                            auto_mode: true
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.success && data.actions && data.actions.length > 0) {
+                        actions = data.actions;
+                    } else {
+                        console.warn('[Classroom] Auto-draw returned no actions:', data.error);
+                    }
+                }
+
+                if (actions && actions.length > 0) {
                     // Create AI drawing cursor
                     const cursor = document.createElement('div');
                     cursor.className = 'wb-ai-cursor';
@@ -5606,8 +6173,8 @@
                     this.whiteboardContainer.appendChild(cursor);
 
                     // Execute actions sequentially with small delay for visual effect
-                    for (let i = 0; i < data.actions.length; i++) {
-                        const action = data.actions[i];
+                    for (let i = 0; i < actions.length; i++) {
+                        const action = actions[i];
                         const params = action.params || {};
                         // Move cursor to approximate target position before drawing
                         let tx = params.x || params.startX || 500;
@@ -5624,8 +6191,6 @@
                     }
                     cursor.style.opacity = '0';
                     setTimeout(() => cursor.remove(), 400);
-                } else {
-                    console.warn('[Classroom] Auto-draw returned no actions:', data.error);
                 }
             } catch (e) {
                 console.error('[Classroom] Auto-draw failed:', e);
@@ -5725,14 +6290,17 @@
 
         // ---- Audio / TTS ----
 
-        playSceneAudio(scene) {
+        async playSceneAudio(scene) {
             this.stopAudio();
             // Activate slide mode when playing slides (compact UI to avoid covering content)
             if (this.teacherArea) this.teacherArea.classList.add('slide-mode');
             // Update play button to pause icon
             const playBtn = document.getElementById('playback-play-btn');
             const playIcon = playBtn?.querySelector('i');
-            if (playBtn) playBtn.classList.add('playing');
+            if (playBtn) {
+                playBtn.classList.add('playing');
+                playBtn.title = '暂停';
+            }
             if (playIcon) playIcon.className = 'fas fa-pause';
 
             // If OpenMAIC actions are available, use the action pipeline (speech + spotlight + laser)
@@ -5743,35 +6311,70 @@
                 return;
             }
 
-            const url = scene.audioUrl
-                || scene.slide?.content?.elements?.find(el => el.audio_url)?.audio_url
+            // 1. 优先使用课程自带音频
+            const builtInUrl = scene.slide?.content?.elements?.find(el => el.audio_url)?.audio_url
                 || scene.slide?.content?.elements?.[0]?.audio_url;
-
-            if (url && typeof url === 'string' && url.trim().length > 0 && this.audioPlayer) {
-                this.speechSync.style.display = 'flex';
-                this.audioPlayer.load();
-                this.audioPlayer.src = url;
-                this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
-                this.audioPlayer.onended = () => {
-                    this.speechSync.style.display = 'none';
-                    const playBtn = document.getElementById('playback-play-btn');
-                    const playIcon = playBtn?.querySelector('i');
-                    if (playBtn) playBtn.classList.remove('playing');
-                    if (playIcon) playIcon.className = 'fas fa-play';
-                    if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
-                        setTimeout(() => this.nextScene(), 800);
-                    }
-                };
-            } else if (scene.slide?.speech) {
-                // Use MiniMax TTS with selected voice
-                this._playTTSWithVoice(scene.slide.speech);
-            } else {
-                // Fallback: try narration from slides_v2 content (V2 format)
-                const narration = scene.slides_v2?.[0]?.content?.[0]?.narration;
-                if (narration) {
-                    this._playTTSWithVoice(narration);
-                }
+            if (builtInUrl && typeof builtInUrl === 'string' && builtInUrl.trim().length > 0 && this.audioPlayer) {
+                this._playAudioUrl(builtInUrl, scene);
+                return;
             }
+
+            // 2. 检查是否有可 TTS 的文本
+            const speechText = this.getSceneSpeechText(scene);
+            if (!speechText) {
+                // 无音频也无文本，直接结束播放状态
+                this.isPlaying = false;
+                if (playBtn) {
+                    playBtn.classList.remove('playing');
+                    playBtn.title = '播放';
+                }
+                if (playIcon) playIcon.className = 'fas fa-play';
+                return;
+            }
+
+            // 3. 确保 TTS 音频已缓存（优先用缓存，否则实时生成）
+            const cachedUrl = await this._ensureSceneTTSCached(scene);
+            // 等待期间用户可能已点击暂停，需检查状态
+            if (!this.isPlaying) {
+                if (playBtn) {
+                    playBtn.classList.remove('playing');
+                    playBtn.title = '播放';
+                }
+                if (playIcon) playIcon.className = 'fas fa-play';
+                return;
+            }
+            if (cachedUrl && this.audioPlayer) {
+                this._playAudioUrl(cachedUrl, scene);
+            } else {
+                // 生成失败，回退到浏览器 TTS
+                this.fallbackTTS(scene);
+            }
+        }
+
+        _playAudioUrl(url, scene) {
+            if (!this.audioPlayer) return;
+            // 如果用户已暂停，不要开始播放
+            if (!this.isPlaying) {
+                this.speechSync.style.display = 'none';
+                return;
+            }
+            this.speechSync.style.display = 'flex';
+            this.audioPlayer.load();
+            this.audioPlayer.src = url;
+            this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
+            this.audioPlayer.onended = () => {
+                this.speechSync.style.display = 'none';
+                const playBtn = document.getElementById('playback-play-btn');
+                const playIcon = playBtn?.querySelector('i');
+                if (playBtn) {
+                    playBtn.classList.remove('playing');
+                    playBtn.title = '播放';
+                }
+                if (playIcon) playIcon.className = 'fas fa-play';
+                if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
+                    setTimeout(() => this.nextScene(), 800);
+                }
+            };
         }
 
         async _playTTSWithVoice(text) {
@@ -5799,7 +6402,10 @@
                     this.speechSync.style.display = 'none';
                     const playBtn = document.getElementById('playback-play-btn');
                     const playIcon = playBtn?.querySelector('i');
-                    if (playBtn) playBtn.classList.remove('playing');
+                    if (playBtn) {
+                        playBtn.classList.remove('playing');
+                        playBtn.title = '播放';
+                    }
                     if (playIcon) playIcon.className = 'fas fa-play';
                     if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                         setTimeout(() => this.nextScene(), 800);
@@ -5824,6 +6430,13 @@
                 utterance.rate = this.ttsConfig?.speed || TTS_CONFIG.speed;
                 utterance.onend = () => {
                     this.speechSync.style.display = 'none';
+                    const playBtn = document.getElementById('playback-play-btn');
+                    const playIcon = playBtn?.querySelector('i');
+                    if (playBtn) {
+                        playBtn.classList.remove('playing');
+                        playBtn.title = '播放';
+                    }
+                    if (playIcon) playIcon.className = 'fas fa-play';
                     if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                         setTimeout(() => this.nextScene(), 800);
                     }
@@ -5845,7 +6458,10 @@
             // Sync prominent play/pause button
             const playBtn = document.getElementById('playback-play-btn');
             const playIcon = playBtn?.querySelector('i');
-            if (playBtn) playBtn.classList.toggle('playing', this.isPlaying);
+            if (playBtn) {
+                playBtn.classList.toggle('playing', this.isPlaying);
+                playBtn.title = this.isPlaying ? '暂停' : '播放';
+            }
             if (playIcon) playIcon.className = this.isPlaying ? 'fas fa-pause' : 'fas fa-play';
 
             if (this.isPlaying) this.playSceneAudio(this.scenes[this.currentIndex]);
@@ -5876,11 +6492,24 @@
             // Reset play button state
             const playBtn = document.getElementById('playback-play-btn');
             const playIcon = playBtn?.querySelector('i');
-            if (playBtn) playBtn.classList.remove('playing');
+            if (playBtn) {
+                playBtn.classList.remove('playing');
+                playBtn.title = '播放';
+            }
             if (playIcon) playIcon.className = 'fas fa-play';
         }
 
-        replaySpeech() { this.playSceneAudio(this.scenes[this.currentIndex]); }
+        replaySpeech() {
+            this.isPlaying = true;
+            const playBtn = document.getElementById('playback-play-btn');
+            const playIcon = playBtn?.querySelector('i');
+            if (playBtn) {
+                playBtn.classList.add('playing');
+                playBtn.title = '暂停';
+            }
+            if (playIcon) playIcon.className = 'fas fa-pause';
+            this.playSceneAudio(this.scenes[this.currentIndex]);
+        }
         pauseSpeech() {
             // Pause MiniMax TTS audio
             if (this.audioPlayer && !this.audioPlayer.paused) {
@@ -6409,11 +7038,15 @@
 
             // Build request payload
             var batchQuestions = questions.map(function(q, i) {
+                // Normalize options to string array (backend expects list[str])
+                var opts = (q.options || []).map(function(opt) {
+                    return (opt && typeof opt === 'object') ? (opt.label || opt.text || String(opt)) : String(opt);
+                });
                 return {
                     question_index: i,
                     question: q.question,
                     question_type: q.question_type || 'single',
-                    options: q.options || [],
+                    options: opts,
                     correct_answer: q.correct_answer || 0,
                     correct_answers: q.correct_answers || [],
                     answer: q.answer || '',
@@ -6834,7 +7467,7 @@
                 } else {
                     // Short answer — can't grade locally, provide helpful fallback
                     score = Math.round(points * 0.5);
-                    feedback = '【AI评分服务暂不可用】已收到你的答案。联网后可获得AI的详细个性化评价（包括答案优缺点分析、遗漏知识点、改进建议等）。请继续完成其他题目。';
+                    feedback = '已收到你的答案。参考答案：' + (q.answer || '暂无') + '。\n\n建议从以下几个方面对照检查自己的答案：\n1. 是否涵盖了题目要求的核心知识点？\n2. 表述是否清晰、逻辑是否连贯？\n3. 是否有具体的例子或论证支撑？\n\n请继续完成其他题目。';
                 }
 
                 totalScore += score;
@@ -7180,7 +7813,9 @@
         showDiscussionSummary(summaryText) {
             const summaryEl = document.createElement('div');
             summaryEl.className = 'discussion-summary';
-            const formattedText = this._formatDiscussionText(summaryText);
+            // 过滤掉 <think> 标签内容
+            const cleanText = (summaryText || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<\/think>/g, '');
+            const formattedText = this._formatDiscussionText(cleanText);
             summaryEl.innerHTML = `
                 <div class="discussion-summary-title"><i class="fas fa-graduation-cap"></i> 讨论总结</div>
                 <div class="discussion-summary-text">${formattedText}</div>
@@ -7233,6 +7868,8 @@
 
         addDiscussionMessage(type, text, agentInfo = null) {
             if (!this.discussionMessages) return;
+            // 过滤掉 <think> 标签内容
+            const cleanText = (text || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<\/think>/g, '');
             const div = document.createElement('div');
             let roleClass = '';
             if (type === 'user') roleClass = 'user-message';
@@ -7244,7 +7881,7 @@
             if (type === 'system') {
                 div.innerHTML = `
                     <div class="message-content" style="margin-left: 0;">
-                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${this.escapeHtml(text)}</div>
+                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${this.escapeHtml(cleanText)}</div>
                     </div>
                 `;
             } else if (type === 'user') {
@@ -7254,7 +7891,7 @@
                         <div class="message-header">
                             <span class="message-name">我</span>
                         </div>
-                        <div class="message-text">${this.escapeHtml(text)}</div>
+                        <div class="message-text">${this.escapeHtml(cleanText)}</div>
                     </div>
                 `;
             } else {
@@ -7273,7 +7910,7 @@
                         <div class="message-header">
                             <span class="message-name">${agentInfo?.name || 'AI同学'}</span>
                         </div>
-                        <div class="message-text">${this.escapeHtml(text)}</div>
+                        <div class="message-text">${this.escapeHtml(cleanText)}</div>
                     </div>
                 `;
             }

@@ -241,7 +241,7 @@ function loadVideo(index) {
     function onMetadata() {
         player.removeAttribute('data-loading-state');
         player.removeAttribute('data-empty-state');
-        if (emptyText) emptyText.textContent = '请将视频放入 Kuromi 根目录的 video/ 文件夹';
+        if (emptyText) emptyText.textContent = '请将视频放入 星识 根目录的 video/ 文件夹';
         if (emptySubtext) emptySubtext.textContent = '支持 .mp4 / .webm / .mov，播放器会使用 /video/ 路径读取本地视频。';
         const saved = Number(localStorage.getItem(STORAGE_PREFIX + item.id));
         if (Number.isFinite(saved) && saved > 0 && saved < video.duration) {
@@ -504,7 +504,7 @@ function showEmptyState() {
     player.setAttribute('data-empty-state', '');
     const emptyText = document.querySelector('.placeholder-text');
     const emptySubtext = document.querySelector('.placeholder-subtext');
-    if (emptyText) emptyText.textContent = '请将视频放入 Kuromi 根目录的 video/ 文件夹';
+    if (emptyText) emptyText.textContent = '请将视频放入 星识 根目录的 video/ 文件夹';
     if (emptySubtext) emptySubtext.textContent = '支持 .mp4 / .webm / .mov，播放器会使用 /video/ 路径读取本地视频。';
     updatePlayIcon();
 }

@@ -159,14 +159,20 @@ class TeacherPipeline:
                     action = await self.tool_executor.preprocess_ui_action(action)
                 yield {"event": "action", "data": action}
 
-        # 7. 完成
-        yield {"event": "done", "data": {
+        # 7. 提取学习链接推荐
+        links = self._extract_links(full_response)
+
+        # 8. 完成
+        done_data = {
             "agent": "teacher",
             "persona": persona,
             "full_text": full_response,
             "action_count": len(actions) if actions else 0,
             "function_calls": len(function_calls),
-        }}
+        }
+        if links:
+            done_data["links"] = links
+        yield {"event": "done", "data": done_data}
 
     # ---- LLM 流式调用 ----
 
@@ -246,8 +252,9 @@ class TeacherPipeline:
             text = re.sub(r"^```\w*\s*", "", text)
             text = re.sub(r"\s*```$", "", text)
 
-        # 移除可能的 function_call 标签
+        # 移除可能的 function_call 标签和 links 标记
         text = re.sub(r'<function_call>.*?</function_call>', '', text, flags=re.DOTALL)
+        text = re.sub(r'<links>.*?</links>', '', text, flags=re.DOTALL)
 
         match = re.search(r"\[[\s\S]*\]", text)
         if not match:
@@ -257,6 +264,46 @@ class TeacherPipeline:
             actions = json.loads(match.group(0))
             if isinstance(actions, list):
                 return actions
+        except json.JSONDecodeError:
+            pass
+        return None
+
+    @staticmethod
+    def _extract_links(raw_response: str) -> list[dict] | None:
+        """从 LLM 原始输出中提取 <links> 标记中的学习链接数组"""
+        import re
+
+        match = re.search(r'<links>([\s\S]*?)</links>', raw_response, re.DOTALL)
+        if not match:
+            return None
+
+        links_text = match.group(1).strip()
+        # 移除可能的代码块包裹
+        if links_text.startswith("```"):
+            links_text = re.sub(r"^```\w*\s*", "", links_text)
+            links_text = re.sub(r"\s*```$", "", links_text)
+
+        try:
+            links = json.loads(links_text)
+            if isinstance(links, list) and len(links) > 0:
+                # 校验并规范化链接字段
+                normalized = []
+                for link in links:
+                    if not isinstance(link, dict):
+                        continue
+                    if not link.get("title") or not link.get("url"):
+                        continue
+                    normalized.append({
+                        "id": link.get("id") or f"link_{len(normalized)}",
+                        "type": link.get("type", "internal"),
+                        "title": link["title"],
+                        "url": link["url"],
+                        "description": link.get("description", ""),
+                        "icon": link.get("icon", "📚" if link.get("type") == "internal" else "🔗"),
+                        "style": link.get("style", "card"),
+                        "metadata": link.get("metadata", {}),
+                    })
+                return normalized if normalized else None
         except json.JSONDecodeError:
             pass
         return None

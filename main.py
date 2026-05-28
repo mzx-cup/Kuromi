@@ -52,6 +52,7 @@ from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
 from config import settings
 from app.services.teacher.personas import get_persona_manager
+from app.api.learning_path import generate_path_for_user
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
@@ -62,6 +63,25 @@ STORAGE_DIR = os.path.join(BASE_DIR, "storage")
 VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
 app = FastAPI()
+
+# ── 学习路径实时刷新防抖 ──
+_path_refresh_debounce: dict[int, float] = {}
+
+async def trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown"):
+    """异步触发学习路径刷新（带5分钟防抖）。"""
+    import time
+    now = time.time()
+    last = _path_refresh_debounce.get(user_id, 0)
+    if now - last < 300:  # 5分钟内不重复触发
+        print(f"[LearningPathRefresh] 跳过刷新 (user_id={user_id}, source={trigger_source}, 冷却中)")
+        return
+    _path_refresh_debounce[user_id] = now
+    print(f"[LearningPathRefresh] 触发刷新 (user_id={user_id}, source={trigger_source})")
+    try:
+        await generate_path_for_user(user_id, force_refresh=False)
+        print(f"[LearningPathRefresh] 刷新完成 (user_id={user_id})")
+    except Exception as e:
+        print(f"[LearningPathRefresh] 刷新失败 (user_id={user_id}): {e}")
 
 logger = logging.getLogger("starlearn.stream")
 req_logger = logging.getLogger("starlearn.request")
@@ -87,6 +107,10 @@ app.add_middleware(
 # ---- V2 API routes (Star-Learn 2.0) ----
 from app.api import router as v2_router
 app.include_router(v2_router)
+
+# ---- Learning Path API (实时学情驱动路径生成) ----
+from app.api.learning_path import router as learning_path_router
+app.include_router(learning_path_router, prefix="/api/learning-path")
 
 
 @app.middleware("http")
@@ -701,6 +725,143 @@ def list_local_videos():
         })
     return {"videos": videos}
 
+
+WHITEBOARD_DRAW_SYSTEM_PROMPT = """你是一位精通教学可视化的白板绘图专家。请根据用户的描述，生成一系列白板绘图动作，以JSON数组格式输出。
+
+## 输出格式要求
+必须输出纯JSON数组，不要包含任何markdown代码块标记或额外解释。每个元素格式：
+{
+  "type": "动作类型",
+  "params": { 参数对象 }
+}
+
+## 可用动作类型
+- wb_draw_text: 写文字。params: {content, x, y, fontSize(可选,默认20), color(可选,默认#333)}
+- wb_draw_shape: 几何图形。params: {shape: "rectangle|circle|triangle", x, y, width, height, fillColor(可选), strokeColor(可选,默认#333)}
+- wb_draw_svg: SVG矢量图。params: {svg: "SVG字符串(不含<svg>外层标签)", x, y, width, height}
+- wb_draw_latex: LaTeX公式。params: {latex, x, y, width(可选,默认400), color(可选)}
+- wb_draw_chart: 图表。params: {chartType: "bar|line|pie|radar", data: {labels, legends, series}, x, y, width, height}
+- wb_draw_table: 表格。params: {data: [["表头1",...],["行1数据",...]], x, y, width, height}
+- wb_draw_line: 线条/箭头。params: {startX, startY, endX, endY, color(可选), width(可选), style(可选, "solid|dashed"), points(可选, ["","arrow"])}
+- wb_draw_code: 代码块。params: {language, code, x, y, width(可选,默认500), height(可选,默认300), fileName(可选)}
+
+## SVG 规范 (使用 wb_draw_svg 时)
+- 必须简洁，使用 stroke 为主，fill="none" 或浅色半透明填充
+- 坐标空间 viewBox="0 0 400 300"，所有坐标在此范围内
+- 颜色使用深色描边 (#333, #2563eb, #dc2626)
+- 文字标注用 <text> 元素，font-size="12"-"16"
+- 一个SVG最多10-15个元素，简洁优先
+- 不使用 <foreignObject>、外部CSS、JS
+
+## 布局约束 (CRITICAL)
+- 白板尺寸: 宽1000 x 高562.5
+- 元素之间保持 ≥ 30px 间距，严禁重叠
+- 内容从左上角开始排列，合理分布
+- 文字颜色 #333，背景色不用设置
+- 坐标取整数
+
+## 设计原则
+- 根据描述选择最合适的可视化方式：流程图用svg、公式用latex、数据用chart/table、几何用shape
+- 如果是数学/物理概念，优先用svg绘制示意图配合latex标注公式
+- 如果是数据结构/算法，用shape画框、line画箭头、text写标注
+- 如果是代码讲解，用code块
+- 每个action独立表达一个视觉元素，逐步构建完整画面
+"""
+
+
+class WhiteboardDrawRequest(BaseModel):
+    description: str
+    course_id: Optional[str] = ""
+    scene_title: Optional[str] = ""
+    auto_mode: Optional[bool] = False
+    is_custom_prompt: Optional[bool] = False
+
+
+@app.post("/api/whiteboard/draw")
+async def whiteboard_draw(request: WhiteboardDrawRequest):
+    """AI 白板智能绘图"""
+    description = request.description.strip()
+    if not description:
+        raise HTTPException(status_code=400, detail="描述不能为空")
+
+    # 构建 user prompt
+    user_prompt = f"用户想绘制以下内容：\n{description}\n\n"
+    if request.scene_title:
+        user_prompt += f"场景标题：{request.scene_title}\n"
+    if request.auto_mode:
+        user_prompt += "这是课程自动生成的白板内容，请确保绘图具有教学性和准确性。\n"
+    if request.is_custom_prompt:
+        user_prompt += "这是用户的自定义绘图请求，请尽可能满足用户的具体要求。\n"
+    user_prompt += "请直接输出JSON动作数组，不要有任何额外解释。"
+
+    try:
+        llm_response = await call_llm_async(
+            system_prompt=WHITEBOARD_DRAW_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            temperature=0.3,
+        )
+    except Exception as e:
+        print(f"[whiteboard_draw] LLM call failed: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 绘图请求失败: {str(e)}")
+
+    # 提取 JSON 数组
+    actions = None
+    try:
+        # 尝试从响应中提取 JSON 数组
+        text = llm_response.strip()
+        # 去掉 markdown 代码块
+        if text.startswith("```"):
+            lines = text.split("\n")
+            if lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].startswith("```"):
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        actions = json.loads(text)
+        if not isinstance(actions, list):
+            # 有些模型可能返回 {"actions": [...]} 格式
+            if isinstance(actions, dict) and "actions" in actions:
+                actions = actions["actions"]
+            else:
+                actions = [actions] if isinstance(actions, dict) else None
+    except Exception as e:
+        print(f"[whiteboard_draw] JSON parse failed: {e}, raw={llm_response[:500]}")
+        # 尝试用正则提取数组
+        try:
+            match = re.search(r'\[.*\]', llm_response.replace('\n', ''), re.DOTALL)
+            if match:
+                actions = json.loads(match.group())
+        except Exception as e2:
+            print(f"[whiteboard_draw] Regex extract failed: {e2}")
+
+    if not actions or not isinstance(actions, list):
+        raise HTTPException(status_code=500, detail="AI 未能生成有效的绘图指令")
+
+    # 过滤并规范化 actions
+    valid_types = {
+        "wb_draw_text", "wb_draw_shape", "wb_draw_svg", "wb_draw_latex",
+        "wb_draw_chart", "wb_draw_table", "wb_draw_line", "wb_draw_code",
+        "wb_clear", "wb_delete", "wb_open", "wb_close",
+    }
+    normalized = []
+    for act in actions:
+        if not isinstance(act, dict):
+            continue
+        t = act.get("type") or act.get("name")
+        if t not in valid_types:
+            continue
+        params = act.get("params") or act.get("parameters") or {}
+        if not isinstance(params, dict):
+            params = {}
+        normalized.append({"type": t, "params": params})
+
+    if not normalized:
+        raise HTTPException(status_code=500, detail="AI 生成的绘图指令为空或格式不正确")
+
+    return {"success": True, "actions": normalized}
+
+
 @app.post("/api/register")
 def register(request: RegisterRequest):
     if not request.username or not request.password:
@@ -893,6 +1054,10 @@ def save_user_progress(request: SaveProgressRequest):
 
         database.save_user_profile(user_id, profile_json, evaluation_json, grade_record)
         database.save_learning_path(user_id, path_json)
+
+        # 异步触发学习路径刷新（不阻塞响应）
+        import asyncio
+        asyncio.create_task(trigger_learning_path_refresh(user_id, "progress_save"))
 
         return {"success": True, "message": "进度保存成功"}
     except Exception as e:
@@ -1976,6 +2141,10 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
 
         # ===== Agent 2: 教研规划智能体 (Planner Agent) =====
         workflow_logs.append("[Planner] 检测到学情变动，正在动态重组专属学习路径...")
+        # 使用新的学情驱动路径生成服务（异步触发，不阻塞聊天响应）
+        import asyncio
+        asyncio.create_task(trigger_learning_path_refresh(request.userId or 0, "chat_interaction"))
+        # 保留原有的简单路径生成作为即时回退
         planner_sys = """你是一个大学教研规划智能体。根据画像规划路径。必须输出纯JSON数组：
 [{"topic": "复习主题", "status": "completed"}, {"topic": "当前主题", "status": "current"}, {"topic": "进阶主题", "status": "locked"}]"""
         planner_reply = call_llm(planner_sys, f"最新画像:{json.dumps(new_profile, ensure_ascii=False)}\n用户输入:{request.userText}")
@@ -2368,6 +2537,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 
             await push_agent_log("master_controller", f"分发策略: {dispatch_strategy}")
 
+            recommended_links = []
+
             if dispatch_strategy == "socratic":
                 await push_agent_log("socratic_evaluator", "苏格拉底评估与辅导智能体启动...")
                 socratic_agent = controller._agents.get("socratic_evaluator") or SocraticEvaluatorAgent()
@@ -2381,6 +2552,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         if disconnected.is_set():
                             break
                         await push_content_chunk(socratic_response[i : i + chunk_size])
+                    # 从苏格拉底响应中提取链接
+                    recommended_links = _extract_links_from_text(socratic_response)
             else:
                 visual_instruction = """【高视觉权重模式】：
 1. 必须插入至少2个Mermaid图表（架构图/流程图/时序图），用 ```mermaid 包裹
@@ -2435,7 +2608,16 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 [教材参考结束]
 2. 根据画像 {json.dumps(state.profile.model_dump(mode='json'), ensure_ascii=False)} 调整难度和表达方式。
 3. 如果学生基础薄弱，避免底层源码解析，用生动比喻和可视化替代。
-{instruction}"""
+{instruction}
+
+【学习链接推荐规则】（可选）
+在回复内容之后，你可以选择性附加 `<links>[...]</links>` 标记，为学生推荐与当前话题直接相关的学习资源：
+- 仅当问题涉及具体知识点、概念或技能时才推荐
+- 每个链接必须与学生当前学习的内容直接相关
+- 站内链接：`{{"type": "internal", "title": "...", "url": "/classroom.html?course_id=xxx", "description": "...", "icon": "emoji"}}`
+- 站外链接：`{{"type": "external", "title": "...", "url": "https://...", "description": "...", "icon": "🔗"}}`
+- 最多推荐 3 个链接，优先站内资源
+- 如果问题不涉及具体知识点，不要输出 <links> 标记"""
 
                 agent_label = f"generator_{dispatch_strategy}"
                 await push_agent_log(agent_label, "正在调用大模型流式生成...")
@@ -2455,6 +2637,12 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         elapsed = event.get("elapsed_ms", "?")
                         char_count = len(event.get("full_text", ""))
                         await push_agent_log(agent_label, f"生成完毕 | 共 {char_count} 字 | 耗时 {elapsed}ms")
+
+                # 从 LLM 完整输出中提取学习链接
+                full_response_text = event.get("full_text", "")
+                recommended_links = _extract_links_from_text(full_response_text)
+                if recommended_links:
+                    await push_agent_log("resource_dispatcher", f"检测到 {len(recommended_links)} 个推荐学习链接")
 
             await push_agent_log("evaluator", "评估学情指标...")
             evaluator = controller._agents.get("evaluator") or EvaluationAgent()
@@ -2486,6 +2674,7 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 "emotion": state.emotion.model_dump(mode="json"),
                 "contextId": state.context_id,
                 "resourceTaskId": state.context_id,
+                "links": recommended_links,
             })
 
             logger.info(f"Stream workflow completed: student={body.student_id}, strategy={dispatch_strategy}")
@@ -2584,6 +2773,45 @@ def extract_fenced_section(markdown: str, label: str) -> str:
 def extract_labeled_line(markdown: str, label: str) -> str:
     match = re.search(rf'^{label}\s*:\s*(.+)$', markdown or "", flags=re.IGNORECASE | re.MULTILINE)
     return match.group(1).strip() if match else ""
+
+
+def _extract_links_from_text(text: str) -> list[dict]:
+    """从 LLM 输出中提取 <links> 标记中的学习链接数组"""
+    if not text:
+        return []
+
+    match = re.search(r'<links>([\s\S]*?)</links>', text, re.DOTALL)
+    if not match:
+        return []
+
+    links_text = match.group(1).strip()
+    if links_text.startswith("```"):
+        links_text = re.sub(r"^```\w*\s*", "", links_text)
+        links_text = re.sub(r"\s*```$", "", links_text)
+
+    try:
+        links = json.loads(links_text)
+        if isinstance(links, list) and len(links) > 0:
+            normalized = []
+            for link in links:
+                if not isinstance(link, dict):
+                    continue
+                if not link.get("title") or not link.get("url"):
+                    continue
+                normalized.append({
+                    "id": link.get("id") or f"link_{len(normalized)}",
+                    "type": link.get("type", "internal"),
+                    "title": link["title"],
+                    "url": link["url"],
+                    "description": link.get("description", ""),
+                    "icon": link.get("icon", "📚" if link.get("type") == "internal" else "🔗"),
+                    "style": link.get("style", "card"),
+                    "metadata": link.get("metadata", {}),
+                })
+            return normalized
+    except json.JSONDecodeError:
+        pass
+    return []
 
 
 def extract_starter_code_progress(markdown: str) -> tuple[str, bool]:
@@ -4412,6 +4640,10 @@ async def complete_daily_task(request: dict):
     # 获取任务信息用于通知
     task = next((t for t in today_route.get('tasks', []) if t.get('id') == task_id), None)
 
+    # 异步触发学习路径刷新（任务完成意味着学情变化）
+    import asyncio
+    asyncio.create_task(trigger_learning_path_refresh(user_id, "daily_task_complete"))
+
     return {
         "success": True,
         "completedCount": len(today_route.get('completed', [])),
@@ -5878,6 +6110,16 @@ async def generate_course_stream(request: CourseGenerationRequest):
                 enable_pdf_upload=request.enable_pdf_upload,
                 pdf_text=request.pdf_text,
                 enable_web_search=request.enable_web_search,
+                enable_minimax_ppt=request.enable_minimax_ppt,
+                minimax_ppt_ratio=request.minimax_ppt_ratio,
+                teacher_name=request.teacher_name,
+                teacher_avatar=request.teacher_avatar,
+                teacher_profession=request.teacher_profession,
+                teacher_personality=request.teacher_personality,
+                teacher_teaching_style=request.teacher_teaching_style,
+                teacher_icon=request.teacher_icon,
+                teacher_system_prompt=request.teacher_system_prompt,
+                teacher_greeting=request.teacher_greeting,
             ):
                 try:
                     queue.put_nowait(event)
@@ -6975,6 +7217,6 @@ async def delete_classroom(course_id: str):
 if __name__ == "__main__":
     print("\n" + "="*50)
     print("星识 (Star-Learn) 伴学系统正在启动...")
-    print("请直接在浏览器打开链接: http://localhost:8000/hub.html")
+    print("请直接在浏览器打开链接: http://localhost:8000/login.html")
     print("="*50 + "\n")
     uvicorn.run(app, host="127.0.0.1", port=8000)

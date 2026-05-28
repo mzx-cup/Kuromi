@@ -26,7 +26,7 @@ class TextElement(PPTElement):
     type: Literal["text"] = "text"
     content: str = ""
     fill: str = ""
-    defaultColor: str = "#1E293B"
+    defaultColor: str = "#E2E8F0"
     defaultFontName: str = "Microsoft YaHei"
     opacity: float = 1
 
@@ -62,16 +62,16 @@ class CodeElement(PPTElement):
 class SlideBackground:
     """幻灯片背景"""
     type: str = "solid"  # solid, gradient
-    color: str = "#F8FAFC"
+    color: str = "#0F172A"
     colors: list[str] | None = None
 
 
 @dataclass
 class SlideTheme:
     """幻灯片主题"""
-    themeColors: list[str] = field(default_factory=lambda: ["#1E40AF", "#3B82F6"])
-    fontColor: str = "#1E293B"
-    backgroundColor: str = "#F8FAFC"
+    themeColors: list[str] = field(default_factory=lambda: ["#3B82F6", "#60A5FA"])
+    fontColor: str = "#E2E8F0"
+    backgroundColor: str = "#0F172A"
     fontName: str = "Microsoft YaHei"
 
 

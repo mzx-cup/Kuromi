@@ -13,6 +13,9 @@ from config import settings
 
 _http_client: httpx.AsyncClient | None = None
 
+# MiniMax M2.7 最大输出 token 数（8192 是官方上限）
+MAX_OUTPUT_TOKENS = 8192
+
 
 async def get_http_client() -> httpx.AsyncClient:
     global _http_client
@@ -36,52 +39,27 @@ async def call_llm_async(
     user_prompt: str,
     temperature: float = 0.3,
 ) -> str:
+    """同步调用 MiniMax M2.7（非流式）"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {settings.xunfei_api_key}",
-    }
-    payload = {
-        "model": settings.model_name,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        "temperature": temperature,
-        "max_tokens": 4096,
-    }
-
-    # Try xunfei first
-    try:
-        response = await client.post(settings.xunfei_api_url, headers=headers, json=payload)
-        if response.status_code == 200:
-            body = response.json()
-            return body["choices"][0]["message"]["content"]
-        # If not 200, try minimax fallback below
-    except (httpx.TimeoutException, httpx.RequestError):
-        # Try minimax fallback
-        pass
-
-    # Fallback to MiniMax
-    fallback_headers = {
-        "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",
     }
-    fallback_payload = {
+    payload = {
         "model": settings.minimax_model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
-        "max_tokens": 4096,
+        "max_tokens": MAX_OUTPUT_TOKENS,
     }
 
     try:
         response = await client.post(
             f"{settings.minimax_api_url}/chat/completions",
-            headers=fallback_headers,
-            json=fallback_payload,
+            headers=headers,
+            json=payload,
         )
     except httpx.TimeoutException:
         raise RuntimeError("大模型接口请求超时，请稍后重试")
@@ -109,29 +87,35 @@ async def call_llm_stream(
     user_prompt: str,
     temperature: float = 0.3,
 ) -> AsyncGenerator[str, None]:
+    """流式调用 MiniMax M2.7"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {settings.xunfei_api_key}",
+        "Authorization": f"Bearer {settings.minimax_api_key}",
     }
     payload = {
-        "model": settings.model_name,
+        "model": settings.minimax_model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
         "stream": True,
+        "max_tokens": MAX_OUTPUT_TOKENS,
     }
 
-    fallback_used = False
-    xunfei_yielded_content = False
     try:
-        async with client.stream("POST", settings.xunfei_api_url, headers=headers, json=payload) as response:
+        async with client.stream(
+            "POST",
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=headers,
+            json=payload,
+        ) as response:
             if response.status_code != 200:
                 body = await response.aread()
                 snippet = body.decode("utf-8", errors="replace")[:800]
-                raise RuntimeError(f"大模型接口返回 HTTP {response.status_code}。响应摘要: {snippet}")
+                yield f"\n\n[系统提示: MiniMax 接口返回 HTTP {response.status_code}。响应摘要: {snippet}]"
+                return
 
             async for line in response.aiter_lines():
                 if not line or not line.strip():
@@ -149,95 +133,21 @@ async def call_llm_stream(
 
                 try:
                     chunk = json.loads(data_str)
-                    # 尝试多种响应格式兼容讯飞和OpenAI
-                    content = None
-                    # OpenAI格式: delta.content
                     delta = chunk.get("choices", [{}])[0].get("delta", {})
-                    if delta:
-                        content = delta.get("content")
-                    # 讯飞格式: text字段
-                    if not content:
-                        choices = chunk.get("choices", [{}])
-                        if choices:
-                            first_choice = choices[0]
-                            # 讯飞流式格式
-                            content = first_choice.get("text")
-                            # 标准OpenAI格式
-                            if not content:
-                                content = first_choice.get("message", {}).get("content")
-                    # 讯飞非流式格式(可能在流式中出现)
-                    if not content:
-                        content = chunk.get("result") or chunk.get("text") or chunk.get("content")
+                    content = delta.get("content", "")
                     if content:
-                        xunfei_yielded_content = True
                         yield content
                 except json.JSONDecodeError:
                     continue
                 except (KeyError, IndexError, TypeError):
                     continue
 
-    except (httpx.TimeoutException, httpx.RequestError, RuntimeError):
-        fallback_used = True
-
-    # 如果讯飞没有返回任何内容，尝试 minimax fallback
-    if not xunfei_yielded_content:
-        fallback_used = True
-
-    # Fallback to MiniMax if xunfei failed
-    if fallback_used:
-        fallback_headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {settings.minimax_api_key}",
-        }
-        fallback_payload = {
-            "model": settings.minimax_model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": temperature,
-            "stream": True,
-        }
-
-        try:
-            async with client.stream("POST", f"{settings.minimax_api_url}/chat/completions", headers=fallback_headers, json=fallback_payload) as response:
-                if response.status_code != 200:
-                    body = await response.aread()
-                    snippet = body.decode("utf-8", errors="replace")[:800]
-                    yield f"\n\n[系统提示: MiniMax接口也返回 HTTP {response.status_code}。响应摘要: {snippet}]"
-                    return
-
-                async for line in response.aiter_lines():
-                    if not line or not line.strip():
-                        continue
-
-                    if line.startswith("data: "):
-                        data_str = line[6:].strip()
-                    elif line.startswith("data:"):
-                        data_str = line[5:].strip()
-                    else:
-                        data_str = line.strip()
-
-                    if data_str == "[DONE]":
-                        break
-
-                    try:
-                        chunk = json.loads(data_str)
-                        delta = chunk.get("choices", [{}])[0].get("delta", {})
-                        content = delta.get("content", "")
-                        if content:
-                            yield content
-                    except json.JSONDecodeError:
-                        continue
-                    except (KeyError, IndexError, TypeError):
-                        continue
-
-        except httpx.TimeoutException:
-            yield "\n\n[系统提示: 大模型响应超时，请稍后重试]"
-        except httpx.RequestError as e:
-            yield f"\n\n[系统提示: 网络连接异常 - {str(e)}]"
-        except RuntimeError as e:
-            yield f"\n\n[系统提示: {str(e)}]"
+    except httpx.TimeoutException:
+        yield "\n\n[系统提示: 大模型响应超时，请稍后重试]"
+    except httpx.RequestError as e:
+        yield f"\n\n[系统提示: 网络连接异常 - {str(e)}]"
+    except RuntimeError as e:
+        yield f"\n\n[系统提示: {str(e)}]"
 
 
 async def call_llm_stream_with_log(
@@ -246,7 +156,7 @@ async def call_llm_stream_with_log(
     agent_name: str = "generator",
     temperature: float = 0.3,
 ) -> AsyncGenerator[dict, None]:
-    yield {"type": "log", "message": f"[{agent_name}] 正在调用大模型生成内容..."}
+    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax M2.7 生成内容..."}
 
     full_text = ""
     chunk_count = 0

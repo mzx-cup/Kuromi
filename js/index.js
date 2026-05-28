@@ -8,6 +8,8 @@ const PROACTIVE_SSE_URL = `${API_BASE}/api/v2/proactive/stream`;
 const STRUGGLE_EVENT_URL = `${API_BASE}/api/v2/event/struggle`;
 const STREAM_API_URL = `${API_BASE}/api/v2/chat/stream`;
 const DEBATE_API_URL = `${API_BASE}/api/v2/debate/stream`;
+const LEARNING_PATH_GENERATE_URL = `${API_BASE}/api/learning-path/generate`;
+const LEARNING_PATH_CURRENT_URL = `${API_BASE}/api/learning-path/current`;
 
 // 同步学习时长到服务器（每分钟调用）
 async function syncLearningMinute() {
@@ -696,20 +698,51 @@ class ProactiveTutorClient {
     _handleProactiveMessage(event) {
         try {
             const data = JSON.parse(event.data);
-            const envelope = data.envelope || {};
-            const payload = data.payload || {};
 
-            if (envelope.msg_id) {
-                this.lastMsgId = envelope.msg_id;
-            }
+            // 支持新格式：统一消息信封
+            if (data.envelope && data.payload) {
+                // 旧格式兼容
+                const envelope = data.envelope || {};
+                const payload = data.payload || {};
 
-            console.log('[ProactiveTutor] Received:', envelope.msg_type, payload.title);
+                if (envelope.msg_id) {
+                    this.lastMsgId = envelope.msg_id;
+                }
 
-            this._renderProactiveNotification(envelope, payload);
+                console.log('[ProactiveTutor] Received:', envelope.msg_type, payload.title);
 
-            if (envelope.msg_type === 'struggle_intervention') {
-                this._errorCount = 0;
-                this._idleSeconds = 0;
+                this._renderProactiveNotification(envelope, payload);
+
+                if (envelope.msg_type === 'struggle_intervention') {
+                    this._errorCount = 0;
+                    this._idleSeconds = 0;
+                }
+            } else if (data.type === 'proactive' || data.type === 'system') {
+                // 新格式：统一 Message Envelope
+                if (data.id) {
+                    this.lastMsgId = data.id;
+                }
+
+                console.log('[ProactiveTutor] Received new format:', data.context?.trigger, data.content?.text);
+
+                // 将主动消息插入聊天流
+                insertAgentMessage({
+                    id: data.id,
+                    content: data.content?.text || '',
+                    links: data.links || [],
+                    actions: data.actions || [],
+                    context: data.context || {},
+                    tone: data.content?.tone || 'friendly',
+                    agent_id: data.context?.agent_id || window.currentAgent?.id || currentAgent?.id || 'default'
+                });
+
+                // 同时显示通知横幅
+                if (data.content?.text) {
+                    this._renderProactiveNotification(
+                        { msg_type: data.context?.trigger || 'system', msg_id: data.id },
+                        { title: data.content?.text?.substring(0, 30) + '...', content: data.content?.text }
+                    );
+                }
             }
         } catch (e) {
             console.warn('[ProactiveTutor] Parse error:', e);
@@ -915,6 +948,513 @@ class ProactiveTutorClient {
 }
 
 window.proactiveTutor = new ProactiveTutorClient();
+
+// ============ AI Agent 主动消息系统 ============
+
+/**
+ * 将 AI 主动消息插入聊天流
+ * @param {Object} msg - 消息对象 {id, content, links, actions, context, tone, agent_id}
+ */
+function insertAgentMessage(msg) {
+    if (!msg || !msg.content) return;
+
+    const agentId = msg.agent_id || window.currentAgent?.id || currentAgent?.id || 'default';
+    const agentConfig = AGENTS_CONFIG.find(a => a.id === agentId) || AGENTS_CONFIG[0];
+
+    // 构建消息对象
+    const messageObj = {
+        role: 'assistant',
+        content: msg.content,
+        _links: msg.links || [],
+        _actions: msg.actions || [],
+        _context: msg.context || {},
+        _tone: msg.tone || 'friendly',
+        _agentId: agentId,
+        _isProactive: true,
+        _timestamp: msg.id || Date.now()
+    };
+
+    messages.push(messageObj);
+    renderMessages();
+
+    // 滚动到底部
+    const container = document.getElementById('chat-container');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+
+    // 触发通知（如果页面不可见）
+    if (document.hidden && window.starlearnNotifications) {
+        window.starlearnNotifications.showNotification({
+            title: `${agentConfig.icon} ${agentConfig.name}`,
+            message: msg.content.substring(0, 60) + (msg.content.length > 60 ? '...' : ''),
+            duration: 8000
+        });
+    }
+
+    // 播报语音（可选）
+    if (msg._shouldSpeak !== false && 'speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(msg.content);
+        utter.lang = 'zh-CN';
+        utter.rate = 0.9;
+        utter.volume = 0.6;
+        window.speechSynthesis.speak(utter);
+    }
+}
+
+/**
+ * AgentScheduler - 本地触发引擎
+ * 处理简单场景的前端自主触发，无需网络请求
+ */
+class AgentScheduler {
+    constructor() {
+        this.checkInterval = 60000;  // 1分钟检查一次
+        this.triggers = new Map();
+        this.intervalId = null;
+        this.isRunning = false;
+    }
+
+    // 注册所有触发器
+    registerTriggers() {
+        this._register('daily_greeting', this._checkDailyGreeting.bind(this), 24 * 3600 * 1000);
+        this._register('return_recall', this._checkReturnRecall.bind(this), 7 * 24 * 3600 * 1000);
+        this._register('study_reminder', this._checkStudyReminder.bind(this), 4 * 3600 * 1000);
+        this._register('pomodoro_end', this._checkPomodoroEnd.bind(this), 0);
+        this._register('idle_reminder', this._checkIdleReminder.bind(this), 10 * 60 * 1000);
+        this._register('streak_celebration', this._checkStreakCelebration.bind(this), 24 * 3600 * 1000);
+    }
+
+    _register(name, checker, cooldownMs) {
+        this.triggers.set(name, {
+            name,
+            checker,
+            cooldown: cooldownMs,
+            lastFired: parseInt(localStorage.getItem(`agent_trigger_${name}`) || '0')
+        });
+    }
+
+    start() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+
+        // 页面加载后立即执行一次检查（延迟 2 秒，避免干扰页面初始化）
+        setTimeout(() => this._tick(), 2000);
+
+        this.intervalId = setInterval(() => this._tick(), this.checkInterval);
+        console.log('[AgentScheduler] Started');
+    }
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+        this.isRunning = false;
+    }
+
+    _tick() {
+        const now = Date.now();
+        for (const [name, trigger] of this.triggers) {
+            // 检查冷却期
+            if (trigger.cooldown > 0 && now - trigger.lastFired < trigger.cooldown) continue;
+
+            try {
+                const result = trigger.checker();
+                if (result) {
+                    this._fire(trigger, result);
+                    trigger.lastFired = now;
+                    localStorage.setItem(`agent_trigger_${name}`, now.toString());
+                }
+            } catch (err) {
+                console.error(`[AgentScheduler] Trigger ${name} failed:`, err);
+                // 单个触发器失败不影响其他
+            }
+        }
+    }
+
+    _fire(trigger, data) {
+        const template = this._getTemplate(trigger.name, data);
+        if (!template) return;
+
+        insertAgentMessage({
+            content: template.content,
+            links: template.links || [],
+            actions: template.actions || [],
+            context: {
+                trigger: trigger.name,
+                agent_id: template.agentId || 'default',
+                generated_by: 'template'
+            },
+            tone: template.tone || 'friendly',
+            agent_id: template.agentId || 'default'
+        });
+    }
+
+    // ============ 各触发器的检查逻辑 ============
+
+    _checkDailyGreeting() {
+        const today = new Date().toISOString().split('T')[0];
+        const lastGreet = localStorage.getItem('agent_last_greet_day');
+        if (lastGreet === today) return false;
+
+        localStorage.setItem('agent_last_greet_day', today);
+
+        const hour = new Date().getHours();
+        let timeOfDay = '晚上';
+        if (hour >= 5 && hour < 11) timeOfDay = '早上';
+        else if (hour >= 11 && hour < 14) timeOfDay = '中午';
+        else if (hour >= 14 && hour < 18) timeOfDay = '下午';
+
+        const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+        const streak = studyData.streak_days || 0;
+
+        return { timeOfDay, streak, hour };
+    }
+
+    _checkReturnRecall() {
+        const lastVisit = parseInt(localStorage.getItem('starlearn_last_visit') || '0');
+        if (!lastVisit) {
+            localStorage.setItem('starlearn_last_visit', Date.now().toString());
+            return false;
+        }
+
+        const daysAway = Math.floor((Date.now() - lastVisit) / (1000 * 60 * 60 * 24));
+        if (daysAway < 3) {
+            localStorage.setItem('starlearn_last_visit', Date.now().toString());
+            return false;
+        }
+
+        // 获取上次学习的课程
+        const lastCourse = localStorage.getItem('starlearn_last_course');
+        const lastChapter = localStorage.getItem('starlearn_last_chapter');
+
+        localStorage.setItem('starlearn_last_visit', Date.now().toString());
+        return { daysAway, lastCourse, lastChapter };
+    }
+
+    _checkStudyReminder() {
+        const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+        const today = new Date().toISOString().split('T')[0];
+        const todayMinutes = studyData.daily_minutes?.[today] || 0;
+
+        // 如果今天已经学习超过 30 分钟，不提醒
+        if (todayMinutes >= 30) return false;
+
+        const hour = new Date().getHours();
+        // 只在合适的时间提醒（晚上 7-10 点）
+        if (hour < 19 || hour > 22) return false;
+
+        return { todayMinutes, targetMinutes: 30 };
+    }
+
+    _checkPomodoroEnd() {
+        // 检查番茄钟是否刚结束
+        const pomodoroState = sessionStorage.getItem('pomodoro_just_finished');
+        if (pomodoroState === 'true') {
+            sessionStorage.removeItem('pomodoro_just_finished');
+            return { duration: 25 };
+        }
+        return false;
+    }
+
+    _checkIdleReminder() {
+        // 闲置检测由 ProactiveTutorClient 处理，这里不重复
+        // 只在检测到闲置时由外部调用触发
+        return false;
+    }
+
+    _checkStreakCelebration() {
+        const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+        const streak = studyData.streak_days || 0;
+        if (streak > 0 && streak % 7 === 0) {
+            return { streak };
+        }
+        return false;
+    }
+
+    // ============ 模板库 ============
+
+    _getTemplate(triggerName, data) {
+        const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        const userName = user.name || user.username || '同学';
+
+        const templates = {
+            daily_greeting: () => {
+                const { timeOfDay, streak } = data;
+                let content = `${timeOfDay}好，${userName}！☀️ `;
+                if (streak >= 7) {
+                    content += `太厉害了！你已经连续学习 **${streak} 天** 🔥 今天也要加油哦！`;
+                } else if (streak >= 3) {
+                    content += `你已经连续学习 **${streak} 天** 了，继续保持！💪`;
+                } else {
+                    content += `今天准备好学习新知识了吗？我会一直陪着你的~ 📚`;
+                }
+                return {
+                    content,
+                    agentId: 'default',
+                    tone: 'friendly',
+                    links: [],
+                    actions: [
+                        { label: '开始学习', action: 'navigate', target: 'hub' },
+                        { label: '查看进度', action: 'navigate', target: 'progress' }
+                    ]
+                };
+            },
+
+            return_recall: () => {
+                const { daysAway, lastCourse, lastChapter } = data;
+                let content = `好久不见，${userName}！😊 你已经有 **${daysAway} 天** 没来了，我好想你~\n\n`;
+
+                const links = [];
+                if (lastCourse) {
+                    content += `你上次学到「${lastChapter || '某个章节'}」，要继续吗？`;
+                    links.push({
+                        id: 'continue_learning',
+                        type: 'internal',
+                        title: lastChapter || '继续学习',
+                        url: `/classroom.html?course_id=${lastCourse}`,
+                        description: `从你上次离开的地方继续`,
+                        icon: '📖',
+                        style: 'card',
+                        metadata: { course_id: lastCourse }
+                    });
+                } else {
+                    content += `今天想从哪门课开始呢？我为你准备了一些推荐~`;
+                    links.push({
+                        id: 'goto_courses',
+                        type: 'internal',
+                        title: '浏览课程',
+                        url: '/courses.html',
+                        description: '查看所有可用课程',
+                        icon: '📚',
+                        style: 'button'
+                    });
+                }
+
+                return {
+                    content,
+                    agentId: 'psychologist',
+                    tone: 'friendly',
+                    links,
+                    actions: [
+                        { label: '开始学习', action: 'navigate', target: links[0]?.id },
+                        { label: '稍后再说', action: 'dismiss', delay: 3600 }
+                    ]
+                };
+            },
+
+            study_reminder: () => {
+                const { todayMinutes, targetMinutes } = data;
+                const remaining = targetMinutes - todayMinutes;
+                return {
+                    content: `⏰ ${userName}，今天已经学习 ${todayMinutes} 分钟了，距离目标还差 ${remaining} 分钟~\n\n"不积跬步，无以至千里。" 每天进步一点点，你会发现自己变得越来越强！💪`,
+                    agentId: 'educator',
+                    tone: 'calm',
+                    links: [
+                        {
+                            id: 'quick_study',
+                            type: 'internal',
+                            title: '快速学习',
+                            url: '/index.html',
+                            description: '来问我一个问题吧',
+                            icon: '⚡',
+                            style: 'button'
+                        }
+                    ],
+                    actions: [
+                        { label: '开始学习', action: 'navigate', target: 'quick_study' },
+                        { label: '知道了', action: 'dismiss' }
+                    ]
+                };
+            },
+
+            pomodoro_end: () => {
+                return {
+                    content: `🎉 番茄钟结束！你刚刚专注了 ${data.duration} 分钟，太棒了！\n\n休息一下吧，可以起来走走、喝杯水，让大脑放松一下。5 分钟后我们继续~`,
+                    agentId: 'default',
+                    tone: 'celebratory',
+                    links: [
+                        {
+                            id: 'goto_plant',
+                            type: 'internal',
+                            title: '去林场看看',
+                            url: '/plant.html',
+                            description: '你的专注让树苗又长大了一点',
+                            icon: '🌱',
+                            style: 'card'
+                        }
+                    ],
+                    actions: [
+                        { label: '休息好了，继续', action: 'dismiss' },
+                        { label: '去林场', action: 'navigate', target: 'goto_plant' }
+                    ]
+                };
+            },
+
+            streak_celebration: () => {
+                const { streak } = data;
+                return {
+                    content: `🏆 哇！${userName}，你已经连续学习 **${streak} 天** 了！\n\n这是一个了不起的里程碑！你的坚持让我非常感动。继续这样下去，你一定能成为自己想成为的人！✨`,
+                    agentId: 'geek-senior',
+                    tone: 'celebratory',
+                    links: [
+                        {
+                            id: 'goto_showcase',
+                            type: 'internal',
+                            title: '查看成就',
+                            url: '/stellar-showcase.html',
+                            description: '看看你的所有成就徽章',
+                            icon: '🏅',
+                            style: 'card'
+                        }
+                    ],
+                    actions: [
+                        { label: '查看成就', action: 'navigate', target: 'goto_showcase' },
+                        { label: '继续学习', action: 'dismiss' }
+                    ]
+                };
+            }
+        };
+
+        const generator = templates[triggerName];
+        return generator ? generator() : null;
+    }
+}
+
+// 全局实例
+window.agentScheduler = new AgentScheduler();
+
+// 页面加载完成后启动调度器
+document.addEventListener('DOMContentLoaded', () => {
+    window.agentScheduler.registerTriggers();
+    window.agentScheduler.start();
+});
+
+// ============ 调试/测试工具 ============
+
+/**
+ * 手动测试主动消息（浏览器控制台中使用）
+ * 用法：
+ *   testProactiveMessage('daily_greeting')  // 测试每日问候
+ *   testProactiveMessage('return_recall', {daysAway: 5, lastCourse: 'py101', lastChapter: 'Python 循环'})
+ *   testProactiveMessage('study_reminder', {todayMinutes: 10, targetMinutes: 30})
+ *   testProactiveMessage('streak_celebration', {streak: 14})
+ *   testProactiveMessage('custom', {content: '你好！这是自定义消息', links: [...]})
+ */
+window.testProactiveMessage = function(scenario, customData) {
+    const scenarios = {
+        daily_greeting: { timeOfDay: '晚上', streak: 5, hour: 20 },
+        return_recall: { daysAway: 5, lastCourse: 'py101', lastChapter: 'Python 循环结构' },
+        study_reminder: { todayMinutes: 10, targetMinutes: 30 },
+        pomodoro_end: { duration: 25 },
+        streak_celebration: { streak: 14 },
+        custom: null
+    };
+
+    const data = customData || scenarios[scenario];
+    if (!data && scenario !== 'custom') {
+        console.error('[Test] Unknown scenario:', scenario);
+        console.log('[Test] Available scenarios:', Object.keys(scenarios).join(', '));
+        return;
+    }
+
+    if (scenario === 'custom') {
+        insertAgentMessage({
+            content: data.content || '这是一条测试消息',
+            links: data.links || [],
+            actions: data.actions || [{ label: '知道了', action: 'dismiss' }],
+            context: { trigger: 'custom_test', agent_id: data.agentId || 'default' },
+            tone: data.tone || 'friendly',
+            agent_id: data.agentId || 'default'
+        });
+        console.log('[Test] Custom proactive message sent');
+        return;
+    }
+
+    const template = window.agentScheduler._getTemplate(scenario, data);
+    if (template) {
+        insertAgentMessage({
+            content: template.content,
+            links: template.links,
+            actions: template.actions,
+            context: { trigger: scenario, agent_id: template.agentId },
+            tone: template.tone,
+            agent_id: template.agentId
+        });
+        console.log(`[Test] Proactive message sent: ${scenario}`);
+    }
+};
+
+/**
+ * 测试 SmartLinkRenderer 的各种渲染形式（浏览器控制台中使用）
+ * 用法：
+ *   testLinkRenderer('card')      // 单卡片
+ *   testLinkRenderer('grid')      // 卡片网格
+ *   testLinkRenderer('mixed')     // 混合布局
+ *   testLinkRenderer('external')  // 外部链接
+ */
+window.testLinkRenderer = function(style) {
+    const testLinks = {
+        card: [{
+            id: 'test_card', type: 'internal', title: 'Python 基础教程',
+            url: '/classroom.html?course_id=py101', description: '从零开始学习 Python',
+            icon: '🐍', style: 'card', metadata: { progress: 45 }
+        }],
+        grid: [
+            { id: 't1', type: 'internal', title: 'Python 基础', url: '/classroom.html?course_id=py101', description: '变量与数据类型', icon: '🐍' },
+            { id: 't2', type: 'internal', title: 'Java 入门', url: '/classroom.html?course_id=java101', description: '面向对象编程', icon: '☕' },
+            { id: 't3', type: 'internal', title: '算法导论', url: '/classroom.html?course_id=algo101', description: '排序与搜索', icon: '📊' }
+        ],
+        mixed: [
+            { id: 't1', type: 'internal', title: 'Python 官方文档', url: '/classroom.html?course_id=py101', description: '继续学习', icon: '🐍' },
+            { id: 't2', type: 'external', title: 'Python 教程 - 菜鸟教程', url: 'https://www.runoob.com/python3/python3-tutorial.html', icon: '🔗' },
+            { id: 't3', type: 'external', title: 'Python 文档', url: 'https://docs.python.org/zh-cn/3/', icon: '📖' }
+        ],
+        external: [
+            { id: 't1', type: 'external', title: 'GitHub', url: 'https://github.com', icon: '🐙' },
+            { id: 't2', type: 'external', title: 'LeetCode', url: 'https://leetcode.cn', icon: '💻' }
+        ]
+    };
+
+    const links = testLinks[style] || testLinks.card;
+    insertAgentMessage({
+        content: `🧪 测试 **${style}** 样式的链接渲染：`,
+        links: links,
+        actions: [{ label: '关闭测试', action: 'dismiss' }],
+        context: { trigger: 'test_link_renderer' },
+        tone: 'friendly'
+    });
+    console.log(`[Test] Link renderer test sent: ${style}`);
+};
+
+// 学习 streak 追踪（在 handleSendStream 和页面加载时调用）
+function updateStudyStreak() {
+    const today = new Date().toISOString().split('T')[0];
+    const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+    if (!studyData.streak_days) studyData.streak_days = 0;
+    if (!studyData.last_study_date) studyData.last_study_date = '';
+
+    const lastDate = studyData.last_study_date;
+    if (lastDate !== today) {
+        const last = lastDate ? new Date(lastDate) : null;
+        const now = new Date(today);
+        if (last) {
+            const diffDays = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                studyData.streak_days += 1;
+            } else if (diffDays > 1) {
+                studyData.streak_days = 1; // streak 中断，重新计算
+            }
+        } else {
+            studyData.streak_days = 1;
+        }
+        studyData.last_study_date = today;
+        localStorage.setItem('starlearn_study', JSON.stringify(studyData));
+    }
+}
+
+// 页面加载时更新 streak
+document.addEventListener('DOMContentLoaded', updateStudyStreak);
 
 /** FastAPI 的 detail 可能是 string、对象或校验错误数组，直接拼进 Error 会变成 [object Object] */
 function formatApiErrorDetail(detail) {
@@ -1715,15 +2255,19 @@ async function loadRecentCourses() {
     // 同时读取本地缓存（可能包含刚生成但尚未同步到数据库的最新记录）
     const localHistory = JSON.parse(localStorage.getItem('courseHistory') || '[]');
 
-    // 合并数据库记录和本地记录，按 courseId 去重，本地优先（更新的记录）
+    // 合并数据库记录和本地记录，按 courseId 去重，本地无条件优先
+    // 原因：本地记录包含用户最新操作（如刚生成的课堂），数据库同步可能有延迟
     const mergedMap = new Map();
-    dbRecords.forEach(item => mergedMap.set(item.courseId, item));
+    // 先放数据库记录作为兜底
+    dbRecords.forEach(item => {
+        if (item.courseId) {
+            mergedMap.set(String(item.courseId), item);
+        }
+    });
+    // 本地记录覆盖数据库记录（无条件优先，确保刚生成的课堂一定显示）
     localHistory.forEach(item => {
         if (item.courseId) {
-            const existing = mergedMap.get(item.courseId);
-            if (!existing || (item.createdAt && item.createdAt > existing.createdAt)) {
-                mergedMap.set(item.courseId, item);
-            }
+            mergedMap.set(String(item.courseId), item);
         }
     });
     history = Array.from(mergedMap.values());
@@ -3181,6 +3725,22 @@ function preprocessContent(content) {
     result = result.replace(seqPattern, (match) => {
         return `\n\`\`\`mermaid\n${match.trim()}\n\`\`\`\n\n`;
     });
+
+    // 自动检测 URL 并转换为 Markdown 链接（跳过已有链接格式和代码块内的 URL）
+    // 匹配未被 []() 包裹的 http/https URL
+    const urlPattern = /(?<![\[\(])(https?:\/\/[^\s\)\]\>"\'`]+)(?![\]\)])/g;
+    result = result.replace(urlPattern, (url) => {
+        // 跳过 Markdown 链接中的 URL
+        if (result.substring(result.indexOf(url) - 1, result.indexOf(url)) === '(') return url;
+        // 简化为显示域名
+        let displayText = url;
+        try {
+            const urlObj = new URL(url);
+            displayText = urlObj.hostname.replace(/^www\./, '');
+        } catch { /* keep full url */ }
+        return `[${displayText}](${url})`;
+    });
+
     return result;
 }
 
@@ -3215,16 +3775,54 @@ async function renderMessages() {
             htmlContent = processDocRefs(htmlContent);
         }
         const isSocratic = msg.role === 'assistant' && msg.socratic;
+
+        // 主动消息的特殊标识
+        const isProactive = msg._isProactive;
+        const proactiveBadge = isProactive ? `<span class="proactive-badge"><i data-lucide="sparkles" class="w-3 h-3"></i> 主动推送</span>` : '';
+
+        // 链接容器（用于后续 JS 注入）
+        const linksContainerId = msg._timestamp ? `links-${msg._timestamp}` : '';
+        const hasLinks = msg._links && msg._links.length > 0;
+        const hasActions = msg._actions && msg._actions.length > 0;
+
         return `
-        <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+        <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}" data-msg-id="${msg._timestamp || ''}">
             <div class="max-w-[90%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
-                ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}</span>` : ''}
-                <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible">
+                ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${proactiveBadge}</span>` : ''}
+                <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible ${isProactive ? 'msg-bubble--proactive' : ''}">
                     <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
+                    ${hasLinks ? `<div class="message-links" id="${linksContainerId}"></div>` : ''}
+                    ${hasActions ? `<div class="message-actions" id="actions-${msg._timestamp || ''}"></div>` : ''}
                 </div>
             </div>
         </div>`;
     }).join('');
+
+    // 渲染链接和按钮（使用 SmartLinkRenderer）
+    messages.forEach(msg => {
+        if (msg._links && msg._links.length > 0) {
+            const linksEl = document.getElementById(`links-${msg._timestamp}`);
+            if (linksEl && window.smartLinkRenderer) {
+                const rendered = window.smartLinkRenderer.render(msg._links, {
+                    agent_id: msg._agentId,
+                    tone: msg._tone,
+                    message_type: msg._isProactive ? 'proactive' : 'reactive'
+                });
+                if (rendered) {
+                    linksEl.appendChild(rendered);
+                }
+            }
+        }
+        if (msg._actions && msg._actions.length > 0 && msg._links) {
+            const actionsEl = document.getElementById(`actions-${msg._timestamp}`);
+            if (actionsEl && window.smartLinkRenderer) {
+                const rendered = window.smartLinkRenderer.renderActions(msg._actions, msg._links);
+                if (rendered) {
+                    actionsEl.appendChild(rendered);
+                }
+            }
+        }
+    });
 
     if (streamBubble && isTypewriting) {
         container.appendChild(streamBubble);
@@ -3394,7 +3992,7 @@ async function submitGrade() {
             suggestions: data.suggestions || [],
             graded_at: new Date().toISOString()
         };
-        saveProgress();
+        await saveProgress();
     } catch (error) {
         gradePanel.innerHTML = `<div class="text-red-500 text-sm text-center mt-8">批阅请求失败: ${escapeHtml(error.message)}</div>`;
     }
@@ -4666,6 +5264,7 @@ function startPathNodeStudy(idx) {
         node.status = 'in_progress';
         renderPathTree();
         renderPath();
+        saveProgress();
     }
 
     // 关闭详情面板
@@ -4690,6 +5289,9 @@ function markPathNodeComplete(idx) {
     currentPath[idx].status = 'completed';
     renderPathTree();
     renderPath();
+    saveProgress();
+    // 节点完成后触发学习路径刷新
+    schedulePathRefresh('node_complete');
 }
 
 async function handleSendStream() {
@@ -4742,7 +5344,7 @@ async function handleSendStream() {
         }
     }
     renderEvaluation();
-    saveProgress();
+    await saveProgress();
 
     messages.push({ role: 'user', content: userMsg });
     renderMessages();
@@ -4876,6 +5478,12 @@ async function handleSendStream() {
                     if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length) {
                         messages[currentAssistantIdx].content = currentAssistantContent;
                     }
+                    // 支持被动回答中的链接（后端在 done 事件中发送）
+                    if (event.links && event.links.length > 0 && currentAssistantIdx >= 0) {
+                        messages[currentAssistantIdx]._links = event.links;
+                        messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
+                        messages[currentAssistantIdx]._timestamp = Date.now();
+                    }
                     // Remove stream-bubble and re-render all messages to show final content
                     const container = document.getElementById('chat-container');
                     if (container) {
@@ -4930,6 +5538,16 @@ async function handleSendStream() {
 
                     if (currentAssistantIdx >= 0) {
                         messages[currentAssistantIdx].content = currentAssistantContent;
+                        // 支持被动回答中的链接（后端在 complete 事件中发送）
+                        if (data.links && data.links.length > 0) {
+                            messages[currentAssistantIdx]._links = data.links;
+                            messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
+                            messages[currentAssistantIdx]._timestamp = Date.now();
+                        }
+                        // 支持被动回答中的快捷操作
+                        if (data.actions && data.actions.length > 0) {
+                            messages[currentAssistantIdx]._actions = data.actions;
+                        }
                     }
 
                     if (isProgrammingTask(currentAssistantContent)) {
@@ -4951,7 +5569,7 @@ async function handleSendStream() {
                         response_length: currentAssistantContent.length,
                         agents: Array.from(activeAgents)
                     });
-                    saveProgress();
+                    await saveProgress();
                 } else if (event.type === 'error') {
                     const logEntry = {
                         agent: 'error',
@@ -5009,6 +5627,8 @@ async function handleSendStream() {
         else { const mi = document.getElementById('message-input'); if (mi) mi.focus(); }
         streamAbortController = null;
         setDispatchActive(false);
+        // 聊天结束后触发学习路径刷新
+        schedulePathRefresh('chat');
     }
 }
 
@@ -5066,7 +5686,7 @@ async function handleSend() {
 
         const logs = Array.isArray(data.logs) ? data.logs : [];
 
-        const applyChatResponse = () => {
+        const applyChatResponse = async () => {
             if (data.newProfile && typeof data.newProfile === 'object') {
                 profile = { ...profile, ...data.newProfile };
             }
@@ -5119,12 +5739,12 @@ async function handleSend() {
             if (sendButton) sendButton.disabled = false;
             msgInput.focus();
 
-            saveProgress();
+            await saveProgress();
             setDispatchActive(false);
         };
 
         if (logs.length === 0) {
-            applyChatResponse();
+            await applyChatResponse();
         } else {
             for (let i = 0; i < logs.length; i++) {
                 const logText = logs[i];
@@ -5151,6 +5771,8 @@ async function handleSend() {
         setInputDisabled(false);
         if (sendButton) sendButton.disabled = false;
         setDispatchActive(false);
+    } finally {
+        schedulePathRefresh('chat');
     }
 }
 
@@ -5236,7 +5858,7 @@ function startCodePracticeTimer() {
     }
 }
 
-function stopCodePracticeTimer() {
+async function stopCodePracticeTimer() {
     if (codePracticeTimer) {
         clearInterval(codePracticeTimer);
         codePracticeTimer = null;
@@ -5246,7 +5868,7 @@ function stopCodePracticeTimer() {
         evaluation.codePracticeTime = Math.floor(elapsed / 60);
         codePracticeStartTime = null;
         renderEvaluation();
-        saveProgress();
+        await saveProgress();
     }
 }
 
@@ -5351,7 +5973,137 @@ async function loadProgress() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+// ============================================================
+// 学习路径实时生成与更新
+// ============================================================
+
+let _pathRefreshDebounceTimer = null;
+let _pathLastRefreshedAt = 0;
+
+async function initLearningPath() {
+    """页面加载时初始化学习路径：先尝试从 API 获取，失败则回退到本地缓存。"""
+    const user = currentUser;
+    if (!user || !user.id) {
+        renderPathTree();
+        return;
+    }
+
+    // 先显示本地缓存（如果有）
+    const cached = localStorage.getItem(`starlearn_path_${user.id}`);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (data.path && data.path.length > 0) {
+                currentPath = normalizeLearningPath(data.path);
+                renderPathTree();
+                updatePathLastUpdated(data.generated_at);
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    // 异步拉取最新路径
+    try {
+        const fresh = await fetchLearningPath(user.id);
+        if (fresh && fresh.path && fresh.path.length > 0) {
+            const oldPathJson = JSON.stringify(currentPath);
+            const newPathJson = JSON.stringify(fresh.path);
+            currentPath = normalizeLearningPath(fresh.path);
+            renderPathTree();
+            updatePathLastUpdated(fresh.generated_at);
+            localStorage.setItem(`starlearn_path_${user.id}`, JSON.stringify(fresh));
+            if (oldPathJson !== newPathJson) {
+                showToast(`学习路径已更新：${fresh.reasoning || '基于最新学情'}`, 'info');
+            }
+        }
+    } catch (e) {
+        console.warn('[LearningPath] 初始化拉取失败:', e);
+    }
+}
+
+async function fetchLearningPath(userId) {
+    """从后端获取当前学习路径（不触发 LLM 生成）。"""
+    try {
+        const res = await fetch(`${LEARNING_PATH_CURRENT_URL}/${userId}`);
+        if (!res.ok) return null;
+        return await res.json();
+    } catch (e) {
+        console.warn('[LearningPath] 获取当前路径失败:', e);
+        return null;
+    }
+}
+
+async function refreshLearningPath(force = false) {
+    """刷新学习路径（带防抖）。force=true 时跳过缓存。"""
+    const user = currentUser;
+    if (!user || !user.id) return;
+
+    const now = Date.now();
+    if (!force && now - _pathLastRefreshedAt < 30000) {  // 30秒防抖
+        console.log('[LearningPath] 刷新过于频繁，跳过');
+        return;
+    }
+    _pathLastRefreshedAt = now;
+
+    // 显示加载状态
+    const loadingEl = document.getElementById('path-tree-loading');
+    const refreshBtn = document.getElementById('path-refresh-btn');
+    if (loadingEl) loadingEl.classList.remove('hidden');
+    if (refreshBtn) refreshBtn.classList.add('spinning');
+
+    try {
+        const res = await fetch(LEARNING_PATH_GENERATE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(user.id), forceRefresh: force })
+        });
+        if (!res.ok) {
+            console.warn('[LearningPath] 刷新失败:', res.status);
+            return;
+        }
+        const data = await res.json();
+        if (data.success && data.path && data.path.length > 0) {
+            const oldPathJson = JSON.stringify(currentPath);
+            const newPathJson = JSON.stringify(data.path);
+            currentPath = normalizeLearningPath(data.path);
+            renderPathTree();
+            updatePathLastUpdated(data.generated_at);
+            localStorage.setItem(`starlearn_path_${user.id}`, JSON.stringify(data));
+            if (oldPathJson !== newPathJson) {
+                showToast(`路径已更新：${data.reasoning || '基于最新学情'}`, 'info');
+            }
+        }
+    } catch (e) {
+        console.warn('[LearningPath] 刷新异常:', e);
+    } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+        if (refreshBtn) refreshBtn.classList.remove('spinning');
+    }
+}
+
+function updatePathLastUpdated(isoString) {
+    """更新路径面板顶部的'最后更新'文本。"""
+    const el = document.getElementById('path-last-updated');
+    if (!el || !isoString) return;
+    try {
+        const date = new Date(isoString);
+        const diffMin = Math.floor((Date.now() - date.getTime()) / 60000);
+        if (diffMin < 1) el.textContent = '刚刚更新';
+        else if (diffMin < 60) el.textContent = `${diffMin}分钟前更新`;
+        else el.textContent = `${Math.floor(diffMin / 60)}小时前更新`;
+    } catch (e) {
+        el.textContent = '已更新';
+    }
+}
+
+// 在关键学习事件后自动刷新路径（防抖）
+function schedulePathRefresh(source = 'event') {
+    if (_pathRefreshDebounceTimer) clearTimeout(_pathRefreshDebounceTimer);
+    _pathRefreshDebounceTimer = setTimeout(() => {
+        refreshLearningPath(false);
+    }, 2000);  // 延迟2秒，等待数据保存完成
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
     initTheme();
     
     // 初始默认使用"默认"身份，不读取 localStorage 中保存的历史身份
@@ -5472,7 +6224,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateUserUI();
 
     if (currentUser && currentUser.id) {
-        loadProgress();
+        await loadProgress();
         window.proactiveTutor.connect(currentUser.id || currentUser.name || 'anonymous', currentUser.currentTask || 'bigdata');
         // 每 30 秒自动保存 evaluation
         setInterval(() => {

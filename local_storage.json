@@ -351,6 +351,220 @@
       "completed": [],
       "generated_at": "2026-05-09T09:28:47.136108",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "编程入门导论",
+          "description": "观看变量与数据类型基础视频课程",
+          "type": "study",
+          "duration": 30,
+          "subject": "计算机科学",
+          "difficulty": "easy",
+          "taskUrl": "/video-player.html"
+        },
+        {
+          "id": 2,
+          "title": "基础语法练习",
+          "description": "完成5道变量声明与赋值练习题",
+          "type": "practice",
+          "duration": 40,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "专注力训练",
+          "description": "完成1个番茄钟专注力训练",
+          "type": "study",
+          "duration": 25,
+          "subject": "通用技能",
+          "difficulty": "easy",
+          "taskUrl": "/flow-meter.html"
+        },
+        {
+          "id": 4,
+          "title": "核心概念梳理",
+          "description": "使用概念图梳理编程基本概念",
+          "type": "review",
+          "duration": 20,
+          "subject": "计算机科学",
+          "difficulty": "easy",
+          "taskUrl": "/concept-analyzer.html"
+        },
+        {
+          "id": 5,
+          "title": "AI问答辅导",
+          "description": "向AI助手提问一个学习中的疑问",
+          "type": "study",
+          "duration": 25,
+          "subject": "通用",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "知识点学习",
+          "description": "学习条件判断语句的核心知识点",
+          "type": "study",
+          "duration": 30,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 7,
+          "title": "虚拟宠物互动",
+          "description": "喂食虚拟宠物并领取今日奖励",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-05-10",
+      "completed": [],
+      "generated_at": "2026-05-10T00:39:52.120860",
+      "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "观看入门课程",
+          "description": "学习编程基础概念视频课程",
+          "type": "study",
+          "duration": 25,
+          "subject": "计算机基础",
+          "difficulty": "easy",
+          "taskUrl": "courses.html"
+        },
+        {
+          "id": 2,
+          "title": "完成首个程序",
+          "description": "编写并运行Hello World程序",
+          "type": "practice",
+          "duration": 30,
+          "subject": "编程入门",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "学习专注技巧",
+          "description": "使用番茄钟进行专注力训练",
+          "type": "practice",
+          "duration": 20,
+          "subject": "学习方法",
+          "difficulty": "medium",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 4,
+          "title": "理解核心概念",
+          "description": "通过概念分析器梳理今日所学",
+          "type": "review",
+          "duration": 25,
+          "subject": "知识巩固",
+          "difficulty": "easy",
+          "taskUrl": "concept-analyzer.html"
+        },
+        {
+          "id": 5,
+          "title": "提问式学习",
+          "description": "通过苏格拉底问答检验理解",
+          "type": "study",
+          "duration": 30,
+          "subject": "思维训练",
+          "difficulty": "medium",
+          "taskUrl": "socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "照顾虚拟宠物",
+          "description": "放松一下，喂养像素宠物",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲放松",
+          "difficulty": "easy",
+          "taskUrl": "pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-05-14",
+      "completed": [],
+      "generated_at": "2026-05-14T11:01:36.812027",
+      "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "能力水平评估",
+          "description": "完成15道基础测评题，了解当前水平",
+          "type": "study",
+          "duration": 30,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 2,
+          "title": "核心概念学习",
+          "description": "观看3节入门课程，掌握基础知识点",
+          "type": "study",
+          "duration": 25,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 3,
+          "title": "编程入门练习",
+          "description": "完成5道基础编程题，巩固语法",
+          "type": "practice",
+          "duration": 30,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 4,
+          "title": "专注力训练",
+          "description": "开启番茄钟，完成25分钟专注学习",
+          "type": "practice",
+          "duration": 25,
+          "subject": "方法",
+          "difficulty": "easy",
+          "taskUrl": "/flow-meter.html"
+        },
+        {
+          "id": 5,
+          "title": "AI知识问答",
+          "description": "向AI助手提问3个学习疑惑",
+          "type": "study",
+          "duration": 20,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "虚拟宠物互动",
+          "description": "喂养宠物并完成每日小游戏",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-05-17",
+      "completed": [],
+      "generated_at": "2026-05-17T13:35:38.418244",
+      "user_id": 1
     }
   ],
   "classroom_records": [

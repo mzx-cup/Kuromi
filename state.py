@@ -144,6 +144,8 @@ class StudentState(BaseModel):
     student_id: str = ""
     course_id: str = ""
     context_id: str = Field(default_factory=lambda: datetime.now().strftime("%Y%m%d%H%M%S%f"))
+    # 关联数据库 messages 表的 session_id（为空表示不持久化到 DB）
+    session_id: str = Field(default="", description="关联数据库 messages.session_id")
     dialogue_history: list[ChatMessage] = Field(default_factory=list)
     profile: LearningProfile = Field(default_factory=LearningProfile)
     current_path: list[PathNode] = Field(default_factory=list)
@@ -463,15 +465,29 @@ class SlideV2(BaseModel):
     scene_id: Optional[int] = None  # strict FK → SceneOutline.id
     teacher_actions: list[TeacherAction] = Field(default_factory=list)  # AI教师白板动作
 
+    # OpenMAIC 格式兼容字段（由 MiniMax PPT provider 生成）
+    elements: list[dict[str, Any]] = Field(default_factory=list)
+    viewportSize: Optional[dict[str, float]] = None
+    viewportRatio: Optional[float] = None
+    background: Optional[dict[str, Any]] = None
+    theme: Optional[dict[str, Any]] = None
+    actions: list[dict[str, Any]] = Field(default_factory=list)
+    id: Optional[str] = None
+
     @field_validator('layout_type')
     @classmethod
     def validate_layout_type(cls, v):
-        allowed = {'title-only', 'two-column', 'grid-cards', 'header-content', 'timeline-steps',
-                   'comparison', 'fullwidth-banner', 'three-column-cards', 'asymmetric-split',
-                   'numbered-list', 'hero-center', 'chapter-divider',
-                   'edu-definition', 'edu-keypoints', 'edu-example', 'edu-summary',
-                   'edu-welcome', 'media-showcase', 'edu-programming-concept'}
-        return v if v in allowed else 'two-column'
+        allowed = {
+            # 11种文字布局
+            'spotlight-focus', 'kinetic-type', 'isometric-cards', 'orbit-ring',
+            'gradient-split', 'dark-header', 'circle-radial', 'stair-step',
+            'quote-wall', 'info-graphic', 'floating-overlap',
+            # 2种图片布局
+            'magazine-cover', 'photo-story',
+            # 2种视频布局
+            'media-showcase', 'video-lecture',
+        }
+        return v if v in allowed else 'spotlight-focus'
 
 
 class SceneOutline(BaseModel):
@@ -489,7 +505,13 @@ class TeacherInfo(BaseModel):
     name: str = "星识教师"
     avatar: str = ""  # 头像URL或emoji
     role: str = "课程导师"
-    voice_id: int = 0  # 音色ID 0-4
+    voice_id: str = "female-shaonv"  # 音色标识，与 TEACHERS_CONFIG.voiceId 一致
+    profession: str = ""  # 职业/头衔
+    personality: str = ""  # 性格特质
+    teaching_style: str = ""  # 教学风格
+    icon: str = ""  # 图标emoji
+    system_prompt: str = ""  # 系统提示词
+    greeting: str = ""  # 问候语
 
 
 class TeacherAction(BaseModel):
@@ -586,6 +608,18 @@ class CourseGenerationRequest(BaseModel):
     interactive_mode: bool = False
     enable_pdf_upload: bool = False
     pdf_text: str = ""
+    # MiniMax PPT 混合生成配置
+    enable_minimax_ppt: bool = True       # 启用 MiniMax PPT 混合生成
+    minimax_ppt_ratio: float = 0.7        # MiniMax PPT 占比（0~1）
+    # 用户选择的AI教师信息
+    teacher_name: str = ""
+    teacher_avatar: str = ""
+    teacher_profession: str = ""
+    teacher_personality: str = ""
+    teacher_teaching_style: str = ""
+    teacher_icon: str = ""
+    teacher_system_prompt: str = ""
+    teacher_greeting: str = ""
 
 
 class CourseGenerationSession(BaseModel):

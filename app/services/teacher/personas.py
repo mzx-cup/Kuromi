@@ -340,7 +340,16 @@ class PersonaManager:
             '3. {"type":"action","name":"...","params":{...}} -- 视觉动作\n'
             '4. speech 和 action 交织排列\n'
             '5. 每个响应必须是完整独立的 JSON 数组\n'
-            '6. 不要预告动作 -- 直接做'
+            '6. 不要预告动作 -- 直接做\n\n'
+            '## 学习链接推荐（可选）\n'
+            'JSON 数组输出完毕后，你可以选择性附加 `<links>[...]</links>` 标记，\n'
+            '为学生推荐与当前话题直接相关的学习资源。每个链接对象包含：\n'
+            '- `type`: "internal"（站内）或 "external"（站外）\n'
+            '- `title`: 链接标题\n'
+            '- `url`: 完整 URL 或站内路径\n'
+            '- `description`: 简短描述\n'
+            '- `icon`: emoji 图标\n'
+            '仅当问题涉及具体知识点时推荐，最多 3 个，优先站内资源。'
         )
 
     def _build_interleaving_rules(self, speech_limit: int) -> str:

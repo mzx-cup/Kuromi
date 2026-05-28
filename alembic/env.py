@@ -18,6 +18,7 @@ from app.models.base import Base
 import app.models.user       # noqa: F401 — registers User, StudentProfile
 import app.models.course      # noqa: F401 — registers Course, SceneOutline, Slide
 import app.models.classroom   # noqa: F401 — registers ClassroomSession, QuizRecord, AgentTurnRecord
+import app.models.message     # noqa: F401 — registers Message, ConversationSummary
 
 target_metadata = Base.metadata
 

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-MiniMax PPT 生成 Provider
+MiniMax PPT 生成 Provider — 编程教学专用
 
 使用 MiniMax 大模型直接生成 OpenMAIC 格式的精美幻灯片。
+针对编程学习场景优化：代码展示、终端风格、API 文档等专用布局。
 """
 
 from __future__ import annotations
@@ -19,16 +20,12 @@ from config import settings
 from app.services.ppt.types import (
     PPTGenerationRequest,
     PPTGenerationResult,
-    Slide,
-    SlideBackground,
-    SlideTheme,
 )
 
 logger = logging.getLogger("starlearn.ppt.minimax")
 
-
 # ============================================================================
-# OpenMAIC Slide Element Builders
+# 视图常量
 # ============================================================================
 
 VIEWPORT_W = 1000
@@ -40,380 +37,17 @@ def clamp_coord(val: float, min_val: float, max_val: float) -> float:
     return max(min_val, min(max_val, val))
 
 
-def make_rounded_rect_path(w: float, h: float, r: float) -> str:
-    wr = min(r, w / 2)
-    hr = min(r, h / 2)
-    return (
-        f"M {wr} 0 "
-        f"L {w - wr} 0 "
-        f"Q {w} 0 {w} {hr} "
-        f"L {w} {h - hr} "
-        f"Q {w} {h} {w - wr} {h} "
-        f"L {wr} {h} "
-        f"Q 0 {h} 0 {h - hr} "
-        f"L 0 {hr} "
-        f"Q 0 0 {wr} 0 "
-        f"Z"
-    )
-
-
-def make_gradient(colors: list[str], angle: float = 0) -> dict:
-    return {
-        "type": "linear",
-        "colors": [
-            {"color": colors[0], "pos": 0},
-            {"color": colors[1], "pos": 1}
-        ],
-        "rotate": angle
-    }
-
-
-def make_title_bar(title: str, scene_id: str | int, bg_color: str = "#1E40AF") -> dict:
-    return {
-        "type": "shape",
-        "id": f"el-{scene_id}-title-bar",
-        "left": 0,
-        "top": 0,
-        "width": VIEWPORT_W,
-        "height": TITLE_H,
-        "shape_name": "rectangle",
-        "path": make_rounded_rect_path(VIEWPORT_W, TITLE_H, 0),
-        "fill": bg_color,
-        "viewBox": [0, 0, VIEWPORT_W, TITLE_H],
-    }
-
-
-def make_title_text(title: str, scene_id: str | int) -> dict:
-    return {
-        "type": "text",
-        "id": f"el-{scene_id}-title",
-        "left": 20,
-        "top": 0,
-        "width": VIEWPORT_W - 40,
-        "height": TITLE_H,
-        "content": f'<h1 style="margin:0;font-size:24px;font-weight:700;color:#FFFFFF;text-align:center;line-height:{TITLE_H}px;">{title}</h1>',
-        "fill": "transparent",
-        "defaultColor": "#FFFFFF",
-        "defaultFontName": "Microsoft YaHei",
-    }
-
-
-def make_card(
-    item: dict,
-    left: float,
-    top: float,
-    width: float,
-    height: float,
-    card_idx: int,
-    scene_id: str | int,
-    theme_colors: dict
-) -> list[dict]:
-    """生成一个内容卡片的所有元素"""
-    elements = []
-
-    theme_name = item.get("color_theme", "blue")
-    theme = theme_colors.get(theme_name, theme_colors["blue"])
-    card_radius = 12
-
-    # 卡片背景
-    bg_id = f"el-{scene_id}-card-{card_idx}-bg"
-    elements.append({
-        "type": "shape",
-        "id": bg_id,
-        "left": left,
-        "top": top,
-        "width": width,
-        "height": height,
-        "shape_name": "rectangle",
-        "path": make_rounded_rect_path(width, height, card_radius),
-        "fill": theme["hex"],
-        "viewBox": [0, 0, width, height],
-        "opacity": 0.95,
-    })
-
-    # 卡片标题
-    sub_title = item.get("sub_title", "")
-    icon = _get_icon(item.get("icon", "book"))
-    if sub_title:
-        title_h = 32
-        title_y = top + 8
-        elements.append({
-            "type": "text",
-            "id": f"el-{scene_id}-card-{card_idx}-title",
-            "left": left + 12,
-            "top": title_y,
-            "width": width - 24,
-            "height": title_h,
-            "content": f'<strong style="color:{theme["text"]};font-size:14px;font-weight:600;">{icon} {sub_title}</strong>',
-            "fill": "transparent",
-            "defaultColor": theme["text"],
-            "defaultFontName": "Microsoft YaHei",
-        })
-        body_top = top + title_h + 8
-        body_h = height - title_h - 16
-    else:
-        body_top = top + 12
-        body_h = height - 24
-
-    # 内容区域
-    text = item.get("text", "")
-    code_snippet = item.get("code_snippet", "")
-    image_url = item.get("image_url", "")
-
-    has_code = code_snippet and str(code_snippet).strip()
-    has_image = image_url and str(image_url).strip()
-
-    if has_code and has_image:
-        # 左侧文本，右侧代码和图片
-        code_w = width * 0.5
-        img_w = width - code_w - 16
-        elements.append({
-            "type": "text",
-            "id": f"el-{scene_id}-card-{card_idx}-body",
-            "left": left + 12,
-            "top": body_top,
-            "width": code_w - 12,
-            "height": body_h * 0.55,
-            "content": _parse_markdown(text, theme["text"]),
-            "fill": "transparent",
-            "defaultColor": theme["text"],
-            "defaultFontName": "Microsoft YaHei",
-        })
-        elements.append({
-            "type": "code",
-            "id": f"el-{scene_id}-card-{card_idx}-code",
-            "left": left + 12,
-            "top": body_top + body_h * 0.55 + 4,
-            "width": code_w - 12,
-            "height": body_h * 0.45 - 4,
-            "content": str(code_snippet),
-            "language": "python",
-        })
-        elements.append({
-            "type": "image",
-            "id": f"el-{scene_id}-card-{card_idx}-img",
-            "left": left + code_w + 8,
-            "top": body_top,
-            "width": img_w - 12,
-            "height": body_h,
-            "src": image_url,
-        })
-    elif has_code:
-        # 上方文本，下方代码
-        text_h = body_h * 0.4
-        elements.append({
-            "type": "text",
-            "id": f"el-{scene_id}-card-{card_idx}-body",
-            "left": left + 12,
-            "top": body_top,
-            "width": width - 24,
-            "height": text_h,
-            "content": _parse_markdown(text, theme["text"]),
-            "fill": "transparent",
-            "defaultColor": theme["text"],
-            "defaultFontName": "Microsoft YaHei",
-        })
-        elements.append({
-            "type": "code",
-            "id": f"el-{scene_id}-card-{card_idx}-code",
-            "left": left + 12,
-            "top": body_top + text_h + 4,
-            "width": width - 24,
-            "height": body_h - text_h - 4,
-            "content": str(code_snippet),
-            "language": "python",
-        })
-    elif has_image:
-        # 左侧文本，右侧图片
-        txt_w = width * 0.55
-        img_w = width - txt_w - 12
-        elements.append({
-            "type": "text",
-            "id": f"el-{scene_id}-card-{card_idx}-body",
-            "left": left + 12,
-            "top": body_top,
-            "width": txt_w - 12,
-            "height": body_h,
-            "content": _parse_markdown(text, theme["text"]),
-            "fill": "transparent",
-            "defaultColor": theme["text"],
-            "defaultFontName": "Microsoft YaHei",
-        })
-        elements.append({
-            "type": "image",
-            "id": f"el-{scene_id}-card-{card_idx}-img",
-            "left": left + txt_w + 4,
-            "top": body_top,
-            "width": img_w - 8,
-            "height": body_h,
-            "src": image_url,
-        })
-    else:
-        # 仅文本
-        elements.append({
-            "type": "text",
-            "id": f"el-{scene_id}-card-{card_idx}-body",
-            "left": left + 12,
-            "top": body_top,
-            "width": width - 24,
-            "height": body_h,
-            "content": _parse_markdown(text, theme["text"]),
-            "fill": "transparent",
-            "defaultColor": theme["text"],
-            "defaultFontName": "Microsoft YaHei",
-        })
-
-    return elements
-
-
-def _parse_markdown(text: str, color: str) -> str:
-    """简单的 Markdown 到 HTML 转换"""
-    if not text:
-        return ""
-    html = str(text)
-    # 标题
-    html = html.replace("**", "")
-    # 换行
-    html = html.replace("\n", "<br>")
-    # 行内代码
-    import re
-    html = re.sub(r"`([^`]+)`", r"<code style='background:#F1F5F9;padding:2px 6px;border-radius:4px;font-family:monospace;'>\\1</code>", html)
-    return f'<div style="color:{color};font-size:13px;line-height:1.6;">{html}</div>'
-
-
-def _get_icon(icon_name: str) -> str:
-    icons = {
-        "book": "📖",
-        "lightbulb": "💡",
-        "code": "💻",
-        "check": "✅",
-        "star": "⭐",
-        "question": "❓",
-        "warning": "⚠️",
-        "info": "ℹ️",
-    }
-    return icons.get(icon_name, icons["book"])
-
-
-# 前端 slide-v2-adapter.js 同步的 30 种主题色
-THEME_COLORS = {
-    # 基础色（1-15）
-    "blue":   {"bg": "#DBEAFE", "text": "#1E40AF", "accent": "#3B82F6", "hex": "#DBEAFE"},
-    "yellow": {"bg": "#FEF3C7", "text": "#92400E", "accent": "#F59E0B", "hex": "#FEF3C7"},
-    "green":  {"bg": "#D1FAE5", "text": "#065F46", "accent": "#10B981", "hex": "#D1FAE5"},
-    "purple": {"bg": "#EDE9FE", "text": "#5B21B6", "accent": "#8B5CF6", "hex": "#EDE9FE"},
-    "orange": {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#F97316", "hex": "#FFF7ED"},
-    "cyan":   {"bg": "#CFFAFE", "text": "#164E63", "accent": "#06B6D4", "hex": "#CFFAFE"},
-    "pink":   {"bg": "#FCE7F3", "text": "#831843", "accent": "#EC4899", "hex": "#FCE7F3"},
-    "indigo": {"bg": "#E0E7FF", "text": "#3730A3", "accent": "#6366F1", "hex": "#E0E7FF"},
-    "teal":   {"bg": "#CCFBF1", "text": "#115E59", "accent": "#14B8A6", "hex": "#CCFBF1"},
-    "rose":   {"bg": "#FFE4E6", "text": "#9F1239", "accent": "#F43F5E", "hex": "#FFE4E6"},
-    "amber":  {"bg": "#FFFBEB", "text": "#78350F", "accent": "#F59E0B", "hex": "#FFFBEB"},
-    "lime":   {"bg": "#ECFCC5", "text": "#3F6212", "accent": "#84CC16", "hex": "#ECFCC5"},
-    "sky":    {"bg": "#E0F2FE", "text": "#0C4A6E", "accent": "#0EA5E9", "hex": "#E0F2FE"},
-    "violet": {"bg": "#F5F3FF", "text": "#4C1D95", "accent": "#8B5CF6", "hex": "#F5F3FF"},
-    "slate":  {"bg": "#F1F5F9", "text": "#1E293B", "accent": "#64748B", "hex": "#F1F5F9"},
-    # 扩展色（16-30）
-    "crimson":  {"bg": "#FFE4E6", "text": "#9F1239", "accent": "#DC2626", "hex": "#FFE4E6"},
-    "emerald":  {"bg": "#D1FAE5", "text": "#065F46", "accent": "#059669", "hex": "#D1FAE5"},
-    "fuchsia":  {"bg": "#FCE7F3", "text": "#831843", "accent": "#D946EF", "hex": "#FCE7F3"},
-    "gold":     {"bg": "#FFFBEB", "text": "#78350F", "accent": "#D97706", "hex": "#FFFBEB"},
-    "gray":     {"bg": "#F3F4F6", "text": "#1F2937", "accent": "#6B7280", "hex": "#F3F4F6"},
-    "aqua":     {"bg": "#CFFAFE", "text": "#164E63", "accent": "#0891B2", "hex": "#CFFAFE"},
-    "lavender": {"bg": "#EDE9FE", "text": "#5B21B6", "accent": "#A78BFA", "hex": "#EDE9FE"},
-    "coral":    {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#FB923C", "hex": "#FFF7ED"},
-    "navy":     {"bg": "#E0E7FF", "text": "#3730A3", "accent": "#4338CA", "hex": "#E0E7FF"},
-    "mint":     {"bg": "#CCFBF1", "text": "#115E59", "accent": "#34D399", "hex": "#CCFBF1"},
-    "peach":    {"bg": "#FCE7F3", "text": "#831843", "accent": "#FB7185", "hex": "#FCE7F3"},
-    "rust":     {"bg": "#FFF7ED", "text": "#9A3412", "accent": "#EA580C", "hex": "#FFF7ED"},
-    "sand":     {"bg": "#FEF3C7", "text": "#92400E", "accent": "#FCD34D", "hex": "#FEF3C7"},
-    "sage":     {"bg": "#ECFCC5", "text": "#3F6212", "accent": "#65A30D", "hex": "#ECFCC5"},
-    "wine":     {"bg": "#F5F3FF", "text": "#4C1D95", "accent": "#7C3AED", "hex": "#F5F3FF"},
-}
-
-
-# 语义颜色匹配表 - 根据内容关键词匹配主题色（支持30种颜色）
-SEMANTIC_COLOR_MAP = {
-    # 核心/基础/重要概念 - 使用蓝色
-    "基础": "blue", "核心": "blue", "概念": "blue", "原理": "blue",
-    "入门": "blue", "概述": "blue", "简介": "blue", "导论": "blue",
-
-    # 警告/注意/危险 - 使用黄色/橙色
-    "警告": "yellow", "注意": "yellow", "危险": "orange", "错误": "orange",
-    "异常": "orange", "失败": "orange", "问题": "yellow", "警告": "amber",
-
-    # 成功/完成/正确 - 使用绿色
-    "成功": "green", "完成": "green", "正确": "green", "通过": "green",
-    "验证": "green", "确认": "green", "优点": "green", "优势": "green",
-
-    # 高级/特殊/重点 - 使用紫色
-    "高级": "purple", "深入": "purple", "扩展": "purple", "特殊": "purple",
-    "重点": "purple", "关键": "purple", "精华": "purple", "深度": "indigo",
-
-    # 信息/提示/说明 - 使用蓝色系
-    "信息": "blue", "提示": "blue", "说明": "blue", "解释": "blue",
-    "定义": "blue", "介绍": "blue", "特点": "blue", "特性": "blue",
-
-    # 代码/技术/实现 - 使用蓝色或青色
-    "代码": "blue", "函数": "blue", "方法": "blue", "实现": "blue",
-    "技术": "cyan", "算法": "cyan", "编程": "cyan", "开发": "cyan",
-    "语法": "sky", "变量": "sky", "类型": "sky",
-
-    # 创意/设计/艺术 - 使用粉色/紫红
-    "创意": "pink", "设计": "pink", "艺术": "pink", "美学": "rose",
-    "色彩": "violet", "绘制": "violet", "画": "rose",
-
-    # 自然/环境/健康 - 使用绿色/青色
-    "自然": "teal", "环境": "teal", "生态": "teal", "健康": "teal",
-    "植物": "lime", "环保": "lime", "绿色": "lime",
-
-    # 数据/统计/分析 - 使用青色/蓝色
-    "数据": "cyan", "统计": "cyan", "分析": "cyan", "图表": "sky",
-    "数字": "indigo", "指标": "indigo", "量化": "sky",
-
-    # 时间/流程/步骤 - 使用蓝灰/石板色
-    "时间": "slate", "流程": "slate", "步骤": "slate", "阶段": "slate",
-    "顺序": "slate", "进度": "slate", "计划": "slate",
-}
-
-
-def match_semantic_color(text: str, fallback: str = "blue") -> str:
-    """根据文本内容匹配语义化颜色"""
-    if not text:
-        return fallback
-
-    text_lower = text.lower()
-
-    # 优先匹配更具体的关键词
-    priority_keywords = {
-        "成功": "green", "完成": "green", "正确": "green", "通过": "green",
-        "警告": "yellow", "注意": "yellow", "危险": "orange", "错误": "orange",
-        "异常": "orange", "失败": "orange", "问题": "yellow",
-    }
-
-    for keyword, color in priority_keywords.items():
-        if keyword in text_lower:
-            return color
-
-    # 通用关键词匹配
-    for keyword, color in SEMANTIC_COLOR_MAP.items():
-        if keyword in text_lower:
-            return color
-
-    return fallback
-
-
 # ============================================================================
-# MiniMax PPT Provider
+# MiniMax PPT Provider — 编程教学专用
 # ============================================================================
 
 class MiniMaxPPTProvider:
     provider_id = "minimax-ppt"
 
-    SYSTEM_PROMPT = """你是一个专业的PPT幻灯片设计助手，负责生成精美的教学内容幻灯片。
+    SYSTEM_PROMPT = """你是一个专业的编程教学PPT幻灯片设计助手。你的任务是根据课程内容生成精美的OpenMAIC格式幻灯片JSON。
 
-## 你的任务
-根据用户提供的课程内容，生成高质量的OpenMAIC格式幻灯片JSON。
+## 平台定位
+这是一个编程学习平台，所有课程都是编程/计算机相关内容。幻灯片设计必须专业、清晰、适合代码展示。
 
 ## OpenMAIC 幻灯片格式规范
 
@@ -425,211 +59,149 @@ class MiniMaxPPTProvider:
 ```json
 {
   "background": {
-    "type": "solid",  // 或 "gradient"
-    "color": "#F8FAFC"
+    "type": "solid",
+    "color": "#0F172A"
   }
 }
 ```
+推荐使用深色背景（#0F172A 深蓝灰）配合亮色卡片，营造科技感和专业编程氛围。
 
 ### 元素类型
 
-**1. shape (形状)** - 用于背景卡片、装饰元素
+**1. shape (形状)** — 背景卡片、装饰线条
 ```json
 {
   "type": "shape",
   "id": "unique-id",
-  "left": 50,        // 左上角X (0-1000)
-  "top": 80,        // 左上角Y (0-562.5)
-  "width": 400,
-  "height": 200,
+  "left": 50, "top": 80, "width": 400, "height": 200,
   "shape_name": "rectangle",
   "path": "M 12 0 L 388 0 Q 400 0 400 12 L 400 188 Q 400 200 388 200 L 12 200 Q 0 200 0 188 L 0 12 Q 0 0 12 0 Z",
-  "fill": "#EFF6FF",
+  "fill": "#1E293B",
   "viewBox": [0, 0, 400, 200],
-  "gradient": {
-    "type": "linear",
-    "colors": [{"color": "#3B82F6", "pos": 0}, {"color": "#8B5CF6", "pos": 1}],
-    "rotate": 45
-  },
   "opacity": 0.95
 }
 ```
 
-**2. text (文本)** - 用于标题、正文
+**2. text (文本)** — 标题、正文、说明
 ```json
 {
   "type": "text",
   "id": "unique-id",
-  "left": 50,
-  "top": 80,
-  "width": 400,
-  "height": 40,
-  "content": "<h1 style='color:#1E40AF;font-size:24px;'>标题</h1>",
+  "left": 50, "top": 80, "width": 400, "height": 40,
+  "content": "<h1 style='color:#E2E8F0;font-size:24px;font-weight:700;'>标题</h1>",
   "fill": "transparent",
-  "defaultColor": "#1E40AF",
+  "defaultColor": "#E2E8F0",
   "defaultFontName": "Microsoft YaHei"
 }
 ```
 
-支持HTML格式：
-- `<h1>` 主标题
-- `<h2>` 副标题
-- `<strong>` 粗体
-- `<code>` 行内代码
-- `<br>` 换行
+支持HTML格式：`<h1>` `<h2>` `<strong>` `<code>` `<br>` `<span>`
 
-**3. code (代码块)**
+**3. code (代码块)** — 展示编程代码
 ```json
 {
   "type": "code",
   "id": "unique-id",
-  "left": 500,
-  "top": 120,
-  "width": 450,
-  "height": 350,
-  "content": "print('Hello World')",
+  "left": 500, "top": 120, "width": 450, "height": 350,
+  "content": "def hello():\\n    print('Hello World')",
   "language": "python"
 }
 ```
+代码块必须使用深色背景区域包裹（通过 shape），背景色 #0D1117 或 #1E1E1E，与整体深色主题协调。
 
-**4. image (图片)**
+**4. image (图片)** — 示意图、截图
 ```json
 {
   "type": "image",
   "id": "unique-id",
-  "left": 500,
-  "top": 120,
-  "width": 450,
-  "height": 300,
+  "left": 500, "top": 120, "width": 450, "height": 300,
   "src": "https://example.com/image.png"
 }
 ```
 
-## 布局设计原则
+## 编程教学布局规范
 
-### 1. 标题栏设计
-- 顶部标题栏高度 56px
-- 使用渐变色背景 (如 #1E40AF → #3B82F6)
-- 白色文字居中
+### 通用设计原则
+1. **深色主题优先**：背景使用 #0F172A，卡片使用 #1E293B，文字使用 #E2E8F0
+2. **代码高亮区**：代码块必须有独立的深色背景卡片（#0D1117），与内容区明显区分
+3. **字体层级**：标题 22-26px，正文 14-16px，代码 13-14px（等宽字体）
+4. **间距规范**：元素之间至少 16px 间距，卡片内边距 16-20px
+5. **配色克制**：每张幻灯片最多 3 种主色，避免花哨。推荐色板：
+   - 主色：#3B82F6（蓝）
+   - 强调：#10B981（绿）#F59E0B（琥珀）
+   - 文字：#E2E8F0（浅灰白）#94A3B8（次要文字）
+   - 危险/错误：#EF4444（红）
 
-### 2. 内容卡片
-- 圆角矩形卡片 (圆角12px)
-- 使用主题色背景 (blue/yellow/green/purple/orange)
-- 卡片之间间距 16px
+### 布局类型（编程专用）
 
-### 3. 布局类型
+**code-showcase（代码展示）**
+- 左侧 40%：概念说明文字区
+- 右侧 60%：大代码块区域，带深色背景
+- 适用于：讲解具体代码实现、函数用法
 
-**两栏布局 (two-column)**
-- 第一行两个等宽卡片 (各约470px)
-- 第二行一个全宽卡片
+**terminal-style（终端风格）**
+- 全宽或大面积终端模拟区域
+- 顶部有命令提示符装饰条（绿色圆点 + 标题）
+- 内容使用等宽字体，白色/绿色文字
+- 适用于：命令行操作、CLI工具教学
 
-**网格布局 (grid-cards)**
-- 2-3列网格
-- 根据内容数量自适应
+**concept-code（概念+代码对照）**
+- 上方：核心概念说明（1-2句话）
+- 下方左右分栏：左侧文字要点，右侧对应代码示例
+- 适用于：语法讲解、概念与实现对照
 
-**标题+内容 (header-content)**
-- 顶部大卡片作为引言/概述
-- 下方多列详细内容
+**api-doc（API文档）**
+- 顶部：函数签名（大字号等宽字体，醒目展示）
+- 中部：参数表格（参数名 | 类型 | 说明）
+- 底部：返回值 + 示例代码
+- 适用于：讲解函数/类/接口
 
-**引用高亮 (quote-highlight)**
-- 顶部大引用区域
-- 下方卡片详细说明
+**step-by-step（步骤教学）**
+- 顶部标题 + 步骤编号（大号数字 01/02/03）
+- 每个步骤配简短说明和对应代码片段
+- 步骤之间用细线分隔
+- 适用于：分步教程、操作流程
 
-## 设计风格
+**header-content（标题内容）**
+- 顶部标题栏（全宽，深色渐变）
+- 下方 2-3 列等宽卡片展示要点
+- 适用于：概述页、知识点归纳
 
-### 配色方案
-- Primary Blue: #1E40AF
-- Accent Blue: #3B82F6
-- Background: #F8FAFC
-- Text Dark: #1E293B
-- Text Light: #64748B
+**two-column（两栏对比）**
+- 左右两栏等宽卡片
+- 可对比：正确 vs 错误写法、Python2 vs Python3、Before vs After
+- 适用于：对比教学、最佳实践
 
-### 主题色（15种）
-- Blue: bg=#DBEAFE, text=#1E40AF
-- Yellow: bg=#FEF3C7, text=#92400E
-- Green: bg=#D1FAE5, text=#065F46
-- Purple: bg=#EDE9FE, text=#5B21B6
-- Orange: bg=#FFF7ED, text=#9A3412
-- Cyan: bg=#CFFAFE, text=#164E63
-- Pink: bg=#FCE7F3, text=#831843
-- Indigo: bg=#E0E7FF, text=#3730A3
-- Teal: bg=#CCFBF1, text=#115E59
-- Rose: bg=#FFE4E6, text=#9F1239
-- Amber: bg=#FFFBEB, text=#78350F
-- Lime: bg=#ECFCC5, text=#3F6212
-- Sky: bg=#E0F2FE, text=#0C4A6E
-- Violet: bg=#F5F3FF, text=#4C1D95
-- Slate: bg=#F1F5F9, text=#1E293B
+**grid-cards（卡片网格）**
+- 2x2 或 3x2 网格布局
+- 每张卡片一个小知识点
+- 适用于：多个并列概念（如数据类型、运算符）
+
+**comparison（对比布局）**
+- 左右对比，中间用分隔线
+- 左侧绿色（推荐），右侧红色（不推荐）
+- 适用于：正反例对比、常见错误
+
+**title-only（标题页）**
+- 全屏大标题居中
+- 副标题在下方
+- 可配装饰性代码片段作为背景
+- 适用于：章节开头、课程标题页
+
+## 代码展示规范（CRITICAL）
+1. 代码块必须使用 `type: "code"` 元素，不要放在 text 里
+2. 代码区域要有独立背景 shape，颜色 #0D1117 或 #161B22
+3. 代码字体大小 13-14px，行高 1.5
+4. 关键行可用注释或不同颜色标注（在 content 中用 HTML 标签）
+5. 代码左侧预留 4-8px 内边距，模拟编辑器效果
+6. 长代码要截断或折叠，确保在视口内完整显示
 
 ## 输出要求
-
-1. 只输出JSON格式的幻灯片数据
-2. 不要包含任何解释或说明
-3. 确保元素坐标在有效范围内
-4. 合理使用颜色对比保证可读性
-5. 代码块使用深色背景 (#1E293B) 和等宽字体
-6. **重要**：每个元素必须有唯一的ID，不要生成重复的标题栏或背景元素
-7. **重要**：相邻的内容卡片必须使用不同的主题色，避免颜色一致性
-8. **重要**：每个卡片只能有一个背景shape元素，不要重复定义
-
-## 颜色使用规则
-
-当内容项指定了配色主题时（如"blue", "purple"），必须使用对应的主题色。
-**重要**：相邻的卡片必须使用不同的颜色！使用 color_theme 字段来确保颜色差异化。
-
-## 布局类型（共14种）
-
-**基础布局（5种）**：title-only, two-column, grid-cards, header-content, quote-highlight
-
-**扩展布局（9种）**：center-focus, media-left, stats-row, timeline-steps, fullwidth-banner, comparison, three-column-cards, asymmetric-split, hero-center
-
-## 图片友好型布局
-
-当需要嵌入 AI 生成的图片时，推荐使用：
-- media-left：图片在左侧，内容在右侧
-- hero-center：顶部大图，中心聚焦
-- fullwidth-banner：全宽横幅图片
-- asymmetric-split：不对称分割，图片占大区域
-- center-focus：中心聚焦，适合单图展示
-
-这些布局为图片预留了充足空间。
-
-## 示例输出
-
-```json
-{
-  "id": "slide-1",
-  "viewportSize": {"width": 1000, "height": 562.5},
-  "viewportRatio": 0.5625,
-  "background": {"type": "solid", "color": "#F8FAFC"},
-  "elements": [
-    // 标题栏背景
-    {
-      "type": "shape",
-      "id": "el-1-title-bar",
-      "left": 0, "top": 0, "width": 1000, "height": 56,
-      "path": "...",
-      "fill": "#1E40AF",
-      "viewBox": [0, 0, 1000, 56]
-    },
-    // 标题文字
-    {
-      "type": "text",
-      "id": "el-1-title",
-      "left": 20, "top": 0, "width": 960, "height": 56,
-      "content": "<h1 style='color:#FFF;...'>Java语言特性</h1>",
-      "fill": "transparent",
-      "defaultColor": "#FFFFFF"
-    }
-    // ... 更多元素
-  ],
-  "theme": {
-    "themeColors": ["#1E40AF", "#3B82F6", "#EFF6FF"],
-    "fontColor": "#1E293B",
-    "backgroundColor": "#F8FAFC"
-  }
-}
-```
+1. 只输出JSON格式的幻灯片数据，不要任何解释
+2. 每个元素必须有唯一的ID
+3. 确保元素坐标在 [0, 1000] x [0, 562.5] 范围内
+4. 元素不重叠、不溢出视口
+5. 保持深色科技风格，配色克制专业
 
 请根据以下内容生成幻灯片："""
 
@@ -638,9 +210,6 @@ class MiniMaxPPTProvider:
 - 场景标题: {scene_title}
 - 场景类型: {scene_type}
 
-## 可用的30种主题色
-{blue_colors}
-
 ## 内容项
 {content_items}
 
@@ -648,107 +217,100 @@ class MiniMaxPPTProvider:
 - 风格: {design_style}
 - 布局类型: {layout_type}
 - 重要规则：
-  1. 每张幻灯片最多使用5种主题色，相邻卡片必须使用不同颜色
-  2. 同一课程中不同幻灯片之间，排版和颜色组合不能完全相同或高度相似
-  3. 幻灯片之间应有明显的视觉差异（不同布局、不同配色、不同元素位置）
-  4. 避免连续两张幻灯片使用相同或相似的布局结构和配色方案
+  1. 使用深色科技风格（背景 #0F172A，卡片 #1E293B）
+  2. 代码块必须有独立的深色背景区域
+  3. 配色克制，每张幻灯片不超过 3 种主色
+  4. 文字与背景对比度足够，确保可读性
+  5. 元素间距至少 16px，不拥挤
 {media_image_hint}
 
-请生成一个精美的幻灯片JSON。"""
+请生成一个精美的编程教学幻灯片JSON。"""
 
+    # 编程教学专用布局（10种，精简实用）
     LAYOUT_TYPES = [
-        # 基础布局（1-8，对应内容数量1-8直接锁定）
-        "title-only",      # 1项
-        "two-column",      # 2项
-        "quote-highlight", # 3项
-        "stats-row",       # 4项
-        "header-content",  # 5项
-        "asymmetric-split",# 6项
-        "timeline-steps",  # 7项
-        "comparison",      # 8项
-        # 扩展布局（9-25，用于9+项及风格池）
-        "grid-cards",
-        "center-focus",
-        "media-left",
-        "fullwidth-banner",
-        "three-column-cards",
-        "hero-center",
-        "info-card",
-        "feature-list",
-        "hero-split",
-        "numbered-list",
-        "quote-card",
-        "grid-highlight",
-        "vertical-stack",
-        "diagonal-split",
-        "circle-accent",
-        "sidebar-layout",
-        "banner-strip",
+        "title-only",       # 标题页
+        "header-content",   # 标题+内容卡片
+        "two-column",       # 两栏对比
+        "code-showcase",    # 代码展示（左文右码）
+        "terminal-style",   # 终端风格
+        "concept-code",     # 概念+代码对照
+        "api-doc",          # API文档
+        "step-by-step",     # 步骤教学
+        "grid-cards",       # 卡片网格
+        "comparison",       # 正反对比
     ]
 
+    # 编程场景布局选择映射
+    LAYOUT_BY_CONTENT = {
+        "code": ["code-showcase", "concept-code", "terminal-style"],
+        "command": ["terminal-style", "code-showcase"],
+        "function": ["api-doc", "code-showcase", "concept-code"],
+        "class": ["api-doc", "concept-code"],
+        "step": ["step-by-step", "grid-cards"],
+        "compare": ["comparison", "two-column"],
+        "overview": ["header-content", "grid-cards"],
+        "intro": ["title-only", "header-content"],
+    }
+
+    # 编程风格定义
     DESIGN_STYLES = [
-        # 基础风格（1-6）
-        "modern",       # 现代简约
-        "classic",      # 经典稳重
-        "playful",      # 活泼明亮
-        "professional", # 专业商务
-        "minimal",      # 极简留白
-        "video",        # 视频优先
-        # 扩展风格（7-15）
-        "elegant",      # 优雅精致
-        "bold",         # 大胆撞色
-        "soft",         # 柔和温暖
-        "tech",         # 科技感
-        "creative",     # 创意艺术
-        "nature",       # 自然清新
-        "retro",        # 复古风格
-        "luxury",       # 轻奢质感
-        "kids",         # 童趣可爱
+        "dark-tech",      # 深色科技（默认，适合代码）
+        "modern",         # 现代简约
+        "minimal",        # 极简留白
+        "professional",   # 专业商务
     ]
 
-    # design_style 与主题色的映射关系（15种风格）
-    STYLE_COLOR_PREFERENCES = {
-        "modern":       ["blue", "cyan", "indigo", "purple", "sky"],
-        "classic":      ["blue", "green", "purple", "slate", "indigo"],
-        "playful":      ["pink", "amber", "lime", "orange", "yellow"],
-        "professional": ["blue", "slate", "indigo", "teal", "cyan"],
-        "minimal":      ["slate", "sky", "teal", "violet", "indigo"],
-        "video":        ["slate", "indigo", "rose", "violet", "cyan"],
-        "elegant":      ["violet", "rose", "gold", "slate", "fuchsia"],
-        "bold":         ["crimson", "orange", "gold", "lime", "rose"],
-        "soft":         ["peach", "sky", "lavender", "mint", "amber"],
-        "tech":         ["navy", "slate", "cyan", "indigo", "emerald"],
-        "creative":     ["fuchsia", "coral", "wine", "gold", "violet"],
-        "nature":       ["sage", "mint", "emerald", "lime", "teal"],
-        "retro":        ["coral", "amber", "rust", "gold", "sand"],
-        "luxury":       ["wine", "gold", "navy", "slate", "crimson"],
-        "kids":         ["peach", "coral", "sky", "lime", "yellow"],
+    # 风格配色
+    STYLE_THEMES = {
+        "dark-tech": {
+            "bg": "#0F172A",
+            "card": "#1E293B",
+            "code_bg": "#0D1117",
+            "text": "#E2E8F0",
+            "text_secondary": "#94A3B8",
+            "accent": "#3B82F6",
+            "success": "#10B981",
+            "warning": "#F59E0B",
+            "error": "#EF4444",
+        },
+        "modern": {
+            "bg": "#F8FAFC",
+            "card": "#FFFFFF",
+            "code_bg": "#1E293B",
+            "text": "#1E293B",
+            "text_secondary": "#64748B",
+            "accent": "#3B82F6",
+            "success": "#10B981",
+            "warning": "#F59E0B",
+            "error": "#EF4444",
+        },
+        "minimal": {
+            "bg": "#FFFFFF",
+            "card": "#F8FAFC",
+            "code_bg": "#0F172A",
+            "text": "#0F172A",
+            "text_secondary": "#64748B",
+            "accent": "#0EA5E9",
+            "success": "#22C55E",
+            "warning": "#EAB308",
+            "error": "#DC2626",
+        },
+        "professional": {
+            "bg": "#F1F5F9",
+            "card": "#FFFFFF",
+            "code_bg": "#1E293B",
+            "text": "#334155",
+            "text_secondary": "#64748B",
+            "accent": "#6366F1",
+            "success": "#10B981",
+            "warning": "#F59E0B",
+            "error": "#EF4444",
+        },
     }
 
-    # design_style 与布局的映射关系（15种风格）
-    STYLE_LAYOUT_PREFERENCES = {
-        "modern":       ["header-content", "center-focus", "grid-cards", "fullwidth-banner"],
-        "classic":      ["two-column", "header-content", "quote-highlight", "comparison"],
-        "playful":      ["grid-cards", "asymmetric-split", "timeline-steps", "three-column-cards"],
-        "professional": ["header-content", "two-column", "stats-row", "center-focus"],
-        "minimal":      ["title-only", "center-focus", "hero-center", "header-content"],
-        "video":        ["hero-center", "fullwidth-banner", "media-left", "center-focus", "asymmetric-split"],
-        "elegant":      ["quote-highlight", "center-focus", "hero-center", "grid-highlight"],
-        "bold":         ["asymmetric-split", "diagonal-split", "grid-cards", "fullwidth-banner"],
-        "soft":         ["vertical-stack", "info-card", "quote-card", "center-focus"],
-        "tech":         ["header-content", "grid-cards", "feature-list", "banner-strip"],
-        "creative":     ["hero-split", "circle-accent", "asymmetric-split", "sidebar-layout"],
-        "nature":       ["feature-list", "numbered-list", "grid-cards", "vertical-stack"],
-        "retro":        ["quote-card", "banner-strip", "numbered-list", "grid-highlight"],
-        "luxury":       ["hero-center", "quote-highlight", "grid-highlight", "fullwidth-banner"],
-        "kids":         ["numbered-list", "vertical-stack", "info-card", "grid-cards"],
-    }
-
-    # 图片友好型布局（当有AI图片时优先使用）
-    IMAGE_FRIENDLY_LAYOUTS = [
-        "media-left", "hero-center", "fullwidth-banner",
-        "asymmetric-split", "center-focus"
-    ]
+    def __init__(self):
+        self._layout_history: list[str] = []
+        self._style_history: list[str] = []
 
     async def generate(
         self,
@@ -760,39 +322,27 @@ class MiniMaxPPTProvider:
         try:
             # 构造提示词
             content_items = self._format_content_items(request.content)
-            layout_type = self._select_layout(request.content, request.scene_type, request.design_style)
+            layout_type = self._select_layout(request.content, request.scene_type)
+            design_style = self._select_design_style(request.content)
 
             # 构建图片提示
             media_image_hint = ""
             if request.has_media_images:
-                # 当有AI图片时，提供图片友好型布局建议和尺寸约束
-                aspect_ratio = request.media_image_aspect_ratio
-                if aspect_ratio == "16:9":
-                    recommended_h = 400  # 宽度940时，16:9比例的高度
-                elif aspect_ratio == "4:3":
-                    recommended_h = 450
-                elif aspect_ratio == "1:1":
-                    recommended_h = 400
-                else:
-                    recommended_h = 400
-
-                media_image_hint = f"""
-## AI 图片嵌入提示
-- 当前有 AI 生成的图片需要嵌入到幻灯片
-- 图片宽高比: {aspect_ratio}
-- 图片区域最小尺寸: 宽度≥400px，高度≥{recommended_h}px
-- 推荐布局: {', '.join(self.IMAGE_FRIENDLY_LAYOUTS)}
-- 如果使用其他布局，请确保有足够的空间展示图片"""
+                media_image_hint = (
+                    f"\n- 当前有 AI 生成的图片需要嵌入"
+                    f"\n- 图片宽高比: {request.media_image_aspect_ratio}"
+                    f"\n- 推荐布局: header-content, grid-cards"
+                    f"\n- 图片区域最小尺寸: 宽度≥300px，高度≥200px"
+                )
 
             user_prompt = self.USER_PROMPT_TEMPLATE.format(
                 course_title=request.course_title,
                 scene_title=request.scene_title,
                 scene_type=request.scene_type,
-                blue_colors=self._list_theme_colors(),
                 content_items=content_items,
-                design_style=request.design_style,
+                design_style=design_style,
                 layout_type=layout_type,
-                media_image_hint=media_image_hint or "",
+                media_image_hint=media_image_hint,
             )
 
             # 调用 MiniMax API
@@ -810,7 +360,10 @@ class MiniMaxPPTProvider:
             # 验证和修复 slide
             slide = self._validate_slide(slide, request.scene_title, request.scene_id)
 
-            # 合成 actions (speech + spotlight + laser 序列)
+            # 注入 theme 配色（确保风格一致）
+            slide = self._inject_theme(slide, design_style)
+
+            # 合成 actions
             slide["actions"] = self._synthesize_actions(slide, request.content, request.scene_id)
 
             return PPTGenerationResult(success=True, slide=slide)
@@ -822,85 +375,95 @@ class MiniMaxPPTProvider:
             logger.error("PPT generation failed: %s", e)
             return PPTGenerationResult(success=False, error=str(e))
 
-    def _list_theme_colors(self) -> str:
-        """将30种主题色格式化为提示词文本"""
-        lines = []
-        for name, colors in THEME_COLORS.items():
-            lines.append(f"- {name}: bg={colors['bg']}, text={colors['text']}, accent={colors['accent']}")
-        return "\n".join(lines)
+    # ------------------------------------------------------------------
+    # 内部方法
+    # ------------------------------------------------------------------
+
+    def _select_design_style(self, content: list) -> str:
+        """根据内容选择设计风格"""
+        # 默认 dark-tech，如果有大量代码则保持 dark-tech
+        has_code = any(
+            item.get("code_snippet") or "代码" in item.get("text", "")
+            for item in content
+        )
+        if has_code:
+            return "dark-tech"
+        return random.choice(["dark-tech", "modern", "minimal"])
+
+    def _select_layout(self, content: list, scene_type: str) -> str:
+        """智能选择布局：根据内容特征匹配最合适的编程教学布局"""
+        if scene_type == "quiz":
+            return "grid-cards"
+
+        # 分析内容特征
+        text_combined = " ".join(
+            f"{item.get('sub_title', '')} {item.get('text', '')}"
+            for item in content
+        ).lower()
+
+        has_code = any(item.get("code_snippet") for item in content)
+        has_command = any(k in text_combined for k in ["命令", "cmd", "terminal", "shell", "bash", "git ", "npm ", "pip "])
+        has_function = any(k in text_combined for k in ["函数", "方法", "def ", "function", "api", "参数", "返回值"])
+        has_class = any(k in text_combined for k in ["类", "class ", "面向对象", "继承", "封装"])
+        has_step = any(k in text_combined for k in ["步骤", "第一步", "首先", "然后", "接着", "最后"])
+        has_compare = any(k in text_combined for k in ["对比", "区别", "vs", "versus", "正确", "错误", "不要"])
+
+        candidates = []
+        if has_command:
+            candidates.extend(self.LAYOUT_BY_CONTENT["command"])
+        elif has_code:
+            candidates.extend(self.LAYOUT_BY_CONTENT["code"])
+        if has_function:
+            candidates.extend(self.LAYOUT_BY_CONTENT["function"])
+        if has_class:
+            candidates.extend(self.LAYOUT_BY_CONTENT["class"])
+        if has_step:
+            candidates.extend(self.LAYOUT_BY_CONTENT["step"])
+        if has_compare:
+            candidates.extend(self.LAYOUT_BY_CONTENT["compare"])
+
+        # 去重并过滤未使用过的布局（确保视觉多样性）
+        candidates = list(dict.fromkeys(candidates))
+        unused = [c for c in candidates if c not in self._layout_history]
+
+        if unused:
+            choice = random.choice(unused)
+        elif candidates:
+            choice = random.choice(candidates)
+        else:
+            # 默认池
+            default_pool = ["header-content", "grid-cards", "two-column", "title-only"]
+            unused_default = [c for c in default_pool if c not in self._layout_history]
+            choice = random.choice(unused_default) if unused_default else random.choice(default_pool)
+
+        self._layout_history.append(choice)
+        # 只保留最近 5 个历史，避免过度限制
+        self._layout_history = self._layout_history[-5:]
+        return choice
 
     def _format_content_items(self, content: list) -> str:
-        """格式化内容项"""
+        """格式化内容项，突出编程特征"""
         if not content:
             return "（无具体内容）"
 
         lines = []
-        used_colors = set()
-
         for i, item in enumerate(content):
-            # 自动匹配语义化颜色
-            title = item.get("sub_title", "")
-            text = item.get("text", "")
-            combined_text = f"{title} {text}"
-
-            # 匹配语义颜色
-            semantic_color = match_semantic_color(combined_text, fallback=None)
-            if semantic_color and semantic_color not in used_colors:
-                item["color_theme"] = semantic_color
-                used_colors.add(semantic_color)
-            elif not item.get("color_theme"):
-                # 如果已用或无匹配，使用差异化的默认颜色（15色循环）
-                all_colors = list(THEME_COLORS.keys())
-                for c in all_colors:
-                    if c not in used_colors:
-                        item["color_theme"] = c
-                        used_colors.add(c)
-                        break
-
             lines.append(f"\n### 项目 {i+1}")
             if item.get("sub_title"):
                 lines.append(f"- 标题: {item['sub_title']}")
             if item.get("text"):
-                lines.append(f"- 内容: {item['text'][:200]}...")
+                lines.append(f"- 内容: {item['text'][:300]}")
             if item.get("code_snippet"):
-                lines.append(f"- 代码: {str(item['code_snippet'])[:100]}...")
+                code = str(item['code_snippet'])[:200]
+                lines.append(f"- 代码: ```\n{code}\n```")
             if item.get("icon"):
                 lines.append(f"- 图标: {item['icon']}")
-            if item.get("color_theme"):
-                lines.append(f"- 配色主题: {item['color_theme']} (请勿更改)")
-
 
         return "\n".join(lines)
-
-    def _select_layout(self, content: list, scene_type: str, design_style: str = "modern") -> str:
-        """
-        根据设计风格选择布局池中的随机布局。
-
-        不再按内容项数量锁定布局（那样会导致多个幻灯片内容项数量相同时布局雷同），
-        而是让每张幻灯片从布局池中随机选择不同布局，视觉多样性最大化。
-        """
-        if scene_type == "quiz":
-            return "grid-cards"
-
-        # 从全部28种布局中随机选择，让连续幻灯片布局自然差异化
-        base_layouts = [
-            "title-only", "two-column", "header-content", "timeline-steps",
-            "comparison", "grid-cards", "fullwidth-banner",
-            "three-column-cards", "hero-center", "chapter-divider",
-            "numbered-list", "asymmetric-split",
-        ]
-        # 教育专用扩展布局
-        extra_layouts = [
-            "edu-definition", "edu-keypoints", "edu-example", "edu-summary",
-            "edu-welcome", "media-showcase", "edu-programming-concept",
-        ]
-        all_layouts = base_layouts + extra_layouts
-        return random.choice(all_layouts)
 
     def _strip_markdown(self, text: str) -> str:
         """去除 markdown 代码块包装"""
         import re
-        # 去除 ```json ... ``` 或 ``` ... ``` 包装
         text = text.strip()
         match = re.match(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
         if match:
@@ -911,7 +474,7 @@ class MiniMaxPPTProvider:
         self,
         system_prompt: str,
         user_prompt: str,
-        retry_count: int = 3,
+        retry_count: int = 2,
     ) -> str:
         """调用 MiniMax API，带重试机制"""
         last_error = None
@@ -930,11 +493,11 @@ class MiniMaxPPTProvider:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    "temperature": 0.7,
+                    "temperature": 0.6,
                     "max_tokens": 4096,
                 }
 
-                async with httpx.AsyncClient(timeout=120.0) as client:
+                async with httpx.AsyncClient(timeout=45.0) as client:
                     response = await client.post(url, headers=headers, json=payload)
 
                     if response.status_code != 200:
@@ -949,7 +512,6 @@ class MiniMaxPPTProvider:
 
                     content = choices[0].get("message", {}).get("content", "")
 
-                    # 检查返回内容是否为空
                     if not content or not content.strip():
                         logger.warning(f"MiniMax returned empty content, attempt {attempt + 1}/{retry_count}")
                         last_error = "Empty response from MiniMax API"
@@ -968,7 +530,6 @@ class MiniMaxPPTProvider:
             if attempt < retry_count - 1:
                 await asyncio.sleep(2)
 
-        # 所有重试都失败
         raise RuntimeError(f"MiniMax API failed after {retry_count} attempts. Last error: {last_error}")
 
     def _validate_slide(self, slide: dict, fallback_title: str, scene_id: str = "") -> dict:
@@ -977,7 +538,6 @@ class MiniMaxPPTProvider:
         if "id" not in slide:
             slide["id"] = f"slide-{random.randint(1000, 9999)}"
 
-        # 保存 scene_id 用于前端匹配
         if scene_id:
             slide["scene_id"] = scene_id
 
@@ -988,39 +548,30 @@ class MiniMaxPPTProvider:
             slide["viewportRatio"] = VIEWPORT_H / VIEWPORT_W
 
         if "background" not in slide:
-            slide["background"] = {"type": "solid", "color": "#F8FAFC"}
+            slide["background"] = {"type": "solid", "color": "#0F172A"}
 
         if "elements" not in slide:
             slide["elements"] = []
 
         if "theme" not in slide:
             slide["theme"] = {
-                "themeColors": ["#1E40AF", "#3B82F6", "#EFF6FF"],
-                "fontColor": "#1E293B",
-                "backgroundColor": "#F8FAFC",
+                "themeColors": ["#3B82F6", "#10B981", "#F59E0B"],
+                "fontColor": "#E2E8F0",
+                "backgroundColor": "#0F172A",
             }
 
-        # 去重和修复元素
+        # 去重和修复元素（保留原始渲染顺序！）
         validated_elements = []
         seen_ids = set()
-        title_bar_count = 0
 
         for el in slide.get("elements", []):
             if not isinstance(el, dict) or "type" not in el:
                 continue
 
             el_id = el.get("id", "")
-
-            # 跳过完全重复的 ID
             if el_id in seen_ids:
                 continue
             seen_ids.add(el_id)
-
-            # 标题栏去重 - 保留第一个
-            if "title" in el_id.lower() and "bar" in el_id.lower():
-                title_bar_count += 1
-                if title_bar_count > 1:
-                    continue
 
             # 确保坐标在有效范围内
             el["left"] = clamp_coord(el.get("left", 0), 0, VIEWPORT_W - 1)
@@ -1034,45 +585,122 @@ class MiniMaxPPTProvider:
             if el["top"] + el["height"] > VIEWPORT_H:
                 el["height"] = VIEWPORT_H - el["top"]
 
-            # 修复 shape 元素：如果同时有 fill 和 gradient，只保留 gradient
-            if el.get("type") == "shape" and el.get("gradient") and el.get("fill"):
-                # 渐变优先，但如果 fill 是纯色且 gradient 也有纯色版本，移除 fill
-                if isinstance(el.get("fill"), str) and el["fill"].startswith("#"):
-                    el["fill"] = el.get("gradient", {}).get("colors", [{}])[0].get("color", "#3B82F6")
-
             validated_elements.append(el)
 
-        # 按 top 和 left 排序，确保元素按从上到下、从左到右的顺序渲染
-        validated_elements.sort(key=lambda e: (e.get("top", 0), e.get("left", 0)))
-
+        # NOTE: 不重新排序元素！OpenMAIC 的 elements 数组顺序就是渲染顺序（z-index），
+        # 按 top/left 排序会破坏背景shape和前景text的层级关系。
         slide["elements"] = validated_elements
         return slide
+
+    def _inject_theme(self, slide: dict, design_style: str) -> dict:
+        """注入统一的暗色主题配色，确保高对比度可读性。
+
+        平台为暗色主题，强制所有幻灯片使用 dark-tech 配色，
+        避免浅色背景 + 浅色文字导致的可读性问题。
+        """
+        theme = self.STYLE_THEMES["dark-tech"]  # 始终强制暗色主题
+
+        # 注入 theme 字段
+        slide["theme"] = {
+            "themeColors": [theme["accent"], theme["success"], theme["warning"]],
+            "fontColor": theme["text"],
+            "backgroundColor": theme["bg"],
+        }
+
+        # 强制背景为暗色
+        bg = slide.get("background", {})
+        if isinstance(bg, dict):
+            if bg.get("type") == "solid":
+                bg["color"] = theme["bg"]
+            slide["background"] = bg
+
+        # 修复文字对比度：确保所有 text 元素使用浅色文字
+        self._fix_text_contrast(slide, theme)
+
+        return slide
+
+    def _fix_text_contrast(self, slide: dict, theme: dict) -> None:
+        """遍历所有 text/code 元素，修复颜色对比度问题。
+
+        暗色背景上使用浅色文字，避免 LLM 输出浅色主题配色导致不可读。
+        """
+        import re
+
+        bg_color = theme.get("bg", "#0F172A")
+        text_color = theme.get("text", "#E2E8F0")
+        text_secondary = theme.get("text_secondary", "#94A3B8")
+
+        # 判断背景是否为深色（简单亮度计算）
+        def is_dark_color(hex_color: str) -> bool:
+            try:
+                hex_color = hex_color.lstrip("#")
+                if len(hex_color) == 3:
+                    hex_color = "".join(c * 2 for c in hex_color)
+                r = int(hex_color[0:2], 16)
+                g = int(hex_color[2:4], 16)
+                b = int(hex_color[4:6], 16)
+                brightness = (r * 299 + g * 587 + b * 114) / 1000
+                return brightness < 128
+            except Exception:
+                return True  # 默认当作深色处理
+
+        is_dark_bg = is_dark_color(bg_color)
+
+        # 浅色文字列表（用于替换深色文字）
+        light_texts = ["#E2E8F0", "#F1F5F9", "#FFFFFF", "#FFFFFF", "#CBD5E1", "#94A3B8"]
+        dark_texts = ["#1E293B", "#334155", "#0F172A", "#000000", "#475569", "#64748B"]
+
+        for el in slide.get("elements", []):
+            if not isinstance(el, dict):
+                continue
+
+            el_type = el.get("type", "")
+            if el_type not in ("text", "code"):
+                continue
+
+            # 修复 defaultColor
+            dc = el.get("defaultColor", "")
+            if dc and isinstance(dc, str):
+                dc_lower = dc.lower()
+                if is_dark_bg and dc_lower in dark_texts:
+                    el["defaultColor"] = text_color
+                elif not is_dark_bg and dc_lower in light_texts:
+                    el["defaultColor"] = "#1E293B"
+
+            # 修复 content 中的内联颜色样式
+            content = el.get("content", "")
+            if content and isinstance(content, str):
+                # 替换深色文字颜色为浅色（暗色背景）
+                for dark in dark_texts:
+                    if dark.lower() in content.lower():
+                        content = content.lower().replace(dark.lower(), text_color.lower())
+                el["content"] = content
+
+            # 修复 fill（文字元素不应有深色填充）
+            fill = el.get("fill", "")
+            if fill and isinstance(fill, str) and fill.lower() != "transparent":
+                if is_dark_bg and is_dark_color(fill):
+                    el["fill"] = "transparent"
 
     def _synthesize_actions(
         self, slide: dict, content: list, scene_id: str = ""
     ) -> list[dict]:
         """
-        从幻灯片元素和内容项合成 action 序列。
-
-        为每个内容卡片生成 interleaved speech + spotlight 动作，
-        包含代码的卡片额外添加 laser 动作。
-
-        格式匹配 openmaic-slide-player.js 的 normalizeActions:
-          {type: "speech", text: "..."}
-          {type: "spotlight", elementId: "el-...", duration: 4000}
-          {type: "laser", elementId: "el-...", duration: 3000}
+        从幻灯片元素合成 action 序列。
+        智能匹配实际存在的元素，不依赖固定的 ID 命名约定。
         """
         if not content:
             return []
 
         elements = slide.get("elements", [])
-        element_ids = {el.get("id", "") for el in elements}
         actions = []
 
-        # 场景标题 speech（如果有标题元素）
-        title_el_id = f"el-{scene_id}-title-bar" if scene_id else None
-        has_title = title_el_id and title_el_id in element_ids
+        # 收集所有可用元素按类型分组
+        code_elements = [el for el in elements if el.get("type") == "code"]
+        text_elements = [el for el in elements if el.get("type") == "text"]
+        shape_elements = [el for el in elements if el.get("type") == "shape"]
 
+        # 为每个内容项生成 speech + spotlight 动作
         for idx, item in enumerate(content):
             sub_title = item.get("sub_title", "")
             text = item.get("text", "")
@@ -1083,8 +711,7 @@ class MiniMaxPPTProvider:
             if sub_title:
                 speech_parts.append(sub_title)
             if text:
-                # 截断过长文本，保持语音流畅
-                speech_parts.append(text[:500])
+                speech_parts.append(text[:400])
             speech_text = "。".join(speech_parts) if speech_parts else ""
 
             if not speech_text and not code_snippet:
@@ -1092,20 +719,15 @@ class MiniMaxPPTProvider:
 
             # 1) speech action
             if speech_text:
-                actions.append({
-                    "type": "speech",
-                    "text": speech_text,
-                })
+                actions.append({"type": "speech", "text": speech_text})
 
-            # 2) spotlight — 高亮卡片背景或正文区域
-            bg_id = f"el-{scene_id}-card-{idx}-bg" if scene_id else None
-            body_id = f"el-{scene_id}-card-{idx}-body" if scene_id else None
-
+            # 2) spotlight — 高亮对应的文本或形状元素
+            # 策略：按索引匹配，或匹配内容关键字
             spotlight_target = None
-            if bg_id and bg_id in element_ids:
-                spotlight_target = bg_id
-            elif body_id and body_id in element_ids:
-                spotlight_target = body_id
+            if idx < len(text_elements):
+                spotlight_target = text_elements[idx].get("id")
+            elif idx < len(shape_elements):
+                spotlight_target = shape_elements[idx].get("id")
 
             if spotlight_target:
                 actions.append({
@@ -1116,26 +738,30 @@ class MiniMaxPPTProvider:
 
             # 3) laser — 指向代码块
             if code_snippet and str(code_snippet).strip():
-                code_id = f"el-{scene_id}-card-{idx}-code" if scene_id else None
-                if code_id and code_id in element_ids:
-                    actions.append({
-                        "type": "laser",
-                        "elementId": code_id,
-                        "duration": 3000,
-                    })
+                if idx < len(code_elements):
+                    code_id = code_elements[idx].get("id")
+                    if code_id:
+                        actions.append({
+                            "type": "laser",
+                            "elementId": code_id,
+                            "duration": 3000,
+                        })
 
-        # 如果只有标题没有卡片内容，至少为标题栏添加 spotlight
-        if not actions and has_title:
+        # 兜底：如果没有生成任何 action，为第一个文本元素添加 spotlight
+        if not actions and text_elements:
             actions.append({
                 "type": "spotlight",
-                "elementId": title_el_id,
+                "elementId": text_elements[0].get("id", ""),
                 "duration": 3000,
             })
 
         return actions
 
 
+# ============================================================================
 # 单例
+# ============================================================================
+
 _provider = None
 
 

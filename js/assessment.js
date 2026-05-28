@@ -1395,6 +1395,18 @@ function startLearning() {
     localStorage.setItem('starlearn_user', JSON.stringify(user));
 
     if (user.id) {
+        // 根据评估数据生成初始 evaluation 指标
+        const initialEvaluation = {
+            interactionCount: 0,
+            socraticPassRate: 0.0,
+            difficultyLevel: assessmentData.codeSkill === 'advanced' ? 'advanced' : (assessmentData.codeSkill === 'intermediate' ? 'medium' : 'basic'),
+            codePracticeTime: 0,
+            focusTimeToday: 0,
+            flashcardsStudied: 0,
+            streakDays: 1,
+            interactionHistory: [],
+            lastStudyDate: new Date().toISOString().slice(0, 10)
+        };
         // Save progress to backend
         fetch(`${API_URL}/progress/save`, {
             method: 'POST',
@@ -1402,7 +1414,7 @@ function startLearning() {
             body: JSON.stringify({
                 userId: user.id,
                 profile: profile,
-                evaluation: {},
+                evaluation: initialEvaluation,
                 currentPath: user.learningPath || []
             })
         }).catch(err => console.log('Save progress error:', err));

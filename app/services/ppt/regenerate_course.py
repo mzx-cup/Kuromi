@@ -32,36 +32,6 @@ STORAGE_DIR = Path(__file__).resolve().parent.parent.parent.parent / "storage" /
 DESIGN_STYLES = ["modern", "elegant", "minimal", "bold", "classic"]
 
 
-async def regenerate_slide(
-    provider,
-    course_title: str,
-    scene: dict,
-    scene_idx: int,
-) -> dict | None:
-    """为一个场景生成幻灯片"""
-    content = scene.get("content", [])
-    if not content:
-        # 从 content_items 或其他字段获取
-        content = scene.get("content_items", [])
-
-    # 构造请求
-    request = PPTGenerationRequest(
-        course_title=course_title,
-        scene_title=scene.get("title", f"场景 {scene_idx + 1}"),
-        scene_type=scene.get("type", "slide"),
-        content=content,
-        design_style=DESIGN_STYLES[scene_idx % len(DESIGN_STYLES)],
-    )
-
-    result = await provider.generate(request)
-
-    if result.success:
-        return result.slide
-    else:
-        logger.error(f"场景 {scene_idx + 1} 生成失败: {result.error}")
-        return None
-
-
 async def regenerate_course(course_path: Path) -> bool:
     """重新生成单个课程的幻灯片"""
     logger.info(f"处理课程: {course_path.name}")
@@ -165,12 +135,21 @@ async def regenerate_course(course_path: Path) -> bool:
             logger.info(f"    ✓ 生成成功 ({len(result.slide.get('elements', []))} 元素)")
         else:
             logger.warning(f"    ✗ 生成失败: {result.error if result else 'unknown'}")
-            # 添加空幻灯片占位
+            # 添加暗色主题空幻灯片占位
             new_slides_v2.append(
                 {
                     "id": f"slide-{idx}",
                     "viewportSize": {"width": 1000, "height": 562.5},
                     "elements": [],
+                    "background": {
+                        "type": "solid",
+                        "color": "#0F172A",
+                    },
+                    "theme": {
+                        "themeColors": ["#3B82F6", "#10B981", "#F59E0B"],
+                        "fontColor": "#E2E8F0",
+                        "backgroundColor": "#0F172A",
+                    },
                 }
             )
 

@@ -281,52 +281,22 @@
                             <p id="speech-text" class="full-text">正在加载课程内容...</p>
                             <p class="mini-text">正在加载课程内容...</p>
                         </div>
-                        <div class="voice-waveform" id="voice-waveform" style="display:none;">
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                            <div class="wave-bar"></div>
-                        </div>
-                        <div class="teacher-controls" id="teacher-controls">
-                            <div class="speech-controls" id="speech-controls">
-                                <button class="speech-btn replay-btn" id="replay-btn" title="重新播放">
-                                    <i class="fas fa-redo"></i>
+                        <div class="teacher-controls" id="teacher-controls" style="display:flex;align-items:center;gap:8px;">
+                            <button class="speech-btn playback-play-btn" id="playback-play-btn" title="播放 / 暂停" data-shortcut="Space">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <div class="playback-speed-wrap" id="playback-speed-wrap">
+                                <button class="speech-btn speed-btn" id="speed-btn" title="语速调节">
+                                    <span class="speed-label">1x</span>
+                                    <i class="fas fa-caret-down speed-caret"></i>
                                 </button>
-                                <button class="speech-btn playback-play-btn" id="playback-play-btn" title="播放 / 暂停" data-shortcut="Space">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <div class="playback-speed-wrap" id="playback-speed-wrap">
-                                    <button class="speech-btn speed-btn" id="speed-btn" title="语速调节">
-                                        <span class="speed-label">1x</span>
-                                        <i class="fas fa-caret-down speed-caret"></i>
-                                    </button>
-                                    <div class="speed-menu" id="speed-menu" style="display:none;">
-                                        <div class="speed-option" data-speed="0.5">0.5x</div>
-                                        <div class="speed-option" data-speed="0.75">0.75x</div>
-                                        <div class="speed-option active" data-speed="1.0">1x</div>
-                                        <div class="speed-option" data-speed="1.25">1.25x</div>
-                                        <div class="speed-option" data-speed="1.5">1.5x</div>
-                                        <div class="speed-option" data-speed="2.0">2x</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="voice-selector" id="voice-selector">
-                                <div class="voice-dropdown" id="voice-dropdown">
-                                    <div class="voice-dropdown-trigger" id="voice-dropdown-trigger">
-                                        <span class="voice-dropdown-value" id="voice-dropdown-value">温柔御姐</span>
-                                        <i class="fas fa-chevron-down voice-dropdown-arrow"></i>
-                                    </div>
-                                    <div class="voice-dropdown-menu" id="voice-dropdown-menu">
-                                        <div class="voice-dropdown-item" data-value="female-shaonv">青春少女</div>
-                                        <div class="voice-dropdown-item selected" data-value="female-yujie">温柔御姐</div>
-                                        <div class="voice-dropdown-item" data-value="female-danyun">知性女声</div>
-                                        <div class="voice-dropdown-item" data-value="male-qingshu">青涩少年</div>
-                                        <div class="voice-dropdown-item" data-value="male-shaoshuai">磁性男声</div>
-                                    </div>
+                                <div class="speed-menu" id="speed-menu" style="display:none;">
+                                    <div class="speed-option" data-speed="0.5">0.5x</div>
+                                    <div class="speed-option" data-speed="0.75">0.75x</div>
+                                    <div class="speed-option active" data-speed="1.0">1x</div>
+                                    <div class="speed-option" data-speed="1.25">1.25x</div>
+                                    <div class="speed-option" data-speed="1.5">1.5x</div>
+                                    <div class="speed-option" data-speed="2.0">2x</div>
                                 </div>
                             </div>
                         </div>

@@ -563,28 +563,60 @@ def get_learning_path(user_id):
                     cursor.execute("SELECT * FROM learning_path WHERE user_id = %s", (user_id,))
                 row = cursor.fetchone()
                 cursor.close()
-                return dict(row) if row and _is_sqlite(conn) else row
+                if not row:
+                    return None
+                result = dict(row) if _is_sqlite(conn) else row
+                # 自动解析 JSON 字段
+                for field in ('path_json', 'data_sources'):
+                    val = result.get(field)
+                    if isinstance(val, str) and val:
+                        try:
+                            result[field] = json.loads(val)
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                return result
             except Exception as e:
                 print(f"数据库查询失败: {e}")
 
         return _get_json_record(load_local_storage(), 'learning_paths', user_id)
 
 
-def save_learning_path(user_id, path_json):
+def save_learning_path(user_id, path_json, reasoning=None, data_sources=None, confidence=0.0):
+    """保存学习路径，支持元数据字段（reasoning, data_sources, confidence）。"""
+    from datetime import datetime
+    generated_at = datetime.now().isoformat()
+    data_sources_json = json.dumps(data_sources, ensure_ascii=False) if data_sources else None
+    path_str = json.dumps(path_json, ensure_ascii=False) if isinstance(path_json, (list, dict)) else path_json
+
     with get_db() as conn:
         if conn is not None:
             try:
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute(
-                        """INSERT INTO learning_path (user_id, path_json) VALUES (?, ?)
-                           ON CONFLICT(user_id) DO UPDATE SET path_json=excluded.path_json""",
-                        (user_id, path_json))
+                        """INSERT INTO learning_path
+                           (user_id, path_json, generated_at, reasoning, data_sources, confidence)
+                           VALUES (?, ?, ?, ?, ?, ?)
+                           ON CONFLICT(user_id) DO UPDATE SET
+                               path_json=excluded.path_json,
+                               generated_at=excluded.generated_at,
+                               reasoning=excluded.reasoning,
+                               data_sources=excluded.data_sources,
+                               confidence=excluded.confidence""",
+                        (user_id, path_str, generated_at, reasoning, data_sources_json, confidence))
                 else:
                     cursor.execute(
-                        """INSERT INTO learning_path (user_id, path_json) VALUES (%s, %s)
-                           ON DUPLICATE KEY UPDATE path_json=%s""",
-                        (user_id, path_json, path_json))
+                        """INSERT INTO learning_path
+                           (user_id, path_json, generated_at, reasoning, data_sources, confidence)
+                           VALUES (%s, %s, %s, %s, %s, %s)
+                           ON DUPLICATE KEY UPDATE
+                               path_json=%s,
+                               generated_at=%s,
+                               reasoning=%s,
+                               data_sources=%s,
+                               confidence=%s""",
+                        (user_id, path_str, generated_at, reasoning, data_sources_json, confidence,
+                         path_str, generated_at, reasoning, data_sources_json, confidence))
                 conn.commit()
                 cursor.close()
                 return
@@ -594,14 +626,173 @@ def save_learning_path(user_id, path_json):
         storage = load_local_storage()
         for path in storage.get('learning_paths', []):
             if path.get('user_id') == user_id:
-                path['path_json'] = path_json
+                path['path_json'] = path_str
+                path['generated_at'] = generated_at
+                path['reasoning'] = reasoning
+                path['data_sources'] = data_sources
+                path['confidence'] = confidence
                 save_local_storage(storage)
                 return
         storage['learning_paths'].append({
             'id': len(storage.get('learning_paths', [])) + 1,
-            'user_id': user_id, 'path_json': path_json, 'updated_at': 'local',
+            'user_id': user_id, 'path_json': path_str,
+            'generated_at': generated_at, 'reasoning': reasoning,
+            'data_sources': data_sources, 'confidence': confidence,
+            'updated_at': 'local',
         })
         save_local_storage(storage)
+
+
+# ============================================================
+# 学情数据查询（供学习路径生成使用）
+# ============================================================
+
+def get_recent_quizzes(user_id, limit=20):
+    """获取学生最近 N 条测验记录。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT quiz_id, score, total, passed, answers, feedback, created_at
+                           FROM quiz_records WHERE student_id = ?
+                           ORDER BY created_at DESC LIMIT ?""",
+                        (user_id, limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT quiz_id, score, total, passed, answers, feedback, created_at
+                           FROM quiz_records WHERE student_id = %s
+                           ORDER BY created_at DESC LIMIT %s""",
+                        (user_id, limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                return [dict(r) if _is_sqlite(conn) else r for r in rows] if rows else []
+            except Exception as e:
+                print(f"查询 quiz_records 失败: {e}")
+    return []
+
+
+def get_recent_classrooms(user_id, limit=10):
+    """获取学生最近 N 次课堂会话记录。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT id, course_id, current_scene_index, visited_scenes,
+                                  quiz_answers, time_spent, status, teacher_persona, created_at, updated_at
+                           FROM classroom_sessions WHERE student_id = ?
+                           ORDER BY updated_at DESC LIMIT ?""",
+                        (user_id, limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT id, course_id, current_scene_index, visited_scenes,
+                                  quiz_answers, time_spent, status, teacher_persona, created_at, updated_at
+                           FROM classroom_sessions WHERE student_id = %s
+                           ORDER BY updated_at DESC LIMIT %s""",
+                        (user_id, limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for r in rows:
+                    row = dict(r) if _is_sqlite(conn) else r
+                    # 解析 JSON 字段
+                    for field in ('visited_scenes', 'quiz_answers'):
+                        val = row.get(field)
+                        if isinstance(val, str) and val:
+                            try:
+                                row[field] = json.loads(val)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                    result.append(row)
+                return result
+            except Exception as e:
+                print(f"查询 classroom_sessions 失败: {e}")
+    return []
+
+
+def get_recent_messages_summary(user_id, limit=30):
+    """获取学生最近 N 条消息，用于提取近期学习主题。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT role, content, message_type, metadata, created_at
+                           FROM messages WHERE student_id = ?
+                           ORDER BY created_at DESC LIMIT ?""",
+                        (user_id, limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT role, content, message_type, metadata, created_at
+                           FROM messages WHERE student_id = %s
+                           ORDER BY created_at DESC LIMIT %s""",
+                        (user_id, limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for r in rows:
+                    row = dict(r) if _is_sqlite(conn) else r
+                    for field in ('metadata',):
+                        val = row.get(field)
+                        if isinstance(val, str) and val:
+                            try:
+                                row[field] = json.loads(val)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                    result.append(row)
+                return result
+            except Exception as e:
+                print(f"查询 messages 失败: {e}")
+    return []
+
+
+def get_conversation_summary(user_id):
+    """获取学生的会话摘要（最近3条）。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """SELECT session_id, summary_text, key_facts, message_count, last_message_at
+                           FROM conversation_summaries WHERE student_id = ?
+                           ORDER BY last_message_at DESC LIMIT 3""",
+                        (user_id,))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        """SELECT session_id, summary_text, key_facts, message_count, last_message_at
+                           FROM conversation_summaries WHERE student_id = %s
+                           ORDER BY last_message_at DESC LIMIT 3""",
+                        (user_id,))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for r in rows:
+                    row = dict(r) if _is_sqlite(conn) else r
+                    for field in ('key_facts',):
+                        val = row.get(field)
+                        if isinstance(val, str) and val:
+                            try:
+                                row[field] = json.loads(val)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                    result.append(row)
+                return result
+            except Exception as e:
+                print(f"查询 conversation_summaries 失败: {e}")
+    return []
 
 
 # ============================================================

@@ -471,6 +471,27 @@ body {
     font-weight: 600;
 }
 
+.scene-thumb-new {
+    animation: sceneThumbHighlight 2s ease-out forwards;
+}
+
+@keyframes sceneThumbHighlight {
+    0% {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0 var(--primary-glow), inset 0 0 20px var(--primary-glow);
+        transform: scale(1.08);
+    }
+    50% {
+        border-color: var(--primary);
+        box-shadow: 0 0 20px var(--primary-glow), inset 0 0 20px var(--primary-glow);
+    }
+    100% {
+        border-color: transparent;
+        box-shadow: none;
+        transform: scale(1);
+    }
+}
+
 .scene-thumb-badge {
     font-size: 0.5rem;
     color: var(--text-tertiary);
@@ -557,15 +578,15 @@ body {
     max-width: 1100px;
     height: 562px;
     max-height: 562px;
-    background: #FFFFFF;
-    border: 1px solid rgba(30, 64, 175, 0.15);
+    background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
+    border: 1px solid rgba(99, 102, 241, 0.15);
     border-radius: var(--radius-xl);
-    box-shadow: 0 8px 40px rgba(30, 64, 175, 0.12);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     position: relative;
     animation: slideEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: block;
-    color: #1E293B;
+    color: #E2E8F0;
 }
 
 .slide-container::before {
@@ -642,7 +663,7 @@ body {
     min-width: 0;
     font-size: 16px;
     line-height: 1.8;
-    color: #1E293B;
+    color: #E2E8F0;
     overflow-y: auto;
     overflow-x: hidden;
     background: transparent;
@@ -1693,10 +1714,18 @@ body {
     background: linear-gradient(145deg, #ff9ec4, #ffb6d9);
     border-color: #ff9ec4;
     color: white;
+    position: relative;
+    transition: all 0.2s ease;
 }
 
 .playback-play-btn:hover {
     background: linear-gradient(145deg, #ff8eb5, #ffa8c7);
+}
+
+/* 播放状态：仅颜色变化，无脉冲动画 */
+.playback-play-btn.playing {
+    background: linear-gradient(145deg, #ff5c9a, #ff8eb5);
+    border-color: #ff5c9a;
 }
 
 .speed-menu {
@@ -2989,6 +3018,186 @@ body {
 }
 
 /* ============================================================
+   Interactive Exercise Styles (choice, fill_blank, true_false)
+   ============================================================ */
+
+.exercise-interactive {
+    background: var(--surface-glass, rgba(30, 41, 59, 0.7));
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.ex-interactive-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.ex-interactive-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary, #e0e7ff);
+}
+
+.ex-interactive-badge {
+    background: linear-gradient(135deg, var(--primary, #6366f1), var(--accent, #8b5cf6));
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ex-interactive-instruction {
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
+.ex-fill-instruction {
+    line-height: 2.2;
+}
+
+.ex-fill-input {
+    background: var(--surface, #0f172a);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+    border-radius: 6px;
+    padding: 0.25rem 0.6rem;
+    color: var(--text-primary, #e0e7ff);
+    font-size: 0.9rem;
+    outline: none;
+    margin: 0 0.2rem;
+    min-width: 100px;
+}
+
+.ex-fill-input:focus {
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.ex-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.ex-choice-option,
+.ex-tf-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ex-choice-option:hover,
+.ex-tf-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--primary, #6366f1);
+}
+
+.ex-choice-option input[type="radio"],
+.ex-tf-option input[type="radio"] {
+    accent-color: var(--primary, #6366f1);
+    cursor: pointer;
+}
+
+.ex-choice-label,
+.ex-tf-label {
+    color: var(--text-primary, #e0e7ff);
+    font-size: 0.9rem;
+}
+
+.ex-tf-options {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.ex-tf-option {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.ex-interactive-submit {
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary, #6366f1), var(--accent, #8b5cf6));
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ex-interactive-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.ex-interactive-submit:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.ex-interactive-feedback {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.ex-feedback-correct {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.ex-feedback-wrong {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.ex-feedback-warn {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+}
+
+.ex-feedback-explain {
+    margin-top: 0.5rem;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================
    Interactive Container
    ============================================================ */
 .interactive-container {
@@ -3972,18 +4181,21 @@ body {
     box-sizing: border-box;
     padding: 40px;
     overflow-y: auto;
-    background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 30%);
-    color: #1E293B;
+    background: linear-gradient(180deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+    color: #E2E8F0;
 }
 
 /* 2. 核心区：解除宽度限制！ */
 .slide-v2-container .slide-header {
-    background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
-    color: #FFFFFF;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.6) 0%, rgba(59, 130, 246, 0.4) 100%);
+    color: #F8FAFC;
     padding: 1.5rem 2rem;
-    border-radius: 16px 16px 0 0;
+    border-radius: 16px;
     flex-shrink: 0;
-    box-shadow: 0 4px 20px rgba(30, 64, 175, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    backdrop-filter: blur(8px);
+    margin-bottom: 20px;
 }
 
 .slide-v2-container .slide-header h1 {
@@ -3991,6 +4203,7 @@ body {
     font-size: 1.75rem;
     font-weight: 700;
     letter-spacing: -0.02em;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .slide-body {
@@ -4003,24 +4216,25 @@ body {
 /* 3. 莫兰迪高级卡片 UI */
 .content-card {
     width: 100%;
-    background: #f8fafc;
+    background: rgba(30, 41, 59, 0.7);
     border-radius: 16px;
     padding: 24px;
     box-sizing: border-box;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     word-break: break-word;
     overflow-wrap: break-word;
     display: flex;
     flex-direction: column;
     animation: cardFadeUp 0.5s ease-out forwards;
     opacity: 0;
-    color: #1E293B;
+    color: #E2E8F0;
 }
 
 .content-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+    border-color: rgba(99, 102, 241, 0.25);
 }
 
 /* 4. 完美网格布局 (解决挤压核心) */
@@ -4084,16 +4298,16 @@ body {
     gap: 24px;
     padding: 24px;
     border-radius: 16px;
-    background: #f8fafc;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.02);
+    background: rgba(30, 41, 59, 0.6);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     animation: cardFadeUp 0.5s ease-out forwards;
     opacity: 0;
 }
 
 .media-card:hover {
     transform: translateX(8px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .media-icon-wrap {
@@ -4105,7 +4319,7 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 16px;
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(59, 130, 246, 0.2) 100%);
 }
 
 .media-content {
@@ -4116,12 +4330,12 @@ body {
 .media-title {
     font-weight: 700;
     font-size: 1.125rem;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 0.5rem;
 }
 
 .media-text {
-    color: #334155;
+    color: #CBD5E1;
     line-height: 1.7;
     font-size: 0.9375rem;
 }
@@ -4169,15 +4383,15 @@ body {
 .stat-label p { margin: 0; }
 
 /* Stats theme colors */
-.stat-card.theme-blue .stat-value { color: #1E40AF; }
+.stat-card.theme-blue .stat-value { color: #60A5FA; }
 .stat-card.theme-blue .stat-icon { color: #3B82F6; }
-.stat-card.theme-yellow .stat-value { color: #B45309; }
+.stat-card.theme-yellow .stat-value { color: #FCD34D; }
 .stat-card.theme-yellow .stat-icon { color: #F59E0B; }
-.stat-card.theme-green .stat-value { color: #047857; }
+.stat-card.theme-green .stat-value { color: #34D399; }
 .stat-card.theme-green .stat-icon { color: #10B981; }
-.stat-card.theme-purple .stat-value { color: #7C3AED; }
+.stat-card.theme-purple .stat-value { color: #A78BFA; }
 .stat-card.theme-purple .stat-icon { color: #8B5CF6; }
-.stat-card.theme-orange .stat-value { color: #EA580C; }
+.stat-card.theme-orange .stat-value { color: #FDBA74; }
 .stat-card.theme-orange .stat-icon { color: #F97316; }
 
 /* 11. 时间线步骤布局 */
@@ -4232,11 +4446,11 @@ body {
 
 .timeline-content {
     flex: 1;
-    background: #f8fafc;
+    background: rgba(30, 41, 59, 0.5);
     border-radius: 12px;
     padding: 20px 24px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.02);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     min-width: 0;
 }
 
@@ -4248,12 +4462,12 @@ body {
 .timeline-title {
     font-weight: 700;
     font-size: 1.0625rem;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 8px;
 }
 
 .timeline-text {
-    color: #334155;
+    color: #CBD5E1;
     line-height: 1.7;
     font-size: 0.9375rem;
 }
@@ -4433,7 +4647,7 @@ body {
 }
 
 .banner-text {
-    color: #1E293B;
+    color: #E2E8F0;
     line-height: 1.6;
     font-size: 0.9375rem;
 }
@@ -4441,56 +4655,61 @@ body {
 .banner-text p { margin: 0; }
 
 /* Banner theme colors */
-.banner-card.theme-blue .banner-inner { background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); }
-.banner-card.theme-blue .banner-title { color: #1E3A8A; }
-.banner-card.theme-blue .banner-text { color: #1E293B; }
+.banner-card.theme-blue .banner-inner { background: linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(59, 130, 246, 0.2) 100%); border-left: 4px solid #3B82F6; }
+.banner-card.theme-blue .banner-title { color: #60A5FA; }
+.banner-card.theme-blue .banner-text { color: #DBEAFE; }
 
-.banner-card.theme-yellow .banner-inner { background: linear-gradient(135deg, #FEFCE8 0%, #FEF3C7 100%); }
-.banner-card.theme-yellow .banner-title { color: #78350F; }
-.banner-card.theme-yellow .banner-text { color: #78350F; }
+.banner-card.theme-yellow .banner-inner { background: linear-gradient(135deg, rgba(146, 64, 14, 0.4) 0%, rgba(245, 158, 11, 0.2) 100%); border-left: 4px solid #F59E0B; }
+.banner-card.theme-yellow .banner-title { color: #FCD34D; }
+.banner-card.theme-yellow .banner-text { color: #FEF3C7; }
 
-.banner-card.theme-green .banner-inner { background: linear-gradient(135deg, #F0FDF4 0%, #D1FAE5 100%); }
-.banner-card.theme-green .banner-title { color: #064E3B; }
-.banner-card.theme-green .banner-text { color: #047857; }
+.banner-card.theme-green .banner-inner { background: linear-gradient(135deg, rgba(6, 78, 59, 0.5) 0%, rgba(16, 185, 129, 0.2) 100%); border-left: 4px solid #10B981; }
+.banner-card.theme-green .banner-title { color: #34D399; }
+.banner-card.theme-green .banner-text { color: #D1FAE5; }
 
-.banner-card.theme-purple .banner-inner { background: linear-gradient(135deg, #FAF5FF 0%, #EDE9FE 100%); }
-.banner-card.theme-purple .banner-title { color: #5B21B6; }
-.banner-card.theme-purple .banner-text { color: #6D28D9; }
+.banner-card.theme-purple .banner-inner { background: linear-gradient(135deg, rgba(91, 33, 182, 0.4) 0%, rgba(139, 92, 246, 0.2) 100%); border-left: 4px solid #8B5CF6; }
+.banner-card.theme-purple .banner-title { color: #A78BFA; }
+.banner-card.theme-purple .banner-text { color: #EDE9FE; }
 
-.banner-card.theme-orange .banner-inner { background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%); }
-.banner-card.theme-orange .banner-title { color: #9A3412; }
-.banner-card.theme-orange .banner-text { color: #C2410C; }
+.banner-card.theme-orange .banner-inner { background: linear-gradient(135deg, rgba(154, 52, 18, 0.4) 0%, rgba(249, 115, 22, 0.2) 100%); border-left: 4px solid #F97316; }
+.banner-card.theme-orange .banner-title { color: #FDBA74; }
+.banner-card.theme-orange .banner-text { color: #FFEDD5; }
 
-/* 8. 莫兰迪色系主题 */
+/* 8. 暗色科技主题 */
 .content-card.theme-blue {
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(59, 130, 246, 0.2) 100%);
+    border-left: 4px solid #3B82F6;
 }
-.content-card.theme-blue .card-title { color: #1E3A8A; }
-.content-card.theme-blue .card-text { color: #1E293B; }
+.content-card.theme-blue .card-title { color: #60A5FA; }
+.content-card.theme-blue .card-text { color: #DBEAFE; }
 
 .content-card.theme-yellow {
-    background: linear-gradient(135deg, #FEFCE8 0%, #FEF3C7 100%);
+    background: linear-gradient(135deg, rgba(146, 64, 14, 0.4) 0%, rgba(245, 158, 11, 0.2) 100%);
+    border-left: 4px solid #F59E0B;
 }
-.content-card.theme-yellow .card-title { color: #78350F; }
-.content-card.theme-yellow .card-text { color: #78350F; }
+.content-card.theme-yellow .card-title { color: #FCD34D; }
+.content-card.theme-yellow .card-text { color: #FEF3C7; }
 
 .content-card.theme-green {
-    background: linear-gradient(135deg, #F0FDF4 0%, #D1FAE5 100%);
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.5) 0%, rgba(16, 185, 129, 0.2) 100%);
+    border-left: 4px solid #10B981;
 }
-.content-card.theme-green .card-title { color: #064E3B; }
-.content-card.theme-green .card-text { color: #047857; }
+.content-card.theme-green .card-title { color: #34D399; }
+.content-card.theme-green .card-text { color: #D1FAE5; }
 
 .content-card.theme-purple {
-    background: linear-gradient(135deg, #FAF5FF 0%, #EDE9FE 100%);
+    background: linear-gradient(135deg, rgba(91, 33, 182, 0.4) 0%, rgba(139, 92, 246, 0.2) 100%);
+    border-left: 4px solid #8B5CF6;
 }
-.content-card.theme-purple .card-title { color: #5B21B6; }
-.content-card.theme-purple .card-text { color: #6D28D9; }
+.content-card.theme-purple .card-title { color: #A78BFA; }
+.content-card.theme-purple .card-text { color: #EDE9FE; }
 
 .content-card.theme-orange {
-    background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+    background: linear-gradient(135deg, rgba(154, 52, 18, 0.4) 0%, rgba(249, 115, 22, 0.2) 100%);
+    border-left: 4px solid #F97316;
 }
-.content-card.theme-orange .card-title { color: #9A3412; }
-.content-card.theme-orange .card-text { color: #C2410C; }
+.content-card.theme-orange .card-title { color: #FDBA74; }
+.content-card.theme-orange .card-text { color: #FFEDD5; }
 
 /* 9. 卡片内部元素 */
 .content-card .card-icon {
@@ -4567,11 +4786,12 @@ body {
 }
 
 .content-card .card-text code {
-    background: rgba(0, 0, 0, 0.08);
+    background: rgba(0, 0, 0, 0.35);
     padding: 0.2em 0.45em;
     border-radius: 5px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85em;
+    color: #F1F5F9;
 }
 
 .content-card .card-text ul,
@@ -4614,7 +4834,7 @@ body {
     position: relative;
     line-height: 1.7;
     font-size: 0.9375rem;
-    color: #1E293B;
+    color: #CBD5E1;
 }
 
 .content-card .card-bullets li::before {
@@ -4646,7 +4866,7 @@ body {
     position: relative;
     line-height: 1.7;
     font-size: 0.9375rem;
-    color: #334155;
+    color: #CBD5E1;
 }
 
 .media-card .card-bullets li::before,
@@ -4663,7 +4883,7 @@ body {
     opacity: 0.6;
 }
 
-.stat-card .card-bullets li { color: #64748b; }
+.stat-card .card-bullets li { color: #94A3B8; }
 
 /* Simplified bullets in legacy renderSlideScene */
 .slide-body .simplified-bullets {
@@ -4678,7 +4898,7 @@ body {
     position: relative;
     line-height: 1.7;
     font-size: 1rem;
-    color: #334155;
+    color: #CBD5E1;
 }
 
 .slide-body .simplified-bullets li::before {
@@ -4697,7 +4917,7 @@ body {
     margin: 0.75rem 1.5rem 0.25rem;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
 }
 
 /* 13. 交错入场动画 */
@@ -4847,7 +5067,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    background: #F8FAFC;
+    background: rgba(15, 23, 42, 0.5);
 }
 
 /* bottom-cards: 底部卡片布局 */
@@ -4873,38 +5093,39 @@ body {
     padding: 20px 0;
 }
 .slide-v2-container.layout-quote-wall .quote-card {
-    background: #F8FAFC;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 16px;
     padding: 24px;
     position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .slide-v2-container.layout-quote-wall .quote-large {
     grid-column: span 2;
-    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.5) 0%, rgba(59, 130, 246, 0.2) 100%);
 }
 .slide-v2-container.layout-quote-wall .quote-medium {
-    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    background: linear-gradient(135deg, rgba(146, 64, 14, 0.3) 0%, rgba(245, 158, 11, 0.15) 100%);
 }
 .slide-v2-container.layout-quote-wall .quote-small {
-    background: linear-gradient(135deg, #ECFDF5 0%, #A7F3D0 100%);
+    background: linear-gradient(135deg, rgba(6, 78, 59, 0.3) 0%, rgba(16, 185, 129, 0.15) 100%);
 }
 .slide-v2-container.layout-quote-wall .quote-mark {
     font-size: 2rem;
-    color: #94A3B8;
+    color: #64748B;
     margin-bottom: 12px;
 }
 .slide-v2-container.layout-quote-wall .quote-text {
     font-size: 1rem;
-    color: #1E293B;
+    color: #E2E8F0;
     line-height: 1.6;
     margin-bottom: 12px;
 }
 .slide-v2-container.layout-quote-wall .quote-author {
     font-size: 0.875rem;
-    color: #64748B;
+    color: #94A3B8;
     font-style: italic;
 }
-.slide-v2-container.layout-quote-wall .card-bullets { color: #1E293B; }
+.slide-v2-container.layout-quote-wall .card-bullets { color: #CBD5E1; }
 
 /* info-graphic: 信息图布局 */
 .slide-v2-container.layout-info-graphic .info-body {
@@ -4918,7 +5139,7 @@ body {
     align-items: center;
     gap: 20px;
     padding: 20px 24px;
-    background: #F8FAFC;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 16px;
     border-left: 4px solid #3B82F6;
 }
@@ -4935,12 +5156,12 @@ body {
 .slide-v2-container.layout-info-graphic .info-label {
     font-size: 1.125rem;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     min-width: 120px;
 }
 .slide-v2-container.layout-info-graphic .info-desc {
     font-size: 0.9375rem;
-    color: #475569;
+    color: #CBD5E1;
     flex: 1;
 }
 
@@ -4955,19 +5176,22 @@ body {
 .slide-v2-container.layout-tabbed .tab-btn {
     padding: 10px 20px;
     border: none;
-    background: #F1F5F9;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 8px 8px 0 0;
     cursor: pointer;
     font-size: 0.9375rem;
-    color: #64748B;
+    color: #94A3B8;
     white-space: nowrap;
     transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: none;
 }
 .slide-v2-container.layout-tabbed .tab-btn:hover {
-    background: #E2E8F0;
+    background: rgba(51, 65, 85, 0.6);
+    color: #E2E8F0;
 }
 .slide-v2-container.layout-tabbed .tab-btn.active {
-    background: #3B82F6;
+    background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
     color: #FFFFFF;
 }
 .slide-v2-container.layout-tabbed .tab-content {
@@ -4996,7 +5220,7 @@ body {
 }
 .slide-v2-container.layout-dark-header .dark-content {
     padding: 30px;
-    background: #FFFFFF;
+    background: rgba(15, 23, 42, 0.6);
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -5028,7 +5252,7 @@ body {
 .slide-v2-container.layout-gradient-split .gradient-left .card-bullets li { color: #E2E8F0; }
 .slide-v2-container.layout-gradient-split .gradient-right {
     flex: 1;
-    background: #F8FAFC;
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
     padding: 40px;
     display: flex;
     align-items: center;
@@ -5138,7 +5362,7 @@ body {
 }
 .layout-edu-definition .edu-def-text {
     font-size: 17px;
-    color: #1E293B;
+    color: #E2E8F0;
     line-height: 1.7;
     margin-top: -16px;
 }
@@ -5151,7 +5375,7 @@ body {
 .layout-edu-definition .edu-prop-title {
     font-size: 14px;
     font-weight: 700;
-    color: #64748B;
+    color: #94A3B8;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 14px;
@@ -5169,24 +5393,24 @@ body {
     border-radius: 20px;
     font-size: 14px;
     font-weight: 600;
-    background: #F1F5F9;
-    color: #334155;
-    border: 2px solid transparent;
+    background: rgba(30, 41, 59, 0.6);
+    color: #CBD5E1;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     transition: transform 0.2s, box-shadow 0.2s;
 }
-.layout-edu-definition .edu-prop-tag.theme-blue { background: #DBEAFE; color: #1D4ED8; border-color: #93C5FD; }
-.layout-edu-definition .edu-prop-tag.theme-green { background: #D1FAE5; color: #047857; border-color: #6EE7B7; }
-.layout-edu-definition .edu-prop-tag.theme-purple { background: #F3E8FF; color: #7C3AED; border-color: #C4B5FD; }
-.layout-edu-definition .edu-prop-tag.theme-orange { background: #FFEDD5; color: #C2410C; border-color: #FDBA74; }
+.layout-edu-definition .edu-prop-tag.theme-blue { background: rgba(30, 58, 138, 0.4); color: #60A5FA; border-color: rgba(59, 130, 246, 0.3); }
+.layout-edu-definition .edu-prop-tag.theme-green { background: rgba(6, 78, 59, 0.4); color: #34D399; border-color: rgba(16, 185, 129, 0.3); }
+.layout-edu-definition .edu-prop-tag.theme-purple { background: rgba(91, 33, 182, 0.4); color: #A78BFA; border-color: rgba(139, 92, 246, 0.3); }
+.layout-edu-definition .edu-prop-tag.theme-orange { background: rgba(154, 52, 18, 0.4); color: #FDBA74; border-color: rgba(249, 115, 22, 0.3); }
 .layout-edu-definition .edu-summary-bar {
     margin: 0 32px 20px;
     padding: 12px 20px;
-    background: linear-gradient(90deg, #F8FAFC 0%, #F1F5F9 100%);
+    background: rgba(30, 41, 59, 0.5);
     border-radius: 8px;
     font-size: 15px;
-    color: #475569;
+    color: #94A3B8;
     text-align: center;
-    border: 1px dashed #CBD5E1;
+    border: 1px dashed rgba(99, 102, 241, 0.2);
 }
 
 /* edu-keypoints: 规范要点页 */
@@ -5199,17 +5423,18 @@ body {
 }
 .layout-edu-keypoints .edu-keypoint-card {
     flex: 1;
-    background: #FFFFFF;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .layout-edu-keypoints .edu-keypoint-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 .layout-edu-keypoints .edu-kp-topbar {
     height: 5px;
@@ -5232,28 +5457,28 @@ body {
     gap: 8px;
     font-size: 16px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 12px;
 }
 .layout-edu-keypoints .edu-kp-text {
     font-size: 14px;
-    color: #475569;
+    color: #94A3B8;
     line-height: 1.6;
 }
 .layout-edu-keypoints .edu-kp-body .card-bullets {
     margin: 0;
     padding-left: 18px;
     font-size: 14px;
-    color: #475569;
+    color: #94A3B8;
     line-height: 1.7;
 }
 .layout-edu-keypoints .edu-keypoints-footer {
     margin: 0 32px 20px;
     padding: 10px 16px;
-    background: #FEFCE8;
+    background: rgba(146, 64, 14, 0.25);
     border-radius: 8px;
     font-size: 14px;
-    color: #A16207;
+    color: #FCD34D;
     text-align: center;
     font-weight: 600;
 }
@@ -5275,7 +5500,7 @@ body {
 .layout-edu-example .edu-example-label {
     font-size: 12px;
     font-weight: 700;
-    color: #64748B;
+    color: #94A3B8;
     text-transform: uppercase;
     letter-spacing: 1px;
     margin-bottom: 10px;
@@ -5283,26 +5508,26 @@ body {
 .layout-edu-example .edu-example-subtitle {
     font-size: 17px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 10px;
 }
 .layout-edu-example .edu-example-desc {
     font-size: 14px;
-    color: #475569;
+    color: #CBD5E1;
     line-height: 1.7;
 }
 .layout-edu-example .edu-example-left .card-bullets {
     margin: 0;
     padding-left: 18px;
     font-size: 14px;
-    color: #475569;
+    color: #CBD5E1;
     line-height: 1.7;
 }
 .layout-edu-example .edu-example-right {
     flex: 1;
-    background: #F8FAFC;
+    background: rgba(30, 41, 59, 0.5);
     border-radius: 12px;
-    border: 1px solid #E2E8F0;
+    border: 1px solid rgba(255, 255, 255, 0.06);
     position: relative;
     padding: 20px;
     overflow: auto;
@@ -5332,7 +5557,7 @@ body {
 }
 .layout-edu-example .edu-example-text {
     font-size: 14px;
-    color: #334155;
+    color: #CBD5E1;
     line-height: 1.7;
 }
 
@@ -5347,7 +5572,7 @@ body {
 .layout-edu-summary .edu-summary-title {
     font-size: 28px;
     font-weight: 800;
-    color: #1E293B;
+    color: #F8FAFC;
     text-align: center;
     margin-bottom: 28px;
 }
@@ -5359,16 +5584,17 @@ body {
 }
 .layout-edu-summary .edu-summary-block {
     flex: 1;
-    background: #FFFFFF;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 14px;
     padding: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-top: 4px solid transparent;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .layout-edu-summary .edu-summary-block:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
 }
 .layout-edu-summary .edu-summary-block.theme-blue { border-top-color: #3B82F6; }
 .layout-edu-summary .edu-summary-block.theme-green { border-top-color: #10B981; }
@@ -5395,24 +5621,24 @@ body {
 .layout-edu-summary .edu-summary-label {
     font-size: 14px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
 }
 .layout-edu-summary .edu-summary-block-title {
     font-size: 15px;
     font-weight: 700;
-    color: #334155;
+    color: #E2E8F0;
     margin-bottom: 8px;
 }
 .layout-edu-summary .edu-summary-text {
     font-size: 13px;
-    color: #64748B;
+    color: #94A3B8;
     line-height: 1.6;
 }
 .layout-edu-summary .edu-summary-block-body .card-bullets {
     margin: 0;
     padding-left: 16px;
     font-size: 13px;
-    color: #64748B;
+    color: #94A3B8;
     line-height: 1.7;
 }
 
@@ -5442,7 +5668,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: 0;
-    background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%);
+    background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
 }
 .edu-welcome-header {
     text-align: center;
@@ -5456,12 +5682,12 @@ body {
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 .edu-welcome-title {
     font-size: 28px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F8FAFC;
     margin: 0;
 }
 .edu-welcome-body {
@@ -5473,11 +5699,11 @@ body {
     align-content: center;
 }
 .edu-welcome-card {
-    background: #FFFFFF;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.04);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -5503,14 +5729,14 @@ body {
 .edu-welcome-card-title {
     font-size: 16px;
     font-weight: 600;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 10px;
 }
 .edu-welcome-card .card-bullets {
     margin: 0;
     padding-left: 16px;
     font-size: 13px;
-    color: #475569;
+    color: #94A3B8;
     line-height: 1.7;
 }
 .edu-welcome-card .card-bullets li {
@@ -5601,6 +5827,95 @@ body {
     gap: 8px;
 }
 
+/* video-lecture: 视频讲义页 */
+.slide-v2-container.layout-video-lecture {
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    color: #F8FAFC;
+}
+.slide-v2-container.layout-video-lecture .slide-header h1 {
+    color: #F8FAFC;
+}
+.video-lecture-body {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    padding: 0 24px 24px;
+    min-height: 0;
+}
+.video-lecture-player {
+    flex: 1.5;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.video-lecture-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 16px;
+}
+.video-lecture-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: rgba(255,255,255,0.2);
+    background: rgba(0,0,0,0.2);
+}
+.video-lecture-notes {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+.video-lecture-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: #E2E8F0;
+    line-height: 1.6;
+    transition: transform 0.2s, background 0.2s;
+}
+.video-lecture-card:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+}
+.video-lecture-card-text {
+    flex: 1;
+}
+.video-lecture-empty {
+    color: rgba(255,255,255,0.3);
+    font-size: 14px;
+    text-align: center;
+    padding: 40px 0;
+}
+@media (max-width: 768px) {
+    .video-lecture-body {
+        flex-direction: column;
+        padding: 0 16px 16px;
+    }
+    .video-lecture-player {
+        flex: none;
+        height: 200px;
+    }
+}
+
 /* edu-programming-concept: 编程概念教学页 */
 .slide-v2-container.layout-edu-programming-concept {
     display: flex;
@@ -5617,17 +5932,17 @@ body {
 }
 .prog-concept-left,
 .prog-concept-right {
-    background: #FFFFFF;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 14px;
     padding: 18px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-    border: 1px solid rgba(0,0,0,0.04);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     overflow-y: auto;
 }
 .prog-section-title {
     font-size: 14px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -5635,7 +5950,7 @@ body {
 }
 .prog-concept-text {
     font-size: 13px;
-    color: #475569;
+    color: #94A3B8;
     line-height: 1.7;
 }
 .prog-concept-text .card-bullets {
@@ -5651,7 +5966,7 @@ body {
 .prog-types-title {
     font-size: 14px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -5663,10 +5978,11 @@ body {
     gap: 12px;
 }
 .prog-type-card {
-    background: #FFFFFF;
+    background: rgba(30, 41, 59, 0.6);
     border-radius: 12px;
     padding: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-top: 3px solid var(--primary);
     overflow-y: auto;
 }
@@ -5678,12 +5994,12 @@ body {
 .prog-type-name {
     font-size: 14px;
     font-weight: 700;
-    color: #1E293B;
+    color: #F1F5F9;
     margin-bottom: 6px;
 }
 .prog-type-desc {
     font-size: 12px;
-    color: #64748B;
+    color: #94A3B8;
     line-height: 1.6;
     margin-bottom: 8px;
 }
@@ -6120,44 +6436,56 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 520px;
+    min-height: 480px;
     position: relative;
     overflow: hidden;
 }
 .orbit-system {
     position: relative;
-    width: 420px;
-    height: 420px;
+    width: 380px;
+    height: 380px;
 }
 .orbit-center {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 160px;
-    height: 160px;
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 16px;
+    padding: 12px;
     background: linear-gradient(135deg, rgba(67,56,202,0.95), rgba(99,102,241,0.9));
     border: 2px solid rgba(129,140,248,0.5);
     box-shadow: 0 0 60px rgba(99,102,241,0.5);
     z-index: 3;
     animation: scaleIn 0.8s ease-out both;
+    overflow: hidden;
 }
-.orbit-c-icon { font-size: 1.8rem; margin-bottom: 6px; }
-.orbit-c-title { font-size: 0.85rem; font-weight: 700; color: #fff; line-height: 1.3; }
+.orbit-c-icon { font-size: 1.6rem; margin-bottom: 4px; }
+.orbit-c-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+    word-break: break-word;
+    max-height: 3.9em;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
 .orbit-ring-visual {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 300px;
-    height: 300px;
+    width: 280px;
+    height: 280px;
     border-radius: 50%;
     border: 1px dashed rgba(99,102,241,0.3);
     animation: orbitSpin 30s linear infinite;
@@ -6172,29 +6500,42 @@ body {
     top: 50%;
     left: 50%;
     width: 100px;
-    padding: 10px;
+    padding: 8px 10px;
     border-radius: 12px;
     background: rgba(30,27,75,0.9);
     border: 1px solid rgba(129,140,248,0.3);
     backdrop-filter: blur(8px);
     text-align: center;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-    margin-left: -50px;
-    margin-top: -35px;
     animation: fadeInUp 0.6s ease-out both;
+    word-break: break-word;
+    box-sizing: border-box;
 }
-.orbit-sat-icon { font-size: 1.2rem; margin-bottom: 4px; }
-.orbit-sat-label { font-size: 0.7rem; font-weight: 600; color: #f8fafc; }
-.orbit-sat-text {
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.75);
-    margin-top: 4px;
-    line-height: 1.4;
-    max-height: 60px;
+.orbit-sat-icon { font-size: 1.1rem; margin-bottom: 3px; }
+.orbit-sat-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #f8fafc;
+    line-height: 1.3;
     overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.orbit-sat-text {
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.75);
+    margin-top: 3px;
+    line-height: 1.4;
+    max-height: 50px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
 }
 .orbit-c-text {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: rgba(255,255,255,0.8);
     margin-top: 6px;
     line-height: 1.4;
@@ -7654,7 +7995,7 @@ body {
 
 .simulation-frame {
     padding: 1rem;
-    background: #F8FAFC;
+    background: rgba(15, 23, 42, 0.4);
 }
 
 .simulation-frame iframe {

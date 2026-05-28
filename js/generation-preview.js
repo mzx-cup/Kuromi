@@ -258,6 +258,15 @@
             enable_web_search: reqs.enable_web_search !== false,
             enable_pdf_upload: reqs.enable_pdf_upload ?? false,
             pdf_text: reqs.pdf_text || '',
+            // 用户选择的AI教师信息
+            teacher_name: reqs.teacher_name || '',
+            teacher_avatar: reqs.teacher_avatar || '',
+            teacher_profession: reqs.teacher_profession || '',
+            teacher_personality: reqs.teacher_personality || '',
+            teacher_teaching_style: reqs.teacher_teaching_style || '',
+            teacher_icon: reqs.teacher_icon || '',
+            teacher_system_prompt: reqs.teacher_system_prompt || '',
+            teacher_greeting: reqs.teacher_greeting || '',
         };
 
         try {
@@ -668,7 +677,12 @@
                     activateFeatureCard('interactive');
                     const agents = msg.agents || [];
                     if (agents.length > 0) {
-                        statusDesc.textContent = `已生成 ${agents.length} 位AI教师`;
+                        const agentName = agents[0]?.name;
+                        if (agentName && agentName !== '星识教师') {
+                            statusDesc.textContent = `已配置 ${agentName} 老师`;
+                        } else {
+                            statusDesc.textContent = `已生成 ${agents.length} 位AI教师`;
+                        }
                     }
                     break;
 
@@ -720,11 +734,17 @@
                             quiz_data: msg.quiz_data || [],
                             exercise_data: msg.exercise_data || [],
                             code_data: msg.code_data || [],
-                            teacher: {
-                                name: '星识教师',
-                                avatar: '',
+                            teacher: msg.teacher || {
+                                name: reqs.teacher_name || '星识教师',
+                                avatar: reqs.teacher_avatar || '',
                                 role: '课程导师',
-                                voice_id: 0
+                                voice_id: 0,
+                                profession: reqs.teacher_profession || '',
+                                personality: reqs.teacher_personality || '',
+                                teaching_style: reqs.teacher_teaching_style || '',
+                                icon: reqs.teacher_icon || '',
+                                system_prompt: reqs.teacher_system_prompt || '',
+                                greeting: reqs.teacher_greeting || '',
                             },
                             tts_audio_urls: {},
                             metadata: {
@@ -755,6 +775,44 @@
                     }
                     if (msg.code_data && msg.code_data.length > 0) {
                         sessionStorage.setItem('progressiveCodeData', JSON.stringify(msg.code_data));
+                    }
+
+                    // 立即保存到本地 courseHistory，确保回到首页时最近课堂能显示
+                    try {
+                        const historyKey = 'courseHistory';
+                        let history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+                        const firstBatchEntry = {
+                            courseId: msg.session_id,
+                            title: msg.course_title || '课程',
+                            createdAt: Date.now(),
+                            slideCount: (msg.outlines || []).length || (msg.slides_v2 || []).length || (msg.slides || []).length || 0,
+                            slides: msg.slides || [],
+                            slides_v2: msg.slides_v2 || [],
+                            outlines: msg.outlines || [],
+                            agent_team: msg.agent_team || [],
+                            quiz_data: msg.quiz_data || [],
+                            exercise_data: msg.exercise_data || [],
+                            code_data: msg.code_data || [],
+                            teacher: msg.teacher || null,
+                            metadata: {
+                                session_id: msg.session_id,
+                                requirement: (sessionData.requirements || {}).requirement || '',
+                                student_id: String(sessionData.student_id || ''),
+                            },
+                            _dbRecord: {
+                                course_id: msg.session_id,
+                                title: msg.course_title || '课程',
+                                ppt_pages: (msg.outlines || []).length || (msg.slides_v2 || []).length || (msg.slides || []).length || 0,
+                                created_at: new Date().toISOString()
+                            }
+                        };
+                        history = history.filter(c => c.courseId !== msg.session_id);
+                        history.unshift(firstBatchEntry);
+                        if (history.length > 20) history = history.slice(0, 20);
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                        console.log('[generation-preview] Saved first_batch_complete to courseHistory:', msg.session_id);
+                    } catch (e) {
+                        console.warn('[generation-preview] Failed to save first_batch_complete to history:', e);
                     }
 
                     // 1秒后跳转到课堂

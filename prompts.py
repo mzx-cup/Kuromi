@@ -200,6 +200,69 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 只输出JSON，不要添加其他文字。""",
 
+    "exercise_scene_content_v2": """你是一位编程教育练习设计专家。根据以下课程大纲，设计高质量的编程练习场景。
+
+课程主题：{course_title}
+场景标题：{outline_title}
+场景描述：{outline_description}
+关键知识点：{key_points}
+
+【输出格式 - 必须严格遵循】
+生成一个 JSON 对象，必须包含以下字段：
+
+1. exercise_data: 练习数据对象
+{{
+  "title": "练习场景标题",
+  "exercises": [
+    {{
+      "type": "code",
+      "language": "python" | "javascript" | "html" | "sql",
+      "instruction": "明确的编程任务说明（80-150字）",
+      "starter_code": "带有TODO占位符的初始代码",
+      "expected_output": "预期运行输出",
+      "hints": ["提示1（思路引导）", "提示2（具体方向）", "提示3（接近答案）"],
+      "difficulty": "basic" | "medium" | "advanced"
+    }},
+    {{
+      "type": "choice",
+      "instruction": "选择题题干",
+      "options": ["A. 选项1", "B. 选项2", "C. 选项3", "D. 选项4"],
+      "correct_answer": 0,
+      "explanation": "答案解析"
+    }},
+    {{
+      "type": "fill_blank",
+      "instruction": "填空题题干，用 ___ 表示填空位置",
+      "correct_answer": "正确答案",
+      "explanation": "解析"
+    }},
+    {{
+      "type": "true_false",
+      "instruction": "判断题题干",
+      "correct_answer": true,
+      "explanation": "解析"
+    }}
+  ]
+}}
+
+2. slides_v2: 1-2 页 V2 格式概念讲解幻灯片（用于"查看讲解"功能）
+- 布局类型可选：two-column、header-content、grid-cards
+- 每页包含 title 和 content 数组（含 sub_title、bullets、narration、icon、color_theme）
+
+3. speech: AI 教师语音讲解稿（150-250字），用于引入练习场景
+
+【设计原则】
+1. 练习类型选择：
+   - 如果大纲涉及具体代码技能：优先出 code 类型 + 1个 choice 类型
+   - 如果大纲是概念理解：出 choice + fill_blank + true_false 组合
+   - 至少包含1个 code 类型（如果是编程课程）
+2. code 练习的 starter_code 必须是"填空式"，不能是空白
+3. 难度递进：basic → medium → advanced
+4. 提示必须由简到难，第一条不给代码
+
+只输出JSON，不要添加其他文字。""",
+
+
     "outline_generation_v2": """你是一位课程设计专家。根据以下需求设计课程大纲（增强版）。
 
 需求：{requirement}
@@ -300,17 +363,23 @@ content字段可以使用以下markdown标记来组织富文本内容：
 
 只输出JSON，不要添加其他文字。""",
 
-    "agent_team_generation": """你是一位教学团队设计专家。根据以下课程信息，生成一个AI教师团队。
+    "agent_team_generation": """你是一位编程教育平台的教学团队设计专家。本平台的所有课程都是编程/计算机相关，所有教师必须是编程技术领域的专家。
 
 课程标题：{course_title}
 课程大纲：{outlines}
 原始需求：{requirement}
 
-要求：
-1. 生成2-4个AI教师角色
-2. 每个教师有独特的教学风格和专长领域
-3. 教师角色多样化：主讲教师、辅导教师、互动引导员、测验评审员、项目导师等
-4. 每个教师有鲜明的个性（persona）、头像（使用https://api.dicebear.com/7.x/avataaars/svg?seed={名字}格式的URL）、主题色（color十六进制）、音色ID（voice_id: 0-4，对应晓雅/云起/雨辰/苏格拉底/雅典娜）
+【重要约束】
+1. 本平台是编程学习平台，所有AI教师必须是编程/计算机技术领域的专家，绝对禁止生成历史、文学、艺术、自然科学等非编程学科的教师
+2. 教师的专业领域必须与课程内容高度相关：
+   - 如果课程涉及Python/数据分析/AI → 生成Python工程师或数据科学家
+   - 如果课程涉及Java/Spring/企业开发 → 生成Java架构师或后端工程师
+   - 如果课程涉及JavaScript/React/Vue/前端 → 生成前端工程师
+   - 如果课程涉及C/C++/数据结构/算法/系统编程 → 生成系统工程师或算法工程师
+   - 如果课程涉及全栈/架构/DevOps/数据库 → 生成全栈架构师或DevOps工程师
+   - 如果课程内容不明确 → 生成全栈工程师或软件工程师（通用编程导师）
+3. 生成2-4个AI教师角色，角色多样化：主讲教师、辅导教师、代码审查员、项目导师等
+4. 每个教师有鲜明的编程专家个性（persona），头像（使用https://api.dicebear.com/7.x/avataaars/svg?seed={名字}格式的URL）、主题色（color十六进制）、音色ID（voice_id: 0-4）
 
 以JSON格式输出：
 {{
@@ -319,7 +388,8 @@ content字段可以使用以下markdown标记来组织富文本内容：
       "id": "teacher_1",
       "name": "教师名字（中文，2-4字）",
       "role": "主讲教师",
-      "persona": "教学风格和性格描述（50-100字）",
+      "profession": "专业头衔（如：Python高级工程师 / Java架构师 / 前端技术专家）",
+      "persona": "教学风格和性格描述（50-100字），必须体现编程技术背景",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher1",
       "color": "#6366f1",
       "voice_id": 0,
@@ -698,25 +768,18 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
 **【强制要求】colorTheme 字段每个卡片必须提供，不得省略。相邻卡片必须使用不同色系。**
 
 **【布局类型说明】**
-- title-only: 仅标题页面，用于章节分隔
-- two-column: 两栏对比布局，适合概念对比
-- grid-cards: 多卡片网格布局，适合展示多个知识点
-- header-content: 标题+大段内容堆叠，适合单一主题深入讲解
-- timeline-steps: 时间线步骤，适合流程讲解，浅色背景必须用深色文字
-- comparison: VS对比布局，适合A/B对比分析
-- fullwidth-banner: 全宽横幅，适合重点强调
-- three-column-cards: 三栏等分布局，适合三个并列知识点
-- asymmetric-split: 非对称分割，左侧60%右侧40%
-- numbered-list: 数字编号列表，适合强调顺序和步骤
-- hero-center: 英雄居中布局，大标题+副标题，适合课程引入
-- chapter-divider: 章节分隔页，适合大章节切换
-- edu-definition: 教育概念定义页，左侧定义框+右侧属性标签，适合新概念首次出现时的定义讲解
-- edu-keypoints: 教育规范要点页，三栏等分卡片，每栏含彩色顶部条+要点列表，适合罗列规范、规则、注意事项
-- edu-example: 教育示例演示页，左侧概念说明+右侧示例区（代码/图解），适合展示代码示例、数学例题、案例分析
-- edu-summary: 教育章节总结页，三彩色区块横向排列，适合章节小结、知识回顾
-- edu-welcome: 课程欢迎导学页，"是什么-能做什么-如何学习"三段式结构，适合课程开篇
-- media-showcase: 媒体展示页，深色背景突出图片/视频内容，适合展示生成的媒体资源
-- edu-programming-concept: 编程概念教学页，标题+左右分栏（定义/规范）+下方类型分类，适合编程概念教学
+{available_layouts}
+
+**【媒体内容使用规则】**
+- 当提供了 imageUrl 时，优先使用支持图片的布局（magazine-cover, photo-story）展示配图
+- 当提供了 videoUrl 时，优先使用支持视频的布局（media-showcase, video-lecture）展示视频
+- 不要在同一个幻灯片中同时提供 imageUrl 和 videoUrl，二选一即可
+
+【文字内容强制要求】
+- **每个 content item 必须包含至少1条非空 bullet 或非空 text，禁止生成空内容**
+- 禁止生成空的 content 数组（content: []）
+- 图片布局(magazine-cover, photo-story)和视频布局(media-showcase, video-lecture)也必须有文字描述，不能只放媒体没有文字
+- title-only 布局虽然不显示卡片，但 content 中仍须提供 narration 供TTS使用
 
 【页数要求】
 - 本 outline 生成 2-3 页幻灯片即可
