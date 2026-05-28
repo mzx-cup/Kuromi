@@ -494,7 +494,7 @@ class MiniMaxPPTProvider:
                         {"role": "user", "content": user_prompt},
                     ],
                     "temperature": 0.6,
-                    "max_tokens": 4096,
+                    "max_tokens": 8192,
                 }
 
                 async with httpx.AsyncClient(timeout=45.0) as client:
