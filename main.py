@@ -356,121 +356,43 @@ def retrieve_knowledge(keywords: list):
     return context, sources, source_links
 
 def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
-    # Try Xunfei first
+    """调用 MiniMax M2.7 大模型生成内容（已完全切换自讯飞）"""
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {settings.xunfei_api_key}"
+        "Authorization": f"Bearer {settings.minimax_api_key}",
     }
     payload = {
-        "model": settings.model_name,
+        "model": settings.minimax_model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
+            {"role": "user", "content": user_prompt},
         ],
-        "temperature": temperature
+        "temperature": temperature,
+        "max_tokens": 8192,
     }
     try:
-        response = requests.post(settings.xunfei_api_url, headers=headers, json=payload, timeout=120)
+        response = requests.post(
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
     except requests.exceptions.Timeout:
         raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
     except requests.exceptions.RequestException as e:
         raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
 
-    if not response.ok or response.status_code != 200:
-        # Xunfei failed, try minimax fallback
-        print(f"[call_llm] Xunfei API failed (status={response.status_code}), trying minimax fallback")
-        minimax_headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {settings.minimax_api_key}"
-        }
-        minimax_payload = {
-            "model": settings.minimax_model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": temperature
-        }
-        try:
-            fallback_resp = requests.post(
-                f"{settings.minimax_api_url}/chat/completions",
-                headers=minimax_headers,
-                json=minimax_payload,
-                timeout=120
-            )
-        except requests.exceptions.Timeout:
-            raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
-        except requests.exceptions.RequestException as e:
-            raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
-
-        if not fallback_resp.ok:
-            snippet = (fallback_resp.text or "")[:800]
-            raise HTTPException(
-                status_code=502,
-                detail=f"大模型接口返回 HTTP {fallback_resp.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
-            )
-
-        try:
-            fallback_body = fallback_resp.json()
-        except ValueError:
-            raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
-
-        try:
-            return fallback_body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError):
-            brief = json.dumps(fallback_body, ensure_ascii=False)[:600]
-            raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
+    if not response.ok:
+        snippet = (response.text or "")[:800]
+        raise HTTPException(
+            status_code=502,
+            detail=f"大模型接口返回 HTTP {response.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
+        )
 
     try:
         body = response.json()
     except ValueError:
         raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
-
-    # Check for vendor-level errors in response
-    if isinstance(body, dict) and (body.get("error") or body.get("code") or "quota" in str(body).lower()):
-        # Xunfei returned error in body, try minimax fallback
-        print(f"[call_llm] Xunfei API returned error in body: {body}, trying minimax fallback")
-        minimax_headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {settings.minimax_api_key}"
-        }
-        minimax_payload = {
-            "model": settings.minimax_model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "temperature": temperature
-        }
-        try:
-            fallback_resp = requests.post(
-                f"{settings.minimax_api_url}/chat/completions",
-                headers=minimax_headers,
-                json=minimax_payload,
-                timeout=120
-            )
-        except requests.exceptions.Timeout:
-            raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
-        except requests.exceptions.RequestException as e:
-            raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
-
-        if not fallback_resp.ok:
-            snippet = (fallback_resp.text or "")[:800]
-            raise HTTPException(
-                status_code=502,
-                detail=f"大模型接口返回 HTTP {fallback_resp.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
-            )
-
-        try:
-            fallback_body = fallback_resp.json()
-        except ValueError:
-            raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
-
-        try:
-            return fallback_body["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError):
-            brief = json.dumps(fallback_body, ensure_ascii=False)[:600]
-            raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
 
     try:
         return body["choices"][0]["message"]["content"]
