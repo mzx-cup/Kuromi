@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Any
+from typing import Optional, Any, Union
 import requests
 import json
 import re
@@ -48,7 +49,10 @@ from agent_utils import (
     list_student_contexts, extract_final_content, extract_resources,
     extract_evaluation, format_workflow_logs, Timer,
 )
-from llm_stream import call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client
+from llm_stream import (
+    call_llm_stream, call_llm_stream_with_log, call_llm_async, close_http_client,
+    call_llm_stream_with_log_messages,
+)
 from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
 from config import settings
 from app.services.teacher.personas import get_persona_manager
@@ -83,6 +87,20 @@ async def trigger_learning_path_refresh(user_id: int, trigger_source: str = "unk
     except Exception as e:
         print(f"[LearningPathRefresh] 刷新失败 (user_id={user_id}): {e}")
 
+def _safe_trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown"):
+    """在同步上下文中安全地异步触发学习路径刷新（无事件循环时自动创建）。"""
+    import asyncio, threading
+    try:
+        loop = asyncio.get_running_loop()
+        asyncio.create_task(trigger_learning_path_refresh(user_id, trigger_source))
+    except RuntimeError:
+        def _trigger():
+            try:
+                asyncio.run(trigger_learning_path_refresh(user_id, trigger_source))
+            except Exception:
+                pass
+        threading.Thread(target=_trigger, daemon=True).start()
+
 logger = logging.getLogger("starlearn.stream")
 req_logger = logging.getLogger("starlearn.request")
 if not logger.handlers:
@@ -104,6 +122,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---- Static files (专注音乐 MP3 等资源) ----
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
 # ---- V2 API routes (Star-Learn 2.0) ----
 from app.api import router as v2_router
 app.include_router(v2_router)
@@ -111,6 +132,14 @@ app.include_router(v2_router)
 # ---- Learning Path API (实时学情驱动路径生成) ----
 from app.api.learning_path import router as learning_path_router
 app.include_router(learning_path_router, prefix="/api/learning-path")
+
+# ---- Memory API (用户长期记忆) ----
+from app.api.memory import router as memory_router
+app.include_router(memory_router, prefix="/api")
+
+# ---- Evaluation API (评估指标) ----
+from app.api.evaluation import router as evaluation_router
+app.include_router(evaluation_router, prefix="/api")
 
 
 @app.middleware("http")
@@ -175,6 +204,8 @@ class ChatRequest(BaseModel):
     interactionCount: int = 0
     codePracticeTime: int = 0
     socraticPassRate: float = 0.0
+    sessionId: str = ""           # 会话ID，用于关联对话历史
+    userId: int = 0               # 用户ID，用于保存消息到数据库
 
     @field_validator("currentPath", mode="before")
     @classmethod
@@ -399,6 +430,50 @@ def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
     except (KeyError, IndexError, TypeError):
         brief = json.dumps(body, ensure_ascii=False)[:600]
         raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
+
+
+def call_llm_with_messages(messages: list[dict], temperature=0.3):
+    """调用 MiniMax M2.7，支持完整 messages 数组（含历史上下文）。"""
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {settings.minimax_api_key}",
+    }
+    payload = {
+        "model": settings.minimax_model_name,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": 8192,
+    }
+    try:
+        response = requests.post(
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=504, detail="大模型接口请求超时，请稍后重试或检查网络")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"无法连接大模型接口: {str(e)}")
+
+    if not response.ok:
+        snippet = (response.text or "")[:800]
+        raise HTTPException(
+            status_code=502,
+            detail=f"大模型接口返回 HTTP {response.status_code}。请检查 API Key、额度与网络。响应摘要: {snippet}",
+        )
+
+    try:
+        body = response.json()
+    except ValueError:
+        raise HTTPException(status_code=502, detail="大模型接口返回非 JSON，请检查服务地址与鉴权")
+
+    try:
+        return body["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError):
+        brief = json.dumps(body, ensure_ascii=False)[:600]
+        raise HTTPException(status_code=502, detail=f"大模型响应格式异常（缺 choices/message），片段: {brief}")
+
 
 def normalize_cognitive_style_for_routing(val):
     """画像里可能是中文（视觉型）或英文（visual），主控分发需要统一成英文码。"""
@@ -975,11 +1050,32 @@ def save_user_progress(request: SaveProgressRequest):
         grade_record = request.lastGradeRecord
 
         database.save_user_profile(user_id, profile_json, evaluation_json, grade_record)
-        database.save_learning_path(user_id, path_json)
+        try:
+            database.save_learning_path(user_id, path_json)
+        except Exception as e:
+            print(f"[ProgressSave] learning_path 保存失败（非阻塞）: {e}")
+
+        # 同时保存到 learning_records 和 user_evaluations
+        ev = request.evaluation or {}
+        try:
+            database.save_learning_record(
+                user_id=user_id,
+                interaction_count=ev.get("interactionCount", 0),
+                code_practice_time=ev.get("codePracticeTime", 0),
+                socratic_pass_rate=ev.get("socraticPassRate", 0.0),
+                difficulty_level=ev.get("difficultyLevel", "basic"),
+                profile_json=evaluation_json,
+            )
+        except Exception as e:
+            print(f"[ProgressSave] learning_records 保存失败（非阻塞）: {e}")
+
+        try:
+            database.save_user_evaluation(user_id, ev)
+        except Exception as e:
+            print(f"[ProgressSave] user_evaluations 保存失败（非阻塞）: {e}")
 
         # 异步触发学习路径刷新（不阻塞响应）
-        import asyncio
-        asyncio.create_task(trigger_learning_path_refresh(user_id, "progress_save"))
+        _safe_trigger_learning_path_refresh(user_id, "progress_save")
 
         return {"success": True, "message": "进度保存成功"}
     except Exception as e:
@@ -1135,6 +1231,13 @@ class SocraticTTSResponse(BaseModel):
     success: bool
     audio_url: Optional[str] = None
     error: Optional[str] = None
+
+
+class SocraticCheckpointRequest(BaseModel):
+    topic: str = Field(default="", description="检查点主题/知识盲区")
+    understood: bool = Field(description="用户是否理解")
+    message_timestamp: Union[int, str] = Field(default=0, description="消息时间戳")
+    course_id: Optional[str] = Field(default=None, description="课程ID")
 
 
 # 音色配置 (MiniMax speech-2.8-hd 模型)
@@ -1365,6 +1468,32 @@ def score_answer(request: SocraticScoreRequest):
     except Exception as e:
         logger.error(f"评分失败: {e}")
         raise HTTPException(status_code=500, detail=f"评分失败: {str(e)}")
+
+
+@app.post("/api/socratic/checkpoint")
+def socratic_checkpoint(request: SocraticCheckpointRequest):
+    """记录苏格拉底交互确认点的用户反馈"""
+    try:
+        # 这里可以接入知识掌握度追踪系统
+        # 简单实现：打印日志并返回成功
+        logger.info(
+            f"[SocraticCheckpoint] topic={request.topic}, understood={request.understood}, "
+            f"course={request.course_id}, ts={request.message_timestamp}"
+        )
+
+        # TODO: 接入实际的知识掌握度数据库
+        # 例如：更新用户在该知识点上的掌握度评分
+        # update_knowledge_mastery(user_id, request.topic, request.understood)
+
+        return {
+            "success": True,
+            "understood": request.understood,
+            "topic": request.topic,
+            "message": "已记录" if request.understood else "进入苏格拉底深度诊断模式"
+        }
+    except Exception as e:
+        logger.error(f"苏格拉底检查点记录失败: {e}")
+        raise HTTPException(status_code=500, detail=f"记录失败: {str(e)}")
 
 
 @app.post("/api/socratic/tts")
@@ -2028,6 +2157,64 @@ def load_user_progress(request: LoadProgressRequest):
             result["evaluation"] = coerce_profile_dict(ej)
             result["lastGradeRecord"] = profile_data.get('last_grade_record')
 
+        # 从 learning_records 和 user_evaluations 补充/覆盖更实时的指标
+        try:
+            lr = database.get_learning_record(user_id)
+            if lr:
+                ev = result.get("evaluation") or {}
+                ev["interactionCount"] = ev.get("interactionCount") or lr.get("interaction_count", 0)
+                ev["socraticPassRate"] = ev.get("socraticPassRate") or lr.get("socratic_pass_rate", 0.0)
+                ev["difficultyLevel"] = ev.get("difficultyLevel") or lr.get("difficulty_level", "basic")
+                ev["codePracticeTime"] = ev.get("codePracticeTime") or lr.get("code_practice_time", 0)
+                # profile_json 中可能存了 focus_time_today 等
+                if lr.get("profile_json"):
+                    try:
+                        lr_profile = json.loads(lr["profile_json"]) if isinstance(lr["profile_json"], str) else lr["profile_json"]
+                        if isinstance(lr_profile, dict):
+                            ev["focusTimeToday"] = ev.get("focusTimeToday") or lr_profile.get("focus_time_today", 0)
+                            ev["flashcardsStudied"] = ev.get("flashcardsStudied") or lr_profile.get("flashcards_studied", 0)
+                            ev["streakDays"] = ev.get("streakDays") or lr_profile.get("streak_days", 0)
+                    except Exception:
+                        pass
+                result["evaluation"] = ev
+        except Exception as e:
+            print(f"[ProgressLoad] learning_records 读取失败（非阻塞）: {e}")
+
+        # 从 user_evaluations（今日）补充更实时的指标
+        try:
+            from datetime import date
+            ue = database.get_user_evaluation(user_id, record_date=date.today().isoformat())
+            if ue:
+                ev = result.get("evaluation") or {}
+                if ue.get("interaction_count") is not None:
+                    ev["interactionCount"] = ue["interaction_count"]
+                if ue.get("socratic_pass_rate") is not None:
+                    ev["socraticPassRate"] = ue["socratic_pass_rate"]
+                if ue.get("difficulty_level"):
+                    ev["difficultyLevel"] = ue["difficulty_level"]
+                if ue.get("code_practice_time") is not None:
+                    ev["codePracticeTime"] = ue["code_practice_time"]
+                if ue.get("focus_time_today") is not None:
+                    ev["focusTimeToday"] = ue["focus_time_today"]
+                if ue.get("flashcards_studied") is not None:
+                    ev["flashcardsStudied"] = ue["flashcards_studied"]
+                if ue.get("streak_days") is not None:
+                    ev["streakDays"] = ue["streak_days"]
+                # eval_json 中可能包含 interactionHistory / lastStudyDate
+                if ue.get("eval_json"):
+                    try:
+                        ej = json.loads(ue["eval_json"]) if isinstance(ue["eval_json"], str) else ue["eval_json"]
+                        if isinstance(ej, dict):
+                            if ej.get("lastStudyDate") and not ev.get("lastStudyDate"):
+                                ev["lastStudyDate"] = ej["lastStudyDate"]
+                            if ej.get("interactionHistory") and not ev.get("interactionHistory"):
+                                ev["interactionHistory"] = ej["interactionHistory"]
+                    except Exception:
+                        pass
+                result["evaluation"] = ev
+        except Exception as e:
+            print(f"[ProgressLoad] user_evaluations 读取失败（非阻塞）: {e}")
+
         if path_data:
             result["currentPath"] = coerce_learning_path(path_data.get("path_json"))
 
@@ -2035,10 +2222,37 @@ def load_user_progress(request: LoadProgressRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载失败: {str(e)}")
 
+def _build_chat_messages(system_prompt: str, history: list, current_user_text: str, max_history: int = 10) -> list:
+    """构建带历史上下文的 messages 数组。"""
+    messages = [{"role": "system", "content": system_prompt}]
+    # 加入历史消息（只取最近 N 条，避免超出上下文窗口）
+    for msg in history[-max_history:]:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role in ("user", "assistant", "system") and content:
+            messages.append({"role": role, "content": content})
+    # 当前用户输入
+    messages.append({"role": "user", "content": current_user_text})
+    return messages
+
+
 @app.post("/api/chat")
 def multi_agent_workflow(request: ChatRequest):
     workflow_logs = []
+    session_id = request.sessionId or f"sess_{request.userId}_{int(time.time())}"
+    student_id = request.userId or 0
+    
     try:
+        # ===== 记忆系统：保存用户消息 + 加载历史 =====
+        try:
+            from db import save_message, get_conversation_messages
+            save_message(session_id, student_id, "user", request.userText, message_type="text")
+            chat_history = get_conversation_messages(session_id, student_id, limit=20)
+            workflow_logs.append(f"[Memory] 已加载 {len(chat_history)} 条历史消息 | 会话: {session_id[:20]}...")
+        except Exception as mem_e:
+            chat_history = []
+            workflow_logs.append(f"[Memory] 历史消息加载失败（非阻塞）: {mem_e}")
+        
         # ===== Agent 1: 画像分析智能体 (Profiler Agent) =====
         workflow_logs.append("[Profiler] 正在分析学生意图并进行6维学情切片...")
         profiler_sys = """你是一个教育数据分析智能体。分析学生输入，更新6维动态画像。必须输出纯JSON格式：
@@ -2064,8 +2278,7 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
         # ===== Agent 2: 教研规划智能体 (Planner Agent) =====
         workflow_logs.append("[Planner] 检测到学情变动，正在动态重组专属学习路径...")
         # 使用新的学情驱动路径生成服务（异步触发，不阻塞聊天响应）
-        import asyncio
-        asyncio.create_task(trigger_learning_path_refresh(request.userId or 0, "chat_interaction"))
+        _safe_trigger_learning_path_refresh(request.userId or 0, "chat_interaction")
         # 保留原有的简单路径生成作为即时回退
         planner_sys = """你是一个大学教研规划智能体。根据画像规划路径。必须输出纯JSON数组：
 [{"topic": "复习主题", "status": "completed"}, {"topic": "当前主题", "status": "current"}, {"topic": "进阶主题", "status": "locked"}]"""
@@ -2097,6 +2310,37 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
             dispatch_strategy = "textual"
             workflow_logs.append("[Master Controller] 多模态分发策略: 均衡模式 -> 文档Agent + 导图Agent")
 
+        # ===== 长期记忆检索 =====
+        long_term_memory_text = ""
+        try:
+            from app.services.memory_retriever import retrieve_relevant_memories_sync, format_memories_for_prompt
+            relevant_memories = retrieve_relevant_memories_sync(
+                str(student_id), request.userText, limit=6, min_confidence=0.5
+            )
+            if relevant_memories:
+                long_term_memory_text = format_memories_for_prompt(relevant_memories)
+                workflow_logs.append(f"[Memory] 检索到 {len(relevant_memories)} 条长期记忆")
+            else:
+                workflow_logs.append("[Memory] 暂无相关长期记忆")
+        except Exception as mem_e:
+            workflow_logs.append(f"[Memory] 长期记忆检索失败（非阻塞）: {mem_e}")
+
+        # 轻量级即时特征检测（让用户在本轮就感知到"被记住"）
+        detected_traits_text = ""
+        try:
+            from agents import ProfilerAgent
+            _profiler = ProfilerAgent()
+            traits = _profiler._detect_user_traits(request.userText)
+            if traits:
+                trait_lines = []
+                for trait in traits:
+                    label = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感"}.get(trait.get("type", ""), "特征")
+                    trait_lines.append(f"  [{label}] {trait.get('content', '')}")
+                detected_traits_text = "\n【本轮对话中检测到的用户新特征（请在本轮回答中引用）】:\n" + "\n".join(trait_lines) + "\n"
+                workflow_logs.append(f"[Profiler] 即时特征检测: 发现 {len(traits)} 条新特征")
+        except Exception:
+            pass
+
         # ===== Agent 5-8: 多模态生成智能体群组 (Generator Agents) =====
         if dispatch_strategy == "socratic":
             # ===== Agent: 苏格拉底诊断智能体 (Socratic Evaluator) =====
@@ -2106,6 +2350,8 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
 【学生画像】: {json.dumps(new_profile, ensure_ascii=False)}
 【教材参考】:
 {context}
+{long_term_memory_text}
+{detected_traits_text}
 
 【规则】：
 1. 绝不直接给出完整答案
@@ -2113,8 +2359,11 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
 3. 每个问题后给出提示方向（而非答案本身）
 4. 最后给出一个"思考锚点"——即如果学生能回答最后一个问题，就说明已经理解了核心
 5. 用 [Doc_Ref: xxx] 标注引用来源
-6. 语气温和鼓励，像一位耐心的导师"""
-            final_answer = call_llm(socratic_sys, request.userText, temperature=0.5)
+6. 语气温和鼓励，像一位耐心的导师
+
+【记忆提示】：如果以下历史对话中有与当前问题相关的上下文，请自然地引用或关联。"""
+            messages = _build_chat_messages(socratic_sys, chat_history, request.userText, max_history=10)
+            final_answer = call_llm_with_messages(messages, temperature=0.5)
             workflow_logs.append("[Socratic Evaluator] 启发式诊断问题链生成完毕。")
         else:
             # ===== 多模态生成智能体群组 =====
@@ -2151,10 +2400,68 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
 [教材参考结束]
 2. 根据画像 {json.dumps(new_profile, ensure_ascii=False)} 调整难度和表达方式。
 3. 如果学生基础薄弱，避免底层源码解析，用生动比喻和可视化替代。
-{visual_instruction}"""
+{visual_instruction}
+{long_term_memory_text}
+{detected_traits_text}
 
-            final_answer = call_llm(tutor_sys, request.userText, temperature=0.6)
+【记忆提示】：以下是你和这位学生的历史对话记录。请在回答中自然地关联之前讨论过的内容，让学生感受到你记得TA说过什么。如果历史记录与当前问题无关，则忽略。"""
+
+            messages = _build_chat_messages(tutor_sys, chat_history, request.userText, max_history=10)
+            final_answer = call_llm_with_messages(messages, temperature=0.6)
             workflow_logs.append("[Generator Agents] 多模态内容生成完毕。")
+
+        # ===== 记忆系统：保存 AI 回复 =====
+        try:
+            from db import save_message
+            save_message(session_id, student_id, "assistant", final_answer, message_type="text")
+            workflow_logs.append("[Memory] AI 回复已保存到对话历史")
+        except Exception as mem_e:
+            workflow_logs.append(f"[Memory] 保存AI回复失败（非阻塞）: {mem_e}")
+
+        # ===== 长期记忆：异步提取新记忆 =====
+        workflow_logs.append("[Memory] 启动异步记忆分析...")
+
+        def _extract_long_term_memory():
+            try:
+                import asyncio
+                from app.services.memory_extractor import extract_memories_from_conversation, deduplicate_memories, save_extracted_memories
+                from db import get_user_memories
+
+                async def _do_extract():
+                    all_memories = get_user_memories(student_id)
+                    recent_history = chat_history[-6:] + [{"role": "user", "content": request.userText}, {"role": "assistant", "content": final_answer}]
+                    new_memories = await extract_memories_from_conversation(
+                        str(student_id), recent_history, existing_memories=all_memories
+                    )
+                    if new_memories:
+                        type_names = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感", "fact": "事实"}
+                        for mem in new_memories:
+                            label = type_names.get(mem.get("memory_type", "fact"), "特征")
+                            print(f"[MemoryExtractor] 发现新特征：[{label}] {mem.get('content', '')}")
+                        deduped = deduplicate_memories(new_memories, all_memories)
+                        if deduped:
+                            saved = await save_extracted_memories(str(student_id), deduped)
+                            print(f"[MemoryExtractor] 已记住 {len(saved)} 条新特征")
+                        else:
+                            print("[MemoryExtractor] 新特征与已有记忆重复，无需重复记录")
+                    else:
+                        print("[MemoryExtractor] 本次对话未发现新的用户特征")
+
+                # Reset global httpx client to avoid "Event loop is closed" in background thread
+                import llm_stream
+                llm_stream._http_client = None
+                
+                loop = asyncio.new_event_loop()
+                try:
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(_do_extract())
+                finally:
+                    loop.close()
+            except Exception as e:
+                print(f"[MemoryExtractor] 异步记忆提取失败: {e}")
+
+        import threading
+        threading.Thread(target=_extract_long_term_memory, daemon=True).start()
 
         # ===== Agent: 评估智能体 (Evaluation Agent) =====
         interaction_count = request.interactionCount + 1
@@ -2183,7 +2490,8 @@ profile_updates 必须用简短中文，禁止输出 basic、exam、pragmatic、
                 "socraticPassRate": socratic_pass_rate,
                 "difficultyLevel": difficulty_level,
                 "codePracticeTime": request.codePracticeTime
-            }
+            },
+            "sessionId": session_id,
         }
     except Exception as e:
         print(f"工作流中断: {str(e)}")
@@ -2373,6 +2681,18 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
     event_queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=1024)
     disconnected = asyncio.Event()
 
+    # ===== 记忆系统：初始化会话 + 保存用户消息 + 加载历史 =====
+    session_id = body.session_id or f"sess_{body.student_id}_{int(time.time())}"
+    student_id = body.student_id or ""
+    chat_history = []
+    try:
+        from db import save_message, get_conversation_messages
+        save_message(session_id, student_id, "user", body.user_input, message_type="text")
+        chat_history = get_conversation_messages(session_id, student_id, limit=20)
+        logger.info(f"[Memory] 已加载 {len(chat_history)} 条历史消息 | 会话: {session_id}")
+    except Exception as mem_e:
+        logger.warning(f"[Memory] 历史消息加载失败（非阻塞）: {mem_e}")
+
     state = build_state_from_request(
         student_id=body.student_id,
         course_id=body.course_id,
@@ -2417,6 +2737,12 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 
             await push_agent_log("system", "正在初始化多智能体工作流...")
 
+            # 强制苏格拉底模式：前端用户点击"不太懂"时触发
+            if body.force_socratic:
+                state.metadata["dialogue_type"] = "confusion"
+                state.metadata["force_socratic"] = True
+                await push_agent_log("profiler", "用户主动请求苏格拉底深度诊断，跳过常规分析")
+
             profiler = controller._agents.get("profiler") or ProfilerAgent()
             await profiler.run(state)
             last_log_idx = await push_new_logs(last_log_idx)
@@ -2458,6 +2784,21 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 dispatch_strategy = "pragmatic"
 
             await push_agent_log("master_controller", f"分发策略: {dispatch_strategy}")
+
+            # ===== 长期记忆检索 =====
+            long_term_memory_text = ""
+            try:
+                from app.services.memory_retriever import retrieve_relevant_memories, format_memories_for_prompt
+                relevant_memories = await retrieve_relevant_memories(
+                    str(student_id), body.user_input, limit=6, min_confidence=0.5
+                )
+                if relevant_memories:
+                    long_term_memory_text = format_memories_for_prompt(relevant_memories)
+                    await push_agent_log("memory", f"检索到 {len(relevant_memories)} 条长期记忆")
+                else:
+                    await push_agent_log("memory", "暂无相关长期记忆")
+            except Exception as mem_e:
+                await push_agent_log("memory", f"长期记忆检索失败（非阻塞）: {mem_e}")
 
             recommended_links = []
 
@@ -2504,7 +2845,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                     instruction = textual_instruction
 
                 # 根据 agent/persona 动态构建角色设定
-                if body.agent == "default" and body.persona:
+                # 优先使用 persona（无论当前学科是什么），因为用户通过 persona chip 主动选择了性格身份
+                if body.persona:
                     try:
                         mgr = get_persona_manager()
                         persona_obj = mgr.get(body.persona)
@@ -2514,12 +2856,38 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                             f"语气要求：\n{persona_obj.tone}\n\n"
                             f"行为准则：\n" + "\n".join(f"- {r}" for r in persona_obj.behavior_rules)
                         )
-                    except Exception:
-                        identity_prompt = "你是一位专业的大数据与AI高校导师。"
+                        await push_agent_log("persona_loader", f"已加载身份: {persona_obj.name} ({body.persona})")
+                    except Exception as e:
+                        logger.warning(f"[Persona] 加载失败: {e}, fallback 到 agent_system_prompt")
+                        identity_prompt = body.agent_system_prompt or "你是一位专业的大数据与AI高校导师。"
                 elif body.agent_system_prompt:
                     identity_prompt = body.agent_system_prompt
                 else:
                     identity_prompt = "你是一位专业的大数据与AI高校导师。"
+
+                blind_spots = state.metadata.get("blind_spots", [])
+                blind_spots_text = "、".join(blind_spots) if blind_spots else "暂无明确盲区"
+                socratic_embed_rule = """【苏格拉底穿插规则】
+在回答过程中，当你解释完一个关键概念后，请自然地插入一个简短的启发式问题，引导学生主动思考。
+格式要求：用 [SocraticQ] 和 [/SocraticQ] 包裹问题，例如：
+"HDFS 的 NameNode 负责管理元数据。[SocraticQ]那你能猜一下，如果 NameNode 宕机，DataNode 上的数据还能被访问吗？[/SocraticQ]"
+约束：
+1. 每个回答最多插入 2 个苏格拉底问题
+2. 问题必须简短（不超过 25 字），与上下文自然衔接
+3. 只在涉及抽象概念或容易混淆的地方插入
+4. 禁止在代码块、Mermaid 图表、JSON 内部插入"""
+                if blind_spots:
+                    socratic_embed_rule += f"\n\n【用户可能的知识盲区】：{blind_spots_text}\n请针对以上盲区优先设计苏格拉底问题。"
+
+                # ProfilerAgent 同步检测到的即时特征（本轮即可引用）
+                detected_traits = state.metadata.get("detected_traits", [])
+                detected_traits_text = ""
+                if detected_traits:
+                    trait_lines = []
+                    for trait in detected_traits:
+                        label = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感"}.get(trait.get("type", ""), "特征")
+                        trait_lines.append(f"  [{label}] {trait.get('content', '')}")
+                    detected_traits_text = "\n【本轮对话中检测到的用户新特征（请在本轮回答中引用）】:\n" + "\n".join(trait_lines) + "\n"
 
                 sys_prompt = f"""{identity_prompt}
 
@@ -2531,6 +2899,25 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 2. 根据画像 {json.dumps(state.profile.model_dump(mode='json'), ensure_ascii=False)} 调整难度和表达方式。
 3. 如果学生基础薄弱，避免底层源码解析，用生动比喻和可视化替代。
 {instruction}
+{socratic_embed_rule}
+{long_term_memory_text}
+{detected_traits_text}
+
+【记忆提示】：以下是你和这位学生的历史对话记录。请在回答中自然地关联之前讨论过的内容，让学生感受到你记得TA说过什么。如果历史记录与当前问题无关，则忽略。
+
+【苏格拉底穿插规则】
+在回答过程中，当你解释完一个关键概念后，请自然地插入一个简短的启发式问题，引导学生主动思考。
+格式要求：用 [SocraticQ] 和 [/SocraticQ] 包裹问题，例如：
+"HDFS 的 NameNode 负责管理元数据。[SocraticQ]那你能猜一下，如果 NameNode 宕机，DataNode 上的数据还能被访问吗？[/SocraticQ]"
+
+约束：
+1. 每个回答最多插入 2 个苏格拉底问题
+2. 问题必须简短（不超过 25 字），与上下文自然衔接
+3. 只在涉及抽象概念或容易混淆的地方插入
+4. 禁止在代码块、Mermaid 图表、JSON 内部插入
+
+【用户可能的知识盲区】：{blind_spots_text}
+请针对以上盲区优先设计苏格拉底问题。
 
 【学习链接推荐规则】（可选）
 在回复内容之后，你可以选择性附加 `<links>[...]</links>` 标记，为学生推荐与当前话题直接相关的学习资源：
@@ -2544,8 +2931,17 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 agent_label = f"generator_{dispatch_strategy}"
                 await push_agent_log(agent_label, "正在调用大模型流式生成...")
 
-                async for event in call_llm_stream_with_log(
-                    sys_prompt, body.user_input, agent_name=agent_label, temperature=0.3
+                # 构建带历史上下文的 messages 数组
+                messages = [{"role": "system", "content": sys_prompt}]
+                for msg in chat_history[-10:]:
+                    role = msg.get("role", "user")
+                    content = msg.get("content", "")
+                    if role in ("user", "assistant", "system") and content:
+                        messages.append({"role": role, "content": content})
+                messages.append({"role": "user", "content": body.user_input})
+
+                async for event in call_llm_stream_with_log_messages(
+                    messages, agent_name=agent_label, temperature=0.3
                 ):
                     if disconnected.is_set():
                         break
@@ -2586,6 +2982,62 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 
             await push_agent_log("resource_dispatcher", "思维导图/视频/练习已进入后台生成，可通过轮询接口查询进度")
 
+            # ===== 记忆系统：保存 AI 回复 =====
+            try:
+                from db import save_message
+                if dispatch_strategy == "socratic":
+                    ai_response = state.metadata.get("socratic_response", "")
+                else:
+                    ai_response = full_response_text
+                if ai_response:
+                    save_message(session_id, student_id, "assistant", ai_response, message_type="text")
+                    await push_agent_log("memory", "AI 回复已保存到对话历史")
+            except Exception as mem_e:
+                await push_agent_log("memory", f"保存AI回复失败（非阻塞）: {mem_e}")
+
+            # ===== 长期记忆：异步提取新记忆 =====
+            try:
+                from app.services.memory_extractor import extract_memories_from_conversation, deduplicate_memories, save_extracted_memories
+                from db import get_user_memories
+
+                await push_agent_log("memory", "正在分析对话中的用户新特征...")
+                all_memories = get_user_memories(student_id)
+                recent_history = chat_history[-6:] + [
+                    {"role": "user", "content": body.user_input},
+                    {"role": "assistant", "content": ai_response},
+                ]
+                new_memories = await extract_memories_from_conversation(
+                    str(student_id), recent_history, existing_memories=all_memories
+                )
+                if new_memories:
+                    type_names = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感", "fact": "事实"}
+                    for mem in new_memories:
+                        label = type_names.get(mem.get("memory_type", "fact"), "特征")
+                        await push_agent_log("memory", f"发现新特征：[{label}] {mem.get('content', '')}")
+                    deduped = deduplicate_memories(new_memories, all_memories)
+                    if deduped:
+                        saved = await save_extracted_memories(str(student_id), deduped)
+                        await push_agent_log("memory", f"已记住 {len(saved)} 条新特征，下次会主动引用")
+                    else:
+                        await push_agent_log("memory", "新特征与已有记忆重复，无需重复记录")
+                else:
+                    await push_agent_log("memory", "本次对话未发现新的用户特征")
+            except Exception as mem_e:
+                await push_agent_log("memory", f"记忆分析失败（非阻塞）: {mem_e}")
+                logger.warning(f"[MemoryExtractor] 流式聊天记忆提取失败: {mem_e}")
+
+            # ===== 苏格拉底交互确认点判断 =====
+            socratic_checkpoint = False
+            checkpoint_topic = ""
+            if dispatch_strategy != "socratic":
+                response_len = len(full_response_text) if 'full_response_text' in locals() else 0
+                has_blind_spots = bool(state.metadata.get("blind_spots", []))
+                low_pass_rate = state.profile.socratic_pass_rate < 0.5
+                if response_len > 300 and (has_blind_spots or low_pass_rate):
+                    socratic_checkpoint = True
+                    checkpoint_topic = state.metadata.get("blind_spots", ["当前内容"])[0] if has_blind_spots else "当前内容"
+                    await push_agent_log("master_controller", f"苏格拉底交互确认点触发 | 主题: {checkpoint_topic}")
+
             await push_complete({
                 "newProfile": state.profile.model_dump(mode="json"),
                 "newPath": new_path,
@@ -2597,6 +3049,10 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 "contextId": state.context_id,
                 "resourceTaskId": state.context_id,
                 "links": recommended_links,
+                "sessionId": session_id,
+                "socraticCheckpoint": socratic_checkpoint,
+                "checkpointTopic": checkpoint_topic,
+                "triggerMemoryRefresh": True,
             })
 
             logger.info(f"Stream workflow completed: student={body.student_id}, strategy={dispatch_strategy}")
@@ -2646,6 +3102,25 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.get("/api/chat/history")
+def get_chat_history(sessionId: str, userId: str = ""):
+    """获取指定会话的聊天记录，用于前端页面刷新后恢复显示。"""
+    try:
+        from db import get_conversation_messages
+        history = get_conversation_messages(sessionId, student_id=userId or None, limit=50)
+        # 精简字段，只返回前端渲染所需的数据
+        messages = []
+        for msg in history:
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", ""),
+                "created_at": str(msg.get("created_at", "")) if msg.get("created_at") else None,
+            })
+        return {"success": True, "count": len(messages), "messages": messages}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取聊天记录失败: {e}")
 
 
 # ========== AI 结对编程 - 题目生成API ==========
@@ -4563,8 +5038,7 @@ async def complete_daily_task(request: dict):
     task = next((t for t in today_route.get('tasks', []) if t.get('id') == task_id), None)
 
     # 异步触发学习路径刷新（任务完成意味着学情变化）
-    import asyncio
-    asyncio.create_task(trigger_learning_path_refresh(user_id, "daily_task_complete"))
+    _safe_trigger_learning_path_refresh(user_id, "daily_task_complete")
 
     return {
         "success": True,

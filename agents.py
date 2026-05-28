@@ -72,7 +72,7 @@ class ProfilerAgent(BaseAgent):
         input_text = user_input[0].content if user_input else ""
 
         try:
-            profile_update, dialogue_type, keywords, emotion = await self._analyze(input_text, state.profile)
+            profile_update, dialogue_type, keywords, emotion, blind_spots = await self._analyze(input_text, state.profile)
 
             telemetry_overload = self._analyze_telemetry(state)
             if telemetry_overload["is_overloaded"]:
@@ -86,16 +86,25 @@ class ProfilerAgent(BaseAgent):
                 state.metadata["overload_score"] = telemetry_overload["score"]
                 state.metadata["overload_intervention"] = telemetry_overload["intervention"]
 
+            # 同步特征检测：让用户在本轮就能感知到"被记住"
+            detected_traits = self._detect_user_traits(input_text)
+            if detected_traits:
+                state.metadata["detected_traits"] = detected_traits
+                for trait in detected_traits:
+                    type_label = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感"}.get(trait["type"], "特征")
+                    state.add_message(DialogueRole.PROFILER, f"画像更新：检测到 [{type_label}] {trait['content']}")
+
             state.profile = self._merge_profile(state.profile, profile_update)
             state.update_emotion(emotion[0], emotion[1], emotion[2])
-            state.add_message(DialogueRole.PROFILER, f"画像更新完成 | 对话类型: {dialogue_type} | 关键词: {keywords}")
+            blind_spots_str = ", ".join(blind_spots) if blind_spots else "暂无"
+            state.add_message(DialogueRole.PROFILER, f"画像更新完成 | 对话类型: {dialogue_type} | 关键词: {keywords} | 盲区: {blind_spots_str}")
             elapsed = int((time.time() - start) * 1000)
             state.add_workflow_log(self._create_log(
                 f"分析输入: {input_text[:100]}",
-                f"对话类型={dialogue_type}, 情绪={emotion[0]}, 关键词={keywords}, 遥测超载={telemetry_overload['is_overloaded']}",
+                f"对话类型={dialogue_type}, 情绪={emotion[0]}, 关键词={keywords}, 遥测超载={telemetry_overload['is_overloaded']}, 盲区={blind_spots_str}, 即时特征={len(detected_traits)}",
                 elapsed
             ))
-            state.metadata = {**state.metadata, "dialogue_type": dialogue_type, "search_keywords": keywords}
+            state.metadata = {**state.metadata, "dialogue_type": dialogue_type, "search_keywords": keywords, "blind_spots": blind_spots}
         except Exception as e:
             elapsed = int((time.time() - start) * 1000)
             state.add_workflow_log(self._create_log(
@@ -172,8 +181,8 @@ class ProfilerAgent(BaseAgent):
 
     async def _analyze(
         self, text: str, profile: LearningProfile
-    ) -> tuple[dict[str, Any], str, list[str], tuple[EmotionType, float, str]]:
-        confusion_signals = ["不懂", "不理解", "为什么", "怎么回事", "搞不懂", "什么意思", "困惑"]
+    ) -> tuple[dict[str, Any], str, list[str], tuple[EmotionType, float, str], list[str]]:
+        confusion_signals = ["不懂", "不理解", "为什么", "怎么回事", "搞不懂", "什么意思", "困惑", "不会", "没学过", "没接触过"]
         practice_signals = ["代码", "编程", "写一个", "实现", "练习", "运行"]
         if any(s in text for s in confusion_signals):
             dialogue_type = "confusion"
@@ -190,7 +199,107 @@ class ProfilerAgent(BaseAgent):
             "interaction_count": profile.interaction_count + 1,
             "cognitive_level": profile.cognitive_level.value if isinstance(profile.cognitive_level, DifficultyLevel) else profile.cognitive_level,
         }
-        return profile_update, dialogue_type, keywords, emotion
+        blind_spots = self._infer_blind_spots(text, dialogue_type)
+        return profile_update, dialogue_type, keywords, emotion, blind_spots
+
+    def _detect_user_traits(self, text: str) -> list[dict[str, Any]]:
+        """轻量级同步特征检测：从用户输入中即时识别关键背景信息，
+        让 AI 在本轮回答中就能引用（无需等待后台提取）。"""
+        import re
+        traits = []
+        t = text.lower()
+
+        # 专业/年级检测
+        major_keywords = {
+            "计算机": "计算机专业", "软件工程": "软件工程专业", "cs": "计算机专业",
+            "电子信息": "电子信息专业", "通信": "通信工程专业",
+            "数学": "数学专业", "统计": "统计学专业",
+        }
+        detected_major = None
+        for kw, major in major_keywords.items():
+            if kw in t:
+                detected_major = major
+                break
+
+        grade_match = re.search(r'(大[一二三四]|研[一二]|博士|本科)', text)
+        grade = grade_match.group(0) if grade_match else ""
+
+        if detected_major:
+            content = detected_major + (f"{grade}学生" if grade else "学生")
+            traits.append({"type": "background", "content": content, "confidence": 0.85})
+        elif grade:
+            traits.append({"type": "background", "content": f"{grade}学生", "confidence": 0.7})
+
+        # 已学技能检测
+        skills = []
+        if "python" in t: skills.append("Python")
+        if "java" in t: skills.append("Java")
+        if "c++" in t or "cpp" in t: skills.append("C++")
+        if "javascript" in t or "js" in t: skills.append("JavaScript")
+        if "sql" in t: skills.append("SQL")
+        if "html" in t: skills.append("HTML/CSS")
+        if skills:
+            traits.append({"type": "knowledge", "content": f"已掌握 {', '.join(skills)}", "confidence": 0.8})
+
+        # 兴趣方向检测
+        interests = []
+        if any(w in t for w in ["机器学习", "深度学习", "神经网络", "ai"]):
+            interests.append("机器学习/AI")
+        if "大数据" in t or "hadoop" in t or "spark" in t:
+            interests.append("大数据技术")
+        if "前端" in t or "web" in t or "react" in t or "vue" in t:
+            interests.append("Web 前端开发")
+        if "后端" in t or "服务器" in t:
+            interests.append("后端开发")
+        if interests:
+            traits.append({"type": "interest", "content": f"对 {', '.join(interests)} 感兴趣", "confidence": 0.75})
+
+        # 学习目标检测
+        goals = []
+        if any(w in t for w in ["找工作", "实习", "求职", "就业", "面试"]):
+            goals.append("为求职做准备")
+        if any(w in t for w in ["考研", "保研", "研究生"]):
+            goals.append("准备考研/读研")
+        if any(w in t for w in ["比赛", "竞赛", "项目"]):
+            goals.append("为竞赛/项目做准备")
+        if goals:
+            traits.append({"type": "goal", "content": goals[0], "confidence": 0.7})
+
+        return traits
+
+    def _infer_blind_spots(self, text: str, dialogue_type: str) -> list[str]:
+        """基于规则轻量推断用户可能的知识盲区"""
+        spots = []
+        t = text.lower()
+        # HDFS 相关盲区
+        if "hdfs" in t:
+            if any(w in t for w in ["读写", "写入", "读取", "存储"]):
+                if "namenode" not in t and "datanode" not in t:
+                    spots.append("NameNode 与 DataNode 的分工机制")
+            if "副本" in t or "replication" in t:
+                spots.append("HDFS 副本策略的选择依据与机架感知")
+            if "块" in t or "block" in t:
+                spots.append("HDFS 块大小设计的权衡因素")
+        # MapReduce 相关盲区
+        if "mapreduce" in t or "map reduce" in t:
+            if "shuffle" not in t:
+                spots.append("MapReduce Shuffle 阶段的数据流转")
+            if any(w in t for w in ["优化", "慢", "性能"]):
+                spots.append("MapReduce 数据倾斜与 Combiner 优化")
+        # Spark 相关盲区
+        if "spark" in t:
+            if "rdd" not in t and "dataframe" not in t:
+                spots.append("Spark RDD 与 DataFrame 的核心抽象区别")
+            if any(w in t for w in ["内存", "溢出", "OOM"]):
+                spots.append("Spark 内存模型与溢写机制")
+        # 通用盲区（当对话类型为困惑时补充）
+        if dialogue_type == "confusion":
+            if any(w in t for w in ["分布式", "集群", "节点"]):
+                spots.append("分布式系统 CAP 定理与一致性模型")
+            if "sql" in t or "hive" in t:
+                spots.append("Hive 与 Spark SQL 的执行引擎差异")
+        # 去重并限制数量
+        return list(dict.fromkeys(spots))[:3]
 
     def _merge_profile(self, current: LearningProfile, update: dict[str, Any]) -> LearningProfile:
         data = current.model_dump()

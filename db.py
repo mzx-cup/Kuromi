@@ -114,7 +114,7 @@ def load_local_storage():
         'user_notifications': [], 'user_settings': [], 'user_coding_states': [],
         'user_weather_caches': [], 'user_focus_histories': [], 'user_eco_data': [],
         'user_projects': [], 'user_calendar_events': [], 'daily_routes': [],
-        'user_login_records': [],
+        'user_login_records': [], 'user_evaluations': [], 'user_memories': [],
     }
 
 
@@ -547,6 +547,225 @@ def save_learning_record(user_id, interaction_count, code_practice_time,
 
 
 # ============================================================
+# 用户评估指标历史 (user_evaluations)
+# ============================================================
+
+def _ensure_user_evaluations_table(conn):
+    cursor = conn.cursor()
+    if _is_sqlite(conn):
+        cursor.execute("""CREATE TABLE IF NOT EXISTS user_evaluations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            interaction_count INTEGER DEFAULT 0,
+            socratic_pass_rate REAL DEFAULT 0.0,
+            difficulty_level TEXT DEFAULT 'basic',
+            code_practice_time INTEGER DEFAULT 0,
+            focus_time_today INTEGER DEFAULT 0,
+            flashcards_studied INTEGER DEFAULT 0,
+            streak_days INTEGER DEFAULT 0,
+            eval_json TEXT,
+            record_date TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, record_date)
+        )""")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_evaluations_user_date ON user_evaluations (user_id, record_date)")
+    else:
+        import pymysql
+        cursor.execute("""CREATE TABLE IF NOT EXISTS user_evaluations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            interaction_count INT DEFAULT 0,
+            socratic_pass_rate FLOAT DEFAULT 0.0,
+            difficulty_level VARCHAR(20) DEFAULT 'basic',
+            code_practice_time INT DEFAULT 0,
+            focus_time_today INT DEFAULT 0,
+            flashcards_studied INT DEFAULT 0,
+            streak_days INT DEFAULT 0,
+            eval_json LONGTEXT,
+            record_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_eval_user_date (user_id, record_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci""")
+        try:
+            cursor.execute("CREATE INDEX idx_user_evaluations_user_date ON user_evaluations (user_id, record_date)")
+        except Exception:
+            pass  # 索引可能已存在
+    conn.commit()
+    cursor.close()
+
+
+def get_user_evaluation(user_id, record_date=None):
+    if record_date is None:
+        from datetime import date
+        record_date = date.today().isoformat()
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_evaluations_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = ? AND record_date = ?",
+                        (user_id, record_date),
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = %s AND record_date = %s",
+                        (user_id, record_date),
+                    )
+                record = cursor.fetchone()
+                cursor.close()
+                return dict(record) if record and _is_sqlite(conn) else record
+            except Exception as e:
+                print(f"[DB] 查询 user_evaluations 失败: {e}")
+
+        # fallback to local storage
+        storage = load_local_storage()
+        for rec in storage.get('user_evaluations', []):
+            if rec.get('user_id') == user_id and rec.get('record_date') == record_date:
+                return rec
+        return None
+
+
+def save_user_evaluation_fields(user_id, record_date, interaction_count=None,
+                         socratic_pass_rate=None, difficulty_level=None,
+                         code_practice_time=None, focus_time_today=None,
+                         flashcards_studied=None, streak_days=None,
+                         eval_json=None):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_evaluations_table(conn)
+                cursor = conn.cursor()
+                # 先查询现有值，None 字段保持原值
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = ? AND record_date = ?",
+                        (user_id, record_date),
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = %s AND record_date = %s",
+                        (user_id, record_date),
+                    )
+                existing = cursor.fetchone()
+                if existing:
+                    existing = dict(existing) if _is_sqlite(conn) else existing
+                else:
+                    existing = {}
+
+                def _val(key, new_val, default=0):
+                    if new_val is not None:
+                        return new_val
+                    return existing.get(key, default)
+
+                vals = {
+                    'interaction_count': _val('interaction_count', interaction_count, 0),
+                    'socratic_pass_rate': _val('socratic_pass_rate', socratic_pass_rate, 0.0),
+                    'difficulty_level': _val('difficulty_level', difficulty_level, 'basic'),
+                    'code_practice_time': _val('code_practice_time', code_practice_time, 0),
+                    'focus_time_today': _val('focus_time_today', focus_time_today, 0),
+                    'flashcards_studied': _val('flashcards_studied', flashcards_studied, 0),
+                    'streak_days': _val('streak_days', streak_days, 0),
+                    'eval_json': eval_json if eval_json is not None else existing.get('eval_json'),
+                }
+
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO user_evaluations
+                        (user_id, record_date, interaction_count, socratic_pass_rate,
+                         difficulty_level, code_practice_time, focus_time_today,
+                         flashcards_studied, streak_days, eval_json)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(user_id, record_date) DO UPDATE SET
+                            interaction_count=excluded.interaction_count,
+                            socratic_pass_rate=excluded.socratic_pass_rate,
+                            difficulty_level=excluded.difficulty_level,
+                            code_practice_time=excluded.code_practice_time,
+                            focus_time_today=excluded.focus_time_today,
+                            flashcards_studied=excluded.flashcards_studied,
+                            streak_days=excluded.streak_days,
+                            eval_json=excluded.eval_json
+                    """, (user_id, record_date, vals['interaction_count'],
+                          vals['socratic_pass_rate'], vals['difficulty_level'],
+                          vals['code_practice_time'], vals['focus_time_today'],
+                          vals['flashcards_studied'], vals['streak_days'],
+                          vals['eval_json']))
+                else:
+                    cursor.execute("""
+                        INSERT INTO user_evaluations
+                        (user_id, record_date, interaction_count, socratic_pass_rate,
+                         difficulty_level, code_practice_time, focus_time_today,
+                         flashcards_studied, streak_days, eval_json)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            interaction_count=%s,
+                            socratic_pass_rate=%s,
+                            difficulty_level=%s,
+                            code_practice_time=%s,
+                            focus_time_today=%s,
+                            flashcards_studied=%s,
+                            streak_days=%s,
+                            eval_json=%s
+                    """, (user_id, record_date, vals['interaction_count'],
+                          vals['socratic_pass_rate'], vals['difficulty_level'],
+                          vals['code_practice_time'], vals['focus_time_today'],
+                          vals['flashcards_studied'], vals['streak_days'],
+                          vals['eval_json'],
+                          vals['interaction_count'], vals['socratic_pass_rate'],
+                          vals['difficulty_level'], vals['code_practice_time'],
+                          vals['focus_time_today'], vals['flashcards_studied'],
+                          vals['streak_days'], vals['eval_json']))
+                conn.commit()
+                cursor.close()
+                return
+            except Exception as e:
+                print(f"[DB] 保存 user_evaluations 失败: {e}")
+
+        # fallback to local storage
+        storage = load_local_storage()
+        found = False
+        for rec in storage.get('user_evaluations', []):
+            if rec.get('user_id') == user_id and rec.get('record_date') == record_date:
+                if interaction_count is not None:
+                    rec['interaction_count'] = interaction_count
+                if socratic_pass_rate is not None:
+                    rec['socratic_pass_rate'] = socratic_pass_rate
+                if difficulty_level is not None:
+                    rec['difficulty_level'] = difficulty_level
+                if code_practice_time is not None:
+                    rec['code_practice_time'] = code_practice_time
+                if focus_time_today is not None:
+                    rec['focus_time_today'] = focus_time_today
+                if flashcards_studied is not None:
+                    rec['flashcards_studied'] = flashcards_studied
+                if streak_days is not None:
+                    rec['streak_days'] = streak_days
+                if eval_json is not None:
+                    rec['eval_json'] = eval_json
+                found = True
+                break
+        if not found:
+            storage['user_evaluations'].append({
+                'user_id': user_id,
+                'record_date': record_date,
+                'interaction_count': interaction_count or 0,
+                'socratic_pass_rate': socratic_pass_rate or 0.0,
+                'difficulty_level': difficulty_level or 'basic',
+                'code_practice_time': code_practice_time or 0,
+                'focus_time_today': focus_time_today or 0,
+                'flashcards_studied': flashcards_studied or 0,
+                'streak_days': streak_days or 0,
+                'eval_json': eval_json,
+            })
+        save_local_storage(storage)
+
+
+# ============================================================
 # 学习路径
 # ============================================================
 
@@ -588,41 +807,66 @@ def save_learning_path(user_id, path_json, reasoning=None, data_sources=None, co
     data_sources_json = json.dumps(data_sources, ensure_ascii=False) if data_sources else None
     path_str = json.dumps(path_json, ensure_ascii=False) if isinstance(path_json, (list, dict)) else path_json
 
-    with get_db() as conn:
-        if conn is not None:
-            try:
-                cursor = conn.cursor()
-                if _is_sqlite(conn):
-                    cursor.execute(
-                        """INSERT INTO learning_path
-                           (user_id, path_json, generated_at, reasoning, data_sources, confidence)
-                           VALUES (?, ?, ?, ?, ?, ?)
-                           ON CONFLICT(user_id) DO UPDATE SET
-                               path_json=excluded.path_json,
-                               generated_at=excluded.generated_at,
-                               reasoning=excluded.reasoning,
-                               data_sources=excluded.data_sources,
-                               confidence=excluded.confidence""",
-                        (user_id, path_str, generated_at, reasoning, data_sources_json, confidence))
-                else:
-                    cursor.execute(
-                        """INSERT INTO learning_path
-                           (user_id, path_json, generated_at, reasoning, data_sources, confidence)
-                           VALUES (%s, %s, %s, %s, %s, %s)
-                           ON DUPLICATE KEY UPDATE
-                               path_json=%s,
-                               generated_at=%s,
-                               reasoning=%s,
-                               data_sources=%s,
-                               confidence=%s""",
-                        (user_id, path_str, generated_at, reasoning, data_sources_json, confidence,
-                         path_str, generated_at, reasoning, data_sources_json, confidence))
-                conn.commit()
-                cursor.close()
-                return
-            except Exception as e:
-                print(f"数据库保存失败: {e}")
+    try:
+        with get_db() as conn:
+            if conn is not None:
+                try:
+                    cursor = conn.cursor()
+                    if _is_sqlite(conn):
+                        cursor.execute(
+                            """INSERT INTO learning_path
+                               (user_id, path_json, generated_at, reasoning, data_sources, confidence)
+                               VALUES (?, ?, ?, ?, ?, ?)
+                               ON CONFLICT(user_id) DO UPDATE SET
+                                   path_json=excluded.path_json,
+                                   generated_at=excluded.generated_at,
+                                   reasoning=excluded.reasoning,
+                                   data_sources=excluded.data_sources,
+                                   confidence=excluded.confidence""",
+                            (user_id, path_str, generated_at, reasoning, data_sources_json, confidence))
+                    else:
+                        cursor.execute(
+                            """INSERT INTO learning_path
+                               (user_id, path_json, generated_at, reasoning, data_sources, confidence)
+                               VALUES (%s, %s, %s, %s, %s, %s)
+                               ON DUPLICATE KEY UPDATE
+                                   path_json=%s,
+                                   generated_at=%s,
+                                   reasoning=%s,
+                                   data_sources=%s,
+                                   confidence=%s""",
+                            (user_id, path_str, generated_at, reasoning, data_sources_json, confidence,
+                             path_str, generated_at, reasoning, data_sources_json, confidence))
+                    conn.commit()
+                    cursor.close()
+                    return
+                except Exception as e:
+                    err_str = str(e).lower()
+                    # 如果列不存在，回退到只保存基本字段
+                    if "unknown column" in err_str or "column" in err_str:
+                        try:
+                            # MySQL 事务失败需要先 rollback
+                            if hasattr(conn, 'rollback'):
+                                conn.rollback()
+                            cursor2 = conn.cursor()
+                            cursor2.execute(
+                                """INSERT INTO learning_path (user_id, path_json)
+                                   VALUES (%s, %s)
+                                   ON DUPLICATE KEY UPDATE path_json=%s""",
+                                (user_id, path_str, path_str))
+                            conn.commit()
+                            cursor2.close()
+                            print(f"[save_learning_path] 列不存在，回退保存基本字段: {e}")
+                            return
+                        except Exception as e2:
+                            print(f"[save_learning_path] 回退也失败: {e2}")
+                    else:
+                        print(f"[save_learning_path] 数据库保存失败: {e}")
+    except Exception as outer_e:
+        print(f"[save_learning_path] 外层异常: {outer_e}")
 
+    # 数据库不可用或保存失败，回退到本地 JSON 存储
+    try:
         storage = load_local_storage()
         for path in storage.get('learning_paths', []):
             if path.get('user_id') == user_id:
@@ -641,6 +885,349 @@ def save_learning_path(user_id, path_json, reasoning=None, data_sources=None, co
             'updated_at': 'local',
         })
         save_local_storage(storage)
+    except Exception as json_e:
+        print(f"[save_learning_path] JSON 回退也失败: {json_e}")
+
+
+# ============================================================
+# 用户长期记忆（user_memories）
+# ============================================================
+
+def _ensure_user_memories_table(conn):
+    """自动创建 user_memories 表（如果不存在）。"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_memories (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    memory_type TEXT NOT NULL DEFAULT 'fact',
+                    content TEXT NOT NULL,
+                    source TEXT,
+                    confidence REAL DEFAULT 1.0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    last_accessed TEXT,
+                    access_count INTEGER DEFAULT 1,
+                    confirmed INTEGER DEFAULT 0
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_memories_user_id ON user_memories (user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_memories_type ON user_memories (memory_type)")
+        else:
+            import pymysql
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_memories (
+                    id VARCHAR(64) NOT NULL PRIMARY KEY,
+                    user_id VARCHAR(64) NOT NULL,
+                    memory_type VARCHAR(20) NOT NULL DEFAULT 'fact',
+                    content TEXT NOT NULL,
+                    source TEXT,
+                    confidence FLOAT DEFAULT 1.0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    last_accessed TIMESTAMP NULL DEFAULT NULL,
+                    access_count INT DEFAULT 1,
+                    confirmed TINYINT DEFAULT 0,
+                    INDEX idx_user_memories_user_id (user_id),
+                    INDEX idx_user_memories_type (memory_type)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_user_memories_table] 建表失败（可能已存在）: {e}")
+
+
+def save_user_memory(memory_id, user_id, memory_type, content, source=None, confidence=0.8):
+    """保存单条用户记忆。数据库不可用时回退到本地 JSON。"""
+    from datetime import datetime
+    now = datetime.now().isoformat(sep=' ', timespec='seconds')
+    db_ok = False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """INSERT INTO user_memories
+                           (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)""",
+                        (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                else:
+                    cursor.execute(
+                        """INSERT INTO user_memories
+                           (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1, 0)""",
+                        (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                conn.commit()
+                cursor.close()
+                db_ok = True
+            except Exception as e:
+                print(f"[save_user_memory] 保存记忆失败，将回退到本地存储: {e}")
+    if db_ok:
+        return True
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        storage['user_memories'].append({
+            'id': memory_id, 'user_id': str(user_id), 'memory_type': memory_type,
+            'content': content, 'source': source or 'auto', 'confidence': confidence,
+            'created_at': now, 'updated_at': now, 'last_accessed': None,
+            'access_count': 1, 'confirmed': 0,
+        })
+        save_local_storage(storage)
+        return True
+    except Exception as e:
+        print(f"[save_user_memory] 本地存储也失败: {e}")
+        return False
+
+
+def update_user_memory(memory_id, content=None, confidence=None):
+    """更新已有记忆的内容和置信度。数据库不可用时回退到本地 JSON。"""
+    from datetime import datetime
+    now = datetime.now().isoformat(sep=' ', timespec='seconds')
+    db_ok = False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    if content is not None and confidence is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET content=?, confidence=?, updated_at=? WHERE id=?",
+                            (content, confidence, now, memory_id))
+                    elif content is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET content=?, updated_at=? WHERE id=?",
+                            (content, now, memory_id))
+                    elif confidence is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET confidence=?, updated_at=? WHERE id=?",
+                            (confidence, now, memory_id))
+                else:
+                    if content is not None and confidence is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET content=%s, confidence=%s, updated_at=%s WHERE id=%s",
+                            (content, confidence, now, memory_id))
+                    elif content is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET content=%s, updated_at=%s WHERE id=%s",
+                            (content, now, memory_id))
+                    elif confidence is not None:
+                        cursor.execute(
+                            "UPDATE user_memories SET confidence=%s, updated_at=%s WHERE id=%s",
+                            (confidence, now, memory_id))
+                conn.commit()
+                cursor.close()
+                db_ok = True
+            except Exception as e:
+                print(f"[update_user_memory] 更新记忆失败，将回退到本地存储: {e}")
+    if db_ok:
+        return True
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        for mem in storage.get('user_memories', []):
+            if mem.get('id') == memory_id:
+                if content is not None:
+                    mem['content'] = content
+                if confidence is not None:
+                    mem['confidence'] = confidence
+                mem['updated_at'] = now
+                save_local_storage(storage)
+                return True
+        return False
+    except Exception as e:
+        print(f"[update_user_memory] 本地存储也失败: {e}")
+        return False
+
+
+def confirm_user_memory(memory_id, confirmed=True):
+    """用户确认或否认某条记忆。数据库不可用时回退到本地 JSON。"""
+    db_ok = False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                val = 1 if confirmed else 0
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "UPDATE user_memories SET confirmed=? WHERE id=?",
+                        (val, memory_id))
+                else:
+                    cursor.execute(
+                        "UPDATE user_memories SET confirmed=%s WHERE id=%s",
+                        (val, memory_id))
+                conn.commit()
+                cursor.close()
+                db_ok = True
+            except Exception as e:
+                print(f"[confirm_user_memory] 确认记忆失败，将回退到本地存储: {e}")
+    if db_ok:
+        return True
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        for mem in storage.get('user_memories', []):
+            if mem.get('id') == memory_id:
+                mem['confirmed'] = 1 if confirmed else 0
+                save_local_storage(storage)
+                return True
+        return False
+    except Exception as e:
+        print(f"[confirm_user_memory] 本地存储也失败: {e}")
+        return False
+
+
+def delete_user_memory(memory_id):
+    """删除单条记忆。数据库不可用时回退到本地 JSON。"""
+    db_ok = False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("DELETE FROM user_memories WHERE id=?", (memory_id,))
+                else:
+                    cursor.execute("DELETE FROM user_memories WHERE id=%s", (memory_id,))
+                conn.commit()
+                cursor.close()
+                db_ok = True
+            except Exception as e:
+                print(f"[delete_user_memory] 删除记忆失败，将回退到本地存储: {e}")
+    if db_ok:
+        return True
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        original_len = len(storage.get('user_memories', []))
+        storage['user_memories'] = [m for m in storage.get('user_memories', []) if m.get('id') != memory_id]
+        save_local_storage(storage)
+        return len(storage['user_memories']) < original_len
+    except Exception as e:
+        print(f"[delete_user_memory] 本地存储也失败: {e}")
+        return False
+
+
+def get_user_memories(user_id, memory_type=None, limit=100):
+    """获取用户的所有记忆（或指定类型的记忆）。数据库不可用时回退到本地 JSON。"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    if memory_type:
+                        cursor.execute(
+                            """SELECT id, user_id, memory_type, content, source, confidence,
+                                      created_at, updated_at, last_accessed, access_count, confirmed
+                               FROM user_memories WHERE user_id=? AND memory_type=?
+                               ORDER BY updated_at DESC LIMIT ?""",
+                            (str(user_id), memory_type, limit))
+                    else:
+                        cursor.execute(
+                            """SELECT id, user_id, memory_type, content, source, confidence,
+                                      created_at, updated_at, last_accessed, access_count, confirmed
+                               FROM user_memories WHERE user_id=?
+                               ORDER BY updated_at DESC LIMIT ?""",
+                            (str(user_id), limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    if memory_type:
+                        cursor.execute(
+                            """SELECT id, user_id, memory_type, content, source, confidence,
+                                      created_at, updated_at, last_accessed, access_count, confirmed
+                               FROM user_memories WHERE user_id=%s AND memory_type=%s
+                               ORDER BY updated_at DESC LIMIT %s""",
+                            (str(user_id), memory_type, limit))
+                    else:
+                        cursor.execute(
+                            """SELECT id, user_id, memory_type, content, source, confidence,
+                                      created_at, updated_at, last_accessed, access_count, confirmed
+                               FROM user_memories WHERE user_id=%s
+                               ORDER BY updated_at DESC LIMIT %s""",
+                            (str(user_id), limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for r in rows:
+                    row = dict(r) if _is_sqlite(conn) else r
+                    result.append(row)
+                return result
+            except Exception as e:
+                print(f"[get_user_memories] 查询记忆失败，将回退到本地存储: {e}")
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        memories = storage.get('user_memories', [])
+        result = [m for m in memories if m.get('user_id') == str(user_id)]
+        if memory_type:
+            result = [m for m in result if m.get('memory_type') == memory_type]
+        # 按 updated_at 降序（简单字符串比较）
+        result.sort(key=lambda x: x.get('updated_at') or '', reverse=True)
+        return result[:limit]
+    except Exception as e:
+        print(f"[get_user_memories] 本地存储也失败: {e}")
+        return []
+
+
+def bump_memory_access(memory_id):
+    """增加记忆的访问计数。数据库不可用时回退到本地 JSON。"""
+    from datetime import datetime
+    now = datetime.now().isoformat(sep=' ', timespec='seconds')
+    db_ok = False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_user_memories_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "UPDATE user_memories SET access_count=access_count+1, last_accessed=? WHERE id=?",
+                        (now, memory_id))
+                else:
+                    cursor.execute(
+                        "UPDATE user_memories SET access_count=access_count+1, last_accessed=%s WHERE id=%s",
+                        (now, memory_id))
+                conn.commit()
+                cursor.close()
+                db_ok = True
+            except Exception as e:
+                print(f"[bump_memory_access] 更新访问计数失败，将回退到本地存储: {e}")
+    if db_ok:
+        return True
+    # 本地 JSON 回退
+    try:
+        storage = load_local_storage()
+        if 'user_memories' not in storage:
+            storage['user_memories'] = []
+        for mem in storage.get('user_memories', []):
+            if mem.get('id') == memory_id:
+                mem['access_count'] = (mem.get('access_count') or 0) + 1
+                mem['last_accessed'] = now
+                save_local_storage(storage)
+                return True
+        return False
+    except Exception as e:
+        print(f"[bump_memory_access] 本地存储也失败: {e}")
+        return False
 
 
 # ============================================================
@@ -796,6 +1383,179 @@ def get_conversation_summary(user_id):
 
 
 # ============================================================
+# 消息存储与对话历史（记忆系统）
+# ============================================================
+
+def _ensure_messages_table(conn):
+    """自动创建 messages 和 conversation_summaries 表（如果不存在）。"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    student_id TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    message_type TEXT NOT NULL DEFAULT 'text',
+                    metadata TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    deleted_at TEXT
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session_time ON messages (session_id, created_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_student_time ON messages (student_id, created_at)")
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_summaries (
+                    session_id TEXT PRIMARY KEY,
+                    student_id TEXT NOT NULL,
+                    summary_text TEXT NOT NULL DEFAULT '',
+                    key_facts TEXT,
+                    message_count INTEGER NOT NULL DEFAULT 0,
+                    last_message_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        else:
+            import pymysql
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id VARCHAR(64) NOT NULL PRIMARY KEY,
+                    session_id VARCHAR(64) NOT NULL,
+                    student_id VARCHAR(64) NOT NULL,
+                    role VARCHAR(20) NOT NULL,
+                    content LONGTEXT NOT NULL,
+                    message_type VARCHAR(20) NOT NULL DEFAULT 'text',
+                    metadata LONGTEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    deleted_at TIMESTAMP NULL DEFAULT NULL,
+                    INDEX idx_messages_session_time (session_id, created_at),
+                    INDEX idx_messages_student_time (student_id, created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_summaries (
+                    session_id VARCHAR(64) NOT NULL PRIMARY KEY,
+                    student_id VARCHAR(64) NOT NULL,
+                    summary_text LONGTEXT NOT NULL,
+                    key_facts LONGTEXT,
+                    message_count INT NOT NULL DEFAULT 0,
+                    last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_conversation_summaries_student_id (student_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_messages_table] 建表失败（可能已存在）: {e}")
+
+
+def save_message(session_id, student_id, role, content, message_type="text", metadata=None):
+    """保存单条消息到 messages 表。
+    
+    Args:
+        session_id: 会话ID（如页面标签ID）
+        student_id: 学生ID
+        role: user | assistant | system
+        content: 消息内容
+        message_type: text | action | link | image | tool_call
+        metadata: 扩展元数据字典
+    """
+    import uuid
+    msg_id = f"msg_{uuid.uuid4().hex[:16]}"
+    meta_str = json.dumps(metadata, ensure_ascii=False) if metadata else None
+    now = datetime.now().isoformat(sep=' ', timespec='seconds')
+    
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_messages_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        """INSERT INTO messages (id, session_id, student_id, role, content, message_type, metadata, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (msg_id, str(session_id), str(student_id), role, content, message_type, meta_str, now))
+                else:
+                    cursor.execute(
+                        """INSERT INTO messages (id, session_id, student_id, role, content, message_type, metadata, created_at)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                        (msg_id, str(session_id), str(student_id), role, content, message_type, meta_str, now))
+                conn.commit()
+                cursor.close()
+                return msg_id
+            except Exception as e:
+                print(f"保存消息失败: {e}")
+    return None
+
+
+def get_conversation_messages(session_id, student_id=None, limit=20, before_id=None):
+    """获取指定会话的历史消息（按时间正序，用于构建LLM上下文）。
+    
+    Returns:
+        list[dict]: [{role, content, created_at}, ...]
+    """
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_messages_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    if student_id:
+                        cursor.execute(
+                            """SELECT role, content, message_type, metadata, created_at
+                               FROM messages 
+                               WHERE session_id = ? AND student_id = ? AND deleted_at IS NULL
+                               ORDER BY created_at DESC LIMIT ?""",
+                            (str(session_id), str(student_id), limit))
+                    else:
+                        cursor.execute(
+                            """SELECT role, content, message_type, metadata, created_at
+                               FROM messages 
+                               WHERE session_id = ? AND deleted_at IS NULL
+                               ORDER BY created_at DESC LIMIT ?""",
+                            (str(session_id), limit))
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    if student_id:
+                        cursor.execute(
+                            """SELECT role, content, message_type, metadata, created_at
+                               FROM messages 
+                               WHERE session_id = %s AND student_id = %s AND deleted_at IS NULL
+                               ORDER BY created_at DESC LIMIT %s""",
+                            (str(session_id), str(student_id), limit))
+                    else:
+                        cursor.execute(
+                            """SELECT role, content, message_type, metadata, created_at
+                               FROM messages 
+                               WHERE session_id = %s AND deleted_at IS NULL
+                               ORDER BY created_at DESC LIMIT %s""",
+                            (str(session_id), limit))
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for r in rows:
+                    row = dict(r) if _is_sqlite(conn) else r
+                    for field in ('metadata',):
+                        val = row.get(field)
+                        if isinstance(val, str) and val:
+                            try:
+                                row[field] = json.loads(val)
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+                    result.append(row)
+                # 转为正序（旧→新），适合构建LLM messages 数组
+                result.reverse()
+                return result
+            except Exception as e:
+                print(f"查询对话历史失败: {e}")
+    return []
+
+
+# ============================================================
 # 用户画像
 # ============================================================
 
@@ -933,23 +1693,58 @@ def save_student_portrait(user_id: int, portrait: dict) -> bool:
 # ============================================================
 
 def save_user_evaluation(user_id, evaluation_data):
-    """保存用户每日评估指标到 user_evaluations 表，同一天只保留一条记录（更新覆盖）。"""
+    """保存用户每日评估指标到 user_evaluations 表，同一天只保留一条记录（增量合并更新）。"""
     from datetime import date
     record_date = date.today().isoformat()
 
-    interaction_count = evaluation_data.get('interactionCount', 0) if isinstance(evaluation_data, dict) else 0
-    socratic_pass_rate = evaluation_data.get('socraticPassRate', 0.0) if isinstance(evaluation_data, dict) else 0.0
-    difficulty_level = evaluation_data.get('difficultyLevel', 'basic') if isinstance(evaluation_data, dict) else 'basic'
-    code_practice_time = evaluation_data.get('codePracticeTime', 0) if isinstance(evaluation_data, dict) else 0
-    focus_time_today = evaluation_data.get('focusTimeToday', 0) if isinstance(evaluation_data, dict) else 0
-    flashcards_studied = evaluation_data.get('flashcardsStudied', 0) if isinstance(evaluation_data, dict) else 0
-    streak_days = evaluation_data.get('streakDays', 0) if isinstance(evaluation_data, dict) else 0
-    eval_json = json.dumps(evaluation_data, ensure_ascii=False) if isinstance(evaluation_data, dict) else str(evaluation_data)
+    def _get(d, key, default=None):
+        return d.get(key, default) if isinstance(d, dict) else default
+
+    new_interaction_count = _get(evaluation_data, 'interactionCount')
+    new_socratic_pass_rate = _get(evaluation_data, 'socraticPassRate')
+    new_difficulty_level = _get(evaluation_data, 'difficultyLevel')
+    new_code_practice_time = _get(evaluation_data, 'codePracticeTime')
+    new_focus_time_today = _get(evaluation_data, 'focusTimeToday')
+    new_flashcards_studied = _get(evaluation_data, 'flashcardsStudied')
+    new_streak_days = _get(evaluation_data, 'streakDays')
+    new_eval_json = json.dumps(evaluation_data, ensure_ascii=False) if isinstance(evaluation_data, dict) else str(evaluation_data)
 
     with get_db() as conn:
         if conn is not None:
             try:
+                _ensure_user_evaluations_table(conn)
                 cursor = conn.cursor()
+                # 先读取现有值，None 字段保持原值
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = ? AND record_date = ?",
+                        (user_id, record_date),
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT * FROM user_evaluations WHERE user_id = %s AND record_date = %s",
+                        (user_id, record_date),
+                    )
+                existing = cursor.fetchone()
+                if existing:
+                    existing = dict(existing) if _is_sqlite(conn) else existing
+                else:
+                    existing = {}
+
+                def _merge(key, new_val, default=0):
+                    return new_val if new_val is not None else existing.get(key, default)
+
+                interaction_count = _merge('interaction_count', new_interaction_count, 0)
+                socratic_pass_rate = _merge('socratic_pass_rate', new_socratic_pass_rate, 0.0)
+                difficulty_level = _merge('difficulty_level', new_difficulty_level, 'basic')
+                code_practice_time = _merge('code_practice_time', new_code_practice_time, 0)
+                focus_time_today = _merge('focus_time_today', new_focus_time_today, 0)
+                flashcards_studied = _merge('flashcards_studied', new_flashcards_studied, 0)
+                streak_days = _merge('streak_days', new_streak_days, 0)
+                eval_json = new_eval_json if evaluation_data else existing.get('eval_json')
+
                 if _is_sqlite(conn):
                     cursor.execute(
                         """INSERT INTO user_evaluations
@@ -1005,6 +1800,7 @@ def get_user_evaluation_history(user_id, days=7):
     with get_db() as conn:
         if conn is not None:
             try:
+                _ensure_user_evaluations_table(conn)
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute(

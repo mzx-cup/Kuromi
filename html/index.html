@@ -488,38 +488,6 @@
                         </div>
                     </div>
 
-                    <div id="resource-dashboard" class="hidden mx-6 mb-3 shrink-0" role="region" aria-label="多模态资源生成看板">
-                        <div class="flex items-center gap-2 mb-2 px-1">
-                            <i data-lucide="layout-grid" class="w-3.5 h-3.5" style="color: var(--primary-light);"></i>
-                            <span class="text-xs font-bold" style="color: var(--text-primary);">资源生成看板</span>
-                            <span id="dashboard-overall-status" class="text-[9px] px-2 py-0.5 rounded-full font-semibold ml-auto" style="background: var(--surface-glass); color: var(--text-tertiary);">等待中</span>
-                            <button id="dashboard-cancel-btn" class="hidden text-[9px] px-2 py-0.5 rounded-full font-semibold transition-colors" style="background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border);" aria-label="取消资源生成" onclick="cancelResourceGeneration()"><i data-lucide="x" class="w-2.5 h-2.5 inline -mt-0.5"></i> 取消</button>
-                        </div>
-                        <div class="accordion-row" id="resource-cards-container">
-                            <div class="resource-accordion" data-resource="document_generator" tabindex="0" role="article" aria-label="文档资源">
-                                <div class="accordion-header" onclick="toggleAccordion('document_generator')">
-                                    <div class="accordion-header-left"><i data-lucide="file-text" class="w-3.5 h-3.5" style="color: var(--accent);"></i><span class="accordion-title">文档</span></div>
-                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                </div>
-                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
-                            </div>
-                            <div class="resource-accordion" data-resource="mindmap_generator" tabindex="0" role="article" aria-label="导图资源">
-                                <div class="accordion-header" onclick="toggleAccordion('mindmap_generator')">
-                                    <div class="accordion-header-left"><i data-lucide="git-branch" class="w-3.5 h-3.5" style="color: var(--primary-light);"></i><span class="accordion-title">导图</span></div>
-                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                </div>
-                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
-                            </div>
-                            <div class="resource-accordion" data-resource="exercise_generator" tabindex="0" role="article" aria-label="实操代码资源">
-                                <div class="accordion-header" onclick="toggleAccordion('exercise_generator')">
-                                    <div class="accordion-header-left"><i data-lucide="code-2" class="w-3.5 h-3.5" style="color: var(--success);"></i><span class="accordion-title">习题</span></div>
-                                    <div class="accordion-header-right"><span class="resource-skeleton-status">排队中 0%</span><svg class="accordion-ring" viewBox="0 0 36 36"><circle class="ring-bg" cx="18" cy="18" r="15.9"/><circle class="ring-progress" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/></svg><svg class="accordion-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>
-                                </div>
-                                <div class="accordion-body"><div class="accordion-body-inner"><div class="resource-skeleton"><div class="skeleton-spinner"></div><span class="resource-skeleton-status">排队中 0%</span></div><div class="resource-content hidden"></div></div></div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div id="source-panel" class="source-glass-panel hidden mx-6 mb-4 rounded-2xl p-3 shadow-sm border shrink-0">
                         <div class="flex items-center gap-2 mb-2" style="color: var(--warning);"><i data-lucide="book-open" class="w-4 h-4"></i><span class="text-xs font-bold">引用溯源 (Reference Tracing)</span></div>
                         <div id="source-list" class="flex flex-wrap gap-2"></div>
@@ -640,6 +608,49 @@
                     <div class="path-tree" id="path-tree-container"></div>
                 </div>
             </div>
+
+            <!-- ===== 我的记忆面板 ===== -->
+            <div class="p-4 border-t sidebar-memory-section" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                    <i data-lucide="bookmark" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">我的记忆</h2>
+                    <span id="memory-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full hidden" style="background: var(--accent-bg); color: var(--primary-light);">0</span>
+                </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('memory-section', this)" data-section="memory-section" aria-expanded="true" aria-controls="memory-section" title="展开/收起我的记忆">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content" id="memory-section">
+                    <!-- 类型筛选 -->
+                    <div class="memory-filter-chips" id="memory-filter-chips">
+                        <button class="memory-chip active" data-type="all">全部</button>
+                        <button class="memory-chip" data-type="background">📋背景</button>
+                        <button class="memory-chip" data-type="preference">⭐偏好</button>
+                        <button class="memory-chip" data-type="knowledge">📚知识</button>
+                        <button class="memory-chip" data-type="interest">💡兴趣</button>
+                        <button class="memory-chip" data-type="goal">🎯目标</button>
+                        <button class="memory-chip" data-type="emotion">💭情感</button>
+                    </div>
+                    <!-- 搜索框 -->
+                    <div class="memory-search-wrap">
+                        <input type="text" id="memory-search-input" class="memory-search-input" placeholder="🔍 搜索记忆内容..." oninput="filterAndRenderMemories()">
+                    </div>
+                    <!-- 记忆列表 -->
+                    <div id="memory-list-container" class="memory-list space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <div class="memory-empty-state text-center py-3 text-[11px]" style="color: var(--text-tertiary);">
+                            🤖 AI 正在了解你...<br>聊得越多，记得越牢
+                        </div>
+                    </div>
+                    <!-- 底部状态栏 -->
+                    <div class="memory-footer" id="memory-footer">
+                        <span class="memory-footer-status" id="memory-footer-status">🔄 自动刷新中</span>
+                        <button class="memory-footer-refresh" onclick="loadUserMemories()" title="立即刷新">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="p-4 border-t sidebar-eval-section" style="border-color: var(--border-glass);">
                 <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                     <i data-lucide="bar-chart-3" class="w-4 h-4" style="color: var(--primary-light);"></i>

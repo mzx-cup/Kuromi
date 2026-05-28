@@ -51,21 +51,27 @@ class GenerateLearningPathResponse(BaseModel):
 # ── LLM 调用 ──
 
 def _call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """调用讯飞大模型生成内容。"""
+    """调用 MiniMax M2.7 大模型生成内容（已完全切换自讯飞）"""
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {settings.xunfei_api_key}",
+        "Authorization": f"Bearer {settings.minimax_api_key}",
     }
     payload = {
-        "model": settings.model_name,
+        "model": settings.minimax_model_name,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
         "temperature": temperature,
+        "max_tokens": 8192,
     }
     try:
-        resp = requests.post(settings.xunfei_api_url, headers=headers, json=payload, timeout=120)
+        resp = requests.post(
+            f"{settings.minimax_api_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120,
+        )
         resp.raise_for_status()
         body = resp.json()
         return body["choices"][0]["message"]["content"]

@@ -86,7 +86,7 @@ MYSQL_TABLES = [
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    ""","}}  我需要继续完成这个任务。让我先更新数据库表结构，然后处理前端代码。对于 Navicat/setup_database.py，我需要查看 learning_path 表的创建语句，然后添加新字段。让我用 StrReplaceFile 修改它。 </parameter>  我意识到我在响应中包含了思考过程。让我只返回工具调用。  继续完成任务。  我需要在 Navicat/setup_database.py 中更新 learning_path 表结构，添加 generated_at、reasoning、data_sources、confidence 字段。然后继续前端修改。  让我先完成数据库结构修改，然后处理前端。我需要检查 SQLite 的情况，因为 db.py 也支持 SQLite。SQLite 不需要预先修改表结构（因为 learning_path 表可能已经在 xingshi.db 中存在了）。但为了完整性，我应该确保 SQLite 表也能支持新字段。SQLite 中 ALTER TABLE 添加列比较有限制，但由于 db.py 的 save_learning_path 使用的是 INSERT/UPDATE 语句，如果列不存在可能会导致问题。不过，SQLite 通常会在 INSERT 时忽略不存在的列（取决于版本和设置），或者报错。为了安全起见，我可以在 db.py 的 save_learning_path 中处理列不存在的情况。不过，实际上 SQLite 的 INSERT OR REPLACE 语句如果列不存在是会报错的。所以我需要确保 SQLite 表也有这些列。  由于 SQLite 数据库可能已经存在，我需要在 db.py 中尝试 ALTER TABLE ADD COLUMN，或者在新数据库初始化时包含这些列。让我检查 db.py 中是否有初始化数据库表结构的代码。  实际上，Navicat/setup_database.py 是用于 MySQL 的初始化脚本。SQLite 的表结构可能在另一个地方定义，或者在使用时自动创建。让我搜索一下。  但不管怎样，先完成 setup_database.py 的修改，然后处理前端。对于 SQLite，如果列不存在，save_learning_path 会失败，但由于有 fallback 到 JSON 文件的逻辑，所以不会完全崩溃。不过为了健壮性，我后续可以在 db.py 中添加 SQLite 的列迁移逻辑。  让我先完成前端修改，然后再考虑 SQLite 兼容性问题。  继续修改前端代码。  首先处理 html/index.html，在路径面板顶部添加刷新按钮和状态提示。  路径面板的 HTML 在 index.html 的右侧栏：  ```html  <div class=
+    """,
 
     # ──────────────────────────────────────────────────────
     # 4. user_profile - 用户画像
@@ -566,6 +566,29 @@ MYSQL_TABLES = [
         INDEX idx_conversation_summaries_last_message_at (last_message_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 31. user_memories - 用户长期记忆（AI 画像记忆库）
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS user_memories (
+        id VARCHAR(64) NOT NULL PRIMARY KEY,
+        user_id VARCHAR(64) NOT NULL,
+        memory_type VARCHAR(20) NOT NULL DEFAULT 'fact',
+        content TEXT NOT NULL,
+        source TEXT,
+        confidence FLOAT DEFAULT 1.0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        last_accessed TIMESTAMP NULL DEFAULT NULL,
+        access_count INT DEFAULT 1,
+        confirmed TINYINT DEFAULT 0,
+        INDEX idx_user_memories_user_id (user_id),
+        INDEX idx_user_memories_type (memory_type),
+        INDEX idx_user_memories_access_count (access_count),
+        INDEX idx_user_memories_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -601,6 +624,7 @@ TABLE_NAMES = [
     "user_flashcard_sessions",
     "messages",
     "conversation_summaries",
+    "user_memories",
 ]
 
 

@@ -10,6 +10,43 @@ const STREAM_API_URL = `${API_BASE}/api/v2/chat/stream`;
 const DEBATE_API_URL = `${API_BASE}/api/v2/debate/stream`;
 const LEARNING_PATH_GENERATE_URL = `${API_BASE}/api/learning-path/generate`;
 const LEARNING_PATH_CURRENT_URL = `${API_BASE}/api/learning-path/current`;
+const CHAT_HISTORY_URL = `${API_BASE}/api/chat/history`;
+
+// ========== 会话记忆系统 ==========
+function getChatSessionId() {
+    let sid = localStorage.getItem('starlearn_chat_session_id');
+    if (!sid) {
+        sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem('starlearn_chat_session_id', sid);
+    }
+    return sid;
+}
+
+async function loadChatHistory() {
+    const sessionId = getChatSessionId();
+    const userId = currentUser?.id || '';
+    try {
+        const res = await fetch(`${CHAT_HISTORY_URL}?sessionId=${encodeURIComponent(sessionId)}&userId=${userId}`);
+        const data = await res.json();
+        if (data.success && data.messages && data.messages.length > 0) {
+            messages = data.messages.map(m => ({
+                role: m.role,
+                content: m.content,
+            }));
+            await renderMessages();
+            const container = document.getElementById('chat-container');
+            if (container) container.scrollTop = container.scrollHeight;
+        }
+    } catch (e) {
+        console.warn('[ChatHistory] 加载历史消息失败:', e);
+    }
+}
+
+function resetChatSession() {
+    const sid = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('starlearn_chat_session_id', sid);
+    return sid;
+}
 
 // 同步学习时长到服务器（每分钟调用）
 async function syncLearningMinute() {
@@ -712,6 +749,17 @@ class ProactiveTutorClient {
                 console.log('[ProactiveTutor] Received:', envelope.msg_type, payload.title);
 
                 this._renderProactiveNotification(envelope, payload);
+
+                // 旧格式也插入聊天流，确保消息持久化
+                insertAgentMessage({
+                    id: envelope.msg_id,
+                    content: payload.content || payload.title || '',
+                    links: payload.links || [],
+                    actions: payload.actions || [],
+                    context: { trigger: envelope.msg_type, agent_id: envelope.agent_id || window.currentAgent?.id || currentAgent?.id || 'default' },
+                    tone: payload.tone || 'friendly',
+                    agent_id: envelope.agent_id || window.currentAgent?.id || currentAgent?.id || 'default'
+                });
 
                 if (envelope.msg_type === 'struggle_intervention') {
                     this._errorCount = 0;
@@ -1783,7 +1831,87 @@ let evaluation = {
     streakDays: 0,
     interactionHistory: [],
     lastStudyDate: null,
+    _socraticStats: { total: 0, passed: 0 },
 };
+
+// 评估指标自动保存（防抖）
+let _evaluationSaveTimer = null;
+let _evaluationPendingSave = false;
+
+function queueEvaluationSave() {
+    _evaluationPendingSave = true;
+    if (_evaluationSaveTimer) clearTimeout(_evaluationSaveTimer);
+    _evaluationSaveTimer = setTimeout(() => {
+        if (_evaluationPendingSave) {
+            saveEvaluationToServer();
+            _evaluationPendingSave = false;
+        }
+    }, 3000);
+}
+
+async function saveEvaluationToServer() {
+    if (!currentUser || !currentUser.id) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/evaluation/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: parseInt(currentUser.id),
+                interactionCount: evaluation.interactionCount,
+                socraticPassRate: evaluation.socraticPassRate,
+                difficultyLevel: evaluation.difficultyLevel,
+                codePracticeTime: evaluation.codePracticeTime,
+                focusTimeToday: evaluation.focusTimeToday,
+                flashcardsStudied: evaluation.flashcardsStudied,
+                streakDays: evaluation.streakDays,
+                evalJson: {
+                    lastStudyDate: evaluation.lastStudyDate,
+                    interactionHistory: evaluation.interactionHistory,
+                    _socraticStats: evaluation._socraticStats,
+                }
+            })
+        });
+        if (!res.ok) throw new Error('Save failed');
+        // 本地缓存作为离线 fallback
+        localStorage.setItem(`starlearn_eval_${currentUser.id}`, JSON.stringify(evaluation));
+    } catch (e) {
+        console.warn('[Evaluation] Auto-save failed, keeping localStorage backup:', e);
+    }
+}
+
+async function loadEvaluationFromServer() {
+    if (!currentUser || !currentUser.id) return;
+    try {
+        const res = await fetch(`${API_BASE}/api/evaluation/${currentUser.id}`);
+        const data = await res.json();
+        if (data.success && data.data) {
+            const d = data.data;
+            evaluation = {
+                ...evaluation,
+                interactionCount: d.interactionCount ?? evaluation.interactionCount,
+                socraticPassRate: d.socraticPassRate ?? evaluation.socraticPassRate,
+                difficultyLevel: d.difficultyLevel || evaluation.difficultyLevel,
+                codePracticeTime: d.codePracticeTime ?? evaluation.codePracticeTime,
+                focusTimeToday: d.focusTimeToday ?? evaluation.focusTimeToday,
+                flashcardsStudied: d.flashcardsStudied ?? evaluation.flashcardsStudied,
+                streakDays: d.streakDays ?? evaluation.streakDays,
+                lastStudyDate: d.lastStudyDate || evaluation.lastStudyDate,
+                interactionHistory: d.interactionHistory || evaluation.interactionHistory,
+            };
+            renderEvaluation();
+        }
+    } catch (e) {
+        console.warn('[Evaluation] Load from server failed:', e);
+        // 尝试从 localStorage 恢复
+        try {
+            const cached = localStorage.getItem(`starlearn_eval_${currentUser.id}`);
+            if (cached) {
+                evaluation = { ...evaluation, ...JSON.parse(cached) };
+                renderEvaluation();
+            }
+        } catch (err) { /* ignore */ }
+    }
+}
 
 let codePracticeStartTime = null;
 let codePracticeTimer = null;
@@ -3754,6 +3882,76 @@ function processDocRefs(html) {
     });
 }
 
+/* ========== <think> 标签解析与思考 UI ========== */
+
+function extractThinkContent(content) {
+    if (!content) return { reasoning: '', finalContent: '' };
+    const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+    if (!thinkMatch) return { reasoning: '', finalContent: content };
+    const reasoning = thinkMatch[1].trim();
+    const finalContent = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+    return { reasoning, finalContent };
+}
+
+function renderThinkBlock(reasoning, isStreaming) {
+    if (!reasoning) return '';
+    const safeReasoning = escapeHtml(reasoning);
+    return `<div class="think-block ${isStreaming ? 'is-open' : ''}" id="think-block-${isStreaming ? 'stream' : Date.now()}">
+        <div class="think-block-header" onclick="toggleThinkBlock(this)">
+            <svg class="think-block-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"></path><path d="M9 21h6"></path></svg>
+            <span class="think-block-title">深度思考</span>
+            <span class="think-block-toggle">${isStreaming ? '收起' : '展开'}</span>
+            <svg class="think-block-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        <div class="think-block-body">
+            <div class="think-block-content">${safeReasoning}</div>
+        </div>
+    </div>`;
+}
+
+function toggleThinkBlock(header) {
+    const block = header.closest('.think-block');
+    if (!block) return;
+    const isOpen = block.classList.contains('is-open');
+    block.classList.toggle('is-open', !isOpen);
+    const toggleText = header.querySelector('.think-block-toggle');
+    if (toggleText) toggleText.textContent = isOpen ? '展开' : '收起';
+}
+
+function renderThinkStrip(logs, isDone) {
+    if (!logs || logs.length === 0) return '';
+    if (isDone) {
+        const thinkId = 'think-done-' + Date.now();
+        return `<div class="think-collapsed-badge" onclick="document.getElementById('${thinkId}').classList.toggle('hidden');this.classList.toggle('hidden')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"></path><path d="M9 21h6"></path></svg>
+            ✨ 已深度思考
+        </div>
+        <div id="${thinkId}" class="hidden">${renderThinkTimeline(logs)}</div>`;
+    }
+    const latest = logs[logs.length - 1];
+    const agentLabel = getAgentLabel(latest.agent);
+    return `<div class="think-strip" onclick="this.classList.toggle('is-open');const tl=this.nextElementSibling;if(tl)tl.classList.toggle('is-open')">
+            <div class="think-pulse-dots">
+                <div class="think-pulse-dot"></div>
+                <div class="think-pulse-dot"></div>
+                <div class="think-pulse-dot"></div>
+            </div>
+            <span class="think-strip-text">${escapeHtml(agentLabel)} · ${escapeHtml(latest.content.slice(0, 40))}${latest.content.length > 40 ? '…' : ''}</span>
+            <svg class="think-strip-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </div>
+        ${renderThinkTimeline(logs)}`;
+}
+
+function renderThinkTimeline(logs) {
+    if (!logs || logs.length === 0) return '';
+    const items = logs.map((log, idx) => {
+        const isLatest = idx === logs.length - 1;
+        const agentLabel = getAgentLabel(log.agent);
+        return `<div class="think-log-item ${isLatest ? 'is-latest' : ''}"><span class="think-log-agent">${escapeHtml(agentLabel)}</span><span class="think-log-msg">${escapeHtml(log.content)}</span></div>`;
+    }).join('');
+    return `<div class="think-log-timeline">${items}</div>`;
+}
+
 async function renderMessages() {
     const container = document.getElementById('chat-container');
     if (!container) return;
@@ -3761,24 +3959,56 @@ async function renderMessages() {
     const streamBubble = container.querySelector('.stream-bubble');
 
     container.innerHTML = messages.map(msg => {
-        const processedContent = msg.role === 'user' ? msg.content : preprocessContent(msg.content);
-        let htmlContent = processedContent;
-        if (msg.role !== 'user') {
+        let htmlContent = '';
+        let thinkBlockHtml = '';
+        if (msg.role === 'user') {
+            htmlContent = escapeHtml(msg.content);
+        } else {
+            const { reasoning, finalContent } = extractThinkContent(msg.content);
+            const processedContent = preprocessContent(finalContent);
             try {
                 if (window.marked) {
                     htmlContent = marked.parse(processedContent);
+                } else {
+                    htmlContent = escapeHtml(processedContent);
                 }
             } catch (e) {
                 console.warn('[renderMessages] marked.parse error:', e);
                 htmlContent = escapeHtml(processedContent);
             }
             htmlContent = processDocRefs(htmlContent);
+            htmlContent = htmlContent.replace(
+                /\[SocraticQ\](.*?)\[\/SocraticQ\]/g,
+                '<div class="socratic-inline-q"><span class="socratic-q-icon">💡</span><span class="socratic-q-text">$1</span></div>'
+            );
+            // 解析记忆引用标记 [MemRef]
+            htmlContent = htmlContent.replace(
+                /\[MemRef\](.*?)\[\/MemRef\]/g,
+                '<span class="mem-ref-mark"><span class="mem-ref-content">$1</span><span class="mem-ref-badge">🧠 引用记忆</span></span>'
+            );
+            if (reasoning) {
+                thinkBlockHtml = renderThinkBlock(reasoning, false);
+            }
+            if (msg._thinkingLogs && msg._thinkingLogs.length > 0) {
+                thinkBlockHtml = renderThinkStrip(msg._thinkingLogs, true) + thinkBlockHtml;
+            }
         }
         const isSocratic = msg.role === 'assistant' && msg.socratic;
 
         // 主动消息的特殊标识
         const isProactive = msg._isProactive;
         const proactiveBadge = isProactive ? `<span class="proactive-badge"><i data-lucide="sparkles" class="w-3 h-3"></i> 主动推送</span>` : '';
+
+        // 身份标签
+        let identityBadge = '';
+        if (msg.role === 'assistant') {
+            const personaLabel = PERSONA_NAMES[msg._persona] || '';
+            const agentLabel = msg._agentName && msg._agentId !== 'default' ? msg._agentName : '';
+            if (personaLabel || agentLabel) {
+                const identityText = [personaLabel, agentLabel].filter(Boolean).join(' · ');
+                identityBadge = `<span class="identity-badge">${escapeHtml(identityText)}</span>`;
+            }
+        }
 
         // 链接容器（用于后续 JS 注入）
         const linksContainerId = msg._timestamp ? `links-${msg._timestamp}` : '';
@@ -3788,11 +4018,13 @@ async function renderMessages() {
         return `
         <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}" data-msg-id="${msg._timestamp || ''}">
             <div class="max-w-[90%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
-                ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${proactiveBadge}</span>` : ''}
+                ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${identityBadge}${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${proactiveBadge}</span>` : ''}
                 <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible ${isProactive ? 'msg-bubble--proactive' : ''}">
+                    ${thinkBlockHtml}
                     <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
                     ${hasLinks ? `<div class="message-links" id="${linksContainerId}"></div>` : ''}
                     ${hasActions ? `<div class="message-actions" id="actions-${msg._timestamp || ''}"></div>` : ''}
+                    ${msg._socraticCheckpoint ? `<div class="socratic-checkpoint"><span class="checkpoint-label">💭 ${msg._checkpointTopic ? '「' + escapeHtml(msg._checkpointTopic) + '」' : '这部分'}理解了吗？</span><div class="checkpoint-actions"><button class="checkpoint-btn checkpoint-yes" onclick="confirmUnderstanding(true, '${msg._timestamp || ''}')">✓ 理解了</button><button class="checkpoint-btn checkpoint-no" onclick="confirmUnderstanding(false, '${msg._timestamp || ''}')">✗ 不太懂</button></div></div>` : ''}
                 </div>
             </div>
         </div>`;
@@ -3995,6 +4227,8 @@ async function submitGrade() {
         await saveProgress();
     } catch (error) {
         gradePanel.innerHTML = `<div class="text-red-500 text-sm text-center mt-8">批阅请求失败: ${escapeHtml(error.message)}</div>`;
+    } finally {
+        schedulePathRefresh('code_grade');
     }
 }
 
@@ -4189,6 +4423,13 @@ const AGENT_COLORS = {
 };
 const DEFAULT_AGENT_COLOR = { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200', dot: 'bg-gray-400' };
 
+const PERSONA_NAMES = {
+    patient_tutor: '🍵 陈默',
+    socratic_questioner: '🔍 林问',
+    energetic_lecturer: '⚡ 周燃',
+    expert_mentor: '🏔️ 严铮',
+};
+
 const AGENT_LABELS = {
     system: '系统',
     profiler: '画像分析',
@@ -4200,6 +4441,7 @@ const AGENT_LABELS = {
     generator_pragmatic: '实践生成',
     generator_textual: '文本生成',
     evaluator: '评估',
+    memory: '💡 记忆助手',
     // 辩论身份标签
     debate_bigdata_architect: '大数据导师',
     debate_psychologist: '知心辅导员',
@@ -4220,13 +4462,7 @@ let isTypewriting = false;
 let currentAssistantContent = '';
 let currentAssistantIdx = -1;
 let streamAbortController = null;
-let resourcePollingTimer = null;
-let currentResourceTaskId = null;
-let resourcePollingBackoff = 0;
-let resourceCompletedAgents = new Set();
-let mockProgressTimers = {};
-let resourcePollingStartTime = 0;
-let resourceAgentStartTimes = {};
+let currentThinkingLogs = [];
 
 // 辩论模式状态
 let debateState = {
@@ -4238,490 +4474,6 @@ let debateState = {
     isComplete: false
 };
 let debateAbortController = null;
-const RESOURCE_SHORT_TIMEOUT = 10000;
-const RESOURCE_LONG_TIMEOUT = 30000;
-
-const RESOURCE_STATUS_API = `${API_BASE}/api/v2/resource/status`;
-const RESOURCE_POLL_INTERVAL = 1000;
-const RESOURCE_MAX_BACKOFF = 8000;
-
-const RESOURCE_CONFIG = {
-    document_generator: { icon: 'file-text', title: '文档', color: 'var(--accent)' },
-    mindmap_generator: { icon: 'git-branch', title: '导图', color: 'var(--primary-light)' },
-    exercise_generator: { icon: 'code-2', title: '习题', color: 'var(--success)' },
-};
-
-const RESOURCE_PHASE_LABELS = {
-    document_generator: ['构思框架', '组织内容', '润色排版'],
-    mindmap_generator: ['构思架构', '布局节点', '渲染连线'],
-    exercise_generator: ['设计题目', '编写用例', '校验答案'],
-};
-
-function getResourcePhase(agentName, progress) {
-    const phases = RESOURCE_PHASE_LABELS[agentName] || ['处理中', '生成中', '完善中'];
-    if (progress < 33) return phases[0];
-    if (progress < 66) return phases[1];
-    return phases[2];
-}
-
-function toggleAccordion(agentName) {
-    const allAccordions = document.querySelectorAll('.resource-accordion');
-    const target = document.querySelector(`.resource-accordion[data-resource="${agentName}"]`);
-    if (!target) return;
-    const wasOpen = target.classList.contains('is-open');
-    allAccordions.forEach(a => {
-        a.classList.remove('is-open');
-        a.classList.add('is-collapsed');
-    });
-    if (!wasOpen) {
-        target.classList.add('is-open');
-        target.classList.remove('is-collapsed');
-    } else {
-        allAccordions.forEach(a => a.classList.remove('is-collapsed'));
-    }
-}
-
-function showResourceDashboard() {
-    const dashboard = document.getElementById('resource-dashboard');
-    if (dashboard) dashboard.classList.remove('hidden');
-    const cancelBtn = document.getElementById('dashboard-cancel-btn');
-    if (cancelBtn) cancelBtn.classList.remove('hidden');
-}
-
-function hideResourceDashboard() {
-    const dashboard = document.getElementById('resource-dashboard');
-    if (dashboard) dashboard.classList.add('hidden');
-    const cancelBtn = document.getElementById('dashboard-cancel-btn');
-    if (cancelBtn) cancelBtn.classList.add('hidden');
-}
-
-function resetResourceCards() {
-    resourceCompletedAgents = new Set();
-    Object.values(mockProgressTimers).forEach(id => clearInterval(id));
-    mockProgressTimers = {};
-    const accordions = document.querySelectorAll('.resource-accordion');
-    accordions.forEach(acc => {
-        acc.dataset.status = 'pending';
-        acc.classList.remove('is-open');
-        const skeleton = acc.querySelector('.resource-skeleton');
-        const content = acc.querySelector('.resource-content');
-        if (skeleton) {
-            skeleton.classList.remove('is-running', 'is-completed', 'is-failed', 'hidden');
-            const statusEl = skeleton.querySelector('.resource-skeleton-status');
-            if (statusEl) statusEl.textContent = '排队中 0%';
-        }
-        if (content) {
-            content.classList.add('hidden');
-            content.innerHTML = '';
-        }
-        const headerRing = acc.querySelector('.accordion-ring .ring-progress');
-        if (headerRing) headerRing.setAttribute('stroke-dasharray', '0 100');
-        const headerStatus = acc.querySelector('.accordion-header-right .resource-skeleton-status');
-        if (headerStatus) headerStatus.textContent = '排队中 0%';
-    });
-}
-
-function startResourcePolling(taskId) {
-    stopResourcePolling();
-    currentResourceTaskId = taskId;
-    resourcePollingBackoff = 0;
-    resourcePollingStartTime = Date.now();
-    resourceAgentStartTimes = {};
-    Object.keys(RESOURCE_CONFIG).forEach((agent, idx) => {
-        resourceAgentStartTimes[agent] = Date.now();
-        setTimeout(() => startMockProgress(agent), idx * 400);
-    });
-    showResourceDashboard();
-    resetResourceCards();
-    pollResourceStatus();
-}
-
-function stopResourcePolling() {
-    if (resourcePollingTimer) {
-        clearTimeout(resourcePollingTimer);
-        resourcePollingTimer = null;
-    }
-    currentResourceTaskId = null;
-}
-
-function cancelResourceGeneration() {
-    stopResourcePolling();
-    Object.values(mockProgressTimers).forEach(id => clearInterval(id));
-    mockProgressTimers = {};
-    hideResourceDashboard();
-}
-
-async function pollResourceStatus() {
-    if (!currentResourceTaskId) return;
-
-    try {
-        const res = await fetch(`${RESOURCE_STATUS_API}/${currentResourceTaskId}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-        resourcePollingBackoff = 0;
-        updateResourceDashboard(data);
-
-        if (data.overallStatus === 'completed' || data.overallStatus === 'failed') {
-            const cancelBtn = document.getElementById('dashboard-cancel-btn');
-            if (cancelBtn) cancelBtn.classList.add('hidden');
-            updateDashboardOverallStatus(data.overallStatus, data.overallProgress);
-            return;
-        }
-
-        resourcePollingTimer = setTimeout(pollResourceStatus, RESOURCE_POLL_INTERVAL);
-    } catch (e) {
-        resourcePollingBackoff = Math.min(resourcePollingBackoff * 2 + RESOURCE_POLL_INTERVAL, RESOURCE_MAX_BACKOFF);
-        console.warn(`Resource poll failed, retrying in ${resourcePollingBackoff}ms:`, e);
-        resourcePollingTimer = setTimeout(pollResourceStatus, resourcePollingBackoff);
-    }
-}
-
-function updateDashboardOverallStatus(status, progress) {
-    const el = document.getElementById('dashboard-overall-status');
-    if (!el) return;
-    const labels = { pending: '等待中', running: '生成中', completed: '已完成', failed: '部分失败' };
-    const bgColors = {
-        pending: 'var(--surface-glass)',
-        running: 'var(--accent-bg)',
-        completed: 'var(--success-bg)',
-        failed: 'var(--danger-bg)'
-    };
-    const textColors = {
-        pending: 'var(--text-tertiary)',
-        running: 'var(--primary-light)',
-        completed: 'var(--success)',
-        failed: 'var(--danger)'
-    };
-    el.textContent = `${labels[status] || status} ${progress}%`;
-    el.style.background = bgColors[status] || bgColors.pending;
-    el.style.color = textColors[status] || textColors.pending;
-}
-
-function updateResourceDashboard(data) {
-    updateDashboardOverallStatus(data.overallStatus, data.overallProgress);
-
-    for (const sub of data.subtasks) {
-        const acc = document.querySelector(`.resource-accordion[data-resource="${sub.agent}"]`);
-        if (!acc) continue;
-
-        acc.dataset.status = sub.status;
-        const skeleton = acc.querySelector('.accordion-body .resource-skeleton');
-        const content = acc.querySelector('.accordion-body .resource-content');
-        const headerRing = acc.querySelector('.accordion-ring .ring-progress');
-        const headerStatus = acc.querySelector('.accordion-header-right .resource-skeleton-status');
-
-        if (sub.status === 'completed' && !resourceCompletedAgents.has(sub.agent)) {
-            resourceCompletedAgents.add(sub.agent);
-            if (mockProgressTimers[sub.agent]) { clearInterval(mockProgressTimers[sub.agent]); delete mockProgressTimers[sub.agent]; }
-            if (headerRing) headerRing.setAttribute('stroke-dasharray', '100 0');
-            if (headerStatus) headerStatus.textContent = '✓ 完成';
-            if (skeleton) {
-                skeleton.classList.add('is-completed');
-                skeleton.classList.remove('is-running');
-            }
-            setTimeout(() => {
-                if (skeleton) skeleton.classList.add('hidden');
-                if (content) {
-                    content.classList.remove('hidden');
-                    content.innerHTML = renderResourceContent(sub.agent, sub.result);
-                }
-                if (window.lucide) lucide.createIcons();
-                renderMermaidInResourceCard(acc);
-                if (sub.agent === 'video_content') {
-                    injectVideoPlayer(acc);
-                }
-            }, 300);
-        } else if (sub.status === 'failed') {
-            if (mockProgressTimers[sub.agent]) { clearInterval(mockProgressTimers[sub.agent]); delete mockProgressTimers[sub.agent]; }
-            if (headerRing) headerRing.setAttribute('stroke-dasharray', '100 0');
-            if (headerStatus) headerStatus.textContent = '✗ 失败';
-            if (skeleton) {
-                skeleton.classList.add('is-failed');
-                skeleton.classList.remove('is-running');
-            }
-            setTimeout(() => {
-                if (skeleton) skeleton.classList.add('hidden');
-                if (content) {
-                    content.classList.remove('hidden');
-                    content.innerHTML = renderResourceError(sub.agent, sub.error);
-                }
-                if (window.lucide) lucide.createIcons();
-            }, 300);
-        } else {
-            const progress = sub.progress || 0;
-            const agentStartTime = resourceAgentStartTimes[sub.agent] || resourcePollingStartTime;
-            const agentElapsed = Date.now() - agentStartTime;
-
-            if (sub.agent === 'video_content' && progress === 0 && agentElapsed > RESOURCE_SHORT_TIMEOUT) {
-                if (agentElapsed > RESOURCE_LONG_TIMEOUT) {
-                    if (headerRing) headerRing.setAttribute('stroke-dasharray', '100 0');
-                    if (headerStatus) headerStatus.textContent = '✗ 超时';
-                    if (skeleton) {
-                        skeleton.classList.add('is-failed');
-                        skeleton.classList.remove('is-running');
-                    }
-                    setTimeout(() => {
-                        if (skeleton) skeleton.classList.add('hidden');
-                        if (content) {
-                            content.classList.remove('hidden');
-                            content.innerHTML = renderResourceError(sub.agent, '视频生成超时，请重试');
-                        }
-                    }, 300);
-                } else {
-                    if (headerRing) headerRing.setAttribute('stroke-dasharray', '100 0');
-                    if (headerStatus) headerStatus.textContent = '✓ 就绪';
-                    if (skeleton) {
-                        skeleton.classList.add('is-completed');
-                        skeleton.classList.remove('is-running');
-                    }
-                    setTimeout(() => {
-                        if (skeleton) skeleton.classList.add('hidden');
-                        if (content) {
-                            content.classList.remove('hidden');
-                            content.innerHTML = renderResourceContent(sub.agent, {
-                                text_content: '视频资源正在后台生成中，以下为预览播放器：',
-                                resources: []
-                            });
-                        }
-                        injectVideoPlayer(acc);
-                    }, 300);
-                }
-            } else {
-                if (headerRing) headerRing.setAttribute('stroke-dasharray', `${progress} ${100 - progress}`);
-                if (skeleton) {
-                    if (sub.status === 'running') skeleton.classList.add('is-running');
-                    const bodyStatus = skeleton.querySelector('.resource-skeleton-status');
-                    if (bodyStatus) {
-                        const phase = getResourcePhase(sub.agent, progress);
-                        const statusLabel = sub.status === 'running' ? `正在${phase}` : '排队中';
-                        bodyStatus.textContent = `${statusLabel} ${progress}%`;
-                    }
-                }
-                if (headerStatus) {
-                    const phase = getResourcePhase(sub.agent, progress);
-                    const statusLabel = sub.status === 'running' ? `${phase}` : '排队中';
-                    headerStatus.textContent = `${statusLabel} ${progress}%`;
-                }
-            }
-        }
-    }
-}
-
-function startMockProgress(agentName, duration) {
-    if (mockProgressTimers[agentName]) clearInterval(mockProgressTimers[agentName]);
-    const acc = document.querySelector(`.resource-accordion[data-resource="${agentName}"]`);
-    if (!acc) return;
-    acc.dataset.status = 'running';
-    const skeleton = acc.querySelector('.accordion-body .resource-skeleton');
-    if (skeleton) skeleton.classList.add('is-running');
-
-    let progress = 0;
-    const step = 12 + Math.floor(Math.random() * 6);
-    const intervalMs = 300 + Math.floor(Math.random() * 200);
-
-    const timer = setInterval(() => {
-        progress = Math.min(progress + step, 100);
-
-        const headerRing = acc.querySelector('.accordion-ring .ring-progress');
-        const headerStatus = acc.querySelector('.accordion-header-right .resource-skeleton-status');
-        const bodyStatus = acc.querySelector('.accordion-body .resource-skeleton-status');
-
-        if (headerRing) headerRing.setAttribute('stroke-dasharray', `${progress} ${100 - progress}`);
-        const phase = getResourcePhase(agentName, progress);
-        const label = `正在${phase} ${progress}%`;
-        if (headerStatus) headerStatus.textContent = label;
-        if (bodyStatus) bodyStatus.textContent = label;
-
-        if (progress >= 100) {
-            clearInterval(timer);
-            delete mockProgressTimers[agentName];
-            acc.dataset.status = 'completed';
-            const content = acc.querySelector('.accordion-body .resource-content');
-
-            if (headerRing) headerRing.setAttribute('stroke-dasharray', '100 0');
-            if (headerStatus) headerStatus.textContent = '✓ 完成';
-            if (skeleton) { skeleton.classList.add('is-completed', 'hidden'); skeleton.classList.remove('is-running'); }
-            if (content) {
-                content.classList.remove('hidden');
-                content.innerHTML = renderResourceContent(agentName, { text_content: getMockResult(agentName), resources: [] });
-            }
-            if (window.lucide) lucide.createIcons();
-            renderMermaidInResourceCard(acc);
-            if (agentName === 'video_content') injectVideoPlayer(acc);
-        }
-    }, intervalMs);
-    mockProgressTimers[agentName] = timer;
-}
-
-function getMockResult(agentName) {
-    const mockResults = {
-        document_generator: '## 大数据技术概述\n\n### 1. HDFS架构\nHDFS采用主从架构，NameNode管理元数据，DataNode存储实际数据块。\n\n### 2. MapReduce模型\nMap阶段并行处理输入分片，Reduce阶段聚合中间结果。\n\n### 3. Spark生态\n基于内存计算，RDD为核心抽象，支持SQL、流处理和机器学习。',
-        mindmap_generator: '```mermaid\ngraph TD\n    A[大数据技术] --> B[HDFS]\n    A --> C[MapReduce]\n    A --> D[Spark]\n    B --> B1[NameNode]\n    B --> B2[DataNode]\n    C --> C1[Map]\n    C --> C2[Reduce]\n    D --> D1[RDD]\n    D --> D2[DataFrame]\n```',
-        video_content: '视频资源已生成，包含HDFS架构讲解和MapReduce工作原理的动画演示。',
-        exercise_generator: '```python\nfrom pyspark import SparkContext\n\nsc = SparkContext("local", "WordCount")\n\ntext = sc.parallelize(["hello spark", "hello world"])\nwords = text.flatMap(lambda line: line.split())\nword_counts = words.map(lambda w: (w, 1)).reduceByKey(lambda a, b: a + b)\n\nprint(word_counts.collect())\n# Output: [("hello", 2), ("spark", 1), ("world", 1)]\n```',
-    };
-    return mockResults[agentName] || '资源生成完成';
-}
-
-function injectVideoPlayer(acc) {
-    const body = acc.querySelector('.accordion-body-inner');
-    if (!body) return;
-    const existingThumb = body.querySelector('.resource-video-thumb');
-    if (existingThumb) {
-        const playerWrap = document.createElement('div');
-        playerWrap.className = 'resource-video-player';
-        playerWrap.innerHTML = `<video controls preload="metadata" poster="" style="width:100%;border-radius:8px;">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-            您的浏览器不支持视频播放
-        </video>`;
-        existingThumb.replaceWith(playerWrap);
-        return;
-    }
-    const existingContent = body.querySelector('.resource-content-body');
-    if (existingContent) {
-        const playerWrap = document.createElement('div');
-        playerWrap.className = 'resource-video-player';
-        playerWrap.style.marginTop = '8px';
-        playerWrap.innerHTML = `<video controls preload="metadata" style="width:100%;border-radius:8px;">
-            <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-            您的浏览器不支持视频播放
-        </video>`;
-        existingContent.appendChild(playerWrap);
-    }
-}
-
-function renderResourceContent(agentName, result) {
-    const config = RESOURCE_CONFIG[agentName];
-    if (!config) return '';
-
-    let bodyHtml = '';
-
-    if (agentName === 'mindmap_generator' && result) {
-        const textContent = result.text_content || '';
-        const mermaidMatch = textContent.match(/```mermaid\s*\n([\s\S]*?)```/);
-        if (mermaidMatch) {
-            bodyHtml = `<div class="mermaid-placeholder">${escapeHtml(mermaidMatch[1].trim())}</div>`;
-        } else {
-            bodyHtml = `<div style="color:var(--text-tertiary);font-size:10px;">${escapeHtml(textContent.slice(0, 200))}</div>`;
-        }
-    } else if (agentName === 'video_content' && result) {
-        bodyHtml = `<div class="resource-video-player">
-            <video controls preload="metadata" style="width:100%;border-radius:8px;">
-                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-                您的浏览器不支持视频播放
-            </video>
-        </div>`;
-        if (result.resources && result.resources.length > 0) {
-            bodyHtml += `<div style="font-size:9px;color:var(--text-tertiary);margin-top:4px;">${result.resources.length} 个视频资源</div>`;
-        }
-    } else if (agentName === 'exercise_generator' && result) {
-        const textContent = result.text_content || '';
-        const codeMatch = textContent.match(/```(?:python|java|cpp|c|javascript|go|sql|scala|rust)?\s*\n([\s\S]*?)```/);
-        if (codeMatch) {
-            bodyHtml = `<pre><code>${escapeHtml(codeMatch[1])}</code></pre>
-                <button class="resource-copy-btn" onclick="copyResourceCode(this)" aria-label="复制代码">
-                    <i data-lucide="copy" class="w-2.5 h-2.5 inline -mt-0.5"></i> 复制
-                </button>`;
-        } else {
-            bodyHtml = `<div style="color:var(--text-tertiary);font-size:10px;">${escapeHtml(textContent.slice(0, 200))}</div>`;
-        }
-    } else if (agentName === 'document_generator' && result) {
-        const textContent = result.text_content || '';
-        bodyHtml = `<div style="color:var(--text-secondary);font-size:10px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(textContent.slice(0, 300))}${textContent.length > 300 ? '...' : ''}</div>`;
-    } else if (result) {
-        const textContent = result.text_content || JSON.stringify(result).slice(0, 200);
-        bodyHtml = `<div style="color:var(--text-tertiary);font-size:10px;">${escapeHtml(textContent)}</div>`;
-    }
-
-    return `<div class="resource-content-header">
-        <i data-lucide="${config.icon}" class="w-3.5 h-3.5" style="color: ${config.color}"></i>
-        <span class="resource-content-title">${config.title}</span>
-        <span class="resource-content-badge">✓ 已生成</span>
-    </div>
-    <div class="resource-content-body">${bodyHtml}</div>`;
-}
-
-function renderResourceError(agentName, errorMsg) {
-    const config = RESOURCE_CONFIG[agentName];
-    if (!config) return '';
-
-    return `<div class="resource-error">
-        <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
-        <span class="resource-error-msg">${escapeHtml(errorMsg || '生成失败')}</span>
-        <button class="resource-retry-btn" onclick="retryResourceAgent('${agentName}')" aria-label="重试${config.title}生成">
-            <i data-lucide="refresh-cw" class="w-2.5 h-2.5 inline -mt-0.5"></i> 重试
-        </button>
-    </div>`;
-}
-
-function copyResourceCode(btn) {
-    const pre = btn.previousElementSibling;
-    if (!pre) return;
-    const code = pre.textContent;
-    navigator.clipboard.writeText(code).then(() => {
-        btn.innerHTML = '<i data-lucide="check" class="w-2.5 h-2.5 inline -mt-0.5"></i> 已复制';
-        if (window.lucide) lucide.createIcons();
-        setTimeout(() => {
-            btn.innerHTML = '<i data-lucide="copy" class="w-2.5 h-2.5 inline -mt-0.5"></i> 复制';
-            if (window.lucide) lucide.createIcons();
-        }, 2000);
-    });
-}
-
-async function retryResourceAgent(agentName) {
-    if (!currentResourceTaskId) return;
-    const acc = document.querySelector(`.resource-accordion[data-resource="${agentName}"]`);
-    if (!acc) return;
-
-    acc.dataset.status = 'running';
-    const content = acc.querySelector('.accordion-body .resource-content');
-    const skeleton = acc.querySelector('.accordion-body .resource-skeleton');
-    if (content) content.classList.add('hidden');
-    if (skeleton) {
-        skeleton.classList.remove('hidden', 'is-completed', 'is-failed');
-        skeleton.classList.add('is-running');
-        const statusEl = skeleton.querySelector('.resource-skeleton-status');
-        if (statusEl) statusEl.textContent = '重试中 0%';
-    }
-    const headerRing = acc.querySelector('.accordion-ring .ring-progress');
-    if (headerRing) headerRing.setAttribute('stroke-dasharray', '0 100');
-    const headerStatus = acc.querySelector('.accordion-header-right .resource-skeleton-status');
-    if (headerStatus) headerStatus.textContent = '重试中 0%';
-    resourceCompletedAgents.delete(agentName);
-
-    if (!resourcePollingTimer) {
-        resourcePollingBackoff = 0;
-        pollResourceStatus();
-    }
-}
-
-async function renderMermaidInResourceCard(card) {
-    if (!window.mermaid) return;
-    const placeholders = card.querySelectorAll('.mermaid-placeholder');
-    for (let i = 0; i < placeholders.length; i++) {
-        const div = placeholders[i];
-        if (div.dataset.rendered) continue;
-        div.dataset.rendered = 'true';
-        const txt = document.createElement('textarea');
-        txt.innerHTML = div.innerHTML;
-        let code = txt.value.trim();
-        const id = `mermaid-res-${Date.now()}-${i}`;
-        try {
-            code = code.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-            const { svg } = await mermaid.render(id, code);
-            div.innerHTML = svg;
-        } catch (e) {
-            console.warn("Mermaid render error (resource):", e);
-            div.style.display = 'none';
-            const errEl = document.getElementById('d' + id);
-            if (errEl) errEl.remove();
-        }
-        div.classList.remove('mermaid-placeholder');
-        div.classList.add('mermaid-rendered');
-    }
-}
-
 function getAgentColor(agentName) {
     for (const [key, color] of Object.entries(AGENT_COLORS)) {
         if (agentName.includes(key)) return color;
@@ -4890,22 +4642,39 @@ function renderStreamingMessage() {
     let streamBubble = container.querySelector('.stream-bubble');
     if (!streamBubble) return;
 
-    const processedContent = preprocessContent(currentAssistantContent);
-    let htmlContent = currentAssistantContent;
+    const { reasoning, finalContent } = extractThinkContent(currentAssistantContent);
+    const processedContent = preprocessContent(finalContent);
+    let htmlContent = processedContent;
     try {
         if (window.marked) {
             htmlContent = marked.parse(processedContent);
         }
     } catch (e) {
         console.warn('[renderStreamingMessage] marked.parse error:', e);
-        htmlContent = escapeHtml(currentAssistantContent);
+        htmlContent = escapeHtml(processedContent);
     }
     htmlContent = processDocRefs(htmlContent);
+    htmlContent = htmlContent.replace(
+        /\[SocraticQ\](.*?)\[\/SocraticQ\]/g,
+        '<div class="socratic-inline-q"><span class="socratic-q-icon">💡</span><span class="socratic-q-text">$1</span></div>'
+    );
+    // 解析记忆引用标记 [MemRef]
+    htmlContent = htmlContent.replace(
+        /\[MemRef\](.*?)\[\/MemRef\]/g,
+        '<span class="mem-ref-mark"><span class="mem-ref-content">$1</span><span class="mem-ref-badge">🧠 引用记忆</span></span>'
+    );
+
+    const thinkBlockHtml = reasoning ? renderThinkBlock(reasoning, true) : '';
+    const thinkStripHtml = currentThinkingLogs.length > 0 ? renderThinkStrip(currentThinkingLogs, false) : '';
 
     const isSocratic = messages[currentAssistantIdx]?.socratic;
-    const headerHtml = `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}</span>`;
+    const streamingPersonaLabel = PERSONA_NAMES[currentPersona] || '';
+    const streamingAgentLabel = currentAgent && currentAgent.id !== 'default' ? currentAgent.name : '';
+    const streamingIdentityText = [streamingPersonaLabel, streamingAgentLabel].filter(Boolean).join(' · ');
+    const streamingIdentityBadge = streamingIdentityText ? `<span class="identity-badge">${escapeHtml(streamingIdentityText)}</span>` : '';
+    const headerHtml = `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${streamingIdentityBadge}${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}</span>`;
 
-    streamBubble.innerHTML = `<div class="max-w-[90%] flex flex-col items-start min-w-0">${headerHtml}<div class="msg-bubble p-4 rounded-2xl msg-bubble-bot rounded-tl-none w-full min-w-0 overflow-x-auto"><div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}<span class="typing-cursor-inline"></span></div></div></div>`;
+    streamBubble.innerHTML = `<div class="max-w-[90%] flex flex-col items-start min-w-0">${headerHtml}<div class="msg-bubble p-4 rounded-2xl msg-bubble-bot rounded-tl-none w-full min-w-0 overflow-x-auto">${thinkStripHtml}${thinkBlockHtml}<div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}<span class="typing-cursor-inline"></span></div></div></div>`;
 
     const chatScroll = container.closest('.chat-glass-scroll') || container;
     const isNearBottom = chatScroll.scrollHeight - chatScroll.scrollTop - chatScroll.clientHeight < 150;
@@ -5096,7 +4865,8 @@ function renderPathTree() {
         const isCompleted = status === 'completed';
         const isCurrent = status === 'in_progress';
 
-        let html = `<div class="path-tree-node" data-idx="${idx}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}">
+        const nodeReason = node.description || node.reason || '';
+        let html = `<div class="path-tree-node ${nodeReason ? '' : ''}" data-idx="${idx}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}" ${nodeReason ? `data-reason="${escapeHtml(nodeReason)}"` : ''}>
             ${hasChildren ? '<i data-lucide="chevron-right" class="w-3 h-3 path-tree-toggle"></i>' : '<span class="w-3"></span>'}
             <div class="path-tree-node-dot ${dotClass} ${isCurrent ? 'pulse' : ''}"></div>
             <span class="path-tree-node-text">${escapeHtml(displayName)}</span>
@@ -5294,9 +5064,9 @@ function markPathNodeComplete(idx) {
     schedulePathRefresh('node_complete');
 }
 
-async function handleSendStream() {
+async function handleSendStream(forcedMessage = null, options = {}) {
     const sendButton = document.getElementById('send-btn');
-    const userMsg = getInputValue();
+    const userMsg = forcedMessage || getInputValue();
     if (!userMsg) return;
 
     setDispatchActive(true);
@@ -5344,6 +5114,7 @@ async function handleSendStream() {
         }
     }
     renderEvaluation();
+    queueEvaluationSave();
     await saveProgress();
 
     messages.push({ role: 'user', content: userMsg });
@@ -5352,8 +5123,7 @@ async function handleSendStream() {
     sandboxLogs = [];
     activeAgents = new Set();
     sandboxFilterSet = new Set();
-    stopResourcePolling();
-    hideResourceDashboard();
+    currentThinkingLogs = [];
     const sandboxLogsEl = document.getElementById('sandbox-logs');
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     renderFlowNodes();
@@ -5361,7 +5131,7 @@ async function handleSendStream() {
     updateSandboxStatus('调度中', 'bg-amber-100 text-amber-600');
 
     currentAssistantContent = '';
-    messages.push({ role: 'assistant', content: '', socratic: false });
+    messages.push({ role: 'assistant', content: '', socratic: false, _persona: currentPersona, _agentId: currentAgent.id, _agentName: currentAgent.name, _timestamp: Date.now() });
     currentAssistantIdx = messages.length - 1;
 
     const chatContainer = document.getElementById('chat-container');
@@ -5388,6 +5158,7 @@ async function handleSendStream() {
                 student_id: String(currentUser?.id || 'anonymous'),
                 course_id: 'bigdata',
                 user_input: userMsg,
+                force_socratic: options.forceSocratic || false,
                 context_id: '',
                 current_profile: profile,
                 current_path: currentPath,
@@ -5397,7 +5168,8 @@ async function handleSendStream() {
                 system_prompt: getAgentSystemPrompt(),
                 persona: currentPersona,
                 agent: currentAgent.id,
-                agent_system_prompt: currentAgent.systemPrompt
+                agent_system_prompt: currentAgent.systemPrompt,
+                session_id: getChatSessionId()
             }),
             signal: streamAbortController.signal
         });
@@ -5462,14 +5234,28 @@ async function handleSendStream() {
                     renderSandboxLog(logEntry, false);
                     renderFlowNodes();
                     renderFilterChips();
+                    // 收集到当前消息的 thinking logs
+                    currentThinkingLogs.push(logEntry);
+
+                    // 记忆助手发现新特征时，触发面板实时提示
+                    if (event.agent === 'memory' && event.content &&
+                        (event.content.includes('发现新特征') || event.content.includes('已记住'))) {
+                        showMemoryJustRemembered();
+                        loadUserMemories();
+                    }
                 } else if (event.type === 'content_chunk') {
                     console.log('[SSE] content_chunk received:', event.content?.substring(0, 50), '...');
                     startTypewriter(event.content || '');
                 } else if (event.type === 'done') {
                     console.log('[SSE] done event, full_text length:', event.full_text?.length, 'currentAssistantContent length:', currentAssistantContent.length);
+                    // 合并队列中剩余的内容，避免打字机队列被清空导致内容丢失
+                    const remainingText = typewriterQueue.join('');
+                    if (remainingText) {
+                        currentAssistantContent += remainingText;
+                    }
                     typewriterQueue = [];
                     isTypewriting = false;
-                    currentAssistantContent = (event.full_text || '') + currentAssistantContent;
+                    currentAssistantContent = event.full_text || currentAssistantContent;
                     if (typewriterTimer) {
                         clearTimeout(typewriterTimer);
                         typewriterTimer = null;
@@ -5477,12 +5263,14 @@ async function handleSendStream() {
                     // Immediately update messages content and re-render to ensure content is displayed
                     if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length) {
                         messages[currentAssistantIdx].content = currentAssistantContent;
+                        if (currentThinkingLogs.length > 0) {
+                            messages[currentAssistantIdx]._thinkingLogs = [...currentThinkingLogs];
+                        }
                     }
                     // 支持被动回答中的链接（后端在 done 事件中发送）
                     if (event.links && event.links.length > 0 && currentAssistantIdx >= 0) {
                         messages[currentAssistantIdx]._links = event.links;
                         messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
-                        messages[currentAssistantIdx]._timestamp = Date.now();
                     }
                     // Remove stream-bubble and re-render all messages to show final content
                     const container = document.getElementById('chat-container');
@@ -5492,6 +5280,14 @@ async function handleSendStream() {
                         renderMessages();
                     }
                 } else if (event.type === 'complete') {
+                    // 合并队列中剩余的内容，避免打字机队列被清空导致内容丢失
+                    const remainingText = typewriterQueue.join('');
+                    if (remainingText) {
+                        currentAssistantContent += remainingText;
+                        if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length) {
+                            messages[currentAssistantIdx].content = currentAssistantContent;
+                        }
+                    }
                     if (typewriterTimer) {
                         clearTimeout(typewriterTimer);
                         typewriterTimer = null;
@@ -5502,6 +5298,9 @@ async function handleSendStream() {
                     const data = event.data;
                     if (data.newProfile) {
                         profile = { ...profile, ...data.newProfile };
+                        if (profile.cognitiveLevel) {
+                            updateEvaluation({ difficultyLevel: profile.cognitiveLevel });
+                        }
                     }
                     renderProfile();
                     renderRadarChart();
@@ -5523,6 +5322,11 @@ async function handleSendStream() {
                         }
                     }
 
+                    if (data.socraticCheckpoint && currentAssistantIdx >= 0) {
+                        messages[currentAssistantIdx]._socraticCheckpoint = true;
+                        messages[currentAssistantIdx]._checkpointTopic = data.checkpointTopic || '';
+                    }
+
                     if (data.sources) {
                         renderSources(data.sources);
                     }
@@ -5532,17 +5336,27 @@ async function handleSendStream() {
                         if (data.sources) renderSources(data.sources);
                     }
 
-                    if (data.resourceTaskId) {
-                        startResourcePolling(data.resourceTaskId);
+                    // resource dashboard removed
+
+                    // 保存后端返回的会话ID
+                    if (data.sessionId) {
+                        localStorage.setItem('starlearn_chat_session_id', data.sessionId);
+                    }
+
+                    // 聊天结束后触发记忆刷新
+                    if (data.triggerMemoryRefresh) {
+                        setTimeout(() => loadUserMemories(), 500);
                     }
 
                     if (currentAssistantIdx >= 0) {
                         messages[currentAssistantIdx].content = currentAssistantContent;
+                        if (currentThinkingLogs.length > 0) {
+                            messages[currentAssistantIdx]._thinkingLogs = [...currentThinkingLogs];
+                        }
                         // 支持被动回答中的链接（后端在 complete 事件中发送）
                         if (data.links && data.links.length > 0) {
                             messages[currentAssistantIdx]._links = data.links;
                             messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
-                            messages[currentAssistantIdx]._timestamp = Date.now();
                         }
                         // 支持被动回答中的快捷操作
                         if (data.actions && data.actions.length > 0) {
@@ -5666,7 +5480,9 @@ async function handleSend() {
                 currentPath: currentPath,
                 interactionCount: evaluation.interactionCount,
                 codePracticeTime: evaluation.codePracticeTime,
-                socraticPassRate: evaluation.socraticPassRate
+                socraticPassRate: evaluation.socraticPassRate,
+                sessionId: getChatSessionId(),
+                userId: currentUser?.id || 0
             })
         });
 
@@ -5687,8 +5503,16 @@ async function handleSend() {
         const logs = Array.isArray(data.logs) ? data.logs : [];
 
         const applyChatResponse = async () => {
+            // 保存后端返回的会话ID
+            if (data.sessionId) {
+                localStorage.setItem('starlearn_chat_session_id', data.sessionId);
+            }
+
             if (data.newProfile && typeof data.newProfile === 'object') {
                 profile = { ...profile, ...data.newProfile };
+                if (profile.cognitiveLevel) {
+                    updateEvaluation({ difficultyLevel: profile.cognitiveLevel });
+                }
             }
             renderProfile();
             renderRadarChart();
@@ -5818,6 +5642,7 @@ function updateEvaluation(newEval) {
     }
 
     renderEvaluation();
+    queueEvaluationSave();
 }
 
 async function saveProgress() {
@@ -5868,6 +5693,7 @@ async function stopCodePracticeTimer() {
         evaluation.codePracticeTime = Math.floor(elapsed / 60);
         codePracticeStartTime = null;
         renderEvaluation();
+        queueEvaluationSave();
         await saveProgress();
     }
 }
@@ -5956,6 +5782,10 @@ async function loadProgress() {
             if (data.evaluation) {
                 evaluation = { ...evaluation, ...data.evaluation };
             }
+            // 从 profile.cognitiveLevel 派生 difficultyLevel
+            if (profile && profile.cognitiveLevel) {
+                evaluation.difficultyLevel = profile.cognitiveLevel;
+            }
             if (data.currentPath != null) {
                 const loaded = normalizeLearningPath(data.currentPath);
                 if (loaded.length > 0) currentPath = loaded;
@@ -5971,6 +5801,12 @@ async function loadProgress() {
     } catch (error) {
         console.warn('加载进度失败:', error);
     }
+    // 从专用评估指标端点拉取最新数据（覆盖可能更实时）
+    try {
+        await loadEvaluationFromServer();
+    } catch (e) {
+        console.warn('加载评估指标失败:', e);
+    }
 }
 
 // ============================================================
@@ -5981,7 +5817,7 @@ let _pathRefreshDebounceTimer = null;
 let _pathLastRefreshedAt = 0;
 
 async function initLearningPath() {
-    """页面加载时初始化学习路径：先尝试从 API 获取，失败则回退到本地缓存。"""
+    // 页面加载时初始化学习路径：先尝试从 API 获取，失败则回退到本地缓存。
     const user = currentUser;
     if (!user || !user.id) {
         renderPathTree();
@@ -6021,7 +5857,7 @@ async function initLearningPath() {
 }
 
 async function fetchLearningPath(userId) {
-    """从后端获取当前学习路径（不触发 LLM 生成）。"""
+    // 从后端获取当前学习路径（不触发 LLM 生成）。
     try {
         const res = await fetch(`${LEARNING_PATH_CURRENT_URL}/${userId}`);
         if (!res.ok) return null;
@@ -6033,7 +5869,7 @@ async function fetchLearningPath(userId) {
 }
 
 async function refreshLearningPath(force = false) {
-    """刷新学习路径（带防抖）。force=true 时跳过缓存。"""
+    // 刷新学习路径（带防抖）。force=true 时跳过缓存。
     const user = currentUser;
     if (!user || !user.id) return;
 
@@ -6081,7 +5917,7 @@ async function refreshLearningPath(force = false) {
 }
 
 function updatePathLastUpdated(isoString) {
-    """更新路径面板顶部的'最后更新'文本。"""
+    // 更新路径面板顶部的'最后更新'文本。
     const el = document.getElementById('path-last-updated');
     if (!el || !isoString) return;
     try {
@@ -6182,7 +6018,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     if (sendButton) {
-        sendButton.addEventListener('click', handleSendStream);
+        sendButton.addEventListener('click', () => handleSendStream());
     }
 
     const savedTheme = localStorage.getItem('starlearn_theme') || 'ocean';
@@ -6217,14 +6053,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     // ============================================
     applyLearningContext();
 
-    // 生成个性化欢迎消息
-    const welcomeMsg = generateWelcomeMessage(savedUser?.assessment, profile);
-    messages = [{ role: 'assistant', content: welcomeMsg }];
+    // 先尝试加载当前会话的历史消息
+    if (currentUser && currentUser.id) {
+        await loadChatHistory();
+    }
+
+    // 如果没有历史消息，才显示欢迎消息
+    if (messages.length === 0) {
+        const welcomeMsg = generateWelcomeMessage(savedUser?.assessment, profile);
+        messages = [{ role: 'assistant', content: welcomeMsg }];
+        await renderMessages();
+    }
 
     updateUserUI();
 
     if (currentUser && currentUser.id) {
         await loadProgress();
+        await initLearningPath();  // 初始化学习路径（基于学情实时生成）
         window.proactiveTutor.connect(currentUser.id || currentUser.name || 'anonymous', currentUser.currentTask || 'bigdata');
         // 每 30 秒自动保存 evaluation
         setInterval(() => {
@@ -6435,11 +6280,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 updateSandboxState(false);
             }
         });
-    }
-
-    const dashboardCancelBtn = document.getElementById('dashboard-cancel-btn');
-    if (dashboardCancelBtn) {
-        dashboardCancelBtn.addEventListener('click', cancelResourceGeneration);
     }
 
     refreshLinkCacheFromBackend();
@@ -7693,6 +7533,10 @@ class FlashcardUI {
         this.updateStatsUI();
         if (this.userId) await this._saveProgressToDB(card, prog);
         this.checkCompletion();
+        if (newState) {
+            schedulePathRefresh('flashcard_mastered');
+            updateEvaluation({ flashcardsStudied: (evaluation.flashcardsStudied || 0) + 1 });
+        }
     }
 
     async toggleFavorite() {
@@ -9545,3 +9389,415 @@ function handleDebateEvent(event) {
             console.log('未知辩论事件:', event);
     }
 }
+
+// ============================================================
+// 用户长期记忆面板
+// ============================================================
+
+const MEMORY_API_URL = `${API_BASE}/api/memories`;
+const MEMORY_TYPE_LABELS = {
+    background: { label: '背景', icon: '📋', class: 'memory-type-bg' },
+    preference: { label: '偏好', icon: '⭐', class: 'memory-type-pref' },
+    knowledge: { label: '知识', icon: '📚', class: 'memory-type-know' },
+    interest: { label: '兴趣', icon: '💡', class: 'memory-type-interest' },
+    goal: { label: '目标', icon: '🎯', class: 'memory-type-goal' },
+    emotion: { label: '情感', icon: '💭', class: 'memory-type-emotion' },
+    fact: { label: '事实', icon: '📝', class: 'memory-type-bg' },
+};
+
+let _memoriesCache = [];
+let _memoryPollingInterval = null;
+let _activeMemoryFilter = 'all';
+let _memorySearchQuery = '';
+let _editingMemoryId = null;
+
+function formatRelativeTime(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 5) return '刚刚';
+    if (diffMins < 60) return `${diffMins}分钟前`;
+    if (diffHours < 24) return `${diffHours}小时前`;
+    if (diffDays === 1) return '昨天';
+    if (diffDays < 7) return `${diffDays}天前`;
+    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+}
+
+function renderConfidenceBar(confidence) {
+    const c = Math.max(0, Math.min(1, confidence || 0));
+    const activeSegments = Math.round(c * 8);
+    let level = 'low';
+    if (c >= 0.7) level = 'high';
+    else if (c >= 0.4) level = 'medium';
+
+    let html = '<div class="memory-confidence-bar">';
+    for (let i = 0; i < 8; i++) {
+        const active = i < activeSegments ? `active ${level}` : '';
+        html += `<div class="memory-confidence-segment ${active}"></div>`;
+    }
+    html += `<span class="memory-confidence-value">${(c * 100).toFixed(0)}%</span></div>`;
+    return html;
+}
+
+async function loadUserMemories() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) {
+        console.log('[MemoryPanel] 未登录，跳过加载');
+        return;
+    }
+
+    const statusEl = document.getElementById('memory-footer-status');
+    if (statusEl) statusEl.textContent = '🔄 刷新中...';
+
+    const url = `${MEMORY_API_URL}/${user.id}?limit=50`;
+    console.log('[MemoryPanel] 请求:', url);
+
+    try {
+        const res = await fetch(url);
+        console.log('[MemoryPanel] 响应状态:', res.status, res.statusText);
+        if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            console.error('[MemoryPanel] 响应失败:', res.status, errText);
+            if (statusEl) statusEl.textContent = `⚠️ 服务器错误 (${res.status})`;
+            return;
+        }
+        const data = await res.json();
+        console.log('[MemoryPanel] 数据:', data);
+        if (data.success) {
+            _memoriesCache = data.memories || [];
+            filterAndRenderMemories();
+            if (statusEl) {
+                const count = _memoriesCache.length;
+                statusEl.textContent = count > 0 ? `✓ ${count} 条记忆 · 刚刚更新` : '🤖 暂无记忆';
+            }
+        } else {
+            console.error('[MemoryPanel] 后端返回失败:', data);
+            if (statusEl) statusEl.textContent = '⚠️ 数据异常';
+        }
+    } catch (e) {
+        console.error('[MemoryPanel] 网络请求失败:', e);
+        const isFileProtocol = window.location.protocol === 'file:';
+        if (isFileProtocol) {
+            if (statusEl) statusEl.textContent = '⚠️ 请通过 http://localhost:8000 访问';
+        } else {
+            if (statusEl) statusEl.textContent = '⚠️ 网络错误 (后端未启动?)';
+        }
+    }
+}
+
+function filterAndRenderMemories() {
+    let filtered = _memoriesCache;
+
+    // 类型筛选
+    if (_activeMemoryFilter && _activeMemoryFilter !== 'all') {
+        filtered = filtered.filter(m => m.memory_type === _activeMemoryFilter);
+    }
+
+    // 搜索过滤
+    if (_memorySearchQuery && _memorySearchQuery.trim()) {
+        const q = _memorySearchQuery.trim().toLowerCase();
+        filtered = filtered.filter(m => (m.content || '').toLowerCase().includes(q));
+    }
+
+    renderMemories(filtered);
+}
+
+function renderMemories(memories) {
+    const container = document.getElementById('memory-list-container');
+    const badge = document.getElementById('memory-count-badge');
+    if (!container) return;
+
+    if (!memories || memories.length === 0) {
+        const hasMemories = _memoriesCache.length > 0;
+        container.innerHTML = `
+            <div class="memory-empty-state">
+                <div>🤖 ${hasMemories ? '没有匹配的记忆' : 'AI 正在了解你...'}</div>
+                <div style="font-size:10px;margin-top:4px;color:var(--text-tertiary);">
+                    ${hasMemories ? '试试其他筛选条件或搜索关键词' : '每次聊天，AI 都会自动记住你的特点，并在后续对话中自然地提起'}
+                </div>
+                ${!hasMemories ? `
+                <div style="font-size:10px;margin-top:6px;color:var(--text-tertiary);">
+                    💡 试着和 AI 聊聊你自己吧，比如你的专业、已学过的技能、感兴趣的方向...
+                </div>
+                ` : ''}
+            </div>
+        `;
+        if (badge) {
+            badge.textContent = _memoriesCache.length;
+            badge.classList.toggle('hidden', _memoriesCache.length === 0);
+        }
+        return;
+    }
+
+    if (badge) {
+        badge.textContent = _memoriesCache.length;
+        badge.classList.remove('hidden');
+    }
+
+    const now = Date.now();
+    const isNewThreshold = 5 * 60 * 1000; // 5分钟内算新
+
+    const html = memories.map(mem => {
+        const typeInfo = MEMORY_TYPE_LABELS[mem.memory_type] || MEMORY_TYPE_LABELS.fact;
+        const confirmedClass = mem.confirmed ? 'confirmed' : 'unconfirmed';
+        const confirmedLabel = mem.confirmed ? '✓ 已确认' : '⏳ 待确认';
+        const timeStr = formatRelativeTime(mem.created_at);
+
+        // 是否为新记忆
+        const createdTime = mem.created_at ? new Date(mem.created_at).getTime() : 0;
+        const isNew = (now - createdTime) < isNewThreshold;
+        const newBadge = isNew ? '<span class="memory-new-badge">新</span>' : '';
+
+        // 展开/收起
+        const content = escapeHtml(mem.content || '');
+        const isLong = content.length > 60;
+        const contentClass = isLong && !mem._expanded ? 'is-truncated' : '';
+        const expandBtn = isLong ? `<button class="memory-expand-btn" onclick="toggleMemoryExpand('${mem.id}')">${mem._expanded ? '收起' : '展开'}</button>` : '';
+
+        // 搜索高亮
+        let displayContent = content;
+        if (_memorySearchQuery && _memorySearchQuery.trim()) {
+            const q = escapeHtml(_memorySearchQuery.trim());
+            const regex = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            displayContent = content.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // 编辑态
+        const isEditing = _editingMemoryId === mem.id;
+        if (isEditing) {
+            return `
+                <div class="memory-item ${confirmedClass} is-new" data-id="${mem.id}">
+                    <div class="memory-item-type ${typeInfo.class}">
+                        <span>${typeInfo.icon}</span>
+                        <span>${typeInfo.label}</span>${newBadge}
+                    </div>
+                    <div class="memory-edit-form">
+                        <textarea class="memory-edit-textarea" id="memory-edit-text-${mem.id}" rows="2">${escapeHtml(mem.content || '')}</textarea>
+                        <div class="memory-edit-actions">
+                            <button class="memory-edit-btn save" onclick="saveMemoryEdit('${mem.id}')">保存</button>
+                            <button class="memory-edit-btn cancel" onclick="cancelMemoryEdit()">取消</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="memory-item ${confirmedClass} ${isNew ? 'is-new' : ''}" data-id="${mem.id}">
+                <div class="memory-item-type ${typeInfo.class}">
+                    <span>${typeInfo.icon}</span>
+                    <span>${typeInfo.label}</span>${newBadge}
+                </div>
+                <div class="memory-item-content ${contentClass}">${displayContent}</div>
+                ${expandBtn}
+                ${renderConfidenceBar(mem.confidence)}
+                <div class="memory-item-meta">
+                    <span>${confirmedLabel} · ${timeStr}</span>
+                    <div class="memory-item-actions">
+                        ${!mem.confirmed ? `<button class="memory-btn confirm" onclick="confirmUserMemory('${mem.id}')" title="确认">✓</button>` : ''}
+                        <button class="memory-btn edit" onclick="editUserMemory('${mem.id}')" title="编辑">✎</button>
+                        <button class="memory-btn delete" onclick="deleteUserMemory('${mem.id}')" title="删除">✕</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = html;
+}
+
+function toggleMemoryExpand(memoryId) {
+    const mem = _memoriesCache.find(m => m.id === memoryId);
+    if (mem) {
+        mem._expanded = !mem._expanded;
+        filterAndRenderMemories();
+    }
+}
+
+function editUserMemory(memoryId) {
+    _editingMemoryId = memoryId;
+    filterAndRenderMemories();
+    const textarea = document.getElementById(`memory-edit-text-${memoryId}`);
+    if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+}
+
+async function saveMemoryEdit(memoryId) {
+    const textarea = document.getElementById(`memory-edit-text-${memoryId}`);
+    if (!textarea) return;
+    const newContent = textarea.value.trim();
+    if (!newContent) {
+        showMemoryToast('⚠️ 记忆内容不能为空');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${MEMORY_API_URL}/${memoryId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newContent })
+        });
+        if (res.ok) {
+            showMemoryToast('✓ 记忆已更新');
+            _editingMemoryId = null;
+            loadUserMemories();
+        } else {
+            showMemoryToast('⚠️ 更新失败');
+        }
+    } catch (e) {
+        console.log('[MemoryPanel] 编辑记忆失败:', e);
+        showMemoryToast('⚠️ 网络错误');
+    }
+}
+
+function cancelMemoryEdit() {
+    _editingMemoryId = null;
+    filterAndRenderMemories();
+}
+
+function showMemoryJustRemembered() {
+    const container = document.getElementById('memory-list-container');
+    if (!container) return;
+    // 如果顶部已经有提示，不重复添加
+    if (container.querySelector('.memory-just-remembered')) return;
+
+    const tip = document.createElement('div');
+    tip.className = 'memory-just-remembered';
+    tip.textContent = '💡 AI 刚刚记住了你的新特征';
+    container.insertBefore(tip, container.firstChild);
+
+    // 3.5秒后移除
+    setTimeout(() => {
+        if (tip.parentNode) tip.parentNode.removeChild(tip);
+    }, 3500);
+}
+
+async function confirmUserMemory(memoryId) {
+    try {
+        const res = await fetch(`${MEMORY_API_URL}/${memoryId}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirmed: true })
+        });
+        if (res.ok) {
+            showMemoryToast('✓ 记忆已确认，AI 会更信赖这条信息');
+            loadUserMemories();
+        }
+    } catch (e) {
+        console.log('[MemoryPanel] 确认记忆失败:', e);
+    }
+}
+
+async function deleteUserMemory(memoryId) {
+    if (!confirm('确定要删除这条记忆吗？AI 将不再记住这个信息。')) return;
+    try {
+        const res = await fetch(`${MEMORY_API_URL}/${memoryId}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMemoryToast('🗑 记忆已删除');
+            loadUserMemories();
+        }
+    } catch (e) {
+        console.log('[MemoryPanel] 删除记忆失败:', e);
+    }
+}
+
+function showMemoryToast(message) {
+    const existing = document.querySelector('.memory-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.className = 'memory-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => toast.remove(), 3000);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function confirmUnderstanding(understood, timestamp) {
+    const msg = messages.find(m => m._timestamp === timestamp || String(m._timestamp) === String(timestamp));
+    if (!msg) return;
+
+    // 移除交互条，显示用户选择
+    msg._socraticCheckpoint = false;
+    msg._checkpointResult = understood ? 'understood' : 'confused';
+
+    // 跟踪苏格拉底通关率
+    if (!evaluation._socraticStats) {
+        evaluation._socraticStats = { total: 0, passed: 0 };
+    }
+    evaluation._socraticStats.total = (evaluation._socraticStats.total || 0) + 1;
+    if (understood) {
+        evaluation._socraticStats.passed = (evaluation._socraticStats.passed || 0) + 1;
+    }
+    const socraticPassRate = evaluation._socraticStats.total > 0
+        ? evaluation._socraticStats.passed / evaluation._socraticStats.total
+        : 0;
+    updateEvaluation({ socraticPassRate });
+
+    if (understood) {
+        showMemoryToast('✓ 已记录，继续加油！');
+    } else {
+        showMemoryToast('💡 进入苏格拉底深度诊断模式...');
+        // 触发强轨道：发送一条消息并强制后端进入苏格拉底模式
+        handleSendStream('我对这部分还不太理解，能详细讲讲吗？', { forceSocratic: true });
+    }
+
+    // 持久化到后端
+    try {
+        await fetch('/api/socratic/checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: msg._checkpointTopic || '',
+                understood: understood,
+                message_timestamp: timestamp,
+                course_id: null
+            })
+        });
+    } catch (e) {
+        console.warn('[Socratic] checkpoint persist failed:', e);
+    }
+
+    renderMessages();
+}
+
+// 页面加载时启动记忆轮询
+document.addEventListener('DOMContentLoaded', () => {
+    loadUserMemories();
+    // 每30秒刷新一次记忆面板（兜底）
+    _memoryPollingInterval = setInterval(loadUserMemories, 30000);
+
+    // 绑定筛选 chip 点击事件
+    const chipsContainer = document.getElementById('memory-filter-chips');
+    if (chipsContainer) {
+        chipsContainer.addEventListener('click', (e) => {
+            const chip = e.target.closest('.memory-chip');
+            if (!chip) return;
+            chipsContainer.querySelectorAll('.memory-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            _activeMemoryFilter = chip.dataset.type || 'all';
+            filterAndRenderMemories();
+        });
+    }
+
+    // 页面重新可见时立即刷新记忆
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            loadUserMemories();
+        }
+    });
+});
