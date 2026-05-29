@@ -9369,3 +9369,35 @@ img, svg {
 .theme-toggle-btn {
   display: none;
 }
+
+/* Theme color picker */
+.theme-color-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.theme-color-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.theme-color-btn:hover { background: var(--bg-glass-hover); }
+.theme-color-btn.active {
+  border-color: var(--brand-500);
+  background: rgba(249, 115, 22, 0.06);
+}
+.theme-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
