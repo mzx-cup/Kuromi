@@ -5416,7 +5416,7 @@ def get_user_playlists(user_id):
                 results = []
                 for row in rows:
                     pl = dict(row)
-                    join_sql = "SELECT pv.*, vc.title, vc.source_type, vc.bvid, vc.page, vc.local_path, vc.duration_label, vc.ai_summary, vc.ai_timeline, vc.ai_questions, vc.ai_suggestion FROM playlist_videos pv JOIN video_courses vc ON pv.course_id = vc.id WHERE pv.playlist_id = " + ("?" if _is_sqlite(conn) else "%s") + " ORDER BY pv.position, pv.id"
+                    join_sql = "SELECT pv.*, vc.title, vc.subtitle, vc.source_type, vc.bvid, vc.page, vc.local_path, vc.duration_label, vc.ai_summary, vc.ai_timeline, vc.ai_questions, vc.ai_suggestion FROM playlist_videos pv JOIN video_courses vc ON pv.course_id = vc.id WHERE pv.playlist_id = " + ("?" if _is_sqlite(conn) else "%s") + " ORDER BY pv.position, pv.id"
                     cursor.execute(join_sql, (pl['id'],))
                     vrows = cursor.fetchall()
                     pl['videos'] = [dict(vr) for vr in vrows]
@@ -5435,7 +5435,7 @@ def get_user_playlists(user_id):
             for item in items:
                 course = all_courses.get(item.get('course_id'))
                 if course:
-                    item.update({k: course[k] for k in ('title', 'source_type', 'bvid', 'page', 'local_path', 'duration_label', 'ai_summary', 'ai_timeline', 'ai_questions', 'ai_suggestion') if k in course})
+                    item.update({k: course[k] for k in ('title', 'subtitle', 'source_type', 'bvid', 'page', 'local_path', 'duration_label', 'ai_summary', 'ai_timeline', 'ai_questions', 'ai_suggestion') if k in course})
             pl['videos'] = sorted(items, key=lambda i: i.get('position', 0))
         return sorted(playlists, key=lambda p: p.get('position', 0))
 

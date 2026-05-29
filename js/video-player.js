@@ -30,6 +30,7 @@ const danmakuStage = $('danmaku-stage');
 // ============ BilibiliDriver ============
 const BilibiliDriver = {
     _playing: false,
+    _ready: false,
 
     get iframe() { return iframeBilibili; },
 
@@ -37,13 +38,14 @@ const BilibiliDriver = {
         try {
             this.iframe.contentWindow.postMessage(
                 { cmd: 'callPlayer', args: [cmd, ...args], id: Date.now() },
-                'https://player.bilibili.com'
+                '*'
             );
         } catch (e) {}
     },
 
     load(bvid, page = 1) {
         this._playing = false;
+        this._ready = false;
         this.iframe.src = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=0&danmaku=0';
     },
 
@@ -162,14 +164,26 @@ window.addEventListener('message', function(e) {
 
     if (data.state === 'playing') {
         BilibiliDriver._playing = true;
+        BilibiliDriver._ready = true;
         updatePlayIcon(true);
+        player.removeAttribute('data-loading-state');
+        player.removeAttribute('data-empty-state');
     }
     if (data.state === 'paused') {
         BilibiliDriver._playing = false;
         updatePlayIcon(false);
     }
+    if (data.state === 'ready') {
+        BilibiliDriver._ready = true;
+        player.removeAttribute('data-loading-state');
+        player.removeAttribute('data-empty-state');
+    }
+});
 
-    if (data.state === 'ready' || data.state === 'playing') {
+// 兜底：iframe onload 清除 loading 状态（防止 B站播放器不发 ready 消息）
+iframeBilibili.addEventListener('load', function() {
+    if (currentSourceType === 'bilibili') {
+        BilibiliDriver._ready = true;
         player.removeAttribute('data-loading-state');
         player.removeAttribute('data-empty-state');
     }
