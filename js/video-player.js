@@ -31,26 +31,40 @@ const danmakuStage = $('danmaku-stage');
 const BilibiliDriver = {
     _playing: false,
     _ready: false,
+    _duration: 0,
 
     get iframe() { return iframeBilibili; },
 
     postCommand(cmd, ...args) {
         try {
-            this.iframe.contentWindow.postMessage(
-                { cmd: 'callPlayer', args: [cmd, ...args], id: Date.now() },
-                '*'
-            );
-        } catch (e) {}
+            var msg = { cmd: 'callPlayer', args: [cmd].concat(args), id: Date.now() };
+            this.iframe.contentWindow.postMessage(msg, '*');
+            console.log('[BilibiliDriver] postMessage:', JSON.stringify(msg));
+        } catch (e) {
+            console.warn('[BilibiliDriver] postMessage error:', e);
+        }
     },
 
-    load(bvid, page = 1) {
+    load(bvid, page) {
         this._playing = false;
         this._ready = false;
-        this.iframe.src = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=0&danmaku=0';
+        this._duration = 0;
+        page = page || 1;
+        var url = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=0&danmaku=0';
+        console.log('[BilibiliDriver] loading:', url);
+        this.iframe.src = url;
     },
 
-    play() { this.postCommand('play'); },
-    pause() { this.postCommand('pause'); },
+    play() {
+        this._playing = true;
+        updatePlayIcon(true);
+        this.postCommand('play');
+    },
+    pause() {
+        this._playing = false;
+        updatePlayIcon(false);
+        this.postCommand('pause');
+    },
     seek(time) { this.postCommand('seek', time); },
     setPlaybackRate(rate) { this.postCommand('setPlaybackRate', rate); },
     setVolume(vol) { this.postCommand('setVolume', vol / 100); },
@@ -149,12 +163,13 @@ const videoController = {
 // ============ postMessage 监听 ============
 window.addEventListener('message', function(e) {
     if (e.origin !== 'https://player.bilibili.com') return;
-    const data = e.data;
+    var data = e.data;
     if (!data || typeof data !== 'object') return;
 
     if (typeof data.currentTime === 'number' && currentSourceType === 'bilibili') {
-        const duration = data.duration || 1;
-        const pct = (data.currentTime / duration) * 100;
+        var dur = data.duration || BilibiliDriver._duration || 1;
+        if (data.duration) BilibiliDriver._duration = data.duration;
+        var pct = (data.currentTime / dur) * 100;
         updateProgress(pct);
         currentTimeEl.textContent = formatTime(data.currentTime);
         if (data.duration && totalTimeEl.textContent === '--:--') {
@@ -175,6 +190,7 @@ window.addEventListener('message', function(e) {
     }
     if (data.state === 'ready') {
         BilibiliDriver._ready = true;
+        if (data.duration) BilibiliDriver._duration = data.duration;
         player.removeAttribute('data-loading-state');
         player.removeAttribute('data-empty-state');
     }
@@ -226,7 +242,9 @@ volumeBtn.addEventListener('click', function() {
         updateVolumeIcon();
         showToast(videoLocal.muted ? '已静音' : '已恢复声音', 'info');
     } else {
-        showToast('B站视频请使用播放器内置音量控制', 'info');
+        BilibiliDriver.setVolume(videoLocal.muted ? 100 : 0);
+        videoLocal.muted = !videoLocal.muted;
+        updateVolumeIcon();
     }
 });
 
@@ -246,13 +264,19 @@ fullscreenBtn.addEventListener('click', function() {
 });
 
 progressTrack.addEventListener('click', function(e) {
+    var rect = progressTrack.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
     if (currentSourceType === 'local') {
         if (!Number.isFinite(videoLocal.duration)) return;
-        const rect = progressTrack.getBoundingClientRect();
-        const pct = (e.clientX - rect.left) / rect.width;
         videoLocal.currentTime = pct * videoLocal.duration;
     } else if (currentSourceType === 'bilibili') {
-        showToast('B站视频请拖动播放器内置进度条', 'info');
+        var dur = BilibiliDriver._duration;
+        if (dur > 0) {
+            var targetTime = pct * dur;
+            BilibiliDriver.seek(targetTime);
+            updateProgress(pct * 100);
+            currentTimeEl.textContent = formatTime(targetTime);
+        }
     }
 });
 
