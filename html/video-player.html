@@ -21,12 +21,11 @@
                 <span class="brand-mark">SL</span>
                 <div>
                     <h1 class="nav-title">全息视界</h1>
-                    <p class="nav-subtitle">本地视频学习驾驶舱</p>
                 </div>
             </div>
             <div class="nav-status">
                 <span class="status-dot"></span>
-                <span>video/ 已接入</span>
+                <span id="nav-status-text">就绪</span>
             </div>
         </div>
     </nav>
@@ -37,22 +36,28 @@
                 <section class="player-shell">
                     <div class="player-heading">
                         <div>
-                            <p class="section-kicker">本地视频播放</p>
-                            <h2 id="video-title">算法复杂度分析</h2>
-                            <p id="video-subtitle" class="stage-copy">从时间复杂度、空间复杂度到代码层级分析，建立算法效率判断框架。</p>
+                            <p class="section-kicker" id="section-kicker">视频播放</p>
+                            <h2 id="video-title">选择视频开始学习</h2>
+                            <p id="video-subtitle" class="stage-copy"></p>
                         </div>
                     </div>
 
                     <div class="video-player" id="video-player" data-empty-state>
-                        <video id="course-video" preload="auto" playsinline muted></video>
+                        <video id="course-video-local" preload="auto" playsinline style="display:none"></video>
+                        <iframe id="course-video-bilibili"
+                                allowfullscreen
+                                sandbox="allow-scripts allow-same-origin allow-presentation"
+                                loading="lazy"
+                                referrerpolicy="no-referrer"
+                                style="display:none"></iframe>
                         <div class="video-empty-state" id="video-empty-state">
                             <div class="play-circle">
                                 <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M8 5v14l11-7z"/>
                                 </svg>
                             </div>
-                            <p class="placeholder-text">请将视频放入 星识 根目录的 video/ 文件夹</p>
-                            <p class="placeholder-subtext">支持 .mp4 / .webm / .mov，播放器会使用 /video/ 路径读取本地视频。</p>
+                            <p class="placeholder-text">添加你的第一个学习视频</p>
+                            <p class="placeholder-subtext">支持 bilibili.com 的 BV 号或 av 号，也可指定本地 video/ 目录中的视频文件</p>
                         </div>
                         <div class="danmaku-stage" id="danmaku-stage" aria-live="polite"></div>
 
@@ -89,7 +94,6 @@
                                 </div>
                                 <div class="control-right">
                                     <button class="control-btn speed-btn" id="speed-btn" type="button"><span id="speed-text">1x</span></button>
-                                    <button class="control-btn quality-btn" id="quality-btn" type="button"><span>本地</span></button>
                                     <button class="control-btn fullscreen-btn" id="fullscreen-btn" type="button" aria-label="全屏">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
@@ -108,7 +112,7 @@
 
                 <section class="video-info-panel">
                     <div>
-                        <span class="panel-label">当前视频</span>
+                        <span class="panel-label" id="info-source-label">来源: -</span>
                         <h3 id="info-title">算法复杂度分析</h3>
                         <p id="info-description">掌握 O(1)、O(n)、O(log n) 的判断方法，并能用 Python 代码解释时间与空间消耗。</p>
                     </div>
@@ -127,19 +131,32 @@
 
             <aside class="player-side-panel">
                 <div class="side-tabs" role="tablist" aria-label="全息视界侧栏">
-                    <button class="side-tab active" type="button" data-tab="episodes">选集</button>
+                    <button class="side-tab active" type="button" data-tab="courses">课程库</button>
+                    <button class="side-tab" type="button" data-tab="playlist">我的列表</button>
                     <button class="side-tab" type="button" data-tab="ai-notes">AI伴学笔记</button>
                 </div>
 
-                <section class="side-panel-section active" id="episodes-panel">
+                <section class="side-panel-section active" id="courses-panel">
                     <div class="side-section-header">
                         <div>
-                            <span class="section-kicker">video/ 本地仓库</span>
-                            <h3>课程选集</h3>
+                            <span class="section-kicker">课程库</span>
+                            <h3>全部视频课程</h3>
                         </div>
-                        <span class="rail-pill" id="episode-count">0 个视频</span>
+                        <button class="ghost-action" id="add-course-btn" type="button" style="padding:0 10px;font-size:12px;min-height:28px">+ 添加</button>
                     </div>
-                    <div class="episode-list" id="episode-list"></div>
+                    <input class="danmaku-input" id="course-search" type="text" placeholder="搜索课程..." style="margin-bottom:8px">
+                    <div class="episode-list" id="course-list"></div>
+                </section>
+
+                <section class="side-panel-section" id="playlist-panel">
+                    <div class="side-section-header">
+                        <div>
+                            <span class="section-kicker">我的列表</span>
+                            <h3 id="playlist-name">默认列表</h3>
+                        </div>
+                        <span class="rail-pill" id="playlist-count">0 个视频</span>
+                    </div>
+                    <div class="episode-list" id="playlist-episode-list"></div>
                 </section>
 
                 <section class="side-panel-section" id="ai-notes-panel">
@@ -173,6 +190,42 @@
                 </section>
             </aside>
         </section>
+
+        <!-- Add Course Modal -->
+        <div class="modal-overlay hidden" id="add-course-modal">
+            <div class="modal-panel">
+                <div class="modal-header">
+                    <h3>添加视频课程</h3>
+                    <button class="modal-close" id="modal-close-btn" type="button">&times;</button>
+                </div>
+                <form id="add-course-form">
+                    <div class="form-group">
+                        <label>来源类型</label>
+                        <select id="course-source-type">
+                            <option value="bilibili">B站 (Bilibili)</option>
+                            <option value="local">本地视频</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>课程标题</label>
+                        <input id="course-title-input" type="text" maxlength="100" placeholder="输入课程名称" required>
+                    </div>
+                    <div class="form-group" id="bvid-group">
+                        <label>B站 BV 号</label>
+                        <input id="course-bvid-input" type="text" maxlength="20" placeholder="例如 BV1xx411c7mD">
+                    </div>
+                    <div class="form-group hidden" id="local-path-group">
+                        <label>本地文件路径</label>
+                        <input id="course-local-input" type="text" maxlength="200" placeholder="例如 /video/algorithm-01.mp4">
+                        <span class="form-hint">将视频放入 video/ 文件夹后，路径填 /video/文件名</span>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="ghost-action" id="modal-cancel-btn">取消</button>
+                        <button type="submit" class="primary-action">添加</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </main>
 
     <script src="/js/data-layer.js"></script>
