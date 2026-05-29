@@ -6253,6 +6253,19 @@ body.light-theme .path-tree-empty {
     color: var(--accent);
     background: var(--accent-bg);
 }
+.markdown-link {
+    color: #3b82f6;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.markdown-link:hover {
+    color: #2563eb;
+}
+.markdown-link-external {
+    font-weight: 500;
+}
 [data-theme="sakura-falling"] .prose a {
     color: var(--accent);
 }
@@ -11046,66 +11059,6 @@ body.light-theme .openmaic-btn-ghost:hover,
 .checkpoint-no:hover {
     background: rgba(239, 68, 68, 0.18);
     transform: translateY(-1px);
-}
-
-/* ========== AI眼中的你 画像卡片（已合并到记忆面板） ========== */
-
-/* 紧凑内联标签云 — 位于记忆面板顶部 */
-.profile-tags-inline {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    padding: 8px 0 4px;
-    margin-bottom: 6px;
-    border-bottom: 1px solid rgba(45, 90, 61, 0.1);
-}
-
-.profile-tags-inline:empty,
-.profile-tags-inline .profile-empty-state:only-child {
-    border-bottom: none;
-    padding: 4px 0;
-    margin-bottom: 0;
-}
-
-.profile-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    line-height: 1.4;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-    background: rgba(45, 90, 61, 0.15);
-    color: #e2e8f0;
-}
-
-.profile-tag:hover {
-    background: rgba(201, 168, 76, 0.15);
-    border-color: rgba(201, 168, 76, 0.3);
-}
-
-.profile-tag.weakness {
-    background: rgba(239, 68, 68, 0.1);
-    color: #fca5a5;
-}
-
-.profile-tag.weakness:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.3);
-}
-
-.profile-empty-state {
-    animation: pulse 2s infinite;
-}
-
-/* 画像标签激活态（点击筛选时） */
-.profile-tag.is-filter-active {
-    background: rgba(201, 168, 76, 0.25);
-    border-color: rgba(201, 168, 76, 0.5);
-    color: #f5f0e8;
 }
 
 /* ========== 记忆引用横幅 ========== */

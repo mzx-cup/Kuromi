@@ -48,6 +48,35 @@ class GenerateLearningPathResponse(BaseModel):
     confidence: float
 
 
+# ── 节点级增量刷新模型 ──
+
+class NodeUpdateItem(BaseModel):
+    node_id: str
+    status: str | None = None
+    mastery_score: float | None = None
+    rule_verified: bool | None = None
+    llm_verified: bool | None = None
+    completion_source: str | None = None
+    evidence_json: dict | None = None
+
+
+class BatchUpdateNodesRequest(BaseModel):
+    userId: int
+    nodes: list[NodeUpdateItem]
+
+
+class EvaluateNodesRequest(BaseModel):
+    userId: int
+    node_ids: list[str] | None = None  # None 表示评估所有节点
+
+
+class NodeStateResponse(BaseModel):
+    success: bool
+    nodes: list[dict]
+    evaluated_count: int = 0
+    changed_count: int = 0
+
+
 # ── LLM 调用 ──
 
 def _call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
@@ -112,6 +141,52 @@ def _normalize_path(value: Any) -> list[dict]:
     if isinstance(value, list):
         return [node if isinstance(node, dict) else {"topic": str(node), "status": "locked"} for node in value]
     return []
+
+
+def _merge_node_states_into_path(user_id: int, path: list[dict]) -> list[dict]:
+    """将节点追踪表中的状态融合到路径中（节点表优先）。"""
+    nodes_map = {}
+    try:
+        nodes = database.get_learning_path_nodes(user_id)
+        for n in nodes:
+            nid = n.get('node_id')
+            if nid:
+                nodes_map[nid] = n
+    except Exception as e:
+        print(f"[_merge_node_states] 获取节点状态失败: {e}")
+
+    def _merge_node(node, parent_id=None):
+        topic = node.get('topic') or node.get('name') or node.get('title', '')
+        node_id = node.get('id') or node.get('node_id')
+        if not node_id and topic:
+            import re
+            slug = re.sub(r'[^\w一-鿿]+', '_', topic).strip('_').lower()
+            node_id = f"topic:{slug}" if not parent_id else f"{parent_id}:{slug}"
+
+        if node_id and node_id in nodes_map:
+            ns = nodes_map[node_id]
+            # 节点表状态优先（更精确）
+            if ns.get('status'):
+                node['status'] = ns['status']
+            # 添加掌握度元数据
+            if ns.get('mastery_score'):
+                node['mastery_score'] = ns['mastery_score']
+            if ns.get('completion_source'):
+                node['completion_source'] = ns['completion_source']
+            if ns.get('rule_verified'):
+                node['rule_verified'] = bool(ns['rule_verified'])
+            if ns.get('llm_verified'):
+                node['llm_verified'] = bool(ns['llm_verified'])
+
+        # 递归处理 children
+        if node.get('children'):
+            for child in node['children']:
+                _merge_node(child, parent_id=node_id)
+
+    for node in path:
+        _merge_node(node)
+
+    return path
 
 
 # ── Prompt 构建 ──
@@ -255,6 +330,8 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
                 last_gen = datetime.fromisoformat(existing["generated_at"])
                 if (datetime.now() - last_gen).total_seconds() < 300:
                     path = _normalize_path(existing.get("path_json"))
+                    # 融合节点状态（如果有更新的节点状态）
+                    path = _merge_node_states_into_path(user_id, path)
                     return GenerateLearningPathResponse(
                         success=True,
                         path=path,
@@ -293,8 +370,14 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
             confidence=0.0,
         )
 
-    # 5. 保存到数据库
-    data_sources = ["profile", "cockpit_analysis", "quiz_records", "classroom_sessions", "user_stats", "daily_route", "messages"]
+    # 5. 融合节点状态（节点表的状态更精确，覆盖 LLM 生成的状态）
+    path = _merge_node_states_into_path(user_id, path)
+
+    # 6. 同步路径到节点追踪表（初始化缺失节点）
+    database.sync_path_to_nodes(user_id, path)
+
+    # 7. 保存到数据库
+    data_sources = ["profile", "cockpit_analysis", "quiz_records", "classroom_sessions", "user_stats", "daily_route", "messages", "node_states"]
     reasoning = f"基于学生最新学情生成：认知等级 {analytics['cockpit']['cognitive_level']}，概念掌握率 {analytics['cockpit']['concept_mastery']}%，近期测验通过率 {analytics['quizzes']['summary']['pass_rate']}%"
     confidence = min(0.99, 0.7 + len(path) * 0.02)
 
@@ -328,6 +411,7 @@ async def generate_learning_path(request: GenerateLearningPathRequest):
 async def get_current_learning_path(user_id: int):
     """
     获取学生当前保存的学习路径（不触发 LLM 生成）。
+    返回的路径已融合节点追踪表中的最新状态。
     """
     existing = database.get_learning_path(user_id)
     if not existing:
@@ -341,11 +425,108 @@ async def get_current_learning_path(user_id: int):
         )
 
     path = _normalize_path(existing.get("path_json"))
+    # 融合节点状态
+    path = _merge_node_states_into_path(user_id, path)
     return GenerateLearningPathResponse(
         success=True,
         path=path,
-        reasoning=existing.get("reasoning", ""),
-        data_sources=existing.get("data_sources", []),
-        generated_at=existing.get("generated_at", datetime.now().isoformat()),
-        confidence=existing.get("confidence", 0.0),
+        reasoning=existing.get("reasoning") or "",
+        data_sources=existing.get("data_sources") or [],
+        generated_at=existing.get("generated_at") or datetime.now().isoformat(),
+        confidence=existing.get("confidence", 0.0) or 0.0,
+    )
+
+
+# ── 节点级增量刷新 API ──
+
+@router.post("/nodes/update", response_model=NodeStateResponse)
+async def update_learning_path_nodes(request: BatchUpdateNodesRequest):
+    """批量更新知识点节点状态（前端或事件系统调用）。"""
+    updated = []
+    changed = 0
+    for item in request.nodes:
+        node_data = {
+            'node_id': item.node_id,
+            'status': item.status,
+            'mastery_score': item.mastery_score,
+            'rule_verified': 1 if item.rule_verified else 0,
+            'llm_verified': 1 if item.llm_verified else 0,
+            'completion_source': item.completion_source,
+            'evidence_json': item.evidence_json,
+        }
+        # 过滤 None 值
+        node_data = {k: v for k, v in node_data.items() if v is not None}
+        existing = database.get_learning_path_node(request.userId, item.node_id)
+        old_status = existing.get('status') if existing else None
+        success = database.save_learning_path_node(request.userId, node_data)
+        if success:
+            updated.append(item.node_id)
+            if item.status and item.status != old_status:
+                changed += 1
+
+    return NodeStateResponse(
+        success=True,
+        nodes=[{"node_id": nid} for nid in updated],
+        evaluated_count=len(updated),
+        changed_count=changed,
+    )
+
+
+@router.get("/nodes/{user_id}", response_model=NodeStateResponse)
+async def get_learning_path_nodes(user_id: int):
+    """获取学生的所有知识点节点状态。"""
+    nodes = database.get_learning_path_nodes(user_id)
+    return NodeStateResponse(
+        success=True,
+        nodes=nodes,
+        evaluated_count=0,
+        changed_count=0,
+    )
+
+
+@router.post("/nodes/evaluate", response_model=NodeStateResponse)
+async def evaluate_learning_path_nodes(request: EvaluateNodesRequest):
+    """触发规则引擎评估节点状态（事件系统调用）。"""
+    from app.services.learning_path.rule_engine import (
+        evaluate_node, reevaluate_all_nodes
+    )
+
+    results = []
+    changed = 0
+
+    if request.node_ids:
+        # 评估指定节点
+        for node_id in request.node_ids:
+            try:
+                result = evaluate_node(request.userId, node_id)
+                results.append({
+                    "node_id": result.node_id,
+                    "status": result.status,
+                    "mastery_score": result.mastery_score,
+                    "rule_verified": result.rule_verified,
+                    "completion_source": result.completion_source,
+                })
+                if result.rule_verified:
+                    changed += 1
+            except Exception as e:
+                print(f"[evaluate_nodes] 节点 {node_id} 评估失败: {e}")
+    else:
+        # 评估所有节点
+        all_results = reevaluate_all_nodes(request.userId)
+        for result in all_results:
+            results.append({
+                "node_id": result.node_id,
+                "status": result.status,
+                "mastery_score": result.mastery_score,
+                "rule_verified": result.rule_verified,
+                "completion_source": result.completion_source,
+            })
+            if result.rule_verified:
+                changed += 1
+
+    return NodeStateResponse(
+        success=True,
+        nodes=results,
+        evaluated_count=len(results),
+        changed_count=changed,
     )

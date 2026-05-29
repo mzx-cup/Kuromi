@@ -80,7 +80,7 @@ class ToolExecutor:
         logger.info("Web search: %s", query[:80])
 
         from app.services.teacher.web_search import (
-            search_minimax, search_web, format_as_context,
+            search_minimax, search_web, format_as_context, filter_valid_bilibili_links,
         )
 
         # Step 1: 尝试 MiniMax MCP 搜索
@@ -88,28 +88,45 @@ class ToolExecutor:
             search_response = await search_minimax(query)
             if search_response and (search_response.results or search_response.answer):
                 logger.info("MiniMax search succeeded for: %s", query[:80])
+                # MiniMax 结果也需要验证 B站链接
+                valid_results = await filter_valid_bilibili_links(search_response.results)
+                search_response.results = valid_results
+                search_response.source_count = len(valid_results)
                 context = format_as_context(search_response)
                 return {
                     "query": query,
                     "answer": search_response.answer,
                     "results": [
                         {"title": r.title, "url": r.url, "content": r.content[:300]}
-                        for r in search_response.results
+                        for r in valid_results
                     ],
-                    "source_count": search_response.source_count,
+                    "source_count": len(valid_results),
                     "context_for_llm": context,
                     "provider": "minimax",
                 }
         except Exception as e:
             logger.warning("MiniMax search failed, falling back to Tavily: %s", e)
 
-        # Step 2: Fallback 到 Tavily
-        search_response = await search_web(query)
+        # Step 2: Fallback 到 Tavily（使用 advanced 深度获取更精确结果）
+        search_response = await search_web(query, search_depth="advanced", max_results=8)
         if not search_response.results and not search_response.answer:
             return {
                 "query": query,
                 "results": [],
                 "summary": "未找到相关搜索结果。",
+                "source_count": 0,
+            }
+
+        # Step 3: 验证 B站链接有效性，过滤已失效的视频
+        valid_results = await filter_valid_bilibili_links(search_response.results)
+        search_response.results = valid_results
+        search_response.source_count = len(valid_results)
+
+        if not valid_results and not search_response.answer:
+            return {
+                "query": query,
+                "results": [],
+                "summary": "搜索到的视频链接均已失效，未找到有效的学习资源。",
                 "source_count": 0,
             }
 
@@ -119,9 +136,9 @@ class ToolExecutor:
             "answer": search_response.answer,
             "results": [
                 {"title": r.title, "url": r.url, "content": r.content[:300]}
-                for r in search_response.results
+                for r in valid_results
             ],
-            "source_count": search_response.source_count,
+            "source_count": len(valid_results),
             "context_for_llm": context,
             "provider": "tavily",
         }

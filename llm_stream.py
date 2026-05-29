@@ -38,6 +38,7 @@ async def call_llm_async(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.3,
+    tools: list[dict] | None = None,
 ) -> str:
     """同步调用 MiniMax M2.7（非流式）"""
     client = await get_http_client()
@@ -54,6 +55,8 @@ async def call_llm_async(
         "temperature": temperature,
         "max_tokens": MAX_OUTPUT_TOKENS,
     }
+    if tools:
+        payload["tools"] = tools
 
     try:
         response = await client.post(
@@ -86,6 +89,7 @@ async def call_llm_stream(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.3,
+    tools: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     """流式调用 MiniMax M2.7"""
     client = await get_http_client()
@@ -103,6 +107,8 @@ async def call_llm_stream(
         "stream": True,
         "max_tokens": MAX_OUTPUT_TOKENS,
     }
+    if tools:
+        payload["tools"] = tools
 
     try:
         async with client.stream(

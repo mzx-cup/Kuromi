@@ -614,7 +614,6 @@
                 <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
                     <i data-lucide="brain" class="w-4 h-4" style="color: var(--primary-light);"></i>
                     <h2 class="font-semibold text-xs flex-1 sidebar-title-text">我的记忆</h2>
-                    <span id="profile-last-updated" class="text-[10px]" style="color: var(--text-tertiary);"></span>
                     <span id="memory-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full hidden" style="background: var(--accent-bg); color: var(--primary-light);">0</span>
                 </div>
                 <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('memory-section', this)" data-section="memory-section" aria-expanded="true" aria-controls="memory-section" title="展开/收起我的记忆">
@@ -622,12 +621,6 @@
                     <span class="expand-text text-xs font-medium">收起</span>
                 </button>
                 <div class="sidebar-section-content" id="memory-section">
-                    <!-- 画像摘要标签云 -->
-                    <div id="profile-card-container" class="profile-tags-inline">
-                        <div class="profile-empty-state text-center py-2 text-[11px]" style="color: var(--text-tertiary);">
-                            🤖 AI 正在了解你…
-                        </div>
-                    </div>
                     <!-- 类型筛选 -->
                     <div class="memory-filter-chips" id="memory-filter-chips">
                         <button class="memory-chip active" data-type="all">全部</button>
