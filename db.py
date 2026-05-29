@@ -5148,3 +5148,447 @@ def _is_mysql(conn):
 def get_backend_name():
     """返回当前使用的后端名称"""
     return _detect_backend()
+
+
+# ============================================================
+# 视频课程库相关表
+# ============================================================
+
+def init_video_tables():
+    with get_db() as conn:
+        if conn is None:
+            return
+        try:
+            cursor = conn.cursor()
+            if _is_sqlite(conn):
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS video_courses (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        title TEXT NOT NULL,
+                        subtitle TEXT DEFAULT '',
+                        source_type TEXT NOT NULL DEFAULT 'bilibili',
+                        bvid TEXT DEFAULT '',
+                        page INTEGER DEFAULT 1,
+                        local_path TEXT DEFAULT '',
+                        duration_label TEXT DEFAULT '--:--',
+                        ai_summary TEXT DEFAULT '',
+                        ai_timeline TEXT DEFAULT '[]',
+                        ai_questions TEXT DEFAULT '[]',
+                        ai_suggestion TEXT DEFAULT '',
+                        created_by TEXT DEFAULT '',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS video_playlists (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id TEXT NOT NULL,
+                        name TEXT NOT NULL DEFAULT '默认列表',
+                        position INTEGER DEFAULT 0,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS playlist_videos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        playlist_id INTEGER NOT NULL,
+                        course_id INTEGER NOT NULL,
+                        position INTEGER DEFAULT 0,
+                        added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+            else:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS video_courses (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        title VARCHAR(256) NOT NULL,
+                        subtitle VARCHAR(512) DEFAULT '',
+                        source_type VARCHAR(16) NOT NULL DEFAULT 'bilibili',
+                        bvid VARCHAR(32) DEFAULT '',
+                        page INT DEFAULT 1,
+                        local_path VARCHAR(512) DEFAULT '',
+                        duration_label VARCHAR(16) DEFAULT '--:--',
+                        ai_summary TEXT,
+                        ai_timeline JSON,
+                        ai_questions JSON,
+                        ai_suggestion TEXT,
+                        created_by VARCHAR(64) DEFAULT '',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS video_playlists (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id VARCHAR(64) NOT NULL,
+                        name VARCHAR(128) NOT NULL DEFAULT '默认列表',
+                        position INT DEFAULT 0,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS playlist_videos (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        playlist_id INT NOT NULL,
+                        course_id INT NOT NULL,
+                        position INT DEFAULT 0,
+                        added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """)
+            conn.commit()
+            cursor.close()
+        except Exception as e:
+            print(f"初始化视频表失败: {e}")
+
+
+def get_all_video_courses(source_type=None):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    if source_type:
+                        cursor.execute("SELECT * FROM video_courses WHERE source_type = ? ORDER BY id DESC", (source_type,))
+                    else:
+                        cursor.execute("SELECT * FROM video_courses ORDER BY id DESC")
+                    rows = cursor.fetchall()
+                    cursor.close()
+                    return [dict(r) for r in rows]
+                else:
+                    if source_type:
+                        cursor.execute("SELECT * FROM video_courses WHERE source_type = %s ORDER BY id DESC", (source_type,))
+                    else:
+                        cursor.execute("SELECT * FROM video_courses ORDER BY id DESC")
+                    rows = cursor.fetchall()
+                    cursor.close()
+                    return [dict(r) for r in rows]
+            except Exception as e:
+                print(f"查询视频课程失败: {e}")
+                return []
+        storage = load_local_storage()
+        courses = storage.get('video_courses', [])
+        if source_type:
+            courses = [c for c in courses if c.get('source_type') == source_type]
+        return sorted(courses, key=lambda c: c.get('id', 0), reverse=True)
+
+
+def get_video_course(course_id):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("SELECT * FROM video_courses WHERE id = ?", (course_id,))
+                else:
+                    cursor.execute("SELECT * FROM video_courses WHERE id = %s", (course_id,))
+                row = cursor.fetchone()
+                cursor.close()
+                return dict(row) if row else None
+            except Exception as e:
+                print(f"查询视频课程失败: {e}")
+                return None
+        storage = load_local_storage()
+        for c in storage.get('video_courses', []):
+            if c.get('id') == course_id:
+                return c
+        return None
+
+
+def create_video_course(title, source_type='bilibili', subtitle='', bvid='', page=1,
+                        local_path='', duration_label='--:--', ai_summary='',
+                        ai_timeline='[]', ai_questions='[]', ai_suggestion='', created_by=''):
+    import json as _json
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("""
+                        INSERT INTO video_courses (title, subtitle, source_type, bvid, page,
+                            local_path, duration_label, ai_summary, ai_timeline, ai_questions,
+                            ai_suggestion, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (title, subtitle, source_type, bvid, page, local_path, duration_label,
+                          ai_summary, ai_timeline, ai_questions, ai_suggestion, created_by))
+                else:
+                    cursor.execute("""
+                        INSERT INTO video_courses (title, subtitle, source_type, bvid, page,
+                            local_path, duration_label, ai_summary, ai_timeline, ai_questions,
+                            ai_suggestion, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (title, subtitle, source_type, bvid, page, local_path, duration_label,
+                          ai_summary if isinstance(ai_summary, str) else _json.dumps(ai_summary or ''),
+                          ai_timeline if isinstance(ai_timeline, str) else _json.dumps(ai_timeline or '[]'),
+                          ai_questions if isinstance(ai_questions, str) else _json.dumps(ai_questions or '[]'),
+                          ai_suggestion, created_by))
+                conn.commit()
+                course_id = cursor.lastrowid
+                cursor.close()
+                return course_id
+            except Exception as e:
+                print(f"创建视频课程失败: {e}")
+                return None
+        storage = load_local_storage()
+        courses = storage.get('video_courses', [])
+        new_id = max([c.get('id', 0) for c in courses], default=0) + 1
+        course = {
+            'id': new_id, 'title': title, 'subtitle': subtitle, 'source_type': source_type,
+            'bvid': bvid, 'page': page, 'local_path': local_path, 'duration_label': duration_label,
+            'ai_summary': ai_summary, 'ai_timeline': ai_timeline, 'ai_questions': ai_questions,
+            'ai_suggestion': ai_suggestion, 'created_by': created_by, 'created_at': ''
+        }
+        courses.append(course)
+        storage['video_courses'] = courses
+        save_local_storage(storage)
+        return new_id
+
+
+def delete_video_course(course_id):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("DELETE FROM video_courses WHERE id = ?", (course_id,))
+                else:
+                    cursor.execute("DELETE FROM video_courses WHERE id = %s", (course_id,))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"删除视频课程失败: {e}")
+                return False
+        storage = load_local_storage()
+        storage['video_courses'] = [c for c in storage.get('video_courses', []) if c.get('id') != course_id]
+        save_local_storage(storage)
+        return True
+
+
+def update_video_course(course_id, **kwargs):
+    if not kwargs:
+        return False
+    valid_keys = ('title', 'subtitle', 'source_type', 'bvid', 'page', 'local_path',
+                  'duration_label', 'ai_summary', 'ai_timeline', 'ai_questions', 'ai_suggestion')
+    filtered = {k: v for k, v in kwargs.items() if k in valid_keys}
+    if not filtered:
+        return False
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                sqlite = _is_sqlite(conn)
+                placeholders = ', '.join(f"{k} = {'?' if sqlite else '%s'}" for k in filtered)
+                sql = f"UPDATE video_courses SET {placeholders} WHERE id = {'?' if sqlite else '%s'}"
+                vals = list(filtered.values()) + [course_id]
+                cursor.execute(sql, vals)
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"更新视频课程失败: {e}")
+                return False
+        storage = load_local_storage()
+        for c in storage.get('video_courses', []):
+            if c.get('id') == course_id:
+                c.update(filtered)
+                save_local_storage(storage)
+                return True
+        return False
+
+
+def get_user_playlists(user_id):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("SELECT * FROM video_playlists WHERE user_id = ? ORDER BY position, id", (user_id,))
+                else:
+                    cursor.execute("SELECT * FROM video_playlists WHERE user_id = %s ORDER BY position, id", (user_id,))
+                rows = cursor.fetchall()
+                results = []
+                for row in rows:
+                    pl = dict(row)
+                    join_sql = "SELECT pv.*, vc.title, vc.source_type, vc.bvid, vc.page, vc.local_path, vc.duration_label, vc.ai_summary, vc.ai_timeline, vc.ai_questions, vc.ai_suggestion FROM playlist_videos pv JOIN video_courses vc ON pv.course_id = vc.id WHERE pv.playlist_id = " + ("?" if _is_sqlite(conn) else "%s") + " ORDER BY pv.position, pv.id"
+                    cursor.execute(join_sql, (pl['id'],))
+                    vrows = cursor.fetchall()
+                    pl['videos'] = [dict(vr) for vr in vrows]
+                    results.append(pl)
+                cursor.close()
+                return results
+            except Exception as e:
+                print(f"查询播放列表失败: {e}")
+                return []
+        storage = load_local_storage()
+        playlists = [p for p in storage.get('video_playlists', []) if p.get('user_id') == user_id]
+        all_items = storage.get('playlist_videos', [])
+        all_courses = {c['id']: c for c in storage.get('video_courses', [])}
+        for pl in playlists:
+            items = [i for i in all_items if i.get('playlist_id') == pl['id']]
+            for item in items:
+                course = all_courses.get(item.get('course_id'))
+                if course:
+                    item.update({k: course[k] for k in ('title', 'source_type', 'bvid', 'page', 'local_path', 'duration_label', 'ai_summary', 'ai_timeline', 'ai_questions', 'ai_suggestion') if k in course})
+            pl['videos'] = sorted(items, key=lambda i: i.get('position', 0))
+        return sorted(playlists, key=lambda p: p.get('position', 0))
+
+
+def create_playlist(user_id, name='默认列表'):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("INSERT INTO video_playlists (user_id, name) VALUES (?, ?)", (user_id, name))
+                else:
+                    cursor.execute("INSERT INTO video_playlists (user_id, name) VALUES (%s, %s)", (user_id, name))
+                conn.commit()
+                pl_id = cursor.lastrowid
+                cursor.close()
+                return pl_id
+            except Exception as e:
+                print(f"创建播放列表失败: {e}")
+                return None
+        storage = load_local_storage()
+        playlists = storage.get('video_playlists', [])
+        new_id = max([p.get('id', 0) for p in playlists], default=0) + 1
+        pl = {'id': new_id, 'user_id': user_id, 'name': name, 'position': 0, 'created_at': ''}
+        playlists.append(pl)
+        storage['video_playlists'] = playlists
+        save_local_storage(storage)
+        return new_id
+
+
+def delete_playlist(playlist_id):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("DELETE FROM playlist_videos WHERE playlist_id = ?", (playlist_id,))
+                    cursor.execute("DELETE FROM video_playlists WHERE id = ?", (playlist_id,))
+                else:
+                    cursor.execute("DELETE FROM playlist_videos WHERE playlist_id = %s", (playlist_id,))
+                    cursor.execute("DELETE FROM video_playlists WHERE id = %s", (playlist_id,))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"删除播放列表失败: {e}")
+                return False
+        storage = load_local_storage()
+        storage['playlist_videos'] = [i for i in storage.get('playlist_videos', []) if i.get('playlist_id') != playlist_id]
+        storage['video_playlists'] = [p for p in storage.get('video_playlists', []) if p.get('id') != playlist_id]
+        save_local_storage(storage)
+        return True
+
+
+def rename_playlist(playlist_id, name):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("UPDATE video_playlists SET name = ? WHERE id = ?", (name, playlist_id))
+                else:
+                    cursor.execute("UPDATE video_playlists SET name = %s WHERE id = %s", (name, playlist_id))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"重命名播放列表失败: {e}")
+                return False
+        storage = load_local_storage()
+        for p in storage.get('video_playlists', []):
+            if p.get('id') == playlist_id:
+                p['name'] = name
+                save_local_storage(storage)
+                return True
+        return False
+
+
+def add_video_to_playlist(playlist_id, course_id, position=None):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if position is None:
+                    if _is_sqlite(conn):
+                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM playlist_videos WHERE playlist_id = ?", (playlist_id,))
+                    else:
+                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM playlist_videos WHERE playlist_id = %s", (playlist_id,))
+                    position = cursor.fetchone()[0]
+                if _is_sqlite(conn):
+                    cursor.execute("INSERT INTO playlist_videos (playlist_id, course_id, position) VALUES (?, ?, ?)", (playlist_id, course_id, position))
+                else:
+                    cursor.execute("INSERT INTO playlist_videos (playlist_id, course_id, position) VALUES (%s, %s, %s)", (playlist_id, course_id, position))
+                conn.commit()
+                pv_id = cursor.lastrowid
+                cursor.close()
+                return pv_id
+            except Exception as e:
+                print(f"添加视频到列表失败: {e}")
+                return None
+        storage = load_local_storage()
+        items = storage.get('playlist_videos', [])
+        new_id = max([i.get('id', 0) for i in items], default=0) + 1
+        if position is None:
+            existing = [i for i in items if i.get('playlist_id') == playlist_id]
+            position = max([i.get('position', 0) for i in existing], default=-1) + 1
+        item = {'id': new_id, 'playlist_id': playlist_id, 'course_id': course_id, 'position': position, 'added_at': ''}
+        items.append(item)
+        storage['playlist_videos'] = items
+        save_local_storage(storage)
+        return new_id
+
+
+def remove_video_from_playlist(pv_id):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute("DELETE FROM playlist_videos WHERE id = ?", (pv_id,))
+                else:
+                    cursor.execute("DELETE FROM playlist_videos WHERE id = %s", (pv_id,))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"移除列表视频失败: {e}")
+                return False
+        storage = load_local_storage()
+        storage['playlist_videos'] = [i for i in storage.get('playlist_videos', []) if i.get('id') != pv_id]
+        save_local_storage(storage)
+        return True
+
+
+def reorder_playlist_videos(items):
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                for item in items:
+                    if _is_sqlite(conn):
+                        cursor.execute("UPDATE playlist_videos SET position = ? WHERE id = ?", (item['position'], item['id']))
+                    else:
+                        cursor.execute("UPDATE playlist_videos SET position = %s WHERE id = %s", (item['position'], item['id']))
+                conn.commit()
+                cursor.close()
+                return True
+            except Exception as e:
+                print(f"排序失败: {e}")
+                return False
+        storage = load_local_storage()
+        for item in items:
+            for i in storage.get('playlist_videos', []):
+                if i.get('id') == item['id']:
+                    i['position'] = item['position']
+        save_local_storage(storage)
+        return True
+
+
+# 自动初始化视频表
+try:
+    init_video_tables()
+except Exception:
+    pass
