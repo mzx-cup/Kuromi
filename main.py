@@ -58,17 +58,6 @@ from config import settings
 from app.services.teacher.personas import get_persona_manager
 from app.api.learning_path import generate_path_for_user
 
-# TutorDecisionEngine 统一决策引擎（Phase 4 集成）
-_ENABLE_TUTOR_ENGINE = os.environ.get("ENABLE_TUTOR_ENGINE", "true").lower() in ("1", "true", "yes")
-_tutor_engine = None
-
-def _get_tutor_engine():
-    global _tutor_engine
-    if _tutor_engine is None:
-        from app.services.tutor_engine import TutorDecisionEngine
-        _tutor_engine = TutorDecisionEngine()
-    return _tutor_engine
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
 CSS_DIR = os.path.join(BASE_DIR, "css")
@@ -2747,104 +2736,6 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         context = ""
         dispatch_strategy = "textual"
         try:
-            # ===== TutorDecisionEngine 统一决策路径 =====
-            if _ENABLE_TUTOR_ENGINE:
-                try:
-                    engine = _get_tutor_engine()
-                    await push_agent_log("system", "TutorDecisionEngine 统一决策中...")
-
-                    envelope = await engine.answer_question(
-                        student_id=student_id,
-                        question=body.user_input,
-                        course_id=body.course_id,
-                        session_id=session_id,
-                    )
-
-                    # 流式输出回答文本
-                    full_answer = ""
-                    if envelope.answer_stream is not None:
-                        async for chunk in envelope.answer_stream:
-                            if chunk:
-                                full_answer += chunk
-                                await push_content_chunk(chunk)
-                    elif envelope.answer_text:
-                        full_answer = envelope.answer_text
-                        chunk_size = 80
-                        for i in range(0, len(full_answer), chunk_size):
-                            if disconnected.is_set():
-                                break
-                            await push_content_chunk(full_answer[i:i + chunk_size])
-
-                    # 记录引擎 trace
-                    for trace_msg in envelope.engine_trace:
-                        await push_agent_log("tutor_engine", trace_msg)
-
-                    # 将链接格式化为前端兼容格式
-                    recommended_links = [
-                        {
-                            "id": link.metadata.get("topic", f"link_{idx}"),
-                            "type": link.type,
-                            "title": link.title,
-                            "url": link.url,
-                            "description": link.description,
-                            "icon": link.icon or ("📚" if link.type == "internal" else "🔗"),
-                            "badge": link.badge,
-                            "style": "card",
-                            "metadata": link.metadata,
-                        }
-                        for idx, link in enumerate(envelope.links)
-                    ]
-
-                    # 保存 AI 回复（带链接 metadata）
-                    try:
-                        from db import save_message
-                        if full_answer:
-                            msg_metadata = {
-                                "links": [l.to_dict() for l in envelope.links],
-                                "citations": [c.to_dict() for c in envelope.citations],
-                                "confidence": envelope.confidence_report.to_dict() if envelope.confidence_report else None,
-                            }
-                            save_message(
-                                session_id, student_id, "assistant", full_answer,
-                                message_type="text", metadata=msg_metadata
-                            )
-                            await push_agent_log("memory", "AI 回复已保存（含链接与引用）")
-                    except Exception as mem_e:
-                        logger.warning(f"[Memory] 保存 AI 回复失败: {mem_e}")
-
-                    # 发送 complete 事件
-                    await push_complete({
-                        "newProfile": {},
-                        "newPath": [],
-                        "sources": [c.source_id for c in envelope.citations],
-                        "sourceLinks": {c.source_id: c.chapter_url for c in envelope.citations},
-                        "dispatchStrategy": "textual",
-                        "evaluation": {},
-                        "emotion": {},
-                        "contextId": body.context_id,
-                        "resourceTaskId": body.context_id,
-                        "links": recommended_links,
-                        "sessionId": session_id,
-                        "socraticCheckpoint": False,
-                        "checkpointTopic": "",
-                        "triggerMemoryRefresh": True,
-                    })
-
-                    # 推送主动消息（如果有）
-                    for action in envelope.proactive_actions:
-                        await event_queue.put({
-                            "type": "proactive",
-                            "data": action.to_sse_data(),
-                        })
-
-                    logger.info(f"TutorDecisionEngine completed: student={body.student_id}, links={len(recommended_links)}, actions={len(envelope.proactive_actions)}")
-                    await event_queue.put(None)
-                    return
-                except Exception as engine_e:
-                    logger.warning(f"[TutorDecisionEngine] 决策失败，回退到旧路径: {engine_e}")
-                    await push_agent_log("system", f"引擎决策失败，回退到旧路径: {engine_e}")
-
-            # ===== 旧路径：多智能体工作流 =====
             controller = get_controller()
             last_log_idx = 0
 
@@ -2928,8 +2819,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         if disconnected.is_set():
                             break
                         await push_content_chunk(socratic_response[i : i + chunk_size])
-                    # 链接由 TutorDecisionEngine 结构化生成（旧路径不再依赖 LLM <links> 标记）
-                    recommended_links = []
+                    # 从苏格拉底响应中提取链接
+                    recommended_links = _extract_links_from_text(socratic_response)
             else:
                 visual_instruction = """【高视觉权重模式】：
 1. 必须插入至少2个Mermaid图表（架构图/流程图/时序图），用 ```mermaid 包裹
@@ -3069,10 +2960,11 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         char_count = len(event.get("full_text", ""))
                         await push_agent_log(agent_label, f"生成完毕 | 共 {char_count} 字 | 耗时 {elapsed}ms")
 
-                # 链接由 TutorDecisionEngine 结构化生成（旧路径不再依赖 LLM <links> 标记）
+                # 从 LLM 完整输出中提取学习链接
                 full_response_text = event.get("full_text", "")
-                recommended_links = []
-                await push_agent_log("resource_dispatcher", "链接由 TutorDecisionEngine 统一生成")
+                recommended_links = _extract_links_from_text(full_response_text)
+                if recommended_links:
+                    await push_agent_log("resource_dispatcher", f"检测到 {len(recommended_links)} 个推荐学习链接")
 
             await push_agent_log("evaluator", "评估学情指标...")
             evaluator = controller._agents.get("evaluator") or EvaluationAgent()
@@ -3282,6 +3174,45 @@ def extract_fenced_section(markdown: str, label: str) -> str:
 def extract_labeled_line(markdown: str, label: str) -> str:
     match = re.search(rf'^{label}\s*:\s*(.+)$', markdown or "", flags=re.IGNORECASE | re.MULTILINE)
     return match.group(1).strip() if match else ""
+
+
+def _extract_links_from_text(text: str) -> list[dict]:
+    """从 LLM 输出中提取 <links> 标记中的学习链接数组"""
+    if not text:
+        return []
+
+    match = re.search(r'<links>([\s\S]*?)</links>', text, re.DOTALL)
+    if not match:
+        return []
+
+    links_text = match.group(1).strip()
+    if links_text.startswith("```"):
+        links_text = re.sub(r"^```\w*\s*", "", links_text)
+        links_text = re.sub(r"\s*```$", "", links_text)
+
+    try:
+        links = json.loads(links_text)
+        if isinstance(links, list) and len(links) > 0:
+            normalized = []
+            for link in links:
+                if not isinstance(link, dict):
+                    continue
+                if not link.get("title") or not link.get("url"):
+                    continue
+                normalized.append({
+                    "id": link.get("id") or f"link_{len(normalized)}",
+                    "type": link.get("type", "internal"),
+                    "title": link["title"],
+                    "url": link["url"],
+                    "description": link.get("description", ""),
+                    "icon": link.get("icon", "📚" if link.get("type") == "internal" else "🔗"),
+                    "style": link.get("style", "card"),
+                    "metadata": link.get("metadata", {}),
+                })
+            return normalized
+    except json.JSONDecodeError:
+        pass
+    return []
 
 
 def extract_starter_code_progress(markdown: str) -> tuple[str, bool]:
@@ -6840,50 +6771,6 @@ async def course_chat(request: CourseChatRequest):
 请回答学生问题，简洁有教育意义。"""
         user_prompt = request.user_input
 
-    # TutorDecisionEngine 统一决策路径
-    if _ENABLE_TUTOR_ENGINE:
-        try:
-            engine = _get_tutor_engine()
-            envelope = await engine.answer_question(
-                student_id=request.student_id or "",
-                question=request.user_input,
-                course_id=request.course_id,
-            )
-
-            full_text = ""
-            if envelope.answer_stream is not None:
-                async for chunk in envelope.answer_stream:
-                    if chunk:
-                        full_text += chunk
-            elif envelope.answer_text:
-                full_text = envelope.answer_text
-
-            response = {"success": True, "content": full_text}
-            if envelope.links:
-                response["links"] = [
-                    {
-                        "type": l.type,
-                        "title": l.title,
-                        "url": l.url,
-                        "description": l.description,
-                        "icon": l.icon,
-                        "badge": l.badge,
-                    }
-                    for l in envelope.links
-                ]
-            if envelope.citations:
-                response["citations"] = [
-                    {
-                        "source_id": c.source_id,
-                        "source_title": c.source_title,
-                        "validated": c.validated,
-                    }
-                    for c in envelope.citations
-                ]
-            return response
-        except Exception as engine_e:
-            logger.warning(f"[course_chat] 引擎失败，回退到旧路径: {engine_e}")
-
     try:
         result = await call_llm_async(
             system_prompt=system_prompt,
@@ -6934,66 +6821,12 @@ async def course_chat_stream(request: CourseChatRequest):
     user_prompt = f"历史对话：\n{history_str}\n\n学生提问：{request.user_input}"
 
     async def event_generator():
-        # TutorDecisionEngine 统一决策路径
-        if _ENABLE_TUTOR_ENGINE:
-            try:
-                engine = _get_tutor_engine()
-                envelope = await engine.answer_question(
-                    student_id=request.student_id or "",
-                    question=request.user_input,
-                    course_id=request.course_id,
-                )
-
-                full_content = ""
-                if envelope.answer_stream is not None:
-                    async for chunk in envelope.answer_stream:
-                        if chunk:
-                            full_content += chunk
-                            yield _sse_event_chat("chat_chunk", {"content": chunk})
-                elif envelope.answer_text:
-                    full_content = envelope.answer_text
-                    yield _sse_event_chat("chat_chunk", {"content": full_content})
-
-                # 发送结构化 complete 事件（包含链接、引用）
-                complete_data = {"content": full_content}
-                if envelope.links:
-                    complete_data["links"] = [
-                        {
-                            "type": l.type,
-                            "title": l.title,
-                            "url": l.url,
-                            "description": l.description,
-                            "icon": l.icon,
-                            "badge": l.badge,
-                        }
-                        for l in envelope.links
-                    ]
-                if envelope.citations:
-                    complete_data["citations"] = [
-                        {
-                            "source_id": c.source_id,
-                            "source_title": c.source_title,
-                            "validated": c.validated,
-                        }
-                        for c in envelope.citations
-                    ]
-                yield _sse_event_chat("complete", complete_data)
-
-                # 推送主动消息
-                for action in envelope.proactive_actions:
-                    yield _sse_event_chat("proactive", action.to_sse_data())
-
-                return
-            except Exception as engine_e:
-                logger.warning(f"[course_chat_stream] 引擎失败，回退到旧路径: {engine_e}")
-
-        # 旧路径
         full_content = ""
         async for chunk in call_llm_stream(system_prompt, user_prompt):
             if chunk:
                 full_content += chunk
                 yield _sse_event_chat("chat_chunk", {"content": chunk})
-        yield _sse_event_chat("complete", {"content": full_content})
+        yield _sse_event_chat("chat_done", {"content": full_content})
 
     return StreamingResponse(
         event_generator(),
