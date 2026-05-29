@@ -9788,51 +9788,39 @@ function renderProfileCard(profile) {
     const container = document.getElementById('profile-card-container');
     if (!container) return;
 
-    const hasAnyTraits = (
-        (profile.learning_traits && profile.learning_traits.length > 0) ||
-        (profile.personality_traits && profile.personality_traits.length > 0) ||
-        (profile.goals_interests && profile.goals_interests.length > 0)
-    );
+    // 收集所有标签并扁平化
+    const allTags = [];
+    for (const [key, items] of Object.entries(profile)) {
+        if (key === 'last_updated' || !items || items.length === 0) continue;
+        items.forEach(item => allTags.push(item));
+    }
 
-    if (!hasAnyTraits) {
+    if (allTags.length === 0) {
         container.innerHTML = `
-            <div class="profile-empty-state text-center py-3 text-[11px]" style="color: var(--text-tertiary);">
-                🤖 AI 正在了解你...<br>聊得越多，画像越准
+            <div class="profile-empty-state text-center py-2 text-[11px]" style="color: var(--text-tertiary);">
+                🤖 AI 正在了解你…
             </div>
         `;
         return;
     }
 
-    const categoryLabels = {
-        learning_traits: '📚 学习特征',
-        personality_traits: '🧠 性格特点',
-        goals_interests: '🎯 目标兴趣',
-    };
+    // 按评分排序
+    allTags.sort((a, b) => (b.score || 0) - (a.score || 0));
 
-    let html = '';
-    for (const [key, items] of Object.entries(profile)) {
-        if (key === 'last_updated' || !items || items.length === 0) continue;
-        const label = categoryLabels[key] || key;
-        const tagsHtml = items.map(item => {
-            const isWeakness = item.label.includes('薄弱') || item.label.includes('困难') || item.label.includes('不擅长');
-            return `<span class="profile-tag ${isWeakness ? 'weakness' : ''}" data-memory-id="${escapeHtml(item.memory_id)}" title="置信度: ${(item.confidence * 100).toFixed(0)}% | 引用次数: ${item.access_count}">${escapeHtml(item.label)}</span>`;
-        }).join('');
-        html += `
-            <div class="profile-category">
-                <div class="profile-category-title">${label}</div>
-                <div class="profile-tags">${tagsHtml}</div>
-            </div>
-        `;
-    }
+    const tagsHtml = allTags.map(item => {
+        const isWeakness = item.label.includes('薄弱') || item.label.includes('困难') || item.label.includes('不擅长');
+        const isActive = _activeMemoryFilter === item.memory_type;
+        return `<span class="profile-tag ${isWeakness ? 'weakness' : ''} ${isActive ? 'is-filter-active' : ''}" data-memory-type="${escapeHtml(item.memory_type)}" data-memory-id="${escapeHtml(item.memory_id)}" title="置信度: ${(item.confidence * 100).toFixed(0)}% | 引用次数: ${item.access_count}">${escapeHtml(item.label)}</span>`;
+    }).join('');
 
-    container.innerHTML = html;
+    container.innerHTML = tagsHtml;
 
-    // 绑定标签点击事件
+    // 绑定标签点击事件 → 筛选记忆
     container.querySelectorAll('.profile-tag').forEach(tag => {
         tag.addEventListener('click', () => {
-            const memoryId = tag.dataset.memoryId;
-            if (memoryId) {
-                showProfileTagEditor(memoryId, tag.textContent);
+            const memoryType = tag.dataset.memoryType;
+            if (memoryType) {
+                filterMemoriesByType(memoryType);
             }
         });
     });
@@ -9846,15 +9834,31 @@ function renderProfileCard(profile) {
     }
 }
 
-function showProfileTagEditor(memoryId, content) {
-    // 简单的确认删除弹窗
-    if (confirm(`要删除这条记忆吗？
-"${content}"`)) {
-        deleteUserMemory(memoryId).then(() => {
-            loadUserProfile();
-            loadUserMemories();
+function filterMemoriesByType(type) {
+    // Toggle: 已激活则取消
+    if (_activeMemoryFilter === type) {
+        _activeMemoryFilter = 'all';
+    } else {
+        _activeMemoryFilter = type;
+    }
+
+    // 同步筛选芯片 UI
+    const chipsContainer = document.getElementById('memory-filter-chips');
+    if (chipsContainer) {
+        chipsContainer.querySelectorAll('.memory-chip').forEach(c => {
+            c.classList.toggle('active', c.dataset.type === _activeMemoryFilter);
         });
     }
+
+    // 同步画像标签 UI
+    const profileContainer = document.getElementById('profile-card-container');
+    if (profileContainer) {
+        profileContainer.querySelectorAll('.profile-tag').forEach(tag => {
+            tag.classList.toggle('is-filter-active', tag.dataset.memoryType === _activeMemoryFilter);
+        });
+    }
+
+    filterAndRenderMemories();
 }
 
 function showMemoryToast(message) {
@@ -9939,6 +9943,13 @@ document.addEventListener('DOMContentLoaded', () => {
             chipsContainer.querySelectorAll('.memory-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             _activeMemoryFilter = chip.dataset.type || 'all';
+            // 同步画像标签高亮态
+            const profileContainer = document.getElementById('profile-card-container');
+            if (profileContainer) {
+                profileContainer.querySelectorAll('.profile-tag').forEach(tag => {
+                    tag.classList.toggle('is-filter-active', tag.dataset.memoryType === _activeMemoryFilter);
+                });
+            }
             filterAndRenderMemories();
         });
     }
