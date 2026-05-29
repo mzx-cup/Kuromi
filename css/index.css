@@ -1,276 +1,374 @@
 /* ============================================
-   Design Tokens v2 — Warm Academy
+   Design Tokens v3 — Three-Layer Architecture
+   Layer 1: Primitives (per-theme) → Layer 2: Generated (global) → Layer 3: Semantic (global)
    ============================================ */
 
-/* ---- Default Theme: 日出晨光 ---- */
+/* ============================================================
+   LAYER 1 — PRIMITIVE TOKENS (per-theme, ~10 values each)
+   These are raw design decisions — hue, chroma, shadow depth, saturation.
+   ============================================================ */
+
+/* ---- warm-morning  日出晨光 (default light) ---- */
 :root, [data-theme="warm-morning"] {
-    /* Brand — warm orange */
-    --brand-50: #fff7ed; --brand-100: #ffedd5; --brand-200: #fed7aa;
-    --brand-300: #fdba74; --brand-400: #fb923c; --brand-500: #f97316;
-    --brand-600: #ea580c; --brand-700: #c2410c; --brand-800: #9a3412; --brand-900: #7c2d12;
+    /* Core brand: warm orange */
+    --_brand-h: 42;            --_brand-c: 0.18;       --_brand-l: 62%;
+    /* Semantic colors: success / warning / danger / info */
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 58%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 15;           --_danger-c: 0.22;      --_danger-l: 52%;
+    --_info-h: 250;            --_info-c: 0.15;        --_info-l: 56%;
+    /* Neutral: warm tint */
+    --_neutral-h: 50;          --_neutral-c: 0.015;
+    /* Shadow & surface character */
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    /* Light scheme */
+    --_color-scheme: light;
+    --theme-name: "日出晨光";
+}
 
-    /* Neutral — warm gray */
-    --neutral-50: #fafaf9; --neutral-100: #f5f4f0; --neutral-200: #e7e5e0;
-    --neutral-300: #d6d3cc; --neutral-400: #a8a59e; --neutral-500: #78756e;
-    --neutral-600: #57544e; --neutral-700: #44413c; --neutral-800: #292724; --neutral-900: #1c1917;
+/* ---- forest-light  林间清绿 ---- */
+[data-theme="forest-light"] {
+    --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
+    --_success-h: 152;         --_success-c: 0.15;     --_success-l: 50%;
+    --_warning-h: 56;          --_warning-c: 0.16;     --_warning-l: 62%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 48%;
+    --_info-h: 245;            --_info-c: 0.14;        --_info-l: 54%;
+    --_neutral-h: 135;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+    --theme-name: "林间清绿";
+}
 
-    /* Semantic */
-    --success: #16a34a; --success-bg: #f0fdf4;
-    --warning: #d97706; --warning-bg: #fffbeb;
-    --danger: #dc2626;  --danger-bg: #fef2f2;
-    --info: #2563eb;    --info-bg: #eff6ff;
+/* ---- study-night  深夜书房 ---- */
+[data-theme="study-night"] {
+    --_brand-h: 40;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_success-h: 148;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 50;          --_warning-c: 0.16;     --_warning-l: 68%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 248;            --_info-c: 0.14;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+    --theme-name: "深夜书房";
+}
 
-    /* Accent — decoration only */
-    --accent-amber: #f59e0b; --accent-rose: #f43f5e;
-    --accent-teal: #14b8a6;  --accent-violet: #8b5cf6;
+/* ---- starry-night  星夜 ---- */
+[data-theme="starry-night"] {
+    --_brand-h: 52;            --_brand-c: 0.17;       --_brand-l: 72%;
+    --_success-h: 150;         --_success-c: 0.13;     --_success-l: 60%;
+    --_warning-h: 46;          --_warning-c: 0.15;     --_warning-l: 70%;
+    --_danger-h: 10;           --_danger-c: 0.18;      --_danger-l: 56%;
+    --_info-h: 260;            --_info-c: 0.16;        --_info-l: 66%;
+    --_neutral-h: 240;         --_neutral-c: 0.02;
+    --_shadow-strength: 0.33;  --_surface-saturation: 0.03;  /* max 0.333 for shadow-lg to stay valid */
+    --_color-scheme: dark;
+    --theme-name: "星夜";
+}
 
-    /* Surfaces */
-    --surface-page: #fafaf9; --surface-card: #ffffff;
-    --surface-hover: #f5f4f0; --surface-pressed: #e7e5e0;
-    --surface-overlay: rgba(28, 25, 23, 0.4);
-    --surface-nav: rgba(250, 250, 249, 0.85);
+/* ---- neon-cyber  霓虹赛博 ---- */
+[data-theme="neon-cyber"] {
+    --_brand-h: 195;           --_brand-c: 0.26;       --_brand-l: 62%;
+    --_success-h: 160;         --_success-c: 0.22;     --_success-l: 60%;
+    --_warning-h: 45;          --_warning-c: 0.24;     --_warning-l: 65%;
+    --_danger-h: 0;            --_danger-c: 0.28;      --_danger-l: 58%;
+    --_info-h: 210;            --_info-c: 0.24;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.04;
+    --_shadow-strength: 0.55;  --_surface-saturation: 0.08;
+    --_color-scheme: dark;
+    --theme-name: "霓虹赛博";
+}
 
-    /* Shadows */
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
 
-    /* Text */
-    --text-heading: #1c1917; --text-body: #44413c;
-    --text-muted: #78756e; --text-placeholder: #a8a59e;
-    --text-link: #ea580c; --text-on-brand: #ffffff;
+/* ============================================================
+   LAYER 2 — GENERATED SCALES (global, computed from primitives via color-mix)
+   Generates brand/neutral/accent palettes and surfaces from Layer 1 primitives.
+   ============================================================ */
 
-    /* Radius */
-    --radius-sm: 8px; --radius-md: 14px; --radius-lg: 20px; --radius-full: 9999px;
+:root {
+    /* ── Brand scale (oklch, mixed with white/black) ── */
+    --brand-50:  color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 92%);
+    --brand-100: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 80%);
+    --brand-200: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 62%);
+    --brand-300: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 38%);
+    --brand-400: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 14%);
+    --brand-500: oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h));
+    --brand-600: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 18%);
+    --brand-700: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 40%);
+    --brand-800: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 62%);
+    --brand-900: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 82%);
 
-    /* Spacing */
-    --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px;
+    /* ── Semantic color scales (from primitives) ── */
+    --success:  oklch(var(--_success-l) var(--_success-c) var(--_success-h));
+    --warning:  oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h));
+    --danger:   oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h));
+    --info:     oklch(var(--_info-l) var(--_info-c) var(--_info-h));
 
-    /* Easing */
-    --ease-out: cubic-bezier(0, 0, 0.2, 1);
-    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --success-bg: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 88%);
+    --warning-bg: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 88%);
+    --danger-bg:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 88%);
+    --info-bg:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 88%);
+
+    --success-border: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 75%);
+    --warning-border: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 75%);
+    --danger-border:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 75%);
+    --info-border:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 75%);
+
+    /* ── Neutral scale (achromatic, hue from primitives) ── */
+    --neutral-50:  oklch(96% var(--_neutral-c) var(--_neutral-h));
+    --neutral-100: oklch(90% var(--_neutral-c) var(--_neutral-h));
+    --neutral-200: oklch(82% var(--_neutral-c) var(--_neutral-h));
+    --neutral-300: oklch(72% var(--_neutral-c) var(--_neutral-h));
+    --neutral-400: oklch(58% var(--_neutral-c) var(--_neutral-h));
+    --neutral-500: oklch(48% var(--_neutral-c) var(--_neutral-h));
+    --neutral-600: oklch(38% var(--_neutral-c) var(--_neutral-h));
+    --neutral-700: oklch(28% var(--_neutral-c) var(--_neutral-h));
+    --neutral-800: oklch(20% var(--_neutral-c) var(--_neutral-h));
+    --neutral-900: oklch(13% var(--_neutral-c) var(--_neutral-h));
+
+    /* ── Accent palettes (decoration-only colors) ── */
+    --accent-amber:  oklch(70% 0.16 70);
+    --accent-rose:   oklch(58% 0.20 10);
+    --accent-teal:   oklch(58% 0.14 185);
+    --accent-violet:  oklch(54% 0.18 280);
+
+    --accent-amber-bg:  color-mix(in oklch, var(--accent-amber),  transparent 88%);
+    --accent-rose-bg:   color-mix(in oklch, var(--accent-rose),   transparent 88%);
+    --accent-teal-bg:   color-mix(in oklch, var(--accent-teal),   transparent 88%);
+    --accent-violet-bg: color-mix(in oklch, var(--accent-violet), transparent 88%);
+
+    /* ── Surface tokens (computed from neutral and shadow strength) ── */
+    --surface-page:    color-mix(in oklch, var(--neutral-50), oklch(100% 0 none)  calc(var(--_surface-saturation) * 100%));
+    --surface-card:    color-mix(in oklch, var(--neutral-100), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
+    --surface-hover:   color-mix(in oklch, var(--neutral-200), oklch(100% 0 none) calc(var(--_surface-saturation) * 80%));
+    --surface-pressed: color-mix(in oklch, var(--neutral-300), oklch(100% 0 none) calc(var(--_surface-saturation) * 60%));
+    --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 40%);
+    --surface-nav:     color-mix(in oklch, var(--neutral-50), transparent 15%);
+
+    /* ── Glass surface tokens ── */
+    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 20%);
+    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 15%);
+    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 40%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 30%);
+
+    /* ── Brand-accent background/border tokens ── */
+    --accent-bg:     color-mix(in oklch, var(--brand-500), transparent 88%);
+    --accent-border: color-mix(in oklch, var(--brand-500), transparent 78%);
+}
+
+
+/* ============================================================
+   LAYER 3 — SEMANTIC TOKENS (global, assigned from Layer 2)
+   These are the only tokens consumed by components.
+   ============================================================ */
+
+:root {
+    /* ── Shadows ── */
+    --shadow-xs: 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 150%)));
+    --shadow-sm: 0 1px 3px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 140%))),
+                 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 100%)));
+    --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
+    --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
+
+    /* ── Typography ── */
+    --text-heading:     var(--neutral-900);
+    --text-body:        var(--neutral-700);
+    --text-muted:       var(--neutral-500);
+    --text-placeholder: var(--neutral-400);
+    --text-link:        var(--brand-600);
+    --text-on-brand:    #ffffff;
+
+    /* ── Text semantic aliases ── */
+    --text-primary:   var(--text-heading);
+    --text-secondary: var(--text-body);
+    --text-tertiary:  var(--text-muted);
+    --text-on-accent: var(--text-on-brand);
+
+    /* ── Radius scale ── */
+    --radius-sm: 8px;    --radius-md: 14px;
+    --radius-lg: 20px;   --radius-full: 9999px;
+
+    /* ── Spacing scale ── */
+    --space-xs: 4px;     --space-sm: 8px;
+    --space-md: 16px;    --space-lg: 24px;
+    --space-xl: 40px;
+
+    /* ── Easing ── */
+    --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
     --ease-standard: 0.15s ease;
 
-    /* Typography */
-    --text-xs: 11px; --text-sm: 13px; --text-base: 15px;
-    --text-lg: 18px; --text-xl: 22px; --text-2xl: 28px; --text-3xl: 36px;
+    /* ── Typography scale ── */
+    --text-xs: 11px;   --text-sm: 13px;   --text-base: 15px;
+    --text-lg: 18px;   --text-xl: 22px;   --text-2xl: 28px;   --text-3xl: 36px;
     --font-normal: 400; --font-medium: 500; --font-bold: 700;
 
-    /* Theme name */
-    --theme-name: "日出晨光";
-
-    /* ===== LEGACY MAPPINGS — keep old var names working ===== */
-    --primary: var(--brand-500);
-    --primary-light: var(--brand-400);
-    --primary-dark: var(--brand-600);
-    --primary-50: var(--brand-50);
-    --primary-100: var(--brand-100);
-    --primary-200: var(--brand-200);
-    --primary-300: var(--brand-300);
-    --accent: var(--brand-400);
-    --accent-hover: var(--brand-600);
-    --sidebar-bg: var(--neutral-50);
-    --sidebar-header: var(--neutral-100);
-    --chat-bg: var(--surface-page);
-    --msg-bot-bg: var(--surface-card);
-    --msg-bot-border: var(--neutral-200);
-    --radar-fill: rgba(249, 115, 22, 0.1);
-    --radar-stroke: var(--brand-400);
-    --glass-bg: var(--surface-card);
-    --dropdown-bg: var(--surface-card);
-    --glass-border: var(--neutral-200);
-    --text-main: var(--text-heading);
-    --glass-shadow: rgba(0,0,0,0.04);
-    --glass-blur: 0px;
-    --mesh-1: var(--neutral-100);
-    --mesh-2: var(--neutral-50);
-    --mesh-3: var(--neutral-200);
-    --mesh-4: var(--neutral-100);
-    --mesh-accent-1: rgba(249, 115, 22, 0.04);
-    --mesh-accent-2: rgba(245, 158, 11, 0.03);
-    --text-primary: var(--text-heading);
-    --text-secondary: var(--text-body);
-    --text-tertiary: var(--text-muted);
-    --text-on-accent: var(--text-on-brand);
-    --surface-glass: var(--surface-card);
-    --surface-glass-hover: var(--surface-hover);
-    --border-glass: var(--neutral-200);
-    --border-glass-hover: var(--brand-300);
-    --accent-bg: rgba(249, 115, 22, 0.1);
-    --accent-border: rgba(249, 115, 22, 0.2);
-    --bg-card: var(--surface-card);
-    --border-color: var(--neutral-200);
-    --hover-bg: var(--surface-hover);
-    --input-bg: var(--neutral-100);
-    --btn-secondary-bg: var(--neutral-100);
-    --btn-secondary-hover: var(--neutral-200);
-    --transition-fast: var(--ease-standard);
-    --transition-base: 0.25s var(--ease-out);
-    --transition-slow: 0.4s var(--ease-out);
+    /* ── Transition tokens ── */
+    --transition-fast:   var(--ease-standard);
+    --transition-base:   0.25s var(--ease-out);
+    --transition-slow:   0.4s var(--ease-out);
     --transition-spring: 0.3s var(--ease-out);
-    --shadow-glass: var(--shadow-xs);
 
-    color-scheme: light;
+    /* ── Additional surface tokens ── */
+    --bg-card:         var(--surface-card);
+    --border-color:    var(--neutral-200);
+    --hover-bg:        var(--surface-hover);
+    --input-bg:        var(--neutral-100);
+    --btn-secondary-bg:    var(--neutral-100);
+    --btn-secondary-hover: var(--neutral-200);
+
+    /* ── ============================================================
+       LEGACY MAPPINGS — keep old variable names working
+       All old var(--xxx) references resolve through these aliases.
+       ============================================================ */
+    --primary:        var(--brand-500);
+    --primary-light:  var(--brand-400);
+    --primary-dark:   var(--brand-600);
+    --primary-50:     var(--brand-50);
+    --primary-100:    var(--brand-100);
+    --primary-200:    var(--brand-200);
+    --primary-300:    var(--brand-300);
+    --accent:         var(--brand-400);
+    --accent-hover:   var(--brand-600);
+    --sidebar-bg:     var(--neutral-50);
+    --sidebar-header: var(--neutral-100);
+    --chat-bg:        var(--surface-page);
+    --msg-bot-bg:     var(--surface-card);
+    --msg-bot-border: var(--neutral-200);
+    --radar-fill:     var(--accent-bg);
+    --radar-stroke:   var(--brand-400);
+    --glass-bg:       var(--surface-glass);
+    --dropdown-bg:    var(--surface-glass);
+    --glass-border:   var(--border-glass);
+    --text-main:      var(--text-heading);
+    --glass-shadow:   var(--shadow-xs);
+    --glass-blur:     0px;
+    --mesh-1:         var(--neutral-100);
+    --mesh-2:         var(--neutral-50);
+    --mesh-3:         var(--neutral-200);
+    --mesh-4:         var(--neutral-100);
+    --mesh-accent-1:  var(--accent-bg);
+    --mesh-accent-2:  color-mix(in oklch, var(--accent-bg), transparent 50%);
+    --shadow-glass:   var(--shadow-xs);
+    /* ── Theme color-scheme ── */
+    color-scheme: var(--_color-scheme);
 }
 
-/* ---- Dark Theme: 深夜书房 ---- */
-[data-theme="study-night"] {
-    --neutral-50: #1a1d23; --neutral-100: #21252b; --neutral-200: #2c313a;
-    --neutral-300: #3a3f4a; --neutral-400: #5c6370; --neutral-500: #8b9298;
-    --neutral-600: #b4bcc4; --neutral-700: #d1d7de; --neutral-800: #e8ecf1; --neutral-900: #f5f7fa;
 
-    --brand-500: #fb923c; --brand-600: #fdba74;
+/* ============================================================
+   THEME OVERRIDES — per-theme semantic adjustments
+   ============================================================ */
 
-    --surface-page: #1a1d23; --surface-card: #21252b;
-    --surface-hover: #2c313a; --surface-pressed: #3a3f4a;
-    --surface-overlay: rgba(0, 0, 0, 0.6);
-    --surface-nav: rgba(26, 29, 35, 0.85);
-
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
-
-    --text-heading: #e8ecf1; --text-body: #d1d7de;
-    --text-muted: #8b9298; --text-placeholder: #5c6370;
-    --text-link: #fb923c; --text-on-brand: #1c1917;
-
-    --theme-name: "深夜书房";
-
-    /* Legacy mappings — dark values */
-    --primary: var(--brand-500);
-    --primary-light: var(--brand-400);
-    --primary-dark: var(--brand-600);
-    --primary-50: var(--neutral-100);
-    --primary-100: var(--neutral-200);
-    --primary-200: var(--neutral-300);
-    --primary-300: var(--neutral-400);
-    --accent: var(--brand-400);
-    --accent-hover: var(--brand-600);
-    --sidebar-bg: var(--neutral-50);
-    --sidebar-header: var(--neutral-100);
-    --chat-bg: var(--surface-page);
-    --msg-bot-bg: var(--surface-card);
-    --msg-bot-border: var(--neutral-200);
-    --radar-fill: rgba(251, 146, 60, 0.1);
-    --radar-stroke: var(--brand-400);
-    --glass-bg: var(--surface-card);
-    --dropdown-bg: var(--surface-card);
-    --glass-border: var(--neutral-200);
-    --text-main: var(--text-heading);
-    --glass-shadow: rgba(0,0,0,0.2);
-    --glass-blur: 0px;
-    --mesh-1: var(--neutral-50);
-    --mesh-2: var(--neutral-100);
-    --mesh-3: var(--neutral-50);
-    --mesh-4: var(--neutral-100);
-    --mesh-accent-1: rgba(251, 146, 60, 0.06);
-    --mesh-accent-2: rgba(245, 158, 11, 0.04);
-    --text-primary: var(--text-heading);
-    --text-secondary: var(--text-body);
-    --text-tertiary: var(--text-muted);
-    --text-on-accent: var(--text-on-brand);
-    --surface-glass: var(--surface-card);
-    --surface-glass-hover: var(--surface-hover);
-    --border-glass: var(--neutral-200);
-    --border-glass-hover: var(--brand-300);
-    --accent-bg: rgba(251, 146, 60, 0.1);
-    --accent-border: rgba(251, 146, 60, 0.2);
-    --bg-card: var(--surface-card);
-    --border-color: var(--neutral-200);
-    --hover-bg: var(--surface-hover);
-    --input-bg: var(--neutral-100);
-    --btn-secondary-bg: var(--neutral-100);
-    --btn-secondary-hover: var(--neutral-200);
-    --transition-fast: var(--ease-standard);
-    --transition-base: 0.25s var(--ease-out);
-    --transition-slow: 0.4s var(--ease-out);
-    --transition-spring: 0.3s var(--ease-out);
-    --shadow-glass: var(--shadow-xs);
-
-    color-scheme: dark;
-}
-
-/* ---- Dark Theme: 星夜 (gold + violet accents) ---- */
+/* ── Dark themes: flip text/surface logic ── */
+/*   The global neutral scale is always L=96%→13% (light→dark).
+ *   Dark themes invert the mapping: surfaces use the dark end,
+ *   text uses the light end. neon-cyber handles this in its own block. */
+[data-theme="study-night"],
 [data-theme="starry-night"] {
-    --neutral-50: #0f1117; --neutral-100: #161922; --neutral-200: #1e2230;
-    --neutral-300: #2a2f3d; --neutral-400: #5c6370; --neutral-500: #8b9298;
-    --neutral-600: #b4bcc4; --neutral-700: #d1d7de; --neutral-800: #e8ecf1; --neutral-900: #f5f7fa;
+    /* Text: light end of neutral scale → white-ish on dark bg */
+    --text-heading:     var(--neutral-50);
+    --text-body:        var(--neutral-200);
+    --text-muted:       var(--neutral-400);
+    --text-placeholder: var(--neutral-500);
+    --text-link:        var(--brand-400);
+    --text-on-brand:    var(--neutral-900);
+    --text-primary:     var(--text-heading);
+    --text-secondary:   var(--text-body);
+    --text-tertiary:    var(--text-muted);
 
-    --brand-500: #fbbf24; --brand-600: #fcd34d;
+    /* Surface: dark end of neutral scale → near-black */
+    --surface-page:    var(--neutral-900);
+    --surface-card:    var(--neutral-800);
+    --surface-hover:   var(--neutral-700);
+    --surface-pressed: var(--neutral-600);
+    --surface-nav:     var(--neutral-800);
+    --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 30%);
 
-    --accent-amber: #fbbf24; --accent-violet: #a78bfa;
+    /* Border/glass: darker tones for dark surfaces */
+    --border-glass:        var(--neutral-700);
+    --border-glass-hover:  var(--brand-300);
 
-    --surface-page: #0f1117; --surface-card: #161922;
-    --surface-hover: #1e2230; --surface-pressed: #2a2f3d;
-    --surface-overlay: rgba(0, 0, 0, 0.7);
-    --surface-nav: rgba(15, 17, 23, 0.85);
+    --btn-secondary-bg:    var(--neutral-800);
+    --btn-secondary-hover: var(--neutral-700);
 
-    --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
-    --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+    --mesh-1: var(--neutral-900);
+    --mesh-2: var(--neutral-800);
+    --mesh-3: var(--neutral-900);
+    --mesh-4: var(--neutral-800);
 
-    --text-heading: #f5f7fa; --text-body: #d1d7de;
-    --text-muted: #8b9298; --text-placeholder: #5c6370;
-    --text-link: #fbbf24; --text-on-brand: #0f1117;
+    --glass-border: var(--neutral-700);
+    --glass-bg:     var(--surface-glass);
+    --dropdown-bg:  var(--surface-glass);
 
-    --theme-name: "星夜";
+    /* Sidebar & chat overrides */
+    --sidebar-bg:     var(--neutral-900);
+    --sidebar-header: var(--neutral-800);
+    --msg-bot-bg:     var(--neutral-800);
+    --msg-bot-border: var(--neutral-700);
+    --radar-fill:     var(--accent-bg);
+    --radar-stroke:   var(--brand-400);
 
-    /* Legacy mappings */
-    --primary: var(--brand-500);
-    --primary-light: var(--brand-400);
-    --primary-dark: var(--brand-600);
-    --primary-50: var(--neutral-100);
-    --primary-100: var(--neutral-200);
-    --primary-200: var(--neutral-300);
-    --primary-300: var(--neutral-400);
-    --accent: var(--brand-400);
-    --accent-hover: var(--brand-600);
-    --sidebar-bg: var(--neutral-50);
-    --sidebar-header: var(--neutral-100);
-    --chat-bg: var(--surface-page);
-    --msg-bot-bg: var(--surface-card);
-    --msg-bot-border: var(--neutral-200);
-    --radar-fill: rgba(251, 191, 36, 0.08);
-    --radar-stroke: var(--brand-400);
-    --glass-bg: var(--surface-card);
-    --dropdown-bg: var(--surface-card);
-    --glass-border: var(--neutral-200);
-    --text-main: var(--text-heading);
-    --glass-shadow: rgba(0,0,0,0.3);
-    --glass-blur: 0px;
-    --mesh-1: var(--neutral-50);
-    --mesh-2: var(--neutral-100);
-    --mesh-3: var(--neutral-50);
-    --mesh-4: var(--neutral-100);
-    --mesh-accent-1: rgba(251, 191, 36, 0.04);
-    --mesh-accent-2: rgba(167, 139, 250, 0.03);
-    --text-primary: var(--text-heading);
-    --text-secondary: var(--text-body);
-    --text-tertiary: var(--text-muted);
-    --text-on-accent: var(--text-on-brand);
-    --surface-glass: var(--surface-card);
-    --surface-glass-hover: var(--surface-hover);
-    --border-glass: var(--neutral-200);
-    --border-glass-hover: var(--brand-300);
-    --accent-bg: rgba(251, 191, 36, 0.1);
-    --accent-border: rgba(251, 191, 36, 0.2);
-    --bg-card: var(--surface-card);
-    --border-color: var(--neutral-200);
-    --hover-bg: var(--surface-hover);
-    --input-bg: var(--neutral-100);
-    --btn-secondary-bg: var(--neutral-100);
-    --btn-secondary-hover: var(--neutral-200);
-    --transition-fast: var(--ease-standard);
-    --transition-base: 0.25s var(--ease-out);
-    --transition-slow: 0.4s var(--ease-out);
-    --transition-spring: 0.3s var(--ease-out);
-    --shadow-glass: var(--shadow-xs);
+    /* Input fields */
+    --input-bg: var(--neutral-800);
 
     color-scheme: dark;
 }
+
+
+/* ============================================================
+   NEON-CYBER OVERRIDES — shadow-as-glow + fluorescent scales
+   ============================================================ */
+
+[data-theme="neon-cyber"] {
+    /* ── Override brand scale with fluorescent saturation ── */
+    --brand-50:  color-mix(in oklch, oklch(62% 0.26 195), white 88%);
+    --brand-100: color-mix(in oklch, oklch(62% 0.26 195), white 72%);
+    --brand-200: color-mix(in oklch, oklch(62% 0.26 195), white 50%);
+    --brand-300: color-mix(in oklch, oklch(62% 0.26 195), white 24%);
+    --brand-400: color-mix(in oklch, oklch(62% 0.26 195), white 8%);
+    --brand-500: oklch(62% 0.26 195);
+    --brand-600: color-mix(in oklch, oklch(62% 0.26 195), black 16%);
+    --brand-700: color-mix(in oklch, oklch(62% 0.26 195), black 36%);
+    --brand-800: color-mix(in oklch, oklch(62% 0.26 195), black 58%);
+    --brand-900: color-mix(in oklch, oklch(62% 0.26 195), black 78%);
+
+    /* ── Cool-dark neutrals ── */
+    --neutral-50:  oklch(14% 0.04 220);
+    --neutral-100: oklch(18% 0.04 220);
+    --neutral-200: oklch(24% 0.04 220);
+    --neutral-300: oklch(32% 0.04 220);
+    --neutral-400: oklch(46% 0.04 220);
+    --neutral-500: oklch(58% 0.04 220);
+    --neutral-600: oklch(72% 0.04 220);
+    --neutral-700: oklch(82% 0.04 220);
+    --neutral-800: oklch(92% 0.04 220);
+    --neutral-900: oklch(97% 0.04 220);
+
+    /* ── Glow shadows (shadow-as-glow, brand-tinted) ── */
+    --shadow-xs: 0 0 4px color-mix(in oklch, oklch(62% 0.26 195), transparent 70%);
+    --shadow-sm: 0 0 8px color-mix(in oklch, oklch(62% 0.26 195), transparent 65%),
+                 0 0 2px color-mix(in oklch, oklch(62% 0.26 195), transparent 80%);
+    --shadow-md: 0 0 20px color-mix(in oklch, oklch(62% 0.26 195), transparent 60%),
+                 0 0 4px color-mix(in oklch, oklch(62% 0.26 195), transparent 75%);
+    --shadow-lg: 0 0 40px color-mix(in oklch, oklch(62% 0.26 195), transparent 55%),
+                 0 0 10px color-mix(in oklch, oklch(62% 0.26 195), transparent 70%);
+
+    /* ── Neon accent backgrounds ── */
+    --accent-bg:     color-mix(in oklch, oklch(62% 0.26 195), transparent 82%);
+    --accent-border: color-mix(in oklch, oklch(62% 0.26 195), transparent 65%);
+
+    /* ── Glass with neon tint ── */
+    --glass-blur: 16px;
+    --glass-shadow: 0 0 12px color-mix(in oklch, oklch(62% 0.26 195), transparent 75%);
+    --shadow-glass: 0 0 8px color-mix(in oklch, oklch(62% 0.26 195), transparent 70%);
+
+    /* ── Mesh accents ── */
+    --mesh-accent-1: color-mix(in oklch, oklch(62% 0.26 195), transparent 92%);
+    --mesh-accent-2: color-mix(in oklch, oklch(62% 0.26 195), transparent 95%);
+
+    /* ── Link color ── */
+    --text-link: oklch(72% 0.24 195);
+}
+
 
 body, .text-auto {
     transition: color 500ms ease-in-out, background-color 500ms ease-in-out;
@@ -920,7 +1018,6 @@ body {
 [data-theme="starry-night"] .dropdown-item:hover,
 [data-theme="lunar-halo"] .dropdown-item:hover,
 [data-theme="flowing-aurora"] .dropdown-item:hover,
-[data-theme="ocean"] .dropdown-item:hover,
 [data-theme="forest"] .dropdown-item:hover,
 [data-theme="sunset"] .dropdown-item:hover {
     background: rgba(255,255,255,0.1);
@@ -933,7 +1030,6 @@ body {
 [data-theme="starry-night"] .dropdown-item.active,
 [data-theme="lunar-halo"] .dropdown-item.active,
 [data-theme="flowing-aurora"] .dropdown-item.active,
-[data-theme="ocean"] .dropdown-item.active,
 [data-theme="forest"] .dropdown-item.active,
 [data-theme="sunset"] .dropdown-item.active {
     background: rgba(255,255,255,0.15);
@@ -1032,7 +1128,6 @@ body.light-theme .dropdown-divider,
 .theme-option:hover .theme-dot { transform: scale(1.12); }
 
 /* 深色主题下主题面板文字颜色 */
-[data-theme="ocean"] .theme-option,
 [data-theme="forest"] .theme-option,
 [data-theme="sunset"] .theme-option,
 [data-theme="starry-night"] .theme-option,
@@ -1040,7 +1135,6 @@ body.light-theme .dropdown-divider,
 [data-theme="flowing-aurora"] .theme-option {
     color: var(--text-primary);
 }
-[data-theme="ocean"] .theme-option:hover,
 [data-theme="forest"] .theme-option:hover,
 [data-theme="sunset"] .theme-option:hover,
 [data-theme="starry-night"] .theme-option:hover,

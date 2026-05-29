@@ -183,8 +183,6 @@ input, textarea, select {
 .launch-btn-glow,
 .magnetic-join-btn,
 .magnetic-join-btn .btn-glow,
-.theme-toggle-btn,
-.theme-toggle-btn .theme-icon,
 .notification-btn,
 .radial-card,
 .calendar-day,
@@ -258,59 +256,6 @@ img, svg {
 /* Avatar images in light theme need subtle shadow for depth */
 [data-theme="light"], [data-theme="ocean-light"] .avatar-img {
     filter: brightness(1.02) contrast(1.05) saturate(1.1) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-/* Theme Toggle Button */
-.theme-toggle-btn {
-    position: relative;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius-md);
-    background: var(--bg-glass);
-    border: 1px solid var(--border-glass);
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    overflow: hidden;
-    transition: all var(--transition-normal);
-}
-
-.theme-toggle-btn:hover {
-    background: var(--bg-glass-hover);
-    color: var(--text-primary);
-    border-color: var(--border-accent);
-    transform: rotate(15deg);
-}
-
-.theme-toggle-btn:active {
-    transform: scale(0.95) rotate(15deg);
-}
-
-.theme-icon {
-    position: absolute;
-    transition: all var(--transition-normal);
-}
-
-.sun-icon {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-}
-
-.moon-icon {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.5);
-}
-
-[data-theme="dark"], [data-theme="ocean"] .sun-icon {
-    opacity: 0;
-    transform: rotate(90deg) scale(0.5);
-}
-
-[data-theme="dark"], [data-theme="ocean"] .moon-icon {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
 }
 
 /* ============================================

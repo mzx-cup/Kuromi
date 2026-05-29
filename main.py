@@ -1283,7 +1283,8 @@ def login(body: LoginRequest, http_request: Request):
         "avatar": avatar,
         "currentTask": user['current_task'],
         "hasCompletedAssessment": has_completed_assessment,
-        "preferences": get_user_preferences_internal(user['id'])
+        "preferences": get_user_preferences_internal(user['id']),
+        "themePrefs": database.get_user_theme_prefs(user['id'])
     }
 
 def get_user_preferences_internal(user_id: int):
@@ -1380,6 +1381,43 @@ def get_user_preferences(user_id: int):
         return {"success": True, "preferences": prefs}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"获取偏好失败: {str(e)}")
+
+class ThemeSyncRequest(BaseModel):
+    userId: int = None
+    mode: str = "light"
+    theme: str = "warm-morning"
+    wallpaper: dict = {}
+    customThemes: list = []
+
+@app.post("/api/user/theme/sync")
+def sync_theme_to_server(request: ThemeSyncRequest):
+    """Save user theme preferences to server."""
+    try:
+        if not request.userId:
+            return {"ok": False, "reason": "not_logged_in"}
+        prefs = {
+            "mode": request.mode,
+            "theme": request.theme,
+            "wallpaper": request.wallpaper,
+            "customThemes": request.customThemes
+        }
+        database.save_user_theme_prefs(request.userId, prefs)
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "reason": str(e)}
+
+@app.get("/api/user/theme/sync")
+def get_theme_from_server(user_id: int = None):
+    """Load user theme preferences from server."""
+    try:
+        if not user_id:
+            return {"theme": None}
+        prefs = database.get_user_theme_prefs(user_id)
+        if prefs:
+            return prefs
+        return {"theme": None}
+    except:
+        return {"theme": None}
 
 class DeleteAccountRequest(BaseModel):
     userId: int

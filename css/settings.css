@@ -417,6 +417,353 @@ body {
     border-bottom: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+/* ============================================
+   Token Editor Styles
+   ============================================ */
+
+.token-editor-container {
+    margin-top: 24px;
+    padding: 20px;
+}
+
+.token-editor-container .section-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.token-editor-section {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.token-editor-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.token-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-heading, #fff);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.token-section-title::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
+    border-radius: 2px;
+    display: inline-block;
+}
+
+/* Brand color picker */
+.token-brand-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.token-color-input {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--border-glass);
+    border-radius: 10px;
+    cursor: pointer;
+    background: transparent;
+    padding: 2px;
+}
+
+.token-color-input:hover {
+    border-color: var(--brand-500);
+}
+
+.token-color-input::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.token-color-input::-webkit-color-swatch {
+    border: none;
+    border-radius: 7px;
+}
+
+/* Preset swatches */
+.token-preset-swatches {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.token-preset-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    outline: none;
+}
+
+.token-preset-swatch:hover {
+    transform: scale(1.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.token-preset-swatch.active {
+    border-color: #fff;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.35);
+}
+
+/* Neutral tone buttons */
+.token-neutral-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.token-neutral-btn {
+    padding: 8px 16px;
+    background: var(--border-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    color: var(--text-muted, rgba(255,255,255,0.5));
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.token-neutral-btn:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.token-neutral-btn.active {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.1));
+    border-color: rgba(249, 115, 22, 0.3);
+    color: #fff;
+}
+
+/* Token section setting items (no border between sliders within same section) */
+.token-setting-item {
+    border-bottom: none !important;
+    padding: 10px 0 !important;
+}
+
+.token-setting-item:hover {
+    background: transparent !important;
+}
+
+/* Accent color grid */
+.token-accent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.token-accent-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.token-accent-item .setting-label {
+    font-size: 13px;
+    color: var(--text-muted, rgba(255,255,255,0.5));
+}
+
+.token-accent-input {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border-glass);
+    background: var(--border-glass);
+}
+
+/* Live preview card */
+.token-preview-card {
+    background: var(--surface-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--border-glass);
+    border-radius: 14px;
+    padding: 20px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.token-preview-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.token-preview-heading {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-heading, #fff);
+    margin: 0;
+}
+
+.token-preview-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-body, rgba(255,255,255,0.7));
+    margin: 0;
+}
+
+.token-preview-btn {
+    align-self: flex-start;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.token-preview-btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+
+/* Token editor actions */
+.token-editor-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--border-glass);
+}
+
+.token-action-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.token-name-input {
+    width: 200px;
+}
+
+.token-mode-radios {
+    display: flex;
+    gap: 12px;
+}
+
+.token-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-body, rgba(255,255,255,0.7));
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.token-radio-label input[type="radio"] {
+    accent-color: var(--brand-500);
+}
+
+.token-action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.token-save-btn {
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
+    border: none;
+    color: #fff;
+    font-weight: 600;
+}
+
+.token-save-btn:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
+.token-contrast-display {
+    margin-top: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    background: var(--surface-hover);
+    display: inline-block;
+}
+
+/* ============================================
+   Responsive adjustments for token editor
+   ============================================ */
+
+@media (max-width: 1024px) {
+    .token-editor-container {
+        padding: 16px;
+    }
+
+    .token-editor-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .token-action-group {
+        width: 100%;
+    }
+
+    .token-name-input {
+        width: 100%;
+    }
+
+    .token-accent-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .token-accent-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .token-preset-swatches {
+        gap: 6px;
+    }
+
+    .token-preset-swatch {
+        width: 28px;
+        height: 28px;
+    }
+
+    .token-neutral-buttons {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .token-neutral-btn {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+
+    .token-editor-actions {
+        gap: 10px;
+    }
+
+    .token-mode-radios {
+        gap: 8px;
+    }
+}
+
 .toast-container {
     position: fixed;
     bottom: 24px;

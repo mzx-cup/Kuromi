@@ -339,6 +339,25 @@ def ensure_login_records_table(conn):
     cursor.close()
 
 
+def ensure_theme_prefs_column(conn):
+    """Add theme_prefs JSON column to user table if missing."""
+    if conn is None:
+        return
+    cursor = conn.cursor()
+    if _is_sqlite(conn):
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN theme_prefs TEXT DEFAULT ''")
+        except:
+            pass  # column already exists
+    else:
+        try:
+            cursor.execute("ALTER TABLE user ADD COLUMN theme_prefs JSON DEFAULT NULL")
+        except:
+            pass
+    conn.commit()
+    cursor.close()
+
+
 def record_login_event(user_id, username, success, failure_reason='', ip_address='', user_agent=''):
     """Persist a login attempt without storing raw credentials."""
     username = username or ''
@@ -6030,6 +6049,50 @@ def reorder_playlist_videos(items):
                 if i.get('id') == item['id']:
                     i['position'] = item['position']
         save_local_storage(storage)
+        return True
+
+
+def get_user_theme_prefs(user_id):
+    """Retrieve user theme preferences as a dict, or None if not found."""
+    with get_db() as conn:
+        if conn is None:
+            return None
+        ensure_theme_prefs_column(conn)
+        if _is_sqlite(conn):
+            cursor = conn.cursor()
+            cursor.execute("SELECT theme_prefs FROM user WHERE id = ?", (user_id,))
+        else:
+            import pymysql
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            cursor.execute("SELECT theme_prefs FROM user WHERE id = %s", (user_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        if row:
+            prefs = row[0] if _is_sqlite(conn) else row.get('theme_prefs')
+            if prefs:
+                if isinstance(prefs, str):
+                    try:
+                        return json.loads(prefs)
+                    except:
+                        return None
+                return prefs
+        return None
+
+
+def save_user_theme_prefs(user_id, prefs_dict):
+    """Persist user theme preferences dict to database."""
+    prefs_json = json.dumps(prefs_dict, ensure_ascii=False)
+    with get_db() as conn:
+        if conn is None:
+            return False
+        ensure_theme_prefs_column(conn)
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("UPDATE user SET theme_prefs = ? WHERE id = ?", (prefs_json, user_id))
+        else:
+            cursor.execute("UPDATE user SET theme_prefs = %s WHERE id = %s", (prefs_json, user_id))
+        conn.commit()
+        cursor.close()
         return True
 
 
