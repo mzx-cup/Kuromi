@@ -609,6 +609,31 @@
                 </div>
             </div>
 
+            <!-- ===== AI眼中的你 画像卡片 ===== -->
+            <div class="p-4 border-t sidebar-profile-section" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                    <i data-lucide="scan-eye" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">AI眼中的你</h2>
+                    <span id="profile-last-updated" class="text-[10px]" style="color: var(--text-tertiary);"></span>
+                </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('ai-profile-section', this)" data-section="ai-profile-section" aria-expanded="true" aria-controls="ai-profile-section" title="展开/收起画像">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content space-y-2" id="ai-profile-section">
+                    <div id="profile-card-container" class="profile-card">
+                        <div class="profile-empty-state text-center py-3 text-[11px]" style="color: var(--text-tertiary);">
+                            🤖 AI 正在了解你...<br>聊得越多，画像越准
+                        </div>
+                    </div>
+                    <div class="profile-memory-link mt-2 text-center">
+                        <button class="profile-memory-link-btn text-[11px]" style="color: var(--primary-light); background: transparent; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: all 0.2s ease;" onclick="toggleSection('memory-section', document.querySelector('.sidebar-memory-section .section-expand-btn'))">
+                            查看详细记忆 →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- ===== 我的记忆面板 ===== -->
             <div class="p-4 border-t sidebar-memory-section" style="border-color: var(--border-glass);">
                 <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
