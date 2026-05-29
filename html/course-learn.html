@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 - 课程学习</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/course-learn.css">
+    <script src="/js/loading.js"></script>
+</head>
+<body class="course-learn-body" data-page="course-learn">
+    <!-- Global Wallpaper Background Layer -->
+    <div class="global-bg-layer" id="global-bg-layer"></div>
+    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
+
+    <!-- Top Navigation -->
+    <nav class="cl-nav">
+        <div class="cl-nav-inner">
+            <div class="cl-nav-left">
+                <a href="/courses.html" class="cl-back-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>课程中心</span>
+                </a>
+                <div class="cl-nav-divider"></div>
+                <h1 class="cl-nav-title" id="cl-course-title">加载中...</h1>
+            </div>
+            <div class="cl-nav-right">
+                <span class="cl-progress-text" id="cl-progress-text">0%</span>
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Two-Column Layout -->
+    <div class="cl-layout">
+        <!-- Left: Chapter Tree -->
+        <aside class="cl-sidebar" id="cl-sidebar">
+            <div class="cl-sidebar-header">
+                <h3 class="cl-sidebar-title">课程目录</h3>
+                <button class="cl-sidebar-toggle" id="cl-sidebar-toggle" title="收起目录">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+            </div>
+            <div class="cl-sidebar-body" id="cl-chapter-tree">
+                <div class="cl-tree-loading">加载目录中...</div>
+            </div>
+        </aside>
+
+        <!-- Expand sidebar button (visible when collapsed) -->
+        <button class="cl-sidebar-expand" id="cl-sidebar-expand" title="展开目录">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
+        <!-- Right: Main Content -->
+        <main class="cl-main">
+            <!-- Video Player Section -->
+            <div class="cl-player-section">
+                <div class="cl-player-wrapper" id="cl-player-wrapper">
+                    <div class="cl-player-placeholder" id="cl-player-placeholder">
+                        <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" opacity="0.3">
+                            <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+                        </svg>
+                        <p>选择左侧章节开始学习</p>
+                    </div>
+                    <iframe id="cl-bilibili-player"
+                            class="cl-bilibili-iframe"
+                            src=""
+                            allowfullscreen
+                            allow="autoplay; encrypted-media; fullscreen"
+                            style="display:none;">
+                    </iframe>
+                </div>
+            </div>
+
+            <!-- Content Tabs -->
+            <div class="cl-content-tabs">
+                <button class="cl-content-tab active" data-tab="subtitles">字幕</button>
+                <button class="cl-content-tab" data-tab="transcript">AI 讲义</button>
+                <button class="cl-content-tab" data-tab="notes">我的笔记</button>
+            </div>
+
+            <!-- Tab: Subtitles -->
+            <div class="cl-tab-panel active" id="cl-panel-subtitles">
+                <div class="cl-subtitle-container" id="cl-subtitle-container">
+                    <div class="cl-subtitle-empty">加载字幕中...</div>
+                </div>
+            </div>
+
+            <!-- Tab: Transcript -->
+            <div class="cl-tab-panel" id="cl-panel-transcript">
+                <div class="cl-transcript-content" id="cl-transcript-content">
+                    <div class="cl-transcript-empty">暂无 AI 讲义，导入视频后可自动生成</div>
+                </div>
+            </div>
+
+            <!-- Tab: Notes -->
+            <div class="cl-tab-panel" id="cl-panel-notes">
+                <textarea class="cl-notes-editor" id="cl-notes-editor" placeholder="在这里记录你的学习笔记..."></textarea>
+            </div>
+
+            <!-- Bottom Navigation -->
+            <div class="cl-bottom-nav">
+                <button class="cl-nav-btn prev" id="cl-nav-prev" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>上一个</span>
+                </button>
+                <div class="cl-nav-progress">
+                    <div class="cl-progress-bar">
+                        <div class="cl-progress-fill" id="cl-progress-fill" style="width:0%"></div>
+                    </div>
+                    <span class="cl-nav-counter" id="cl-nav-counter">0 / 0</span>
+                </div>
+                <button class="cl-nav-btn next" id="cl-nav-next" disabled>
+                    <span>下一个</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/course-learn.js"></script>
+</body>
+</html>

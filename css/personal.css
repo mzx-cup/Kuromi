@@ -269,7 +269,7 @@ body {
 
 .nav-back:hover {
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
+    background: rgba(249, 115, 22, 0.05);
     transform: translateX(-4px);
 }
 
@@ -319,7 +319,7 @@ body {
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    border: 1px solid rgba(249, 115, 22, 0.1);
     border-radius: 32px;
     padding: 28px;
     margin-bottom: 24px;
@@ -333,7 +333,7 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%, rgba(59, 130, 246, 0.05) 100%);
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, transparent 50%, rgba(249, 115, 22, 0.03) 100%);
     pointer-events: none;
 }
 
@@ -343,7 +343,7 @@ body {
     inset: -1px;
     border-radius: 32px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), transparent, rgba(59, 130, 246, 0.3));
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), transparent, rgba(249, 115, 22, 0.2));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
@@ -364,8 +364,8 @@ body {
 
 .cockpit-container:hover {
     transform: translateY(-4px);
-    box-shadow: 0 0 60px rgba(168, 85, 247, 0.25), 0 20px 60px rgba(0, 0, 0, 0.15);
-    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 60px rgba(249, 115, 22, 0.12), 0 20px 60px rgba(0, 0, 0, 0.15);
+    border-color: rgba(249, 115, 22, 0.3);
 }
 
 .cockpit-header {
@@ -470,8 +470,8 @@ body {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+        radial-gradient(circle at 20% 30%, rgba(249, 115, 22, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.06) 0%, transparent 40%);
     pointer-events: none;
 }
 
@@ -518,8 +518,8 @@ body {
     position: absolute;
     inset: 0;
     background-image:
-        linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+        linear-gradient(rgba(249, 115, 22, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249, 115, 22, 0.06) 1px, transparent 1px);
     background-size: 40px 40px;
     animation: gridMove 20s linear infinite;
 }
@@ -628,7 +628,7 @@ body {
 .topology-connection {
     position: absolute;
     height: 2px;
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.6), rgba(139, 92, 246, 0.6));
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.5), rgba(139, 92, 246, 0.4));
     transform-origin: left center;
     animation: connectionPulse 3s ease-in-out infinite;
 }
@@ -699,7 +699,7 @@ body {
 
 .quantum-metric:hover {
     background: rgba(0, 0, 0, 0.25);
-    border-color: rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.1);
 }
 
 .quantum-metric-header {
@@ -767,12 +767,12 @@ body {
 
 .quantum-metric-fill.thinking {
     width: 78%;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    background: linear-gradient(90deg, var(--brand-500), var(--brand-400));
 }
 
 .quantum-metric-fill.mastery {
     width: 85%;
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    background: linear-gradient(90deg, var(--accent-violet), #a78bfa);
 }
 
 .quantum-metric-fill.momentum {
@@ -783,7 +783,7 @@ body {
 .focus-portion {
     width: 80%;
     height: 100%;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    background: linear-gradient(90deg, var(--brand-500), var(--brand-400));
     transition: width 1s var(--ease-out-expo);
 }
 
@@ -859,8 +859,8 @@ body {
 }
 
 .cockpit-stat-card:nth-child(2) .cockpit-stat-icon {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+    background: rgba(249, 115, 22, 0.08);
+    color: var(--brand-500);
 }
 
 .cockpit-stat-card:nth-child(3) .cockpit-stat-icon {
@@ -1020,7 +1020,7 @@ body {
 
 @keyframes avatarGlow {
     0%, 100% { box-shadow: 0 0 0 4px var(--primary-glow), 0 8px 24px rgba(0, 0, 0, 0.15); }
-    50% { box-shadow: 0 0 0 8px transparent, 0 8px 32px rgba(59, 130, 246, 0.3); }
+    50% { box-shadow: 0 0 0 8px transparent, 0 8px 32px rgba(249, 115, 22, 0.2); }
 }
 
 .avatar:hover {
@@ -1034,7 +1034,7 @@ body {
     border-color: var(--primary);
     box-shadow:
         0 0 0 5px var(--primary-glow),
-        0 12px 30px rgba(59, 130, 246, 0.25);
+        0 12px 30px rgba(249, 115, 22, 0.12);
 }
 
 .avatar-edit {
@@ -1314,7 +1314,7 @@ body {
 }
 
 .pref-icon.blue {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(249, 115, 22, 0.06);
     color: var(--primary);
 }
 
@@ -1329,14 +1329,14 @@ body {
 }
 
 .pref-icon.violet {
-    background: rgba(139, 92, 246, 0.12);
+    background: rgba(139, 92, 246, 0.06);
     color: var(--accent);
 }
 
-.pref-card:hover .pref-icon.blue { background: rgba(59, 130, 246, 0.2); }
+.pref-card:hover .pref-icon.blue { background: rgba(249, 115, 22, 0.1); }
 .pref-card:hover .pref-icon.amber { background: rgba(245, 158, 11, 0.2); }
 .pref-card:hover .pref-icon.green { background: rgba(16, 185, 129, 0.2); }
-.pref-card:hover .pref-icon.violet { background: rgba(139, 92, 246, 0.2); }
+.pref-card:hover .pref-icon.violet { background: rgba(139, 92, 246, 0.1); }
 
 .pref-title {
     font-size: 15px;
@@ -1394,8 +1394,8 @@ body {
 .pet-card {
     position: relative;
     padding: 24px;
-    background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(139, 92, 246, 0.05));
-    border: 1px solid rgba(168, 85, 247, 0.15);
+    background: linear-gradient(145deg, rgba(249, 115, 22, 0.05), rgba(139, 92, 246, 0.03));
+    border: 1px solid rgba(249, 115, 22, 0.08);
     border-radius: var(--radius-md);
     transition: all 0.4s var(--ease-out-expo);
     overflow: hidden;
@@ -1405,14 +1405,14 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.1) 0%, transparent 60%);
+    background: radial-gradient(circle at 50% 0%, rgba(249, 115, 22, 0.06) 0%, transparent 60%);
     pointer-events: none;
 }
 
 .pet-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(168, 85, 247, 0.2);
-    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 12px 40px rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.2);
 }
 
 /* Pet Avatar */
@@ -1444,12 +1444,12 @@ body {
     0%, 100% {
         opacity: 0.6;
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.3);
     }
     50% {
         opacity: 1;
         transform: scale(1.05);
-        box-shadow: 0 0 20px 4px rgba(168, 85, 247, 0.3);
+        box-shadow: 0 0 20px 4px rgba(249, 115, 22, 0.2);
     }
 }
 
@@ -1565,7 +1565,7 @@ body {
 }
 
 .pet-nutrition-fill.mood {
-    background: linear-gradient(90deg, #ec4899, #f472b6);
+    background: linear-gradient(90deg, var(--accent-rose), #f472b6);
     width: 78%;
     animation-delay: 0.6s;
 }
@@ -1594,8 +1594,8 @@ body {
 .pet-tip {
     margin-top: 16px;
     padding: 12px 14px;
-    background: rgba(168, 85, 247, 0.08);
-    border: 1px solid rgba(168, 85, 247, 0.15);
+    background: rgba(249, 115, 22, 0.05);
+    border: 1px solid rgba(249, 115, 22, 0.08);
     border-radius: var(--radius-sm);
     position: relative;
     z-index: 1;
@@ -1641,14 +1641,14 @@ body {
 }
 
 .pet-option:hover {
-    background: rgba(168, 85, 247, 0.1);
+    background: rgba(249, 115, 22, 0.06);
     transform: translateY(-2px);
 }
 
 .pet-option.selected {
-    background: rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.5);
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    background: rgba(249, 115, 22, 0.08);
+    border-color: rgba(249, 115, 22, 0.4);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
 }
 
 .pet-option-emoji {
@@ -1688,7 +1688,7 @@ body {
     display: flex;
     justify-content: center;
     padding-top: 16px;
-    border-top: 1px solid rgba(168, 85, 247, 0.1);
+    border-top: 1px solid rgba(249, 115, 22, 0.06);
 }
 
 /* ============================================
@@ -1734,7 +1734,7 @@ body {
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 50%, rgba(168,85,247,0.25) 100%);
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 50%, rgba(249, 115, 22, 0.12) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -1759,7 +1759,7 @@ body {
 
 .eco-card:hover {
     transform: translateY(-6px) scale(1.01);
-    box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.25), 0 0 40px rgba(139, 92, 246, 0.15);
+    box-shadow: 0 25px 50px -12px rgba(139, 92, 246, 0.12), 0 0 40px rgba(139, 92, 246, 0.08);
 }
 
 .eco-card-glow {
@@ -1778,7 +1778,7 @@ body {
 }
 
 .eco-glow-purple {
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 50%);
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 50%);
 }
 
 .eco-glow-green {
@@ -1820,8 +1820,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: rgba(249, 115, 22, 0.06);
+    border: 1px solid rgba(249, 115, 22, 0.1);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1829,7 +1829,7 @@ body {
 }
 
 .eco-card-link:hover {
-    background: rgba(168, 85, 247, 0.2);
+    background: rgba(249, 115, 22, 0.1);
     color: var(--accent);
 }
 
@@ -2018,17 +2018,17 @@ body {
 }
 
 .eco-stat-fill.mood {
-    background: linear-gradient(90deg, #ec4899, #f472b6, #fb7185);
+    background: linear-gradient(90deg, var(--accent-rose), #f472b6, #fb7185);
     box-shadow: 0 0 12px rgba(236, 72, 153, 0.5);
 }
 
 .eco-stat-fill.intimacy {
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
-    box-shadow: 0 0 12px rgba(139, 92, 246, 0.5);
+    background: linear-gradient(90deg, var(--accent-violet), #a78bfa, #c4b5fd);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
 .eco-plant-stat-fill.water {
-    background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9);
+    background: linear-gradient(90deg, var(--accent-teal), #22d3ee, #67e8f9);
     box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
@@ -2054,7 +2054,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     padding: 4px 10px;
-    background: rgba(139, 92, 246, 0.9);
+    background: rgba(139, 92, 246, 0.7);
     color: white;
     font-size: 11px;
     font-weight: 600;
@@ -2250,7 +2250,7 @@ body {
 }
 
 .eco-plant-stat-fill.water {
-    background: linear-gradient(90deg, #06b6d4, #22d3ee, #67e8f9);
+    background: linear-gradient(90deg, var(--accent-teal), #22d3ee, #67e8f9);
     box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
@@ -2482,8 +2482,8 @@ body {
     align-items: center;
     gap: 6px;
     padding: 12px 20px;
-    background: rgba(168, 85, 247, 0.1);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: rgba(249, 115, 22, 0.06);
+    border: 1px solid rgba(249, 115, 22, 0.1);
     border-radius: 16px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -2491,8 +2491,8 @@ body {
 
 .pet-action-btn:hover {
     transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
-    background: rgba(168, 85, 247, 0.15);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3);
+    background: rgba(249, 115, 22, 0.08);
 }
 
 .pet-action-btn:active {
@@ -2581,7 +2581,7 @@ body {
 
 /* Pet Nutrition Fill Colors */
 .pet-nutrition-fill.intimacy {
-    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    background: linear-gradient(90deg, var(--accent-violet), #a78bfa);
     width: 50%;
     animation-delay: 0.8s;
 }
@@ -2738,11 +2738,11 @@ body {
 }
 
 .stat-card:nth-child(1) .stat-icon { background: var(--warning-bg); color: var(--warning); }
-.stat-card:nth-child(2) .stat-icon { background: rgba(59, 130, 246, 0.12); color: var(--primary); }
+.stat-card:nth-child(2) .stat-icon { background: rgba(249, 115, 22, 0.06); color: var(--primary); }
 .stat-card:nth-child(3) .stat-icon { background: var(--success-bg); color: var(--success); }
 
 .stat-card:hover:nth-child(1) .stat-icon { background: rgba(245, 158, 11, 0.2); transform: scale(1.1); }
-.stat-card:hover:nth-child(2) .stat-icon { background: rgba(59, 130, 246, 0.2); transform: scale(1.1); }
+.stat-card:hover:nth-child(2) .stat-icon { background: rgba(249, 115, 22, 0.1); transform: scale(1.1); }
 .stat-card:hover:nth-child(3) .stat-icon { background: rgba(16, 185, 129, 0.2); transform: scale(1.1); }
 
 .stat-value {
@@ -2786,7 +2786,7 @@ body {
 
 .goal-tag:hover {
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
+    background: rgba(249, 115, 22, 0.05);
     border-color: var(--primary);
     transform: translateY(-2px);
 }
@@ -2843,7 +2843,7 @@ body {
     font-size: 15px;
     font-weight: 700;
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(249, 115, 22, 0.06);
     border-radius: var(--radius-sm);
     text-align: center;
 }
@@ -2878,7 +2878,7 @@ body {
 
 .task-card.active {
     border-color: var(--primary);
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(249, 115, 22, 0.03);
 }
 
 .task-card-icon {
@@ -2894,7 +2894,7 @@ body {
 }
 
 .task-card:hover .task-card-icon {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(249, 115, 22, 0.06);
     transform: scale(1.1);
 }
 
@@ -3041,7 +3041,7 @@ body {
 .time-picker-preset:hover {
     border-color: var(--primary);
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
+    background: rgba(249, 115, 22, 0.05);
 }
 
 .time-picker-preset.active {
@@ -3259,11 +3259,11 @@ body {
 .floating-alarm-quick-btn:hover {
     border-color: var(--primary);
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
+    background: rgba(249, 115, 22, 0.05);
 }
 
 .floating-alarm-quick-btn.active {
-    background: rgba(59, 130, 246, 0.15);
+    background: rgba(249, 115, 22, 0.08);
     border-color: var(--primary);
     color: var(--primary);
 }
@@ -3422,7 +3422,7 @@ body {
 
 .floating-alarm-trigger:hover {
     transform: scale(1.1) rotate(12deg);
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), 0 12px 40px var(--primary-glow);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.4), 0 12px 40px var(--primary-glow);
 }
 
 .floating-alarm-trigger:active {
@@ -3445,7 +3445,7 @@ body {
 
 @keyframes fabPulse {
     0%, 100% { box-shadow: 0 8px 32px var(--primary-glow); }
-    50% { box-shadow: 0 0 30px rgba(168, 85, 247, 0.6), 0 8px 40px var(--primary-glow); }
+    50% { box-shadow: 0 0 30px rgba(249, 115, 22, 0.5), 0 8px 40px var(--primary-glow); }
 }
 
 .floating-alarm-trigger.bounce {
@@ -3633,10 +3633,10 @@ body {
 
 .time-tag:hover {
     color: var(--primary);
-    background: rgba(59, 130, 246, 0.08);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(249, 115, 22, 0.05);
+    border-color: rgba(249, 115, 22, 0.2);
     transform: translateY(-3px);
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.08);
 }
 
 .time-tag:active {
@@ -3690,7 +3690,7 @@ body {
     left: 50%;
     width: 0;
     height: 0;
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(249, 115, 22, 0.06);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     transition: width 0.4s ease, height 0.4s ease;
@@ -4863,7 +4863,7 @@ body {
 }
 
 /* Colors */
-.text-blue-400 { color: #60a5fa !important; }
+.text-blue-400 { color: var(--brand-400) !important; }
 .text-amber-400 { color: #fbbf24 !important; }
 .text-emerald-400 { color: #34d399 !important; }
 .text-violet-400 { color: #a78bfa !important; }
@@ -4897,7 +4897,7 @@ body {
     gap: 0;
     margin-top: 20px;
     padding: 16px 20px;
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(139, 92, 246, 0.08));
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(139, 92, 246, 0.05));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     backdrop-filter: blur(12px);
@@ -4954,8 +4954,8 @@ body {
 
 /* 宠物头像光晕脉动 */
 @keyframes petRingPulse {
-    0%, 100% { box-shadow: 0 0 12px rgba(168, 85, 247, 0.4); }
-    50% { box-shadow: 0 0 24px rgba(168, 85, 247, 0.7), 0 0 40px rgba(139, 92, 246, 0.3); }
+    0%, 100% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.3); }
+    50% { box-shadow: 0 0 24px rgba(249, 115, 22, 0.6), 0 0 40px rgba(139, 92, 246, 0.2); }
 }
 
 .eco-pet-avatar-ring {
@@ -4992,7 +4992,7 @@ body {
 
 /* 植物卡片生长动画 */
 .eco-plant-display {
-    animation: plantSlideIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation: plantSlideIn 0.6s var(--ease-out-back) both;
 }
 
 @keyframes plantSlideIn {
@@ -5029,7 +5029,7 @@ body {
     position: absolute;
     inset: 0;
     background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        rgba(168, 85, 247, 0.08) 0%,
+        rgba(249, 115, 22, 0.05) 0%,
         transparent 60%);
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -5041,8 +5041,8 @@ body {
 }
 
 .pref-card:hover {
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 24px rgba(168, 85, 247, 0.08);
-    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2), 0 0 24px rgba(249, 115, 22, 0.05);
+    border-color: rgba(249, 115, 22, 0.2);
 }
 
 /* Toggle 开关增强 */
@@ -5069,7 +5069,7 @@ body {
     height: 20px;
     background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
     border-radius: 50%;
-    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transition: left 0.5s var(--ease-out-back),
                 box-shadow 0.4s ease;
     box-shadow:
         0 2px 8px rgba(0, 0, 0, 0.18),
@@ -5082,10 +5082,10 @@ body {
     top: 50%;
     width: 8px;
     height: 8px;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.6) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.5) 0%, transparent 70%);
     border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
-    transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transition: left 0.5s var(--ease-out-back),
                 transform 0.4s ease,
                 opacity 0.4s ease;
     pointer-events: none;
@@ -5095,11 +5095,11 @@ body {
 /* 开启状态 - 弹簧弹入 + 光晕扩散 */
 .toggle.active {
     background: linear-gradient(135deg, #9333ea, #6366f1);
-    border-color: rgba(168, 85, 247, 0.4);
+    border-color: rgba(249, 115, 22, 0.3);
     box-shadow:
-        0 0 0 2px rgba(168, 85, 247, 0.15),
-        0 0 20px rgba(168, 85, 247, 0.35),
-        0 0 40px rgba(168, 85, 247, 0.15),
+        0 0 0 2px rgba(249, 115, 22, 0.08),
+        0 0 20px rgba(249, 115, 22, 0.18),
+        0 0 40px rgba(249, 115, 22, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -5108,7 +5108,7 @@ body {
     box-shadow:
         0 4px 12px rgba(99, 102, 241, 0.4),
         0 2px 4px rgba(0, 0, 0, 0.15),
-        0 0 12px rgba(168, 85, 247, 0.5);
+        0 0 12px rgba(249, 115, 22, 0.4);
 }
 
 .toggle.active .toggle-glow {
@@ -5167,7 +5167,7 @@ body {
 }
 
 .pref-select:hover {
-    border-color: rgba(168, 85, 247, 0.4);
+    border-color: rgba(249, 115, 22, 0.3);
     background: var(--glass-bg);
     box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
@@ -5175,7 +5175,7 @@ body {
 .pref-select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15), var(--glass-highlight);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08), var(--glass-highlight);
 }
 
 /* ============================================
@@ -5293,7 +5293,7 @@ body {
 
 .pref-select-wrap.open .pref-select-trigger {
     border-color: var(--primary);
-    background: rgba(168, 85, 247, 0.08);
+    background: rgba(249, 115, 22, 0.05);
     box-shadow: 0 0 0 4px var(--primary-glow), var(--glass-highlight);
 }
 
@@ -5328,16 +5328,16 @@ body {
 }
 
 .pref-select-option:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(59, 130, 246, 0.1));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(249, 115, 22, 0.06));
     backdrop-filter: blur(8px);
     transform: translateX(4px);
 }
 
 .pref-select-option.active {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.15));
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(249, 115, 22, 0.08));
     color: var(--primary);
     font-weight: 600;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
 }
 
 .pref-select-option.active::before {
@@ -5369,11 +5369,11 @@ select.pref-select {
 }
 
 [data-theme="midnight"] .pref-select-option:hover {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.25), rgba(59, 130, 246, 0.2));
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(249, 115, 22, 0.1));
 }
 
 [data-theme="midnight"] .pref-select-option.active {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.25));
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(249, 115, 22, 0.12));
 }
 
 /* ============================================
@@ -5382,7 +5382,7 @@ select.pref-select {
 
 /* 量子指标条脉动 */
 .quantum-metric-fill {
-    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: width 0.8s var(--ease-out-back);
     position: relative;
     overflow: hidden;
 }
@@ -5415,8 +5415,8 @@ select.pref-select {
 
 /* AI 分析区域脉动 */
 @keyframes aiAnalysisPulse {
-    0%, 100% { border-color: rgba(168, 85, 247, 0.15); }
-    50% { border-color: rgba(168, 85, 247, 0.3); }
+    0%, 100% { border-color: rgba(249, 115, 22, 0.08); }
+    50% { border-color: rgba(249, 115, 22, 0.2); }
 }
 
 .topology-ai-analysis {
@@ -5463,7 +5463,7 @@ select.pref-select {
 
 .stat-card:hover {
     transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), 0 0 24px rgba(168, 85, 247, 0.1);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25), 0 0 24px rgba(249, 115, 22, 0.06);
 }
 
 /* Toast 通知动画 */
@@ -5485,7 +5485,7 @@ select.pref-select {
 .task-card:hover {
     transform: translateY(-4px) scale(1.02);
     border-color: var(--accent);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(168, 85, 247, 0.1);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 20px rgba(249, 115, 22, 0.06);
 }
 
 /* 目标标签增强 */
@@ -5510,8 +5510,8 @@ select.pref-select {
 
 .time-tag:hover {
     transform: translateY(-2px);
-    background: rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.4);
+    background: rgba(249, 115, 22, 0.08);
+    border-color: rgba(249, 115, 22, 0.3);
 }
 
 .time-tag:active {

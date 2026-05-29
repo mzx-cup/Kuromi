@@ -3,344 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 课程中心</title>
+    <title>星识 - 课程中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/courses.css">
+    <script src="/js/loading.js"></script>
 </head>
-<body class="courses-body">
-    <!-- Background -->
-    <div class="courses-bg"></div>
+<body class="courses-body" data-page="courses">
+    <!-- Global Wallpaper Background -->
+    <div class="global-bg-layer" id="global-bg-layer"></div>
+    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
     <!-- Top Navigation -->
     <nav class="courses-nav">
-        <div class="nav-container">
-            <a href="/hub.html" class="nav-back">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                <span>返回中枢</span>
-            </a>
-            <h1 class="nav-title">课程中心</h1>
-            <div class="nav-actions">
-                <button class="nav-btn" id="search-toggle">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        <div class="courses-nav-inner max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="/hub.html" class="courses-back-link">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>返回中枢</span>
+                </a>
+                <h1 class="courses-nav-title">课程中心</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <button class="courses-edit-btn" id="courses-edit-btn" aria-label="编辑课程">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>编辑课程</span>
+                </button>
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </button>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
+    <!-- Main Content - Khan Academy Style -->
     <main class="courses-main">
-        <!-- Search Bar (Hidden by default) -->
-        <div class="search-container hidden" id="search-container">
-            <input type="text" class="search-input" placeholder="搜索课程、知识点..." id="course-search">
-        </div>
-
-        <!-- Category Tabs -->
-        <div class="category-tabs">
-            <button class="tab-btn active" data-category="all">全部课程</button>
-            <button class="tab-btn" data-category="python">Python</button>
-            <button class="tab-btn" data-category="java">Java</button>
-            <button class="tab-btn" data-category="cpp">C/C++</button>
-            <button class="tab-btn" data-category="algorithm">算法</button>
-            <button class="tab-btn" data-category="database">数据库</button>
-            <button class="tab-btn" data-category="web">Web开发</button>
-            <button class="tab-btn" data-category="ai">人工智能</button>
-        </div>
-
-        <!-- Course Stats -->
-        <div class="course-stats">
-            <div class="stat-card">
-                <span class="stat-value" id="total-courses">24</span>
-                <span class="stat-label">课程总数</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value" id="learning-courses">6</span>
-                <span class="stat-label">正在学习</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value" id="completed-courses">12</span>
-                <span class="stat-label">已完成</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-value" id="total-hours">156</span>
-                <span class="stat-label">学习时长(h)</span>
-            </div>
-        </div>
-
-        <!-- Course Grid -->
-        <div class="course-grid" id="course-grid">
-            <!-- Course Card 1 - Continue Learning (75%) -->
-            <div class="course-card" data-category="python" data-progress="75" data-last-chapter="第5章 5.3 节 函数的递归调用">
-                <div class="course-cover python-bg">
-                    <div class="course-icon">🐍</div>
-                    <div class="course-progress-ring">
-                        <svg width="60" height="60" viewBox="0 0 60 60">
-                            <circle class="progress-bg" cx="30" cy="30" r="26"/>
-                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 41"/>
-                        </svg>
-                        <span class="progress-text">75%</span>
-                    </div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">Python</div>
-                    <h3 class="course-title">Python 基础入门</h3>
-                    <p class="course-desc">从零开始学习 Python 编程，掌握基本语法和常用库</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 32 课时</span>
-                        <span class="meta-item">⏱️ 18 小时</span>
-                    </div>
-                    <button class="course-btn continue" data-progress="75" data-last-chapter="第5章 5.3 节 函数的递归调用">
-                        <span class="btn-text">继续学习</span>
-                        <span class="tooltip">上次学至：第5章 5.3 节 函数的递归调用</span>
-                        <div class="island-container">
-                            <div class="mini-progress"></div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 2 - Continue Learning (90%+) with Breathe Glow -->
-            <div class="course-card" data-category="algorithm" data-progress="92" data-last-chapter="第8章 8.5 节 动态规划优化技巧">
-                <div class="course-cover algorithm-bg">
-                    <div class="course-icon">🧮</div>
-                    <div class="course-progress-ring">
-                        <svg width="60" height="60" viewBox="0 0 60 60">
-                            <circle class="progress-bg" cx="30" cy="30" r="26"/>
-                            <circle class="progress-value" cx="30" cy="30" r="26" style="stroke-dashoffset: 13"/>
-                        </svg>
-                        <span class="progress-text">92%</span>
-                    </div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">算法</div>
-                    <h3 class="course-title">数据结构与算法</h3>
-                    <p class="course-desc">深入理解常用数据结构，提升算法思维和编码能力</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 48 课时</span>
-                        <span class="meta-item">⏱️ 28 小时</span>
-                    </div>
-                    <button class="course-btn continue breathe-glow" data-progress="92" data-last-chapter="第8章 8.5 节 动态规划优化技巧">
-                        <span class="btn-text">继续学习</span>
-                        <span class="tooltip">上次学至：第8章 8.5 节 动态规划优化技巧</span>
-                        <div class="island-container">
-                            <div class="mini-progress"></div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 3 - Start Learning with Outline Preview -->
-            <div class="course-card" data-category="java">
-                <div class="course-cover java-bg">
-                    <div class="course-icon">☕</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">Java</div>
-                    <h3 class="course-title">Java 面向对象编程</h3>
-                    <p class="course-desc">掌握 Java 核心概念，面向对象设计模式实践</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 36 课时</span>
-                        <span class="meta-item">⏱️ 22 小时</span>
-                    </div>
-                    <button class="course-btn start">
-                        <span class="btn-text">开始学习</span>
-                        <div class="outline-popup">
-                            <div class="outline-title">课程大纲预览</div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L1</span>
-                                <span>Java 环境搭建与第一个程序</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L2</span>
-                                <span>变量、数据类型与运算符</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L3</span>
-                                <span>控制流程与数组</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 4 - Start Learning -->
-            <div class="course-card" data-category="database">
-                <div class="course-cover database-bg">
-                    <div class="course-icon">🗄️</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">数据库</div>
-                    <h3 class="course-title">MySQL 数据库实战</h3>
-                    <p class="course-desc">从安装配置到高级优化，全面掌握 MySQL</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 28 课时</span>
-                        <span class="meta-item">⏱️ 16 小时</span>
-                    </div>
-                    <button class="course-btn start">
-                        <span class="btn-text">开始学习</span>
-                        <div class="outline-popup">
-                            <div class="outline-title">课程大纲预览</div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L1</span>
-                                <span>MySQL 安装与配置</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L2</span>
-                                <span>数据库与表的创建</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L3</span>
-                                <span>SQL 查询基础</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 5 - Review & Consolidate with Drawer Menu -->
-            <div class="course-card" data-category="web">
-                <div class="course-cover web-bg">
-                    <div class="course-icon">🌐</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">Web开发</div>
-                    <h3 class="course-title">前端开发三件套</h3>
-                    <p class="course-desc">HTML5 + CSS3 + JavaScript 完整前端技术栈</p>
-                    <div class="course-meta">
-                        <span class="meta-item review-stats">📚 45 课时 / ⏱️ 22 小时</span>
-                        <span class="meta-item review-suggest" style="display:none;">💡 建议复习 3 小时</span>
-                    </div>
-                    <button class="course-btn review">
-                        <span class="btn-text">复习巩固</span>
-                        <div class="drawer-menu">
-                            <div class="drawer-item" data-action="mistake-book">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                <span>查看错题本</span>
-                            </div>
-                            <div class="drawer-item" data-action="review-core">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673m-5.418 5.11a8.9 8.9 0 010-12.576M12 3v1m6 11h1m-11 0h1m4-11l-4-4m0 0l4-4m-4 4h4"></path></svg>
-                                <span>重温核心知识点</span>
-                            </div>
-                            <div class="drawer-item" data-action="final-exam">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                                <span>进行期末测验</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 6 - Start Learning -->
-            <div class="course-card" data-category="ai">
-                <div class="course-cover ai-bg">
-                    <div class="course-icon">🤖</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">人工智能</div>
-                    <h3 class="course-title">机器学习基础</h3>
-                    <p class="course-desc">理解机器学习核心算法，使用 Python 实现</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 40 课时</span>
-                        <span class="meta-item">⏱️ 25 小时</span>
-                    </div>
-                    <button class="course-btn start">
-                        <span class="btn-text">开始学习</span>
-                        <div class="outline-popup">
-                            <div class="outline-title">课程大纲预览</div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L1</span>
-                                <span>机器学习概述与数学基础</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L2</span>
-                                <span>监督学习：线性回归</span>
-                            </div>
-                            <div class="outline-item">
-                                <span class="lesson-num">L3</span>
-                                <span>分类算法：逻辑回归</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 7 - Completed with Text Flip -->
-            <div class="course-card" data-category="cpp">
-                <div class="course-cover cpp-bg">
-                    <div class="course-icon">⚡</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">C/C++</div>
-                    <h3 class="course-title">C语言程序设计</h3>
-                    <p class="course-desc">系统学习 C 语言，掌握底层编程思想</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 35 课时</span>
-                        <span class="meta-item">⏱️ 20 小时</span>
-                    </div>
-                    <button class="course-btn completed">
-                        <div class="confetti-container">
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                        </div>
-                        <span class="btn-text">
-                            <span class="btn-text-default">✓ 已完成</span>
-                            <span class="btn-text-hover">查看证书 →</span>
-                        </span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Course Card 8 - Completed -->
-            <div class="course-card" data-category="python">
-                <div class="course-cover python-bg">
-                    <div class="course-icon">📊</div>
-                </div>
-                <div class="course-content">
-                    <div class="course-category">Python</div>
-                    <h3 class="course-title">数据分析与可视化</h3>
-                    <p class="course-desc">Pandas + Matplotlib 数据处理与图表展示</p>
-                    <div class="course-meta">
-                        <span class="meta-item">📚 24 课时</span>
-                        <span class="meta-item">⏱️ 15 小时</span>
-                    </div>
-                    <button class="course-btn completed">
-                        <div class="confetti-container">
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                            <div class="confetti"></div>
-                        </div>
-                        <span class="btn-text">
-                            <span class="btn-text-default">✓ 已完成</span>
-                            <span class="btn-text-hover">生成报告 →</span>
-                        </span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination">
-            <button class="page-btn prev" disabled>上一页</button>
-            <div class="page-numbers">
-                <button class="page-btn active">1</button>
-                <button class="page-btn">2</button>
-                <button class="page-btn">3</button>
-            </div>
-            <button class="page-btn next">下一页</button>
+        <div class="courses-container max-w-[1400px] mx-auto px-6 py-8" id="subjects-container">
+            <!-- Dynamically populated by courses.js -->
         </div>
     </main>
 
-    <script src="/js/data-layer.js"></script>
+    <!-- Edit Courses Modal (Liquid Glass) -->
+    <div class="modal-overlay hidden" id="edit-courses-modal">
+        <div class="edit-courses-panel glass-card">
+            <div class="edit-header">
+                <h3>编辑课程</h3>
+                <button class="edit-close" id="edit-close">&times;</button>
+            </div>
+            <div class="edit-body" id="edit-body">
+                <!-- Dynamically populated -->
+            </div>
+            <div class="edit-footer">
+                <button class="edit-action-btn ghost" id="edit-add-subject">+ 添加科目</button>
+                <button class="edit-action-btn primary" id="edit-done">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- B站 Import Modal (Liquid Glass) -->
+    <div class="modal-overlay hidden" id="bilibili-import-modal">
+        <div class="bilibili-import-panel glass-card">
+            <div class="im-header">
+                <h3>B站视频导入</h3>
+                <button class="im-close" id="im-close">&times;</button>
+            </div>
+            <div class="im-tabs">
+                <button class="im-tab active" data-tab="link">粘贴链接</button>
+                <button class="im-tab" data-tab="search">搜索视频</button>
+                <button class="im-tab" data-tab="playlist">合集导入</button>
+            </div>
+            <!-- Tab: Paste Links -->
+            <div class="im-body" id="im-tab-link">
+                <p class="im-hint">粘贴一个或多个B站视频链接，每行一个</p>
+                <textarea class="im-textarea" id="im-link-text" rows="4" placeholder="https://www.bilibili.com/video/BV..."></textarea>
+                <button class="im-btn primary" id="im-link-parse">解析</button>
+                <div class="im-results hidden" id="im-link-results"></div>
+            </div>
+            <!-- Tab: Search -->
+            <div class="im-body hidden" id="im-tab-search">
+                <div class="im-search-row">
+                    <input type="text" class="im-search-input" id="im-search-input" placeholder="输入关键词搜索B站视频...">
+                    <button class="im-btn primary" id="im-search-btn">搜索</button>
+                </div>
+                <div class="im-results hidden" id="im-search-results"></div>
+            </div>
+            <!-- Tab: Playlist -->
+            <div class="im-body hidden" id="im-tab-playlist">
+                <p class="im-hint">粘贴B站合集/播放列表链接，视频将作为一门课程导入</p>
+                <div class="im-search-row">
+                    <input type="text" class="im-search-input" id="im-playlist-url" placeholder="https://space.bilibili.com/xxx/channel/seriesdetail?sid=xxx">
+                    <button class="im-btn primary" id="im-playlist-parse">解析</button>
+                </div>
+                <div class="im-results hidden" id="im-playlist-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/js/theme.js"></script>
+    <script src="/js/bilibili-import.js"></script>
     <script src="/js/courses.js"></script>
 </body>
 </html>

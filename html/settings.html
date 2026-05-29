@@ -5,9 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星识 Star-Learn - 系统设置</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/settings.css">
+    <script src="/js/loading.js"></script>
+    <script src="/js/theme.js"></script>
 </head>
 <body class="settings-body">
+    <!-- Global Wallpaper Background Layer -->
+    <div class="global-bg-layer" id="global-bg-layer"></div>
+    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
+
     <div class="settings-bg"></div>
 
     <nav class="settings-nav">
@@ -20,6 +28,7 @@
             </a>
             <h1 class="nav-title">系统设置</h1>
             <div class="nav-actions">
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置"></button>
                 <button class="nav-btn" id="save-all-btn" title="保存设置">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>

@@ -70,7 +70,7 @@ class StateRepository:
                     role=role,
                     content=msg.content,
                     timestamp=msg.created_at,
-                    metadata=msg.metadata or {},
+                    metadata=msg.msg_metadata or {},
                 ))
 
         return state

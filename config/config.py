@@ -14,12 +14,12 @@ _dotenv_path = Path(__file__).resolve().parent / ".env"
 
 class Settings(BaseSettings):
     xunfei_api_url: str = "https://maas-coding-api.cn-huabei-1.xf-yun.com/v2/chat/completions"
-    xunfei_api_key: str = "590f183a4564ff3c628ad0d6b692768f:YjdkMDdlODI3ODBiMGYxYzI4NDFmODc0"
+    xunfei_api_key: str = Field(default="", description="讯飞大模型 API Key（请配置到 .env 文件）")
     model_name: str = "astron-code-latest"
 
     minimax_api_url: str = "https://api.minimax.chat/v1"
-    minimax_api_key: str = "sk-cp-NVJBfQDPdzQCtzIJoXOXamJ1L-hNMTDyweOV_1KsePGk9FnSLBvRejIDDpbjMe67O0aiZEIkMd267a2zNutthLjnUF5rxOU65dzMsYNXeWMcGOoQ7WCGX4I"
-    minimax_group_id: str = Field(default="2041507423801320239", description="MiniMax API Group ID for TTS")
+    minimax_api_key: str = Field(default="", description="MiniMax API Key（请配置到 .env 文件）")
+    minimax_group_id: str = Field(default="", description="MiniMax API Group ID for TTS（请配置到 .env 文件）")
     minimax_model_name: str = "MiniMax-M2.7"
 
     # MiniMax 媒体生成模型
@@ -33,8 +33,8 @@ class Settings(BaseSettings):
 
     # 百度语音识别 API（用于语音转文字）
     baidu_asr_app_id: str = Field(default="", description="百度语音识别 App ID")
-    baidu_asr_api_key: str = Field(default="eymy6AqdEbhI676lonzRF9ux", description="百度语音识别 API Key")
-    baidu_asr_secret_key: str = Field(default="qcSs7d5xEKJyPIxK9fXJqeEel95XFi8F", description="百度语音识别 Secret Key")
+    baidu_asr_api_key: str = Field(default="", description="百度语音识别 API Key（请配置到 .env 文件）")
+    baidu_asr_secret_key: str = Field(default="", description="百度语音识别 Secret Key（请配置到 .env 文件）")
 
     # 可灵Kling视频生成API
     kling_api_url: str = "https://api.kling.ai/v1"

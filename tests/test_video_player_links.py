@@ -72,16 +72,18 @@ class VideoPlayerShellTest(unittest.TestCase):
         self.assertIn("LocalDriver", video_js)
         self.assertIn("videoController", video_js)
 
-        # postMessage API for B站 control
-        self.assertIn("postMessage", video_js)
-        self.assertIn("callPlayer", video_js)
+        # postMessage API replaced with native video playback + flv.js
+        self.assertIn("flvjs", video_js)
         self.assertIn("player.bilibili.com", video_js)
+        self.assertIn("_fallbackToIframe", video_js)
 
         # Course library and playlist API endpoints
         self.assertIn("/api/video-courses", video_js)
         self.assertIn("/api/video-playlists", video_js)
         self.assertIn("/api/playlist-videos", video_js)
         self.assertIn("/api/bilibili/info", video_js)
+        self.assertIn("/api/bilibili/playurl", video_js)
+        self.assertIn("/api/bilibili/stream", video_js)
 
         # Control features
         self.assertIn("SPEED_OPTIONS", video_js)

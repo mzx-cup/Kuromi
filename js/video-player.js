@@ -29,54 +29,102 @@ const danmakuStage = $('danmaku-stage');
 
 // ============ BilibiliDriver ============
 const BilibiliDriver = {
-    _playing: false,
-    _ready: false,
-    _duration: 0,
+    _flvPlayer: null,
+    _currentBvid: null,
+    _currentPage: null,
+    _loadTimeoutId: null,
 
-    get iframe() { return iframeBilibili; },
-
-    postCommand(cmd, ...args) {
-        try {
-            var msg = { cmd: 'callPlayer', args: [cmd].concat(args), id: Date.now() };
-            this.iframe.contentWindow.postMessage(msg, '*');
-            console.log('[BilibiliDriver] postMessage:', JSON.stringify(msg));
-        } catch (e) {
-            console.warn('[BilibiliDriver] postMessage error:', e);
+    destroy() {
+        if (this._flvPlayer) {
+            try { this._flvPlayer.destroy(); } catch (e) {}
+            this._flvPlayer = null;
+        }
+        if (this._loadTimeoutId) {
+            clearTimeout(this._loadTimeoutId);
+            this._loadTimeoutId = null;
         }
     },
 
-    load(bvid, page) {
-        this._playing = false;
-        this._ready = false;
-        this._duration = 0;
-        page = page || 1;
-        var url = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=0&danmaku=0';
-        console.log('[BilibiliDriver] loading:', url);
-        this.iframe.src = url;
+    async load(bvid, page) {
+        this.destroy();
+        this._currentBvid = bvid;
+        this._currentPage = page || 1;
+        page = this._currentPage;
+
+        var resp = await fetch('/api/bilibili/playurl?bvid=' + encodeURIComponent(bvid) + '&page=' + page);
+        if (!resp.ok) {
+            var err = await resp.json().catch(function() { return {}; });
+            throw new Error(err.detail || '获取B站视频地址失败');
+        }
+        var data = await resp.json();
+
+        // Handle DASH format (separate video/audio streams) — fallback to iframe
+        if (!data.url && data.dash_video_url) {
+            console.warn('[BilibiliDriver] DASH format, using iframe fallback');
+            this._fallbackToIframe(bvid, page);
+            return data;
+        }
+        if (!data.url) throw new Error('未找到可播放的视频流');
+
+        var proxyUrl = '/api/bilibili/stream?url=' + encodeURIComponent(data.url);
+
+        // Use flv.js for FLV streams, native <video> for MP4
+        var useFlv = (data.format || '').toLowerCase().indexOf('flv') !== -1 || (data.url || '').indexOf('.flv') !== -1;
+        if (useFlv && typeof flvjs !== 'undefined' && flvjs.isSupported()) {
+            var flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                url: proxyUrl,
+                isLive: false,
+                cors: true,
+                hasAudio: true,
+                hasVideo: true
+            });
+            flvPlayer.attachMediaElement(videoLocal);
+            flvPlayer.load();
+            this._flvPlayer = flvPlayer;
+            var self = this;
+            flvPlayer.on(flvjs.Events.ERROR, function() {
+                console.warn('[BilibiliDriver] flv.js error, falling back to iframe');
+                self.destroy();
+                self._fallbackToIframe(bvid, page);
+            });
+            flvPlayer.on(flvjs.Events.METADATA_ARRIVED, function() {
+                onVideoReady();
+            });
+        } else {
+            // Clear any previous src before setting new one
+            videoLocal.removeAttribute('src');
+            videoLocal.src = proxyUrl;
+            videoLocal.load();
+
+            // Timeout: if metadata doesn't load within 15s, fallback to iframe
+            var self = this;
+            this._loadTimeoutId = setTimeout(function() {
+                if (player.hasAttribute('data-loading-state')) {
+                    console.warn('[BilibiliDriver] Load timeout, falling back to iframe');
+                    self.destroy();
+                    self._fallbackToIframe(bvid, page);
+                }
+            }, 15000);
+        }
+
+        return data;
     },
 
-    play() {
-        this._playing = true;
-        updatePlayIcon(true);
-        this.postCommand('play');
-    },
-    pause() {
-        this._playing = false;
-        updatePlayIcon(false);
-        this.postCommand('pause');
-    },
-    seek(time) { this.postCommand('seek', time); },
-    setPlaybackRate(rate) { this.postCommand('setPlaybackRate', rate); },
-    setVolume(vol) { this.postCommand('setVolume', vol / 100); },
-
-    show() {
-        this.iframe.style.display = 'block';
+    _fallbackToIframe(bvid, page) {
+        this.destroy();
+        player.removeAttribute('data-loading-state');
+        player.removeAttribute('data-empty-state');
+        iframeBilibili.src = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=1&danmaku=0';
+        iframeBilibili.style.display = 'block';
         videoLocal.style.display = 'none';
+        currentSourceType = 'bilibili-iframe';
+        showToast('已切换到B站播放器', 'info');
     },
 
-    hide() {
-        this.iframe.style.display = 'none';
-    }
+    get paused() { return videoLocal.paused; },
+    get currentTime() { return videoLocal.currentTime; },
+    get duration() { return videoLocal.duration; }
 };
 
 // ============ LocalDriver ============
@@ -114,19 +162,32 @@ const videoController = {
         return currentSourceType === 'bilibili' ? BilibiliDriver : LocalDriver;
     },
 
-    load(courseData) {
+    async load(courseData) {
         currentCourseData = courseData;
         currentSourceType = courseData.source_type || 'bilibili';
         currentVideoId = courseData.id;
 
+        BilibiliDriver.destroy();
         player.removeAttribute('data-empty-state');
         player.setAttribute('data-loading-state', '');
+        $('total-time').textContent = courseData.duration_label || '--:--';
+
+        videoLocal.style.display = 'block';
+        iframeBilibili.style.display = 'none';
 
         if (currentSourceType === 'bilibili') {
-            BilibiliDriver.show();
-            BilibiliDriver.load(courseData.bvid, courseData.page || 1);
+            try {
+                var info = await BilibiliDriver.load(courseData.bvid, courseData.page || 1);
+                if (info.duration && totalTimeEl.textContent === '--:--') {
+                    totalTimeEl.textContent = formatTime(info.duration);
+                }
+            } catch (e) {
+                console.warn('[videoController] B站加载失败:', e);
+                showToast(e.message || 'B站视频加载失败', 'error');
+                showEmptyState();
+                return;
+            }
         } else {
-            LocalDriver.show();
             LocalDriver.load(courseData.local_path);
         }
 
@@ -134,9 +195,8 @@ const videoController = {
         $('video-subtitle').textContent = courseData.subtitle || '';
         $('info-title').textContent = courseData.title || '';
         $('info-description').textContent = courseData.subtitle || '';
-        $('total-time').textContent = courseData.duration_label || '--:--';
         $('info-source-label').textContent =
-            `来源: ${currentSourceType === 'bilibili' ? 'B站 · ' + (courseData.bvid || '') : '本地 · ' + (courseData.local_path || '')}`;
+            '来源: ' + (currentSourceType === 'bilibili' ? 'B站 · ' + (courseData.bvid || '') : '本地 · ' + (courseData.local_path || ''));
 
         updateProgress(0);
         currentTimeEl.textContent = '00:00';
@@ -144,108 +204,68 @@ const videoController = {
         updateStudentNoteCount();
     },
 
-    play() { this.driver.play(); },
-    pause() { this.driver.pause(); },
     togglePlay() {
-        if (currentSourceType === 'local') {
-            if (LocalDriver.paused) LocalDriver.play();
-            else LocalDriver.pause();
+        if (videoLocal.paused) {
+            videoLocal.play().catch(function() {});
         } else {
-            if (BilibiliDriver._playing) BilibiliDriver.pause();
-            else BilibiliDriver.play();
+            videoLocal.pause();
         }
     },
-    seek(time) { this.driver.seek(time); },
-    setSpeed(rate) { this.driver.setPlaybackRate(rate); },
-    setVolume(vol) { this.driver.setVolume(vol); }
+    seek(time) { videoLocal.currentTime = time; },
+    setSpeed(rate) { videoLocal.playbackRate = rate; },
+    setVolume(vol) { videoLocal.volume = vol / 100; }
 };
 
-// ============ postMessage 监听 ============
-window.addEventListener('message', function(e) {
-    if (e.origin !== 'https://player.bilibili.com') return;
-    var data = e.data;
-    if (!data || typeof data !== 'object') return;
-
-    if (typeof data.currentTime === 'number' && currentSourceType === 'bilibili') {
-        var dur = data.duration || BilibiliDriver._duration || 1;
-        if (data.duration) BilibiliDriver._duration = data.duration;
-        var pct = (data.currentTime / dur) * 100;
-        updateProgress(pct);
-        currentTimeEl.textContent = formatTime(data.currentTime);
-        if (data.duration && totalTimeEl.textContent === '--:--') {
-            totalTimeEl.textContent = formatTime(data.duration);
-        }
-    }
-
-    if (data.state === 'playing') {
-        BilibiliDriver._playing = true;
-        BilibiliDriver._ready = true;
-        updatePlayIcon(true);
-        player.removeAttribute('data-loading-state');
-        player.removeAttribute('data-empty-state');
-    }
-    if (data.state === 'paused') {
-        BilibiliDriver._playing = false;
-        updatePlayIcon(false);
-    }
-    if (data.state === 'ready') {
-        BilibiliDriver._ready = true;
-        if (data.duration) BilibiliDriver._duration = data.duration;
-        player.removeAttribute('data-loading-state');
-        player.removeAttribute('data-empty-state');
-    }
-});
-
-// 兜底：iframe onload 清除 loading 状态（防止 B站播放器不发 ready 消息）
-iframeBilibili.addEventListener('load', function() {
-    if (currentSourceType === 'bilibili') {
-        BilibiliDriver._ready = true;
-        player.removeAttribute('data-loading-state');
-        player.removeAttribute('data-empty-state');
-    }
-});
-
-// ============ 本地视频事件 ============
+// ============ 视频事件 (本地 + B站代理均通过 videoLocal) ============
 videoLocal.addEventListener('timeupdate', function() {
-    if (currentSourceType !== 'local') return;
+    if (currentSourceType === 'bilibili-iframe') return;
     if (!Number.isFinite(videoLocal.duration)) return;
-    const pct = (videoLocal.currentTime / videoLocal.duration) * 100;
+    var pct = (videoLocal.currentTime / videoLocal.duration) * 100;
     updateProgress(pct);
     currentTimeEl.textContent = formatTime(videoLocal.currentTime);
-    if (Number.isFinite(videoLocal.duration)) {
+    if (Number.isFinite(videoLocal.duration) && totalTimeEl.textContent !== formatTime(videoLocal.duration)) {
         totalTimeEl.textContent = formatTime(videoLocal.duration);
     }
     localStorage.setItem(STORAGE_PREFIX + currentVideoId, String(Math.floor(videoLocal.currentTime)));
 });
 
-videoLocal.addEventListener('loadedmetadata', function() {
-    if (currentSourceType !== 'local') return;
+function onVideoReady() {
+    if (BilibiliDriver._loadTimeoutId) {
+        clearTimeout(BilibiliDriver._loadTimeoutId);
+        BilibiliDriver._loadTimeoutId = null;
+    }
     player.removeAttribute('data-loading-state');
     player.removeAttribute('data-empty-state');
+    // Autoplay after user-initiated load
+    videoLocal.play().catch(function() {});
+}
+
+videoLocal.addEventListener('loadedmetadata', function() {
     totalTimeEl.textContent = formatTime(videoLocal.duration);
-    const saved = Number(localStorage.getItem(STORAGE_PREFIX + currentVideoId));
+    var saved = Number(localStorage.getItem(STORAGE_PREFIX + currentVideoId));
     if (Number.isFinite(saved) && saved > 0 && saved < videoLocal.duration) {
         videoLocal.currentTime = saved;
     }
+    onVideoReady();
 });
 
-videoLocal.addEventListener('play', () => updatePlayIcon(true));
-videoLocal.addEventListener('pause', () => updatePlayIcon(false));
-videoLocal.addEventListener('error', showEmptyState);
+videoLocal.addEventListener('play', function() { updatePlayIcon(true); });
+videoLocal.addEventListener('pause', function() { updatePlayIcon(false); });
+videoLocal.addEventListener('error', function() {
+    if (BilibiliDriver._loadTimeoutId) {
+        clearTimeout(BilibiliDriver._loadTimeoutId);
+        BilibiliDriver._loadTimeoutId = null;
+    }
+    showEmptyState();
+});
 
 // ============ 控制栏事件 ============
 playBtn.addEventListener('click', () => videoController.togglePlay());
 
 volumeBtn.addEventListener('click', function() {
-    if (currentSourceType === 'local') {
-        videoLocal.muted = !videoLocal.muted;
-        updateVolumeIcon();
-        showToast(videoLocal.muted ? '已静音' : '已恢复声音', 'info');
-    } else {
-        BilibiliDriver.setVolume(videoLocal.muted ? 100 : 0);
-        videoLocal.muted = !videoLocal.muted;
-        updateVolumeIcon();
-    }
+    videoLocal.muted = !videoLocal.muted;
+    updateVolumeIcon();
+    showToast(videoLocal.muted ? '已静音' : '已恢复声音', 'info');
 });
 
 speedBtn.addEventListener('click', function() {
@@ -264,20 +284,11 @@ fullscreenBtn.addEventListener('click', function() {
 });
 
 progressTrack.addEventListener('click', function(e) {
+    if (currentSourceType === 'bilibili-iframe') return;
+    if (!Number.isFinite(videoLocal.duration)) return;
     var rect = progressTrack.getBoundingClientRect();
     var pct = (e.clientX - rect.left) / rect.width;
-    if (currentSourceType === 'local') {
-        if (!Number.isFinite(videoLocal.duration)) return;
-        videoLocal.currentTime = pct * videoLocal.duration;
-    } else if (currentSourceType === 'bilibili') {
-        var dur = BilibiliDriver._duration;
-        if (dur > 0) {
-            var targetTime = pct * dur;
-            BilibiliDriver.seek(targetTime);
-            updateProgress(pct * 100);
-            currentTimeEl.textContent = formatTime(targetTime);
-        }
-    }
+    videoLocal.currentTime = pct * videoLocal.duration;
 });
 
 document.addEventListener('keydown', function(e) {
@@ -507,8 +518,11 @@ $('add-course-form').addEventListener('submit', async function(e) {
     };
 
     if (sourceType === 'bilibili') {
-        body.bvid = $('course-bvid-input').value.trim();
-        if (!body.bvid) { showToast('请输入 B站 BV 号', 'warning'); return; }
+        var rawInput = $('course-bvid-input').value.trim();
+        if (!rawInput) { showToast('请输入 B站 BV 号或视频链接', 'warning'); return; }
+        var extractedBvid = extractBvid(rawInput);
+        if (!extractedBvid) { showToast('无效的 BV 号，请检查输入（BV号以BV开头，共12位）', 'warning'); return; }
+        body.bvid = extractedBvid;
         try {
             const infoResp = await fetch('/api/bilibili/info?bvid=' + body.bvid);
             if (infoResp.ok) {
@@ -648,13 +662,8 @@ function renderAiNotes(item) {
                     '<span class="note-desc">' + escapeHtml(note.desc) + '</span>' +
                 '</span>';
             btn.addEventListener('click', function() {
-                if (currentSourceType === 'bilibili') {
-                    BilibiliDriver.seek(note.time);
-                    showToast('已跳转到 ' + formatTime(note.time), 'success');
-                } else {
-                    videoLocal.currentTime = note.time;
-                    showToast('已跳转到 ' + formatTime(note.time), 'success');
-                }
+                videoLocal.currentTime = note.time;
+                showToast('已跳转到 ' + formatTime(note.time), 'success');
             });
             timeline.appendChild(btn);
         });
@@ -695,14 +704,13 @@ function updatePlayIcon(playing) {
 
 function updateVolumeIcon() {
     if (!volumeBtn) return;
-    if (currentSourceType === 'local' && videoLocal.muted) {
+    if (videoLocal.muted) {
         volumeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
     }
 }
 
 function showEmptyState() {
     player.setAttribute('data-empty-state', '');
-    BilibiliDriver._playing = false;
 }
 
 function formatTime(value) {
@@ -711,6 +719,13 @@ function formatTime(value) {
     const m = Math.floor(total / 60);
     const s = total % 60;
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function extractBvid(input) {
+    // Extract BV号 from user input (supports pure BV号 and full B站 URLs)
+    if (!input || typeof input !== 'string') return null;
+    var match = input.match(/BV[0-9A-Za-z]{10}/);
+    return match ? match[0] : null;
 }
 
 function escapeHtml(text) {

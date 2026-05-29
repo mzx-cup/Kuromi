@@ -11,6 +11,7 @@ import os
 import subprocess
 import tempfile
 import hashlib
+import bcrypt
 import uvicorn
 import logging
 from datetime import datetime, timedelta
@@ -249,7 +250,20 @@ class UpdateProfileRequest(BaseModel):
     nickname: str = ""
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    """使用 bcrypt 哈希密码（新注册/修改密码时调用）。"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """验证密码，兼容旧的 SHA256 和新的 bcrypt。
+    若匹配旧 SHA256 格式，仍返回 True（建议用户尽快修改密码以升级）。
+    """
+    if hashed.startswith('$2b$') or hashed.startswith('$2a$'):
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    # 兼容旧 SHA256（64 位十六进制）
+    if len(hashed) == 64 and all(c in '0123456789abcdef' for c in hashed):
+        return hashlib.sha256(password.encode('utf-8')).hexdigest() == hashed
+    return False
 
 def get_login_request_meta(request: Request) -> tuple[str, str]:
     forwarded_for = request.headers.get("x-forwarded-for", "")
@@ -950,6 +964,135 @@ def bilibili_video_info(bvid: str = ""):
         raise HTTPException(status_code=502, detail=f"获取B站视频信息失败: {str(e)}")
 
 
+@app.get("/api/bilibili/playurl")
+async def bilibili_play_url(bvid: str = "", page: int = 1):
+    """Fetch B站 video stream URL for native playback."""
+    if not bvid:
+        raise HTTPException(status_code=400, detail="缺少 bvid 参数")
+    try:
+        async with httpx.AsyncClient() as client:
+            bili_headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+                "Referer": "https://www.bilibili.com/",
+                "Origin": "https://www.bilibili.com",
+            }
+            # Step 1: Get video info (need cid for the page)
+            info_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
+            info_resp = await client.get(info_url, headers=bili_headers, timeout=15.0)
+            info_data = info_resp.json()
+            logging.info(f"[B站playurl] view API response: code={info_data.get('code')}, bvid={bvid}")
+            if info_data.get("code") != 0:
+                msg = info_data.get("message", "B站视频不存在")
+                raise HTTPException(status_code=404, detail=f"B站API返回: {msg} (code={info_data.get('code')})")
+
+            video_data = info_data["data"]
+            pages = video_data.get("pages", [])
+            cid = None
+            if pages:
+                for p in pages:
+                    if p.get("page") == page:
+                        cid = p["cid"]
+                        break
+                if cid is None:
+                    cid = pages[0]["cid"]
+            else:
+                cid = video_data.get("cid", 0)
+
+            if not cid:
+                raise HTTPException(status_code=502, detail="无法获取视频 cid")
+
+            # Step 2: Get play URL (fnval=0 for FLV, fnval=1 for DASH)
+            for fnval in (0, 1):
+                play_url = f"https://api.bilibili.com/x/player/playurl?bvid={bvid}&cid={cid}&qn=80&fnval={fnval}&fourk=1"
+                play_resp = await client.get(play_url, headers=bili_headers, timeout=15.0)
+                play_data = play_resp.json()
+                if play_data.get("code") != 0:
+                    continue
+                durl = play_data["data"].get("durl", [])
+                if durl and durl[0].get("url"):
+                    return {
+                        "bvid": bvid,
+                        "cid": cid,
+                        "url": durl[0]["url"],
+                        "backup_urls": durl[0].get("backup_url", []),
+                        "quality": play_data["data"].get("quality", 0),
+                        "format": play_data["data"].get("format", ""),
+                        "duration": video_data.get("duration", 0),
+                        "title": video_data.get("title", ""),
+                    }
+                # If fnval=1, check dash field
+                dash = play_data["data"].get("dash")
+                if dash:
+                    videos = dash.get("video", [])
+                    audios = dash.get("audio", [])
+                    if videos:
+                        return {
+                            "bvid": bvid,
+                            "cid": cid,
+                            "dash_video_url": videos[0].get("baseUrl") or videos[0].get("base_url", ""),
+                            "dash_audio_url": audios[0].get("baseUrl") or audios[0].get("base_url", "") if audios else "",
+                            "quality": play_data["data"].get("quality", 0),
+                            "format": "dash",
+                            "duration": video_data.get("duration", 0),
+                            "title": video_data.get("title", ""),
+                        }
+            raise HTTPException(status_code=502, detail="无可用的视频流")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"获取播放地址失败: {str(e)}")
+
+
+@app.get("/api/bilibili/stream")
+async def bilibili_stream(request: Request, url: str = ""):
+    """Proxy B站 video stream with proper Referer header."""
+    from urllib.parse import unquote
+    url = unquote(url)
+    if not url:
+        raise HTTPException(status_code=400, detail="缺少 url 参数")
+
+    range_header = request.headers.get("range", "")
+    req_headers = {
+        "Referer": "https://www.bilibili.com",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    if range_header:
+        req_headers["Range"] = range_header
+
+    client = httpx.AsyncClient()
+    cm = client.stream("GET", url, headers=req_headers, timeout=120.0)
+    upstream = await cm.__aenter__()
+    upstream_headers = upstream.headers
+    status_code = upstream.status_code
+    content_type = upstream_headers.get("content-type", "video/mp4")
+
+    resp_headers = {
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-cache",
+    }
+    content_length = upstream_headers.get("content-length")
+    if content_length:
+        resp_headers["Content-Length"] = content_length
+    content_range = upstream_headers.get("content-range")
+    if content_range:
+        resp_headers["Content-Range"] = content_range
+
+    async def stream_video():
+        try:
+            async for chunk in upstream.aiter_bytes(chunk_size=1024 * 1024):
+                yield chunk
+            await cm.__aexit__(None, None, None)
+        finally:
+            await client.aclose()
+
+    return StreamingResponse(
+        stream_video(),
+        media_type=content_type,
+        status_code=status_code,
+        headers=resp_headers
+    )
+
+
 WHITEBOARD_DRAW_SYSTEM_PROMPT = """你是一位精通教学可视化的白板绘图专家。请根据用户的描述，生成一系列白板绘图动作，以JSON数组格式输出。
 
 ## 输出格式要求
@@ -1116,7 +1259,7 @@ def login(body: LoginRequest, http_request: Request):
     if not user:
         database.record_login_event(None, body.username, False, "用户不存在", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    if user['password'] != hash_password(body.password):
+    if not verify_password(body.password, user['password']):
         database.record_login_event(user.get('id'), body.username, False, "密码错误", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     database.update_last_login(user['id'])
@@ -1595,36 +1738,7 @@ def score_socratic_answer(role: str, question: str, answer: str, user_profile: d
 """
 
     try:
-        # 直接使用 MiniMax API 避免 Xunfei 的编码问题
-        import httpx
-        import json as json_module
-
-        minimax_headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {settings.minimax_api_key}"
-        }
-        minimax_payload = {
-            "model": settings.minimax_model_name,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": "请评估回答"}
-            ],
-            "temperature": 0.3
-        }
-
-        client = httpx.Client(timeout=30.0)
-        response = client.post(
-            f"{settings.minimax_api_url}/chat/completions",
-            headers=minimax_headers,
-            json=minimax_payload,
-        )
-        client.close()
-
-        if response.status_code != 200:
-            raise RuntimeError(f"MiniMax API 返回 HTTP {response.status_code}")
-
-        body = response.json()
-        result_text = body["choices"][0]["message"]["content"]
+        result_text = call_llm(system_prompt, "请评估回答", temperature=0.3)
 
         import re
         score_match = re.search(r'"score":\s*(\d+)', result_text)
@@ -2455,6 +2569,68 @@ def load_user_progress(request: LoadProgressRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载失败: {str(e)}")
+
+@app.get("/api/progress/summary/{user_id}")
+def get_progress_summary(user_id: int, range: str = "month"):
+    """前端 progress.js 调用的学习进度汇总接口。"""
+    try:
+        profile_data = database.get_user_profile(user_id)
+        path_data = database.get_learning_path(user_id)
+        lr = database.get_learning_record(user_id)
+
+        total_hours = 0.0
+        if lr and lr.get("code_practice_time"):
+            total_hours += lr["code_practice_time"] / 60.0
+
+        streak_days = 0
+        completed_courses = 0
+        if profile_data and profile_data.get("evaluation_json"):
+            try:
+                ev = json.loads(profile_data["evaluation_json"]) if isinstance(profile_data["evaluation_json"], str) else profile_data["evaluation_json"]
+                if isinstance(ev, dict):
+                    streak_days = ev.get("streakDays", ev.get("streak_days", 0))
+                    completed_courses = ev.get("completedCourses", 0)
+            except Exception:
+                pass
+
+        days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        weekly_activity = [{"day": days[i], "hours": round(total_hours / 7, 1), "minutes": int(total_hours * 60 / 7)} for i in range(7)]
+
+        course_progress = []
+        if path_data and path_data.get("path_json"):
+            try:
+                path = json.loads(path_data["path_json"]) if isinstance(path_data["path_json"], str) else path_data["path_json"]
+                if isinstance(path, dict) and "courses" in path:
+                    for idx, c in enumerate(path["courses"]):
+                        course_progress.append({
+                            "name": c.get("name", "未命名课程"),
+                            "progress": c.get("progress", 0),
+                            "icon": c.get("icon", ["📚", "💻", "🔢", "🗄️", "🌐"][idx % 5]),
+                        })
+            except Exception:
+                pass
+
+        timeline = []
+        if lr:
+            timeline.append({
+                "title": "代码练习",
+                "time": "最近",
+                "desc": f"累计练习 {lr.get('code_practice_time', 0)} 分钟",
+                "status": "completed",
+            })
+
+        summary = {
+            "total_hours": round(total_hours, 1),
+            "completed_courses": completed_courses,
+            "current_streak": streak_days,
+            "avg_daily_hours": round(total_hours / 30, 1) if total_hours > 0 else 0.0,
+            "weekly_activity": weekly_activity,
+            "course_progress": course_progress,
+            "timeline": timeline,
+        }
+        return {"success": True, "summary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"加载进度汇总失败: {str(e)}")
 
 def _build_chat_messages(system_prompt: str, history: list, current_user_text: str, max_history: int = 10) -> list:
     """构建带历史上下文的 messages 数组。"""
@@ -4972,39 +5148,9 @@ class DailyRouteRequest(BaseModel):
     userId: Optional[int] = None
 
 def call_llm_for_daily_route(system_prompt: str, user_prompt: str, temperature=0.3):
-    """
-    直接调用 minimax API 生成今日航线计划
-    """
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {settings.minimax_api_key}"
-    }
-    payload = {
-        "model": settings.minimax_model_name,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        "temperature": temperature
-    }
-
+    """复用统一的 call_llm() 封装，避免重复实现 MiniMax 调用逻辑。"""
     try:
-        response = requests.post(
-            f"{settings.minimax_api_url}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=180  # 增加超时到180秒
-        )
-
-        if response.ok:
-            body = response.json()
-            if "choices" in body and len(body["choices"]) > 0:
-                return body["choices"][0]["message"]["content"]
-
-        # 如果失败，打印错误
-        print(f"[call_llm_for_daily_route] API error: {response.status_code} - {response.text[:500]}")
-        return None
-
+        return call_llm(system_prompt, user_prompt, temperature)
     except Exception as e:
         print(f"[call_llm_for_daily_route] Exception: {e}")
         return None
@@ -6311,6 +6457,43 @@ def load_focus(user_id: int):
         raise HTTPException(status_code=500, detail=f"加载专注历史失败: {str(e)}")
 
 
+class FocusRecordRequest(BaseModel):
+    userId: int
+    studyMinutes: int = 0
+    focusMinutes: int = 0
+    pageSwitches: int = 0
+    completedFocus: bool = False
+    source: str = "activity"
+    timestamp: str = ""
+
+
+@app.post("/api/focus/record")
+def record_focus(request: FocusRecordRequest):
+    """前端 focus-sync.js 调用的专注记录接口，将单条记录追加到用户专注历史中。"""
+    try:
+        existing = database.get_user_focus_history(request.userId)
+        history = existing if isinstance(existing, list) else []
+        if not isinstance(history, list):
+            history = []
+        history.append({
+            "studyMinutes": request.studyMinutes,
+            "focusMinutes": request.focusMinutes,
+            "pageSwitches": request.pageSwitches,
+            "completedFocus": request.completedFocus,
+            "source": request.source,
+            "timestamp": request.timestamp or datetime.now().isoformat(),
+        })
+        database.save_user_focus_history(request.userId, history)
+        summary = {
+            "todayStudyMinutes": sum(h.get("studyMinutes", 0) for h in history[-7:]),
+            "todayFocusMinutes": sum(h.get("focusMinutes", 0) for h in history[-7:]),
+            "totalRecords": len(history),
+        }
+        return {"success": True, "focusSummary": summary}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"记录专注历史失败: {str(e)}")
+
+
 # ── 生态数据 ──
 
 @app.post("/api/eco/save")
@@ -6671,7 +6854,7 @@ def login_v2(body: LoginRequestV2, http_request: Request):
     if not user:
         database.record_login_event(None, body.username, False, "用户不存在", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
-    if user['password'] != hash_password(body.password):
+    if not verify_password(body.password, user['password']):
         database.record_login_event(user.get('id'), body.username, False, "密码错误", ip_address, user_agent)
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     database.update_last_login(user['id'])
@@ -7823,6 +8006,69 @@ async def quiz_grade(request: QuizGradeRequest):
         explanation=explanation if is_correct else "答案错误，请再思考一下",
         correct_key=correct_key  # 提交后才返回正确答案
     )
+
+
+class GradeBatchRequest(BaseModel):
+    questions: list[dict[str, Any]]
+    answers: dict[str, Any]
+    quiz_id: str = ""
+
+
+@app.post("/api/v2/grade/batch")
+def grade_batch(request: GradeBatchRequest):
+    """前端 classroom.js 调用的批量阅卷接口（支持选择+简答混合）。"""
+    results = []
+    total_score = 0
+    total_points = 0
+
+    for idx, q in enumerate(request.questions):
+        q_type = q.get("type", "single")
+        points = q.get("points", 10)
+        total_points += points
+        correct_answer = q.get("correct_answer", "")
+        user_answer = request.answers.get(str(idx), "")
+
+        if q_type in ("single", "multiple"):
+            is_correct = str(user_answer).strip().upper() == str(correct_answer).strip().upper()
+            score = points if is_correct else 0
+        elif q_type == "short_answer":
+            ua = str(user_answer).strip()
+            ca = str(correct_answer).strip()
+            if ua and len(ua) >= 10 and ca and len(ca) >= 5:
+                keywords = [k.strip() for k in ca.split() if len(k.strip()) > 1]
+                matched = sum(1 for k in keywords if k in ua)
+                ratio = matched / len(keywords) if keywords else 0
+                score = int(points * (0.6 + 0.4 * ratio))
+            elif ua and len(ua) >= 5:
+                score = int(points * 0.3)
+            else:
+                score = 0
+            is_correct = score >= points * 0.6
+        else:
+            is_correct = False
+            score = 0
+
+        total_score += score
+        results.append({
+            "question_index": idx,
+            "question_type": q_type,
+            "is_correct": is_correct,
+            "score": score,
+            "max_score": points,
+            "correct_answer": correct_answer,
+            "user_answer": user_answer,
+            "explanation": q.get("explanation", "") or ("回答正确！" if is_correct else "请再思考一下。"),
+            "graded_by": "batch",
+        })
+
+    percentage = round(total_score / total_points * 100) if total_points > 0 else 0
+    return {
+        "results": results,
+        "total_score": total_score,
+        "total_points": total_points,
+        "percentage": percentage,
+        "passed": percentage >= 60,
+    }
 
 
 @app.delete("/api/v2/classroom/{course_id}")

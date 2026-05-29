@@ -1,431 +1,421 @@
-// ============================================
-// Course Center - JavaScript Logic
-// ============================================
+/**
+ * Course Center - Khan Academy Style
+ * Manages subjects/courses data, renders layout, edit modal, B站 import
+ */
 
-document.addEventListener('DOMContentLoaded', function() {
-    initTabs();
-    initSearch();
-    initCourseCards();
-    initReviewButtons();
-    initStartButtons();
-    initCompletedButtons();
-    initContinueButtons();
-    initReviewDrawerLinks();
-});
+(function() {
+  'use strict';
 
-// ============================================
-// Course Navigation Router
-// ============================================
-const CourseRouter = {
-    routes: {
-        'continue': '/hub.html',
-        'start': '/hub.html',
-        'review': '/code.html',
-        'certificate': '/stellar-showcase.html'
-    },
+  var STORAGE_KEY = 'starlearn_courses_data';
 
-    // 直接跳转到指定路径
-    navigateToPath(path) {
-        console.log(`[CourseRouter] Direct navigation to: ${path}`);
-        showToast('正在跳转...');
-        setTimeout(() => {
-            window.location.href = path;
-        }, 300);
-    },
+  // Default subject icons
+  var SUBJECT_ICONS = {
+    'cs': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    'math': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><path d="M8 4v16M16 4v16"/></svg>',
+    'physics': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 000 20"/></svg>',
+    'default': '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  };
 
-    navigate(action, courseId, card) {
-        const courseName = card.querySelector('.course-title').textContent;
-        const courseData = {
-            course_id: courseId,
-            course_name: courseName,
-            action: action
-        };
+  var SUBJECT_COLORS = {
+    'cs': { bgClass: 'cs-bg', iconClass: 'cs' },
+    'math': { bgClass: 'math-bg', iconClass: 'math' },
+    'physics': { bgClass: 'physics-bg', iconClass: 'physics' },
+    'language': { bgClass: 'default-bg', iconClass: 'language' },
+    'default': { bgClass: 'default-bg', iconClass: 'default' }
+  };
 
-        let targetUrl = this.routes[action] || '/courses.html';
-        const params = new URLSearchParams();
-
-        params.set('course_id', courseId);
-        params.set('action', action);
-
-        if (action === 'continue') {
-            const lastChapter = card.dataset.lastChapter || '';
-            const progress = card.dataset.progress || '0';
-            params.set('last_chapter', encodeURIComponent(lastChapter));
-            params.set('progress', progress);
+  // Default data with the specified B站 collection as initial course
+  function getDefaultData() {
+    return {
+      subjects: [
+        {
+          id: 'cs',
+          name: '计算机科学',
+          slug: 'cs',
+          visible: true,
+          courses: [
+            {
+              id: 'course-bv1ya411871j',
+              title: '计算机基础入门',
+              description: '完全从零掌握计算机与程序员基础知识',
+              bvid: 'BV1YA411871j',
+              playlistUrl: 'https://www.bilibili.com/video/BV1YA411871j',
+              totalLessons: 52,
+              totalDuration: 0,
+              progress: 0,
+              visible: true,
+              createdAt: new Date().toISOString()
+            }
+          ]
+        },
+        {
+          id: 'math',
+          name: '数学',
+          slug: 'math',
+          visible: true,
+          courses: []
+        },
+        {
+          id: 'physics',
+          name: '物理学',
+          slug: 'physics',
+          visible: true,
+          courses: []
         }
+      ]
+    };
+  }
 
-        if (action === 'start') {
-            const outlineItems = card.querySelectorAll('.outline-item span:last-child');
-            const outline = Array.from(outlineItems).map(item => item.textContent);
-            params.set('outline', encodeURIComponent(JSON.stringify(outline)));
+  var data = loadData();
+  var useBackend = false;
+
+  function loadData() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (saved && saved.subjects && saved.subjects.length > 0) return saved;
+    } catch (e) { /* ignore */ }
+    var defaults = getDefaultData();
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults)); } catch (e) { /* ignore */ }
+    return defaults;
+  }
+
+  function loadFromBackend() {
+    fetch('/api/courses/subjects')
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res.code === 200 && res.data && res.data.length > 0) {
+          useBackend = true;
+          data = { subjects: res.data };
+          render();
         }
+      })
+      .catch(function(err) {
+        console.warn('[Courses] Backend unavailable, using localStorage', err);
+      });
+  }
 
-        if (action === 'review') {
-            params.set('mode', 'review');
-        }
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
 
-        if (action === 'certificate') {
-            params.set('show_cert', 'true');
-        }
+  // ---- Rendering ----
 
-        const fullUrl = `${targetUrl}?${params.toString()}`;
-        console.log(`[CourseRouter] Navigating to: ${fullUrl}`);
+  function render() {
+    var container = document.getElementById('subjects-container');
+    if (!container) return;
 
-        showToast(`正在进入: ${courseName}`);
-
-        setTimeout(() => {
-            window.location.href = fullUrl;
-        }, 500);
+    var visibleSubjects = data.subjects.filter(function(s) { return s.visible; });
+    if (visibleSubjects.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="empty-state-title">暂无课程</div><div class="empty-state-desc">点击右上角"编辑课程"按钮，通过B站导入添加课程内容</div></div>';
+      return;
     }
-};
 
-// ============================================
-// Tab Switching
-// ============================================
-function initTabs() {
-    const tabBtns = document.querySelectorAll('.tab-btn');
+    var html = '';
+    for (var i = 0; i < visibleSubjects.length; i++) {
+      var subj = visibleSubjects[i];
+      var visibleCourses = subj.courses.filter(function(c) { return c.visible !== false; });
+      var colorInfo = SUBJECT_COLORS[subj.slug] || SUBJECT_COLORS['default'];
+      var iconSvg = SUBJECT_ICONS[subj.slug] || SUBJECT_ICONS['default'];
 
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+      html += '<section class="subject-block">';
+      html += '<div class="subject-block-header">';
+      html += '<div class="subject-block-icon ' + colorInfo.iconClass + '">' + iconSvg + '</div>';
+      html += '<h2 class="subject-block-name">' + escapeHtml(subj.name) + '</h2>';
+      html += '<span class="subject-course-count">' + visibleCourses.length + ' 门课程</span>';
+      html += '</div>';
 
-            const category = this.dataset.category;
-            filterCourses(category);
-        });
-    });
-}
-
-function filterCourses(category) {
-    const courseCards = document.querySelectorAll('.course-card');
-
-    courseCards.forEach(card => {
-        if (category === 'all' || card.dataset.category === category) {
-            card.style.display = 'block';
-            card.style.animation = 'fadeIn 0.3s ease';
-        } else {
-            card.style.display = 'none';
+      if (visibleCourses.length === 0) {
+        html += '<p style="color:var(--text-tertiary);font-size:13px;padding-left:52px;">此科目下暂无课程，点击"编辑课程"导入</p>';
+      } else {
+        html += '<div class="subject-courses-grid">';
+        for (var j = 0; j < visibleCourses.length; j++) {
+          html += renderCourseCard(visibleCourses[j], subj.slug);
         }
-    });
+        html += '</div>';
+      }
+      html += '</section>';
+    }
+    container.innerHTML = html;
 
-    updateStats(category);
-}
+    // Bind course card click events
+    bindCardEvents();
+  }
 
-function updateStats(category) {
-    const totalEl = document.getElementById('total-courses');
-    const learningEl = document.getElementById('learning-courses');
-    const completedEl = document.getElementById('completed-courses');
+  function renderCourseCard(course, subjectSlug) {
+    var colorInfo = SUBJECT_COLORS[subjectSlug] || SUBJECT_COLORS['default'];
+    var progressPercent = Math.round((course.progress || 0));
+    var circumference = 2 * Math.PI * 24; // r=24
+    var offset = circumference - (progressPercent / 100) * circumference;
 
-    if (!totalEl) return;
-
-    const allCards = document.querySelectorAll('.course-card');
-    const continueBtns = document.querySelectorAll('.course-btn.continue');
-    const completedBtns = document.querySelectorAll('.course-btn.completed');
-
-    if (category === 'all') {
-        totalEl.textContent = allCards.length;
-        learningEl.textContent = continueBtns.length;
-        completedEl.textContent = completedBtns.length;
+    var html = '<div class="course-card" data-course-id="' + course.id + '" data-subject="' + subjectSlug + '">';
+    html += '<div class="course-card-cover ' + colorInfo.bgClass + '">';
+    html += '<div class="course-card-cover-icon">' + (SUBJECT_ICONS[subjectSlug] || SUBJECT_ICONS['default']) + '</div>';
+    if (progressPercent > 0) {
+      html += '<div class="course-card-progress-ring">';
+      html += '<svg class="progress-ring-circle" viewBox="0 0 52 52">';
+      html += '<circle class="progress-ring-bg" cx="26" cy="26" r="24"/>';
+      html += '<circle class="progress-ring-fill" cx="26" cy="26" r="24" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '"/>';
+      html += '<text class="progress-ring-text" x="26" y="26">' + progressPercent + '%</text>';
+      html += '</svg></div>';
+    }
+    html += '</div>';
+    html += '<div class="course-card-body">';
+    html += '<h3 class="course-card-title">' + escapeHtml(course.title) + '</h3>';
+    html += '<div class="course-card-meta">';
+    html += '<span>' + (course.totalLessons || 0) + ' 课时</span>';
+    html += '</div>';
+    html += '<div class="course-card-footer">';
+    if (progressPercent > 0) {
+      html += '<button class="course-card-btn continue">继续学习</button>';
     } else {
-        let visibleContinue = 0, visibleCompleted = 0;
-        allCards.forEach(card => {
-            if (card.style.display !== 'none') {
-                const btn = card.querySelector('.course-btn');
-                if (btn?.classList.contains('continue')) visibleContinue++;
-                if (btn?.classList.contains('completed')) visibleCompleted++;
-            }
-        });
-        const visibleTotal = Array.from(allCards).filter(c => c.style.display !== 'none').length;
-        totalEl.textContent = visibleTotal;
-        learningEl.textContent = visibleContinue;
-        completedEl.textContent = visibleCompleted;
+      html += '<button class="course-card-btn start">开始学习</button>';
     }
-}
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    return html;
+  }
 
-// ============================================
-// Search Functionality
-// ============================================
-function initSearch() {
-    const searchToggle = document.getElementById('search-toggle');
-    const searchContainer = document.getElementById('search-container');
-    const searchInput = document.getElementById('course-search');
-
-    searchToggle?.addEventListener('click', function() {
-        searchContainer.classList.toggle('hidden');
-        if (!searchContainer.classList.contains('hidden')) {
-            searchInput?.focus();
+  function bindCardEvents() {
+    var cards = document.querySelectorAll('.course-card');
+    cards.forEach(function(card) {
+      card.addEventListener('click', function() {
+        var courseId = this.getAttribute('data-course-id');
+        var subjectSlug = this.getAttribute('data-subject');
+        var course = findCourse(courseId);
+        if (course && course.bvid) {
+          window.location.href = '/course-learn.html?courseId=' + courseId + '&subject=' + subjectSlug;
         }
+      });
     });
+  }
 
-    searchInput?.addEventListener('input', function() {
-        const query = this.value.toLowerCase();
-        const courseCards = document.querySelectorAll('.course-card');
+  function findCourse(courseId) {
+    for (var i = 0; i < data.subjects.length; i++) {
+      var courses = data.subjects[i].courses;
+      for (var j = 0; j < courses.length; j++) {
+        if (courses[j].id === courseId) return courses[j];
+      }
+    }
+    return null;
+  }
 
-        courseCards.forEach(card => {
-            const title = card.querySelector('.course-title')?.textContent.toLowerCase() || '';
-            const desc = card.querySelector('.course-desc')?.textContent.toLowerCase() || '';
+  function findSubject(subjectId) {
+    for (var i = 0; i < data.subjects.length; i++) {
+      if (data.subjects[i].id === subjectId) return data.subjects[i];
+    }
+    return null;
+  }
 
-            if (title.includes(query) || desc.includes(query)) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    });
-}
+  // ---- Edit Courses Modal ----
 
-// ============================================
-// Continue Learning Button - Dynamic Island
-// ============================================
-function initContinueButtons() {
-    const continueBtns = document.querySelectorAll('.course-btn.continue');
+  function openEditModal() {
+    var modal = document.getElementById('edit-courses-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    renderEditBody();
+    bindEditEvents();
+  }
 
-    continueBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            if (this.classList.contains('expanding')) return;
+  function closeEditModal() {
+    var modal = document.getElementById('edit-courses-modal');
+    if (modal) modal.classList.add('hidden');
+  }
 
-            const card = this.closest('.course-card');
-            const courseId = card.dataset.category + '_' + Date.now().toString(36);
+  function renderEditBody() {
+    var body = document.getElementById('edit-body');
+    if (!body) return;
 
-            this.classList.add('expanding');
-            const miniProgress = this.querySelector('.mini-progress');
-            if (miniProgress) {
-                const progress = parseInt(this.dataset.progress) || 0;
-                miniProgress.style.width = progress + '%';
-            }
+    var html = '';
+    for (var i = 0; i < data.subjects.length; i++) {
+      var subj = data.subjects[i];
+      html += '<div class="edit-subject-row" data-subject-id="' + subj.id + '">';
+      html += '<div class="edit-subject-header">';
+      html += '<button class="edit-subject-toggle' + (subj.visible ? ' on' : '') + '" data-action="toggle-subject" data-subject-id="' + subj.id + '"></button>';
+      html += '<span class="edit-subject-name">' + escapeHtml(subj.name) + '</span>';
+      html += '<button class="edit-subject-hide-btn" data-action="hide-subject" data-subject-id="' + subj.id + '">' + (subj.visible ? '隐藏科目' : '显示科目') + '</button>';
+      html += '<button class="edit-subject-import-btn" data-action="import-subject" data-subject-id="' + subj.id + '">B站导入</button>';
+      html += '</div>';
 
-            setTimeout(() => {
-                CourseRouter.navigate('continue', courseId, card);
-            }, 600);
-        });
-    });
-}
-
-// ============================================
-// Start Learning Button - Outline Preview
-// ============================================
-function initStartButtons() {
-    const startBtns = document.querySelectorAll('.course-btn.start');
-
-    startBtns.forEach(btn => {
-        let hoverTimeout;
-
-        btn.addEventListener('mouseenter', function() {
-            hoverTimeout = setTimeout(() => {
-                const popup = this.querySelector('.outline-popup');
-                if (popup) {
-                    popup.style.opacity = '1';
-                    popup.style.visibility = 'visible';
-                    popup.style.transform = 'translateX(-50%) translateY(0) scale(1)';
-                }
-            }, 300);
-        });
-
-        btn.addEventListener('mouseleave', function() {
-            clearTimeout(hoverTimeout);
-            const popup = this.querySelector('.outline-popup');
-            if (popup) {
-                popup.style.opacity = '0';
-                popup.style.visibility = 'hidden';
-                popup.style.transform = 'translateX(-50%) translateY(8px) scale(0.95)';
-            }
-        });
-
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const card = this.closest('.course-card');
-            const courseId = card.dataset.category + '_01';
-
-            CourseRouter.navigate('start', courseId, card);
-        });
-    });
-}
-
-// ============================================
-// Review Button - Drawer Menu & Dynamic Stats
-// ============================================
-function initReviewButtons() {
-    const reviewBtns = document.querySelectorAll('.course-btn.review');
-
-    reviewBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            this.classList.toggle('active');
-        });
-
-        btn.addEventListener('mouseenter', function() {
-            const card = this.closest('.course-card');
-            const stats = card.querySelector('.review-stats');
-            const suggest = card.querySelector('.review-suggest');
-            if (stats) stats.style.opacity = '0';
-            if (suggest) {
-                suggest.style.display = 'inline';
-                setTimeout(() => suggest.style.opacity = '1', 50);
-            }
-        });
-
-        btn.addEventListener('mouseleave', function() {
-            const card = this.closest('.course-card');
-            const stats = card.querySelector('.review-stats');
-            const suggest = card.querySelector('.review-suggest');
-            if (stats) stats.style.opacity = '1';
-            if (suggest) {
-                suggest.style.opacity = '0';
-                setTimeout(() => suggest.style.display = 'none', 300);
-            }
-        });
-    });
-
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.course-btn.review')) {
-            document.querySelectorAll('.course-btn.review.active').forEach(btn => {
-                btn.classList.remove('active');
-            });
+      if (subj.courses.length > 0) {
+        html += '<div class="edit-course-list">';
+        for (var j = 0; j < subj.courses.length; j++) {
+          var c = subj.courses[j];
+          html += '<div class="edit-course-row" data-course-id="' + c.id + '">';
+          html += '<button class="edit-course-toggle' + (c.visible !== false ? ' on' : '') + '" data-action="toggle-course" data-course-id="' + c.id + '"></button>';
+          html += '<span class="edit-course-name">' + escapeHtml(c.title) + '</span>';
+          html += '<button class="edit-course-remove-btn" data-action="remove-course" data-course-id="' + c.id + '">移除</button>';
+          html += '</div>';
         }
-    });
-}
+        html += '</div>';
+      }
 
-// ============================================
-// Review Drawer Item Click Handlers
-// ============================================
-function initReviewDrawerLinks() {
-    const drawerItems = document.querySelectorAll('.drawer-item');
+      html += '</div>';
+    }
+    body.innerHTML = html;
+  }
 
-    drawerItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const btn = this.closest('.course-btn.review');
-            const card = btn.closest('.course-card');
-            const courseId = card.dataset.category + '_review';
-            const actionType = this.dataset.action || 'review';
-
-            btn.classList.remove('active');
-
-            // 根据 data-action 执行不同的跳转
-            switch(actionType) {
-                case 'mistake-book':
-                    // 查看错题本 - 跳转到代码练习页面的错题本模式
-                    CourseRouter.navigateToPath('/code.html?course_id=' + courseId + '&mode=mistake-book');
-                    break;
-                case 'review-core':
-                    // 重温核心知识点 - 跳转到学习中心复习模式
-                    CourseRouter.navigate('review', courseId, card);
-                    break;
-                case 'final-exam':
-                    // 进行期末测验 - 跳转到测验页面
-                    CourseRouter.navigateToPath('/assessment.html?course_id=' + courseId + '&type=final-exam');
-                    break;
-                default:
-                    // 默认复习模式
-                    CourseRouter.navigate('review', courseId, card);
-            }
-        });
-    });
-}
-
-// ============================================
-// Completed Button - Confetti & Text Flip
-// ============================================
-function initCompletedButtons() {
-    const completedBtns = document.querySelectorAll('.course-btn.completed');
-
-    completedBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const card = this.closest('.course-card');
-            const courseId = card.dataset.category + '_completed';
-
-            CourseRouter.navigate('certificate', courseId, card);
-        });
-    });
-}
-
-// ============================================
-// Trigger Confetti Animation
-// ============================================
-function triggerConfetti(btn) {
-    btn.classList.add('celebrating');
-    setTimeout(() => {
-        btn.classList.remove('celebrating');
-    }, 1000);
-}
-
-// ============================================
-// Course Card Interactions
-// ============================================
-function initCourseCards() {
-    // 只处理 continue 和 start 按钮，review 和 completed 由各自的初始化函数处理
-    const continueBtns = document.querySelectorAll('.course-btn.continue');
-    const startBtns = document.querySelectorAll('.course-btn.start');
-
-    continueBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const card = this.closest('.course-card');
-            const courseId = card.dataset.category + '_' + Date.now().toString(36);
-            CourseRouter.navigate('continue', courseId, card);
-        });
+  function bindEditEvents() {
+    // Toggle subject visibility
+    document.querySelectorAll('[data-action="toggle-subject"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var subjectId = this.getAttribute('data-subject-id');
+        var subj = findSubject(subjectId);
+        if (subj) {
+          subj.visible = !subj.visible;
+          this.classList.toggle('on', subj.visible);
+          var hideBtn = this.parentElement.querySelector('[data-action="hide-subject"]');
+          if (hideBtn) hideBtn.textContent = subj.visible ? '隐藏科目' : '显示科目';
+        }
+      });
     });
 
-    startBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const card = this.closest('.course-card');
-            const courseId = card.dataset.category + '_01';
-            CourseRouter.navigate('start', courseId, card);
-        });
+    // Toggle course visibility
+    document.querySelectorAll('[data-action="toggle-course"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var courseId = this.getAttribute('data-course-id');
+        var course = findCourse(courseId);
+        if (course) {
+          course.visible = course.visible === false ? true : false;
+          this.classList.toggle('on', course.visible);
+        }
+      });
     });
-}
 
-// ============================================
-// Toast Notification
-// ============================================
-function showToast(message) {
-    const existing = document.querySelector('.toast-notification');
-    if (existing) existing.remove();
+    // Remove course
+    document.querySelectorAll('[data-action="remove-course"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var courseId = this.getAttribute('data-course-id');
+        if (confirm('确定要移除此课程吗？')) {
+          removeCourse(courseId);
+          renderEditBody();
+          bindEditEvents();
+        }
+      });
+    });
 
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 12px 24px;
-        background: rgba(30, 41, 59, 0.95);
-        color: white;
-        border-radius: 12px;
-        font-size: 14px;
-        font-weight: 500;
-        z-index: 9999;
-        backdrop-filter: blur(16px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        animation: toastIn 0.3s ease;
-    `;
+    // Import for subject
+    document.querySelectorAll('[data-action="import-subject"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var subjectId = this.getAttribute('data-subject-id');
+        closeEditModal();
+        openBilibiliImport(subjectId);
+      });
+    });
+  }
+
+  function removeCourse(courseId) {
+    for (var i = 0; i < data.subjects.length; i++) {
+      data.subjects[i].courses = data.subjects[i].courses.filter(function(c) { return c.id !== courseId; });
+    }
+    saveData();
+  }
+
+  function openBilibiliImport(subjectId) {
+    if (typeof BilibiliImport !== 'undefined') {
+      BilibiliImport.open(subjectId, function() {
+        data = loadData();
+        render();
+        closeEditModal();
+      });
+    } else {
+      showToast('B站导入模块加载中...', 'info');
+    }
+  }
+
+  // Add new subject
+  function addSubject() {
+    var name = prompt('请输入新科目名称：');
+    if (!name || !name.trim()) return;
+    var slug = 'subject-' + Date.now();
+    data.subjects.push({
+      id: slug,
+      name: name.trim(),
+      slug: slug,
+      visible: true,
+      courses: []
+    });
+    saveData();
+    renderEditBody();
+    bindEditEvents();
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(message, type) {
+    type = type || 'info';
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var toast = document.createElement('div');
+    toast.className = 'toast ' + type;
     toast.textContent = message;
-    document.body.appendChild(toast);
+    container.appendChild(toast);
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(40px)';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 3000);
+  }
 
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translate(-50%, 12px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 2500);
-}
+  // ---- Init ----
 
-// Add animation keyframes
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes toastIn {
-        from { opacity: 0; transform: translate(-50%, 20px); }
-        to { opacity: 1; transform: translate(-50%, 0); }
+  function init() {
+    render();
+    loadFromBackend();
+
+    // Edit courses button
+    var editBtn = document.getElementById('courses-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', openEditModal);
     }
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+
+    // Edit modal close
+    var editClose = document.getElementById('edit-close');
+    if (editClose) {
+      editClose.addEventListener('click', closeEditModal);
     }
-`;
-document.head.appendChild(style);
+
+    // Edit modal overlay click to close
+    var editModal = document.getElementById('edit-courses-modal');
+    if (editModal) {
+      editModal.addEventListener('click', function(e) {
+        if (e.target === editModal) closeEditModal();
+      });
+    }
+
+    // Done button
+    var doneBtn = document.getElementById('edit-done');
+    if (doneBtn) {
+      doneBtn.addEventListener('click', function() {
+        saveData();
+        render();
+        closeEditModal();
+      });
+    }
+
+    // Add subject button
+    var addBtn = document.getElementById('edit-add-subject');
+    if (addBtn) {
+      addBtn.addEventListener('click', addSubject);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Expose
+  window.CoursesCenter = {
+    render: render,
+    getData: function() { return data; },
+    reload: function() { data = loadData(); render(); },
+    findCourse: findCourse,
+    findSubject: findSubject
+  };
+})();

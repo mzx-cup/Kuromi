@@ -67,7 +67,7 @@ class MessageService:
             role=role,
             content=content,
             message_type=message_type,
-            metadata=metadata or {},
+            msg_metadata=metadata or {},
             created_at=datetime.now(timezone.utc),
         )
         self.db.add(msg)
@@ -93,7 +93,7 @@ class MessageService:
                 role=m["role"],
                 content=m["content"],
                 message_type=m.get("message_type", "text"),
-                metadata=m.get("metadata", {}),
+                msg_metadata=m.get("metadata", {}),
                 created_at=m.get("created_at", now),
             ))
         self.db.add_all(objs)

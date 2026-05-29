@@ -2669,6 +2669,10 @@ function drawConnectionLine(svgContainer, fromPos, toPos, type, param = 0.5) {
 const THEME_STORAGE_KEY = 'hub-theme';
 
 function initThemeToggle() {
+    // If theme.js (StarTheme) is present, let it handle theme switching
+    if (window.StarTheme) {
+        return;
+    }
     const toggleBtn = document.getElementById('theme-toggle');
     if (!toggleBtn) {
         console.warn('Theme toggle button not found');

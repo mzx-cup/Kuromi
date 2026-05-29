@@ -44,7 +44,12 @@
       "Bash(pnpm *)",
       "Bash(node *)",
       "Bash(npx *)",
-      "Bash(grep -E \"^\\\\+.*\\\\}$\")"
+      "Bash(grep -E \"^\\\\+.*\\\\}$\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(tasklist)",
+      "Bash(taskkill //PID 28300 //F)",
+      "Bash(kill 28300)"
     ]
   }
 }

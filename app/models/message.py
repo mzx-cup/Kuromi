@@ -51,7 +51,7 @@ class Message(Base):
     )
 
     # 不常查询的元数据放 JSON，保持表结构稳定
-    metadata: Mapped[Optional[dict]] = mapped_column(
+    msg_metadata: Mapped[Optional[dict]] = mapped_column(
         JSON, nullable=True,
         comment="扩展元数据: agent_id, links, actions, tokens_used, model, latency_ms..."
     )

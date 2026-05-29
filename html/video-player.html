@@ -45,8 +45,7 @@
                     <div class="video-player" id="video-player" data-empty-state>
                         <video id="course-video-local" preload="auto" playsinline style="display:none"></video>
                         <iframe id="course-video-bilibili"
-                                allowfullscreen
-                                sandbox="allow-scripts allow-same-origin allow-presentation"
+                                allow="autoplay *; fullscreen *"
                                 style="display:none"></iframe>
                         <div class="video-empty-state" id="video-empty-state">
                             <div class="play-circle">
@@ -209,8 +208,8 @@
                         <input id="course-title-input" type="text" maxlength="100" placeholder="输入课程名称" required>
                     </div>
                     <div class="form-group" id="bvid-group">
-                        <label>B站 BV 号</label>
-                        <input id="course-bvid-input" type="text" maxlength="20" placeholder="例如 BV1xx411c7mD">
+                        <label>B站 BV 号或视频链接</label>
+                        <input id="course-bvid-input" type="text" maxlength="200" placeholder="例如 BV1xx411c7mD 或粘贴完整链接">
                     </div>
                     <div class="form-group hidden" id="local-path-group">
                         <label>本地文件路径</label>
@@ -226,6 +225,7 @@
         </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/video-player.js"></script>
 </body>

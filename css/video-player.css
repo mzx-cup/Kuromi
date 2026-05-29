@@ -270,7 +270,7 @@ button {
 .danmaku-send {
     border: 1px solid rgba(34, 211, 238, 0.58);
     color: #03111d;
-    background: linear-gradient(135deg, var(--cyan), #60a5fa);
+    background: linear-gradient(135deg, var(--cyan), var(--brand-400));
 }
 
 .ghost-action {
@@ -310,7 +310,7 @@ button {
     left: 0;
     display: block;
     width: 100%;
-    height: calc(100% + 54px);
+    height: 100%;
     border: none;
     background: #000;
     z-index: 0;
@@ -654,7 +654,7 @@ button {
 .side-tab.active {
     border-color: var(--line-strong);
     color: #03111d;
-    background: linear-gradient(135deg, var(--cyan), #60a5fa);
+    background: linear-gradient(135deg, var(--cyan), var(--brand-400));
     box-shadow: 0 0 22px rgba(34, 211, 238, 0.16);
 }
 
@@ -715,7 +715,7 @@ button {
 .ai-suggestion {
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-glass);
 }
 
 .episode-item,
@@ -801,7 +801,7 @@ button {
     margin-top: 6px;
     overflow: hidden;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--border-glass);
 }
 
 .episode-progress span {
@@ -1160,7 +1160,7 @@ button {
 .modal-actions .primary-action {
     border: 1px solid rgba(34, 211, 238, 0.58);
     color: #03111d;
-    background: linear-gradient(135deg, var(--cyan), #60a5fa);
+    background: linear-gradient(135deg, var(--cyan), var(--brand-400));
 }
 
 /* Course Library List */
@@ -1172,7 +1172,7 @@ button {
     padding: 9px 10px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-glass);
     color: var(--muted);
     text-align: left;
     cursor: pointer;
@@ -1249,7 +1249,7 @@ button {
     padding: 9px 10px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--border-glass);
     color: var(--muted);
     text-align: left;
     cursor: pointer;
