@@ -11048,41 +11048,23 @@ body.light-theme .openmaic-btn-ghost:hover,
     transform: translateY(-1px);
 }
 
-/* ========== AI眼中的你 画像卡片 ========== */
+/* ========== AI眼中的你 画像卡片（已合并到记忆面板） ========== */
 
-.sidebar-profile-section {
-    transition: all 0.3s ease;
-}
-
-.profile-card {
-    background: rgba(13, 31, 21, 0.4);
-    border: 1px solid rgba(45, 90, 61, 0.2);
-    border-radius: 12px;
-    padding: 12px;
-}
-
-.profile-category {
-    margin-bottom: 10px;
-}
-
-.profile-category:last-child {
-    margin-bottom: 0;
-}
-
-.profile-category-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--primary-light);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.profile-tags {
+/* 紧凑内联标签云 — 位于记忆面板顶部 */
+.profile-tags-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 5px;
+    padding: 8px 0 4px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid rgba(45, 90, 61, 0.1);
+}
+
+.profile-tags-inline:empty,
+.profile-tags-inline .profile-empty-state:only-child {
+    border-bottom: none;
+    padding: 4px 0;
+    margin-bottom: 0;
 }
 
 .profile-tag {
@@ -11119,23 +11101,11 @@ body.light-theme .openmaic-btn-ghost:hover,
     animation: pulse 2s infinite;
 }
 
-.profile-memory-link {
-    text-align: center;
-}
-
-.profile-memory-link-btn {
-    font-size: 11px;
-    color: var(--primary-light);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.profile-memory-link-btn:hover {
-    background: rgba(201, 168, 76, 0.1);
+/* 画像标签激活态（点击筛选时） */
+.profile-tag.is-filter-active {
+    background: rgba(201, 168, 76, 0.25);
+    border-color: rgba(201, 168, 76, 0.5);
+    color: #f5f0e8;
 }
 
 /* ========== 记忆引用横幅 ========== */
