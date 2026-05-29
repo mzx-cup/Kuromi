@@ -1039,15 +1039,6 @@ function insertAgentMessage(msg) {
             duration: 8000
         });
     }
-
-    // 播报语音（可选）
-    if (msg._shouldSpeak !== false && 'speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(msg.content);
-        utter.lang = 'zh-CN';
-        utter.rate = 0.9;
-        utter.volume = 0.6;
-        window.speechSynthesis.speak(utter);
-    }
 }
 
 /**
@@ -5242,6 +5233,7 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                         (event.content.includes('发现新特征') || event.content.includes('已记住'))) {
                         showMemoryJustRemembered();
                         loadUserMemories();
+                        loadUserProfile();
                     }
                 } else if (event.type === 'content_chunk') {
                     console.log('[SSE] content_chunk received:', event.content?.substring(0, 50), '...');
@@ -9680,6 +9672,102 @@ function showMemoryJustRemembered() {
     }, 3500);
 }
 
+// ========== AI眼中的你 画像卡片 ==========
+
+let currentProfileData = null;
+
+async function loadUserProfile() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) {
+        console.log('[Profile] 未登录，跳过加载');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/profile/${user.id}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.success && data.profile) {
+            currentProfileData = data.profile;
+            renderProfileCard(data.profile);
+        }
+    } catch (e) {
+        console.warn('[Profile] 加载画像失败:', e);
+    }
+}
+
+function renderProfileCard(profile) {
+    const container = document.getElementById('profile-card-container');
+    if (!container) return;
+
+    const hasAnyTraits = (
+        (profile.learning_traits && profile.learning_traits.length > 0) ||
+        (profile.personality_traits && profile.personality_traits.length > 0) ||
+        (profile.goals_interests && profile.goals_interests.length > 0)
+    );
+
+    if (!hasAnyTraits) {
+        container.innerHTML = `
+            <div class="profile-empty-state text-center py-3 text-[11px]" style="color: var(--text-tertiary);">
+                🤖 AI 正在了解你...<br>聊得越多，画像越准
+            </div>
+        `;
+        return;
+    }
+
+    const categoryLabels = {
+        learning_traits: '📚 学习特征',
+        personality_traits: '🧠 性格特点',
+        goals_interests: '🎯 目标兴趣',
+    };
+
+    let html = '';
+    for (const [key, items] of Object.entries(profile)) {
+        if (key === 'last_updated' || !items || items.length === 0) continue;
+        const label = categoryLabels[key] || key;
+        const tagsHtml = items.map(item => {
+            const isWeakness = item.label.includes('薄弱') || item.label.includes('困难') || item.label.includes('不擅长');
+            return `<span class="profile-tag ${isWeakness ? 'weakness' : ''}" data-memory-id="${escapeHtml(item.memory_id)}" title="置信度: ${(item.confidence * 100).toFixed(0)}% | 引用次数: ${item.access_count}">${escapeHtml(item.label)}</span>`;
+        }).join('');
+        html += `
+            <div class="profile-category">
+                <div class="profile-category-title">${label}</div>
+                <div class="profile-tags">${tagsHtml}</div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+
+    // 绑定标签点击事件
+    container.querySelectorAll('.profile-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            const memoryId = tag.dataset.memoryId;
+            if (memoryId) {
+                showProfileTagEditor(memoryId, tag.textContent);
+            }
+        });
+    });
+
+    // 更新最后更新时间
+    const updatedEl = document.getElementById('profile-last-updated');
+    if (updatedEl && profile.last_updated) {
+        const date = new Date(profile.last_updated);
+        const diff = Math.floor((Date.now() - date.getTime()) / 60000);
+        updatedEl.textContent = diff < 1 ? '刚刚更新' : diff < 60 ? `${diff}分钟前` : `${Math.floor(diff/60)}小时前`;
+    }
+}
+
+function showProfileTagEditor(memoryId, content) {
+    // 简单的确认删除弹窗
+    if (confirm(`要删除这条记忆吗？\n"${content}"`)) {
+        deleteUserMemory(memoryId).then(() => {
+            loadUserProfile();
+            loadUserMemories();
+        });
+    }
+}
+
 async function confirmUserMemory(memoryId) {
     try {
         const res = await fetch(`${MEMORY_API_URL}/${memoryId}/confirm`, {
@@ -9778,6 +9866,7 @@ async function confirmUnderstanding(understood, timestamp) {
 // 页面加载时启动记忆轮询
 document.addEventListener('DOMContentLoaded', () => {
     loadUserMemories();
+    loadUserProfile();
     // 每30秒刷新一次记忆面板（兜底）
     _memoryPollingInterval = setInterval(loadUserMemories, 30000);
 
