@@ -1,17 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="ocean">
+<html lang="zh-CN" data-theme="warm-morning">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星识 Star-Learn - 个人中心</title>
     <link rel="stylesheet" href="/css/tailwind.css">
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/personal.css">
     <link rel="stylesheet" href="/css/notifications.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/data-layer.js"></script>
+    <script src="/js/loading.js"></script>
+    <script src="/js/data-layer.js"></script>
     <script src="/js/theme.js"></script>
 </head>
 <body>
+
+    <!-- Global Wallpaper Background Layer -->
+    <div class="global-bg-layer" id="global-bg-layer"></div>
+    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
     <!-- Star-Friend Pet Selection Modal -->
     <div id="pet-selection-modal" class="crop-modal hidden">
@@ -70,7 +78,7 @@
                 <span>返回</span>
             </a>
             <h1 class="nav-title">个人中心</h1>
-            <div style="width: 64px;"></div>
+            <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置"></button>
         </nav>
 
         <main class="personal-main">

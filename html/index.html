@@ -1,15 +1,17 @@
 ﻿<!DOCTYPE html>
-<html lang="zh-CN" data-theme="ocean">
+<html lang="zh-CN" data-theme="warm-morning">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 全息智控学习舱 V5.0</title>
+    <title>星识 Star-Learn - AI 智能学习助手</title>
     <link rel="stylesheet" href="/css/tailwind.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/index.css?v=2">
     <link rel="stylesheet" href="/css/link-renderer.css">
     <link rel="stylesheet" href="/css/notifications.css">
@@ -24,12 +26,11 @@
             opacity: 0;
             overflow: hidden;
             transform: translateY(-8px);
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: all 0.3s var(--ease-out, cubic-bezier(0, 0, 0.2, 1));
             padding: 0 12px;
-            background: rgba(15, 23, 42, 0.4);
+            background: var(--surface-card, #ffffff);
             border: 1px solid transparent;
             border-radius: 14px;
-            backdrop-filter: blur(12px);
         }
 
         .teacher-select-wrapper.visible {
@@ -37,8 +38,8 @@
             opacity: 1;
             transform: translateY(0);
             padding: 12px 10px;
-            border-color: rgba(99, 102, 241, 0.2);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border-color: var(--border-glass, #e7e5e0);
+            box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
             margin-bottom: 6px;
         }
 
@@ -48,9 +49,8 @@
             gap: 6px;
             font-size: 0.75rem;
             font-weight: 600;
-            color: #94a3b8;
+            color: var(--text-muted, #78756e);
             margin-bottom: 10px;
-            letter-spacing: 0.02em;
         }
 
         .teacher-cards {
@@ -75,14 +75,13 @@
         }
 
         .teacher-card {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid rgba(99, 102, 241, 0.15);
+            background: var(--bg-card, var(--surface-card, #ffffff));
+            border: 1px solid var(--border-glass, #e7e5e0);
             border-radius: 10px;
             padding: 10px 6px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-            backdrop-filter: blur(12px);
+            transition: all 0.2s var(--ease-out, cubic-bezier(0, 0, 0.2, 1));
             position: relative;
             overflow: hidden;
             transform: scale(0.92);
@@ -92,13 +91,8 @@
         .teacher-select-wrapper.visible .teacher-card {
             transform: scale(1);
             opacity: 1;
+            transition-delay: 0s;
         }
-
-        .teacher-select-wrapper.visible .teacher-card:nth-child(1) { transition-delay: 0.05s; }
-        .teacher-select-wrapper.visible .teacher-card:nth-child(2) { transition-delay: 0.1s; }
-        .teacher-select-wrapper.visible .teacher-card:nth-child(3) { transition-delay: 0.15s; }
-        .teacher-select-wrapper.visible .teacher-card:nth-child(4) { transition-delay: 0.2s; }
-        .teacher-select-wrapper.visible .teacher-card:nth-child(5) { transition-delay: 0.25s; }
 
         .teacher-card::before {
             content: '';
@@ -107,15 +101,15 @@
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(to right, transparent, rgba(99, 102, 241, 0.3), transparent);
+            background: linear-gradient(to right, transparent, var(--brand-300, #fdba74), transparent);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
 
         .teacher-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
+            border-color: var(--brand-300, #fdba74);
             transform: translateY(-3px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.1);
+            box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.06));
         }
 
         .teacher-card:hover::before {
@@ -123,9 +117,9 @@
         }
 
         .teacher-card.selected {
-            border-color: rgba(99, 102, 241, 0.5);
-            background: rgba(99, 102, 241, 0.12);
-            box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border-color: var(--brand-500, #f97316);
+            background: rgba(249, 115, 22, 0.08);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.1);
         }
 
         .teacher-card.selected::after {
@@ -135,33 +129,32 @@
             right: 4px;
             width: 14px;
             height: 14px;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            background: var(--brand-500, #f97316);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 8px;
             color: white;
-            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+            box-shadow: 0 2px 6px rgba(249, 115, 22, 0.2);
         }
 
         .teacher-card-icon {
             font-size: 1.5rem;
             margin-bottom: 6px;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
         }
 
         .teacher-card-name {
             font-weight: 700;
-            color: #e2e8f0;
+            color: var(--text-heading, #1c1917);
             margin-bottom: 2px;
             font-size: 0.75rem;
         }
 
         .teacher-card-profession {
             font-size: 0.625rem;
-            color: #94a3b8;
-            letter-spacing: 0.01em;
+            color: var(--text-muted, #78756e);
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -182,6 +175,7 @@
         }
     }
     </script>
+    <script src="/js/loading.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/learning-monitor.js"></script>
     <script src="/js/data-layer.js"></script>
@@ -199,6 +193,10 @@
     <script src="/js/index.js?v=3"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
+    <!-- Global Wallpaper Background Layer -->
+    <div class="global-bg-layer" id="global-bg-layer"></div>
+    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
+
     <div id="dynamic-bg-layer" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 1;"></div>
 
     <div class="mesh-gradient-bg"></div>
@@ -330,6 +328,12 @@
                 <div id="dispatch-badge" class="dispatch-indicator dispatch-idle" title="AI 调度状态">
                     <div class="dispatch-light"></div>
                 </div>
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
                 <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleLeftCol()" aria-label="切换左栏">
                     <i data-lucide="panel-left" class="w-4 h-4"></i>
                 </button>
