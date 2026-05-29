@@ -22,6 +22,18 @@ logger = logging.getLogger("starlearn.api.teacher_chat")
 
 router = APIRouter(prefix="/teacher", tags=["teacher"])
 
+# TutorDecisionEngine feature flag（与 main.py 保持一致）
+import os
+_ENABLE_TUTOR_ENGINE = os.environ.get("ENABLE_TUTOR_ENGINE", "true").lower() in ("1", "true", "yes")
+_tutor_engine = None
+
+def _get_tutor_engine():
+    global _tutor_engine
+    if _tutor_engine is None:
+        from app.services.tutor_engine import TutorDecisionEngine
+        _tutor_engine = TutorDecisionEngine()
+    return _tutor_engine
+
 
 class TeacherChatRequest(BaseModel):
     """AI 教师对话请求"""
@@ -45,6 +57,62 @@ class TeacherSpeechRequest(BaseModel):
 # 文本对话端点
 # =============================================================================
 
+async def _teacher_chat_with_engine(req: TeacherChatRequest):
+    """TutorDecisionEngine 统一决策路径，适配 TeacherPipeline SSE 协议。"""
+    engine = _get_tutor_engine()
+    envelope = await engine.answer_question(
+        student_id=req.student_id or "",
+        question=req.message,
+        course_id=req.course_id,
+    )
+
+    # 输出文本流（适配 text_delta 事件）
+    full_text = ""
+    if envelope.answer_stream is not None:
+        async for chunk in envelope.answer_stream:
+            if chunk:
+                full_text += chunk
+                yield {"event": "text_delta", "data": {"content": chunk}}
+    elif envelope.answer_text:
+        full_text = envelope.answer_text
+        yield {"event": "text_delta", "data": {"content": full_text}}
+
+    # 输出链接（适配 done 事件中的 links 字段）
+    links = [
+        {
+            "id": link.metadata.get("topic", f"link_{idx}"),
+            "type": link.type,
+            "title": link.title,
+            "url": link.url,
+            "description": link.description,
+            "icon": link.icon or ("📚" if link.type == "internal" else "🔗"),
+            "style": "card",
+            "metadata": link.metadata,
+        }
+        for idx, link in enumerate(envelope.links)
+    ]
+
+    done_data = {
+        "agent": "teacher",
+        "persona": req.persona,
+        "full_text": full_text,
+        "action_count": 0,
+        "function_calls": 0,
+    }
+    if links:
+        done_data["links"] = links
+    yield {"event": "done", "data": done_data}
+
+    # 推送主动消息（作为 action 事件）
+    for action in envelope.proactive_actions:
+        yield {"event": "action", "data": {
+            "type": "proactive",
+            "title": action.title,
+            "content": action.content,
+            "action_label": action.action_label,
+        }}
+
+
 @router.post("/chat")
 async def teacher_chat(req: TeacherChatRequest):
     """
@@ -61,8 +129,21 @@ async def teacher_chat(req: TeacherChatRequest):
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
 
-    pipeline = get_pipeline()
+    if _ENABLE_TUTOR_ENGINE:
+        try:
+            return StreamingResponse(
+                _sse_wrap(_teacher_chat_with_engine(req)),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+        except Exception as e:
+            logger.warning(f"[teacher_chat] 引擎失败，回退到旧路径: {e}")
 
+    pipeline = get_pipeline()
     return StreamingResponse(
         _sse_wrap(pipeline.run(
             user_input=req.message,

@@ -177,9 +177,10 @@ async def _save_to_db(req: GradeRequest, result: GradeResult):
         logger.warning("Async ORM save failed, falling back to db.py: %s", e)
         try:
             import json
-            from db import get_db
+            from db import get_db, _ensure_quiz_records_table
 
             with get_db() as db:
+                _ensure_quiz_records_table(db)
                 db.execute(
                     """INSERT INTO quiz_records
                        (classroom_id, student_id, quiz_id, score, total, passed, answers, feedback, created_at)

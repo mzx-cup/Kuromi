@@ -26,6 +26,144 @@ DEFAULT_API_KEY = os.getenv("TAVILY_API_KEY", "tvly-dev-2ky7HU-cWYCKlMUhGKtRplR3
 
 TAVILY_API_URL = "https://api.tavily.com/search"
 
+# B站 API 基础 URL（用于验证视频有效性）
+BILIBILI_API_URL = "https://api.bilibili.com/x/web-interface/view"
+
+
+# 用于 B站 API 请求的标准浏览器请求头（避免被反爬虫拦截）
+_BILI_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Referer": "https://www.bilibili.com",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+}
+
+
+async def _verify_bilibili_video(bvid: str) -> bool:
+    """
+    通过 B站 API 验证视频是否有效。
+
+    Args:
+        bvid: B站视频 BV 号，如 "BV1xx411c7mD"
+
+    Returns:
+        True 如果视频存在且有效，False 如果视频已删除/下架/不存在/请求被拦截
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                BILIBILI_API_URL,
+                params={"bvid": bvid},
+                headers=_BILI_HEADERS,
+            )
+            if response.status_code != 200:
+                logger.warning("B站 API 返回 HTTP %d: %s", response.status_code, bvid)
+                return False
+            data = response.json()
+            code = data.get("code")
+            if code == 0:
+                # 额外检查：视频是否被下架（state 字段）
+                video_data = data.get("data", {})
+                state = video_data.get("state", 0)
+                # state == 0 表示正常，其他值可能表示各种问题
+                if state == 0:
+                    return True
+                logger.info("B站视频 %s state=%d，可能已失效", bvid, state)
+                return False
+            # -404 表示视频不存在，-412 表示请求被拦截
+            logger.info("B站视频 %s 验证失败: code=%s, message=%s", bvid, code, data.get("message", ""))
+            return False
+    except Exception as e:
+        logger.warning("B站视频验证异常 %s: %s", bvid, e)
+        return False
+
+
+def _extract_bvid(url: str) -> str | None:
+    """从 B站 URL 中提取 BV 号，支持多种格式"""
+    import re
+    patterns = [
+        # 标准视频页
+        r"bilibili\.com/video/(BV\w+)",
+        # 带查询参数的视频页
+        r"bilibili\.com/video/(BV\w+)(?:\?|/|$)",
+        # 短链接
+        r"b23\.tv/(BV\w+)",
+        # m.bilibili.com 移动端
+        r"m\.bilibili\.com/video/(BV\w+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url, re.IGNORECASE)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _is_bilibili_video_url(url: str) -> bool:
+    """判断 URL 是否为 B站视频页面（而非搜索页/用户空间/专栏等）"""
+    import re
+    # 只保留真正的视频页面链接
+    video_patterns = [
+        r"bilibili\.com/video/(BV\w+|av\d+)",
+        r"b23\.tv/\w+",
+        r"m\.bilibili\.com/video/(BV\w+|av\d+)",
+    ]
+    for pattern in video_patterns:
+        if re.search(pattern, url, re.IGNORECASE):
+            return True
+    return False
+
+
+async def filter_valid_bilibili_links(results: list[SearchResult]) -> list[SearchResult]:
+    """
+    过滤搜索结果：
+    1. 移除非 B站视频页面（如搜索结果页、用户空间、专栏等）
+    2. 对已失效的 B站视频链接调用 API 验证并过滤
+    3. 非 B站链接直接保留
+    """
+    if not results:
+        return []
+
+    valid_results = []
+    bili_links_to_check = []
+
+    for result in results:
+        if not _is_bilibili_video_url(result.url):
+            # 非 B站视频页面（可能是搜索结果页、用户主页、专栏等）
+            # 如果包含 bilibili.com 但不是视频页，直接过滤掉
+            if "bilibili.com" in result.url.lower() or "b23.tv" in result.url.lower():
+                logger.info("过滤非 B站视频页面: %s (%s)", result.url[:60], result.title[:40])
+                continue
+            # 其他非 B站链接保留
+            valid_results.append(result)
+            continue
+
+        # 是 B站视频页面，需要验证
+        bvid = _extract_bvid(result.url)
+        if bvid:
+            bili_links_to_check.append((result, bvid))
+        else:
+            # 是视频页面但提取不到 BV 号（可能是 av 号），保留待后续处理
+            valid_results.append(result)
+
+    # 串行验证 B站链接（避免触发限流）
+    for result, bvid in bili_links_to_check:
+        is_valid = await _verify_bilibili_video(bvid)
+        if is_valid:
+            valid_results.append(result)
+            logger.info("B站视频验证通过: %s (%s)", bvid, result.title[:40])
+        else:
+            logger.warning("B站视频已失效，过滤掉: %s (%s)", bvid, result.title[:40])
+
+    # 保持原始顺序
+    url_order = {r.url: i for i, r in enumerate(results)}
+    valid_results.sort(key=lambda r: url_order.get(r.url, 999))
+
+    return valid_results
+
 
 @dataclass
 class SearchResult:
@@ -251,14 +389,20 @@ def format_as_context(search_response: SearchResponse, max_chars: int = 3000) ->
 
     total_chars = sum(len(p) for p in parts)
 
-    for i, result in enumerate(search_response.results, 1):
+    # 按相关性分数降序排序，过滤低分结果，只保留最相关的给 LLM
+    filtered_results = [
+        r for r in sorted(search_response.results, key=lambda x: x.score, reverse=True)
+        if r.score >= 0.3  # Tavily 分数阈值过滤
+    ][:5]  # 最多给 LLM 看 5 条
+
+    for i, result in enumerate(filtered_results, 1):
         entry = f"### 来源 {i}: {result.title}\n"
         entry += f"URL: {result.url}\n"
         content = result.content[:500]  # 每篇最多 500 字
         entry += f"内容: {content}\n"
 
         if total_chars + len(entry) > max_chars:
-            parts.append(f"\n*(共 {search_response.source_count} 条结果，已截断到 {i-1} 条)*")
+            parts.append(f"\n*(共 {len(filtered_results)} 条结果，已截断到 {i-1} 条)*")
             break
 
         parts.append(entry)

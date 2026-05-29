@@ -7568,7 +7568,7 @@
                 });
                 const data = await resp.json();
                 document.getElementById('chat-loading')?.remove();
-                this.addChatMessage('teacher', data.content || '抱歉，暂时无法回答。');
+                this.addChatMessage('teacher', data.content || '抱歉，暂时无法回答。', data.links || null);
                 if (data.success) {
                     this.chatHistory.push({ role: 'user', content: text });
                     this.chatHistory.push({ role: 'assistant', content: data.content });
@@ -7581,7 +7581,7 @@
             }
         }
 
-        addChatMessage(type, text) {
+        addChatMessage(type, text, links = null) {
             if (!this.chatMessages) return;
             const div = document.createElement('div');
             div.className = `message ${type}`;
@@ -7609,7 +7609,18 @@
                 avatarHtml = userAvatarHtml;
             }
 
-            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${this.escapeHtml(text)}</p></div>`;
+            let linksHtml = '';
+            if (links && links.length > 0 && window.smartLinkRenderer) {
+                const linksContainer = document.createElement('div');
+                linksContainer.className = 'message-links';
+                const rendered = window.smartLinkRenderer.render(links);
+                if (rendered) {
+                    linksContainer.appendChild(rendered);
+                    linksHtml = linksContainer.outerHTML;
+                }
+            }
+
+            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${this.escapeHtml(text)}</p>${linksHtml}</div>`;
             this.chatMessages.appendChild(div);
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }

@@ -340,7 +340,14 @@ class PersonaManager:
             '3. {"type":"action","name":"...","params":{...}} -- 视觉动作\n'
             '4. speech 和 action 交织排列\n'
             '5. 每个响应必须是完整独立的 JSON 数组\n'
-            '6. 不要预告动作 -- 直接做\n\n'
+            '6. 不要预告动作 -- 直接做\n'
+            '7. 如需调用 web_search，可在 JSON 数组前输出 `<function_call>...</function_call>`，不违反格式规则\n\n'
+            '## 网络搜索工具（可选）\n'
+            '当你需要最新信息、外部学习资源或不确定答案时，可以调用 `web_search` 工具。\n'
+            '搜索关键词应简洁明确，使用中文。\n'
+            '搜索结果会被自动整合进你的回复，你只需在第二轮输出中引用即可。\n'
+            '如果搜索返回了真实链接，必须在回复末尾用 `<links>[...]</links>` 标记输出，让学生可以点击跳转。\n'
+            '严禁编造 URL。\n\n'
             '## 学习链接推荐（可选）\n'
             'JSON 数组输出完毕后，你可以选择性附加 `<links>[...]</links>` 标记，\n'
             '为学生推荐与当前话题直接相关的学习资源。每个链接对象包含：\n'
@@ -349,7 +356,11 @@ class PersonaManager:
             '- `url`: 完整 URL 或站内路径\n'
             '- `description`: 简短描述\n'
             '- `icon`: emoji 图标\n'
-            '仅当问题涉及具体知识点时推荐，最多 3 个，优先站内资源。'
+            '仅当问题涉及具体知识点时推荐，最多 3 个，优先站内资源。\n'
+            '严禁在 speech content 中使用 Markdown 链接格式 `[标题](URL)`，所有链接必须通过 `<links>` 标记输出。\n\n'
+            '`<links>` 输出示例：\n'
+            '[{"type":"speech","content":"推荐几个优质教程给你："}]\n'
+            '`<links>[{"type":"external", "title":"Python入门教程", "url":"https://www.bilibili.com/video/BV1qW4y1K7dZ", "description":"适合零基础", "icon":"🎬"}]</links>`'
         )
 
     def _build_interleaving_rules(self, speech_limit: int) -> str:

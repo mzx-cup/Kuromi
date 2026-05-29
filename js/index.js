@@ -1040,14 +1040,6 @@ function insertAgentMessage(msg) {
         });
     }
 
-    // 播报语音（可选）
-    if (msg._shouldSpeak !== false && 'speechSynthesis' in window) {
-        const utter = new SpeechSynthesisUtterance(msg.content);
-        utter.lang = 'zh-CN';
-        utter.rate = 0.9;
-        utter.volume = 0.6;
-        window.speechSynthesis.speak(utter);
-    }
 }
 
 /**
@@ -1527,7 +1519,7 @@ const DEFAULT_LEARNING_PATH = [
     { topic: '分布式文件系统', status: 'locked' }
 ];
 
-/** 接口与 localStorage 里 path 可能是 JSON 字符串、单对象或非标准字段名，统一为 { topic, status }[] */
+/** 接口返回的 path 可能是 JSON 字符串、单对象或非标准字段名，统一为 { topic, status }[] */
 function normalizeLearningPath(value) {
     if (value == null) return [...DEFAULT_LEARNING_PATH];
     if (typeof value === 'string') {
@@ -1549,6 +1541,12 @@ function normalizeLearningPath(value) {
             if (item.estimated_time) node.estimated_time = item.estimated_time;
             if (item.estimatedMinutes) node.estimatedMinutes = item.estimatedMinutes;
             if (item.children) node.children = item.children;
+            if (item.id) node.id = item.id;
+            if (item.node_id) node.node_id = item.node_id;
+            if (item.mastery_score != null) node.mastery_score = item.mastery_score;
+            if (item.completion_source) node.completion_source = item.completion_source;
+            if (item.rule_verified != null) node.rule_verified = item.rule_verified;
+            if (item.llm_verified != null) node.llm_verified = item.llm_verified;
             return node;
         });
         return mapped.length > 0 ? mapped : [...DEFAULT_LEARNING_PATH];
@@ -3952,6 +3950,36 @@ function renderThinkTimeline(logs) {
     return `<div class="think-log-timeline">${items}</div>`;
 }
 
+function renderMemoryBanner(memoryRefs) {
+    if (!memoryRefs || memoryRefs.length === 0) return '';
+    const typeLabels = {
+        background: '📋',
+        preference: '⚙️',
+        knowledge: '📚',
+        interest: '⭐',
+        goal: '🎯',
+        emotion: '💭',
+        learning_trait: '🔍',
+        personality: '🧠',
+        interaction: '🤝',
+        fact: '📝',
+    };
+    const count = memoryRefs.length;
+    const summaryText = count === 1 ? 'AI 引用了 1 条记忆' : `AI 引用了 ${count} 条记忆`;
+    const itemsHtml = memoryRefs.map(ref => {
+        const icon = typeLabels[ref.type] || '📝';
+        const text = ref.content.length > 40 ? ref.content.substring(0, 40) + '...' : ref.content;
+        return `<div class="memory-ref-item"><span class="memory-ref-bullet">${icon}</span><span class="memory-ref-content">${escapeHtml(text)}</span></div>`;
+    }).join('');
+    return `
+        <div class="memory-banner" onclick="this.classList.toggle('is-expanded')">
+            <span class="memory-banner-text">🧠 ${summaryText}</span>
+            <span class="memory-banner-toggle"></span>
+            <div class="memory-banner-expand">${itemsHtml}</div>
+        </div>
+    `;
+}
+
 async function renderMessages() {
     const container = document.getElementById('chat-container');
     if (!container) return;
@@ -4019,6 +4047,7 @@ async function renderMessages() {
         <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}" data-msg-id="${msg._timestamp || ''}">
             <div class="max-w-[90%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
                 ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${identityBadge}${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${proactiveBadge}</span>` : ''}
+                ${msg.role !== 'user' && msg._memoryRefs && msg._memoryRefs.length > 0 ? renderMemoryBanner(msg._memoryRefs) : ''}
                 <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible ${isProactive ? 'msg-bubble--proactive' : ''}">
                     ${thinkBlockHtml}
                     <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
@@ -4442,6 +4471,7 @@ const AGENT_LABELS = {
     generator_textual: '文本生成',
     evaluator: '评估',
     memory: '💡 记忆助手',
+    memory_retrieval: '🧠 记忆检索',
     // 辩论身份标签
     debate_bigdata_architect: '大数据导师',
     debate_psychologist: '知心辅导员',
@@ -4864,9 +4894,10 @@ function renderPathTree() {
         const displayName = node.topic || node.name || node.title || '学习任务';
         const isCompleted = status === 'completed';
         const isCurrent = status === 'in_progress';
+        const nodeId = node.node_id || node.id || '';
 
         const nodeReason = node.description || node.reason || '';
-        let html = `<div class="path-tree-node ${nodeReason ? '' : ''}" data-idx="${idx}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}" ${nodeReason ? `data-reason="${escapeHtml(nodeReason)}"` : ''}>
+        let html = `<div class="path-tree-node ${nodeReason ? '' : ''}" data-idx="${idx}" data-node-id="${escapeHtml(nodeId)}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}" ${nodeReason ? `data-reason="${escapeHtml(nodeReason)}"` : ''}>
             ${hasChildren ? '<i data-lucide="chevron-right" class="w-3 h-3 path-tree-toggle"></i>' : '<span class="w-3"></span>'}
             <div class="path-tree-node-dot ${dotClass} ${isCurrent ? 'pulse' : ''}"></div>
             <span class="path-tree-node-text">${escapeHtml(displayName)}</span>
@@ -5054,14 +5085,39 @@ function startPathNodeStudy(idx) {
     }
 }
 
-function markPathNodeComplete(idx) {
+async function markPathNodeComplete(idx) {
     if (!currentPath[idx]) return;
-    currentPath[idx].status = 'completed';
+    const node = currentPath[idx];
+    const nodeId = node.node_id || node.id || '';
+
+    // 直接修改 UI（即时反馈）
+    node.status = 'completed';
     renderPathTree();
     renderPath();
-    saveProgress();
-    // 节点完成后触发学习路径刷新
-    schedulePathRefresh('node_complete');
+
+    // 调用 API 持久化节点状态到数据库
+    if (nodeId && currentUser && currentUser.id) {
+        try {
+            await fetch(`${API_BASE}/api/learning-path/nodes/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: parseInt(currentUser.id),
+                    nodes: [{
+                        node_id: nodeId,
+                        status: 'completed',
+                        completion_source: 'manual_mark'
+                    }]
+                })
+            });
+        } catch (e) {
+            console.warn('[markPathNodeComplete] API 更新失败:', e);
+        }
+        // 触发后端重新评估该节点
+        scheduleNodeRefresh(nodeId, 'node_complete');
+    } else {
+        schedulePathRefresh('node_complete');
+    }
 }
 
 async function handleSendStream(forcedMessage = null, options = {}) {
@@ -5222,7 +5278,21 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     continue;
                 }
 
-                if (event.type === 'agent_log') {
+                if (event.type === 'memory_retrieval_logs') {
+                    const memLogs = event.logs || [];
+                    memLogs.forEach(log => {
+                        const logEntry = {
+                            agent: 'memory_retrieval',
+                            content: `${log.type_label || '记忆'} · 置信度 ${Math.round((log.confidence || 0) * 100)}%`,
+                            timestamp: Date.now()
+                        };
+                        currentThinkingLogs.push(logEntry);
+                    });
+                    // 如果正在流式渲染，刷新 thinking strip
+                    if (currentAssistantIdx >= 0) {
+                        renderStreamingMessage();
+                    }
+                } else if (event.type === 'agent_log') {
                     const logEntry = {
                         agent: event.agent || 'unknown',
                         content: event.content || '',
@@ -5271,6 +5341,10 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     if (event.links && event.links.length > 0 && currentAssistantIdx >= 0) {
                         messages[currentAssistantIdx]._links = event.links;
                         messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
+                    }
+                    // 存储记忆引用到消息对象
+                    if (event.memory_refs && event.memory_refs.length > 0 && currentAssistantIdx >= 0) {
+                        messages[currentAssistantIdx]._memoryRefs = event.memory_refs;
                     }
                     // Remove stream-bubble and re-render all messages to show final content
                     const container = document.getElementById('chat-container');
@@ -5647,13 +5721,14 @@ function updateEvaluation(newEval) {
 
 async function saveProgress() {
     if (!currentUser || !currentUser.id) return;
-    ensureCurrentPathValid();
     try {
         const body = {
             userId: parseInt(currentUser.id),
             evaluation: evaluation,
-            currentPath: currentPath,
             profile: profile
+            // 注意：不再保存 currentPath。
+            // 路径结构由后端 LLM 在 /api/learning-path/generate 中生成并持久化。
+            // 前端只读取，不直接修改路径结构。
         };
         if (lastGradeRecord) {
             body.lastGradeRecord = lastGradeRecord;
@@ -5817,42 +5892,32 @@ let _pathRefreshDebounceTimer = null;
 let _pathLastRefreshedAt = 0;
 
 async function initLearningPath() {
-    // 页面加载时初始化学习路径：先尝试从 API 获取，失败则回退到本地缓存。
+    // 页面加载时初始化学习路径：统一从后端 API 获取，不再使用 localStorage 缓存。
+    // 路径结构由后端 LLM 生成并持久化到 learning_path 表，节点状态由 learning_path_nodes 表追踪。
+    // 前端只读取，不缓存，不直接修改路径结构。
     const user = currentUser;
     if (!user || !user.id) {
         renderPathTree();
         return;
     }
 
-    // 先显示本地缓存（如果有）
-    const cached = localStorage.getItem(`starlearn_path_${user.id}`);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            if (data.path && data.path.length > 0) {
-                currentPath = normalizeLearningPath(data.path);
-                renderPathTree();
-                updatePathLastUpdated(data.generated_at);
-            }
-        } catch (e) { /* ignore */ }
-    }
-
-    // 异步拉取最新路径
+    // 直接异步拉取最新路径（从数据库，不触发 LLM 生成）
     try {
         const fresh = await fetchLearningPath(user.id);
         if (fresh && fresh.path && fresh.path.length > 0) {
-            const oldPathJson = JSON.stringify(currentPath);
-            const newPathJson = JSON.stringify(fresh.path);
             currentPath = normalizeLearningPath(fresh.path);
             renderPathTree();
             updatePathLastUpdated(fresh.generated_at);
-            localStorage.setItem(`starlearn_path_${user.id}`, JSON.stringify(fresh));
-            if (oldPathJson !== newPathJson) {
-                showToast(`学习路径已更新：${fresh.reasoning || '基于最新学情'}`, 'info');
+        } else {
+            // 后端暂无路径，尝试通过 /api/progress/load 获取（兼容旧数据）
+            const progressResp = await loadProgress();
+            if (currentPath && currentPath.length > 0) {
+                renderPathTree();
             }
         }
     } catch (e) {
         console.warn('[LearningPath] 初始化拉取失败:', e);
+        renderPathTree();
     }
 }
 
@@ -5903,7 +5968,6 @@ async function refreshLearningPath(force = false) {
             currentPath = normalizeLearningPath(data.path);
             renderPathTree();
             updatePathLastUpdated(data.generated_at);
-            localStorage.setItem(`starlearn_path_${user.id}`, JSON.stringify(data));
             if (oldPathJson !== newPathJson) {
                 showToast(`路径已更新：${data.reasoning || '基于最新学情'}`, 'info');
             }
@@ -5937,6 +6001,106 @@ function schedulePathRefresh(source = 'event') {
     _pathRefreshDebounceTimer = setTimeout(() => {
         refreshLearningPath(false);
     }, 2000);  // 延迟2秒，等待数据保存完成
+}
+
+// ── 节点级局部刷新（不重新渲染整棵树） ──
+let _nodeRefreshTimers = {};
+
+function scheduleNodeRefresh(nodeId, source = 'event') {
+    if (!nodeId) return;
+    if (_nodeRefreshTimers[nodeId]) clearTimeout(_nodeRefreshTimers[nodeId]);
+    _nodeRefreshTimers[nodeId] = setTimeout(() => {
+        refreshNodeState(nodeId, source);
+    }, 3000);  // 3秒后刷新，等待后端数据落盘
+}
+
+async function refreshNodeState(nodeId, source) {
+    if (!currentUser || !currentUser.id || !nodeId) return;
+    try {
+        // 先调用评估端点触发后端规则引擎
+        await fetch(`${API_BASE}/api/learning-path/nodes/evaluate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(currentUser.id), node_ids: [nodeId] })
+        });
+        // 再拉取该节点的最新状态
+        const res = await fetch(`${API_BASE}/api/learning-path/nodes/${currentUser.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !data.nodes) return;
+        const nodeState = data.nodes.find(n => n.node_id === nodeId);
+        if (nodeState && nodeState.status) {
+            updateNodeState(nodeId, nodeState.status);
+        }
+    } catch (e) {
+        console.warn('[refreshNodeState] 节点状态刷新失败:', e);
+    } finally {
+        delete _nodeRefreshTimers[nodeId];
+    }
+}
+
+function updateNodeState(nodeId, newStatus) {
+    if (!nodeId || !newStatus) return;
+    const el = document.querySelector(`.path-tree-node[data-node-id="${nodeId}"]`);
+    if (!el) return;
+
+    const dot = el.querySelector('.path-tree-node-dot');
+    if (!dot) return;
+
+    // 更新当前内存中的路径状态
+    const idx = parseInt(el.dataset.idx);
+    if (!isNaN(idx) && currentPath[idx]) {
+        currentPath[idx].status = newStatus;
+    }
+
+    // 更新圆点样式
+    dot.classList.remove('completed', 'in-progress', 'locked', 'pulse');
+    if (newStatus === 'completed') {
+        dot.classList.add('completed');
+    } else if (newStatus === 'in_progress') {
+        dot.classList.add('in-progress', 'pulse');
+    } else {
+        dot.classList.add('locked');
+    }
+
+    // 更新勾选图标
+    const existingCheck = el.querySelector('[data-lucide="check"]');
+    if (newStatus === 'completed' && !existingCheck) {
+        const check = document.createElement('i');
+        check.setAttribute('data-lucide', 'check');
+        check.className = 'w-3 h-3';
+        check.style.cssText = 'color: var(--success); margin-left: auto;';
+        el.appendChild(check);
+        if (window.lucide) lucide.createIcons();
+    } else if (newStatus !== 'completed' && existingCheck) {
+        existingCheck.remove();
+    }
+
+    // 更新进度条（不重新渲染整棵树）
+    updatePathProgressBar();
+}
+
+function updatePathProgressBar() {
+    const totalNodes = currentPath.length;
+    if (totalNodes === 0) return;
+    const completedNodes = currentPath.filter(n => n.status === 'completed').length;
+    const inProgressNodes = currentPath.filter(n => n.status === 'in_progress').length;
+    const progressPercent = Math.round(((completedNodes + inProgressNodes * 0.5) / totalNodes) * 100);
+
+    const fillEl = document.querySelector('.path-progress-bar-fill');
+    if (fillEl) fillEl.style.width = `${progressPercent}%`;
+
+    const valueEl = document.querySelector('.path-progress-value');
+    if (valueEl) valueEl.textContent = `${progressPercent}%`;
+
+    const statCompleted = document.querySelector('.path-stat-completed');
+    if (statCompleted) statCompleted.textContent = `${completedNodes} 已完成`;
+
+    const statInprogress = document.querySelector('.path-stat-inprogress');
+    if (statInprogress) statInprogress.textContent = `${inProgressNodes} 进行中`;
+
+    const statLocked = document.querySelector('.path-stat-locked');
+    if (statLocked) statLocked.textContent = `${totalNodes - completedNodes - inProgressNodes} 待解锁`;
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -6106,6 +6270,29 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return `<div class="micro-course-block">${encodedCode}</div>`;
             }
             return typeof arg1 === 'object' ? originalCode(arg1) : originalCode(arg1, arg2, arg3);
+        };
+        // 自定义链接渲染：外部链接在新标签页打开，并添加可点击样式
+        const originalLink = renderer.link.bind(renderer);
+        renderer.link = function(arg1, arg2, arg3) {
+            let href, title, text;
+            if (typeof arg1 === 'object') {
+                href = arg1.href || '';
+                title = arg1.title || '';
+                text = arg1.text || '';
+            } else {
+                href = arg1 || '';
+                title = arg2 || '';
+                text = arg3 || '';
+            }
+            // 确保外部链接有协议前缀
+            if (href && !href.startsWith('http') && !href.startsWith('/') && !href.startsWith('#') && href.includes('.')) {
+                href = 'https://' + href;
+            }
+            const isExternal = href.startsWith('http');
+            const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
+            const titleAttr = title ? ` title="${title}"` : '';
+            const icon = isExternal ? '<span style="display:inline-block;width:12px;height:12px;margin-left:2px;vertical-align:middle;">🔗</span>' : '';
+            return `<a href="${href}" class="markdown-link${isExternal ? ' markdown-link-external' : ''}"${targetAttr}${titleAttr}>${text}${icon}</a>`;
         };
         marked.use({ renderer: renderer });
         
@@ -9707,6 +9894,48 @@ async function deleteUserMemory(memoryId) {
     } catch (e) {
         console.log('[MemoryPanel] 删除记忆失败:', e);
     }
+}
+
+// ========== AI眼中的你 画像卡片 ==========
+
+let currentProfileData = null;
+
+async function loadUserProfile() {
+    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    if (!user || !user.id) {
+        console.log('[Profile] 未登录，跳过加载');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/profile/${user.id}`);
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data.success && data.profile) {
+            currentProfileData = data.profile;
+        }
+    } catch (e) {
+        console.warn('[Profile] 加载画像失败:', e);
+    }
+}
+
+function filterMemoriesByType(type) {
+    // Toggle: 已激活则取消
+    if (_activeMemoryFilter === type) {
+        _activeMemoryFilter = 'all';
+    } else {
+        _activeMemoryFilter = type;
+    }
+
+    // 同步筛选芯片 UI
+    const chipsContainer = document.getElementById('memory-filter-chips');
+    if (chipsContainer) {
+        chipsContainer.querySelectorAll('.memory-chip').forEach(c => {
+            c.classList.toggle('active', c.dataset.type === _activeMemoryFilter);
+        });
+    }
+
+    filterAndRenderMemories();
 }
 
 function showMemoryToast(message) {

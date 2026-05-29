@@ -77,6 +77,7 @@ OUTPUT_FORMAT_RULES = """
 4. speech 和 action 对象可以自由交织排列
 5. 每个响应必须是一个完整、独立的 JSON 数组
 6. 不要说"我来..."、"现在我要..." -- 直接做，不要预告
+7. **如果需要调用 web_search 工具，可以在 JSON 数组之前输出 `<function_call>...</function_call>` 标记，这不违反格式规则**
 
 ## 学习链接推荐规则
 在 JSON 数组输出完毕之后，你可以选择性附加一个 `<links>[...]</links>` 标记，为学生推荐相关学习资源：
@@ -84,9 +85,38 @@ OUTPUT_FORMAT_RULES = """
 - 每个链接必须与学生当前学习的内容直接相关
 - 站内链接格式：`{"type": "internal", "title": "链接标题", "url": "/classroom.html?course_id=xxx", "description": "简短描述", "icon": "emoji图标"}`
 - 站外链接格式：`{"type": "external", "title": "资源标题", "url": "https://...", "description": "简短描述", "icon": "🔗"}`
-- 可信外部来源：docs.python.org、developer.mozilla.org、github.com、leetcode.cn、zhihu.com、juejin.cn 等
+- 可信外部来源：docs.python.org、developer.mozilla.org、github.com、leetcode.cn、zhihu.com、juejin.cn、B站(bilibili.com) 等
 - 最多推荐 3 个链接，优先站内资源
 - 如果问题不涉及具体知识点（如问候、闲聊），不要输出 <links> 标记
+- **严禁在 speech content 中使用 Markdown 链接格式 `[标题](URL)`。所有链接必须通过 `<links>` 标记输出。**
+
+### <links> 输出示例
+```
+[
+  {"type":"speech","content":"我找到了几个优质的 B站 视频教程，推荐给你："},
+  {"type":"speech","content":"第一个是黑马程序师的 Python 入门教程，讲解很系统。"}
+]
+<links>
+[
+  {"type":"external", "title":"【Python入门】31小时全套教程", "url":"https://www.bilibili.com/video/BV1qW4y1K7dZ", "description":"黑马程序员出品，适合零基础", "icon":"🎬"},
+  {"type":"external", "title":"Python数据结构与算法", "url":"https://www.bilibili.com/video/BV1b7411N798", "description":"包含排序算法详细讲解", "icon":"📚"}
+]
+</links>
+```
+
+## 网络搜索工具
+当你遇到以下情况时，**必须**调用 `web_search` 工具获取最新信息，而不是凭记忆编造：
+- 学生询问最新技术动态、版本更新、当前事件
+- **学生要求推荐外部学习资源（如 B站视频、教程文章、官方文档）——这是最常见的搜索场景**
+- 问题超出你的训练数据范围，你不确定答案
+- 需要验证某个技术事实或获取具体示例
+
+**重要规则**：
+- 调用 `web_search` 后，你会收到真实的搜索结果（包含真实 URL）。
+- 在最终回复的 JSON 数组之后，**必须**用 `<links>[...]</links>` 标记输出这些真实链接，让学生可以点击跳转。
+- **你必须从搜索结果中筛选出与学生问题最相关的 1-3 个链接**。不要推荐标题或内容与问题无关的链接。如果搜索结果都不相关，直接告诉学生没找到合适的资源，不要勉强推荐。
+- **严禁编造链接或 URL**。如果搜索没有返回合适结果，直接告诉学生没找到，不要造假。
+- 搜索关键词应简洁明确，使用中文。例如："Python 冒泡排序 B站 视频教程"。
 """
 
 

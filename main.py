@@ -138,6 +138,10 @@ app.include_router(learning_path_router, prefix="/api/learning-path")
 from app.api.memory import router as memory_router
 app.include_router(memory_router, prefix="/api")
 
+# ---- Profile API (用户画像) ----
+from app.api.profile import router as profile_router
+app.include_router(profile_router, prefix="/api")
+
 # ---- Evaluation API (评估指标) ----
 from app.api.evaluation import router as evaluation_router
 app.include_router(evaluation_router, prefix="/api")
@@ -1415,15 +1419,14 @@ def save_user_progress(request: SaveProgressRequest):
     try:
         user_id = request.userId
         evaluation_json = json.dumps(request.evaluation, ensure_ascii=False)
-        path_json = json.dumps(request.currentPath, ensure_ascii=False)
         profile_json = json.dumps(request.profile, ensure_ascii=False)
         grade_record = request.lastGradeRecord
 
         database.save_user_profile(user_id, profile_json, evaluation_json, grade_record)
-        try:
-            database.save_learning_path(user_id, path_json)
-        except Exception as e:
-            print(f"[ProgressSave] learning_path 保存失败（非阻塞）: {e}")
+        # 注意：学习路径不再通过 /api/progress/save 保存。
+        # 路径结构由后端 LLM 在 /api/learning-path/generate 中生成并持久化到 learning_path 表。
+        # 节点状态由规则引擎/LLM 分析器写入 learning_path_nodes 表。
+        # 前端只读取，不直接修改路径结构。
 
         # 同时保存到 learning_records 和 user_evaluations
         ev = request.evaluation or {}

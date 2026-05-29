@@ -15,6 +15,9 @@ Memory Extractor — 从对话中提取用户长期记忆
   - interest: 兴趣方向
   - goal: 学习目标
   - emotion: 情感状态（上次的情绪、遇到的困难等）
+  - learning_trait: 学习特征（学习风格、理解方式、记忆特点等）
+  - personality: 性格特点（内向/外向、做事风格、思维习惯等）
+  - interaction: 互动习惯（沟通偏好、反馈方式、表达习惯等）
 """
 
 from __future__ import annotations
@@ -42,11 +45,12 @@ EXTRACTION_PROMPT = """你是一位擅长理解学生的AI导师。请从以下�
 2. 信息要具体、准确，不要猜测
 3. 如果学生明确纠正了之前的记忆，标记为"update"
 4. 情感类记忆要注明时间和情境
+5. 关注学习特征（学习风格、擅长/薄弱点）、性格特点（沟通偏好、性格标签）、互动习惯（活跃时段、回复模式）
 
 【输出格式】JSON数组:
 [
   {{
-    "memory_type": "background|preference|knowledge|interest|goal|emotion",
+    "memory_type": "background|preference|knowledge|interest|goal|emotion|learning_trait|personality|interaction",
     "content": "具体记忆内容，用第三人称描述",
     "confidence": 0.9,
     "is_update": false

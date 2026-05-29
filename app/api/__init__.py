@@ -5,6 +5,7 @@ from app.api.asr import router as asr_router
 from app.api.grading import router as grading_router
 from app.api.teacher_chat import router as teacher_chat_router
 from app.api.ppt import router as ppt_router
+from app.api.profile import router as profile_router
 
 router = APIRouter(prefix="/api/v2")
 
@@ -13,3 +14,4 @@ router.include_router(asr_router)
 router.include_router(grading_router)
 router.include_router(teacher_chat_router)
 router.include_router(ppt_router)
+router.include_router(profile_router)

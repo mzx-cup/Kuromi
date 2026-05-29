@@ -769,10 +769,342 @@ def save_user_evaluation_fields(user_id, record_date, interaction_count=None,
 # 学习路径
 # ============================================================
 
+def _ensure_learning_path_table(conn):
+    """自动创建 learning_path 表，并补全缺失的列"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS learning_path (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL UNIQUE,
+                    path_json TEXT,
+                    generated_at TEXT,
+                    reasoning TEXT,
+                    data_sources TEXT,
+                    confidence REAL DEFAULT 0.0,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_learning_path_user ON learning_path (user_id)")
+            # 检查并补全缺失列（SQLite）
+            cursor.execute("PRAGMA table_info(learning_path)")
+            existing_cols = {row[1] for row in cursor.fetchall()}
+            col_defs = [
+                ("generated_at", "TEXT"),
+                ("reasoning", "TEXT"),
+                ("data_sources", "TEXT"),
+                ("confidence", "REAL DEFAULT 0.0"),
+            ]
+            for col_name, col_type in col_defs:
+                if col_name not in existing_cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE learning_path ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass
+        else:
+            import pymysql
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS learning_path (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL UNIQUE,
+                    path_json LONGTEXT,
+                    generated_at DATETIME DEFAULT NULL,
+                    reasoning TEXT DEFAULT NULL,
+                    data_sources JSON DEFAULT NULL,
+                    confidence FLOAT DEFAULT 0.0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            # 检查并补全缺失列（MySQL）
+            cursor.execute("SHOW COLUMNS FROM learning_path")
+            existing_cols = {row[0] for row in cursor.fetchall()}
+            col_defs = [
+                ("generated_at", "DATETIME DEFAULT NULL"),
+                ("reasoning", "TEXT DEFAULT NULL"),
+                ("data_sources", "JSON DEFAULT NULL"),
+                ("confidence", "FLOAT DEFAULT 0.0"),
+            ]
+            for col_name, col_type in col_defs:
+                if col_name not in existing_cols:
+                    try:
+                        cursor.execute(f"ALTER TABLE learning_path ADD COLUMN {col_name} {col_type}")
+                    except Exception:
+                        pass
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_learning_path_table] 建表/补列失败: {e}")
+
+
+def _create_index_mysql(cursor, index_name, table_name, column_name):
+    """MySQL 兼容的索引创建（忽略已存在错误）"""
+    try:
+        cursor.execute(f"CREATE INDEX {index_name} ON {table_name} ({column_name})")
+    except Exception as e:
+        err_str = str(e).lower()
+        if 'duplicate key name' in err_str or 'already exists' in err_str or err_str.startswith('1061'):
+            pass  # 索引已存在，忽略
+        else:
+            raise
+
+
+def _ensure_learning_path_nodes_table(conn):
+    """自动创建 learning_path_nodes 表，用于追踪每个知识点的独立状态"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS learning_path_nodes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    node_id TEXT NOT NULL,
+                    node_topic TEXT,
+                    status TEXT DEFAULT 'locked',
+                    mastery_score REAL DEFAULT 0.0,
+                    rule_verified INTEGER DEFAULT 0,
+                    llm_verified INTEGER DEFAULT 0,
+                    completion_source TEXT,
+                    interaction_count INTEGER DEFAULT 0,
+                    last_quiz_score REAL,
+                    last_quiz_at TEXT,
+                    code_task_passed INTEGER DEFAULT 0,
+                    classroom_progress_pct REAL DEFAULT 0.0,
+                    evidence_json TEXT,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, node_id)
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_lpn_user ON learning_path_nodes (user_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_lpn_node ON learning_path_nodes (node_id)")
+        else:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS learning_path_nodes (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    node_id VARCHAR(255) NOT NULL,
+                    node_topic VARCHAR(255),
+                    status VARCHAR(32) DEFAULT 'locked',
+                    mastery_score FLOAT DEFAULT 0.0,
+                    rule_verified TINYINT DEFAULT 0,
+                    llm_verified TINYINT DEFAULT 0,
+                    completion_source VARCHAR(64),
+                    interaction_count INT DEFAULT 0,
+                    last_quiz_score FLOAT,
+                    last_quiz_at DATETIME,
+                    code_task_passed TINYINT DEFAULT 0,
+                    classroom_progress_pct FLOAT DEFAULT 0.0,
+                    evidence_json JSON,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY uk_user_node (user_id, node_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+            _create_index_mysql(cursor, "idx_lpn_user", "learning_path_nodes", "user_id")
+            _create_index_mysql(cursor, "idx_lpn_node", "learning_path_nodes", "node_id")
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_learning_path_nodes_table] 建表失败: {e}")
+
+
+def get_learning_path_nodes(user_id):
+    """获取学生的所有知识点节点状态"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_learning_path_nodes_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM learning_path_nodes WHERE user_id = ? ORDER BY updated_at DESC",
+                        (user_id,)
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT * FROM learning_path_nodes WHERE user_id = %s ORDER BY updated_at DESC",
+                        (user_id,)
+                    )
+                rows = cursor.fetchall()
+                cursor.close()
+                result = []
+                for row in rows:
+                    node = dict(row) if _is_sqlite(conn) else row
+                    if node.get('evidence_json') and isinstance(node['evidence_json'], str):
+                        try:
+                            node['evidence_json'] = json.loads(node['evidence_json'])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    result.append(node)
+                return result
+            except Exception as e:
+                print(f"[get_learning_path_nodes] 查询失败: {e}")
+    return []
+
+
+def get_learning_path_node(user_id, node_id):
+    """获取单个知识点节点状态"""
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                _ensure_learning_path_nodes_table(conn)
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    cursor.execute(
+                        "SELECT * FROM learning_path_nodes WHERE user_id = ? AND node_id = ?",
+                        (user_id, node_id)
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT * FROM learning_path_nodes WHERE user_id = %s AND node_id = %s",
+                        (user_id, node_id)
+                    )
+                row = cursor.fetchone()
+                cursor.close()
+                if row:
+                    node = dict(row) if _is_sqlite(conn) else row
+                    if node.get('evidence_json') and isinstance(node['evidence_json'], str):
+                        try:
+                            node['evidence_json'] = json.loads(node['evidence_json'])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    return node
+            except Exception as e:
+                print(f"[get_learning_path_node] 查询失败: {e}")
+    return None
+
+
+def save_learning_path_node(user_id, node_data):
+    """保存/更新单个知识点节点状态"""
+    from datetime import datetime
+    node_id = node_data.get('node_id')
+    if not node_id:
+        print("[save_learning_path_node] node_id 不能为空")
+        return False
+
+    evidence_json = None
+    if node_data.get('evidence_json'):
+        evidence_json = json.dumps(node_data['evidence_json'], ensure_ascii=False)
+
+    try:
+        with get_db() as conn:
+            if conn is not None:
+                _ensure_learning_path_nodes_table(conn)
+                cursor = conn.cursor()
+                updated_at = datetime.now().isoformat()
+                fields = [
+                    'node_topic', 'status', 'mastery_score', 'rule_verified',
+                    'llm_verified', 'completion_source', 'interaction_count',
+                    'last_quiz_score', 'last_quiz_at', 'code_task_passed',
+                    'classroom_progress_pct', 'evidence_json', 'updated_at'
+                ]
+                values = [
+                    node_data.get('node_topic'),
+                    node_data.get('status', 'locked'),
+                    node_data.get('mastery_score', 0.0),
+                    1 if node_data.get('rule_verified') else 0,
+                    1 if node_data.get('llm_verified') else 0,
+                    node_data.get('completion_source'),
+                    node_data.get('interaction_count', 0),
+                    node_data.get('last_quiz_score'),
+                    node_data.get('last_quiz_at'),
+                    1 if node_data.get('code_task_passed') else 0,
+                    node_data.get('classroom_progress_pct', 0.0),
+                    evidence_json,
+                    updated_at,
+                ]
+                if _is_sqlite(conn):
+                    placeholders = ','.join(['?'] * len(values))
+                    cursor.execute(f"""
+                        INSERT INTO learning_path_nodes
+                        (user_id, node_id, {','.join(fields)})
+                        VALUES (?, ?, {placeholders})
+                        ON CONFLICT(user_id, node_id) DO UPDATE SET
+                            {','.join(f'{f}=excluded.{f}' for f in fields)}
+                    """, [user_id, node_id] + values)
+                else:
+                    placeholders = ','.join(['%s'] * len(values))
+                    update_set = ','.join(f'{f}=%s' for f in fields)
+                    cursor.execute(f"""
+                        INSERT INTO learning_path_nodes
+                        (user_id, node_id, {','.join(fields)})
+                        VALUES (%s, %s, {placeholders})
+                        ON DUPLICATE KEY UPDATE {update_set}
+                    """, [user_id, node_id] + values + values)
+                conn.commit()
+                cursor.close()
+                return True
+    except Exception as e:
+        print(f"[save_learning_path_node] 保存失败: {e}")
+    return False
+
+
+def batch_update_learning_path_nodes(user_id, nodes_list):
+    """批量更新知识点节点状态"""
+    success_count = 0
+    for node in nodes_list:
+        node['user_id'] = user_id
+        if save_learning_path_node(user_id, node):
+            success_count += 1
+    return success_count
+
+
+def sync_path_to_nodes(user_id, path_json):
+    """将学习路径同步到节点追踪表（初始化或补全缺失节点）"""
+    if not isinstance(path_json, list):
+        return 0
+
+    from datetime import datetime
+    updated = 0
+    existing_nodes = {n['node_id']: n for n in get_learning_path_nodes(user_id)}
+
+    def _sync_node(node, parent_id=None):
+        nonlocal updated
+        topic = node.get('topic') or node.get('name') or node.get('title')
+        if not topic:
+            return
+        # 生成 node_id：如果有预定义的 id 就用，否则基于 topic 生成
+        node_id = node.get('id') or node.get('node_id')
+        if not node_id:
+            # 基于 topic 生成 slug 作为 node_id
+            import re
+            slug = re.sub(r'[^\w一-鿿]+', '_', topic).strip('_').lower()
+            node_id = f"topic:{slug}" if not parent_id else f"{parent_id}:{slug}"
+
+        if node_id not in existing_nodes:
+            save_learning_path_node(user_id, {
+                'node_id': node_id,
+                'node_topic': topic,
+                'status': node.get('status', 'locked'),
+                'mastery_score': 0.0,
+                'updated_at': datetime.now().isoformat(),
+            })
+            updated += 1
+        else:
+            # 如果路径中的状态与节点表不一致，以节点表为准（节点表更精确）
+            pass
+
+        # 同步 children
+        for child in node.get('children', []):
+            child['node_id'] = child.get('node_id') or child.get('id')
+            _sync_node(child, parent_id=node_id)
+
+    for node in path_json:
+        _sync_node(node)
+
+    return updated
+
+
 def get_learning_path(user_id):
     with get_db() as conn:
         if conn is not None:
             try:
+                _ensure_learning_path_table(conn)
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute("SELECT * FROM learning_path WHERE user_id = ?", (user_id,))
@@ -811,6 +1143,7 @@ def save_learning_path(user_id, path_json, reasoning=None, data_sources=None, co
         with get_db() as conn:
             if conn is not None:
                 try:
+                    _ensure_learning_path_table(conn)
                     cursor = conn.cursor()
                     if _is_sqlite(conn):
                         cursor.execute(
@@ -1234,11 +1567,108 @@ def bump_memory_access(memory_id):
 # 学情数据查询（供学习路径生成使用）
 # ============================================================
 
+def _ensure_quiz_records_table(conn):
+    """自动创建 quiz_records 表"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS quiz_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    classroom_id TEXT NOT NULL,
+                    student_id TEXT NOT NULL,
+                    quiz_id TEXT DEFAULT '',
+                    score REAL DEFAULT 0.0,
+                    total INTEGER DEFAULT 0,
+                    passed INTEGER DEFAULT 0,
+                    answers TEXT,
+                    feedback TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_qr_student ON quiz_records (student_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_qr_classroom ON quiz_records (classroom_id)")
+        else:
+            import pymysql
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS quiz_records (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    classroom_id VARCHAR(64) NOT NULL,
+                    student_id VARCHAR(64) NOT NULL,
+                    quiz_id VARCHAR(64) NOT NULL DEFAULT '',
+                    score FLOAT DEFAULT 0.0,
+                    total INT DEFAULT 0,
+                    passed TINYINT DEFAULT 0,
+                    answers JSON DEFAULT NULL,
+                    feedback JSON DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_qr_student (student_id),
+                    INDEX idx_qr_classroom (classroom_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_quiz_records_table] 建表失败（可能已存在）: {e}")
+
+
+def _ensure_classroom_sessions_table(conn):
+    """自动创建 classroom_sessions 表"""
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS classroom_sessions (
+                    id TEXT PRIMARY KEY,
+                    student_id TEXT NOT NULL,
+                    course_id TEXT DEFAULT '',
+                    course_data TEXT,
+                    current_scene_index INTEGER DEFAULT 0,
+                    visited_scenes TEXT,
+                    quiz_answers TEXT,
+                    chat_history TEXT,
+                    time_spent INTEGER DEFAULT 0,
+                    status TEXT DEFAULT 'active',
+                    teacher_persona TEXT DEFAULT 'expert_mentor',
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cs_student ON classroom_sessions (student_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_cs_updated ON classroom_sessions (updated_at)")
+        else:
+            import pymysql
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS classroom_sessions (
+                    id VARCHAR(64) NOT NULL PRIMARY KEY,
+                    student_id VARCHAR(64) NOT NULL,
+                    course_id VARCHAR(64) NOT NULL DEFAULT '',
+                    course_data JSON DEFAULT NULL,
+                    current_scene_index INT DEFAULT 0,
+                    visited_scenes JSON DEFAULT NULL,
+                    quiz_answers JSON DEFAULT NULL,
+                    chat_history JSON DEFAULT NULL,
+                    time_spent INT DEFAULT 0,
+                    status VARCHAR(20) DEFAULT 'active',
+                    teacher_persona VARCHAR(32) NOT NULL DEFAULT 'expert_mentor',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_cs_student (student_id),
+                    INDEX idx_cs_updated (updated_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """)
+        conn.commit()
+        cursor.close()
+    except Exception as e:
+        print(f"[_ensure_classroom_sessions_table] 建表失败（可能已存在）: {e}")
+
+
 def get_recent_quizzes(user_id, limit=20):
     """获取学生最近 N 条测验记录。"""
     with get_db() as conn:
         if conn is not None:
             try:
+                _ensure_quiz_records_table(conn)
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute(
@@ -1258,6 +1688,9 @@ def get_recent_quizzes(user_id, limit=20):
                 cursor.close()
                 return [dict(r) if _is_sqlite(conn) else r for r in rows] if rows else []
             except Exception as e:
+                err = str(e).lower()
+                if "doesn't exist" in err or "doesn" in err:
+                    return []  # 表不存在时静默返回空列表
                 print(f"查询 quiz_records 失败: {e}")
     return []
 
@@ -1267,6 +1700,7 @@ def get_recent_classrooms(user_id, limit=10):
     with get_db() as conn:
         if conn is not None:
             try:
+                _ensure_classroom_sessions_table(conn)
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
                     cursor.execute(
@@ -1300,6 +1734,9 @@ def get_recent_classrooms(user_id, limit=10):
                     result.append(row)
                 return result
             except Exception as e:
+                err = str(e).lower()
+                if "doesn't exist" in err or "doesn" in err:
+                    return []  # 表不存在时静默返回空列表
                 print(f"查询 classroom_sessions 失败: {e}")
     return []
 
