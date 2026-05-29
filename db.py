@@ -5154,12 +5154,20 @@ def get_backend_name():
 # 视频课程库相关表
 # ============================================================
 
+def _get_video_cursor(conn):
+    if _is_sqlite(conn):
+        return conn.cursor()
+    else:
+        import pymysql
+        return conn.cursor(pymysql.cursors.DictCursor)
+
+
 def init_video_tables():
     with get_db() as conn:
         if conn is None:
             return
         try:
-            cursor = conn.cursor()
+            cursor = _get_video_cursor(conn)
             if _is_sqlite(conn):
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS video_courses (
@@ -5244,7 +5252,7 @@ def get_all_video_courses(source_type=None):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     if source_type:
                         cursor.execute("SELECT * FROM video_courses WHERE source_type = ? ORDER BY id DESC", (source_type,))
@@ -5275,7 +5283,7 @@ def get_video_course(course_id):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("SELECT * FROM video_courses WHERE id = ?", (course_id,))
                 else:
@@ -5300,7 +5308,7 @@ def create_video_course(title, source_type='bilibili', subtitle='', bvid='', pag
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("""
                         INSERT INTO video_courses (title, subtitle, source_type, bvid, page,
@@ -5346,7 +5354,7 @@ def delete_video_course(course_id):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("DELETE FROM video_courses WHERE id = ?", (course_id,))
                 else:
@@ -5374,7 +5382,7 @@ def update_video_course(course_id, **kwargs):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 sqlite = _is_sqlite(conn)
                 placeholders = ', '.join(f"{k} = {'?' if sqlite else '%s'}" for k in filtered)
                 sql = f"UPDATE video_courses SET {placeholders} WHERE id = {'?' if sqlite else '%s'}"
@@ -5399,7 +5407,7 @@ def get_user_playlists(user_id):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("SELECT * FROM video_playlists WHERE user_id = ? ORDER BY position, id", (user_id,))
                 else:
@@ -5436,7 +5444,7 @@ def create_playlist(user_id, name='默认列表'):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("INSERT INTO video_playlists (user_id, name) VALUES (?, ?)", (user_id, name))
                 else:
@@ -5462,7 +5470,7 @@ def delete_playlist(playlist_id):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("DELETE FROM playlist_videos WHERE playlist_id = ?", (playlist_id,))
                     cursor.execute("DELETE FROM video_playlists WHERE id = ?", (playlist_id,))
@@ -5486,7 +5494,7 @@ def rename_playlist(playlist_id, name):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("UPDATE video_playlists SET name = ? WHERE id = ?", (name, playlist_id))
                 else:
@@ -5510,13 +5518,14 @@ def add_video_to_playlist(playlist_id, course_id, position=None):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if position is None:
                     if _is_sqlite(conn):
-                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM playlist_videos WHERE playlist_id = ?", (playlist_id,))
+                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 AS next_pos FROM playlist_videos WHERE playlist_id = ?", (playlist_id,))
                     else:
-                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 FROM playlist_videos WHERE playlist_id = %s", (playlist_id,))
-                    position = cursor.fetchone()[0]
+                        cursor.execute("SELECT COALESCE(MAX(position), -1) + 1 AS next_pos FROM playlist_videos WHERE playlist_id = %s", (playlist_id,))
+                    row = cursor.fetchone()
+                    position = row['next_pos'] if row else 0
                 if _is_sqlite(conn):
                     cursor.execute("INSERT INTO playlist_videos (playlist_id, course_id, position) VALUES (?, ?, ?)", (playlist_id, course_id, position))
                 else:
@@ -5545,7 +5554,7 @@ def remove_video_from_playlist(pv_id):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 if _is_sqlite(conn):
                     cursor.execute("DELETE FROM playlist_videos WHERE id = ?", (pv_id,))
                 else:
@@ -5566,7 +5575,7 @@ def reorder_playlist_videos(items):
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
+                cursor = _get_video_cursor(conn)
                 for item in items:
                     if _is_sqlite(conn):
                         cursor.execute("UPDATE playlist_videos SET position = ? WHERE id = ?", (item['position'], item['id']))
