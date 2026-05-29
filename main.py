@@ -141,6 +141,13 @@ app.include_router(memory_router, prefix="/api")
 from app.api.evaluation import router as evaluation_router
 app.include_router(evaluation_router, prefix="/api")
 
+# ---- Bilibili Import API (B站视频导入) ----
+from app.api.bilibili import router as bilibili_router
+app.include_router(bilibili_router)
+# ---- Courses API (课程中心) ----
+from app.api.courses import router as courses_router
+app.include_router(courses_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -723,6 +730,226 @@ def list_local_videos():
     return {"videos": videos}
 
 
+# ============ 视频课程库 API ============
+
+@app.get("/api/video-courses")
+def list_video_courses(source_type: str = ""):
+    courses = database.get_all_video_courses(source_type=source_type or None)
+    for c in courses:
+        for json_field in ("ai_timeline", "ai_questions"):
+            val = c.get(json_field, "[]")
+            if isinstance(val, str):
+                try:
+                    c[json_field] = json.loads(val)
+                except (json.JSONDecodeError, TypeError):
+                    c[json_field] = [] if json_field != "ai_timeline" else []
+    return {"courses": courses}
+
+
+@app.get("/api/video-courses/{course_id}")
+def get_video_course_api(course_id: int):
+    course = database.get_video_course(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    for json_field in ("ai_timeline", "ai_questions"):
+        val = course.get(json_field, "[]")
+        if isinstance(val, str):
+            try:
+                course[json_field] = json.loads(val)
+            except (json.JSONDecodeError, TypeError):
+                course[json_field] = []
+    return {"course": course}
+
+
+class VideoCourseCreate(BaseModel):
+    title: str
+    source_type: str = "bilibili"
+    subtitle: str = ""
+    bvid: str = ""
+    page: int = 1
+    local_path: str = ""
+    duration_label: str = "--:--"
+    ai_summary: str = ""
+    ai_timeline: list = []
+    ai_questions: list = []
+    ai_suggestion: str = ""
+    created_by: str = ""
+
+
+@app.post("/api/video-courses")
+def create_video_course_api(req: VideoCourseCreate):
+    course_id = database.create_video_course(
+        title=req.title,
+        source_type=req.source_type,
+        subtitle=req.subtitle,
+        bvid=req.bvid,
+        page=req.page,
+        local_path=req.local_path,
+        duration_label=req.duration_label,
+        ai_summary=req.ai_summary,
+        ai_timeline=json.dumps(req.ai_timeline, ensure_ascii=False),
+        ai_questions=json.dumps(req.ai_questions, ensure_ascii=False),
+        ai_suggestion=req.ai_suggestion,
+        created_by=req.created_by,
+    )
+    if course_id is None:
+        raise HTTPException(status_code=500, detail="创建课程失败")
+    return {"id": course_id, "message": "课程已创建"}
+
+
+class VideoCourseUpdate(BaseModel):
+    title: str = None
+    source_type: str = None
+    subtitle: str = None
+    bvid: str = None
+    page: int = None
+    local_path: str = None
+    duration_label: str = None
+    ai_summary: str = None
+    ai_timeline: list = None
+    ai_questions: list = None
+    ai_suggestion: str = None
+
+
+@app.put("/api/video-courses/{course_id}")
+def update_video_course_api(course_id: int, req: VideoCourseUpdate):
+    updates = {k: v for k, v in req.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="无更新字段")
+    if "ai_timeline" in updates:
+        updates["ai_timeline"] = json.dumps(updates["ai_timeline"], ensure_ascii=False)
+    if "ai_questions" in updates:
+        updates["ai_questions"] = json.dumps(updates["ai_questions"], ensure_ascii=False)
+    ok = database.update_video_course(course_id, **updates)
+    if not ok:
+        raise HTTPException(status_code=404, detail="课程不存在或更新失败")
+    return {"message": "课程已更新"}
+
+
+@app.delete("/api/video-courses/{course_id}")
+def delete_video_course_api(course_id: int):
+    ok = database.delete_video_course(course_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    return {"message": "课程已删除"}
+
+
+# ============ 播放列表 API ============
+
+class PlaylistCreate(BaseModel):
+    user_id: str
+    name: str = "默认列表"
+
+
+class PlaylistRename(BaseModel):
+    name: str
+
+
+@app.get("/api/video-playlists")
+def list_playlists(user_id: str = ""):
+    if not user_id:
+        raise HTTPException(status_code=400, detail="缺少 user_id 参数")
+    playlists = database.get_user_playlists(user_id)
+    for pl in playlists:
+        for v in pl.get("videos", []):
+            for json_field in ("ai_timeline", "ai_questions"):
+                val = v.get(json_field, "[]")
+                if isinstance(val, str):
+                    try:
+                        v[json_field] = json.loads(val)
+                    except (json.JSONDecodeError, TypeError):
+                        v[json_field] = []
+    return {"playlists": playlists}
+
+
+@app.post("/api/video-playlists")
+def create_playlist_api(req: PlaylistCreate):
+    pl_id = database.create_playlist(req.user_id, req.name)
+    if pl_id is None:
+        raise HTTPException(status_code=500, detail="创建播放列表失败")
+    return {"id": pl_id, "message": "播放列表已创建"}
+
+
+@app.put("/api/video-playlists/{playlist_id}")
+def rename_playlist_api(playlist_id: int, req: PlaylistRename):
+    ok = database.rename_playlist(playlist_id, req.name)
+    if not ok:
+        raise HTTPException(status_code=404, detail="播放列表不存在")
+    return {"message": "播放列表已重命名"}
+
+
+@app.delete("/api/video-playlists/{playlist_id}")
+def delete_playlist_api(playlist_id: int):
+    ok = database.delete_playlist(playlist_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="播放列表不存在")
+    return {"message": "播放列表已删除"}
+
+
+class PlaylistVideoAdd(BaseModel):
+    playlist_id: int
+    course_id: int
+    position: int = None
+
+
+class PlaylistVideoReorder(BaseModel):
+    items: list
+
+
+@app.post("/api/playlist-videos")
+def add_playlist_video_api(req: PlaylistVideoAdd):
+    pv_id = database.add_video_to_playlist(req.playlist_id, req.course_id, req.position)
+    if pv_id is None:
+        raise HTTPException(status_code=500, detail="添加视频失败")
+    return {"id": pv_id, "message": "视频已添加到列表"}
+
+
+@app.delete("/api/playlist-videos/{pv_id}")
+def remove_playlist_video_api(pv_id: int):
+    ok = database.remove_video_from_playlist(pv_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="条目不存在")
+    return {"message": "视频已从列表移除"}
+
+
+@app.put("/api/playlist-videos/reorder")
+def reorder_playlist_videos_api(req: PlaylistVideoReorder):
+    ok = database.reorder_playlist_videos(req.items)
+    if not ok:
+        raise HTTPException(status_code=500, detail="排序失败")
+    return {"message": "排序已保存"}
+
+
+# ============ B站 视频信息代理 ============
+
+@app.get("/api/bilibili/info")
+def bilibili_video_info(bvid: str = ""):
+    if not bvid:
+        raise HTTPException(status_code=400, detail="缺少 bvid 参数")
+    try:
+        import urllib.request
+        api_url = f"https://api.bilibili.com/x/web-interface/view?bvid={bvid}"
+        req = urllib.request.Request(api_url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Referer": "https://www.bilibili.com/"
+        })
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        if data.get("code") != 0:
+            raise HTTPException(status_code=404, detail="B站视频不存在")
+        video_data = data["data"]
+        return {
+            "bvid": bvid,
+            "title": video_data.get("title", ""),
+            "cover": video_data.get("pic", ""),
+            "duration": video_data.get("duration", 0),
+            "duration_label": f"{video_data.get('duration', 0) // 60}:{video_data.get('duration', 0) % 60:02d}",
+            "owner": video_data.get("owner", {}).get("name", ""),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"获取B站视频信息失败: {str(e)}")
+
+
 WHITEBOARD_DRAW_SYSTEM_PROMPT = """你是一位精通教学可视化的白板绘图专家。请根据用户的描述，生成一系列白板绘图动作，以JSON数组格式输出。
 
 ## 输出格式要求
@@ -1142,6 +1369,13 @@ def serve_settings():
     if os.path.exists(settings_path):
         return FileResponse(settings_path)
     raise HTTPException(status_code=404, detail="设置页面未找到")
+
+@app.get("/course-learn.html")
+def serve_course_learn():
+    course_learn_path = os.path.join(HTML_DIR, "course-learn.html")
+    if os.path.exists(course_learn_path):
+        return FileResponse(course_learn_path)
+    raise HTTPException(status_code=404, detail="课程学习页面未找到")
 
 @app.get("/video-player.html")
 def serve_video_player():
