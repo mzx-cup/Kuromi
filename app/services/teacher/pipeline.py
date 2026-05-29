@@ -73,6 +73,35 @@ class TeacherPipeline:
             scene_context=scene_context,
         )
 
+        # 1b. 检索相关记忆
+        retrieved_memories, retrieval_logs = [], []
+        if student_id:
+            try:
+                from app.services.memory_retriever import retrieve_memories_with_logs, format_memories_for_prompt
+                retrieved_memories, retrieval_logs = retrieve_memories_with_logs(
+                    user_id=student_id,
+                    current_input=user_input,
+                    limit=6,
+                    min_confidence=0.5,
+                )
+            except Exception as e:
+                logger.warning(f"[Pipeline] 记忆检索失败: {e}")
+
+        # 注入记忆到 system prompt
+        memory_prompt = format_memories_for_prompt(retrieved_memories)
+        if memory_prompt:
+            system_prompt += "\n" + memory_prompt
+
+        # 发送记忆检索日志到前端（thinking链路）
+        if retrieval_logs:
+            yield {
+                "event": "memory_retrieval_logs",
+                "data": {
+                    "logs": retrieval_logs,
+                    "count": len(retrieval_logs),
+                },
+            }
+
         # 2. 构建消息（带 Function Calling tools）
         messages = [
             {"role": "system", "content": system_prompt},
@@ -159,8 +188,8 @@ class TeacherPipeline:
                     action = await self.tool_executor.preprocess_ui_action(action)
                 yield {"event": "action", "data": action}
 
-        # 7. 提取学习链接推荐
-        links = self._extract_links(full_response)
+        # 7. 学习链接由 TutorDecisionEngine 统一生成（旧路径不再依赖 LLM <links> 标记）
+        links = []
 
         # 8. 完成
         done_data = {
@@ -169,6 +198,10 @@ class TeacherPipeline:
             "full_text": full_response,
             "action_count": len(actions) if actions else 0,
             "function_calls": len(function_calls),
+            "memory_refs": [
+                {"id": m.get("id"), "content": m.get("content", ""), "type": m.get("memory_type", "fact")}
+                for m in retrieved_memories[:3]
+            ] if retrieved_memories else [],
         }
         if links:
             done_data["links"] = links
@@ -182,17 +215,16 @@ class TeacherPipeline:
         """
         调用 LLM 流式生成（带 Function Calling tools）。
 
-        当前策略：由于讯飞/MiniMax streaming API 的 function calling 支持有限，
-        先用非流式调用检测 function_call，再流式输出文本。
+        使用真正的流式调用（call_llm_stream_messages），边接收边输出。
+        输出完成后检测 function_call。
         """
         try:
-            from llm_stream import call_llm_async
+            from llm_stream import call_llm_stream_messages
 
-            full_text = await call_llm_async(
-                messages[0]["content"],
-                messages[-1]["content"],
-                temperature=0.7,
-            )
+            full_text = ""
+            async for chunk in call_llm_stream_messages(messages, temperature=0.7):
+                full_text += chunk
+                yield {"type": "text", "content": chunk}
 
             # 检查是否包含 function_call（简单模式匹配）
             fc_data = self._detect_function_call(full_text)
@@ -203,10 +235,6 @@ class TeacherPipeline:
                     "name": fc_data["name"],
                     "arguments": fc_data.get("arguments", {}),
                 }
-            else:
-                # 流式输出文本
-                for i, char in enumerate(full_text):
-                    yield {"type": "text", "content": char}
 
         except Exception as e:
             logger.error("LLM stream error: %s", e)
@@ -267,47 +295,6 @@ class TeacherPipeline:
         except json.JSONDecodeError:
             pass
         return None
-
-    @staticmethod
-    def _extract_links(raw_response: str) -> list[dict] | None:
-        """从 LLM 原始输出中提取 <links> 标记中的学习链接数组"""
-        import re
-
-        match = re.search(r'<links>([\s\S]*?)</links>', raw_response, re.DOTALL)
-        if not match:
-            return None
-
-        links_text = match.group(1).strip()
-        # 移除可能的代码块包裹
-        if links_text.startswith("```"):
-            links_text = re.sub(r"^```\w*\s*", "", links_text)
-            links_text = re.sub(r"\s*```$", "", links_text)
-
-        try:
-            links = json.loads(links_text)
-            if isinstance(links, list) and len(links) > 0:
-                # 校验并规范化链接字段
-                normalized = []
-                for link in links:
-                    if not isinstance(link, dict):
-                        continue
-                    if not link.get("title") or not link.get("url"):
-                        continue
-                    normalized.append({
-                        "id": link.get("id") or f"link_{len(normalized)}",
-                        "type": link.get("type", "internal"),
-                        "title": link["title"],
-                        "url": link["url"],
-                        "description": link.get("description", ""),
-                        "icon": link.get("icon", "📚" if link.get("type") == "internal" else "🔗"),
-                        "style": link.get("style", "card"),
-                        "metadata": link.get("metadata", {}),
-                    })
-                return normalized if normalized else None
-        except json.JSONDecodeError:
-            pass
-        return None
-
 
 # 单例
 _pipeline: TeacherPipeline | None = None

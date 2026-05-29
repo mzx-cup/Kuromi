@@ -69,6 +69,56 @@ def retrieve_relevant_memories_sync(
     return _retrieve_memories_core(user_id, current_input, limit, min_confidence)
 
 
+def retrieve_memories_with_logs(
+    user_id: str,
+    current_input: str,
+    limit: int = 8,
+    min_confidence: float = 0.5,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """
+    检索记忆并返回检索日志（用于thinking链路展示）。
+    Returns: (memories, retrieval_logs)
+    """
+    from db import get_user_memories, bump_memory_access
+
+    all_memories = get_user_memories(user_id)
+    if not all_memories:
+        return [], []
+
+    filtered = [m for m in all_memories if m.get("confidence", 1.0) >= min_confidence]
+    current_words = set(_tokenize(current_input))
+
+    scored = []
+    for mem in filtered:
+        mem_words = set(_tokenize(mem.get("content", "")))
+        overlap = len(current_words & mem_words)
+        score = overlap
+        score += mem.get("confidence", 1.0) * 0.5
+        score += min(mem.get("access_count", 1) / 10, 0.3)
+        if mem.get("confirmed"):
+            score += 0.2
+        scored.append((score, mem))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top_memories = [m for _, m in scored[:limit]]
+
+    logs = []
+    for score, mem in scored[:limit]:
+        logs.append({
+            "memory_id": mem.get("id"),
+            "content": mem.get("content", ""),
+            "relevance_score": round(score, 2),
+            "memory_type": mem.get("memory_type", "fact"),
+        })
+        try:
+            bump_memory_access(mem.get("id"))
+        except Exception:
+            pass
+
+    logger.info(f"[MemoryRetriever] 为用户 {user_id} 检索到 {len(top_memories)} 条相关记忆")
+    return top_memories, logs
+
+
 def format_memories_for_prompt(memories: list[dict[str, Any]]) -> str:
     """将记忆格式化为可注入 system prompt 的文本，要求 AI 显性引用并添加标记。"""
     if not memories:
@@ -81,6 +131,9 @@ def format_memories_for_prompt(memories: list[dict[str, Any]]) -> str:
         "interest": "💡 兴趣方向",
         "goal": "🎯 学习目标",
         "emotion": "💭 情感记录",
+        "learning_trait": "🔍 学习特征",
+        "personality": "🧠 性格特点",
+        "interaction": "🤝 交互记录",
     }
 
     lines = ["\n【关于这位学生的已知信息（请在回答中自然地引用）】:"]
