@@ -6,7 +6,6 @@ let currentSourceType = null;
 let currentVideoId = null;
 let currentCourseData = null;
 let speedIndex = 0;
-let progressTimer = null;
 
 // ============ DOM refs ============
 const $ = (id) => document.getElementById(id);
@@ -30,6 +29,8 @@ const danmakuStage = $('danmaku-stage');
 
 // ============ BilibiliDriver ============
 const BilibiliDriver = {
+    _playing: false,
+
     get iframe() { return iframeBilibili; },
 
     postCommand(cmd, ...args) {
@@ -42,8 +43,8 @@ const BilibiliDriver = {
     },
 
     load(bvid, page = 1) {
-        const url = `https://player.bilibili.com/player.html?bvid=${bvid}&page=${page}&autoplay=0&danmaku=0`;
-        this.iframe.src = url;
+        this._playing = false;
+        this.iframe.src = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + page + '&autoplay=0&danmaku=0';
     },
 
     play() { this.postCommand('play'); },
@@ -51,18 +52,6 @@ const BilibiliDriver = {
     seek(time) { this.postCommand('seek', time); },
     setPlaybackRate(rate) { this.postCommand('setPlaybackRate', rate); },
     setVolume(vol) { this.postCommand('setVolume', vol / 100); },
-
-    startProgressPolling() {
-        this.stopProgressPolling();
-        progressTimer = setInterval(() => {
-            this.postCommand('getCurrentTime');
-            this.postCommand('getDuration');
-        }, 500);
-    },
-
-    stopProgressPolling() {
-        if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
-    },
 
     show() {
         this.iframe.style.display = 'block';
@@ -120,7 +109,6 @@ const videoController = {
         if (currentSourceType === 'bilibili') {
             BilibiliDriver.show();
             BilibiliDriver.load(courseData.bvid, courseData.page || 1);
-            BilibiliDriver.startProgressPolling();
         } else {
             LocalDriver.show();
             LocalDriver.load(courseData.local_path);
@@ -147,7 +135,8 @@ const videoController = {
             if (LocalDriver.paused) LocalDriver.play();
             else LocalDriver.pause();
         } else {
-            BilibiliDriver.play();
+            if (BilibiliDriver._playing) BilibiliDriver.pause();
+            else BilibiliDriver.play();
         }
     },
     seek(time) { this.driver.seek(time); },
@@ -171,8 +160,13 @@ window.addEventListener('message', function(e) {
         }
     }
 
-    if (data.state === 'playing' || data.state === 'paused') {
-        updatePlayIcon(data.state === 'playing');
+    if (data.state === 'playing') {
+        BilibiliDriver._playing = true;
+        updatePlayIcon(true);
+    }
+    if (data.state === 'paused') {
+        BilibiliDriver._playing = false;
+        updatePlayIcon(false);
     }
 
     if (data.state === 'ready' || data.state === 'playing') {
@@ -670,7 +664,7 @@ function updateVolumeIcon() {
 
 function showEmptyState() {
     player.setAttribute('data-empty-state', '');
-    BilibiliDriver.stopProgressPolling();
+    BilibiliDriver._playing = false;
 }
 
 function formatTime(value) {
