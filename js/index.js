@@ -1039,6 +1039,15 @@ function insertAgentMessage(msg) {
             duration: 8000
         });
     }
+
+    // 播报语音（可选）
+    if (msg._shouldSpeak !== false && 'speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(msg.content);
+        utter.lang = 'zh-CN';
+        utter.rate = 0.9;
+        utter.volume = 0.6;
+        window.speechSynthesis.speak(utter);
+    }
 }
 
 /**
@@ -9672,6 +9681,35 @@ function showMemoryJustRemembered() {
     }, 3500);
 }
 
+async function confirmUserMemory(memoryId) {
+    try {
+        const res = await fetch(`${MEMORY_API_URL}/${memoryId}/confirm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ confirmed: true })
+        });
+        if (res.ok) {
+            showMemoryToast('✓ 记忆已确认，AI 会更信赖这条信息');
+            loadUserMemories();
+        }
+    } catch (e) {
+        console.log('[MemoryPanel] 确认记忆失败:', e);
+    }
+}
+
+async function deleteUserMemory(memoryId) {
+    if (!confirm('确定要删除这条记忆吗？AI 将不再记住这个信息。')) return;
+    try {
+        const res = await fetch(`${MEMORY_API_URL}/${memoryId}`, { method: 'DELETE' });
+        if (res.ok) {
+            showMemoryToast('🗑 记忆已删除');
+            loadUserMemories();
+        }
+    } catch (e) {
+        console.log('[MemoryPanel] 删除记忆失败:', e);
+    }
+}
+
 // ========== AI眼中的你 画像卡片 ==========
 
 let currentProfileData = null;
@@ -9760,40 +9798,12 @@ function renderProfileCard(profile) {
 
 function showProfileTagEditor(memoryId, content) {
     // 简单的确认删除弹窗
-    if (confirm(`要删除这条记忆吗？\n"${content}"`)) {
+    if (confirm(`要删除这条记忆吗？
+"${content}"`)) {
         deleteUserMemory(memoryId).then(() => {
             loadUserProfile();
             loadUserMemories();
         });
-    }
-}
-
-async function confirmUserMemory(memoryId) {
-    try {
-        const res = await fetch(`${MEMORY_API_URL}/${memoryId}/confirm`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ confirmed: true })
-        });
-        if (res.ok) {
-            showMemoryToast('✓ 记忆已确认，AI 会更信赖这条信息');
-            loadUserMemories();
-        }
-    } catch (e) {
-        console.log('[MemoryPanel] 确认记忆失败:', e);
-    }
-}
-
-async function deleteUserMemory(memoryId) {
-    if (!confirm('确定要删除这条记忆吗？AI 将不再记住这个信息。')) return;
-    try {
-        const res = await fetch(`${MEMORY_API_URL}/${memoryId}`, { method: 'DELETE' });
-        if (res.ok) {
-            showMemoryToast('🗑 记忆已删除');
-            loadUserMemories();
-        }
-    } catch (e) {
-        console.log('[MemoryPanel] 删除记忆失败:', e);
     }
 }
 
