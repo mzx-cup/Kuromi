@@ -4473,6 +4473,7 @@ const AGENT_LABELS = {
     generator_textual: '文本生成',
     evaluator: '评估',
     memory: '💡 记忆助手',
+    memory_retrieval: '🧠 记忆检索',
     // 辩论身份标签
     debate_bigdata_architect: '大数据导师',
     debate_psychologist: '知心辅导员',
@@ -5253,7 +5254,21 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     continue;
                 }
 
-                if (event.type === 'agent_log') {
+                if (event.type === 'memory_retrieval_logs') {
+                    const memLogs = event.logs || [];
+                    memLogs.forEach(log => {
+                        const logEntry = {
+                            agent: 'memory_retrieval',
+                            content: `${log.type_label || '记忆'} · 置信度 ${Math.round((log.confidence || 0) * 100)}%`,
+                            timestamp: Date.now()
+                        };
+                        currentThinkingLogs.push(logEntry);
+                    });
+                    // 如果正在流式渲染，刷新 thinking strip
+                    if (currentAssistantIdx >= 0) {
+                        renderStreamingMessage();
+                    }
+                } else if (event.type === 'agent_log') {
                     const logEntry = {
                         agent: event.agent || 'unknown',
                         content: event.content || '',
