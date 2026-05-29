@@ -589,6 +589,66 @@ MYSQL_TABLES = [
         INDEX idx_user_memories_created_at (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
+
+    # ──────────────────────────────────────────────────────
+    # 32. classroom_sessions - 课堂会话状态
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS classroom_sessions (
+        id VARCHAR(64) NOT NULL PRIMARY KEY,
+        student_id VARCHAR(64) NOT NULL,
+        course_id VARCHAR(64) NOT NULL DEFAULT '',
+        course_data JSON DEFAULT NULL,
+        current_scene_index INT DEFAULT 0,
+        visited_scenes JSON DEFAULT NULL,
+        quiz_answers JSON DEFAULT NULL,
+        chat_history JSON DEFAULT NULL,
+        time_spent INT DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'active',
+        teacher_persona VARCHAR(32) NOT NULL DEFAULT 'expert_mentor',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_cs_student (student_id),
+        INDEX idx_cs_updated (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 33. quiz_records - 课堂测验记录
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS quiz_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id VARCHAR(64) NOT NULL,
+        student_id VARCHAR(64) NOT NULL,
+        quiz_id VARCHAR(64) NOT NULL DEFAULT '',
+        score FLOAT DEFAULT 0.0,
+        total INT DEFAULT 0,
+        passed TINYINT DEFAULT 0,
+        answers JSON DEFAULT NULL,
+        feedback JSON DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_qr_student (student_id),
+        INDEX idx_qr_classroom (classroom_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 34. agent_turn_records - 智能体对话轮次
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS agent_turn_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        classroom_id VARCHAR(64) NOT NULL,
+        agent_id VARCHAR(64) NOT NULL,
+        agent_role VARCHAR(64) NOT NULL,
+        turn_index INT NOT NULL,
+        content TEXT NOT NULL,
+        actions JSON DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_atr_classroom (classroom_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
 ]
 
 # 表名列表（用于日志输出）
@@ -625,6 +685,9 @@ TABLE_NAMES = [
     "messages",
     "conversation_summaries",
     "user_memories",
+    "classroom_sessions",
+    "quiz_records",
+    "agent_turn_records",
 ]
 
 

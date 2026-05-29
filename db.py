@@ -1258,6 +1258,9 @@ def get_recent_quizzes(user_id, limit=20):
                 cursor.close()
                 return [dict(r) if _is_sqlite(conn) else r for r in rows] if rows else []
             except Exception as e:
+                err = str(e).lower()
+                if "doesn't exist" in err or "doesn" in err:
+                    return []  # 表不存在时静默返回空列表
                 print(f"查询 quiz_records 失败: {e}")
     return []
 
@@ -1300,6 +1303,9 @@ def get_recent_classrooms(user_id, limit=10):
                     result.append(row)
                 return result
             except Exception as e:
+                err = str(e).lower()
+                if "doesn't exist" in err or "doesn" in err:
+                    return []  # 表不存在时静默返回空列表
                 print(f"查询 classroom_sessions 失败: {e}")
     return []
 
