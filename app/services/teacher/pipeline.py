@@ -207,6 +207,7 @@ class TeacherPipeline:
 
         # 1c. 自动搜索（关键词触发，不依赖 LLM 判断）
         auto_search_context = ""
+        search_result_urls: set[str] = set()  # 记录所有来自真实搜索结果的 URL，用于过滤 LLM 编造的链接
         if self._should_auto_search(user_input):
             try:
                 refined_query = _refine_search_query(user_input)
@@ -215,8 +216,12 @@ class TeacherPipeline:
                     "web_search", {"query": refined_query}
                 )
                 auto_search_context = search_result.get("context_for_llm", "")
+                # 收集真实搜索结果的 URL，后续用于过滤 LLM 编造的链接
+                for r in search_result.get("results", []):
+                    if r.get("url"):
+                        search_result_urls.add(r["url"])
                 if auto_search_context:
-                    logger.info("[Pipeline] 自动搜索完成，结果长度: %d", len(auto_search_context))
+                    logger.info("[Pipeline] 自动搜索完成，结果长度: %d, 有效URL数: %d", len(auto_search_context), len(search_result_urls))
                     yield {
                         "event": "function_result",
                         "data": {
@@ -310,6 +315,10 @@ class TeacherPipeline:
             for fr in function_results:
                 if fr["name"] == "web_search":
                     context_parts.append(fr["result"].get("context_for_llm", ""))
+                    # 同样收集第二轮搜索的真实 URL
+                    for r in fr["result"].get("results", []):
+                        if r.get("url"):
+                            search_result_urls.add(r["url"])
                 elif fr["name"] == "search_knowledge_base":
                     kb_results = fr["result"].get("results", [])
                     if kb_results:
@@ -346,6 +355,43 @@ class TeacherPipeline:
 
         # 7. 提取学习链接推荐
         links = self._extract_links(full_response)
+
+        # 7b. 验证链接真实性：外部链接的 URL 必须来自真实搜索结果，否则视为 LLM 编造并过滤掉
+        if links and search_result_urls:
+            # URL 归一化：去除尾部斜杠和查询参数，用于模糊匹配
+            def _normalize_url(u: str) -> str:
+                u = u.strip().rstrip("/")
+                # 去除常见查询参数（保留核心路径）
+                if "?" in u:
+                    u = u.split("?")[0]
+                return u
+
+            normalized_search_urls = {_normalize_url(u) for u in search_result_urls}
+
+            filtered_links = []
+            for link in links:
+                url = link.get("url", "")
+                link_type = link.get("type", "internal")
+                # 站内链接直接保留（我们控制站内路由）
+                if link_type == "internal" or url.startswith("/"):
+                    filtered_links.append(link)
+                    continue
+                # 外部链接必须在真实搜索结果中才能保留（支持精确匹配和归一化匹配）
+                norm_url = _normalize_url(url)
+                if url in search_result_urls or norm_url in normalized_search_urls:
+                    filtered_links.append(link)
+                else:
+                    logger.warning("[Pipeline] 过滤掉 LLM 编造的链接: %s (%s)", url[:80], link.get("title", "")[:40])
+            links = filtered_links if filtered_links else None
+        elif links and not search_result_urls:
+            # 没有触发任何搜索但 LLM 输出了外部链接 → 全部视为编造，直接丢弃
+            has_external = any(l.get("type") == "external" or l.get("url", "").startswith("http") for l in links)
+            if has_external:
+                logger.warning("[Pipeline] 无搜索上下文，过滤掉全部 %d 个外部链接（可能为 LLM 编造）", len(links))
+                # 只保留站内链接
+                links = [l for l in links if l.get("type") == "internal" or l.get("url", "").startswith("/")]
+                if not links:
+                    links = None
 
         # 清理输出中的 links 标记，避免前端显示原始 JSON
         full_response = re.sub(r'<links>[\s\S]*?</links>', '', full_response).strip()
