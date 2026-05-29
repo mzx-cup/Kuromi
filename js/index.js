@@ -3952,6 +3952,36 @@ function renderThinkTimeline(logs) {
     return `<div class="think-log-timeline">${items}</div>`;
 }
 
+function renderMemoryBanner(memoryRefs) {
+    if (!memoryRefs || memoryRefs.length === 0) return '';
+    const typeLabels = {
+        background: '📋',
+        preference: '⚙️',
+        knowledge: '📚',
+        interest: '⭐',
+        goal: '🎯',
+        emotion: '💭',
+        learning_trait: '🔍',
+        personality: '🧠',
+        interaction: '🤝',
+        fact: '📝',
+    };
+    const count = memoryRefs.length;
+    const summaryText = count === 1 ? 'AI 引用了 1 条记忆' : `AI 引用了 ${count} 条记忆`;
+    const itemsHtml = memoryRefs.map(ref => {
+        const icon = typeLabels[ref.type] || '📝';
+        const text = ref.content.length > 40 ? ref.content.substring(0, 40) + '...' : ref.content;
+        return `<div class="memory-ref-item"><span class="memory-ref-bullet">${icon}</span><span class="memory-ref-content">${escapeHtml(text)}</span></div>`;
+    }).join('');
+    return `
+        <div class="memory-banner" onclick="this.classList.toggle('is-expanded')">
+            <span class="memory-banner-text">🧠 ${summaryText}</span>
+            <span class="memory-banner-toggle"></span>
+            <div class="memory-banner-expand">${itemsHtml}</div>
+        </div>
+    `;
+}
+
 async function renderMessages() {
     const container = document.getElementById('chat-container');
     if (!container) return;
@@ -4019,6 +4049,7 @@ async function renderMessages() {
         <div class="msg-row flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}" data-msg-id="${msg._timestamp || ''}">
             <div class="max-w-[90%] flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} min-w-0">
                 ${msg.role !== 'user' ? `<span class="text-xs mb-1 ml-1 flex items-center gap-1 font-bold" style="color: var(--primary);"><i data-lucide="bot" class="w-3 h-3"></i> 智能辅导团队 ${identityBadge}${isSocratic ? '<span class="socratic-badge"><i data-lucide="help-circle" style="width:10px;height:10px;display:inline;"></i> 苏格拉底诊断</span>' : ''}${proactiveBadge}</span>` : ''}
+                ${msg.role !== 'user' && msg._memoryRefs && msg._memoryRefs.length > 0 ? renderMemoryBanner(msg._memoryRefs) : ''}
                 <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible ${isProactive ? 'msg-bubble--proactive' : ''}">
                     ${thinkBlockHtml}
                     <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
@@ -5272,6 +5303,10 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     if (event.links && event.links.length > 0 && currentAssistantIdx >= 0) {
                         messages[currentAssistantIdx]._links = event.links;
                         messages[currentAssistantIdx]._agentId = window.currentAgent?.id || currentAgent?.id || 'default';
+                    }
+                    // 存储记忆引用到消息对象
+                    if (event.memory_refs && event.memory_refs.length > 0 && currentAssistantIdx >= 0) {
+                        messages[currentAssistantIdx]._memoryRefs = event.memory_refs;
                     }
                     // Remove stream-bubble and re-render all messages to show final content
                     const container = document.getElementById('chat-container');
