@@ -28,3 +28,15 @@ class TestProfileApi:
         assert resp.status_code == 200
         data = resp.json()
         assert data["profile"]["learning_traits"] == []
+        assert data["profile"]["personality_traits"] == []
+        assert data["profile"]["goals_interests"] == []
+
+    def test_get_profile_v2_path(self, client):
+        resp = client.get("/api/v2/profile/test_user_123")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert "learning_traits" in data["profile"]
+        assert "personality_traits" in data["profile"]
+        assert "goals_interests" in data["profile"]
+        assert "last_updated" in data["profile"]

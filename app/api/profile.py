@@ -14,7 +14,7 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 
 
 @router.get("/{user_id}")
-def get_profile(user_id: str):
+async def get_profile(user_id: str):
     """获取用户的聚合画像（AI眼中的你）。"""
     try:
         from db import get_user_memories
