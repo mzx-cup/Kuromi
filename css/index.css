@@ -7448,21 +7448,21 @@ body.course-mode #course-input-section {
     pointer-events: none;
 }
 
-/* 课程生成页面永久深色主题 - 古典深邃星空书卷风 */
+/* 课程生成页面永久深色主题 */
 .openmaic-overlay {
     background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(45, 90, 61, 0.15), transparent),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(201, 168, 76, 0.08), transparent),
-        radial-gradient(ellipse 50% 50% at 20% 60%, rgba(59, 130, 246, 0.06), transparent),
-        linear-gradient(to bottom, #0a0e1a, #0d1f15);
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245, 158, 11, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6, 182, 212, 0.12), transparent),
+        radial-gradient(ellipse 50% 50% at 20% 60%, rgba(59, 130, 246, 0.1), transparent),
+        linear-gradient(to bottom, #0f172a, #0a0f1c);
 }
 
 .openmaic-overlay .openmaic-bg-decor .openmaic-orb-blue {
-    background: radial-gradient(circle, rgba(45, 90, 61, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
 }
 
 .openmaic-overlay .openmaic-bg-decor .openmaic-orb-purple {
-    background: radial-gradient(circle, rgba(201, 168, 76, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
 }
 
 /* 背景装饰 */
@@ -7486,7 +7486,7 @@ body.course-mode #course-input-section {
     left: 10%;
     width: 50rem;
     height: 50rem;
-    background: radial-gradient(circle, rgba(45, 90, 61, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
     animation-delay: 0s;
 }
 
@@ -7495,7 +7495,7 @@ body.course-mode #course-input-section {
     right: 10%;
     width: 50rem;
     height: 50rem;
-    background: radial-gradient(circle, rgba(201, 168, 76, 0.12) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, transparent 70%);
     animation-delay: 4s;
 }
 
@@ -7522,12 +7522,12 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     height: 2.5rem;
     padding: 0 1rem;
-    background: rgba(13, 31, 21, 0.6);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 9999px;
-    color: #d1d5db;
+    color: #cbd5e1;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 0.875rem;
@@ -7535,10 +7535,10 @@ body.course-mode #course-input-section {
 }
 
 .openmaic-toolbar-btn:hover {
-    background: rgba(20, 45, 30, 0.85);
-    color: #f5f0e8;
-    border-color: rgba(201, 168, 76, 0.5);
-    box-shadow: 0 4px 20px rgba(201, 168, 76, 0.2), 0 0 0 1px rgba(201, 168, 76, 0.1);
+    background: rgba(30, 41, 59, 0.85);
+    color: #f8fafc;
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.15);
     transform: translateY(-2px);
 }
 
@@ -7577,28 +7577,28 @@ body.course-mode #course-input-section {
     gap: 0.75rem;
     font-size: 2.25rem;
     font-weight: 800;
-    color: #f5f0e8;
+    color: #e2e8f0;
     margin-bottom: 0.75rem;
-    text-shadow: 0 0 40px rgba(201, 168, 76, 0.3), 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 0 40px rgba(245, 158, 11, 0.4), 0 2px 4px rgba(0,0,0,0.3);
     letter-spacing: -0.02em;
 }
 
 .openmaic-hero .openmaic-logo i {
-    color: #c9a84c;
+    color: #fbbf24;
     animation: sparkle 3s ease-in-out infinite;
-    filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.5));
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6));
 }
 
 @keyframes sparkle {
-    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 12px rgba(201, 168, 76, 0.5)); }
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6)); }
     25% { transform: scale(1.12) rotate(-3deg); opacity: 0.9; }
-    50% { transform: scale(1.05) rotate(5deg); opacity: 1; filter: drop-shadow(0 0 20px rgba(201, 168, 76, 0.8)); }
+    50% { transform: scale(1.05) rotate(5deg); opacity: 1; filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.9)); }
     75% { transform: scale(1.1) rotate(-2deg); opacity: 0.95; }
 }
 
 .openmaic-hero .openmaic-slogan {
     font-size: 1rem;
-    color: #9ca3af;
+    color: #94a3b8;
     font-weight: 500;
     letter-spacing: 0.05em;
 }
@@ -7608,7 +7608,7 @@ body.course-mode #course-input-section {
     display: block;
     width: 60px;
     height: 2px;
-    background: linear-gradient(to right, transparent, #2d5a3d, transparent);
+    background: linear-gradient(to right, transparent, #f59e0b, transparent);
     margin: 1rem auto 0;
     border-radius: 2px;
 }
@@ -7623,14 +7623,14 @@ body.course-mode #course-input-section {
 .openmaic-input-card {
     position: relative;
     width: 100%;
-    background: rgba(13, 31, 21, 0.6);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(45, 90, 61, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 1.75rem;
     box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(45, 90, 61, 0.08),
+        0 0 0 1px rgba(245, 158, 11, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 1.75rem;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -7644,16 +7644,16 @@ body.course-mode #course-input-section {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(45, 90, 61, 0.4), transparent);
+    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.4), transparent);
 }
 
 .openmaic-input-card:focus-within {
     box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(201, 168, 76, 0.3),
-        0 0 0 4px rgba(201, 168, 76, 0.1),
-        0 0 40px rgba(201, 168, 76, 0.15);
-    border-color: rgba(201, 168, 76, 0.4);
+        0 0 0 1px rgba(245, 158, 11, 0.3),
+        0 0 0 4px rgba(245, 158, 11, 0.1),
+        0 0 40px rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
     transform: translateY(-2px);
 }
 
@@ -7664,7 +7664,7 @@ body.course-mode #course-input-section {
     justify-content: space-between;
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(45, 90, 61, 0.15);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.1);
 }
 
 .openmaic-user-greeting {
@@ -7672,17 +7672,17 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(20, 40, 28, 0.6);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-user-greeting:hover {
-    background: rgba(25, 50, 35, 0.85);
-    border-color: rgba(201, 168, 76, 0.4);
-    box-shadow: 0 0 20px rgba(201, 168, 76, 0.12);
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
     transform: scale(1.02);
 }
 
@@ -7691,8 +7691,8 @@ body.course-mode #course-input-section {
     height: 2rem;
     border-radius: 50%;
     overflow: hidden;
-    background: linear-gradient(135deg, #2d5a3d, #8b7355);
-    border: 2px solid rgba(45, 90, 61, 0.3);
+    background: linear-gradient(135deg, #f59e0b, #06b6d4);
+    border: 2px solid rgba(245, 158, 11, 0.3);
 }
 
 .openmaic-avatar img {
@@ -7704,20 +7704,20 @@ body.course-mode #course-input-section {
 .openmaic-username {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #f5f0e8;
+    color: #e2e8f0;
 }
 
 /* 文本输入框 */
 .openmaic-textarea {
     width: 100%;
     padding: 0.75rem;
-    background: rgba(10, 20, 14, 0.4);
-    border: 1px solid rgba(45, 90, 61, 0.15);
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(245, 158, 11, 0.1);
     border-radius: 1rem;
     font-size: 0.9375rem;
     line-height: 1.7;
     font-family: inherit;
-    color: #f5f0e8;
+    color: #f1f5f9;
     resize: none;
     outline: none;
     min-height: 8rem;
@@ -7726,9 +7726,9 @@ body.course-mode #course-input-section {
 }
 
 .openmaic-textarea:focus {
-    background: rgba(10, 20, 14, 0.6);
-    border-color: rgba(201, 168, 76, 0.3);
-    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.1);
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
 }
 
 .openmaic-textarea::placeholder {
@@ -7758,22 +7758,22 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(45, 90, 61, 0.15);
-    border: 1px solid rgba(45, 90, 61, 0.3);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
     border-radius: 9999px;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #c9a84c;
+    color: #fde68a;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-media-btn:hover {
-    background: rgba(45, 90, 61, 0.25);
-    border-color: rgba(201, 168, 76, 0.5);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fef3c7;
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(201, 168, 76, 0.15);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
 }
 
 /* 工具按钮 */
@@ -7783,27 +7783,27 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: rgba(20, 40, 28, 0.6);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: 9999px;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-tool-btn:hover {
-    background: rgba(201, 168, 76, 0.12);
-    border-color: rgba(201, 168, 76, 0.4);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fef3c7;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(201, 168, 76, 0.15);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
 /* 分隔线 */
 .openmaic-toolbar-divider {
     width: 1px;
     height: 1.5rem;
-    background: rgba(45, 90, 61, 0.2);
+    background: rgba(245, 158, 11, 0.15);
     margin: 0 0.25rem;
 }
 
@@ -7813,28 +7813,28 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(20, 40, 28, 0.5);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-pill-toggle:hover {
-    background: rgba(45, 90, 61, 0.15);
-    border-color: rgba(45, 90, 61, 0.35);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
     transform: translateY(-1px);
 }
 
 .openmaic-pill-toggle.active {
-    background: #2d5a3d;
-    border: 2px solid rgba(45, 90, 61, 0.6);
-    color: #f5f0e8;
-    box-shadow: 0 0 0 4px rgba(45, 90, 61, 0.2), 0 4px 20px rgba(45, 90, 61, 0.3);
+    background: rgba(245, 158, 11, 0.2);
+    border: 2px solid rgba(245, 158, 11, 0.5);
+    color: #fffbeb;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15), 0 4px 20px rgba(245, 158, 11, 0.3);
     transform: scale(1.05);
 }
 
@@ -7854,19 +7854,19 @@ body.course-mode #course-input-section {
 .openmaic-pill-toggle[data-feature="pdf"].active i,
 .openmaic-pill-toggle[data-feature="pdf"].active svg {
     animation: pdf-shake 0.8s ease-in-out infinite;
-    stroke: #c9a84c !important;
+    stroke: #fbbf24 !important;
 }
 
 /* 深度交互图标 - 旋转缩放动画 */
 .openmaic-pill-toggle[data-feature="interactive"].active i,
 .openmaic-pill-toggle[data-feature="interactive"].active svg {
     animation: interactive-spin 1.5s linear infinite;
-    stroke: #c9a84c !important;
+    stroke: #22d3ee !important;
 }
 
 /* 深度交互按钮选中时的呼吸边框 */
 .openmaic-pill-toggle[data-feature="interactive"].active {
-    border-color: #c9a84c;
+    border-color: #22d3ee;
     animation: breathing-glow 2s ease-in-out infinite;
 }
 
@@ -7911,10 +7911,10 @@ body.course-mode #course-input-section {
 
 @keyframes breathing-glow {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4), 0 4px 16px rgba(201, 168, 76, 0.2);
+        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4), 0 4px 16px rgba(34, 211, 238, 0.2);
     }
     50% {
-        box-shadow: 0 0 0 6px rgba(201, 168, 76, 0), 0 4px 20px rgba(201, 168, 76, 0.3);
+        box-shadow: 0 0 0 6px rgba(34, 211, 238, 0), 0 4px 20px rgba(34, 211, 238, 0.3);
     }
 }
 
@@ -7924,19 +7924,19 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #8b7355 0%, #c9a84c 50%, #b8956a 100%);
+    background: linear-gradient(135deg, #d97706 0%, #fbbf24 50%, #f59e0b 100%);
     background-size: 200% 200%;
     border: none;
     border-radius: 1rem;
     font-size: 0.9375rem;
     font-weight: 700;
-    color: #0a0e1a;
+    color: white;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow:
-        0 4px 16px rgba(139, 115, 85, 0.35),
-        0 0 0 1px rgba(201, 168, 76, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        0 4px 16px rgba(217, 119, 6, 0.4),
+        0 0 0 1px rgba(245, 158, 11, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
     white-space: nowrap;
     position: relative;
     overflow: hidden;
@@ -7956,9 +7956,9 @@ body.course-mode #course-input-section {
 .openmaic-enter-btn:hover {
     transform: translateY(-3px);
     box-shadow:
-        0 8px 30px rgba(139, 115, 85, 0.45),
-        0 0 0 1px rgba(201, 168, 76, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 8px 30px rgba(217, 119, 6, 0.5),
+        0 0 0 1px rgba(245, 158, 11, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
     background-position: 100% 0;
 }
 
@@ -7968,7 +7968,7 @@ body.course-mode #course-input-section {
 
 .openmaic-enter-btn:active {
     transform: translateY(-1px) scale(0.97);
-    box-shadow: 0 2px 12px rgba(139, 115, 85, 0.35);
+    box-shadow: 0 2px 12px rgba(217, 119, 6, 0.4);
 }
 
 /* 语音输入按钮 */
@@ -7978,27 +7978,27 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: rgba(20, 40, 28, 0.6);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 9999px;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
 }
 
 .openmaic-voice-btn:hover {
-    background: rgba(201, 168, 76, 0.12);
-    border-color: rgba(201, 168, 76, 0.4);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fef3c7;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(201, 168, 76, 0.15);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
 .openmaic-voice-btn.recording {
-    background: rgba(201, 168, 76, 0.2);
-    border-color: #c9a84c;
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.25);
+    border-color: #f59e0b;
+    color: #fffbeb;
     animation: voice-pulse 2s ease-in-out infinite;
 }
 
@@ -8006,7 +8006,7 @@ body.course-mode #course-input-section {
     content: '';
     position: absolute;
     inset: -4px;
-    border: 2px solid #c9a84c;
+    border: 2px solid #f59e0b;
     border-radius: 9999px;
     opacity: 0.4;
     animation: voice-ring 2s ease-in-out infinite;
@@ -8049,12 +8049,12 @@ body.course-mode #course-input-section {
 /* 媒体设置弹窗 - 通过Portal渲染到body，深色毛玻璃风格 */
 .openmaic-media-popup {
     width: 320px;
-    background: rgba(13, 31, 21, 0.95);
+    background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(45, 90, 61, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 1rem;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(45, 90, 61, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(245, 158, 11, 0.1);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -8157,7 +8157,7 @@ body.course-mode #course-input-section {
 }
 
 .media-option .toggle-switch input:checked + .toggle-slider {
-    background: #c9a84c;
+    background: #f59e0b;
 }
 
 .media-option .toggle-switch input:checked + .toggle-slider::before {
@@ -8178,23 +8178,23 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.25rem;
     height: 2.25rem;
-    background: rgba(45, 90, 61, 0.2);
+    background: rgba(245, 158, 11, 0.15);
     border-radius: 0.5rem;
     flex-shrink: 0;
 }
 
 .media-option-icon i,
 .media-option-icon svg {
-    color: #c9a84c;
+    color: #fbbf24;
 }
 
 .media-option-icon.video {
-    background: rgba(45, 90, 61, 0.2);
+    background: rgba(56, 189, 248, 0.15);
 }
 
 .media-option-icon.video i,
 .media-option-icon.video svg {
-    color: #8fbc8f;
+    color: #38bdf8;
 }
 
 .media-option-text {
@@ -8223,21 +8223,21 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.625rem 0.75rem;
-    background: rgba(45, 90, 61, 0.1);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.12);
     border-radius: 0.5rem;
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: #94a3b8;
 }
 
 .media-provider-info i,
 .media-provider-info svg {
-    color: #c9a84c;
+    color: #fbbf24;
     flex-shrink: 0;
 }
 
 .media-provider-info strong {
-    color: #c9a84c;
+    color: #fbbf24;
     font-weight: 600;
 }
 
@@ -8298,11 +8298,11 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.625rem 0.875rem;
-    background: rgba(45, 90, 61, 0.12);
-    border: 1px solid rgba(45, 90, 61, 0.25);
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 0.875rem;
     font-size: 0.75rem;
-    color: #c9a84c;
+    color: #fde68a;
     animation: attachment-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     backdrop-filter: blur(8px);
 }
@@ -8320,7 +8320,7 @@ body.course-mode #course-input-section {
 
 .attachment-item i {
     font-size: 0.875rem;
-    color: #c9a84c;
+    color: #fbbf24;
 }
 
 .attachment-remove {
@@ -8332,15 +8332,15 @@ body.course-mode #course-input-section {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: #c9a84c;
+    color: #fbbf24;
     cursor: pointer;
     transition: all 0.2s ease;
     margin-left: 0.375rem;
 }
 
 .attachment-remove:hover {
-    background: rgba(201, 168, 76, 0.2);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.2);
+    color: #c7d2fe;
     transform: scale(1.1);
 }
 
@@ -8351,14 +8351,14 @@ body.course-mode #course-input-section {
     left: 0;
     right: 0;
     height: 3px;
-    background: rgba(45, 90, 61, 0.2);
+    background: rgba(245, 158, 11, 0.15);
     border-radius: 0 0 0.75rem 0.75rem;
     overflow: hidden;
 }
 
 .attachment-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #2d5a3d, #c9a84c);
+    background: linear-gradient(90deg, #d97706, #f59e0b);
     width: 0%;
     transition: width 0.3s ease;
 }
@@ -8376,12 +8376,12 @@ body.course-mode #course-input-section {
     min-width: 1.125rem;
     height: 1.125rem;
     padding: 0 0.375rem;
-    background: linear-gradient(135deg, #8b7355, #c9a84c);
-    color: #0a0e1a;
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    color: white;
     border-radius: 9999px;
     font-size: 0.625rem;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(139, 115, 85, 0.25);
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
 }
 
 /* 最近课堂区域 - 紧凑样式 */
@@ -8401,7 +8401,7 @@ body.course-mode #course-input-section {
 .openmaic-recent-line {
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(45, 90, 61, 0.3), transparent);
+    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.2), transparent);
 }
 
 .openmaic-recent-btn {
@@ -8409,25 +8409,25 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(20, 40, 28, 0.4);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: 9999px;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-recent-btn:hover {
-    background: rgba(201, 168, 76, 0.1);
-    border-color: rgba(201, 168, 76, 0.3);
-    color: #f5f0e8;
-    box-shadow: 0 0 20px rgba(201, 168, 76, 0.1);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fef3c7;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
 }
 
 .openmaic-recent-btn i {
-    color: #c9a84c;
+    color: #f59e0b;
 }
 
 .openmaic-chevron {
@@ -8441,11 +8441,11 @@ body.course-mode #course-input-section {
 .openmaic-recent-count {
     font-size: 0.6875rem;
     padding: 0.125rem 0.5rem;
-    background: linear-gradient(135deg, #8b7355, #c9a84c);
-    color: #0a0e1a;
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    color: white;
     border-radius: 9999px;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(139, 115, 85, 0.25);
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
 }
 
 .openmaic-import-btn {
@@ -8453,21 +8453,21 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(20, 40, 28, 0.4);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #6b7280;
+    color: #64748b;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-import-btn:hover {
-    color: #f5f0e8;
-    background: rgba(201, 168, 76, 0.1);
-    border-color: rgba(201, 168, 76, 0.3);
-    box-shadow: 0 0 16px rgba(201, 168, 76, 0.1);
+    color: #fef3c7;
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.1);
 }
 
 /* 最近课堂内容区域 */
@@ -8493,8 +8493,8 @@ body.course-mode #course-input-section {
 
 /* 课程卡片 - 紧凑 */
 .openmaic-course-card {
-    background: rgba(13, 31, 21, 0.5);
-    border: 1px solid rgba(45, 90, 61, 0.2);
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: 1rem;
     overflow: hidden;
     cursor: pointer;
@@ -8507,14 +8507,14 @@ body.course-mode #course-input-section {
     transform: translateY(-5px) scale(1.02);
     box-shadow:
         0 16px 40px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(201, 168, 76, 0.15),
-        0 0 30px rgba(201, 168, 76, 0.08);
-    border-color: rgba(201, 168, 76, 0.3);
+        0 0 0 1px rgba(245, 158, 11, 0.2),
+        0 0 30px rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
 }
 
 .openmaic-card-thumbnail {
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, #2d5a3d 0%, #4a7c59 50%, #8b7355 100%);
+    background: linear-gradient(135deg, #d97706 0%, #fbbf24 50%, #f59e0b 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -8526,7 +8526,7 @@ body.course-mode #course-input-section {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(45, 90, 61, 0.3), transparent);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), transparent);
 }
 
 .openmaic-card-thumbnail i {
@@ -8539,7 +8539,7 @@ body.course-mode #course-input-section {
 .openmaic-card-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(10, 14, 26, 0.6) 0%, transparent 60%);
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.6) 0%, transparent 60%);
     z-index: 1;
 }
 
@@ -8566,11 +8566,11 @@ body.course-mode #course-input-section {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(10, 14, 26, 0.6);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(201, 168, 76, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 50%;
-    color: #f5f0e8;
+    color: #fef3c7;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -8604,17 +8604,17 @@ body.course-mode #course-input-section {
 
 .openmaic-card-meta span {
     padding: 0.125rem 0.5rem;
-    background: rgba(45, 90, 61, 0.2);
-    color: #c9a84c;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fde68a;
     border-radius: 9999px;
     font-weight: 600;
-    border: 1px solid rgba(45, 90, 61, 0.25);
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .openmaic-card-title {
     font-size: 0.875rem;
     font-weight: 700;
-    color: #f5f0e8;
+    color: #e2e8f0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -8626,7 +8626,7 @@ body.course-mode #course-input-section {
     z-index: 10;
     text-align: center;
     font-size: 0.75rem;
-    color: #4b5563;
+    color: #475569;
     padding: 2.5rem 0 1.5rem;
     letter-spacing: 0.05em;
 }
@@ -8636,7 +8636,7 @@ body.course-mode #course-input-section {
     display: block;
     width: 120px;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(45, 90, 61, 0.4), transparent);
+    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.3), transparent);
     margin: 0 auto 1rem;
 }
 
@@ -8786,7 +8786,7 @@ body.openmaic-mode .main-glass-surface {
     position: absolute;
     width: 4px;
     height: 4px;
-    background: rgba(201, 168, 76, 0.25);
+    background: rgba(245, 158, 11, 0.3);
     border-radius: 50%;
     animation: particle-float linear infinite;
 }
@@ -8820,7 +8820,7 @@ body.openmaic-mode .main-glass-surface {
     left: 20%;
     right: 20%;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(201, 168, 76, 0.5), transparent);
+    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.5), transparent);
     opacity: 0.5;
     transition: opacity 0.3s ease;
 }
@@ -8846,7 +8846,7 @@ body.openmaic-mode .main-glass-surface {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(45, 90, 61, 0.1), transparent, rgba(201, 168, 76, 0.08));
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent, rgba(6, 182, 212, 0.1));
     z-index: 1;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -8883,27 +8883,27 @@ body.openmaic-mode .main-glass-surface {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    background: rgba(20, 40, 28, 0.7);
-    border: 1px solid rgba(45, 90, 61, 0.25);
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(245, 158, 11, 0.2);
     border-radius: 1.5rem;
     padding: 0.45rem 0.875rem;
     font-size: 0.75rem;
     font-weight: 500;
-    color: #f5f0e8;
+    color: #e2e8f0;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
 }
 
 .custom-select-trigger:hover {
-    border-color: rgba(201, 168, 76, 0.5);
-    background: rgba(25, 50, 35, 0.9);
-    box-shadow: 0 0 20px rgba(201, 168, 76, 0.12);
+    border-color: rgba(245, 158, 11, 0.5);
+    background: rgba(30, 41, 59, 0.9);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
 }
 
 .custom-select.open .custom-select-trigger {
-    border-color: #c9a84c;
-    box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
 }
@@ -8911,7 +8911,7 @@ body.openmaic-mode .main-glass-surface {
 .custom-select-arrow {
     display: flex;
     align-items: center;
-    color: #c9a84c;
+    color: #fbbf24;
     transition: transform 0.3s ease;
 }
 
@@ -8924,8 +8924,8 @@ body.openmaic-mode .main-glass-surface {
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(10, 14, 26, 0.98);
-    border: 1px solid rgba(45, 90, 61, 0.3);
+    background: rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(245, 158, 11, 0.3);
     border-top: none;
     border-bottom-left-radius: 1rem;
     border-bottom-right-radius: 1rem;
@@ -8935,7 +8935,7 @@ body.openmaic-mode .main-glass-surface {
     visibility: hidden;
     transform: translateY(-8px);
     transition: all 0.25s ease;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(45, 90, 61, 0.1);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(245, 158, 11, 0.1);
     backdrop-filter: blur(24px);
 }
 
@@ -8948,19 +8948,19 @@ body.openmaic-mode .main-glass-surface {
 .custom-select-option {
     padding: 0.625rem 0.875rem;
     font-size: 0.75rem;
-    color: #9ca3af;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .custom-select-option:hover {
-    background: rgba(45, 90, 61, 0.15);
-    color: #f5f0e8;
+    background: rgba(245, 158, 11, 0.12);
+    color: #e2e8f0;
 }
 
 .custom-select-option.active {
-    background: rgba(201, 168, 76, 0.12);
-    color: #c9a84c;
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
     font-weight: 600;
 }
 
@@ -9004,8 +9004,8 @@ body.openmaic-mode .main-glass-surface {
     position: absolute;
     top: 0.5rem;
     left: 0.5rem;
-    background: rgba(45, 90, 61, 0.9);
-    color: #f5f0e8;
+    background: rgba(6,182,212,0.9);
+    color: white;
     padding: 0.15rem 0.5rem;
     border-radius: 2rem;
     font-size: 0.625rem;
@@ -9400,7 +9400,7 @@ body.openmaic-mode .main-glass-surface {
     display: flex;
     justify-content: center;
     margin: 0.5rem 0 1.25rem;
-    color: #c9a84c;
+    color: #f59e0b;
 }
 
 .openmaic-delete-warning i {
@@ -9464,15 +9464,15 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-btn-primary {
-    background: linear-gradient(135deg, #8b7355 0%, #c9a84c 100%);
-    color: #0a0e1a;
+    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    color: #ffffff;
     border-color: transparent;
-    box-shadow: 0 2px 12px rgba(139, 115, 85, 0.25);
+    box-shadow: 0 2px 12px rgba(217, 119, 6, 0.3);
     font-weight: 600;
 }
 
 .openmaic-btn-primary:hover {
-    box-shadow: 0 4px 20px rgba(139, 115, 85, 0.35);
+    box-shadow: 0 4px 20px rgba(217, 119, 6, 0.4);
     transform: translateY(-2px);
     filter: brightness(1.1);
 }
@@ -9650,7 +9650,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-option-icon {
-    background: rgba(45, 90, 61, 0.1);
+    background: rgba(217, 119, 6, 0.1);
 }
 
 .openmaic-overlay.light-theme .media-option-icon i,
@@ -9676,8 +9676,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-provider-info {
-    background: rgba(45, 90, 61, 0.06);
-    border-color: rgba(45, 90, 61, 0.12);
+    background: rgba(217, 119, 6, 0.06);
+    border-color: rgba(217, 119, 6, 0.12);
     color: #64748b;
 }
 
@@ -9693,8 +9693,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .attachment-item {
-    background: rgba(45, 90, 61, 0.1);
-    border-color: rgba(45, 90, 61, 0.2);
+    background: rgba(217, 119, 6, 0.1);
+    border-color: rgba(217, 119, 6, 0.2);
 }
 
 .openmaic-overlay.light-theme .openmaic-course-card {
@@ -9747,8 +9747,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay:not(.light-theme) .attachment-item {
-    background: rgba(45, 90, 61, 0.2);
-    border-color: rgba(45, 90, 61, 0.3);
+    background: rgba(217, 119, 6, 0.2);
+    border-color: rgba(217, 119, 6, 0.3);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-course-card {
