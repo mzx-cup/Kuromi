@@ -1,0 +1,97 @@
+/* ============================================================
+   Animations — 全局通用动效库
+   用途：为组件提供一致的入场、交互动效。
+   用法：在元素上添加 class="fade-in" 或 style="animation: fade-in 0.3s ease"
+   ============================================================ */
+
+/* ---------- 淡入 ---------- */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.fade-in { animation: fade-in 0.3s var(--ease-out) forwards; }
+
+/* ---------- 淡入 + 上滑 ---------- */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slide-up 0.35s var(--ease-out) forwards; }
+
+/* ---------- 淡入 + 缩放 ---------- */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.scale-in { animation: scale-in 0.25s var(--ease-out) forwards; }
+
+/* ---------- 微光扫过（用于骨架屏/加载） ---------- */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--surface-hover) 25%, var(--surface-card) 50%, var(--surface-hover) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* ---------- 脉冲（用于通知/强调） ---------- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+.pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* ---------- 旋转 ---------- */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin { animation: spin 1s linear infinite; }
+
+/* ---------- 弹跳（用于成功反馈） ---------- */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.bounce { animation: bounce 0.4s var(--ease-out); }
+
+/* ---------- 通用过渡类 ---------- */
+.transition-all {
+  transition: all var(--transition-base);
+}
+.transition-transform {
+  transition: transform var(--transition-base);
+}
+.transition-opacity {
+  transition: opacity var(--transition-base);
+}
+.transition-colors {
+  transition: color var(--transition-fast),
+              background-color var(--transition-fast),
+              border-color var(--transition-fast);
+}
+
+/* ---------- Hover 微动效 ---------- */
+.hover-lift {
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.hover-scale {
+  transition: transform var(--transition-base);
+}
+.hover-scale:hover {
+  transform: scale(1.03);
+}
+
+.hover-glow {
+  transition: box-shadow var(--transition-base);
+}
+.hover-glow:hover {
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}

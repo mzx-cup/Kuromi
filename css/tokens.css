@@ -1,0 +1,208 @@
+/* ============================================================
+   Design Tokens — 全局设计令牌
+   用途：让所有页面共享同一套颜色、间距、阴影、圆角系统。
+   说明：从 index.css 提取的精简变量层，不包含任何具体样式规则。
+         已引入 index.css 的页面无需重复引入此文件。
+   ============================================================ */
+
+/* ============================================================
+   LAYER 1 — 原始令牌（按主题）
+   ============================================================ */
+
+/* ---- warm-morning  日出晨光 (默认亮色) ---- */
+:root, [data-theme="warm-morning"] {
+    --_brand-h: 42;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 58%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 15;           --_danger-c: 0.22;      --_danger-l: 52%;
+    --_info-h: 250;            --_info-c: 0.15;        --_info-l: 56%;
+    --_neutral-h: 50;          --_neutral-c: 0.015;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+[data-theme="forest-light"] {
+    --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
+    --_success-h: 152;         --_success-c: 0.15;     --_success-l: 50%;
+    --_warning-h: 56;          --_warning-c: 0.16;     --_warning-l: 62%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 48%;
+    --_info-h: 245;            --_info-c: 0.14;        --_info-l: 54%;
+    --_neutral-h: 135;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+}
+
+[data-theme="study-night"] {
+    --_brand-h: 40;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_success-h: 148;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 50;          --_warning-c: 0.16;     --_warning-l: 68%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 248;            --_info-c: 0.14;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+
+[data-theme="starry-night"] {
+    --_brand-h: 52;            --_brand-c: 0.17;       --_brand-l: 72%;
+    --_success-h: 150;         --_success-c: 0.13;     --_success-l: 60%;
+    --_warning-h: 46;          --_warning-c: 0.15;     --_warning-l: 70%;
+    --_danger-h: 10;           --_danger-c: 0.18;      --_danger-l: 56%;
+    --_info-h: 260;            --_info-c: 0.16;        --_info-l: 66%;
+    --_neutral-h: 240;         --_neutral-c: 0.02;
+    --_shadow-strength: 0.33;  --_surface-saturation: 0.03;
+    --_color-scheme: dark;
+}
+
+[data-theme="neon-cyber"] {
+    --_brand-h: 195;           --_brand-c: 0.26;       --_brand-l: 62%;
+    --_success-h: 160;         --_success-c: 0.22;     --_success-l: 60%;
+    --_warning-h: 45;          --_warning-c: 0.24;     --_warning-l: 65%;
+    --_danger-h: 0;            --_danger-c: 0.28;      --_danger-l: 58%;
+    --_info-h: 210;            --_info-c: 0.24;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.04;
+    --_shadow-strength: 0.55;  --_surface-saturation: 0.08;
+    --_color-scheme: dark;
+}
+
+[data-theme="pink-dark"] {
+    --_brand-h: 78;            --_brand-c: 0.17;       --_brand-l: 72%;
+    --_success-h: 155;         --_success-c: 0.16;     --_success-l: 65%;
+    --_warning-h: 75;          --_warning-c: 0.18;     --_warning-l: 75%;
+    --_danger-h: 25;           --_danger-c: 0.20;      --_danger-l: 60%;
+    --_info-h: 210;            --_info-c: 0.15;        --_info-l: 75%;
+    --_neutral-h: 280;         --_neutral-c: 0.02;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
+    --_color-scheme: dark;
+}
+
+
+/* ============================================================
+   LAYER 2 — 生成色阶（全局计算）
+   ============================================================ */
+
+:root {
+    /* 品牌色阶 */
+    --brand-50:  color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 92%);
+    --brand-100: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 80%);
+    --brand-200: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 62%);
+    --brand-300: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 38%);
+    --brand-400: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 14%);
+    --brand-500: oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h));
+    --brand-600: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 18%);
+    --brand-700: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 40%);
+    --brand-800: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 62%);
+    --brand-900: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 82%);
+
+    /* 语义色 */
+    --success:  oklch(var(--_success-l) var(--_success-c) var(--_success-h));
+    --warning:  oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h));
+    --danger:   oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h));
+    --info:     oklch(var(--_info-l) var(--_info-c) var(--_info-h));
+
+    --success-bg: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 88%);
+    --warning-bg: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 88%);
+    --danger-bg:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 88%);
+    --info-bg:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 88%);
+
+    --success-border: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 75%);
+    --warning-border: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 75%);
+    --danger-border:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 75%);
+    --info-border:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 75%);
+
+    /* 中性色阶 */
+    --neutral-50:  oklch(96% var(--_neutral-c) var(--_neutral-h));
+    --neutral-100: oklch(90% var(--_neutral-c) var(--_neutral-h));
+    --neutral-200: oklch(82% var(--_neutral-c) var(--_neutral-h));
+    --neutral-300: oklch(72% var(--_neutral-c) var(--_neutral-h));
+    --neutral-400: oklch(58% var(--_neutral-c) var(--_neutral-h));
+    --neutral-500: oklch(48% var(--_neutral-c) var(--_neutral-h));
+    --neutral-600: oklch(38% var(--_neutral-c) var(--_neutral-h));
+    --neutral-700: oklch(28% var(--_neutral-c) var(--_neutral-h));
+    --neutral-800: oklch(20% var(--_neutral-c) var(--_neutral-h));
+    --neutral-900: oklch(13% var(--_neutral-c) var(--_neutral-h));
+
+    /* 表面色 */
+    --surface-page:    color-mix(in oklch, var(--neutral-50), oklch(100% 0 none)  calc(var(--_surface-saturation) * 100%));
+    --surface-card:    color-mix(in oklch, var(--neutral-100), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
+    --surface-hover:   color-mix(in oklch, var(--neutral-200), oklch(100% 0 none) calc(var(--_surface-saturation) * 80%));
+    --surface-pressed: color-mix(in oklch, var(--neutral-300), oklch(100% 0 none) calc(var(--_surface-saturation) * 60%));
+    --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 40%);
+    --surface-nav:     color-mix(in oklch, var(--neutral-50), transparent 15%);
+
+    /* 毛玻璃表面 */
+    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 20%);
+    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 15%);
+    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 40%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 30%);
+
+    /* 品牌强调背景/边框 */
+    --accent-bg:     color-mix(in oklch, var(--brand-500), transparent 88%);
+    --accent-border: color-mix(in oklch, var(--brand-500), transparent 78%);
+}
+
+
+/* ============================================================
+   LAYER 3 — 语义令牌（组件消费的唯一接口）
+   ============================================================ */
+
+:root {
+    /* 阴影 */
+    --shadow-xs: 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 150%)));
+    --shadow-sm: 0 1px 3px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 140%))),
+                 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 100%)));
+    --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
+    --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
+
+    /* 文字色 */
+    --text-heading:     var(--neutral-900);
+    --text-body:        var(--neutral-700);
+    --text-muted:       var(--neutral-500);
+    --text-placeholder: var(--neutral-400);
+    --text-link:        var(--brand-600);
+    --text-on-brand:    #ffffff;
+
+    /* 圆角 */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-full: 9999px;
+
+    /* 间距 */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+
+    /* 缓动 */
+    --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-standard: 0.15s ease;
+
+    /* 字体 */
+    --text-xs: 11px;
+    --text-sm: 13px;
+    --text-base: 15px;
+    --text-lg: 18px;
+    --text-xl: 22px;
+    --text-2xl: 28px;
+    --text-3xl: 36px;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-bold: 700;
+
+    /* 过渡 */
+    --transition-fast:   var(--ease-standard);
+    --transition-base:   0.25s var(--ease-out);
+    --transition-slow:   0.4s var(--ease-out);
+    --transition-spring: 0.3s var(--ease-out);
+
+    /* 便捷别名 */
+    --bg-card:         var(--surface-card);
+    --border-color:    var(--neutral-200);
+    --hover-bg:        var(--surface-hover);
+    --input-bg:        var(--neutral-100);
+    --btn-secondary-bg:    var(--neutral-100);
+    --btn-secondary-hover: var(--neutral-200);
+}
