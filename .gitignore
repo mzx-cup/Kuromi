@@ -57,4 +57,5 @@ storage/task_storage/
 # ==========================================
 .edge-*/
 chrome-profile/
-user-data-dir/
+user-data-dir/=0.*
+*.backup
