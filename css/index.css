@@ -78,6 +78,19 @@
     --theme-name: "霓虹赛博";
 }
 
+/* ---- pink-dark  暗夜暖黄 ---- */
+[data-theme="pink-dark"] {
+    --_brand-h: 78;            --_brand-c: 0.17;       --_brand-l: 72%;
+    --_success-h: 155;         --_success-c: 0.16;     --_success-l: 65%;
+    --_warning-h: 75;          --_warning-c: 0.18;     --_warning-l: 75%;
+    --_danger-h: 25;           --_danger-c: 0.20;      --_danger-l: 60%;
+    --_info-h: 210;            --_info-c: 0.15;        --_info-l: 75%;
+    --_neutral-h: 280;         --_neutral-c: 0.02;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
+    --_color-scheme: dark;
+    --theme-name: "暗夜暖黄";
+}
+
 
 /* ============================================================
    LAYER 2 — GENERATED SCALES (global, computed from primitives via color-mix)
@@ -263,7 +276,8 @@
  *   Dark themes invert the mapping: surfaces use the dark end,
  *   text uses the light end. neon-cyber handles this in its own block. */
 [data-theme="study-night"],
-[data-theme="starry-night"] {
+[data-theme="starry-night"],
+[data-theme="pink-dark"] {
     /* Text: light end of neutral scale → white-ish on dark bg */
     --text-heading:     var(--neutral-50);
     --text-body:        var(--neutral-200);
