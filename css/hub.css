@@ -7636,21 +7636,11 @@ img, svg {
     padding-top: 2px;
 }
 
-#section-flow-resonance {
-    display: none !important;
-}
-
 .mothership-card,
 .holo-incubator,
 .overview-section,
 .study-hall-card {
     scroll-margin-top: 96px;
-}
-
-@media (max-width: 1280px) {
-    .nav-flow-widget {
-        display: none;
-    }
 }
 
 @media (max-width: 1023px) {
@@ -7968,7 +7958,7 @@ img, svg {
 }
 
 #section-flow-resonance {
-    display: none !important;
+    display: block;
 }
 
 .module-section:hover {

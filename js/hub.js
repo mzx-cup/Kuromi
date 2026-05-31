@@ -3550,3 +3550,131 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         }
     });
 });
+
+// ============================================
+
+// ============================================
+// Hub Perfect 首页交互
+// ============================================
+
+document.addEventListener('DOMContentLoaded', () => {
+    initMiniStatsAnimation();
+    initContentCardProgress();
+});
+
+// 1. 快速统计数字动画
+function initMiniStatsAnimation() {
+    const statValues = document.querySelectorAll('.mini-stat-val');
+    if (!statValues.length) return;
+
+    const animateValue = (el, target, duration = 1200) => {
+        const isPercent = target.includes('%');
+        const hasUnit = /[a-zA-Z]/.test(target);
+        const numericTarget = parseFloat(target.replace(/[^0-9.]/g, ''));
+        const suffix = target.replace(/[0-9.]/g, '');
+        const startTime = performance.now();
+
+        const step = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = numericTarget * eased;
+
+            if (hasUnit && target.includes('.')) {
+                el.textContent = current.toFixed(1) + suffix;
+            } else if (isPercent || Number.isInteger(numericTarget)) {
+                el.textContent = Math.round(current) + suffix;
+            } else {
+                el.textContent = current.toFixed(1) + suffix;
+            }
+
+            if (progress < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const target = el.textContent;
+                animateValue(el, target);
+                observer.unobserve(el);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    statValues.forEach(el => observer.observe(el));
+}
+
+// 2. 内容卡片进度条动画
+function initContentCardProgress() {
+    const progressFills = document.querySelectorAll('.content-card-progress-fill');
+    if (!progressFills.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const fill = entry.target;
+                const width = fill.style.width;
+                fill.style.width = '0%';
+                fill.offsetHeight;
+                setTimeout(() => { fill.style.width = width; }, 200);
+                observer.unobserve(fill);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    progressFills.forEach(fill => observer.observe(fill));
+}
+
+// 3. 功能卡片点击波纹效果
+document.addEventListener('click', (e) => {
+    const card = e.target.closest('.func-card');
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const ripple = document.createElement('span');
+    ripple.style.cssText = `
+        position: absolute; width: 20px; height: 20px;
+        background: rgba(212,128,42,0.15); border-radius: 50%;
+        transform: translate(-50%,-50%) scale(0); pointer-events: none;
+        animation: rippleExpand 0.5s ease-out forwards;
+        left: ${x}px; top: ${y}px;
+    `;
+    card.style.position = 'relative';
+    card.style.overflow = 'hidden';
+    card.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+});
+
+if (!document.getElementById('hub-perfect-animations')) {
+    const style = document.createElement('style');
+    style.id = 'hub-perfect-animations';
+    style.textContent = `
+        @keyframes rippleExpand {
+            to { transform: translate(-50%,-50%) scale(15); opacity: 0; }
+        }
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .func-card { animation: cardFadeIn 0.4s ease-out backwards; }
+        .func-card:nth-child(1) { animation-delay: 0s; }
+        .func-card:nth-child(2) { animation-delay: 0.04s; }
+        .func-card:nth-child(3) { animation-delay: 0.08s; }
+        .func-card:nth-child(4) { animation-delay: 0.12s; }
+        .func-card:nth-child(5) { animation-delay: 0.16s; }
+        .func-card:nth-child(6) { animation-delay: 0.20s; }
+        .func-card:nth-child(7) { animation-delay: 0.24s; }
+        .func-card:nth-child(8) { animation-delay: 0.28s; }
+        .content-card-compact { animation: cardFadeIn 0.5s ease-out backwards; }
+        .content-card-compact:nth-child(1) { animation-delay: 0.06s; }
+        .content-card-compact:nth-child(2) { animation-delay: 0.10s; }
+        .content-card-compact:nth-child(3) { animation-delay: 0.14s; }
+    `;
+    document.head.appendChild(style);
+}

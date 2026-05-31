@@ -77,19 +77,6 @@
 
             <!-- Right Section -->
             <div class="hub-nav-actions flex items-center gap-3">
-                <!-- Compact Flow Resonance Widget -->
-                <div class="nav-flow-widget" aria-label="心流共振波段">
-                    <div class="nav-flow-meta">
-                        <span class="nav-flow-dot"></span>
-                        <span class="nav-flow-label">心流</span>
-                        <strong id="nav-flow-value">94%</strong>
-                    </div>
-                    <svg class="nav-flow-wave" viewBox="0 0 180 34" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="nav-flow-gridline" d="M0 17H180"/>
-                        <path class="nav-flow-line" d="M0 18 L28 18 L36 16 L44 18 L58 18 L64 7 L70 27 L76 10 L82 26 L88 18 L112 18 L122 16 L132 18 L150 18 L156 9 L162 25 L168 18 L180 18"/>
-                    </svg>
-                </div>
-
                 <!-- Theme Settings Button (Light/Dark quick toggle + wallpaper settings) -->
                 <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -328,9 +315,254 @@
              ========================================== -->
         <main class="hub-content">
             <!-- ==========================================
-                 今日星际航线 (Daily Adaptive Route)
-                 沉浸式游戏化启动组件
+                 今日航线 Hero — 紧凑单行
                  ========================================== -->
+            <section class="hero-compact" id="daily-route">
+                <div class="hero-compact-left">
+                    <button class="hero-compact-btn" id="launch-btn" onclick="handleLaunch()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                        开启今日航线
+                    </button>
+                    <span class="hero-compact-status">点击启动 AI 规划的学习旅程</span>
+                </div>
+                <div class="hero-mini-stats">
+                    <div class="mini-stat">
+                        <div class="mini-stat-icon o">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-2.072-2.143-3.5-2.143C4.072 6.857 3 8.5 3 10.5c0 3.5 3.5 6.5 8 9.5 3.5-2.5 6-5.5 6-9.5 0-2-.5-3.5-2-5-1.5 1.5-2 3-2 5a2.5 2.5 0 002.5 2.5"/></svg>
+                        </div>
+                        <div>
+                            <div class="mini-stat-val">7</div>
+                            <div class="mini-stat-label">连续天数</div>
+                        </div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-stat-icon p">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
+                        </div>
+                        <div>
+                            <div class="mini-stat-val">12</div>
+                            <div class="mini-stat-label">进行中</div>
+                        </div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-stat-icon c">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        </div>
+                        <div>
+                            <div class="mini-stat-val">48h</div>
+                            <div class="mini-stat-label">本周时长</div>
+                        </div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-stat-icon g">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        </div>
+                        <div>
+                            <div class="mini-stat-val">78%</div>
+                            <div class="mini-stat-label">掌握度</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==========================================
+                 核心功能 — 8 张紧凑卡片
+                 ========================================== -->
+            <section id="explore-section">
+                <div class="section-head">
+                    <div class="section-head-left">
+                        <div class="section-head-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </div>
+                        <div>
+                            <div class="section-head-title">核心功能</div>
+                            <div class="section-head-sub">探索你的学习工具</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="func-grid">
+                    <a href="/index.html" class="func-card">
+                        <span class="func-card-badge hot">热门</span>
+                        <div class="func-card-icon o">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
+                        </div>
+                        <div class="func-card-title">AI 问答</div>
+                        <div class="func-card-desc">智能助手随时解答疑惑</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag o">AI驱动</span>
+                            <span class="func-card-tag p">实时</span>
+                        </div>
+                    </a>
+                    <a href="/video-player.html" class="func-card">
+                        <div class="func-card-icon p">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        </div>
+                        <div class="func-card-title">全息视界</div>
+                        <div class="func-card-desc">沉浸式视频学习体验</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag p">视频</span>
+                            <span class="func-card-tag c">沉浸</span>
+                        </div>
+                    </a>
+                    <a href="/courses.html" class="func-card">
+                        <span class="func-card-badge new">上新</span>
+                        <div class="func-card-icon c">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
+                        </div>
+                        <div class="func-card-title">课程中心</div>
+                        <div class="func-card-desc">系统化完整学习路径</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag c">系统</span>
+                            <span class="func-card-tag g">路径</span>
+                        </div>
+                    </a>
+                    <a href="/code.html" class="func-card">
+                        <div class="func-card-icon g">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </div>
+                        <div class="func-card-title">代码工坊</div>
+                        <div class="func-card-desc">在线编程即时反馈</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag g">编程</span>
+                            <span class="func-card-tag o">实战</span>
+                        </div>
+                    </a>
+                    <a href="/socratic-ai.html" class="func-card">
+                        <span class="func-card-badge beta">实验</span>
+                        <div class="func-card-icon r">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        </div>
+                        <div class="func-card-title">智脑苏格拉底</div>
+                        <div class="func-card-desc">诘问引导深度思考</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag r">思维</span>
+                            <span class="func-card-tag p">AI</span>
+                        </div>
+                    </a>
+                    <a href="/plant.html" class="func-card">
+                        <div class="func-card-icon a">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg>
+                        </div>
+                        <div class="func-card-title">我的生态</div>
+                        <div class="func-card-desc">成就可视化花园</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag a">养成</span>
+                            <span class="func-card-tag g">成就</span>
+                        </div>
+                    </a>
+                    <a href="/stellar-showcase.html" class="func-card">
+                        <div class="func-card-icon p">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                        <div class="func-card-title">星云陈列室</div>
+                        <div class="func-card-desc">学习成果展示空间</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag p">展示</span>
+                            <span class="func-card-tag o">成就</span>
+                        </div>
+                    </a>
+                    <a href="/flow-meter.html" class="func-card">
+                        <div class="func-card-icon o">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                        </div>
+                        <div class="func-card-title">心流共振仪</div>
+                        <div class="func-card-desc">专注度追踪分析</div>
+                        <div class="func-card-tags">
+                            <span class="func-card-tag o">数据</span>
+                            <span class="func-card-tag c">分析</span>
+                        </div>
+                    </a>
+                </div>
+            </section>
+
+            <!-- ==========================================
+                 热门航线 — 内容卡片
+                 ========================================== -->
+            <section id="featured-section">
+                <div class="section-head">
+                    <div class="section-head-left">
+                        <div class="section-head-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        </div>
+                        <div>
+                            <div class="section-head-title">热门航线</div>
+                            <div class="section-head-sub">星识学者们都在学</div>
+                        </div>
+                    </div>
+                    <a href="/courses.html" class="section-head-more">
+                        查看全部
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+                <div class="content-grid-compact">
+                    <a href="/courses.html" class="content-card-compact">
+                        <div class="content-card-img">
+                            <div style="background:linear-gradient(135deg,#141420,#0f2847)">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(212,128,42,0.4)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
+                            </div>
+                            <div class="content-card-img-overlay">
+                                <span class="content-card-cat course">课程</span>
+                            </div>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="content-card-title">Python 核心编程</div>
+                            <div class="content-card-desc">从零基础到进阶，系统掌握 Python 核心概念与实战技巧</div>
+                            <div class="content-card-footer">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 2.4k
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> 128
+                                <div class="content-card-progress">
+                                    <div class="content-card-progress-bar"><div class="content-card-progress-fill" style="width:65%"></div></div>
+                                    <span class="content-card-progress-text">65%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="/courses.html" class="content-card-compact">
+                        <div class="content-card-img">
+                            <div style="background:linear-gradient(135deg,#141420,#2a1a5e)">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(139,126,200,0.4)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
+                            </div>
+                            <div class="content-card-img-overlay">
+                                <span class="content-card-cat course">课程</span>
+                            </div>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="content-card-title">机器学习入门</div>
+                            <div class="content-card-desc">理解 ML 核心算法原理，动手实践经典模型训练</div>
+                            <div class="content-card-footer">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 1.8k
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> 96
+                                <div class="content-card-progress">
+                                    <div class="content-card-progress-bar"><div class="content-card-progress-fill" style="width:32%"></div></div>
+                                    <span class="content-card-progress-text">32%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="/code.html" class="content-card-compact">
+                        <div class="content-card-img">
+                            <div style="background:linear-gradient(135deg,#0f1520,#1a2535)">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="rgba(91,168,196,0.4)" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            </div>
+                            <div class="content-card-img-overlay">
+                                <span class="content-card-cat tool">工具</span>
+                            </div>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="content-card-title">LeetCode 刷题计划</div>
+                            <div class="content-card-desc">每日精选算法题，内置运行环境，效率翻倍</div>
+                            <div class="content-card-footer">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 3.2k
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> 256
+                                <div class="content-card-progress">
+                                    <div class="content-card-progress-bar"><div class="content-card-progress-fill" style="width:88%"></div></div>
+                                    <span class="content-card-progress-text">88%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </section>
             <section class="daily-route-section" id="daily-route">
                 <div class="mothership-card">
                     <!-- 微透明星空背景层 -->
@@ -344,7 +576,7 @@
                             <button class="launch-btn" id="launch-btn">
                                 <span class="launch-btn-glow"></span>
                                 <span class="launch-btn-content">
-                                    <span class="launch-icon">🚀</span>
+                                    <span class="launch-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>
                                     <span class="launch-text" id="launch-btn-text">开启今日航线</span>
                                 </span>
                             </button>
@@ -381,7 +613,7 @@
                 <div class="highlights-frame">
                 <div class="highlights-header">
                     <div class="highlights-title-row">
-                        <span class="highlights-icon">📡</span>
+                        <span class="highlights-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>
                         <h2 class="highlights-title">今日要闻</h2>
                     </div>
                     <div class="highlights-meta">
@@ -417,7 +649,7 @@
                     <div class="holo-header">
                         <div class="holo-heading">
                             <h2 class="holo-title">
-                                <span class="holo-title-icon">🌳</span>
+                                <span class="holo-title-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg></span>
                                 知识生态
                                 <span class="pending-review-badge" id="pending-review-badge" style="display: none;">0</span>
                             </h2>
@@ -812,7 +1044,7 @@
                 <!-- 概览头部 -->
                 <div class="overview-header">
                     <div class="overview-title-row">
-                        <span class="overview-icon">📊</span>
+                        <span class="overview-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></span>
                         <h2 class="overview-title">学习概览</h2>
                     </div>
                     <div class="overview-meta">
@@ -825,7 +1057,7 @@
                     <div class="hero-glow"></div>
                     <div class="hero-content">
                         <div class="hero-icon-wrapper">
-                            <span class="hero-icon">🚀</span>
+                            <span class="hero-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>
                         </div>
                         <div class="hero-info">
                             <h3 class="hero-title">今天的学习状态</h3>
@@ -1012,12 +1244,12 @@
                             <span class="compact-badge">10个</span>
                         </div>
                         <div class="tags-cloud">
-                            <span class="tag-item python">🐍 Python</span>
-                            <span class="tag-item ds">📊 数据结构</span>
-                            <span class="tag-item ml">🤖 机器学习</span>
-                            <span class="tag-item dl">🧠 深度学习</span>
-                            <span class="tag-item algo">🧮 算法</span>
-                            <span class="tag-item sys">🏗️ 系统设计</span>
+                            <span class="tag-item python">Python</span>
+                            <span class="tag-item ds">数据结构</span>
+                            <span class="tag-item ml">机器学习</span>
+                            <span class="tag-item dl">深度学习</span>
+                            <span class="tag-item algo">算法</span>
+                            <span class="tag-item sys">系统设计</span>
                         </div>
                     </div>
                 </div>
@@ -1033,7 +1265,7 @@
                     <!-- 卡片头部 -->
                     <div class="hall-header">
                         <div class="hall-title-row">
-                            <span class="hall-icon">🪐</span>
+                            <span class="hall-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M21.17 8.58a10 10 0 01-18.34 0"/></svg></span>
                             <h3 class="hall-title">星际自习大厅</h3>
                         </div>
                         <div class="online-counter">
@@ -1056,7 +1288,7 @@
                                     </div>
                                     <div class="online-indicator"></div>
                                     <div class="star-pet">
-                                        <span>🌟</span>
+                                        <span style="font-size:14px;color:var(--p-orange)">★</span>
                                     </div>
                                 </div>
                                 <div class="pod-info">
@@ -1076,7 +1308,7 @@
                                     </div>
                                     <div class="online-indicator"></div>
                                     <div class="star-pet">
-                                        <span>🐲</span>
+                                        <span style="font-size:14px;color:var(--p-cyan)">◆</span>
                                     </div>
                                 </div>
                                 <div class="pod-info">
@@ -1096,7 +1328,7 @@
                                     </div>
                                     <div class="online-indicator"></div>
                                     <div class="star-pet">
-                                        <span>🦊</span>
+                                        <span style="font-size:14px;color:var(--p-purple)">●</span>
                                     </div>
                                 </div>
                                 <div class="pod-info">
@@ -1116,7 +1348,7 @@
                                     </div>
                                     <div class="online-indicator"></div>
                                     <div class="star-pet">
-                                        <span>🐱</span>
+                                        <span style="font-size:14px;color:var(--p-rose)">▲</span>
                                     </div>
                                 </div>
                                 <div class="pod-info">
@@ -1132,7 +1364,7 @@
                     <button class="magnetic-join-btn" id="join-study-btn">
                         <span class="btn-glow"></span>
                         <span class="btn-content">
-                            <span class="btn-icon">🚀</span>
+                            <span class="btn-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></span>
                             <span class="btn-text">匹配进入自习舱</span>
                         </span>
                         <span class="btn-magnetic-area"></span>
@@ -1152,6 +1384,8 @@
     <script src="/js/data-layer.js"></script>
     <script src="/js/focus-sync.js"></script>
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/animations.css">
     <script src="/js/theme.js"></script>
     <script src="/js/hub.js?v=holo-user-redesign-20260429"></script>
 
@@ -1161,7 +1395,7 @@
         <div class="news-modal-card">
             <div class="news-modal-header">
                 <h2 class="news-modal-title">
-                    <span class="news-modal-icon">📰</span>
+                    <span class="news-modal-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg></span>
                     <span>资讯中心</span>
                 </h2>
                 <div class="news-modal-tabs" id="news-modal-tabs">
@@ -1171,7 +1405,7 @@
                     <button class="news-tab" data-category="生活">生活</button>
                     <button class="news-tab" data-category="国际形势">国际形势</button>
                 </div>
-                <button class="news-modal-close" id="news-modal-close">✕</button>
+                <button class="news-modal-close" id="news-modal-close">&times;</button>
             </div>
             <div class="news-modal-body" id="news-modal-body">
                 <div class="news-modal-loading">
