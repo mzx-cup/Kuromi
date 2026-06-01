@@ -121,42 +121,172 @@ function initFocusTracker() {
 }
 
 // ============================================
-// Data Particle Animation
+// Premium Effects System
 // ============================================
+
+// ---- Data Particle Animation (theme-responsive) ----
 function createDataParticles() {
     const bg = document.getElementById('hub-bg');
     if (!bg) return;
 
-    const particleCount = 60;
+    const particleCount = 70;
+    const hueClasses = ['particle-brand', 'particle-info', 'particle-success', 'particle-warning', 'particle-accent'];
 
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
-        particle.className = 'data-particle';
+        particle.className = `data-particle ${hueClasses[i % hueClasses.length]}`;
 
-        const size = Math.random() * 4 + 2;
+        const size = Math.random() * 5 + 2;
         const left = Math.random() * 100;
-        const duration = Math.random() * 20 + 15;
-        const delay = Math.random() * 20;
-
-        const colors = [
-            'rgba(168, 85, 247, 0.6)',
-            'rgba(59, 130, 246, 0.6)',
-            'rgba(16, 185, 129, 0.6)',
-            'rgba(249, 115, 22, 0.6)',
-            'rgba(236, 72, 153, 0.6)'
-        ];
+        const duration = Math.random() * 25 + 15;
+        const delay = Math.random() * 25;
+        const opacity = Math.random() * 0.4 + 0.2;
 
         particle.style.cssText = `
             width: ${size}px;
             height: ${size}px;
             left: ${left}%;
-            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            opacity: ${opacity};
             animation-duration: ${duration}s;
             animation-delay: -${delay}s;
         `;
 
         bg.appendChild(particle);
     }
+
+    // Also add the third ambient orb
+    const orb3 = document.createElement('div');
+    orb3.className = 'orb-3';
+    bg.appendChild(orb3);
+}
+
+// ---- Cursor Glow ----
+function initCursorGlow() {
+    const glow = document.createElement('div');
+    glow.className = 'cursor-glow';
+    glow.id = 'cursor-glow';
+    document.body.appendChild(glow);
+
+    let mouseX = -500, mouseY = -500;
+    let currentX = -500, currentY = -500;
+    let visible = false;
+
+    document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        if (!visible) {
+            visible = true;
+            glow.style.opacity = '0.6';
+        }
+    });
+
+    document.addEventListener('mouseleave', () => {
+        visible = false;
+        glow.style.opacity = '0';
+    });
+
+    document.addEventListener('mouseenter', () => {
+        visible = true;
+        glow.style.opacity = '0.6';
+    });
+
+    function animate() {
+        currentX += (mouseX - currentX) * 0.08;
+        currentY += (mouseY - currentY) * 0.08;
+        glow.style.left = currentX + 'px';
+        glow.style.top = currentY + 'px';
+        requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+}
+
+// ---- Ripple Effect on Click ----
+function initRippleEffects() {
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('button, .hub-card, .feature-card, .overview-action-card, .content-card, .launch-btn, .join-study-btn, .tag-item, .nav-item, .holo-node');
+        if (!target) return;
+
+        // Don't add ripple to cards that already have one
+        if (target.querySelector('.ripple-effect')) return;
+
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple-effect';
+
+        const rect = target.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 1.5;
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+
+        ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+        target.style.position = target.style.position || 'relative';
+        target.style.overflow = 'hidden';
+        target.appendChild(ripple);
+
+        ripple.addEventListener('animationend', () => ripple.remove());
+    });
+}
+
+// ---- Floating Dust Particles (ambient micro-particles) ----
+function initFloatingDust() {
+    const body = document.body;
+
+    setInterval(() => {
+        if (document.hidden) return;
+
+        const dust = document.createElement('div');
+        dust.className = 'float-dust';
+
+        const size = Math.random() * 3 + 1;
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * window.innerHeight + window.innerHeight * 0.3;
+        const duration = Math.random() * 3000 + 2000;
+
+        dust.style.cssText = `
+            width: ${size}px;
+            height: ${size}px;
+            left: ${x}px;
+            top: ${y}px;
+            background: var(--brand);
+            opacity: 0;
+            animation-duration: ${duration}ms;
+        `;
+
+        body.appendChild(dust);
+        dust.addEventListener('animationend', () => dust.remove());
+    }, 400);
+}
+
+// ---- Card Shimmer Sweep (periodic light sweep) ----
+function initCardShimmer() {
+    const cards = document.querySelectorAll('.hub-card, .feature-card, .content-card, .overview-action-card');
+    cards.forEach(card => {
+        card.classList.add('shimmer-enabled');
+        const shimmer = document.createElement('div');
+        shimmer.className = 'card-shimmer';
+        card.appendChild(shimmer);
+    });
+
+    // Re-apply for dynamically added cards
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.hub-card:not(.shimmer-enabled), .feature-card:not(.shimmer-enabled), .content-card:not(.shimmer-enabled)').forEach(card => {
+            card.classList.add('shimmer-enabled');
+            if (!card.querySelector('.card-shimmer')) {
+                const shimmer = document.createElement('div');
+                shimmer.className = 'card-shimmer';
+                card.appendChild(shimmer);
+            }
+        });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// ---- Initialize All Premium Effects ----
+function initPremiumEffects() {
+    createDataParticles();
+    initCursorGlow();
+    initRippleEffects();
+    initFloatingDust();
+    initCardShimmer();
 }
 
 // ============================================
@@ -3477,7 +3607,7 @@ async function silentRefreshNews() {
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     initThemeToggle();
-    createDataParticles();
+    initPremiumEffects();
     initDailyRoute();
     initStudyHall();
     animateRadialProgress();
@@ -3678,3 +3808,75 @@ if (!document.getElementById('hub-perfect-animations')) {
     `;
     document.head.appendChild(style);
 }
+
+// ============================================
+// 标签页切换 (Tab Switching)
+// ============================================
+(function() {
+    function initTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        if (!tabBtns.length || !tabPanels.length) return;
+
+        function switchTab(targetTab) {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanels.forEach(p => p.classList.remove('active'));
+
+            const btn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
+            const panel = document.getElementById(`tab-${targetTab}`);
+            if (btn) btn.classList.add('active');
+            if (panel) panel.classList.add('active');
+
+            // 更新 URL hash
+            if (window.location.hash !== `#${targetTab}`) {
+                history.replaceState(null, '', `#${targetTab}`);
+            }
+        }
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                if (tab) switchTab(tab);
+            });
+        });
+
+        // 页面加载时根据 URL hash 切换
+        const hash = window.location.hash.replace('#', '');
+        const validTabs = ['overview', 'learn', 'tools', 'data'];
+        if (hash && validTabs.includes(hash)) {
+            switchTab(hash);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTabs);
+    } else {
+        initTabs();
+    }
+})();
+
+// ============================================
+// 滚动进度条
+// ============================================
+(function() {
+    function initScrollProgress() {
+        const bar = document.getElementById('scroll-progress');
+        const main = document.querySelector('.hub-main');
+        if (!bar || !main) return;
+
+        main.addEventListener('scroll', function() {
+            const scrollTop = main.scrollTop;
+            const scrollHeight = main.scrollHeight - main.clientHeight;
+            if (scrollHeight > 0) {
+                const pct = (scrollTop / scrollHeight) * 100;
+                bar.style.width = Math.min(pct, 100) + '%';
+            }
+        }, { passive: true });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initScrollProgress);
+    } else {
+        initScrollProgress();
+    }
+})();
