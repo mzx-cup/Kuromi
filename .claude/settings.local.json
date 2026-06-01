@@ -50,7 +50,13 @@
       "Bash(tasklist)",
       "Bash(taskkill //PID 28300 //F)",
       "Bash(kill 28300)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "WebFetch(domain:winmoes.com)",
+      "Bash(bash *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:oml2d.com)"
     ]
   }
 }

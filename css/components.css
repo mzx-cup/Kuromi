@@ -867,20 +867,22 @@
   transform: translateX(-50%) scale(1);
 }
 /* ============================================================
-   九、看板娘（app-kanban）— 3D二次元立绘
-   用途：固定在页面左下角的二次元角色装饰
-   效果：呼吸浮动 + 鼠标视差3D + hover放大
+   九、看板娘（app-kanban）— Live2D 二次元角色
+   用途：固定在页面右下角的交互式 Live2D 角色
+   效果：Live2D 模型 + 对话气泡 + 交互反馈
+   fallback: 静态立绘 + 3D视差
    ============================================================ */
 
 .app-kanban {
   position: fixed;
-  bottom: -30px;
-  left: -20px;
-  z-index: 90;
+  bottom: 0;
+  right: 20px;
+  z-index: 500;
   pointer-events: none;
-  width: 320px;
-  height: 420px;
+  width: 300px;
+  height: 480px;
   user-select: none;
+  transition: transform 0.4s var(--ease-out), opacity 0.4s var(--ease-out);
 }
 
 .app-kanban-inner {
@@ -891,11 +893,26 @@
   cursor: pointer;
 }
 
+/* Live2D 画布容器 */
+.app-kanban-canvas-wrap {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 300px;
+  height: 480px;
+  pointer-events: auto;
+  z-index: 2;
+}
+.app-kanban-canvas-wrap canvas {
+  display: block;
+}
+
+/* 静态立绘（fallback） */
 .app-kanban-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: bottom left;
+  object-position: bottom right;
   filter:
     drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35))
     drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
@@ -910,7 +927,7 @@
   50% { --float-y: -10px; }
 }
 
-/* Hover：放大 + 阴影增强 + 取消3D倾斜 */
+/* Hover：放大 + 阴影增强 */
 .app-kanban-inner:hover .app-kanban-img {
   filter:
     drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45))
@@ -920,9 +937,9 @@
 /* 对话气泡 */
 .app-kanban-bubble {
   position: absolute;
-  top: 60px;
-  left: 180px;
-  max-width: 180px;
+  top: 30px;
+  right: 10px;
+  max-width: 220px;
   padding: 10px 14px;
   background: var(--surface-card);
   border: 1px solid var(--border-glass);
@@ -933,17 +950,18 @@
   box-shadow: var(--shadow-md);
   opacity: 0;
   transform: translateY(8px) scale(0.95);
-  transform-origin: bottom left;
+  transform-origin: bottom right;
   transition: all 0.3s var(--ease-out);
   pointer-events: none;
-  white-space: nowrap;
+  word-break: break-word;
+  z-index: 10;
 }
 
 .app-kanban-bubble::before {
   content: '';
   position: absolute;
   bottom: -6px;
-  left: 20px;
+  right: 24px;
   width: 12px;
   height: 12px;
   background: var(--surface-card);
@@ -952,7 +970,7 @@
   transform: rotate(45deg);
 }
 
-.app-kanban-inner:hover .app-kanban-bubble {
+.app-kanban-bubble.visible {
   opacity: 1;
   transform: translateY(0) scale(1);
 }
@@ -960,10 +978,10 @@
 /* 关闭按钮 */
 .app-kanban-close {
   position: absolute;
-  top: 20px;
-  right: 40px;
-  width: 24px;
-  height: 24px;
+  top: 12px;
+  right: 16px;
+  width: 26px;
+  height: 26px;
   border-radius: var(--radius-full);
   background: var(--surface-hover);
   border: 1px solid var(--border-glass);
@@ -976,10 +994,11 @@
   justify-content: center;
   opacity: 0;
   transition: all var(--transition-fast);
-  z-index: 2;
+  z-index: 20;
 }
 
-.app-kanban-inner:hover .app-kanban-close {
+.app-kanban-inner:hover .app-kanban-close,
+.app-kanban-close.show {
   opacity: 1;
 }
 
@@ -987,6 +1006,23 @@
   background: var(--danger-bg);
   color: var(--danger);
 }
+
+/* 加载指示器 */
+.app-kanban-loading {
+  position: absolute;
+  bottom: 60px;
+  right: 30px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-secondary);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: kanban-spin 0.8s linear infinite;
+  z-index: 5;
+  display: none;
+}
+.app-kanban-loading.active { display: block; }
+@keyframes kanban-spin { to { transform: rotate(360deg); } }
 
 /* 小屏幕隐藏 */
 @media (max-width: 1024px) {
