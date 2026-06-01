@@ -606,39 +606,51 @@ function showToast(message, type = 'info') {
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            pointer-events: none;
         `;
         document.body.appendChild(container);
     }
 
     const toast = document.createElement('div');
+    const colors = {
+        success: 'rgba(16, 185, 129, 0.5)',
+        error: 'rgba(239, 68, 68, 0.5)',
+        warning: 'rgba(249, 115, 22, 0.5)',
+        info: 'rgba(168, 85, 247, 0.5)'
+    };
+    const glowColors = {
+        success: 'rgba(16, 185, 129, 0.2)',
+        error: 'rgba(239, 68, 68, 0.2)',
+        warning: 'rgba(249, 115, 22, 0.2)',
+        info: 'rgba(168, 85, 247, 0.2)'
+    };
+    const borderColor = colors[type] || colors.info;
+    const glowColor = glowColors[type] || glowColors.info;
+
     toast.style.cssText = `
         padding: 14px 24px;
-        background: rgba(20, 20, 40, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(15, 12, 30, 0.92);
+        border: 1px solid ${borderColor};
         border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px ${glowColor};
         color: #fff;
         font-size: 14px;
         font-weight: 500;
-        animation: toastFadeIn 0.3s ease;
+        animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         white-space: nowrap;
+        pointer-events: auto;
+        letter-spacing: 0.5px;
     `;
 
-    const colors = {
-        success: 'rgba(16, 185, 129, 0.4)',
-        error: 'rgba(239, 68, 68, 0.4)',
-        warning: 'rgba(249, 115, 22, 0.4)',
-        info: 'rgba(168, 85, 247, 0.4)'
-    };
-    toast.style.borderColor = colors[type] || colors.info;
     toast.textContent = message;
 
     container.appendChild(toast);
 
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(20px)';
+        toast.style.transform = 'translateY(-10px) scale(0.95)';
         toast.style.transition = 'all 0.3s ease';
         setTimeout(() => toast.remove(), 300);
     }, 3000);

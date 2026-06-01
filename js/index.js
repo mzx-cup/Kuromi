@@ -3314,6 +3314,15 @@ function renderRadarChart() {
         ];
         const n = dims.length;
 
+        // Central radial glow
+        const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+        centerGlow.addColorStop(0, 'rgba(168,85,247,0.06)');
+        centerGlow.addColorStop(0.5, 'rgba(59,130,246,0.03)');
+        centerGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = centerGlow;
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid polygons with subtle outer glow
         for (let level = 1; level <= 4; level++) {
             ctx.beginPath();
             for (let i = 0; i < n; i++) {
@@ -3326,52 +3335,100 @@ function renderRadarChart() {
             }
             ctx.closePath();
             ctx.strokeStyle = gridColor;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = level === 4 ? 1.2 : 0.6;
             ctx.stroke();
+            // Subtle glow pass
+            if (level === 4) {
+                ctx.strokeStyle = 'rgba(168,85,247,0.08)';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+            }
         }
 
+        // Axis lines
         for (let i = 0; i < n; i++) {
             const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+            const ex = cx + R * Math.cos(angle);
+            const ey = cy + R * Math.sin(angle);
+
             ctx.beginPath();
             ctx.moveTo(cx, cy);
-            ctx.lineTo(cx + R * Math.cos(angle), cy + R * Math.sin(angle));
+            ctx.lineTo(ex, ey);
             ctx.strokeStyle = gridColor;
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 0.6;
             ctx.stroke();
 
+            // Label with background pill
             const labelOffset = R + 22;
             const lx = cx + labelOffset * Math.cos(angle);
             const ly = cy + labelOffset * Math.sin(angle);
             ctx.fillStyle = labelColor;
-            ctx.font = '11px sans-serif';
+            ctx.font = '600 10px "PingFang SC", "Microsoft YaHei", sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(dims[i], lx, ly);
         }
 
+        // Data polygon with gradient fill
+        const dataGradient = ctx.createLinearGradient(
+            cx - R, cy - R * 0.5,
+            cx + R, cy + R * 0.5
+        );
+        dataGradient.addColorStop(0, 'rgba(59,130,246,0.25)');
+        dataGradient.addColorStop(0.5, 'rgba(168,85,247,0.2)');
+        dataGradient.addColorStop(1, 'rgba(139,92,246,0.18)');
+
         ctx.beginPath();
         for (let i = 0; i < n; i++) {
             const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
-            const r = R * values[i] / 100;
+            const r = Math.max(R * values[i] / 100, 2);
             const x = cx + r * Math.cos(angle);
             const y = cy + r * Math.sin(angle);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
         ctx.closePath();
-        ctx.fillStyle = radarFill;
+        ctx.fillStyle = dataGradient;
         ctx.fill();
         ctx.strokeStyle = radarStroke;
         ctx.lineWidth = 2;
+        ctx.shadowColor = radarStroke;
+        ctx.shadowBlur = 8;
         ctx.stroke();
+        ctx.shadowBlur = 0;
 
+        // Data points with glow and value labels
         for (let i = 0; i < n; i++) {
             const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
-            const r = R * values[i] / 100;
+            const r = Math.max(R * values[i] / 100, 2);
+            const px = cx + r * Math.cos(angle);
+            const py = cy + r * Math.sin(angle);
+
+            // Outer glow ring
             ctx.beginPath();
-            ctx.arc(cx + r * Math.cos(angle), cy + r * Math.sin(angle), 3, 0, Math.PI * 2);
-            ctx.fillStyle = radarStroke;
+            ctx.arc(px, py, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(168,85,247,0.15)';
             ctx.fill();
+
+            // Main dot
+            ctx.beginPath();
+            ctx.arc(px, py, 2.8, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = radarStroke;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Score label near point
+            const scoreLabelAngle = angle;
+            const scoreLabelDist = r + 14;
+            const slx = cx + scoreLabelDist * Math.cos(scoreLabelAngle);
+            const sly = cy + scoreLabelDist * Math.sin(scoreLabelAngle);
+            ctx.fillStyle = labelColor;
+            ctx.font = '9px "PingFang SC", "Microsoft YaHei", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(values[i], slx, sly);
         }
 
         canvas.style.display = 'block';
