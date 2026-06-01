@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import time
 import httpx
 import numpy as np
+import base64
 from urllib.parse import quote
 import db as database
 import pymysql
@@ -1967,20 +1968,11 @@ def text_to_speech(request: SocraticTTSRequest) -> SocraticTTSResponse:
                 error=f"音频解码失败"
             )
 
-        # 保存音频文件
-        audio_dir = os.path.join(BASE_DIR, "audio")
-        if not os.path.exists(audio_dir):
-            os.makedirs(audio_dir)
-
-        filename = f"tts_{int(time.time())}_{voice_id}.mp3"
-        audio_path = os.path.join(audio_dir, filename)
-
-        with open(audio_path, "wb") as f:
-            f.write(audio_bytes)
-
+        # 直接返回 base64 data URL，避免文件下载延迟
+        audio_b64 = base64.b64encode(audio_bytes).decode("ascii")
         return SocraticTTSResponse(
             success=True,
-            audio_url=f"/audio/{filename}"
+            audio_url=f"data:audio/mp3;base64,{audio_b64}"
         )
 
     except Exception as e:
