@@ -4208,33 +4208,52 @@
         }
 
         async generateTTS(text, voiceId = null, speed = 1.0) {
+            // v2 端点使用字符串音色 ID，不再需要整数索引映射
             const voice = voiceId || TTS_CONFIG.voice;
-            const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
-            const voiceIndex = voiceConfig.index || 0;
+            // MINIMAX_VOICES 的 key 就是字符串 ID，验证其存在
+            const validVoice = MINIMAX_VOICES[voice] ? voice : 'female-yujie';
 
             try {
-                // Use /api/socratic/tts endpoint (same as socratic-ai.html)
-                const response = await fetch('/api/socratic/tts', {
+                // 尝试流式 SSE 端点
+                const result = await this._collectSSEStream(text, validVoice, speed);
+                if (result.success && result.blobUrl) {
+                    console.log('[Classroom] TTS stream success:', result.blobUrl, result.wordTimestamps?.length, 'word timestamps');
+                    return {
+                        success: true,
+                        audioUrl: result.blobUrl,
+                        wordTimestamps: result.wordTimestamps || []
+                    };
+                }
+                console.warn('[Classroom] SSE stream failed, falling back to base64:', result.error);
+            } catch (e) {
+                console.warn('[Classroom] SSE stream exception, falling back to base64:', e);
+            }
+
+            // 降级：v2 base64 端点
+            try {
+                const response = await fetch('/api/v2/tts/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        voice_id: voiceIndex
+                        voice: validVoice,
+                        speed: speed
                     })
                 });
-
                 const data = await response.json();
-                console.log('[Classroom] TTS response:', data);
-                if (data.success && data.audio_url && typeof data.audio_url === 'string' && data.audio_url.trim().length > 0) {
-                    console.log('[Classroom] TTS audioUrl:', data.audio_url);
-                    return { success: true, audioUrl: data.audio_url.trim() };
+                if (data.audio_base64) {
+                    const mimeType = 'audio/' + (data.format || 'mp3');
+                    const dataUri = 'data:' + mimeType + ';base64,' + data.audio_base64;
+                    console.log('[Classroom] TTS base64 fallback success');
+                    return {
+                        success: true,
+                        audioUrl: dataUri,
+                        wordTimestamps: data.word_timestamps || []
+                    };
                 }
-                if (data.error) {
-                    console.error('[Classroom] TTS API error:', data.error);
-                }
-                return { success: false, error: data.error || 'TTS generation failed' };
+                return { success: false, error: data.detail || 'TTS generation failed' };
             } catch (e) {
-                console.error('TTS API error:', e);
+                console.error('[Classroom] TTS base64 fallback error:', e);
                 return { success: false, error: e.message };
             }
         }
