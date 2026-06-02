@@ -49,7 +49,9 @@ function updateFocusValue() {
 function updateFlowResonanceCard() {
     const summary = focusTracker.focusSummary;
     const score = focusTracker.currentFlow || 0;
-    const headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child');
+
+    // 更新 section-head 头部统计
+    const headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child, .ecg-header-stats .ecg-stat-value');
     if (headerStats[0]) headerStats[0].textContent = `${score}%`;
     if (headerStats[1]) {
         const timeline = summary?.timeline || [];
@@ -59,6 +61,49 @@ function updateFlowResonanceCard() {
         headerStats[1].textContent = `${avg}%`;
     }
 
+    // 更新环形进度条
+    const ringProgress = document.getElementById('flow-ring-progress');
+    const ringValue = document.getElementById('flow-ring-value');
+    if (ringProgress && ringValue) {
+        const circumference = 264; // 2 * π * 42 ≈ 263.89
+        const offset = circumference - (score / 100) * circumference;
+        ringProgress.style.transition = 'stroke-dashoffset 0.8s var(--ease-out)';
+        ringProgress.setAttribute('stroke-dashoffset', Math.max(0, Math.min(circumference, offset)));
+        ringValue.textContent = score;
+    }
+
+    // 更新柱状图高度（按时间段分布精力数据）
+    const bars = document.querySelectorAll('.flow-bar-fill');
+    if (bars.length && summary && Array.isArray(summary.timeline) && summary.timeline.length) {
+        const timeline = summary.timeline;
+        // 尝试将 timeline 数据映射到 4 个时段（上午/下午/傍晚/晚间）
+        const periodScores = [0, 0, 0, 0];
+        const periodCounts = [0, 0, 0, 0];
+        timeline.forEach(item => {
+            const t = Number(item.time) || 0; // hour (0-23)
+            const s = Number(item.score) || 0;
+            if (t >= 6 && t < 12)      { periodScores[0] += s; periodCounts[0]++; }
+            else if (t >= 12 && t < 17) { periodScores[1] += s; periodCounts[1]++; }
+            else if (t >= 17 && t < 20) { periodScores[2] += s; periodCounts[2]++; }
+            else                         { periodScores[3] += s; periodCounts[3]++; }
+        });
+        bars.forEach((bar, i) => {
+            const avgScore = periodCounts[i] ? Math.round(periodScores[i] / periodCounts[i]) : 0;
+            const h = Math.max(8, avgScore || Math.round(score * (0.5 + Math.random() * 0.5)));
+            bar.style.transition = 'height 0.5s var(--ease-out)';
+            bar.style.height = `${h}%`;
+            bar.setAttribute('data-label', ['上午', '下午', '傍晚', '晚间'][i]);
+        });
+    } else if (bars.length) {
+        // 无 timeline 数据时使用默认分布
+        const fallback = [78, 94, 52, 65];
+        bars.forEach((bar, i) => {
+            bar.style.transition = 'height 0.5s var(--ease-out)';
+            bar.style.height = `${fallback[i]}%`;
+        });
+    }
+
+    // 更新 footer 统计
     const footer = document.querySelector('.flow-resonance-footer');
     if (!footer) return;
 
@@ -280,6 +325,69 @@ function initCardShimmer() {
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
+// ---- 3D Tilt 倾斜效果（功能卡片） ----
+function initCard3DTilt() {
+    // 触屏设备跳过（无 hover 精度）
+    if (window.matchMedia('(pointer: coarse)').matches) return;
+
+    const cards = document.querySelectorAll('.feature-card');
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateY = ((x - centerX) / centerX) * 5;
+            const rotateX = -((y - centerY) / centerY) * 5;
+
+            requestAnimationFrame(() => {
+                card.style.transform = `perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+                card.style.boxShadow = `
+                    ${rotateY * 2}px ${-rotateX * 2}px 24px var(--shadow-color),
+                    var(--shadow-md)
+                `;
+            });
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transition = 'transform 0.5s var(--ease-out), box-shadow 0.5s var(--ease-out)';
+            card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg)';
+            card.style.boxShadow = '';
+        });
+
+        card.addEventListener('mouseenter', () => {
+            card.style.transition = 'transform 0.1s ease-out, box-shadow 0.35s var(--ease-out)';
+            card.classList.add('tilt-active');
+        });
+    });
+}
+
+// ---- 卡片顶部光泽条注入 ----
+function initCardTopShine() {
+    const featureCards = document.querySelectorAll('.feature-card');
+    featureCards.forEach(card => {
+        if (card.querySelector('.card-top-shine')) return;
+        const shine = document.createElement('div');
+        shine.className = 'card-top-shine';
+        card.appendChild(shine);
+    });
+
+    // 动态添加的卡片也注入
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.feature-card:not(.shine-injected)').forEach(card => {
+            card.classList.add('shine-injected');
+            if (!card.querySelector('.card-top-shine')) {
+                const shine = document.createElement('div');
+                shine.className = 'card-top-shine';
+                card.appendChild(shine);
+            }
+        });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    featureCards.forEach(c => c.classList.add('shine-injected'));
+}
+
 // ---- Initialize All Premium Effects ----
 function initPremiumEffects() {
     createDataParticles();
@@ -287,6 +395,8 @@ function initPremiumEffects() {
     initRippleEffects();
     initFloatingDust();
     initCardShimmer();
+    initCardTopShine();
+    initCard3DTilt();
 }
 
 // ============================================
@@ -926,12 +1036,15 @@ function animateRadialProgress() {
 // Bar Chart Animation
 // ============================================
 function animateBarCharts() {
-    const bars = document.querySelectorAll('.bar, .focus-bar');
+    const bars = document.querySelectorAll('.bar, .focus-bar, .flow-bar-fill');
     bars.forEach((bar, index) => {
-        const height = bar.style.height;
+        const height = bar.style.height || bar.getAttribute('style')?.match(/height:\s*([^;]+)/)?.[1];
+        if (!height) return;
         bar.style.height = '0';
         setTimeout(() => {
             bar.style.height = height;
+            // 柱状图动画完成后追加 shimmer 扫光效果
+            bar.classList.add('bar-shimmer-done');
         }, 100 + (index * 80));
     });
 }
@@ -1049,6 +1162,15 @@ async function loadStudyOverviewData() {
             }
             if (heroUnit) {
                 heroUnit.textContent = todayDuration.unit;
+            }
+
+            // 更新胶囊：连续天数 & 本周小时
+            const streakEl = document.getElementById('hero-stat-streak');
+            const hoursEl = document.getElementById('hero-stat-hours');
+            if (streakEl) streakEl.textContent = o.streak_days || 0;
+            if (hoursEl) {
+                const wh = o.week_minutes || 0;
+                hoursEl.textContent = wh >= 60 ? (wh / 60).toFixed(1) : '0';
             }
 
             // 更新趋势显示

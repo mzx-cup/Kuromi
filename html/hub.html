@@ -32,6 +32,11 @@
                 <stop offset="0%" stop-color="color-mix(in oklch, var(--brand-500), transparent 65%)"/>
                 <stop offset="100%" stop-color="color-mix(in oklch, var(--brand-500), transparent 100%)"/>
             </linearGradient>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="var(--brand-400)"/>
+                <stop offset="50%" stop-color="var(--brand-500)"/>
+                <stop offset="100%" stop-color="var(--info)"/>
+            </linearGradient>
         </defs>
     </svg>
 
@@ -64,6 +69,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
                     <input type="text" placeholder="搜索课程、学习目标..." class="search-input">
+                    <kbd class="search-kbd">Ctrl K</kbd>
                 </div>
             </div>
 
@@ -89,7 +95,7 @@
 
                 <button class="notification-btn" id="notification-btn">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
                     </svg>
                     <div class="notification-dot" id="notification-dot"></div>
                 </button>
@@ -261,9 +267,17 @@
                             <p class="hero-subtitle" id="hero-subtitle">本周累计 0 小时，先从一个小任务开始。</p>
                         </div>
                         <div class="hero-banner-stats">
-                            <div class="hero-banner-stat">
-                                <span class="hero-stat-value" id="hero-stat-value">0</span>
-                                <span class="hero-stat-unit" id="hero-stat-unit">分钟</span>
+                            <div class="hero-stat-capsule" style="--capsule-accent: var(--brand-500)">
+                                <span class="hero-stat-capsule-value" id="hero-stat-value">0</span>
+                                <span class="hero-stat-capsule-unit" id="hero-stat-unit">分钟</span>
+                            </div>
+                            <div class="hero-stat-capsule" style="--capsule-accent: var(--warning)">
+                                <span class="hero-stat-capsule-value" id="hero-stat-streak">0</span>
+                                <span class="hero-stat-capsule-unit">天连续</span>
+                            </div>
+                            <div class="hero-stat-capsule" style="--capsule-accent: var(--success)">
+                                <span class="hero-stat-capsule-value" id="hero-stat-hours">0</span>
+                                <span class="hero-stat-capsule-unit">本周小时</span>
                             </div>
                             <div class="hero-stat-trend" id="hero-trend">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 12h16"/></svg>
@@ -432,14 +446,28 @@
                         </div>
                     </div>
                     <div class="flow-resonance-card hub-card">
-                        <div class="ecg-container">
-                            <svg class="ecg-svg" viewBox="0 0 800 120" preserveAspectRatio="none">
-                                <defs>
-                                    <linearGradient id="ecgGradient" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="var(--brand-500)"/><stop offset="50%" stop-color="var(--brand-400)"/><stop offset="100%" stop-color="var(--brand-500)"/></linearGradient>
-                                </defs>
-                                <path class="ecg-line" d="M 0,60 L 40,60 L 50,55 L 60,60 L 80,60 L 95,60 L 100,40 L 105,90 L 110,20 L 115,100 L 120,60 L 140,60 L 160,60 L 180,55 L 190,60 L 210,60 L 225,60 L 230,40 L 235,90 L 240,20 L 245,100 L 250,60 L 270,60 L 290,60 L 310,55 L 320,60 L 340,60 L 355,60 L 360,40 L 365,90 L 370,20 L 375,100 L 380,60 L 400,60 L 420,60 L 440,55 L 450,60 L 470,60 L 485,60 L 490,40 L 495,90 L 500,20 L 505,100 L 510,60 L 530,60 L 550,60 L 570,55 L 580,60 L 600,60 L 615,60 L 620,40 L 625,90 L 630,20 L 635,100 L 640,60 L 660,60 L 680,60 L 700,55 L 710,60 L 730,60 L 745,60 L 750,40 L 755,90 L 760,20 L 765,100 L 770,60 L 800,60"/>
+                        <div class="flow-resonance-header">
+                            <h4 class="flow-resonance-title">心流共振</h4>
+                            <svg class="flow-ring" viewBox="0 0 100 100" width="64" height="64">
+                                <circle class="flow-ring-bg" cx="50" cy="50" r="42" fill="none" stroke="var(--neutral-200)" stroke-width="6"/>
+                                <circle class="flow-ring-progress" id="flow-ring-progress" cx="50" cy="50" r="42" fill="none" stroke="url(#ringGradient)" stroke-width="6" stroke-linecap="round"
+                                    stroke-dasharray="264" stroke-dashoffset="16" transform="rotate(-90 50 50)"/>
+                                <text class="flow-ring-value" id="flow-ring-value" x="50" y="50" text-anchor="middle" dominant-baseline="central" fill="var(--text-primary)" font-size="18" font-weight="700">94</text>
                             </svg>
-                            <div class="ecg-timeline"><span>14:00</span><span>14:30</span><span>15:00</span><span>15:30</span><span>16:00</span></div>
+                        </div>
+                        <div class="flow-bars">
+                            <div class="flow-bar">
+                                <div class="flow-bar-fill" style="height: 78%;" data-label="上午"></div>
+                            </div>
+                            <div class="flow-bar">
+                                <div class="flow-bar-fill" style="height: 94%;" data-label="下午"></div>
+                            </div>
+                            <div class="flow-bar">
+                                <div class="flow-bar-fill" style="height: 52%;" data-label="傍晚"></div>
+                            </div>
+                            <div class="flow-bar">
+                                <div class="flow-bar-fill" style="height: 65%;" data-label="晚间"></div>
+                            </div>
                         </div>
                         <div class="flow-resonance-footer">
                             <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>峰值专注: 94%</span></div>
