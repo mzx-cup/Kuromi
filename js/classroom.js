@@ -6614,6 +6614,16 @@
         }
 
         stopAudio() {
+            // Abort any in-flight SSE stream
+            if (this._activeStreamController) {
+                try { this._activeStreamController.abort(); } catch (e) {}
+                this._activeStreamController = null;
+            }
+            // Clean up blob URL from current/last stream
+            if (this._activeBlobUrl) {
+                try { URL.revokeObjectURL(this._activeBlobUrl); } catch (e) {}
+                this._activeBlobUrl = null;
+            }
             if (this.audioPlayer) {
                 // Remove event listeners first to prevent fallback TTS from firing when we clear src
                 this.audioPlayer.onloadedmetadata = null;
