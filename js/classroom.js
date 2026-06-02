@@ -33,8 +33,8 @@
         heartbeat: 'elem-attention-heartbeat'
     };
 
-    // MiniMax TTS voice mapping (string key -> {index, name, description})
-    // index 0-4 maps to /api/socratic/tts voice_id
+    // MiniMax TTS voice mapping (string key -> {name, description})
+    // v2 endpoints use string voice IDs directly; index field is vestigial
     const MINIMAX_VOICES = {
         'female-shaonv': { index: 0, name: '晓雅', description: '活泼可爱的年轻女声' },
         'female-yujie': { index: 0, name: '晓雅', description: '成熟温柔的姐姐声音' },
