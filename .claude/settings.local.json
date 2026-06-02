@@ -56,7 +56,10 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:oml2d.com)"
+      "WebFetch(domain:oml2d.com)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(grep -n '#[0-9a-fA-F]\\\\{3,8\\\\}' css/hub.css)",
+      "Bash(grep *)"
     ]
   }
 }

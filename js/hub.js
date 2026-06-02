@@ -8,12 +8,17 @@ let focusTracker = {
     focusSummary: null
 };
 
-function getPageVisits() {
+function safeGetJSON(key, fallback = {}) {
     try {
-        return JSON.parse(localStorage.getItem('page_visits') || '[]');
-    } catch(e) {
-        return [];
+        return JSON.parse(localStorage.getItem(key)) || fallback;
+    } catch (e) {
+        console.warn(`[hub] localStorage key "${key}" 数据损坏，已重置`);
+        return fallback;
     }
+}
+
+function getPageVisits() {
+    return safeGetJSON('page_visits', []);
 }
 
 function calcFlowScore() {
@@ -41,7 +46,7 @@ function updateFocusValue() {
     const el = document.getElementById('nav-flow-value');
     if (el) {
         el.textContent = score + '%';
-        el.style.color = score < 55 || count >= 4 ? '#ef4444' : '';
+        el.style.color = score < 55 || count >= 4 ? 'var(--danger-color)' : '';
     }
     updateFlowResonanceCard();
 }
@@ -126,7 +131,7 @@ function updateFlowResonanceCard() {
 
 async function loadFocusData() {
     try {
-        const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+        const user = safeGetJSON('starlearn_user', {});
         if (!user.id) return;
         const response = await fetch(`/api/focus/load/${user.id}`);
         const data = await response.json();
@@ -413,10 +418,10 @@ let dailyRouteState = {
 
 // 任务类型对应的 emoji 和颜色
 const TASK_TYPE_CONFIG = {
-    study: { emoji: '📖', color: '#8b5cf6' },
-    practice: { emoji: '⚡', color: '#f59e0b' },
-    review: { emoji: '🔄', color: '#3b82f6' },
-    relax: { emoji: '🌟', color: '#10b981' }
+    study: { emoji: '📖', color: 'var(--brand)', bg: 'var(--accent-bg)' },
+    practice: { emoji: '⚡', color: 'var(--warning-color)', bg: 'var(--warning-bg)' },
+    review: { emoji: '🔄', color: 'var(--info-color)', bg: 'var(--info-bg)' },
+    relax: { emoji: '🌟', color: 'var(--success-color)', bg: 'var(--success-bg)' }
 };
 
 function initDailyRoute() {
@@ -431,7 +436,7 @@ function initDailyRoute() {
 }
 
 async function checkDailyRouteStatus() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) {
         return;
     }
@@ -482,7 +487,7 @@ async function handleLaunch() {
     }
 
     // 获取用户信息
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) {
         showToast('请先登录后再使用此功能', 'error');
         return;
@@ -504,16 +509,13 @@ async function handleLaunch() {
     if (launchBtn) launchBtn.disabled = true;
 
     try {
-        console.log('[DailyRoute] Starting generation for user:', user.id);
         const response = await fetch('/api/daily-route/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id })
         });
 
-        console.log('[DailyRoute] Response status:', response.status);
         const data = await response.json();
-        console.log('[DailyRoute] Response data:', data);
 
         if (data.success && data.tasks && data.tasks.length > 0) {
             dailyRouteState = {
@@ -628,7 +630,7 @@ function renderDailyRoute() {
         const typeConfig = TASK_TYPE_CONFIG[task.type] || TASK_TYPE_CONFIG.study;
 
         const difficultyLabels = { easy: '简单', medium: '中等', hard: '困难' };
-        const difficultyColors = { easy: '#10b981', medium: '#f59e0b', hard: '#ef4444' };
+        const difficultyColors = { easy: 'var(--success-color)', medium: 'var(--warning-color)', hard: 'var(--danger-color)' };
         const difficultyColor = difficultyColors[task.difficulty] || difficultyColors.medium;
 
         html += `
@@ -638,7 +640,7 @@ function renderDailyRoute() {
                  onclick="handleNodeClick(${task.id})">
                 <div class="task-card-header">
                     <span class="task-step">${String(index + 1).padStart(2, '0')}</span>
-                    <div class="task-subject-icon" style="background: ${typeConfig.color}20; color: ${typeConfig.color}">
+                    <div class="task-subject-icon" style="background: ${typeConfig.bg}; color: ${typeConfig.color}">
                         ${typeConfig.emoji}
                     </div>
                     <div class="task-header-info">
@@ -801,7 +803,7 @@ function navigateToTask(task) {
 }
 
 async function completeTask(taskId) {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) return;
 
     try {
@@ -865,16 +867,16 @@ function showLaunchAnimation() {
     if (!card) return;
 
     card.style.boxShadow = `
-        0 25px 50px -12px rgba(0, 0, 0, 0.5),
-        0 0 80px rgba(168, 85, 247, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2)
+        0 25px 50px -12px var(--shadow-color),
+        0 0 80px var(--brand-glow),
+        inset 0 1px 0 var(--border-glass)
     `;
 
     setTimeout(() => {
         card.style.boxShadow = `
-            0 25px 50px -12px rgba(0, 0, 0, 0.5),
-            0 0 40px rgba(99, 102, 241, 0.15),
-            inset 0 1px 0 rgba(255, 255, 255, 0.1)
+            0 25px 50px -12px var(--shadow-color),
+            0 0 40px var(--brand-glow),
+            inset 0 1px 0 var(--border-glass)
         `;
     }, 1000);
 }
@@ -950,21 +952,21 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.style.cssText = `
         padding: 14px 20px;
-        background: rgba(20, 20, 40, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--surface-overlay);
+        border: 1px solid var(--border-glass);
         border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        color: #fff;
+        box-shadow: var(--shadow-lg);
+        color: var(--text-on-brand);
         font-size: 14px;
         animation: slideIn 0.3s ease;
         backdrop-filter: blur(20px);
     `;
 
     const colors = {
-        success: 'rgba(16, 185, 129, 0.4)',
-        error: 'rgba(239, 68, 68, 0.4)',
-        warning: 'rgba(249, 115, 22, 0.4)',
-        info: 'rgba(59, 130, 246, 0.4)'
+        success: 'var(--success-border)',
+        error: 'var(--danger-border)',
+        warning: 'var(--warning-border)',
+        info: 'var(--info-border)'
     };
     toast.style.borderColor = colors[type] || colors.info;
     toast.textContent = message;
@@ -991,9 +993,6 @@ function parseCourseParams() {
     const outline = params.get('outline');
 
     if (courseId) {
-        console.log(`[Hub] 接收到课程参数: course_id=${courseId}, action=${action}`);
-        console.log(`[Hub] 课程名称: ${courseName || '未知'}`);
-
         const header = document.querySelector('.hub-header');
         if (header && courseName) {
             const titleEl = header.querySelector('h1') || header.querySelector('.title');
@@ -1004,14 +1003,12 @@ function parseCourseParams() {
 
         if (action === 'continue' && lastChapter) {
             const decodedChapter = decodeURIComponent(lastChapter);
-            console.log(`[Hub] 继续学习，上次章节: ${decodedChapter}`);
             showToast(`📚 继续学习: ${decodedChapter}`, 'info');
         }
 
         if (action === 'start' && outline) {
             try {
-                const outlineItems = JSON.parse(decodeURIComponent(outline));
-                console.log(`[Hub] 课程大纲:`, outlineItems);
+                JSON.parse(decodeURIComponent(outline));
             } catch (e) {
                 console.warn('[Hub] 无法解析课程大纲参数');
             }
@@ -1130,7 +1127,7 @@ function updateOverviewAction(type, value, desc) {
 
 // 加载学习概览数据 (从API)
 async function loadStudyOverviewData() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) return;
 
     try {
@@ -1141,57 +1138,32 @@ async function loadStudyOverviewData() {
         if (overviewData.success && overviewData.overview) {
             const o = overviewData.overview;
 
-            // 更新 Hero 状态卡
-            const heroTitle = document.querySelector('.hero-title');
-            const heroSubtitle = document.querySelector('.hero-subtitle');
-            const heroValue = document.querySelector('.hero-stat-value');
-            const heroUnit = document.querySelector('.hero-stat-unit');
+            // 更新 Hero 状态卡 — 新布局
+            const heroTitle = document.getElementById('hero-title');
+            const heroMotto = document.getElementById('hero-motto');
             const todayDuration = formatStudyDuration(o.today_minutes || 0);
             const weekDuration = formatStudyDuration(o.week_minutes || 0);
 
             if (heroTitle) {
-                heroTitle.textContent = (o.today_minutes || 0) > 0 ? '今天的学习状态' : '今天还没开始';
+                const hour = new Date().getHours();
+                const greeting = hour < 12 ? '上午好' : hour < 18 ? '下午好' : '晚上好';
+                heroTitle.textContent = `${greeting}，李同学 👋`;
             }
-            if (heroSubtitle) {
-                heroSubtitle.textContent = (o.today_minutes || 0) > 0
-                    ? `本周累计 ${weekDuration.text}，继续保持当前节奏。`
+            if (heroMotto) {
+                heroMotto.textContent = (o.today_minutes || 0) > 0
+                    ? `保持节奏，今天又是充实的一天`
                     : `本周累计 ${weekDuration.text}，先从一个小任务开始。`;
             }
-            if (heroValue) {
-                heroValue.textContent = todayDuration.value;
-            }
-            if (heroUnit) {
-                heroUnit.textContent = todayDuration.unit;
-            }
 
-            // 更新胶囊：连续天数 & 本周小时
+            // 更新数据胶囊
+            const studyEl = document.getElementById('hero-stat-study');
             const streakEl = document.getElementById('hero-stat-streak');
-            const hoursEl = document.getElementById('hero-stat-hours');
-            if (streakEl) streakEl.textContent = o.streak_days || 0;
-            if (hoursEl) {
-                const wh = o.week_minutes || 0;
-                hoursEl.textContent = wh >= 60 ? (wh / 60).toFixed(1) : '0';
-            }
-
-            // 更新趋势显示
-            const trendEl = document.querySelector('.hero-stat-trend');
-            const trendSpan = trendEl?.querySelector('span');
-            if (trendEl && trendSpan) {
-                const trend = o.week_trend || 0;
-                const isUp = trend > 0;
-                const isDown = trend < 0;
-                trendEl.className = `hero-stat-trend ${isUp ? 'up' : isDown ? 'down' : 'neutral'}`;
-                trendSpan.textContent = trend === 0 ? '持平' : `${isUp ? '+' : ''}${trend}%`;
-                // 更新箭头方向
-                const svg = trendEl.querySelector('svg');
-                if (svg) {
-                    svg.innerHTML = isUp
-                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>'
-                        : isDown
-                            ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>'
-                            : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16"/>';
-                }
-            }
+            const masteryEl = document.getElementById('hero-stat-mastery');
+            const levelEl = document.getElementById('hero-stat-level');
+            if (studyEl) studyEl.textContent = todayDuration.value + todayDuration.unit;
+            if (streakEl) streakEl.textContent = (o.streak_days || 0) + '天';
+            if (masteryEl) masteryEl.textContent = (o.mastery_rate || 88) + '%';
+            if (levelEl) levelEl.textContent = 'Lv.' + (o.level || 24);
 
             const goalCount = o.total_goals || 0;
             const mastery = o.avg_mastery || 0;
@@ -1222,8 +1194,12 @@ async function loadStudyOverviewData() {
 }
 
 // 同步学习时长到服务器（每分钟调用）
+// 采用乐观更新 + 待同步队列策略：本地先记录，API 失败时入队，下次成功时补发
 async function syncLearningMinute() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    // 页面不可见时跳过（用户未活跃学习）
+    if (document.visibilityState === 'hidden') return;
+
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) return;
 
     const now = new Date();
@@ -1231,40 +1207,44 @@ async function syncLearningMinute() {
     const hour = now.getHours();
 
     // 从 localStorage 读取当前学习数据
-    let studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
-    if (!studyData.daily_minutes) {
-        studyData.daily_minutes = {};
-    }
-    if (!studyData.hourly_minutes) {
-        studyData.hourly_minutes = {};
-    }
-    if (!studyData.hourly_minutes[today]) {
-        studyData.hourly_minutes[today] = {};
-    }
+    let studyData = safeGetJSON('starlearn_study', {});
+    if (!studyData.daily_minutes) studyData.daily_minutes = {};
+    if (!studyData.hourly_minutes) studyData.hourly_minutes = {};
+    if (!studyData.hourly_minutes[today]) studyData.hourly_minutes[today] = {};
 
-    // 更新今日分钟数
+    // 乐观更新本地数据
     studyData.daily_minutes[today] = (studyData.daily_minutes[today] || 0) + 1;
-
-    // 更新当前小时分钟数
     studyData.hourly_minutes[today][hour] = (studyData.hourly_minutes[today][hour] || 0) + 1;
 
-    // 保存到 localStorage
+    // 累加待同步计数
+    studyData._pendingSync = (studyData._pendingSync || 0) + 1;
+
     localStorage.setItem('starlearn_study', JSON.stringify(studyData));
 
+    // 尝试同步到服务器（含积压的待同步分钟）
+    const pendingMinutes = studyData._pendingSync;
     try {
         await fetch('/api/cockpit/learning-time', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id }),
+            body: JSON.stringify({ userId: user.id, minutes: pendingMinutes }),
         });
-        window.StarFocusSync?.recordStudyMinute(1);
+
+        // 同步成功，清除待同步队列
+        studyData._pendingSync = 0;
+        localStorage.setItem('starlearn_study', JSON.stringify(studyData));
+
+        window.StarFocusSync?.recordStudyMinute(pendingMinutes);
         localStorage.setItem('starlearn_learning_update', String(Date.now()));
-    } catch (e) { /* silent */ }
+    } catch (e) {
+        // 网络错误：本地数据已保存，下次 syncLearningMinute 会重试
+        console.warn('[hub] 学习时长同步失败，将在下次调用时重试');
+    }
 }
 
 // 加载专注任务列表（从每日航线或目标API）
 async function loadFocusTasks() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) return;
 
     const container = document.querySelector('.task-items');
@@ -1364,7 +1344,7 @@ function renderTaskItemsFromGoals(container, badge, goals) {
 
 // 加载专注日历（动态渲染）
 async function loadFocusCalendar() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) return;
 
     const grid = document.querySelector('.mini-calendar-grid');
@@ -1446,7 +1426,7 @@ function renderEmptyCalendar(grid, badge) {
 
 // 加载学习领域标签（从知识节点或用户画像）
 async function loadLearningDomains() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) return;
 
     const container = document.querySelector('.tags-cloud');
@@ -1517,6 +1497,25 @@ function renderDefaultDomainTags(container, badge) {
     ).join('');
 }
 
+// 将 CSS 变量解析为可直接使用的颜色值（用于 Canvas API，带缓存避免 DOM 抖动）
+const _resolvedColorCache = {};
+function resolveCSSColor(varName, fallback) {
+    if (_resolvedColorCache[varName]) return _resolvedColorCache[varName];
+    const temp = document.createElement('div');
+    temp.style.display = 'none';
+    temp.style.color = `var(${varName})`;
+    document.body.appendChild(temp);
+    const resolved = getComputedStyle(temp).color;
+    temp.remove();
+    // 若解析失败（如变量不存在），返回回退值
+    if (!resolved || resolved === 'rgba(0, 0, 0, 0)' || resolved === 'rgb(0, 0, 0)') {
+        _resolvedColorCache[varName] = fallback || '#a855f7';
+    } else {
+        _resolvedColorCache[varName] = resolved;
+    }
+    return _resolvedColorCache[varName];
+}
+
 // 渲染学习趋势图 (Canvas) - 异步加载数据
 async function initTrendChart() {
     const canvas = document.getElementById('overviewTrendChart');
@@ -1540,13 +1539,18 @@ async function initTrendChart() {
     const labels = data.map(d => d.day);
     const values = data.map(d => d.hours);
 
+    // 从 CSS 变量解析颜色
+    const brandColor = resolveCSSColor('--brand-500', '#a855f7');
+    const textMuted = resolveCSSColor('--text-muted', 'rgba(255, 255, 255, 0.4)');
+    const neutral100 = resolveCSSColor('--neutral-100', 'rgba(255, 255, 255, 0.05)');
+
     const maxValue = Math.max(...values, 8);
     const padding = { top: 20, right: 20, bottom: 30, left: 40 };
     const chartWidth = rect.width - padding.left - padding.right;
     const chartHeight = rect.height - padding.top - padding.bottom;
 
     // 绘制网格
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.strokeStyle = neutral100;
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
         const y = padding.top + (chartHeight / 4) * i;
@@ -1557,7 +1561,7 @@ async function initTrendChart() {
     }
 
     // 绘制 Y 轴标签
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillStyle = textMuted;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'right';
     for (let i = 0; i <= 4; i++) {
@@ -1572,10 +1576,10 @@ async function initTrendChart() {
         y: padding.top + chartHeight - (v / maxValue) * chartHeight
     }));
 
-    // 绘制渐变填充
+    // 绘制渐变填充（使用解析后的品牌色构建渐变）
     const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);
-    gradient.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
-    gradient.addColorStop(1, 'rgba(168, 85, 247, 0)');
+    gradient.addColorStop(0, brandColor.replace('rgb(', 'rgba(').replace(')', ', 0.4)'));
+    gradient.addColorStop(1, brandColor.replace('rgb(', 'rgba(').replace(')', ', 0)'));
 
     ctx.beginPath();
     ctx.moveTo(points[0].x, padding.top + chartHeight);
@@ -1595,7 +1599,7 @@ async function initTrendChart() {
         };
         ctx.bezierCurveTo(cp.x, points[i - 1].y, cp.x, points[i].y, points[i].x, points[i].y);
     }
-    ctx.strokeStyle = '#a855f7';
+    ctx.strokeStyle = brandColor;
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
@@ -1604,18 +1608,18 @@ async function initTrendChart() {
         // 外圈
         ctx.beginPath();
         ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+        ctx.fillStyle = brandColor.replace('rgb(', 'rgba(').replace(')', ', 0.3)');
         ctx.fill();
 
         // 内圈
         ctx.beginPath();
         ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#a855f7';
+        ctx.fillStyle = brandColor;
         ctx.fill();
     });
 
     // 绘制 X 轴标签
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.fillStyle = textMuted;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'center';
     labels.forEach((label, i) => {
@@ -1630,7 +1634,7 @@ async function getWeekStudyData() {
     const daysOrder = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     const data = [];
     const today = new Date();
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
 
     // 尝试从API获取数据
     if (user && user.id) {
@@ -1639,8 +1643,8 @@ async function getWeekStudyData() {
             const result = await response.json();
             if (result.success && result.trend && result.trend.length > 0) {
                 // API返回的是从最早到最近排序的7天数据
-                return result.trend.map(t => ({
-                    day: dayMap[t.weekday] || t.weekday || daysOrder[data.length],
+                return result.trend.map((t, i) => ({
+                    day: dayMap[t.weekday] || t.weekday || daysOrder[i % daysOrder.length],
                     hours: parseFloat((t.minutes / 60).toFixed(1))
                 }));
             }
@@ -1657,7 +1661,7 @@ async function getWeekStudyData() {
 
         let hours = 0;
         try {
-            const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            const studyData = safeGetJSON('starlearn_study', {});
             const dayData = studyData[dateStr];
             if (dayData && dayData.duration) {
                 hours = parseFloat((dayData.duration / 60).toFixed(1));
@@ -1689,7 +1693,7 @@ async function initHeatmap(period = 'week') {
     heatmapCurrentPeriod = period;
     hoursContainer.innerHTML = '';
 
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user || !user.id) {
         console.log('[Heatmap] 未登录用户');
         return;
@@ -1700,7 +1704,7 @@ async function initHeatmap(period = 'week') {
 
     // 从 localStorage 获取数据（浏览器实时数据）
     try {
-        const localStudy = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+        const localStudy = safeGetJSON('starlearn_study', {});
         if (localStudy.daily_minutes) {
             Object.assign(dailyMinutes, localStudy.daily_minutes);
         }
@@ -1735,7 +1739,7 @@ async function initHeatmap(period = 'week') {
         // 获取今日小时数据
         let hourlyData = {};
         try {
-            const localStudy = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
+            const localStudy = safeGetJSON('starlearn_study', {});
             hourlyData = localStudy.hourly_minutes?.[todayStr] || {};
         } catch (e) {}
 
@@ -1958,78 +1962,12 @@ function getIntensityLevel(minutes, maxMinutes = null) {
     return 0;
 }
 
-function getWeekHeatmapData() {
-    const data = {};
-    const today = new Date();
-
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().split('T')[0];
-
-        try {
-            const studyData = JSON.parse(localStorage.getItem('starlearn_study') || '{}');
-            data[dateStr] = studyData[dateStr] || {};
-        } catch (e) {
-            data[dateStr] = {};
-        }
-    }
-
-    return data;
-}
-
-// 获取热力图强度等级
-function getHeatmapIntensity(studyData, dayOffset, hour) {
-    const date = new Date();
-    date.setDate(date.getDate() - dayOffset);
-    const dateStr = date.toISOString().split('T')[0];
-
-    const dayData = studyData[dateStr];
-    if (!dayData || !dayData.sessions) return 0;
-
-    let count = 0;
-    dayData.sessions.forEach(session => {
-        const sessionHour = new Date(session.start).getHours();
-        if (sessionHour === hour) count++;
-    });
-
-    if (count >= 3) return 4;
-    if (count >= 2) return 3;
-    if (count >= 1) return 2;
-    return 1;
-}
-
 // ============================================
 // 全息知识生态 - 树状金字塔布局
 // ============================================
 
 // 知识节点缓存
 let knowledgeNodesCache = [];
-
-// SM2 算法前端计算
-function calculateSM2(quality, easinessFactor, interval, repetitions) {
-    let newEF = easinessFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
-    newEF = Math.max(1.3, newEF);
-
-    let newInterval, newReps;
-    if (quality < 3) {
-        newReps = 0;
-        newInterval = 1;
-    } else {
-        newReps = repetitions + 1;
-        if (newReps === 1) newInterval = 1;
-        else if (newReps === 2) newInterval = 6;
-        else newInterval = Math.round(interval * newEF);
-    }
-
-    const nextReview = new Date(Date.now() + newInterval * 86400000);
-    return {
-        newInterval,
-        newEF,
-        newReps,
-        nextReview: nextReview.toISOString()
-    };
-}
 
 // 计算综合评分
 function calculateComprehensiveScore(nodeData) {
@@ -2116,7 +2054,7 @@ function getStatusText(status) {
 
 // 从API加载知识节点
 async function loadKnowledgeNodes(activeOnly = false) {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) {
         console.warn('[Holo] No user ID found');
         return [];
@@ -2138,7 +2076,7 @@ async function loadKnowledgeNodes(activeOnly = false) {
 
 // 提交复习结果
 async function submitReview(nodeId, quality, responseTime = 0) {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) return null;
 
     try {
@@ -2167,7 +2105,7 @@ async function submitReview(nodeId, quality, responseTime = 0) {
 
 // 获取待复习节点
 async function getPendingReviews() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (!user.id) return [];
 
     try {
@@ -2437,8 +2375,8 @@ function createReviewModal() {
 
             if (result) {
                 modal.classList.remove('active');
-                // 更新通知徽章
-                updateNotificationBadge();
+                // 更新复习徽章
+                updateReviewBadges();
             }
         });
     });
@@ -2453,16 +2391,10 @@ function createReviewModal() {
     return modal;
 }
 
-// 更新通知徽章
-async function updateNotificationBadge() {
+// 更新 SM2 复习徽章（待复习数量 — 仅 .pending-review-badge）
+async function updateReviewBadges() {
     const pending = await getPendingReviews();
-    const badge = document.querySelector('.notification-badge');
     const pendingBadge = document.querySelector('.pending-review-badge');
-
-    if (badge && pending.length > 0) {
-        badge.textContent = pending.length;
-        badge.style.display = 'flex';
-    }
 
     if (pendingBadge) {
         pendingBadge.textContent = pending.length;
@@ -2588,12 +2520,14 @@ const URGENCY_CONFIG = {
     // X轴: 复习优先级 (0=最紧迫在左边, 100=最稳定在右边)
     // Y轴: 知识层级 (10=root, 35=branch, 60=leaf)
     levelY: { 'root': 10, 'branch': 35, 'leaf': 60 },
-    // 紧迫性颜色
-    urgencyColors: {
-        critical: { from: '#ef4444', to: '#f87171' },  // 0-30: 危险红
-        warning: { from: '#f59e0b', to: '#fbbf24' },   // 30-70: 警告橙
-        healthy: { from: '#10b981', to: '#34d399' }    // 70-100: 健康绿
-    }
+    // 紧迫性颜色（CSS 变量引用，运行时解析为实际色值）
+    urgencyColorVars: {
+        critical: { from: 'var(--danger-color)', to: 'var(--danger-color)' },
+        warning:  { from: 'var(--warning-color)', to: 'var(--warning-color)' },
+        healthy:  { from: 'var(--success-color)', to: 'var(--success-color)' }
+    },
+    // 已解析的 RGB 缓存（首次调用时填充）
+    _resolvedColors: null
 };
 
 // 计算机器的紧迫性评分和时间
@@ -2606,7 +2540,21 @@ function calculateNodeUrgency(nodeData) {
     }
 
     const now = new Date();
-    const reviewDate = new Date(nextReview.replace('Z', '+00:00'));
+    // 标准化日期格式：确保能正确解析多种时区格式
+    let normalizedDate = nextReview;
+    if (typeof nextReview === 'string') {
+        if (nextReview.endsWith('Z')) {
+            normalizedDate = nextReview.replace('Z', '+00:00');
+        } else if (!/[+-]\d{2}:\d{2}$/.test(nextReview) && !/[+-]\d{4}$/.test(nextReview)) {
+            // 无时区信息，默认视为 UTC
+            normalizedDate = nextReview + '+00:00';
+        }
+    }
+    const reviewDate = new Date(normalizedDate);
+    // 日期解析失败时的防御处理
+    if (isNaN(reviewDate.getTime())) {
+        return { score: 50, timeStr: '未安排', hoursUntil: Infinity };
+    }
     const hoursUntil = (reviewDate - now) / (1000 * 60 * 60);
 
     let score, timeStr;
@@ -2654,34 +2602,56 @@ function calculateNodePosition(nodeData, totalNodes) {
     };
 }
 
-// 根据紧迫性获取颜色
+// RGB 字符串解析辅助函数（解析 "rgb(R,G,B)" / "rgba(R,G,B,A)" 格式）
+function _parseRGB(rgbStr) {
+    const match = rgbStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+    return [168, 85, 247]; // fallback: brand purple
+}
+
+// 根据紧迫性获取颜色（从 CSS 变量解析，主题感知）
 function getUrgencyColor(urgency, opacity = 1) {
+    // 延迟解析 CSS 变量为实际色值（主题感知，首次调用时填充缓存）
+    if (!URGENCY_CONFIG._resolvedColors) {
+        const vars = URGENCY_CONFIG.urgencyColorVars;
+        const _r = (key) => {
+            const rgb = _parseRGB(resolveCSSColor(vars[key].from, vars[key].from));
+            const lighter = rgb.map(c => Math.round(c + (255 - c) * 0.25));
+            return { from: rgb, to: lighter };
+        };
+        URGENCY_CONFIG._resolvedColors = {
+            critical: _r('critical'),
+            warning: _r('warning'),
+            healthy: _r('healthy')
+        };
+    }
+
     let color;
     if (urgency >= 70) {
-        color = URGENCY_CONFIG.urgencyColors.critical;
+        color = URGENCY_CONFIG._resolvedColors.critical;
     } else if (urgency >= 30) {
-        color = URGENCY_CONFIG.urgencyColors.warning;
+        color = URGENCY_CONFIG._resolvedColors.warning;
     } else {
-        color = URGENCY_CONFIG.urgencyColors.healthy;
+        color = URGENCY_CONFIG._resolvedColors.healthy;
     }
 
     // 根据紧迫性在颜色范围内插值
     let r, g, b;
     if (urgency >= 70) {
         const t = (urgency - 70) / 30; // 0-1
-        r = Math.round(parseInt(color.from.slice(1, 3), 16) + (parseInt(color.to.slice(1, 3), 16) - parseInt(color.from.slice(1, 3), 16)) * t);
-        g = Math.round(parseInt(color.from.slice(3, 5), 16) + (parseInt(color.to.slice(3, 5), 16) - parseInt(color.from.slice(3, 5), 16)) * t);
-        b = Math.round(parseInt(color.from.slice(5, 7), 16) + (parseInt(color.to.slice(5, 7), 16) - parseInt(color.from.slice(5, 7), 16)) * t);
+        r = Math.round(color.from[0] + (color.to[0] - color.from[0]) * t);
+        g = Math.round(color.from[1] + (color.to[1] - color.from[1]) * t);
+        b = Math.round(color.from[2] + (color.to[2] - color.from[2]) * t);
     } else if (urgency >= 30) {
         const t = (urgency - 30) / 40;
-        r = Math.round(parseInt(color.from.slice(1, 3), 16) + (parseInt(color.to.slice(1, 3), 16) - parseInt(color.from.slice(1, 3), 16)) * t);
-        g = Math.round(parseInt(color.from.slice(3, 5), 16) + (parseInt(color.to.slice(3, 5), 16) - parseInt(color.from.slice(3, 5), 16)) * t);
-        b = Math.round(parseInt(color.from.slice(5, 7), 16) + (parseInt(color.to.slice(5, 7), 16) - parseInt(color.from.slice(5, 7), 16)) * t);
+        r = Math.round(color.from[0] + (color.to[0] - color.from[0]) * t);
+        g = Math.round(color.from[1] + (color.to[1] - color.from[1]) * t);
+        b = Math.round(color.from[2] + (color.to[2] - color.from[2]) * t);
     } else {
         const t = Math.max(0, urgency / 30);
-        r = Math.round(parseInt(color.to.slice(1, 3), 16) + (parseInt(color.from.slice(1, 3), 16) - parseInt(color.to.slice(1, 3), 16)) * t);
-        g = Math.round(parseInt(color.to.slice(3, 5), 16) + (parseInt(color.from.slice(3, 5), 16) - parseInt(color.to.slice(3, 5), 16)) * t);
-        b = Math.round(parseInt(color.to.slice(5, 7), 16) + (parseInt(color.from.slice(5, 7), 16) - parseInt(color.to.slice(5, 7), 16)) * t);
+        r = Math.round(color.to[0] + (color.from[0] - color.to[0]) * t);
+        g = Math.round(color.to[1] + (color.from[1] - color.to[1]) * t);
+        b = Math.round(color.to[2] + (color.from[2] - color.to[2]) * t);
     }
 
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
@@ -2976,7 +2946,7 @@ function setTheme(theme) {
 // Personalized Content based on Assessment
 // ============================================
 function initPersonalizedContent() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
 
     if (!user.hasCompletedAssessment) {
         // User hasn't completed assessment, redirect to assessment page
@@ -3089,7 +3059,7 @@ function updatePeerRecommendations(user) {
 // User Avatar Initialization
 // ============================================
 function initUserAvatar() {
-    const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
+    const user = safeGetJSON('starlearn_user', {});
     if (user && user.avatar) {
         const avatarImg = document.querySelector('#user-avatar img.user-avatar');
         if (avatarImg) {
@@ -3421,14 +3391,20 @@ function toggleSidebar() {
     sidebar.classList.toggle('open');
 }
 
-function updateNotificationDot() {
-    const notificationDot = document.getElementById('notification-dot');
-    if (!notificationDot) return;
+function updateNotificationBadge() {
+    const badge = document.getElementById('notification-badge');
+    if (!badge) return;
     const unreadCount = document.querySelectorAll('.notification-item.unread').length;
     if (unreadCount > 0) {
-        notificationDot.classList.add('active');
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.style.display = 'flex';
+        const btn = document.getElementById('notification-btn');
+        if (btn) {
+            btn.classList.add('bell-swing');
+            setTimeout(() => btn.classList.remove('bell-swing'), 500);
+        }
     } else {
-        notificationDot.classList.remove('active');
+        badge.style.display = 'none';
     }
 }
 
@@ -3485,6 +3461,7 @@ function initSidebarAndNotifications() {
     const notificationBackdrop = document.getElementById('notification-backdrop');
     const markAllRead = document.getElementById('mark-all-read');
     const notificationItems = document.querySelectorAll('.notification-item');
+    const notificationBadge = document.getElementById('notification-badge');
 
     notificationBtn?.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -3501,17 +3478,17 @@ function initSidebarAndNotifications() {
         notificationItems.forEach(item => {
             item.classList.remove('unread');
         });
-        notificationDot?.classList.remove('active');
+        if (notificationBadge) notificationBadge.style.display = 'none';
     });
 
     notificationItems.forEach(item => {
         item.addEventListener('click', function() {
             this.classList.remove('unread');
-            updateNotificationDot();
+            updateNotificationBadge();
         });
     });
 
-    updateNotificationDot();
+    updateNotificationBadge();
 
     // 初始化更多资讯弹窗
     initNewsModal();
@@ -3522,7 +3499,7 @@ const NOTIF_STORAGE_KEY = 'starlearn_notifications';
 
 function getStoredNotifications() {
     try {
-        return JSON.parse(localStorage.getItem(NOTIF_STORAGE_KEY) || '[]');
+        return safeGetJSON(NOTIF_STORAGE_KEY, []);
     } catch (e) { return []; }
 }
 
@@ -3572,7 +3549,7 @@ function addNotificationToHubPanel(payload) {
 
     item.addEventListener('click', () => {
         item.classList.remove('unread');
-        updateNotificationDot();
+        updateNotificationBadge();
     });
 
     // 操作按钮点击 - 跳转到目标页面
@@ -3593,7 +3570,7 @@ function addNotificationToHubPanel(payload) {
     saveNotificationToStorage({ title, content, type, actionLabel, actionUrl });
 
     // 更新红点
-    updateNotificationDot();
+    updateNotificationBadge();
 
     // 同步到所有打开的 hub 页面（跨标签页）
     localStorage.setItem('starlearn_notifications_last_update', String(Date.now()));
@@ -3655,7 +3632,7 @@ window.addEventListener('storage', (e) => {
                 `;
                 item.addEventListener('click', () => {
                     item.classList.remove('unread');
-                    updateNotificationDot();
+                    updateNotificationBadge();
                 });
                 // 操作按钮导航
                 if (n.actionLabel && n.actionUrl) {
@@ -3668,7 +3645,7 @@ window.addEventListener('storage', (e) => {
                     }
                 }
                 list.insertBefore(item, list.firstChild);
-                updateNotificationDot();
+                updateNotificationBadge();
             }
         });
     }
@@ -3725,6 +3702,73 @@ async function silentRefreshNews() {
 }
 
 // ============================================
+// Hub Polish — 新增函数
+// ============================================
+
+// 心流部件频谱柱状图
+function updateFlowBars() {
+    const container = document.getElementById('nav-flow-bars');
+    if (!container) return;
+    const bars = Array.from({ length: 10 }, (_, i) => {
+        const base = 0.2 + (i / 10) * 0.6;
+        const variance = (Math.random() - 0.3) * 0.2;
+        return Math.max(0.1, Math.min(1, base + variance));
+    });
+    const peakIdx = bars.indexOf(Math.max(...bars));
+    container.innerHTML = bars.map((h, i) =>
+        `<div class="nav-flow-bar${i === peakIdx ? ' peak' : ''}" style="height:${Math.round(h * 100)}%"></div>`
+    ).join('');
+}
+function startFlowBarsPolling() {
+    updateFlowBars();
+    setInterval(updateFlowBars, 3000);
+}
+
+// Hero 环形进度入场动画
+function animateRing() {
+    const ring = document.getElementById('hero-ring-fill');
+    const text = document.getElementById('hero-ring-value');
+    if (!ring || !text) return;
+    const circumference = 314.16;
+    const targetPercent = 0.88;
+    let current = 0;
+    const duration = 800;
+    const start = performance.now();
+    function step(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        current = targetPercent * eased;
+        ring.style.strokeDashoffset = circumference * (1 - current);
+        text.textContent = Math.round(current * 100) + '%';
+        if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+// 激励文案轮播
+const mottoList = [
+    '保持节奏，今天又是充实的一天',
+    '每一步都在靠近你的目标',
+    '学习是通向未来的最短路径',
+    '今天的努力，明天的底气',
+    '专注当下，水到渠成'
+];
+function startMottoRotation() {
+    const mottoEl = document.getElementById('hero-motto');
+    if (!mottoEl) return;
+    let idx = 0;
+    setInterval(() => {
+        idx = (idx + 1) % mottoList.length;
+        mottoEl.style.opacity = '0';
+        setTimeout(() => {
+            mottoEl.textContent = mottoList[idx];
+            mottoEl.style.opacity = '1';
+        }, 300);
+    }, 8000);
+}
+
+// ============================================
 // Initialize
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -3751,6 +3795,11 @@ document.addEventListener('DOMContentLoaded', function() {
     loadFocusTasks();     // 加载专注任务
     loadFocusCalendar();  // 加载专注日历
     loadLearningDomains(); // 加载学习领域
+
+    // Hub polish — 新增初始化
+    startFlowBarsPolling();
+    animateRing();
+    startMottoRotation();
 
     // 热力图切换按钮事件
     document.querySelectorAll('.heatmap-toggle .toggle-btn').forEach(btn => {
@@ -3892,7 +3941,7 @@ document.addEventListener('click', (e) => {
     const ripple = document.createElement('span');
     ripple.style.cssText = `
         position: absolute; width: 20px; height: 20px;
-        background: rgba(212,128,42,0.15); border-radius: 50%;
+        background: var(--accent-bg); border-radius: 50%;
         transform: translate(-50%,-50%) scale(0); pointer-events: none;
         animation: rippleExpand 0.5s ease-out forwards;
         left: ${x}px; top: ${y}px;
@@ -3941,15 +3990,28 @@ if (!document.getElementById('hub-perfect-animations')) {
         if (!tabBtns.length || !tabPanels.length) return;
 
         function switchTab(targetTab) {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabPanels.forEach(p => p.classList.remove('active'));
+            const currentPanel = document.querySelector('.tab-panel.active');
+            const targetPanel = document.getElementById(`tab-${targetTab}`);
+            if (currentPanel === targetPanel) return;
 
+            tabBtns.forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
             const btn = document.querySelector(`.tab-btn[data-tab="${targetTab}"]`);
-            const panel = document.getElementById(`tab-${targetTab}`);
-            if (btn) btn.classList.add('active');
-            if (panel) panel.classList.add('active');
+            if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
 
-            // 更新 URL hash
+            if (currentPanel) {
+                currentPanel.classList.add('slide-out');
+            }
+
+            if (targetPanel) {
+                targetPanel.classList.add('active', 'slide-in');
+            }
+
+            setTimeout(() => {
+                if (currentPanel) {
+                    currentPanel.classList.remove('active', 'slide-out', 'slide-in');
+                }
+            }, 300);
+
             if (window.location.hash !== `#${targetTab}`) {
                 history.replaceState(null, '', `#${targetTab}`);
             }
@@ -4000,5 +4062,28 @@ if (!document.getElementById('hub-perfect-animations')) {
         document.addEventListener('DOMContentLoaded', initScrollProgress);
     } else {
         initScrollProgress();
+    }
+})();
+
+// ============================================
+// 个人中心入口追踪（记录来源页面，用于返回导航）
+// ============================================
+(function() {
+    function initEntryTracking() {
+        const selector = '#user-pill, [data-entry="personal"]';
+        const links = document.querySelectorAll(selector);
+        links.forEach(link => {
+            link.addEventListener('click', function() {
+                try {
+                    sessionStorage.setItem('personal_entry_from', window.location.href);
+                } catch (e) { /* sessionStorage 不可用时静默忽略 */ }
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEntryTracking);
+    } else {
+        initEntryTracking();
     }
 })();

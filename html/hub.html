@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/loading.css">
     <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/components.css">
 </head>
 <body class="hub-body">
     <div class="scroll-progress" id="scroll-progress"></div>
@@ -68,8 +69,8 @@
                     <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    <input type="text" placeholder="搜索课程、学习目标..." class="search-input">
-                    <kbd class="search-kbd">Ctrl K</kbd>
+                    <input type="text" placeholder="搜索课程、学习目标..." class="search-input" aria-label="搜索课程、学习目标">
+                    <kbd class="search-kbd">⌘K</kbd>
                 </div>
             </div>
 
@@ -80,10 +81,9 @@
                         <span class="nav-flow-label">心流</span>
                         <strong id="nav-flow-value">94%</strong>
                     </div>
-                    <svg class="nav-flow-wave" viewBox="0 0 180 34" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="nav-flow-gridline" d="M0 17H180"/>
-                        <path class="nav-flow-line" d="M0 18 L28 18 L36 16 L44 18 L58 18 L64 7 L70 27 L76 10 L82 26 L88 18 L112 18 L122 16 L132 18 L150 18 L156 9 L162 25 L168 18 L180 18"/>
-                    </svg>
+                    <div class="nav-flow-bars" id="nav-flow-bars">
+                        <!-- JS 动态生成 10 根柱条 -->
+                    </div>
                 </div>
 
                 <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
@@ -93,25 +93,31 @@
                     </svg>
                 </button>
 
-                <button class="notification-btn" id="notification-btn">
+                <button class="notification-btn" id="notification-btn" aria-label="通知">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
                     </svg>
-                    <div class="notification-dot" id="notification-dot"></div>
+                    <span class="notification-badge-count" id="notification-badge" style="display:none">0</span>
                 </button>
-                <a href="/personal.html" class="user-avatar-wrapper" id="user-avatar" onclick="sessionStorage.setItem('personal_entry_from', window.location.href);">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%234F46E5'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E李%3C/text%3E%3C/svg%3E" alt="User" class="user-avatar">
-                    <div class="online-indicator"></div>
+                <a href="/personal.html" class="user-pill" id="user-pill">
+                    <span class="user-pill-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%234F46E5'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E李%3C/text%3E%3C/svg%3E" alt="User" style="width:100%;height:100%;border-radius:50%">
+                    </span>
+                    <span class="user-pill-info">
+                        <span class="user-pill-name">李同学</span>
+                        <span class="user-pill-level">Lv.24</span>
+                    </span>
+                    <span class="user-pill-status"></span>
                 </a>
             </div>
         </div>
     </nav>
 
     <!-- ====== 消息中心面板 ====== -->
-    <div class="notification-panel" id="notification-panel">
+    <div class="notification-panel" id="notification-panel" role="complementary" aria-label="消息中心">
         <div class="notification-header">
             <h3>消息中心</h3>
-            <button class="mark-all-read" id="mark-all-read">全部已读</button>
+            <button class="mark-all-read" id="mark-all-read" aria-label="全部标记为已读">全部已读</button>
         </div>
         <div class="notification-list" id="notification-list">
             <div class="notification-item unread" data-id="1">
@@ -228,7 +234,7 @@
                 <div class="sidebar-divider"></div>
                 <div class="sidebar-section">
                     <span class="sidebar-section-label">个人</span>
-                    <a href="/personal.html" class="nav-item" onclick="sessionStorage.setItem('personal_entry_from', window.location.href);">
+                    <a href="/personal.html" class="nav-item" data-entry="personal">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                         <span>个人中心</span>
                     </a>
@@ -244,45 +250,65 @@
         <main class="hub-main">
 
             <!-- 标签导航 -->
-            <nav class="tab-bar">
-                <button class="tab-btn active" data-tab="overview">总览</button>
-                <button class="tab-btn" data-tab="learn">学习</button>
-                <button class="tab-btn" data-tab="tools">工具</button>
-                <button class="tab-btn" data-tab="data">数据</button>
+            <nav class="tab-bar" role="tablist" aria-label="内容分类">
+                <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">总览</button>
+                <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">学习</button>
+                <button class="tab-btn" data-tab="tools" role="tab" aria-selected="false">工具</button>
+                <button class="tab-btn" data-tab="data" role="tab" aria-selected="false">数据</button>
             </nav>
 
             <!-- ====== 标签页：总览 ====== -->
-            <section class="tab-panel active" id="tab-overview">
+            <section class="tab-panel active" id="tab-overview" role="tabpanel" aria-label="总览">
 
                 <!-- Hero 欢迎卡 -->
                 <div class="hero-banner hub-card" id="hero-status-card">
                     <div class="hero-banner-inner">
-                        <div class="hero-banner-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        <div class="hero-banner-left">
+                            <div class="hero-date-row">
+                                <span id="hero-date-text">2026年6月2日 星期二</span>
+                                <span class="hero-week-badge" id="hero-week-badge">第23周</span>
+                            </div>
+                            <div>
+                                <h1 class="hero-title-gradient" id="hero-title">下午好，李同学 👋</h1>
+                                <p class="hero-motto" id="hero-motto">保持节奏，今天又是充实的一天</p>
+                            </div>
+                            <div class="hero-stats-row" id="hero-stats">
+                                <div class="hero-stat-capsule study">
+                                    <span class="hero-stat-capsule-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                    </span>
+                                    <span class="hero-stat-capsule-value" id="hero-stat-study">2.5h</span>
+                                    <span class="hero-stat-capsule-label">今日学习</span>
+                                </div>
+                                <div class="hero-stat-capsule streak">
+                                    <span class="hero-stat-capsule-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                                    </span>
+                                    <span class="hero-stat-capsule-value" id="hero-stat-streak">23天</span>
+                                    <span class="hero-stat-capsule-label">连续打卡</span>
+                                </div>
+                                <div class="hero-stat-capsule mastery">
+                                    <span class="hero-stat-capsule-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                                    </span>
+                                    <span class="hero-stat-capsule-value" id="hero-stat-mastery">88%</span>
+                                    <span class="hero-stat-capsule-label">掌握率</span>
+                                </div>
+                                <div class="hero-stat-capsule level">
+                                    <span class="hero-stat-capsule-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                    </span>
+                                    <span class="hero-stat-capsule-value" id="hero-stat-level">Lv.24</span>
+                                    <span class="hero-stat-capsule-label">等级</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="hero-ring-area">
+                            <svg class="hero-ring" viewBox="0 0 120 120">
+                                <circle class="hero-ring-bg" cx="60" cy="60" r="50"/>
+                                <circle class="hero-ring-fill" cx="60" cy="60" r="50" id="hero-ring-fill"/>
                             </svg>
-                        </div>
-                        <div class="hero-banner-info">
-                            <h3 class="hero-title" id="hero-title">今天还没开始</h3>
-                            <p class="hero-subtitle" id="hero-subtitle">本周累计 0 小时，先从一个小任务开始。</p>
-                        </div>
-                        <div class="hero-banner-stats">
-                            <div class="hero-stat-capsule" style="--capsule-accent: var(--brand-500)">
-                                <span class="hero-stat-capsule-value" id="hero-stat-value">0</span>
-                                <span class="hero-stat-capsule-unit" id="hero-stat-unit">分钟</span>
-                            </div>
-                            <div class="hero-stat-capsule" style="--capsule-accent: var(--warning)">
-                                <span class="hero-stat-capsule-value" id="hero-stat-streak">0</span>
-                                <span class="hero-stat-capsule-unit">天连续</span>
-                            </div>
-                            <div class="hero-stat-capsule" style="--capsule-accent: var(--success)">
-                                <span class="hero-stat-capsule-value" id="hero-stat-hours">0</span>
-                                <span class="hero-stat-capsule-unit">本周小时</span>
-                            </div>
-                            <div class="hero-stat-trend" id="hero-trend">
-                                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 12h16"/></svg>
-                                <span id="hero-trend-value">持平</span>
-                            </div>
+                            <span class="hero-ring-text" id="hero-ring-value">88%</span>
                         </div>
                     </div>
                 </div>
@@ -479,7 +505,7 @@
             </section>
 
             <!-- ====== 标签页：学习 ====== -->
-            <section class="tab-panel" id="tab-learn">
+            <section class="tab-panel" id="tab-learn" role="tabpanel" aria-label="学习">
 
                 <!-- 知识生态系统 -->
                 <section class="panel-section" id="section-knowledge-tree">
@@ -607,7 +633,7 @@
             </section>
 
             <!-- ====== 标签页：工具 ====== -->
-            <section class="tab-panel" id="tab-tools">
+            <section class="tab-panel" id="tab-tools" role="tabpanel" aria-label="工具">
 
                 <!-- 星际自习大厅 -->
                 <section class="panel-section" id="study-hall-section">
@@ -718,7 +744,7 @@
             </section>
 
             <!-- ====== 标签页：数据 ====== -->
-            <section class="tab-panel" id="tab-data">
+            <section class="tab-panel" id="tab-data" role="tabpanel" aria-label="数据">
 
                 <!-- 学习概览图表 -->
                 <section class="panel-section" id="section-dashboard">
@@ -771,16 +797,14 @@
                     </h4>
                     <span class="compact-badge">6月</span>
                 </div>
-                <div class="mini-calendar-grid">
-                    <span class="empty"></span><span class="empty"></span>
-                    <span class="day completed">1</span><span class="day completed">2</span>
-                    <span class="day completed">3</span><span class="day completed">4</span>
-                    <span class="day completed">5</span><span class="day completed">6</span>
-                    <span class="day completed">7</span><span class="day completed">8</span>
-                    <span class="day completed">9</span><span class="day completed">10</span>
-                    <span class="day completed">11</span><span class="day completed">12</span>
-                    <span class="day completed">13</span><span class="day today">14</span>
-                    <span class="day">15</span><span class="day">16</span><span class="day">17</span><span class="day">18</span>
+                <div class="week-heat-bars" id="week-heat-bars">
+                    <div class="week-heat-col"><div class="week-heat-bar level-0" style="height:25%"></div><span class="week-heat-label">周一</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-1" style="height:45%"></div><span class="week-heat-label">周二</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-3" style="height:85%"></div><span class="week-heat-label">周三</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-2" style="height:60%"></div><span class="week-heat-label">周四</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-1" style="height:35%"></div><span class="week-heat-label">周五</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-2" style="height:55%"></div><span class="week-heat-label">周六</span></div>
+                    <div class="week-heat-col"><div class="week-heat-bar level-0" style="height:10%"></div><span class="week-heat-label">周日</span></div>
                 </div>
             </div>
 
@@ -804,21 +828,25 @@
 
             <!-- 快捷链接 -->
             <nav class="right-panel-links">
-                <a href="/index.html" class="panel-link">
+                <a href="/index.html" class="panel-link" data-accent="brand">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                    <span>AI 问答</span>
+                    <span class="panel-link-text">AI 问答</span>
+                    <svg class="panel-link-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
-                <a href="/video-player.html" class="panel-link">
+                <a href="/video-player.html" class="panel-link" data-accent="info">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                    <span>全息视界</span>
+                    <span class="panel-link-text">全息视界</span>
+                    <svg class="panel-link-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
-                <a href="/courses.html" class="panel-link">
+                <a href="/courses.html" class="panel-link" data-accent="success">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                    <span>课程中心</span>
+                    <span class="panel-link-text">课程中心</span>
+                    <svg class="panel-link-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
-                <a href="/flow-meter.html" class="panel-link">
+                <a href="/flow-meter.html" class="panel-link" data-accent="warning">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-                    <span>心流共振</span>
+                    <span class="panel-link-text">心流共振</span>
+                    <svg class="panel-link-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
             </nav>
         </aside>
@@ -827,7 +855,7 @@
     <!-- ====== 弹窗层 ====== -->
 
     <!-- 更多资讯弹窗 -->
-    <div class="news-modal" id="news-modal">
+    <div class="news-modal" id="news-modal" role="dialog" aria-modal="true" aria-label="资讯中心">
         <div class="news-modal-overlay" id="news-modal-overlay"></div>
         <div class="news-modal-card">
             <div class="news-modal-header">
@@ -842,7 +870,7 @@
                     <button class="news-tab" data-category="生活">生活</button>
                     <button class="news-tab" data-category="国际形势">国际形势</button>
                 </div>
-                <button class="news-modal-close" id="news-modal-close">&times;</button>
+                <button class="news-modal-close" id="news-modal-close" aria-label="关闭资讯中心">&times;</button>
             </div>
             <div class="news-modal-body" id="news-modal-body">
                 <div class="news-modal-loading">
@@ -868,7 +896,6 @@
     <script src="/js/achievements-data.js"></script>
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/focus-sync.js"></script>
-    <link rel="stylesheet" href="/css/components.css">
     <script src="/js/theme.js"></script>
     <script src="/js/hub.js"></script>
     <script src="/js/kanban.js"></script>

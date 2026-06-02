@@ -681,6 +681,64 @@
       "completed": [],
       "generated_at": "2026-06-01T19:07:52.111154",
       "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "英语单词记忆",
+          "description": "背诵20个核心词汇",
+          "type": "study",
+          "duration": 20,
+          "subject": "英语",
+          "difficulty": "easy",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "高数专项练习",
+          "description": "完成5道极限练习题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 3,
+          "title": "错题回顾",
+          "description": "复习本周典型错题",
+          "type": "review",
+          "duration": 25,
+          "subject": "通用",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "算法挑战",
+          "description": "完成2道简单算法题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 5,
+          "title": "喂养星宝",
+          "description": "放松一下，照顾虚拟宠物",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/html/pet.html"
+        }
+      ],
+      "date": "2026-06-02",
+      "completed": [],
+      "generated_at": "2026-06-02T00:54:09.033150",
+      "user_id": 2
     }
   ],
   "classroom_records": [
