@@ -6512,6 +6512,10 @@
                     playBtn.title = '播放';
                 }
                 if (playIcon) playIcon.className = 'fas fa-play';
+                // Clean up blob URL after playback completes
+                if (url && url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
                 if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                     setTimeout(() => this.nextScene(), 800);
                 }
