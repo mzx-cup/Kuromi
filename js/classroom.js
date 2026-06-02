@@ -4439,7 +4439,7 @@
             if (!text) return;
 
             // 如果已经缓存，不需要再预加载
-            if (nextScene.audioUrl || this.courseData.tts_audio_urls?.[String(nextScene.id)]) return;
+            if (nextScene.audioUrl || nextScene.audioBase64 || this.courseData.tts_audio_base64?.[String(nextScene.id)]) return;
 
             // 15秒后如果用户还在当前场景，预加载下一场景
             this._ttsPreloadTimer = setTimeout(() => {
@@ -4453,8 +4453,8 @@
             if (!text) return;
             const sceneId = String(scene.id);
 
-            // 如果已经在缓存中，跳过
-            if (scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId]) return;
+            // 如果已经在缓存中，跳过（检查 scene.audioBase64 而非仅 audioUrl）
+            if (scene.audioBase64 || this.courseData.tts_audio_base64?.[sceneId]) return;
 
             // 如果该场景正在预加载中，复用 Promise
             if (this._ttsPreloadPromises.has(sceneId)) {
@@ -4468,14 +4468,35 @@
                 try {
                     const result = await this.generateTTS(text, voiceId, speed);
                     if (result.success && result.audioUrl) {
+                        // 提取 base64 数据用于持久化缓存（blob URL 不可跨会话复用）
+                        let base64Data = null;
+                        if (result.audioUrl.startsWith('data:')) {
+                            // data URI: data:audio/mp3;base64,<data>
+                            const commaIdx = result.audioUrl.indexOf(',');
+                            if (commaIdx >= 0) base64Data = result.audioUrl.substring(commaIdx + 1);
+                        }
+                        // 内存中保留 blob URL（本次会话可用）
                         scene.audioUrl = result.audioUrl;
+                        scene.audioBase64 = base64Data;
                         if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
                         this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
-                        // 持久化到 sessionStorage，刷新后缓存仍有效
+                        // 持久化 base64 数据到 sessionStorage
+                        if (base64Data) {
+                            if (!this.courseData.tts_audio_base64) this.courseData.tts_audio_base64 = {};
+                            this.courseData.tts_audio_base64[sceneId] = base64Data;
+                        }
                         try {
                             sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
-                        } catch (e) {}
-                        console.log('[Classroom] TTS preloaded for scene', scene.id, ':', result.audioUrl);
+                        } catch (e) {
+                            // sessionStorage 可能满了，清除旧的 blob URL 条目再试
+                            if (this.courseData.tts_audio_urls) {
+                                const oldUrls = this.courseData.tts_audio_urls;
+                                this.courseData.tts_audio_urls = {};
+                                try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e2) {}
+                                this.courseData.tts_audio_urls = oldUrls;
+                            }
+                        }
+                        console.log('[Classroom] TTS preloaded for scene', scene.id, ':', result.audioUrl?.substring(0, 50) + '...');
                     }
                 } catch (e) {
                     console.warn('[Classroom] TTS preload failed for scene', scene.id, e);
@@ -4488,31 +4509,51 @@
 
         async _ensureSceneTTSCached(scene) {
             const sceneId = String(scene.id);
-            // 1. 检查内存缓存
+            // 1. 检查内存缓存（blob URL 或 data URI）
             if (scene.audioUrl) return scene.audioUrl;
             if (this.courseData.tts_audio_urls?.[sceneId]) {
                 scene.audioUrl = this.courseData.tts_audio_urls[sceneId];
                 return scene.audioUrl;
             }
 
+            // 2. 从持久化 base64 缓存恢复（转换回 data URI，因为 blob URL 已过期）
+            if (scene.audioBase64 || this.courseData.tts_audio_base64?.[sceneId]) {
+                const b64 = scene.audioBase64 || this.courseData.tts_audio_base64[sceneId];
+                if (b64) {
+                    const dataUri = 'data:audio/mp3;base64,' + b64;
+                    scene.audioUrl = dataUri;
+                    return dataUri;
+                }
+            }
+
             const text = this.getSceneSpeechText(scene);
             if (!text) return null;
 
-            // 2. 如果该场景正在后台预加载中，等待它完成
+            // 3. 如果该场景正在后台预加载中，等待它完成
             if (this._ttsPreloadPromises.has(sceneId)) {
                 await this._ttsPreloadPromises.get(sceneId);
                 return scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId] || null;
             }
 
-            // 3. 否则立即生成（插队）
+            // 4. 否则立即生成（插队）
             this.updateTeacherStatus('正在合成语音...', false);
             const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
             const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
             const result = await this.generateTTS(text, voiceId, speed);
             if (result.success && result.audioUrl) {
                 scene.audioUrl = result.audioUrl;
+                let base64Data = null;
+                if (result.audioUrl.startsWith('data:')) {
+                    const commaIdx = result.audioUrl.indexOf(',');
+                    if (commaIdx >= 0) base64Data = result.audioUrl.substring(commaIdx + 1);
+                }
+                scene.audioBase64 = base64Data;
                 if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
                 this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
+                if (base64Data) {
+                    if (!this.courseData.tts_audio_base64) this.courseData.tts_audio_base64 = {};
+                    this.courseData.tts_audio_base64[sceneId] = base64Data;
+                }
                 try {
                     sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
                 } catch (e) {}
