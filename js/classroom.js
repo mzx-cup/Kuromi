@@ -4239,6 +4239,128 @@
             }
         }
 
+        /**
+         * 从 v2 SSE 流式 TTS 端点收集音频数据。
+         * 消费 SSE text/event-stream，提取所有 audio chunk (hex) 和 word timestamp。
+         * 返回 Blob 和逐字时间戳数组，供后续播放和同步高亮使用。
+         *
+         * @param {string} text - 要合成语音的文本
+         * @param {string} voiceId - MiniMax 音色字符串 ID (如 'female-yujie')
+         * @param {number} speed - 语速 (0.5 ~ 2.0)
+         * @returns {Promise<{success: boolean, audioBlob?: Blob, blobUrl?: string, wordTimestamps?: Array, error?: string}>}
+         */
+        async _collectSSEStream(text, voiceId, speed = 1.0) {
+            const controller = new AbortController();
+            // 保存到实例，stopAudio() 时可以通过它中断流
+            this._activeStreamController = controller;
+
+            try {
+                const response = await fetch('/api/v2/tts/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice: voiceId,
+                        speed: speed
+                    }),
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    return { success: false, error: errData.detail || 'TTS stream request failed' };
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                const audioChunks = [];      // Uint8Array[]
+                const wordTimestamps = [];   // {word, start_ms, end_ms}[]
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    // 最后一行可能不完整，保留到下次循环
+                    buffer = lines.pop() || '';
+
+                    let currentEvent = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.slice(7).trim();
+                        } else if (line.startsWith('data: ') && currentEvent) {
+                            const dataStr = line.slice(6);
+                            try {
+                                const data = JSON.parse(dataStr);
+                                if (currentEvent === 'audio' && data.hex) {
+                                    const bytes = new Uint8Array(data.hex.length / 2);
+                                    for (let i = 0; i < data.hex.length; i += 2) {
+                                        bytes[i / 2] = parseInt(data.hex.substring(i, i + 2), 16);
+                                    }
+                                    audioChunks.push(bytes);
+                                } else if (currentEvent === 'word') {
+                                    wordTimestamps.push({
+                                        word: data.word,
+                                        start_ms: data.start_ms,
+                                        end_ms: data.end_ms,
+                                        sentence_index: data.sentence_index
+                                    });
+                                }
+                                // 'done' event: stream finished, nothing extra to extract
+                                // 'error' event: stream error
+                                if (currentEvent === 'error') {
+                                    return { success: false, error: data.message || 'TTS stream error' };
+                                }
+                            } catch (e) {
+                                // skip unparseable lines
+                            }
+                            currentEvent = '';
+                        }
+                    }
+                }
+
+                if (audioChunks.length === 0) {
+                    return { success: false, error: 'No audio data received from stream' };
+                }
+
+                // 拼接所有音频块为完整 Blob
+                const totalLength = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                const combined = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of audioChunks) {
+                    combined.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                const audioBlob = new Blob([combined], { type: 'audio/mp3' });
+
+                // 创建 blob URL（stopAudio 时通过 revokeObjectURL 释放）
+                const blobUrl = URL.createObjectURL(audioBlob);
+                // 保存引用以便后续清理
+                this._activeBlobUrl = blobUrl;
+
+                console.log('[Classroom] SSE stream collected:',
+                    audioChunks.length, 'chunks,',
+                    totalLength, 'bytes,',
+                    wordTimestamps.length, 'word timestamps');
+                return {
+                    success: true,
+                    audioBlob: audioBlob,
+                    blobUrl: blobUrl,
+                    wordTimestamps: wordTimestamps
+                };
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    return { success: false, error: 'Stream aborted' };
+                }
+                console.error('[Classroom] SSE stream error:', e);
+                return { success: false, error: e.message };
+            } finally {
+                this._activeStreamController = null;
+            }
+        }
+
         showSpeechSyncIndicator(show) {
             if (this.speechSync) {
                 this.speechSync.style.display = show ? 'flex' : 'none';
