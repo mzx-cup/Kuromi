@@ -2415,19 +2415,20 @@ function drawTreeConnections() {
 
     if (!rootNode) return;
 
+    const _s = _parseRGB(resolveCSSColor('--success', '#10b981')); const _w = _parseRGB(resolveCSSColor('--warning', '#f59e0b')); const _d = _parseRGB(resolveCSSColor('--danger', '#ef4444'));
     svgContainer.innerHTML = `
         <defs>
             <linearGradient id="lineGradientHealthy" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(52, 211, 153, 0.6)"/>
-                <stop offset="100%" stop-color="rgba(52, 211, 153, 0.3)"/>
+                <stop offset="0%" stop-color="rgba(${_s.join(',')}, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(${_s.join(',')}, 0.3)"/>
             </linearGradient>
             <linearGradient id="lineGradientWarning" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(251, 191, 36, 0.6)"/>
-                <stop offset="100%" stop-color="rgba(251, 191, 36, 0.3)"/>
+                <stop offset="0%" stop-color="rgba(${_w.join(',')}, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(${_w.join(',')}, 0.3)"/>
             </linearGradient>
             <linearGradient id="lineGradientDanger" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(248, 113, 113, 0.6)"/>
-                <stop offset="100%" stop-color="rgba(248, 113, 113, 0.3)"/>
+                <stop offset="0%" stop-color="rgba(${_d.join(',')}, 0.6)"/>
+                <stop offset="100%" stop-color="rgba(${_d.join(',')}, 0.3)"/>
             </linearGradient>
             <filter id="glow">
                 <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
@@ -2667,31 +2668,38 @@ function drawEbbinghausLayout() {
     // 清除现有内容
     svgContainer.innerHTML = '';
 
+    // 从 CSS 变量解析颜色（主题感知）
+    const _succ = _parseRGB(resolveCSSColor('--success', '#10b981'));
+    const _warn = _parseRGB(resolveCSSColor('--warning', '#f59e0b'));
+    const _dang = _parseRGB(resolveCSSColor('--danger', '#ef4444'));
+    const _brand = _parseRGB(resolveCSSColor('--brand-300', '#a855f7'));
+    const _info = _parseRGB(resolveCSSColor('--info', '#3b82f6'));
+
     // 添加 SVG 定义
     svgContainer.innerHTML = `
         <defs>
             <!-- 紧迫性渐变 - 危险红 -->
             <linearGradient id="urgencyGradientCritical" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(239, 68, 68, 0.8)"/>
-                <stop offset="100%" stop-color="rgba(248, 113, 113, 0.4)"/>
+                <stop offset="0%" stop-color="rgba(${_dang.join(',')}, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(${_dang.join(',')}, 0.4)"/>
             </linearGradient>
             <!-- 紧迫性渐变 - 警告橙 -->
             <linearGradient id="urgencyGradientWarning" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(245, 158, 11, 0.8)"/>
-                <stop offset="100%" stop-color="rgba(251, 191, 36, 0.4)"/>
+                <stop offset="0%" stop-color="rgba(${_warn.join(',')}, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(${_warn.join(',')}, 0.4)"/>
             </linearGradient>
             <!-- 紧迫性渐变 - 健康绿 -->
             <linearGradient id="urgencyGradientHealthy" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(16, 185, 129, 0.8)"/>
-                <stop offset="100%" stop-color="rgba(52, 211, 153, 0.4)"/>
+                <stop offset="0%" stop-color="rgba(${_succ.join(',')}, 0.8)"/>
+                <stop offset="100%" stop-color="rgba(${_succ.join(',')}, 0.4)"/>
             </linearGradient>
             <!-- 前置知识虚线样式 -->
             <marker id="arrowPrerequisite" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="rgba(168, 85, 247, 0.7)"/>
+                <polygon points="0 0, 10 3.5, 0 7" fill="rgba(${_brand.join(',')}, 0.7)"/>
             </marker>
             <!-- 相关知识标记 -->
             <marker id="arrowRelated" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="rgba(59, 130, 246, 0.6)"/>
+                <polygon points="0 0, 8 3, 0 6" fill="rgba(${_info.join(',')}, 0.6)"/>
             </marker>
             <filter id="connectionGlow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur stdDeviation="2" result="glow"/>
@@ -2749,7 +2757,10 @@ function drawTimeAxisBackground(svgContainer) {
     criticalZone.setAttribute('y', '0');
     criticalZone.setAttribute('width', '30');
     criticalZone.setAttribute('height', '100');
-    criticalZone.setAttribute('fill', 'rgba(239, 68, 68, 0.05)');
+    const _succ = _parseRGB(resolveCSSColor('--success', '#10b981'));
+    const _warn = _parseRGB(resolveCSSColor('--warning', '#f59e0b'));
+    const _dang = _parseRGB(resolveCSSColor('--danger', '#ef4444'));
+    criticalZone.setAttribute('fill', `rgba(${_dang.join(',')}, 0.05)`);
     urgencyBg.appendChild(criticalZone);
 
     // 中间缓冲X区 (30-70)
@@ -2758,7 +2769,7 @@ function drawTimeAxisBackground(svgContainer) {
     warningZone.setAttribute('y', '0');
     warningZone.setAttribute('width', '40');
     warningZone.setAttribute('height', '100');
-    warningZone.setAttribute('fill', 'rgba(245, 158, 11, 0.03)');
+    warningZone.setAttribute('fill', `rgba(${_warn.join(',')}, 0.03)`);
     urgencyBg.appendChild(warningZone);
 
     // 右侧安全区 (70-100)
@@ -2767,7 +2778,7 @@ function drawTimeAxisBackground(svgContainer) {
     healthyZone.setAttribute('y', '0');
     healthyZone.setAttribute('width', '30');
     healthyZone.setAttribute('height', '100');
-    healthyZone.setAttribute('fill', 'rgba(16, 185, 129, 0.03)');
+    healthyZone.setAttribute('fill', `rgba(${_succ.join(',')}, 0.03)`);
     urgencyBg.appendChild(healthyZone);
 
     svgContainer.appendChild(urgencyBg);
@@ -2857,14 +2868,16 @@ function drawConnectionLine(svgContainer, fromPos, toPos, type, param = 0.5) {
     } else if (type === 'prerequisite') {
         // 前置知识连接 - 虚线+箭头
         d = `M${x1} ${y1} L${x2} ${y2}`;
-        line.setAttribute('stroke', 'rgba(168, 85, 247, 0.7)');
+        const _brand = _parseRGB(resolveCSSColor('--brand-300', '#a855f7'));
+        line.setAttribute('stroke', `rgba(${_brand.join(',')}, 0.7)`);
         line.setAttribute('stroke-width', '0.6');
         line.setAttribute('stroke-dasharray', '3,2');
         line.setAttribute('marker-end', 'url(#arrowPrerequisite)');
     } else if (type === 'related') {
         // 相关知识连接 - 点线
         d = `M${x1} ${y1} L${x2} ${y2}`;
-        line.setAttribute('stroke', 'rgba(59, 130, 246, 0.5)');
+        const _info = _parseRGB(resolveCSSColor('--info', '#3b82f6'));
+        line.setAttribute('stroke', `rgba(${_info.join(',')}, 0.5)`);
         line.setAttribute('stroke-width', '0.4');
         line.setAttribute('stroke-dasharray', '1,2');
         line.setAttribute('marker-end', 'url(#arrowRelated)');

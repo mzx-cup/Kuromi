@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 个人智能学习中枢</title>
+    <title>星识 Star-Learn — 个人智能学习中枢</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/loading.css">
@@ -11,81 +11,96 @@
     <link rel="stylesheet" href="/css/components.css">
 </head>
 <body class="hub-body">
+
     <div class="scroll-progress" id="scroll-progress"></div>
 
-    <!-- Background layers -->
+    <!-- 背景层 -->
     <div class="global-bg-layer" id="global-bg-layer"></div>
     <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
+    <!-- SVG 定义 -->
     <svg width="0" height="0" style="position:absolute">
         <defs>
             <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="var(--brand-400)"/>
-                <stop offset="50%" stop-color="var(--brand-500)"/>
-                <stop offset="100%" stop-color="var(--info)"/>
+                <stop offset="0%" stop-color="var(--info)"/>
+                <stop offset="50%" stop-color="var(--brand-300)"/>
+                <stop offset="100%" stop-color="var(--warning)"/>
             </linearGradient>
             <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="var(--brand-400)"/>
-                <stop offset="50%" stop-color="var(--brand-500)"/>
-                <stop offset="100%" stop-color="var(--info)"/>
+                <stop offset="0%" stop-color="var(--info)"/>
+                <stop offset="50%" stop-color="var(--brand-300)"/>
+                <stop offset="100%" stop-color="var(--warning)"/>
             </linearGradient>
             <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="color-mix(in oklch, var(--brand-500), transparent 65%)"/>
-                <stop offset="100%" stop-color="color-mix(in oklch, var(--brand-500), transparent 100%)"/>
+                <stop offset="0%" stop-color="color-mix(in oklch, var(--info), transparent 65%)"/>
+                <stop offset="100%" stop-color="color-mix(in oklch, var(--info), transparent 100%)"/>
             </linearGradient>
             <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="var(--brand-400)"/>
-                <stop offset="50%" stop-color="var(--brand-500)"/>
-                <stop offset="100%" stop-color="var(--info)"/>
+                <stop offset="0%" stop-color="var(--info)"/>
+                <stop offset="50%" stop-color="var(--brand-300)"/>
+                <stop offset="100%" stop-color="var(--warning)"/>
             </linearGradient>
+            <radialGradient id="nebulaGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="color-mix(in oklch, var(--info), transparent 95%)"/>
+                <stop offset="50%" stop-color="color-mix(in oklch, var(--brand-300), transparent 97%)"/>
+                <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
         </defs>
     </svg>
 
-    <div class="hub-bg" id="hub-bg"></div>
+    <!-- 深空背景 -->
+    <div class="hub-bg" id="hub-bg">
+        <div class="orb-3"></div>
+    </div>
 
-    <!-- ====== 顶部导航栏 ====== -->
+    <!-- ════════════════════════════════════════════
+         顶部导航栏 · Constellation Prism
+         ════════════════════════════════════════════ -->
     <nav class="hub-navbar">
         <div class="hub-nav-inner">
-            <div class="hub-nav-brand">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" class="logo-svg">
+            <!-- 品牌标志 — 星识棱晶星标 -->
+            <a href="/hub.html" class="hub-nav-brand">
+                <svg class="logo-svg" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="var(--brand-400)"/>
-                            <stop offset="50%" stop-color="var(--brand-500)"/>
-                            <stop offset="100%" stop-color="var(--info)"/>
+                            <stop offset="0%" stop-color="var(--info)"/>
+                            <stop offset="50%" stop-color="var(--brand-300)"/>
+                            <stop offset="100%" stop-color="var(--warning)"/>
                         </linearGradient>
                     </defs>
-                    <path d="M20 4 L23 15 L34 15 L25 22 L28 34 L20 27 L12 34 L15 22 L6 15 L17 15 Z" fill="url(#logoGradient)"/>
+                    <path d="M20 4L23 15L34 15L25 22L28 34L20 27L12 34L15 22L6 15L17 15Z" fill="url(#logoGradient)"/>
                     <circle cx="20" cy="20" r="4" fill="white" opacity="0.9"/>
                 </svg>
                 <div class="logo-text">
                     <span class="logo-title">星识</span>
                     <span class="logo-subtitle">Star Learn</span>
                 </div>
-            </div>
+            </a>
 
+            <!-- 搜索箱 -->
             <div class="hub-nav-search">
-                <div class="search-box">
+                <div class="search-box" id="search-box">
                     <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                     </svg>
-                    <input type="text" placeholder="搜索课程、学习目标..." class="search-input" aria-label="搜索课程、学习目标">
+                    <input type="text" placeholder="搜索课程、学习目标…" class="search-input" id="search-input" aria-label="搜索课程、学习目标">
                     <kbd class="search-kbd">⌘K</kbd>
                 </div>
             </div>
 
+            <!-- 操作区 -->
             <div class="hub-nav-actions">
+                <!-- 心流部件 -->
                 <div class="nav-flow-widget" aria-label="心流共振波段">
                     <div class="nav-flow-meta">
                         <span class="nav-flow-dot"></span>
                         <span class="nav-flow-label">心流</span>
                         <strong id="nav-flow-value">94%</strong>
                     </div>
-                    <div class="nav-flow-bars" id="nav-flow-bars">
-                        <!-- JS 动态生成 10 根柱条 -->
-                    </div>
+                    <div class="nav-flow-bars" id="nav-flow-bars"></div>
                 </div>
 
+                <!-- 主题切换 -->
                 <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="3" stroke-width="2"/>
@@ -93,15 +108,18 @@
                     </svg>
                 </button>
 
+                <!-- 通知铃 -->
                 <button class="notification-btn" id="notification-btn" aria-label="通知">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/>
                     </svg>
                     <span class="notification-badge-count" id="notification-badge" style="display:none">0</span>
                 </button>
+
+                <!-- 用户 pill -->
                 <a href="/personal.html" class="user-pill" id="user-pill">
                     <span class="user-pill-avatar">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%234F46E5'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E李%3C/text%3E%3C/svg%3E" alt="User" style="width:100%;height:100%;border-radius:50%">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%237098d8'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E李%3C/text%3E%3C/svg%3E" alt="User" style="width:100%;height:100%;border-radius:50%">
                     </span>
                     <span class="user-pill-info">
                         <span class="user-pill-name">李同学</span>
@@ -113,7 +131,9 @@
         </div>
     </nav>
 
-    <!-- ====== 消息中心面板 ====== -->
+    <!-- ════════════════════════════════════════════
+         消息中心面板
+         ════════════════════════════════════════════ -->
     <div class="notification-panel" id="notification-panel" role="complementary" aria-label="消息中心">
         <div class="notification-header">
             <h3>消息中心</h3>
@@ -162,10 +182,12 @@
     </div>
     <div class="notification-backdrop" id="notification-backdrop"></div>
 
-    <!-- ====== 主体布局：左侧功能导航 + 主内容 + 右侧面板 ====== -->
+    <!-- ════════════════════════════════════════════
+         主体布局：左侧导航 + 主内容 + 右侧面板
+         ════════════════════════════════════════════ -->
     <div class="hub-layout">
 
-        <!-- 左侧功能导航栏 -->
+        <!-- 左侧功能导航 -->
         <aside class="hub-sidebar" id="hub-sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-header-text">功能导航</span>
@@ -249,7 +271,7 @@
         <!-- 主内容区 -->
         <main class="hub-main">
 
-            <!-- 标签导航 -->
+            <!-- 标签导航栏 -->
             <nav class="tab-bar" role="tablist" aria-label="内容分类">
                 <button class="tab-btn active" data-tab="overview" role="tab" aria-selected="true">总览</button>
                 <button class="tab-btn" data-tab="learn" role="tab" aria-selected="false">学习</button>
@@ -257,20 +279,24 @@
                 <button class="tab-btn" data-tab="data" role="tab" aria-selected="false">数据</button>
             </nav>
 
-            <!-- ====== 标签页：总览 ====== -->
+            <!-- ═══════ 标签页：总览 ═══════ -->
             <section class="tab-panel active" id="tab-overview" role="tabpanel" aria-label="总览">
 
-                <!-- Hero 欢迎卡 -->
+                <!-- Hero 欢迎卡 · 棱晶切角 -->
                 <div class="hero-banner hub-card" id="hero-status-card">
+                    <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div><div class="prism-layer-2"></div></div>
+                    <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
+                    <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
+                    <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                     <div class="hero-banner-inner">
                         <div class="hero-banner-left">
                             <div class="hero-date-row">
-                                <span id="hero-date-text">2026年6月2日 星期二</span>
+                                <span id="hero-date-text">2026年6月3日 星期三</span>
                                 <span class="hero-week-badge" id="hero-week-badge">第23周</span>
                             </div>
                             <div>
-                                <h1 class="hero-title-gradient" id="hero-title">下午好，李同学 👋</h1>
-                                <p class="hero-motto" id="hero-motto">保持节奏，今天又是充实的一天</p>
+                                <h1 class="hero-title-gradient" id="hero-title">下午好，李同学</h1>
+                                <p class="hero-motto gradient-text" id="hero-motto">保持节奏，今天又是充实的一天</p>
                             </div>
                             <div class="hero-stats-row" id="hero-stats">
                                 <div class="hero-stat-capsule study">
@@ -313,9 +339,10 @@
                     </div>
                 </div>
 
-                <!-- 快捷操作 -->
+                <!-- 快捷操作卡 · 棱晶切角 -->
                 <div class="hero-actions-row">
                     <div class="overview-action-card hub-card" data-overview-action="focus" data-action="focus">
+                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
                         </div>
@@ -326,6 +353,7 @@
                         </div>
                     </div>
                     <div class="overview-action-card hub-card" data-overview-action="mastery" data-action="mastery">
+                        <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg>
                         </div>
@@ -336,6 +364,7 @@
                         </div>
                     </div>
                     <div class="overview-action-card hub-card" data-overview-action="rhythm" data-action="rhythm">
+                        <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
                         </div>
@@ -361,25 +390,28 @@
                         </div>
                     </div>
                     <div class="feature-grid" id="feature-grid">
-                        <a href="/index.html" class="feature-card hub-card" data-category="core">
+                        <a href="/index.html" class="feature-card hub-card func-card" data-category="core">
                             <span class="feature-card-badge hot">热门</span>
-                            <div class="feature-card-icon" style="--card-accent: var(--brand-500)">
+                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
+                            <div class="feature-card-icon" style="--card-accent: var(--info)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
                             <h3 class="feature-card-title">AI 问答</h3>
                             <p class="feature-card-desc">智能助手随时解答疑惑</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">AI驱动</span><span class="feature-card-tag">实时</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/video-player.html" class="feature-card hub-card" data-category="core">
-                            <div class="feature-card-icon" style="--card-accent: var(--info)">
+                        <a href="/video-player.html" class="feature-card hub-card func-card" data-category="core">
+                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
+                            <div class="feature-card-icon" style="--card-accent: var(--brand-400)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </div>
                             <h3 class="feature-card-title">全息视界</h3>
                             <p class="feature-card-desc">沉浸式视频学习体验</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">视频</span><span class="feature-card-tag">沉浸</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/courses.html" class="feature-card hub-card" data-category="learn">
+                        <a href="/courses.html" class="feature-card hub-card func-card" data-category="learn">
                             <span class="feature-card-badge new">上新</span>
+                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--success)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
                             </div>
@@ -387,16 +419,18 @@
                             <p class="feature-card-desc">系统化完整学习路径</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">系统</span><span class="feature-card-tag">路径</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/code.html" class="feature-card hub-card" data-category="create">
-                            <div class="feature-card-icon" style="--card-accent: var(--brand-600)">
+                        <a href="/code.html" class="feature-card hub-card func-card" data-category="create">
+                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
+                            <div class="feature-card-icon" style="--card-accent: var(--brand-300)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                             </div>
                             <h3 class="feature-card-title">代码工坊</h3>
                             <p class="feature-card-desc">在线编程即时反馈</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">编程</span><span class="feature-card-tag">实战</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/socratic-ai.html" class="feature-card hub-card" data-category="explore">
+                        <a href="/socratic-ai.html" class="feature-card hub-card func-card" data-category="explore">
                             <span class="feature-card-badge beta">实验</span>
+                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--danger)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                             </div>
@@ -404,7 +438,8 @@
                             <p class="feature-card-desc">诘问引导深度思考</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">思维</span><span class="feature-card-tag">AI</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/plant.html" class="feature-card hub-card" data-category="explore">
+                        <a href="/plant.html" class="feature-card hub-card func-card" data-category="explore">
+                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--warning)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg>
                             </div>
@@ -412,16 +447,18 @@
                             <p class="feature-card-desc">成就可视化花园</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">养成</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/stellar-showcase.html" class="feature-card hub-card" data-category="explore">
-                            <div class="feature-card-icon" style="--card-accent: var(--brand-400)">
+                        <a href="/stellar-showcase.html" class="feature-card hub-card func-card" data-category="explore">
+                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
+                            <div class="feature-card-icon" style="--card-accent: var(--brand-500)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             </div>
                             <h3 class="feature-card-title">星云陈列室</h3>
                             <p class="feature-card-desc">学习成果展示空间</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">展示</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/flow-meter.html" class="feature-card hub-card" data-category="explore">
-                            <div class="feature-card-icon" style="--card-accent: var(--brand-500)">
+                        <a href="/flow-meter.html" class="feature-card hub-card func-card" data-category="explore">
+                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
+                            <div class="feature-card-icon" style="--card-accent: var(--info)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                             </div>
                             <h3 class="feature-card-title">心流共振仪</h3>
@@ -434,6 +471,8 @@
                 <!-- 每日航线 -->
                 <section class="overview-section" id="daily-route">
                     <div class="mothership-card hub-card" style="padding:0; overflow:visible;">
+                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div><div class="prism-layer-2"></div></div>
+                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="route-content" id="route-content">
                             <div class="launch-engine" id="launch-engine">
                                 <button class="launch-btn" id="launch-btn">
@@ -442,7 +481,7 @@
                                 <p class="route-tip" id="route-tip">点击启动 AI 个性化学习旅程</p>
                                 <div class="route-loading" id="route-loading" style="display:none;">
                                     <div class="loading-spinner"></div>
-                                    <span>AI 正在分析学习画像...</span>
+                                    <span>AI 正在分析学习画像…</span>
                                 </div>
                             </div>
                             <div class="flight-path" id="flight-path">
@@ -456,7 +495,7 @@
                     </div>
                 </section>
 
-                <!-- 心流状态条（紧凑版） -->
+                <!-- 心流共振 -->
                 <section class="overview-section" id="section-flow-resonance">
                     <div class="section-head">
                         <div class="section-head-left">
@@ -472,28 +511,23 @@
                         </div>
                     </div>
                     <div class="flow-resonance-card hub-card">
+                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
+                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="flow-resonance-header">
                             <h4 class="flow-resonance-title">心流共振</h4>
                             <svg class="flow-ring" viewBox="0 0 100 100" width="64" height="64">
-                                <circle class="flow-ring-bg" cx="50" cy="50" r="42" fill="none" stroke="var(--neutral-200)" stroke-width="6"/>
-                                <circle class="flow-ring-progress" id="flow-ring-progress" cx="50" cy="50" r="42" fill="none" stroke="url(#ringGradient)" stroke-width="6" stroke-linecap="round"
+                                <circle class="flow-ring-bg" cx="50" cy="50" r="42"/>
+                                <circle class="flow-ring-progress" id="flow-ring-progress" cx="50" cy="50" r="42"
+                                    stroke="url(#ringGradient)" stroke-width="6" stroke-linecap="round"
                                     stroke-dasharray="264" stroke-dashoffset="16" transform="rotate(-90 50 50)"/>
-                                <text class="flow-ring-value" id="flow-ring-value" x="50" y="50" text-anchor="middle" dominant-baseline="central" fill="var(--text-primary)" font-size="18" font-weight="700">94</text>
+                                <text class="flow-ring-value" id="flow-ring-value" x="50" y="50" text-anchor="middle" dominant-baseline="central">94</text>
                             </svg>
                         </div>
                         <div class="flow-bars">
-                            <div class="flow-bar">
-                                <div class="flow-bar-fill" style="height: 78%;" data-label="上午"></div>
-                            </div>
-                            <div class="flow-bar">
-                                <div class="flow-bar-fill" style="height: 94%;" data-label="下午"></div>
-                            </div>
-                            <div class="flow-bar">
-                                <div class="flow-bar-fill" style="height: 52%;" data-label="傍晚"></div>
-                            </div>
-                            <div class="flow-bar">
-                                <div class="flow-bar-fill" style="height: 65%;" data-label="晚间"></div>
-                            </div>
+                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 78%;" data-label="上午"></div></div>
+                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 94%;" data-label="下午"></div></div>
+                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 52%;" data-label="傍晚"></div></div>
+                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 65%;" data-label="晚间"></div></div>
                         </div>
                         <div class="flow-resonance-footer">
                             <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>峰值专注: 94%</span></div>
@@ -504,7 +538,7 @@
                 </section>
             </section>
 
-            <!-- ====== 标签页：学习 ====== -->
+            <!-- ═══════ 标签页：学习 ═══════ -->
             <section class="tab-panel" id="tab-learn" role="tabpanel" aria-label="学习">
 
                 <!-- 知识生态系统 -->
@@ -518,6 +552,8 @@
                         </div>
                     </div>
                     <div class="holo-incubator hub-card">
+                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
+                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="holo-header">
                             <div class="holo-heading">
                                 <h2 class="holo-title"><span class="holo-title-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg></span>知识生态<span class="pending-review-badge" id="pending-review-badge" style="display:none;">0</span></h2>
@@ -538,7 +574,7 @@
                         </div>
                         <div class="holo-user-brief">
                             <div class="brief-copy"><span class="brief-label">当前优先</span><strong>机器学习</strong><span>记忆风险最高，建议先复习 12 分钟</span></div>
-                            <a class="holo-review-link" href="/courses.html" aria-label="开始复习机器学习"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg><span>开始复习</span></a>
+                            <a class="holo-review-link" href="/courses.html" aria-label="开始复习机器学习"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg><span>开始复习</span></a>
                         </div>
                         <div class="holo-tree-container" id="holoTree">
                             <svg class="holo-connections" id="holoConnections" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -571,7 +607,7 @@
                     </div>
                 </section>
 
-                <!-- 课程进度（课程中心卡片） -->
+                <!-- 热门航线 -->
                 <section class="panel-section" id="featured-section">
                     <div class="section-head">
                         <div class="section-head-left">
@@ -583,9 +619,10 @@
                         <a href="/courses.html" class="section-more">查看全部 <span>→</span></a>
                     </div>
                     <div class="content-grid" id="content-grid">
-                        <a href="/courses.html" class="content-card hub-card">
-                            <div class="content-card-image" style="background:linear-gradient(135deg,var(--neutral-800),var(--neutral-700))">
-                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--brand-500), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
+                        <a href="/courses.html" class="content-card hub-card content-card-compact">
+                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
+                            <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--info),black 70%),color-mix(in oklch,var(--brand-300),black 70%))">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--info), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
                             <div class="content-card-body">
                                 <span class="content-card-category">课程</span>
@@ -598,9 +635,10 @@
                                 </div>
                             </div>
                         </a>
-                        <a href="/courses.html" class="content-card hub-card">
-                            <div class="content-card-image" style="background:linear-gradient(135deg,var(--neutral-800),color-mix(in oklch, var(--info), black 50%))">
-                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--info), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
+                        <a href="/courses.html" class="content-card hub-card content-card-compact">
+                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
+                            <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--brand-400),black 70%),color-mix(in oklch,var(--brand-300),black 70%))">
+                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--brand-400), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
                             <div class="content-card-body">
                                 <span class="content-card-category">课程</span>
@@ -613,8 +651,9 @@
                                 </div>
                             </div>
                         </a>
-                        <a href="/code.html" class="content-card hub-card">
-                            <div class="content-card-image" style="background:linear-gradient(135deg,var(--neutral-800),color-mix(in oklch, var(--success), black 60%))">
+                        <a href="/code.html" class="content-card hub-card content-card-compact">
+                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
+                            <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--success),black 70%),color-mix(in oklch,var(--info),black 70%))">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--success), transparent 40%)" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                             </div>
                             <div class="content-card-body">
@@ -632,7 +671,7 @@
                 </section>
             </section>
 
-            <!-- ====== 标签页：工具 ====== -->
+            <!-- ═══════ 标签页：工具 ═══════ -->
             <section class="tab-panel" id="tab-tools" role="tabpanel" aria-label="工具">
 
                 <!-- 星际自习大厅 -->
@@ -646,6 +685,8 @@
                         </div>
                     </div>
                     <div class="study-hall-card hub-card">
+                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
+                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="peer-pods-grid">
                             <div class="peer-pod current-user">
                                 <div class="pod-inner">
@@ -692,11 +733,11 @@
                     </div>
                 </section>
 
-                <!-- 任务管理 + 看板区域 -->
+                <!-- 任务管理 + 标签 -->
                 <div class="tools-grid">
                     <div class="tools-left">
-                        <!-- 专注任务 -->
                         <div class="compact-card hub-card task-list-card">
+                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="compact-header">
                                 <h4 class="compact-title">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -721,8 +762,8 @@
                         </div>
                     </div>
                     <div class="tools-right">
-                        <!-- 学习标签 -->
                         <div class="compact-card hub-card tags-card">
+                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="compact-header">
                                 <h4 class="compact-title">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
@@ -743,10 +784,9 @@
                 </div>
             </section>
 
-            <!-- ====== 标签页：数据 ====== -->
+            <!-- ═══════ 标签页：数据 ═══════ -->
             <section class="tab-panel" id="tab-data" role="tabpanel" aria-label="数据">
 
-                <!-- 学习概览图表 -->
                 <section class="panel-section" id="section-dashboard">
                     <div class="section-head">
                         <div class="section-head-left">
@@ -759,6 +799,7 @@
                     </div>
                     <div class="dashboard-charts-row">
                         <div class="chart-card hub-card trend-chart-card">
+                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="chart-header">
                                 <h4 class="chart-title">学习趋势</h4>
                                 <span class="chart-badge">近7天</span>
@@ -766,6 +807,7 @@
                             <canvas id="overviewTrendChart"></canvas>
                         </div>
                         <div class="chart-card hub-card heatmap-card">
+                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="chart-header">
                                 <h4 class="chart-title">学习时段</h4>
                                 <div class="heatmap-toggle">
@@ -785,10 +827,12 @@
 
         </main>
 
-        <!-- 右侧信息面板 (200px) -->
+        <!-- ════════════════════════════════════════════
+             右侧信息面板
+             ════════════════════════════════════════════ -->
         <aside class="hub-right-panel">
 
-            <!-- 迷你日历 -->
+            <!-- 专注日历 -->
             <div class="compact-card hub-card calendar-card">
                 <div class="compact-header">
                     <h4 class="compact-title">
@@ -798,6 +842,7 @@
                     <span class="compact-badge">6月</span>
                 </div>
                 <div class="week-heat-bars" id="week-heat-bars">
+                <div class="mini-calendar-grid"></div>
                     <div class="week-heat-col"><div class="week-heat-bar level-0" style="height:25%"></div><span class="week-heat-label">周一</span></div>
                     <div class="week-heat-col"><div class="week-heat-bar level-1" style="height:45%"></div><span class="week-heat-label">周二</span></div>
                     <div class="week-heat-col"><div class="week-heat-bar level-3" style="height:85%"></div><span class="week-heat-label">周三</span></div>
@@ -815,12 +860,12 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg>
                         今日要闻
                     </h4>
-                    <span class="highlights-date" id="news-date">加载中...</span>
+                    <span class="highlights-date" id="news-date">加载中…</span>
                 </div>
                 <div class="highlights-grid" id="highlights-grid">
                     <div class="highlight-loading">
                         <div class="loading-spinner"></div>
-                        <span>正在获取今日要闻...</span>
+                        <span>正在获取今日要闻…</span>
                     </div>
                 </div>
                 <button class="more-btn" id="more-news-btn">查看更多资讯 →</button>
@@ -852,9 +897,11 @@
         </aside>
     </div>
 
-    <!-- ====== 弹窗层 ====== -->
+    <!-- ════════════════════════════════════════════
+         弹窗层
+         ════════════════════════════════════════════ -->
 
-    <!-- 更多资讯弹窗 -->
+    <!-- 资讯弹窗 -->
     <div class="news-modal" id="news-modal" role="dialog" aria-modal="true" aria-label="资讯中心">
         <div class="news-modal-overlay" id="news-modal-overlay"></div>
         <div class="news-modal-card">
@@ -875,7 +922,7 @@
             <div class="news-modal-body" id="news-modal-body">
                 <div class="news-modal-loading">
                     <div class="loading-spinner"></div>
-                    <span>正在加载资讯...</span>
+                    <span>正在加载资讯…</span>
                 </div>
             </div>
         </div>
@@ -890,7 +937,9 @@
         </div>
     </div>
 
-    <!-- ====== Scripts ====== -->
+    <!-- ════════════════════════════════════════════
+         Scripts
+         ════════════════════════════════════════════ -->
     <script src="/js/data-layer.js"></script>
     <script src="/js/notifications.js"></script>
     <script src="/js/achievements-data.js"></script>
