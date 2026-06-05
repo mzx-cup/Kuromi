@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班级管理 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/teacher.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/teacher-class.js"></script>
+</head>
+<body class="teacher-page">
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand">星识教师端</div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item active" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherClass" x-init="init()">
+      <h1 class="teacher-page-title">班级管理</h1>
+      <div x-show="success" x-text="success" class="success-banner"></div>
+
+      <button @click="openCreateModal()" class="btn-primary" style="margin-bottom:16px">+ 创建班级</button>
+
+      <!-- Class Grid -->
+      <div class="class-grid">
+        <template x-for="c in classes" :key="c.id">
+          <div class="class-card">
+            <div class="class-card-header">
+              <h3 x-text="c.name"></h3>
+              <span style="display:flex;gap:4px">
+                <button @click="openImportModal(c)" class="btn-sm btn-sm-info">导入</button>
+                <button @click="openGroupModal(c)" class="btn-sm">分组</button>
+                <button @click="openEditModal(c)" class="btn-sm">编辑</button>
+                <button @click="deleteClass(c.id)" class="btn-sm btn-sm-danger">删除</button>
+              </span>
+            </div>
+            <div class="class-card-meta">
+              <span x-text="c.subject || '未设置科目'"></span>
+              <span style="margin-left:12px" x-text="(c.student_count||0) + ' 名学生'"></span>
+              <span x-show="c.description" style="margin-left:12px" x-text="c.description.slice(0,30)"></span>
+            </div>
+            <button @click="openStudents(c)" class="btn-sm">查看学生名单</button>
+          </div>
+        </template>
+        <div x-show="classes.length === 0" class="empty-state">暂无班级，点击上方按钮创建</div>
+      </div>
+
+      <!-- Student Roster -->
+      <div x-show="selectedClass" style="margin-top:24px">
+        <h2 style="font-size:16px;margin-bottom:12px" x-text="selectedClass.name + ' — 学生名单 (' + students.length + '人)'"></h2>
+        <table class="q-table">
+          <thead><tr><th>用户名</th><th>显示名</th><th>操作</th></tr></thead>
+          <tbody>
+            <template x-for="s in students" :key="s.id">
+              <tr>
+                <td x-text="s.username"></td>
+                <td x-text="s.display_name || '-'"></td>
+                <td><button @click="openStudentProfile(s)" class="btn-sm btn-sm-info">学习档案</button></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div x-show="students.length === 0" style="color:var(--text-tertiary);text-align:center;padding:20px">暂无学生，请先导入</div>
+      </div>
+
+      <!-- Create/Edit Class Modal -->
+      <div class="modal-overlay" x-show="showCreateModal || showEditModal" @click.self="showCreateModal = false; showEditModal = false">
+        <div class="modal-content">
+          <h2 x-text="editingClass ? '编辑班级' : '创建班级'"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">班级名称 *</label>
+          <input x-model="form.name" class="auth-field" placeholder="如：高一3班">
+          <label class="auth-label">科目</label>
+          <input x-model="form.subject" class="auth-field" placeholder="如：数学">
+          <label class="auth-label">描述</label>
+          <textarea x-model="form.description" class="auth-field" rows="2" placeholder="班级描述（选填）"></textarea>
+          <div class="modal-actions">
+            <button @click="showCreateModal = false; showEditModal = false" class="btn-cancel">取消</button>
+            <button @click="saveClass()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '保存'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV File Upload Modal (NOT textarea) -->
+      <div class="modal-overlay" x-show="showImportModal" @click.self="showImportModal = false">
+        <div class="modal-content">
+          <h2>导入学生 (CSV)</h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+          <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:8px">
+            CSV文件格式：每行一个学生，列顺序为 用户名,显示名称<br>
+            示例：<code>zhangsan,张三</code>
+          </p>
+          <!-- Actual file input (not textarea) -->
+          <div class="file-upload-area" @click="$refs.csvInput.click()" @dragover.prevent="$el.classList.add('drag-over')" @dragleave="$el.classList.remove('drag-over')" @drop.prevent="$el.classList.remove('drag-over'); handleFileSelect({target:{files:$event.dataTransfer.files}})">
+            <input type="file" x-ref="csvInput" @change="handleFileSelect" accept=".csv" style="display:none">
+            <p>📁 点击选择CSV文件或拖拽到此处</p>
+            <div class="file-name" x-show="importForm.csvFileName" x-text="importForm.csvFileName"></div>
+          </div>
+          <div class="modal-actions">
+            <button @click="showImportModal = false" class="btn-cancel">取消</button>
+            <button @click="importStudentsFromCSV()" :disabled="loading || !importForm.csvFile" class="btn-primary" x-text="loading ? '导入中...' : '确认导入'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Class Grouping Modal -->
+      <div class="modal-overlay" x-show="showGroupModal" @click.self="showGroupModal = false">
+        <div class="modal-content modal-wide">
+          <h2 x-text="'分组管理 — ' + (selectedClass ? selectedClass.name : '')"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+
+          <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+            <input x-model="groupForm.name" class="auth-field" placeholder="分组名称" style="margin:0;flex:1">
+            <button @click="createGroup()" :disabled="loading" class="btn-primary">添加分组</button>
+          </div>
+
+          <template x-for="g in groups" :key="g.id">
+            <div style="padding:10px 14px;margin:6px 0;background:var(--surface-glass);border:1px solid var(--border-glass);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-weight:500" x-text="g.name"></span>
+              <span style="font-size:12px;color:var(--text-tertiary)" x-text="(g.student_count || 0) + ' 名学生'"></span>
+              <button @click="deleteGroup(g.id)" class="btn-sm btn-sm-danger">删除</button>
+            </div>
+          </template>
+          <div x-show="groups.length === 0" style="color:var(--text-tertiary);text-align:center;padding:20px">暂无分组</div>
+
+          <div class="modal-actions">
+            <button @click="showGroupModal = false" class="btn-cancel">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Profile Modal -->
+      <div class="modal-overlay" x-show="showProfileModal" @click.self="showProfileModal = false">
+        <div class="modal-content">
+          <h2>学生档案</h2>
+          <template x-if="studentProfile">
+            <div class="student-profile-card">
+              <div class="student-profile-header">
+                <div class="student-avatar" x-text="(studentProfile.display_name || studentProfile.username || '?')[0]"></div>
+                <div>
+                  <div class="student-profile-name" x-text="studentProfile.display_name || studentProfile.username"></div>
+                  <div class="student-profile-meta" x-text="'@' + (studentProfile.username || '')"></div>
+                </div>
+              </div>
+              <div class="student-profile-stats">
+                <div class="stat-card">
+                  <div class="stat-value" x-text="studentProfile.completed_courses || 0"></div>
+                  <div class="stat-label">已完成课程</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" x-text="(studentProfile.total_study_hours || 0) + 'h'"></div>
+                  <div class="stat-label">学习时长</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" x-text="studentProfile.avg_score || '--'"></div>
+                  <div class="stat-label">平均成绩</div>
+                </div>
+              </div>
+              <h3 style="font-size:14px;margin:16px 0 8px">最近活动</h3>
+              <template x-if="studentProfile.recent_activities && studentProfile.recent_activities.length">
+                <div>
+                  <template x-for="act in studentProfile.recent_activities" :key="act.id || act.date">
+                    <div style="padding:6px 0;font-size:13px;border-bottom:1px solid var(--border-glass);display:flex;justify-content:space-between">
+                      <span x-text="act.description || act.title"></span>
+                      <span style="color:var(--text-tertiary);font-size:12px" x-text="formatDate(act.date)"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+              <div x-show="!studentProfile.recent_activities || studentProfile.recent_activities.length === 0" class="empty-state" style="padding:20px">暂无活动记录</div>
+            </div>
+          </template>
+          <div class="modal-actions">
+            <button @click="showProfileModal = false" class="btn-cancel">关闭</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

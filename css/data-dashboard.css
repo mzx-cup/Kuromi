@@ -1,0 +1,30 @@
+/* Constellation Prism — Data Dashboard */
+.dd-layout { display: flex; height: 100vh; overflow: hidden; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); color: #e2e8f0; }
+.dd-sidebar { width: 220px; flex-shrink: 0; background: color-mix(in oklch, var(--neutral-900), transparent 35%); border-right: 1px solid color-mix(in oklch, var(--info), transparent 88%); backdrop-filter: blur(32px) saturate(140%); -webkit-backdrop-filter: blur(32px) saturate(140%); display: flex; flex-direction: column; padding: var(--space-md); }
+.dd-brand { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--brand-300); letter-spacing: 2px; margin-bottom: var(--space-lg); }
+.dd-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); color: var(--cp-text-secondary); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: 2px; transition: all var(--transition-fast); }
+.dd-nav-item:hover { background: color-mix(in oklch, var(--info), transparent 94%); color: var(--cp-text-primary); }
+.dd-nav-item.active { background: color-mix(in oklch, var(--info), transparent 88%); color: var(--info); font-weight: var(--font-semibold); }
+.dd-sidebar-footer { margin-top: auto; }
+.dd-logout-btn { width: 100%; padding: 8px; border-radius: var(--radius-sm); border: 1px solid color-mix(in oklch, var(--danger), transparent 78%); background: transparent; color: var(--danger); cursor: pointer; font-size: var(--text-sm); transition: all var(--transition-fast); }
+.dd-logout-btn:hover { background: color-mix(in oklch, var(--danger), transparent 92%); }
+.dd-main { flex: 1; overflow-y: auto; padding: var(--space-lg); display: flex; flex-direction: column; gap: 20px; }
+.dd-page-title { font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--cp-text-primary); margin: 0; }
+.dd-hierarchy-tabs { display: flex; gap: 0; align-self: flex-start; padding: 4px; border-radius: 12px; background: color-mix(in oklch, var(--neutral-800), transparent 55%); border: 1px solid color-mix(in oklch, var(--info), transparent 88%); backdrop-filter: blur(24px) saturate(140%); }
+.dd-hierarchy-tab { padding: 7px 20px; border-radius: 9px; background: transparent; border: none; color: var(--cp-text-secondary); cursor: pointer; font-size: var(--text-sm); font-weight: var(--font-medium); transition: all var(--transition-fast); }
+.dd-hierarchy-tab:hover { color: var(--cp-text-primary); }
+.dd-hierarchy-tab.active { background: color-mix(in oklch, var(--info), transparent 86%); color: var(--cp-text-primary); font-weight: var(--font-bold); }
+.dd-stats { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+.dd-stat-card { flex: 1; min-width: 160px; padding: 20px; border-radius: var(--radius-md); background: linear-gradient(170deg, color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 60%), transparent 22%) 0%, color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 20%), transparent 22%) 100%); border: 1px solid var(--cp-card-border); box-shadow: var(--cp-prism-glow); clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); transition: all var(--cp-transition); }
+.dd-stat-value { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--cp-text-primary); margin-bottom: 4px; }
+.dd-stat-label { font-size: var(--text-xs); color: var(--cp-text-secondary); }
+.dd-chart-row { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+.dd-chart-panel { flex: 1; min-width: 320px; min-height: 300px; padding: 20px; background: linear-gradient(170deg, color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 60%), transparent 22%) 0%, color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 20%), transparent 22%) 100%); border: 1px solid var(--cp-card-border); border-radius: var(--radius-md); box-shadow: var(--cp-prism-glow); clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px); }
+.dd-chart-panel-title { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--cp-text-secondary); margin-bottom: 12px; }
+.dd-sse-feed { max-height: 260px; overflow-y: auto; }
+.dd-sse-item { padding: 8px 0; border-bottom: 1px solid color-mix(in oklch, var(--info), transparent 92%); font-size: var(--text-sm); display: flex; justify-content: space-between; align-items: center; }
+.dd-sse-type { padding: 2px 8px; border-radius: 4px; font-size: var(--text-xs); font-weight: var(--font-semibold); background: color-mix(in oklch, var(--info), transparent 88%); color: var(--info); }
+.dd-sse-time { font-size: var(--text-xs); color: var(--cp-text-tertiary); }
+.dd-main::-webkit-scrollbar { width: 6px; }
+.dd-main::-webkit-scrollbar-track { background: transparent; }
+.dd-main::-webkit-scrollbar-thumb { background: color-mix(in oklch, var(--info), transparent 85%); border-radius: 3px; }

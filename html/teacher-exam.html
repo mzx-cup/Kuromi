@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>考试管理 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/teacher.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/teacher-exam.js"></script>
+</head>
+<body class="teacher-page">
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand">星识教师端</div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item active" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherExam" x-init="init()">
+      <h1 class="teacher-page-title">考试管理</h1>
+      <div x-show="success" x-text="success" class="success-banner"></div>
+
+      <div style="display:flex;gap:12px;margin-bottom:16px">
+        <button @click="openCreateModal()" class="btn-primary">+ 手动创建考试</button>
+        <button @click="openAiCreateModal()" class="btn-accent">🤖 AI 自动组卷</button>
+      </div>
+
+      <!-- Exam Grid -->
+      <div class="exam-grid">
+        <template x-for="exam in exams" :key="exam.id">
+          <div class="exam-card">
+            <h3 x-text="exam.title"></h3>
+            <div class="exam-meta">
+              <span>状态: <span class="status-badge" :class="'status-badge-' + (exam.status === 'published' ? 'published' : exam.status === 'closed' ? 'ended' : exam.status === 'archived' ? 'archived' : 'draft')" x-text="statusLabel(exam.status)"></span></span>
+              <span>时长: <span x-text="exam.duration || 60"></span>分钟</span>
+              <span x-show="exam.created_at">创建: <span x-text="formatDate(exam.created_at)"></span></span>
+              <span x-show="exam.question_count">题目数: <span x-text="exam.question_count"></span></span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button x-show="exam.status === 'draft'" @click="publishExam(exam.id)" class="btn-sm btn-sm-success">发布</button>
+              <button x-show="exam.status === 'published'" @click="archiveExam(exam.id)" class="btn-sm">归档</button>
+              <button x-show="exam.status === 'draft'" @click="openEditModal(exam)" class="btn-sm btn-sm-info">编辑</button>
+              <button @click="openGradeModal(exam)" class="btn-sm">批阅</button>
+              <button @click="openResultModal(exam)" class="btn-sm">成绩</button>
+              <button @click="openAnalysisModal(exam)" class="btn-sm btn-sm-info">分析</button>
+              <button @click="deleteExam(exam.id)" class="btn-sm btn-sm-danger">删除</button>
+            </div>
+          </div>
+        </template>
+      </div>
+      <div x-show="exams.length === 0" class="empty-state">暂无考试，点击上方按钮创建</div>
+
+      <!-- ===== CREATE MODAL (Manual + AI modes) ===== -->
+      <div class="modal-overlay" x-show="showCreateModal" @click.self="showCreateModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2 x-text="createMode === 'ai' ? 'AI 自动组卷' : '创建考试'"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+
+          <!-- Manual Mode -->
+          <template x-if="createMode === 'manual'">
+            <div>
+              <label class="auth-label">考试标题 *</label>
+              <input x-model="form.title" class="auth-field" placeholder="输入考试标题">
+
+              <label class="auth-label">描述</label>
+              <textarea x-model="form.description" class="auth-field" rows="2" placeholder="考试描述（选填）"></textarea>
+
+              <label class="auth-label">时长（分钟）</label>
+              <input x-model.number="form.duration" type="number" min="1" class="auth-field">
+
+              <div style="display:flex;gap:12px">
+                <div style="flex:1">
+                  <label class="auth-label">开始时间</label>
+                  <input x-model="form.start_time" type="datetime-local" class="auth-field">
+                </div>
+                <div style="flex:1">
+                  <label class="auth-label">结束时间</label>
+                  <input x-model="form.end_time" type="datetime-local" class="auth-field">
+                </div>
+              </div>
+
+              <label class="auth-label">指定班级</label>
+              <div class="checkbox-group">
+                <template x-for="c in classes" :key="c.id">
+                  <label><input type="checkbox" :value="c.id" :checked="isChecked(form.classIds, c.id)" @change="toggleClass(c.id)"> <span x-text="c.name"></span></label>
+                </template>
+                <div x-show="classes.length === 0" style="color:var(--text-tertiary)">暂无班级</div>
+              </div>
+
+              <label class="auth-label">添加试题</label>
+              <div class="checkbox-group" style="max-height:200px">
+                <template x-for="q in questions" :key="q.id">
+                  <label><input type="checkbox" :value="q.id" :checked="isChecked(form.questionIds, q.id)" @change="toggleQuestion(q.id)"> <span x-text="'[' + typeLabel(q.type) + '] ' + truncate(q.content, 40)"></span></label>
+                </template>
+                <div x-show="questions.length === 0" style="color:var(--text-tertiary)">暂无试题</div>
+              </div>
+            </div>
+          </template>
+
+          <!-- AI Mode -->
+          <template x-if="createMode === 'ai'">
+            <div>
+              <label class="auth-label">考试主题/知识点 *</label>
+              <input x-model="aiForm.topic" class="auth-field" placeholder="如：Python基础语法、数据结构与算法">
+
+              <label class="auth-label">难度</label>
+              <select x-model="aiForm.difficulty" class="auth-field">
+                <option value="easy">简单</option>
+                <option value="medium">中等</option>
+                <option value="hard">困难</option>
+              </select>
+
+              <label class="auth-label">题目数量</label>
+              <input x-model.number="aiForm.questionCount" type="number" min="1" max="50" class="auth-field">
+
+              <label class="auth-label">参与班级</label>
+              <div class="checkbox-group">
+                <template x-for="c in classes" :key="c.id">
+                  <label><input type="checkbox" :value="c.id" :checked="isChecked(aiForm.classIds, c.id)" @change="toggleAiClass(c.id)"> <span x-text="c.name"></span></label>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <div class="modal-actions">
+            <button @click="showCreateModal = false" class="btn-cancel">取消</button>
+            <button x-show="createMode === 'manual'" @click="createExam()" :disabled="loading" class="btn-primary" x-text="loading ? '创建中...' : '创建考试'"></button>
+            <button x-show="createMode === 'ai'" @click="aiGenerateExam()" :disabled="loading" class="btn-accent" x-text="loading ? 'AI生成中...' : '开始生成'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== EDIT MODAL ===== -->
+      <div class="modal-overlay" x-show="showEditModal" @click.self="showEditModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2>编辑考试</h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">考试标题 *</label>
+          <input x-model="form.title" class="auth-field">
+          <label class="auth-label">描述</label>
+          <textarea x-model="form.description" class="auth-field" rows="2"></textarea>
+          <label class="auth-label">时长（分钟）</label>
+          <input x-model.number="form.duration" type="number" min="1" class="auth-field">
+          <div class="modal-actions">
+            <button @click="showEditModal = false" class="btn-cancel">取消</button>
+            <button @click="updateExam()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '保存修改'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== GRADING MODAL (Proper UI, no alert()) ===== -->
+      <div class="modal-overlay" x-show="showGradeModal" @click.self="showGradeModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2 x-text="'批阅: ' + (gradingExam ? gradingExam.title : '')"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+          <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px" x-text="'进度: ' + gradingProgress"></div>
+
+          <template x-if="currentGrading">
+            <div class="grading-panel">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <span style="font-weight:600" x-text="'学生: ' + (currentGrading.display_name || currentGrading.student_id)"></span>
+                <span style="font-size:12px;color:var(--text-tertiary)" x-text="'提交时间: ' + formatDate(currentGrading.submitted_at)"></span>
+              </div>
+
+              <!-- Show AI pre-score if available -->
+              <div x-show="currentGrading.ai_score != null" class="grading-ai-score">
+                AI预评分: <strong x-text="currentGrading.ai_score"></strong> 分
+              </div>
+              <div x-show="currentGrading.ai_comment" class="grading-ai-comment" x-text="'AI评语: ' + currentGrading.ai_comment"></div>
+
+              <div style="display:flex;gap:12px;align-items:center;margin:16px 0">
+                <label style="font-size:14px;white-space:nowrap">最终分数:</label>
+                <input type="number" min="0" max="100" step="0.5" class="auth-field grading-score-input"
+                  :value="gradingScores[currentGrading.id] ?? currentGrading.ai_score ?? currentGrading.score ?? ''"
+                  @input="gradingScores[currentGrading.id] = $event.target.value"
+                  placeholder="评分">
+                <span style="font-size:14px">/ 100</span>
+              </div>
+
+              <div style="display:flex;gap:8px;justify-content:space-between">
+                <div style="display:flex;gap:8px">
+                  <button @click="prevGrading()" :disabled="gradingIndex === 0" class="btn-sm">上一条</button>
+                  <button @click="nextGrading()" :disabled="gradingIndex >= gradingResults.length - 1" class="btn-sm">下一条</button>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button @click="aiPrescore()" :disabled="loading" class="btn-sm btn-sm-info" x-text="loading ? 'AI评分中...' : 'AI预评分'"></button>
+                  <button @click="confirmGrade()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '确认分数'"></button>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template x-if="!currentGrading">
+            <div class="empty-state" style="padding:40px">所有答卷已批改完成</div>
+          </template>
+          <div class="modal-actions">
+            <button @click="showGradeModal = false" class="btn-cancel">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== RESULTS MODAL (Table, not alert()) ===== -->
+      <div class="modal-overlay" x-show="showResultModal" @click.self="showResultModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2 x-text="'成绩列表: ' + (resultExam ? resultExam.title : '')"></h2>
+          <table class="q-table">
+            <thead><tr><th>学生</th><th>用户名</th><th>分数</th><th>AI预评分</th><th>批改状态</th><th>提交时间</th></tr></thead>
+            <tbody>
+              <template x-for="r in results" :key="r.id">
+                <tr>
+                  <td x-text="r.display_name || '-'"></td>
+                  <td x-text="r.username || r.student_id"></td>
+                  <td><strong x-text="r.score != null ? r.score + '分' : '未评分'" :style="r.score >= 60 ? 'color:#22c55e' : r.score != null ? 'color:#ef4444' : ''"></strong></td>
+                  <td x-text="r.ai_score != null ? r.ai_score + '分' : '-'" style="font-size:12px;color:var(--text-tertiary)"></td>
+                  <td><span class="status-badge" :class="'status-badge-' + (r.graded_by === 'auto' ? 'draft' : 'approved')" x-text="r.graded_by === 'auto' ? 'AI预评' : '已批改'"></span></td>
+                  <td x-text="formatDate(r.submitted_at)" style="font-size:12px;color:var(--text-tertiary)"></td>
+                </tr>
+              </template>
+              <tr x-show="results.length === 0">
+                <td colspan="6" class="empty-state" style="padding:40px">暂无学生提交</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="modal-actions">
+            <button @click="showResultModal = false" class="btn-cancel">关闭</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANALYSIS MODAL (ECharts, not alert()) ===== -->
+      <div class="modal-overlay" x-show="showAnalysisModal" @click.self="showAnalysisModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2 x-text="'成绩分析: ' + (analysisExam ? analysisExam.title : '')"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+
+          <!-- Stats Summary -->
+          <template x-if="analysisData">
+            <div style="margin-bottom:16px">
+              <div class="td-stats">
+                <div class="stat-card">
+                  <div class="stat-value" x-text="analysisData.avg_score != null ? analysisData.avg_score.toFixed(1) : '--'"></div>
+                  <div class="stat-label">平均分</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" x-text="analysisData.max_score || '--'"></div>
+                  <div class="stat-label">最高分</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" x-text="analysisData.min_score || '--'"></div>
+                  <div class="stat-label">最低分</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" x-text="(analysisData.pass_rate != null ? (analysisData.pass_rate * 100).toFixed(1) + '%' : '--')"></div>
+                  <div class="stat-label">及格率</div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- Score Distribution Chart -->
+          <div x-ref="analysisChart" style="min-height:300px;margin-bottom:16px"></div>
+
+          <!-- Per-Question Accuracy (if available) -->
+          <template x-if="analysisData && analysisData.per_question && analysisData.per_question.length">
+            <div>
+              <h3 style="font-size:14px;margin-bottom:8px">各题正确率</h3>
+              <table class="q-table">
+                <thead><tr><th>题号</th><th>类型</th><th>正确率</th></tr></thead>
+                <tbody>
+                  <template x-for="(pq, idx) in analysisData.per_question" :key="idx">
+                    <tr>
+                      <td x-text="'第' + (idx+1) + '题'"></td>
+                      <td x-text="pq.type || '?'"></td>
+                      <td>
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <div style="flex:1;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden">
+                            <div :style="{width: ((pq.accuracy||0)*100).toFixed(0)+'%', height:'100%', background: (pq.accuracy||0)>=0.7 ? '#22c55e' : (pq.accuracy||0)>=0.4 ? '#f59e0b' : '#ef4444', borderRadius:'3px'}"></div>
+                          </div>
+                          <span style="font-size:13px;min-width:48px;text-align:right" x-text="((pq.accuracy||0)*100).toFixed(1)+'%'"></span>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </template>
+
+          <div class="modal-actions">
+            <button @click="showAnalysisModal = false" class="btn-cancel">关闭</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

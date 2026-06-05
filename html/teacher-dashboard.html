@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>教师工作台 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/teacher.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/teacher-dashboard.js"></script>
+</head>
+<body class="teacher-page">
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand">星识教师端</div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item active" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherDashboard" x-init="init()">
+      <h1 class="teacher-page-title">工作台</h1>
+
+      <!-- Stat Cards matching spec exactly: 授课班级/在授课程/待批改/平均成绩 -->
+      <div class="td-stats">
+        <div class="stat-card">
+          <div class="stat-value" x-text="stats.classes"></div>
+          <div class="stat-label">授课班级</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" x-text="stats.courses"></div>
+          <div class="stat-label">在授课程</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" x-text="stats.pendingReviews"></div>
+          <div class="stat-label">待批改</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" x-text="stats.avgScore"></div>
+          <div class="stat-label">平均成绩</div>
+        </div>
+      </div>
+
+      <!-- Chart Row: ECharts bar + radar -->
+      <div class="td-chart-row">
+        <div class="td-chart-box" x-ref="barChart" style="min-height:300px"></div>
+        <div class="td-chart-box" x-ref="radarChart" style="min-height:300px"></div>
+      </div>
+
+      <!-- Bottom Row: Recent Tasks + AI Suggestions -->
+      <div class="td-chart-row">
+        <div class="td-chart-box">
+          <h3>📋 最近任务</h3>
+          <template x-if="recentTasks.length === 0">
+            <div class="empty-state">暂无待处理任务</div>
+          </template>
+          <template x-for="task in recentTasks" :key="task.id || task.title">
+            <div style="padding:10px 0;border-bottom:1px solid var(--border-glass);display:flex;justify-content:space-between;align-items:center">
+              <div>
+                <div style="font-size:14px;font-weight:500" x-text="task.title"></div>
+                <div style="font-size:12px;color:var(--text-tertiary)" x-text="task.subtitle || ''"></div>
+              </div>
+              <span class="status-badge" :class="'status-badge-' + (task.status === 'pending' ? 'pending' : task.status === 'done' ? 'approved' : 'draft')" x-text="getTaskStatusLabel(task.status)"></span>
+            </div>
+          </template>
+        </div>
+
+        <div class="td-chart-box">
+          <h3>💡 AI 教学建议</h3>
+          <template x-if="aiSuggestions.length === 0">
+            <div class="empty-state">暂无AI建议</div>
+          </template>
+          <div class="ai-suggestions">
+            <template x-for="s in aiSuggestions" :key="s.id || s.text">
+              <div class="ai-suggestion-item">
+                <span class="ai-suggestion-icon" x-text="s.icon || '💡'"></span>
+                <span class="ai-suggestion-text" x-text="s.text"></span>
+                <button x-show="s.action_url" @click="window.location.href=s.action_url" class="btn-sm ai-suggestion-action">查看</button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Classes -->
+      <h2 style="font-size:16px;margin:24px 0 12px">我的班级</h2>
+      <div class="class-grid">
+        <template x-for="c in classes" :key="c.id">
+          <div class="class-card">
+            <div class="class-card-header">
+              <h3 x-text="c.name"></h3>
+              <span class="status-badge" :class="'status-badge-' + (c.status === 'active' ? 'published' : 'draft')" x-text="c.status || 'active'"></span>
+            </div>
+            <div class="class-card-meta">
+              <span x-text="c.subject || '未设置科目'"></span>
+              <span style="margin-left:12px" x-text="(c.student_count||0) + ' 名学生'"></span>
+              <span x-show="c.avg_score" style="margin-left:12px" x-text="'均分 ' + c.avg_score"></span>
+            </div>
+            <a :href="'/teacher-class.html?id=' + c.id" class="btn-sm">管理</a>
+          </div>
+        </template>
+        <div x-show="classes.length === 0" class="empty-state">暂无班级，前往<a href="/teacher-class.html" style="color:var(--accent)">班级管理</a>创建</div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

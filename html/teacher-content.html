@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="starry-night">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>内容管理 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/teacher.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/teacher-content.js"></script>
+</head>
+<body class="teacher-page">
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand">星识教师端</div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item active" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherContent" x-init="init()">
+      <h1 class="teacher-page-title">内容管理</h1>
+      <div x-show="success" x-text="success" class="success-banner"></div>
+      <div class="tabs-wrapper">
+        <button class="tab-btn" :class="{ active: activeTab === 'courses' }" @click="activeTab = 'courses'">课程大纲</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'resources' }" @click="activeTab = 'resources'">教学资源</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">AI 内容审核</button>
+      </div>
+
+      <div x-show="activeTab === 'courses'">
+        <button @click="openCourseModal(null)" class="btn-primary" style="margin-bottom:16px">+ 添加根节点</button>
+        <div class="tree-editor">
+          <template x-for="node in courseTree" :key="node.id">
+            <div class="tree-node">
+              <div class="tree-node-header">
+                <span class="tree-node-toggle" x-show="node.children && node.children.length">&#9660;</span>
+                <span class="tree-node-title" x-text="node.title"></span>
+                <span class="tree-node-meta" x-show="node.description" x-text="node.description.slice(0,40)"></span>
+                <span class="tree-node-actions">
+                  <button @click="openCourseModal(node.id)" class="btn-sm">+子节点</button>
+                  <button @click="openEditCourseModal(node)" class="btn-sm">编辑</button>
+                  <button @click="openResourceModal(node.id)" class="btn-sm btn-sm-info">资源</button>
+                  <button @click="deleteCourse(node.id)" class="btn-sm btn-sm-danger">删除</button>
+                </span>
+              </div>
+              <template x-if="node.children && node.children.length">
+                <div class="tree-children">
+                  <template x-for="child in node.children" :key="child.id">
+                    <div class="tree-node"><div class="tree-node-header"><span class="tree-node-title" x-text="child.title"></span><span class="tree-node-actions"><button @click="openCourseModal(child.id)" class="btn-sm">+子节点</button><button @click="openEditCourseModal(child)" class="btn-sm">编辑</button><button @click="deleteCourse(child.id)" class="btn-sm btn-sm-danger">删除</button></span></div></div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div x-show="courses.length === 0" class="empty-state">暂无课程大纲</div>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'resources'">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <select x-model="selectedCourse" @change="loadResources(selectedCourse)" class="gen-select" style="min-width:200px"><option value="">选择课程...</option><template x-for="c in courses" :key="c.id"><option :value="c.id" x-text="c.title"></option></template></select>
+          <button x-show="selectedCourse" @click="openResourceModal(selectedCourse)" class="btn-primary">+ 上传资源</button>
+        </div>
+        <div x-show="!selectedCourse" class="empty-state">请先选择一个课程</div>
+        <div x-show="selectedCourse" class="resources-grid">
+          <template x-for="r in resources" :key="r.id">
+            <div class="resource-card"><div class="resource-card-icon" style="font-size:20px">&#128196;</div><div class="resource-card-body"><div class="resource-card-title" x-text="r.title"></div><div class="resource-card-meta"><span x-text="r.type || '文件'"></span><span x-text="formatBytes(r.size)"></span><span x-show="r.created_at" x-text="formatDate(r.created_at)"></span></div></div><button @click="deleteResource(r.id)" class="btn-sm btn-sm-danger">删除</button></div>
+          </template>
+          <div x-show="resources.length === 0" class="empty-state">暂无资源</div>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'ai'">
+        <button @click="openAiReviewModal()" class="btn-accent" style="margin-bottom:16px">AI 内容审核</button>
+        <div class="empty-state">使用 AI 助手审核课程内容、试题质量、学生作业</div>
+      </div>
+
+      <div class="modal-overlay" x-show="showCourseModal" @click.self="showCourseModal = false" x-cloak>
+        <div class="modal-content"><h2 x-text="editingNode ? '编辑节点' : '添加节点'"></h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">标题 *</label><input x-model="form.title" class="auth-field" placeholder="课程/章节名称">
+          <label class="auth-label">描述</label><textarea x-model="form.description" class="auth-field" rows="2" placeholder="描述（选填）"></textarea>
+          <div class="modal-actions"><button @click="showCourseModal = false" class="btn-cancel">取消</button><button @click="saveCourse()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '保存'"></button></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" x-show="showResourceModal" @click.self="showResourceModal = false" x-cloak>
+        <div class="modal-content"><h2>上传教学资源</h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">资源标题 *</label><input x-model="resourceForm.title" class="auth-field" placeholder="资源标题">
+          <label class="auth-label">资源类型</label><select x-model="resourceForm.type" class="auth-field"><option value="document">文档</option><option value="video">视频</option><option value="image">图片</option><option value="other">其他</option></select>
+          <label class="auth-label">选择文件 *</label>
+          <div class="file-upload-area" @click="$refs.resFile.click()" @dragover.prevent="$el.classList.add('drag-over')" @dragleave="$el.classList.remove('drag-over')" @drop.prevent="$el.classList.remove('drag-over'); handleResourceFile({target:{files:$event.dataTransfer.files}})"><input type="file" x-ref="resFile" @change="handleResourceFile" style="display:none"><p>点击选择文件或拖拽到此处</p><div class="file-name" x-show="resourceForm.fileName" x-text="resourceForm.fileName"></div></div>
+          <div class="modal-actions"><button @click="showResourceModal = false" class="btn-cancel">取消</button><button @click="uploadResource()" :disabled="loading || !resourceForm.file" class="btn-primary" x-text="loading ? '上传中...' : '上传'"></button></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" x-show="showAiReviewModal" @click.self="showAiReviewModal = false" x-cloak>
+        <div class="modal-content modal-wide"><h2>AI 内容审核</h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">内容</label><textarea x-model="aiReview.content" rows="6" class="auth-field" placeholder="粘贴需要审核的教学内容..."></textarea>
+          <button @click="runAiReview()" :disabled="aiReview.loading" class="btn-accent" style="margin:12px 0" x-text="aiReview.loading ? 'AI审核中...' : '开始审核'"></button>
+          <div x-show="aiReview.result" class="ai-suggestions-panel" style="margin-top:12px">
+            <template x-if="typeof aiReview.result === 'string'"><p x-text="aiReview.result" style="white-space:pre-wrap"></p></template>
+            <template x-if="typeof aiReview.result === 'object'"><div><div x-show="aiReview.result.score != null" style="margin-bottom:8px"><strong>评分:</strong> <span x-text="aiReview.result.score"></span></div><div x-show="aiReview.result.suggestions" style="margin-bottom:8px"><strong>建议:</strong><template x-if="Array.isArray(aiReview.result.suggestions)"><ul style="padding-left:20px"><template x-for="s in aiReview.result.suggestions"><li x-text="s" style="font-size:13px;margin:4px 0"></li></template></ul></template></div></div></template>
+          </div>
+          <div class="modal-actions"><button @click="showAiReviewModal = false" class="btn-cancel">关闭</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

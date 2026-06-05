@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>题库管理 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/teacher.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/teacher-manage.js"></script>
+</head>
+<body class="teacher-page">
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand">星识教师端</div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item active" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherManage" x-init="init()">
+      <h1 class="teacher-page-title">题库管理</h1>
+      <div x-show="success" x-text="success" class="success-banner"></div>
+
+      <!-- Type Stats -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <span class="status-badge status-badge-draft">选择: <strong x-text="typeCounts.choice"></strong></span>
+        <span class="status-badge status-badge-published">填空: <strong x-text="typeCounts.fill"></strong></span>
+        <span class="status-badge status-badge-approved">编程: <strong x-text="typeCounts.code"></strong></span>
+        <span class="status-badge status-badge-pending">简答: <strong x-text="typeCounts.essay"></strong></span>
+      </div>
+
+      <!-- Toolbar -->
+      <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+        <button @click="openCreateModal()" class="btn-primary">+ 添加题目</button>
+        <button @click="openImportModal()" class="btn-accent">📥 批量导入</button>
+        <select x-model="filter.type" @change="loadQuestions()" class="gen-select" style="min-width:100px">
+          <option value="">全部类型</option>
+          <option value="choice">选择题</option>
+          <option value="fill">填空题</option>
+          <option value="code">编程题</option>
+          <option value="essay">简答题</option>
+        </select>
+        <select x-model="filter.difficulty" @change="loadQuestions()" class="gen-select" style="min-width:100px">
+          <option value="">全部难度</option>
+          <option value="easy">简单</option>
+          <option value="medium">中等</option>
+          <option value="hard">困难</option>
+        </select>
+        <input x-model="filter.search" @keydown.enter="loadQuestions()" class="auth-field" placeholder="搜索题目..." style="margin:0;max-width:200px;flex:1">
+      </div>
+
+      <!-- Question Table -->
+      <table class="q-table">
+        <thead><tr><th>ID</th><th>类型</th><th>内容</th><th>难度</th><th>标签</th><th>操作</th></tr></thead>
+        <tbody>
+          <template x-for="q in questions" :key="q.id">
+            <tr>
+              <td x-text="q.id"></td>
+              <td><span class="status-badge status-badge-draft" x-text="typeLabel(q.type)"></span></td>
+              <td x-text="truncate(q.content, 50)"></td>
+              <td><span x-text="diffLabel(q.difficulty)" style="font-size:12px"></span></td>
+              <td style="font-size:12px;color:var(--text-tertiary);max-width:150px" x-text="Array.isArray(q.tags) ? q.tags.join(', ') : (q.tags || '')"></td>
+              <td style="white-space:nowrap">
+                <button @click="openEditModal(q)" class="btn-sm">编辑</button>
+                <button @click="deleteQuestion(q.id)" class="btn-sm btn-sm-danger">删除</button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="questions.length === 0">
+            <td colspan="6" class="empty-state" style="padding:40px">暂无题目，点击上方按钮添加或导入</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Question Create/Edit Modal -->
+      <div class="modal-overlay" x-show="showModal" @click.self="showModal = false" x-cloak>
+        <div class="modal-content modal-wide">
+          <h2 x-text="editingQuestion ? '编辑题目' : '添加题目'"></h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+
+          <label class="auth-label">题型</label>
+          <select x-model="form.type" class="auth-field">
+            <option value="choice">选择题</option>
+            <option value="fill">填空题</option>
+            <option value="code">编程题</option>
+            <option value="essay">简答题</option>
+          </select>
+
+          <label class="auth-label">题目内容 *</label>
+          <textarea x-model="form.content" class="auth-field" rows="4" placeholder="题目内容..."></textarea>
+
+          <!-- Options (for choice type) -->
+          <div x-show="form.type === 'choice'">
+            <label class="auth-label">选项（JSON数组）</label>
+            <input x-model="form.options" class="auth-field" placeholder='["A. 选项1", "B. 选项2", "C. 选项3", "D. 选项4"]'>
+          </div>
+
+          <label class="auth-label">正确答案 *</label>
+          <input x-model="form.answer" class="auth-field" :placeholder="form.type === 'choice' ? '如: A' : form.type === 'code' ? '参考答案代码...' : '正确答案'">
+
+          <label class="auth-label">难度</label>
+          <select x-model="form.difficulty" class="auth-field">
+            <option value="easy">简单</option>
+            <option value="medium">中等</option>
+            <option value="hard">困难</option>
+          </select>
+
+          <label class="auth-label">标签（JSON数组，选填）</label>
+          <input x-model="form.tags" class="auth-field" placeholder='["知识点1","知识点2"]'>
+
+          <div class="modal-actions">
+            <button @click="showModal = false" class="btn-cancel">取消</button>
+            <button @click="saveQuestion()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '保存'"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch Import Modal -->
+      <div class="modal-overlay" x-show="showImportModal" @click.self="showImportModal = false" x-cloak>
+        <div class="modal-content">
+          <h2>批量导入题目</h2>
+          <div x-show="error" x-text="error" class="error-banner"></div>
+          <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:8px">
+            支持CSV格式（type,content,options,answer,difficulty,tags）或JSON格式（题目数组）
+          </p>
+          <div class="file-upload-area" @click="$refs.qImportInput.click()" @dragover.prevent="$el.classList.add('drag-over')" @dragleave="$el.classList.remove('drag-over')" @drop.prevent="$el.classList.remove('drag-over'); handleImportFileSelect({target:{files:$event.dataTransfer.files}})">
+            <input type="file" x-ref="qImportInput" @change="handleImportFileSelect" accept=".csv,.json" style="display:none">
+            <p>📁 点击选择CSV或JSON文件，或拖拽到此处</p>
+            <div class="file-name" x-show="importFileName" x-text="importFileName"></div>
+          </div>
+          <div class="modal-actions">
+            <button @click="showImportModal = false" class="btn-cancel">取消</button>
+            <button @click="importQuestions()" :disabled="loading || !importFile" class="btn-primary" x-text="loading ? '导入中...' : '开始导入'"></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
