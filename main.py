@@ -412,7 +412,7 @@ def retrieve_knowledge(keywords: list):
     return context, sources, source_links
 
 def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
-    """调用 MiniMax M2.7 大模型生成内容（已完全切换自讯飞）"""
+    """调用 MiniMax-Text-01 大模型生成内容（已完全切换自讯飞）"""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",
@@ -458,7 +458,7 @@ def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
 
 
 def call_llm_with_messages(messages: list[dict], temperature=0.3):
-    """调用 MiniMax M2.7，支持完整 messages 数组（含历史上下文）。"""
+    """调用 MiniMax-Text-01，支持完整 messages 数组（含历史上下文）。"""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",

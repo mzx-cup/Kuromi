@@ -462,7 +462,7 @@ B站导入的 CSS 样式已包含在 `css/courses.css` 中（`.bilibili-import-p
 |------|--------|--------|
 | `config/config.py` | `minimax_api_url` | `https://api.minimax.chat/v1` |
 | `config/config.py` | `minimax_api_key` | `sk-cp-...` |
-| `config/config.py` | `minimax_model_name` | `MiniMax-M2.7` |
+| `config/config.py` | `minimax_model_name` | `MiniMax-Text-01` |
 | `config/config.py` | `xunfei_api_url` | 讯飞大模型地址 |
 | `config/config.py` | `xunfei_api_key` | 讯飞 API Key |
 | `config/config.py` | `model_name` | `astron-code-latest` |

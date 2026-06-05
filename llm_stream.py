@@ -13,7 +13,7 @@ from config import settings
 
 _http_client: httpx.AsyncClient | None = None
 
-# MiniMax M2.7 最大输出 token 数（8192 是官方上限）
+# MiniMax-Text-01 最大输出 token 数（8192 是官方上限）
 MAX_OUTPUT_TOKENS = 8192
 
 
@@ -40,7 +40,7 @@ async def call_llm_async(
     temperature: float = 0.3,
     tools: list[dict] | None = None,
 ) -> str:
-    """同步调用 MiniMax M2.7（非流式）"""
+    """同步调用 MiniMax-Text-01（非流式）"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
@@ -91,7 +91,7 @@ async def call_llm_stream(
     temperature: float = 0.3,
     tools: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
-    """流式调用 MiniMax M2.7"""
+    """流式调用 MiniMax-Text-01"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
@@ -162,7 +162,7 @@ async def call_llm_stream_with_log(
     agent_name: str = "generator",
     temperature: float = 0.3,
 ) -> AsyncGenerator[dict, None]:
-    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax M2.7 生成内容..."}
+    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax-Text-01 生成内容..."}
 
     full_text = ""
     chunk_count = 0
@@ -196,7 +196,7 @@ async def call_llm_async_messages(
     messages: list[dict[str, str]],
     temperature: float = 0.3,
 ) -> str:
-    """调用 MiniMax M2.7（非流式），支持完整 messages 数组（含历史上下文）。"""
+    """调用 MiniMax-Text-01（非流式），支持完整 messages 数组（含历史上下文）。"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
@@ -240,7 +240,7 @@ async def call_llm_stream_messages(
     messages: list[dict[str, str]],
     temperature: float = 0.3,
 ) -> AsyncGenerator[str, None]:
-    """流式调用 MiniMax M2.7，支持完整 messages 数组（含历史上下文）。"""
+    """流式调用 MiniMax-Text-01，支持完整 messages 数组（含历史上下文）。"""
     client = await get_http_client()
     headers = {
         "Content-Type": "application/json",
@@ -306,7 +306,7 @@ async def call_llm_stream_with_log_messages(
     temperature: float = 0.3,
 ) -> AsyncGenerator[dict, None]:
     """流式调用（带日志），支持完整 messages 数组（含历史上下文）。"""
-    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax M2.7 生成内容（含历史上下文）..."}
+    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax-Text-01 生成内容（含历史上下文）..."}
 
     full_text = ""
     chunk_count = 0

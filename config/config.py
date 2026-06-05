@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     minimax_api_url: str = "https://api.minimax.chat/v1"
     minimax_api_key: str = Field(default="", description="MiniMax API Key（请配置到 .env 文件）")
     minimax_group_id: str = Field(default="", description="MiniMax API Group ID for TTS（请配置到 .env 文件）")
-    minimax_model_name: str = "MiniMax-M2.7"
+    minimax_model_name: str = "MiniMax-Text-01"
 
     # MiniMax 媒体生成模型
     minimax_image_model: str = Field(default="image-01", description="MiniMax image generation model")
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # MiniMax Coding Plan 搜索额度（走 coding-plan-search）
     minimax_search_api_url: str = "https://api.minimax.chat/v1"
-    minimax_search_model: str = "MiniMax-M2.7"
+    minimax_search_model: str = "MiniMax-Text-01"
 
     # 百度语音识别 API（用于语音转文字）
     baidu_asr_app_id: str = Field(default="", description="百度语音识别 App ID")

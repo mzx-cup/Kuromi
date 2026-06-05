@@ -481,7 +481,7 @@ class MiniMaxPPTProvider:
 
         for attempt in range(retry_count):
             try:
-                url = f"{settings.minimax_api_url}/text/chatcompletion_v2"
+                url = f"{settings.minimax_api_url}/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {settings.minimax_api_key}",
                     "Content-Type": "application/json",

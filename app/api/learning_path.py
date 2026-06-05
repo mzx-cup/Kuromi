@@ -80,7 +80,7 @@ class NodeStateResponse(BaseModel):
 # ── LLM 调用 ──
 
 def _call_llm(system_prompt: str, user_prompt: str, temperature: float = 0.4) -> str:
-    """调用 MiniMax M2.7 大模型生成内容（已完全切换自讯飞）"""
+    """调用 MiniMax-Text-01 大模型生成内容（已完全切换自讯飞）"""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",
