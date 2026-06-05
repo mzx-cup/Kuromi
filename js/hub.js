@@ -204,10 +204,6 @@ function createDataParticles() {
         bg.appendChild(particle);
     }
 
-    // Also add the third ambient orb
-    const orb3 = document.createElement('div');
-    orb3.className = 'orb-3';
-    bg.appendChild(orb3);
 }
 
 // ---- Cursor Glow ----
@@ -2523,9 +2519,9 @@ const URGENCY_CONFIG = {
     levelY: { 'root': 10, 'branch': 35, 'leaf': 60 },
     // 紧迫性颜色（CSS 变量引用，运行时解析为实际色值）
     urgencyColorVars: {
-        critical: { from: 'var(--danger-color)', to: 'var(--danger-color)' },
-        warning:  { from: 'var(--warning-color)', to: 'var(--warning-color)' },
-        healthy:  { from: 'var(--success-color)', to: 'var(--success-color)' }
+        critical: { from: '--danger',  to: '--danger' },
+        warning:  { from: '--warning', to: '--warning' },
+        healthy:  { from: '--success', to: '--success' }
     },
     // 已解析的 RGB 缓存（首次调用时填充）
     _resolvedColors: null
@@ -2789,8 +2785,11 @@ function updateNodeUrgencyStyle(nodeEl, urgency) {
     const color = getUrgencyColor(urgency, 0.8);
     const glowColor = getUrgencyColor(urgency, 0.4);
 
-    // 更新边框颜色
-    nodeEl.style.borderColor = color;
+    // 更新边框颜色（border 在 .node-inner 上，不在 .holo-node 自身）
+    const innerEl = nodeEl.querySelector('.node-inner');
+    if (innerEl) {
+        innerEl.style.borderColor = color;
+    }
     nodeEl.style.setProperty('--node-accent', getUrgencyColor(urgency, 1));
     nodeEl.style.setProperty('--node-soft', getUrgencyColor(urgency, 0.12));
 
@@ -4023,7 +4022,12 @@ if (!document.getElementById('hub-perfect-animations')) {
                 if (currentPanel) {
                     currentPanel.classList.remove('active', 'slide-out', 'slide-in');
                 }
-            }, 300);
+                // 切换到数据标签页时重新渲染图表（修复隐藏状态下 canvas 尺寸为 0 的问题）
+                if (targetTab === 'data') {
+                    initTrendChart();
+                    initHeatmap(heatmapCurrentPeriod);
+                }
+            }, 350);
 
             if (window.location.hash !== `#${targetTab}`) {
                 history.replaceState(null, '', `#${targetTab}`);

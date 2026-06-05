@@ -739,6 +739,162 @@
       "completed": [],
       "generated_at": "2026-06-02T00:54:09.033150",
       "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Python基础语法入门",
+          "description": "观看变量与数据类型的教学视频",
+          "type": "study",
+          "duration": 25,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "video-player.html"
+        },
+        {
+          "id": 2,
+          "title": "完成5道基础练习",
+          "description": "编写Hello World及简单变量运算程序",
+          "type": "practice",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "基础概念测评",
+          "description": "通过测评找出需要加强的薄弱知识点",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "assessment.html"
+        },
+        {
+          "id": 4,
+          "title": "知识图谱梳理",
+          "description": "用概念分析工具构建今日学习内容框架",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "concept-analyzer.html"
+        },
+        {
+          "id": 5,
+          "title": "AI问答复习",
+          "description": "通过苏格拉底式提问巩固编程基础概念",
+          "type": "study",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "专注力训练",
+          "description": "完成一次25分钟番茄钟专注练习",
+          "type": "practice",
+          "duration": 30,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 7,
+          "title": "虚拟宠物互动",
+          "description": "喂养虚拟宠物，放松学习间隙",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-06-03",
+      "completed": [],
+      "generated_at": "2026-06-03T11:04:15.995323",
+      "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Python基础语法入门",
+          "description": "学习变量、数据类型、print输出",
+          "type": "study",
+          "duration": 15,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "courses.html"
+        },
+        {
+          "id": 2,
+          "title": "数据类型练习",
+          "description": "完成5道整数和字符串练习题",
+          "type": "practice",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "条件语句实战",
+          "description": "编写3个if-else判断小程序",
+          "type": "practice",
+          "duration": 25,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 4,
+          "title": "数学计算训练",
+          "description": "完成10道四则运算应用题",
+          "type": "practice",
+          "duration": 20,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 5,
+          "title": "算法思维入门",
+          "description": "学习流程图和基础算法逻辑",
+          "type": "study",
+          "duration": 15,
+          "subject": "计算机",
+          "difficulty": "easy",
+          "taskUrl": "courses.html"
+        },
+        {
+          "id": 6,
+          "title": "专注计时",
+          "description": "完成25分钟专注学习时段",
+          "type": "study",
+          "duration": 25,
+          "subject": "通用",
+          "difficulty": "medium",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 7,
+          "title": "植物养成",
+          "description": "浇水施肥，让学习小树成长",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "plant.html"
+        }
+      ],
+      "date": "2026-06-05",
+      "completed": [],
+      "generated_at": "2026-06-05T12:43:04.649520",
+      "user_id": 2
     }
   ],
   "classroom_records": [
