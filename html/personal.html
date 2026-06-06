@@ -23,6 +23,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
 <body class="app-body">
 
@@ -312,8 +313,8 @@
                 </div>
 
                 <!-- 底部：数据摘要卡片 -->
-                <div class="cockpit-stats">
-                    <div class="cockpit-stat-card">
+                <div class="cockpit-stats app-grid-3 app-gap-md">
+                    <div class="cockpit-stat-card app-stat-card glass">
                         <div class="cockpit-stat-icon">
                             <i data-lucide="message-square"></i>
                         </div>
@@ -322,7 +323,7 @@
                             <div class="cockpit-stat-label">交互次数</div>
                         </div>
                     </div>
-                    <div class="cockpit-stat-card">
+                    <div class="cockpit-stat-card app-stat-card glass">
                         <div class="cockpit-stat-icon">
                             <i data-lucide="timer"></i>
                         </div>
@@ -331,7 +332,7 @@
                             <div class="cockpit-stat-label">学习分钟</div>
                         </div>
                     </div>
-                    <div class="cockpit-stat-card">
+                    <div class="cockpit-stat-card app-stat-card glass">
                         <div class="cockpit-stat-icon">
                             <i data-lucide="check-square"></i>
                         </div>
@@ -840,5 +841,21 @@
         window.addEventListener('hashchange', activateTabFromHash);
     })();
     </script>
+
+<script>
+// Number counting animation for stat values
+document.querySelectorAll('.app-stat-value[data-count]').forEach(function(el) {
+  var target = parseInt(el.getAttribute('data-count'));
+  var duration = 800;
+  var start = performance.now();
+  function tick(now) {
+    var progress = Math.min((now - start) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased).toLocaleString();
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+});
+</script>
 </body>
 </html>
