@@ -20,6 +20,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
 <body class="app-body hub-body">
 
@@ -551,29 +552,29 @@
                                 <h1 class="hero-title-gradient" id="hero-title">下午好，李同学</h1>
                                 <p class="hero-motto gradient-text" id="hero-motto">保持节奏，今天又是充实的一天</p>
                             </div>
-                            <div class="hero-stats-row" id="hero-stats">
-                                <div class="hero-stat-capsule study">
+                            <div class="hero-stats-row stagger" id="hero-stats" style="--stagger-delay:100ms;">
+                                <div class="hero-stat-capsule study fade-up">
                                     <span class="hero-stat-capsule-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                                     </span>
                                     <span class="hero-stat-capsule-value" id="hero-stat-study">2.5h</span>
                                     <span class="hero-stat-capsule-label">今日学习</span>
                                 </div>
-                                <div class="hero-stat-capsule streak">
+                                <div class="hero-stat-capsule streak fade-up">
                                     <span class="hero-stat-capsule-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
                                     </span>
                                     <span class="hero-stat-capsule-value" id="hero-stat-streak">23天</span>
                                     <span class="hero-stat-capsule-label">连续打卡</span>
                                 </div>
-                                <div class="hero-stat-capsule mastery">
+                                <div class="hero-stat-capsule mastery fade-up">
                                     <span class="hero-stat-capsule-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                                     </span>
                                     <span class="hero-stat-capsule-value" id="hero-stat-mastery">88%</span>
                                     <span class="hero-stat-capsule-label">掌握率</span>
                                 </div>
-                                <div class="hero-stat-capsule level">
+                                <div class="hero-stat-capsule level fade-up">
                                     <span class="hero-stat-capsule-icon">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                                     </span>
@@ -642,8 +643,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="feature-grid" id="feature-grid">
-                        <a href="/index.html" class="feature-card hub-card func-card" data-category="core">
+                    <div class="feature-grid stagger" id="feature-grid" style="--stagger-delay:60ms;">
+                        <a href="/index.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="core">
                             <span class="feature-card-badge hot">热门</span>
                             <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--info)">
@@ -653,7 +654,7 @@
                             <p class="feature-card-desc">智能助手随时解答疑惑</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">AI驱动</span><span class="feature-card-tag">实时</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/video-player.html" class="feature-card hub-card func-card" data-category="core">
+                        <a href="/video-player.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="core">
                             <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-400)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -662,7 +663,7 @@
                             <p class="feature-card-desc">沉浸式视频学习体验</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">视频</span><span class="feature-card-tag">沉浸</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/courses.html" class="feature-card hub-card func-card" data-category="learn">
+                        <a href="/courses.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="learn">
                             <span class="feature-card-badge new">上新</span>
                             <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--success)">
@@ -672,7 +673,7 @@
                             <p class="feature-card-desc">系统化完整学习路径</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">系统</span><span class="feature-card-tag">路径</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/code.html" class="feature-card hub-card func-card" data-category="create">
+                        <a href="/code.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="create">
                             <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-300)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -681,7 +682,7 @@
                             <p class="feature-card-desc">在线编程即时反馈</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">编程</span><span class="feature-card-tag">实战</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/socratic-ai.html" class="feature-card hub-card func-card" data-category="explore">
+                        <a href="/socratic-ai.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
                             <span class="feature-card-badge beta">实验</span>
                             <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--danger)">
@@ -691,7 +692,7 @@
                             <p class="feature-card-desc">诘问引导深度思考</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">思维</span><span class="feature-card-tag">AI</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/plant.html" class="feature-card hub-card func-card" data-category="explore">
+                        <a href="/plant.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
                             <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--warning)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg>
@@ -700,7 +701,7 @@
                             <p class="feature-card-desc">成就可视化花园</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">养成</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/stellar-showcase.html" class="feature-card hub-card func-card" data-category="explore">
+                        <a href="/stellar-showcase.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
                             <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-500)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -709,7 +710,7 @@
                             <p class="feature-card-desc">学习成果展示空间</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">展示</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
-                        <a href="/flow-meter.html" class="feature-card hub-card func-card" data-category="explore">
+                        <a href="/flow-meter.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
                             <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--info)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
@@ -871,7 +872,7 @@
                         </div>
                         <a href="/courses.html" class="section-more">查看全部 <span>→</span></a>
                     </div>
-                    <div class="content-grid" id="content-grid">
+                    <div class="content-grid stagger" id="content-grid" style="--stagger-delay:80ms;">
                         <a href="/courses.html" class="content-card hub-card content-card-compact">
                             <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--info),black 70%),color-mix(in oklch,var(--brand-300),black 70%))">
