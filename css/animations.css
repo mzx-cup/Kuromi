@@ -95,3 +95,104 @@
 .hover-glow:hover {
   box-shadow: 0 0 0 3px var(--accent-bg);
 }
+
+/* ===== Entry Animations ===== */
+
+/* ---------- 从上方滑入 ---------- */
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-down { animation: slide-down 0.35s var(--ease-out) forwards; }
+
+/* ---------- 从右侧滑入 ---------- */
+@keyframes slide-left {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-left { animation: slide-left 0.35s var(--ease-out) forwards; }
+
+/* ---------- 从左侧滑入 ---------- */
+@keyframes slide-right {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-right { animation: slide-right 0.35s var(--ease-out) forwards; }
+
+/* ---------- 淡入 + 上移 ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fade-up 0.4s var(--ease-out) forwards; }
+
+/* ---------- 弹出 ---------- */
+@keyframes grow-in {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.grow-in { animation: grow-in 0.3s var(--ease-out) forwards; }
+
+/* ===== Attention Animations ===== */
+
+/* ---------- 错误抖动 ---------- */
+@keyframes gentle-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.gentle-shake { animation: gentle-shake 0.4s ease; }
+
+/* ---------- 发光脉冲 ---------- */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--brand-400), transparent 60%); }
+  50%      { box-shadow: 0 0 0 8px color-mix(in oklch, var(--brand-400), transparent 90%); }
+}
+.glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }
+
+/* ---------- 呼吸 ---------- */
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+.breathing { animation: breathing 3s ease-in-out infinite; }
+
+/* ---------- 吸引注意 ---------- */
+@keyframes draw-attention {
+  0% { transform: scale(1) translateY(0); box-shadow: var(--shadow-md); }
+  10% { transform: scale(1.05) translateY(-4px); box-shadow: var(--shadow-glow); }
+  20% { transform: scale(1) translateY(0); box-shadow: var(--shadow-md); }
+  100% { transform: scale(1) translateY(0); box-shadow: var(--shadow-md); }
+}
+.draw-attention { animation: draw-attention 2s ease-in-out infinite; }
+
+/* ===== Stagger Delay System ===== */
+.stagger > * { animation-delay: calc(var(--stagger-index, 0) * var(--stagger-delay, 60ms)); }
+.stagger > *:nth-child(1) { --stagger-index: 0; }
+.stagger > *:nth-child(2) { --stagger-index: 1; }
+.stagger > *:nth-child(3) { --stagger-index: 2; }
+.stagger > *:nth-child(4) { --stagger-index: 3; }
+.stagger > *:nth-child(5) { --stagger-index: 4; }
+.stagger > *:nth-child(6) { --stagger-index: 5; }
+.stagger > *:nth-child(7) { --stagger-index: 6; }
+.stagger > *:nth-child(8) { --stagger-index: 7; }
+.stagger > *:nth-child(9) { --stagger-index: 8; }
+.stagger > *:nth-child(10) { --stagger-index: 9; }
+
+/* ===== Animation Control Utilities ===== */
+.animate-once { animation-iteration-count: 1; }
+.animate-infinite { animation-iteration-count: infinite; }
+.animate-delay-100 { animation-delay: 100ms; }
+.animate-delay-200 { animation-delay: 200ms; }
+.animate-delay-300 { animation-delay: 300ms; }
+.animate-delay-500 { animation-delay: 500ms; }
+.duration-fast { animation-duration: 0.15s; }
+.duration-normal { animation-duration: 0.3s; }
+.duration-slow { animation-duration: 0.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger > * { animation-delay: 0ms !important; }
+  .animate-infinite { animation-iteration-count: 1 !important; }
+}
