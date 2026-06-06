@@ -238,6 +238,11 @@
     --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
     --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
     --shadow-xl: 0 24px 64px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 400%)));
+    --shadow-inset: inset 0 2px 4px rgba(0,0,0, calc(var(--_shadow-strength) * 0.5));
+    --shadow-glow: 0 0 20px color-mix(in oklch, var(--brand-400), transparent 60%);
+    --shadow-card-hover: 0 8px 30px rgba(0,0,0, calc(var(--_shadow-strength) * 1.2));
+    --shadow-modal: 0 20px 60px rgba(0,0,0, calc(var(--_shadow-strength) * 1.5));
+    --shadow-toast: 0 4px 20px rgba(0,0,0, calc(var(--_shadow-strength) * 1));
 
     /* 文字色 */
     --text-heading:     var(--neutral-900);
@@ -309,6 +314,13 @@
     --card-bg:        var(--surface-card);
     --card-border:    var(--border-color);
     --surface-elevated: var(--surface-card);
+    --surface-raised: color-mix(in oklch, var(--surface-card), white 5%);
+    --surface-sunken: color-mix(in oklch, var(--surface-card), black 5%);
+    --separator: color-mix(in oklch, var(--border-color), transparent 50%);
+    --overlay-dim: rgba(0, 0, 0, 0.5);
+    --focus-ring: 0 0 0 3px color-mix(in oklch, var(--brand-400), transparent 60%);
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --radius-pill: 9999px;
 
     /* 输入框语义 */
     --input-border:       var(--border-color);
@@ -317,6 +329,23 @@
 
     /* 间距补充 */
     --space-2xl: 64px;
+    --space-3xl: 80px;
+    --space-section: 48px;
+    --space-gutter: 24px;
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap-md: 16px;
+    --gap-lg: 24px;
+    --gap-xl: 32px;
+
+    /* ===== Z-Index Scale ===== */
+    --z-base: 0;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-toast: 1100;
+    --z-tooltip: 1200;
 }
 
 /* ============================================================
