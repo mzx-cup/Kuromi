@@ -32,6 +32,7 @@ from db import (
     update_course_generation_status,
 )
 import asyncio
+from contextlib import asynccontextmanager
 
 from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest, LearningPortrait, CourseGenerationRequest, CourseData, SceneOutline, Slide, SlideContent, SlideElement, TeacherInfo, GenerateImageRequest, GenerateImageResponse, GenerateTTSRequest, GenerateTTSResponse, CourseSaveRequest, CourseListResponse, CourseChatRequest, InteractiveScene, TextCardComponent, QuizComponent, CodeEditorComponent, SimulationComponent, QuizOption, QuizGradeRequest, QuizGradeResponse, RunCodeRequest, RunCodeResponse, parse_interactive_scene
 from proactive_tutor import (
@@ -67,7 +68,18 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
 VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """管理应用启动/关闭的生命周期事件。"""
+    # Startup
+    all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
+    v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
+    logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
+    yield
+    # Shutdown
+    await close_http_client()
+
+app = FastAPI(lifespan=lifespan)
 
 # ── 学习路径实时刷新防抖 ──
 _path_refresh_debounce: dict[int, float] = {}
@@ -153,6 +165,10 @@ app.include_router(bilibili_router)
 from app.api.courses import router as courses_router
 app.include_router(courses_router)
 
+# ---- Mascot API (小星 AI 助手) ----
+from app.api.mascot import router as mascot_router
+app.include_router(mascot_router, prefix="/api")
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -168,18 +184,6 @@ async def log_requests(request: Request, call_next):
     else:
         req_logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({elapsed:.0f}ms)")
     return response
-
-
-@app.on_event("startup")
-async def startup_debug():
-    all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
-    v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
-    logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await close_http_client()
 
 
 def coerce_learning_path(value):
@@ -677,14 +681,14 @@ def serve_struggle_test():
         return FileResponse(struggle_path)
     raise HTTPException(status_code=404, detail="struggle_test.html 未找到")
 
-@app.get("/css/{filename}")
+@app.get("/css/{filename:path}")
 def serve_css(filename: str):
     file_path = os.path.join(CSS_DIR, filename)
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="text/css; charset=utf-8")
     raise HTTPException(status_code=404, detail="CSS文件未找到")
 
-@app.get("/js/{filename}")
+@app.get("/js/{filename:path}")
 def serve_js(filename: str):
     file_path = os.path.join(JS_DIR, filename)
     if os.path.exists(file_path):
