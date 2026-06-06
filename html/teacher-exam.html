@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body teacher-page">
@@ -75,7 +76,7 @@
       <!-- Exam Grid -->
       <div class="exam-grid">
         <template x-for="exam in exams" :key="exam.id">
-          <div class="exam-card">
+          <div class="exam-card app-content-card prism fade-up">
               <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
             <h3 x-text="exam.title"></h3>
             <div class="exam-meta">
@@ -100,7 +101,7 @@
 
       <!-- ===== CREATE MODAL (Manual + AI modes) ===== -->
       <div class="modal-overlay" x-show="showCreateModal" @click.self="showCreateModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2 x-text="createMode === 'ai' ? 'AI 自动组卷' : '创建考试'"></h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
 
@@ -180,7 +181,7 @@
 
       <!-- ===== EDIT MODAL ===== -->
       <div class="modal-overlay" x-show="showEditModal" @click.self="showEditModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2>编辑考试</h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
           <label class="auth-label">考试标题 *</label>
@@ -198,7 +199,7 @@
 
       <!-- ===== GRADING MODAL (Proper UI, no alert()) ===== -->
       <div class="modal-overlay" x-show="showGradeModal" @click.self="showGradeModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2 x-text="'批阅: ' + (gradingExam ? gradingExam.title : '')"></h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
           <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px" x-text="'进度: ' + gradingProgress"></div>
@@ -248,7 +249,7 @@
 
       <!-- ===== RESULTS MODAL (Table, not alert()) ===== -->
       <div class="modal-overlay" x-show="showResultModal" @click.self="showResultModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2 x-text="'成绩列表: ' + (resultExam ? resultExam.title : '')"></h2>
           <table class="q-table">
             <thead><tr><th>学生</th><th>用户名</th><th>分数</th><th>AI预评分</th><th>批改状态</th><th>提交时间</th></tr></thead>
@@ -276,7 +277,7 @@
 
       <!-- ===== ANALYSIS MODAL (ECharts, not alert()) ===== -->
       <div class="modal-overlay" x-show="showAnalysisModal" @click.self="showAnalysisModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2 x-text="'成绩分析: ' + (analysisExam ? analysisExam.title : '')"></h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
 
@@ -284,22 +285,22 @@
           <template x-if="analysisData">
             <div style="margin-bottom:16px">
               <div class="td-stats">
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                   <div class="stat-value" x-text="analysisData.avg_score != null ? analysisData.avg_score.toFixed(1) : '--'"></div>
                   <div class="stat-label">平均分</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                   <div class="stat-value" x-text="analysisData.max_score || '--'"></div>
                   <div class="stat-label">最高分</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                   <div class="stat-value" x-text="analysisData.min_score || '--'"></div>
                   <div class="stat-label">最低分</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                   <div class="stat-value" x-text="(analysisData.pass_rate != null ? (analysisData.pass_rate * 100).toFixed(1) + '%' : '--')"></div>
                   <div class="stat-label">及格率</div>

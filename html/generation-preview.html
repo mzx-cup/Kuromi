@@ -13,6 +13,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body">
@@ -46,7 +47,7 @@
         <div class="particle"></div>
     </div>
 
-    <div id="generation-preview" class="preview-page">
+    <div id="generation-preview" class="preview-page fade-in">
         <!-- Back Button -->
         <button id="back-btn" class="back-button">
             <i class="fas fa-arrow-left"></i>
@@ -56,7 +57,7 @@
         <!-- Main Content Wrapper -->
         <div class="content-wrapper">
             <!-- Main Card -->
-            <div class="main-card">
+            <div class="main-card app-content-card">
                 <!-- Progress Dots -->
                 <div class="progress-dots" id="progress-dots">
                     <div class="dot" data-step="0"></div>
@@ -262,7 +263,7 @@
                 </div>
 
                 <!-- Feature Cards -->
-                <div class="feature-cards" id="feature-cards">
+                <div class="feature-cards app-action-card" id="feature-cards">
                     <!-- Dynamically populated based on enabled features -->
                 </div>
 
