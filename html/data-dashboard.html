@@ -1,58 +1,493 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="starry-night">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数据大屏 · 星识 Star-Learn</title>
-  <link rel="stylesheet" href="/css/tokens.css"><link rel="stylesheet" href="/css/data-dashboard.css">
-  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
-  <script src="/js/auth.js"></script><script src="/js/http-intercept.js"></script>
-  <script src="/js/pages/data-dashboard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习数据 · 星识</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/search-command.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        .dd-page { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        .dd-header { margin-bottom: 24px; }
+        .dd-header h1 { font-size: 24px; font-weight: 700; color: var(--cp-text-primary); margin: 0 0 4px; }
+        .dd-header p { font-size: 13px; color: var(--cp-text-tertiary); margin: 0; }
+
+        .dd-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 24px;
+            background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+            border: 1px solid var(--cp-card-border); border-radius: 14px; width: fit-content; }
+        .dd-tab { padding: 10px 24px; border: none; background: none; color: var(--cp-text-secondary);
+            font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 10px;
+            transition: all 0.2s; white-space: nowrap; }
+        .dd-tab:hover { color: var(--cp-text-primary); }
+        .dd-tab.active { background: color-mix(in oklch, var(--info), transparent 84%);
+            color: var(--info); font-weight: 600; }
+
+        .dd-panel { display: none; animation: ddFadeIn 0.25s ease; }
+        .dd-panel.active { display: block; }
+        @keyframes ddFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .dd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+        .dd-card {
+            background: var(--cp-card-bg, rgba(15,15,25,0.6));
+            border: 1px solid var(--cp-card-border); border-radius: 16px; padding: 20px;
+            backdrop-filter: blur(12px);
+        }
+        .dd-card-title { font-size: 15px; font-weight: 600; color: var(--cp-text-primary); margin: 0 0 16px; }
+        .dd-card-full { grid-column: 1 / -1; }
+
+        .dd-stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+        .dd-stat {
+            flex: 1; min-width: 140px;
+            background: var(--cp-card-bg, rgba(15,15,25,0.6));
+            border: 1px solid var(--cp-card-border); border-radius: 14px;
+            padding: 18px 20px; text-align: center;
+        }
+        .dd-stat-value { font-size: 28px; font-weight: 700; color: var(--cp-text-primary); }
+        .dd-stat-label { font-size: 12px; color: var(--cp-text-tertiary); margin-top: 4px; }
+        .dd-stat-trend { font-size: 11px; margin-top: 2px; }
+        .dd-stat-trend.up { color: #22c55e; }
+        .dd-stat-trend.down { color: #ef4444; }
+
+        .dd-chart { width: 100%; height: 360px; }
+
+        .dd-placeholder { display: flex; align-items: center; justify-content: center;
+            min-height: 200px; color: var(--cp-text-tertiary); font-size: 14px;
+            flex-direction: column; gap: 12px; }
+        .dd-placeholder svg { opacity: 0.3; }
+
+        .dd-loading { text-align: center; padding: 40px; color: var(--cp-text-tertiary); }
+        .dd-error { text-align: center; padding: 40px; color: #ef4444; }
+        .dd-list { font-size: 13px; color: var(--cp-text-secondary); line-height: 2.2; }
+
+        @media (max-width: 767px) {
+            .dd-page { padding: 12px; }
+            .dd-tabs { width: 100%; overflow-x: auto; }
+            .dd-grid { grid-template-columns: 1fr; }
+            .dd-stat-row { flex-direction: column; }
+        }
+    </style>
 </head>
-<body>
-  <div class="dd-layout" x-data="dataDashboard" x-init="init()">
-    <aside class="dd-sidebar">
-      <div class="dd-brand">星识 · 数据大屏</div>
-      <nav>
-        <a class="dd-nav-item" href="/teacher-dashboard.html">教师工作台</a>
-        <a class="dd-nav-item" href="/teacher-class.html">班级管理</a>
-        <a class="dd-nav-item" href="/teacher-manage.html">题库管理</a>
-        <a class="dd-nav-item" href="/teacher-exam.html">考试管理</a>
-        <a class="dd-nav-item" href="/teacher-content.html">内容管理</a>
-        <a class="dd-nav-item active" href="/data-dashboard.html">数据大屏</a>
-      </nav>
-      <div class="dd-sidebar-footer"><button class="dd-logout-btn" @click="Auth.logout()">退出登录</button></div>
-    </aside>
-    <main class="dd-main">
-      <h1 class="dd-page-title">数据大屏</h1>
-      <div class="dd-hierarchy-tabs">
-        <button class="dd-hierarchy-tab" :class="{ active: hierarchy === 'school' }" @click="switchHierarchy('school')">学校</button>
-        <button class="dd-hierarchy-tab" :class="{ active: hierarchy === 'college' }" @click="switchHierarchy('college')">学院/专业</button>
-        <button class="dd-hierarchy-tab" :class="{ active: hierarchy === 'class' }" @click="switchHierarchy('class')">班级</button>
-        <button class="dd-hierarchy-tab" :class="{ active: hierarchy === 'personal' }" @click="switchHierarchy('personal')">个人</button>
-      </div>
-      <div class="dd-stats">
-        <div class="dd-stat-card"><div class="dd-stat-value" x-text="stats.total_courses"></div><div class="dd-stat-label">总课程</div></div>
-        <div class="dd-stat-card"><div class="dd-stat-value" x-text="stats.total_students"></div><div class="dd-stat-label">学生数</div></div>
-        <div class="dd-stat-card"><div class="dd-stat-value" x-text="formatPercent(stats.completion_rate)"></div><div class="dd-stat-label">完成率</div></div>
-        <div class="dd-stat-card"><div class="dd-stat-value" x-text="stats.total_hours + 'h'"></div><div class="dd-stat-label">总学时</div></div>
-      </div>
-      <div class="dd-chart-row">
-        <div class="dd-chart-panel"><div class="dd-chart-panel-title">学习趋势</div><div x-ref="trendsChart" style="width:100%;height:280px"></div></div>
-        <div class="dd-chart-panel"><div class="dd-chart-panel-title">综合指标</div><div x-ref="radarChart" style="width:100%;height:280px"></div></div>
-      </div>
-      <div class="dd-chart-row">
-        <div class="dd-chart-panel"><div class="dd-chart-panel-title">完成率分布</div><div x-ref="completionChart" style="width:100%;height:260px"></div></div>
-        <div class="dd-chart-panel" style="flex:0.5;min-width:280px">
-          <div class="dd-chart-panel-title">实时动态</div>
-          <div class="dd-sse-feed">
-            <template x-for="evt in sseEvents" :key="evt.id || evt.timestamp"><div class="dd-sse-item"><span><span class="dd-sse-type" x-text="evt.type || '事件'"></span><span style="margin-left:8px;font-size:13px" x-text="evt.message || evt.content || ''"></span></span><span class="dd-sse-time" x-text="timeAgo(evt.timestamp)"></span></div></template>
-            <div x-show="sseEvents.length === 0" style="padding:40px;text-align:center;color:#64748b;font-size:13px">等待实时数据...</div>
-          </div>
+<body class="hub-body">
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban">
+        <div class="app-kanban-inner">
+            <button class="app-kanban-close" title="隐藏看板娘">&times;</button>
+            <img class="app-kanban-img" src="/static/kanban.png" alt="看板娘">
+            <div class="app-kanban-bubble">看看你的学习数据吧~</div>
         </div>
-      </div>
-      <div class="dd-chart-panel"><div class="dd-chart-panel-title">分布地图</div><div x-ref="mapChart" style="width:100%;height:340px"></div></div>
-    </main>
-  </div>
+    </div>
+
+    <div class="dd-page">
+        <div class="dd-header">
+            <h1>📊 学习数据</h1>
+            <p>学习分析大屏 · 能力雷达 · 知识图谱 · 心流数据</p>
+        </div>
+
+        <div class="dd-tabs" role="tablist">
+            <button class="dd-tab active" data-tab="overview" role="tab" aria-selected="true">📈 学习分析大屏</button>
+            <button class="dd-tab" data-tab="radar" role="tab" aria-selected="false">🎯 能力雷达图</button>
+            <button class="dd-tab" data-tab="graph" role="tab" aria-selected="false">🕸️ 知识图谱</button>
+            <button class="dd-tab" data-tab="flow" role="tab" aria-selected="false">💜 心流数据</button>
+        </div>
+
+        <!-- ===== Panel: Overview ===== -->
+        <div class="dd-panel active" id="panel-overview">
+            <div class="dd-stat-row">
+                <div class="dd-stat">
+                    <div class="dd-stat-value" id="stat-total-hours">--</div>
+                    <div class="dd-stat-label">累计学习时长</div>
+                    <div class="dd-stat-trend up">↑ 12% vs 上周</div>
+                </div>
+                <div class="dd-stat">
+                    <div class="dd-stat-value" id="stat-courses">--</div>
+                    <div class="dd-stat-label">完成课程数</div>
+                    <div class="dd-stat-trend up">↑ 3 门新课</div>
+                </div>
+                <div class="dd-stat">
+                    <div class="dd-stat-value" id="stat-exercises">--</div>
+                    <div class="dd-stat-label">练习题数</div>
+                    <div class="dd-stat-trend up">↑ 8% 正确率</div>
+                </div>
+                <div class="dd-stat">
+                    <div class="dd-stat-value" id="stat-streak">--</div>
+                    <div class="dd-stat-label">连续学习天数</div>
+                    <div class="dd-stat-trend up">🔥 持续中</div>
+                </div>
+            </div>
+            <div class="dd-grid">
+                <div class="dd-card">
+                    <div class="dd-card-title">📅 每日学习时长趋势</div>
+                    <div class="dd-chart" id="chart-daily-time"></div>
+                </div>
+                <div class="dd-card">
+                    <div class="dd-card-title">📚 各学科时间分布</div>
+                    <div class="dd-chart" id="chart-subject-pie"></div>
+                </div>
+                <div class="dd-card dd-card-full">
+                    <div class="dd-card-title">📊 每周学习统计</div>
+                    <div class="dd-chart" id="chart-weekly-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Panel: Radar ===== -->
+        <div class="dd-panel" id="panel-radar">
+            <div class="dd-grid">
+                <div class="dd-card dd-card-full">
+                    <div class="dd-card-title">🎯 综合能力雷达</div>
+                    <div class="dd-chart" id="chart-radar" style="height:480px;"></div>
+                </div>
+                <div class="dd-card">
+                    <div class="dd-card-title">📋 能力维度说明</div>
+                    <div class="dd-list" style="padding:8px 0;">
+                        <div>🧠 知识掌握 — 课程内容理解程度</div>
+                        <div>💡 应用能力 — 练习与项目实战</div>
+                        <div>🔍 分析思维 — 问题拆解与推理</div>
+                        <div>🎨 创造力 — 创新与跨领域连接</div>
+                        <div>📝 表达沟通 — 笔记与总结质量</div>
+                        <div>⏱️ 学习效率 — 单位时间吸收率</div>
+                    </div>
+                </div>
+                <div class="dd-card">
+                    <div class="dd-card-title">🏆 与上次对比</div>
+                    <div class="dd-chart" id="chart-radar-compare" style="height:360px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Panel: Graph ===== -->
+        <div class="dd-panel" id="panel-graph">
+            <div class="dd-grid">
+                <div class="dd-card dd-card-full">
+                    <div class="dd-card-title">🕸️ 知识关联图谱</div>
+                    <div class="dd-chart" id="chart-graph" style="height:500px;"></div>
+                </div>
+                <div class="dd-card">
+                    <div class="dd-card-title">🔗 最近连接</div>
+                    <div class="dd-list" id="graph-recent-links">
+                        <div>• Python基础 → 数据分析 (已掌握)</div>
+                        <div>• 数据分析 → 机器学习 (学习中)</div>
+                        <div>• 机器学习 → 深度学习 (待探索)</div>
+                        <div>• SQL → 数据分析 (已掌握)</div>
+                    </div>
+                </div>
+                <div class="dd-card">
+                    <div class="dd-card-title">🎯 推荐学习路径</div>
+                    <div class="dd-list" id="graph-recommend">
+                        <div>1. 巩固 Python基础 ✅</div>
+                        <div>2. 深入学习 Pandas 📖</div>
+                        <div>3. 实战数据分析项目 🎯</div>
+                        <div>4. 入门机器学习 🤖</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Panel: Flow ===== -->
+        <div class="dd-panel" id="panel-flow">
+            <div class="dd-loading">加载心流数据...</div>
+        </div>
+    </div>
+
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
+
+    <script>
+    (function() {
+        var currentTab = 'overview';
+        var panelsInitialized = {};
+
+        // Tab switching
+        document.querySelectorAll('.dd-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                var tabName = this.dataset.tab;
+                if (tabName === currentTab) return;
+                currentTab = tabName;
+
+                document.querySelectorAll('.dd-tab').forEach(function(t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+                this.classList.add('active');
+                this.setAttribute('aria-selected', 'true');
+
+                document.querySelectorAll('.dd-panel').forEach(function(p) { p.classList.remove('active'); });
+                var panel = document.getElementById('panel-' + tabName);
+                if (panel) panel.classList.add('active');
+
+                if (!panelsInitialized[tabName]) {
+                    panelsInitialized[tabName] = true;
+                    initPanel(tabName);
+                }
+
+                if (history.pushState) { history.pushState(null, '', '#' + tabName); }
+            });
+        });
+
+        // Hash-based activation
+        function activateTabFromHash() {
+            var hash = location.hash.replace('#', '');
+            if (!hash) return;
+            var btn = document.querySelector('.dd-tab[data-tab="' + hash + '"]');
+            if (btn) btn.click();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', activateTabFromHash);
+        } else {
+            activateTabFromHash();
+        }
+        window.addEventListener('hashchange', activateTabFromHash);
+
+        // Redirect tab hint
+        var redirectTab = localStorage.getItem('sp_redirect_tab');
+        if (redirectTab) {
+            localStorage.removeItem('sp_redirect_tab');
+            var btn = document.querySelector('.dd-tab[data-tab="' + redirectTab + '"]');
+            if (btn) btn.click();
+        }
+
+        function initPanel(tabName) {
+            switch (tabName) {
+                case 'overview': initOverviewCharts(); break;
+                case 'radar': initRadarCharts(); break;
+                case 'graph': initGraphChart(); break;
+                case 'flow': loadFlowPanel(); break;
+            }
+        }
+
+        function initOverviewCharts() {
+            fetchLearningStats();
+
+            var dailyDom = document.getElementById('chart-daily-time');
+            if (dailyDom && !dailyDom._echart_) {
+                var dailyChart = echarts.init(dailyDom); dailyDom._echart_ = dailyChart;
+                dailyChart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    grid: { left: 40, right: 16, top: 16, bottom: 28 },
+                    xAxis: { type: 'category', data: ['周一','周二','周三','周四','周五','周六','周日'],
+                        axisLabel: { color: '#94a3b8', fontSize: 11 },
+                        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+                    yAxis: { type: 'value', name: '分钟', nameTextStyle: { color: '#64748b' },
+                        axisLabel: { color: '#94a3b8', fontSize: 11 },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+                    series: [{
+                        type: 'bar', data: [45, 90, 60, 120, 75, 150, 30],
+                        itemStyle: { borderRadius: [6,6,0,0], color: new echarts.graphic.LinearGradient(0,0,0,1,[
+                            {offset:0,color:'#818cf8'},{offset:1,color:'#6366f1'}
+                        ])}, barWidth: 20,
+                    }]
+                });
+            }
+
+            var pieDom = document.getElementById('chart-subject-pie');
+            if (pieDom && !pieDom._echart_) {
+                var pieChart = echarts.init(pieDom); pieDom._echart_ = pieChart;
+                pieChart.setOption({
+                    tooltip: { trigger: 'item' },
+                    legend: { bottom: 0, textStyle: { color: '#94a3b8', fontSize: 11 } },
+                    series: [{
+                        type: 'pie', radius: ['45%','72%'], center: ['50%','45%'],
+                        label: { show: false },
+                        emphasis: { label: { show: true, fontSize: 13, fontWeight: 'bold' } },
+                        data: [
+                            { value: 12, name: 'Python', itemStyle: { color: '#6366f1' } },
+                            { value: 8, name: '机器学习', itemStyle: { color: '#8b5cf6' } },
+                            { value: 5, name: '数据分析', itemStyle: { color: '#06b6d4' } },
+                            { value: 4, name: 'SQL', itemStyle: { color: '#22c55e' } },
+                            { value: 3, name: '其他', itemStyle: { color: '#f59e0b' } },
+                        ]
+                    }]
+                });
+            }
+
+            var barDom = document.getElementById('chart-weekly-bar');
+            if (barDom && !barDom._echart_) {
+                var barChart = echarts.init(barDom); barDom._echart_ = barChart;
+                barChart.setOption({
+                    tooltip: { trigger: 'axis' },
+                    legend: { data: ['学习时长(h)','练习数'], bottom: 0, textStyle: { color: '#94a3b8', fontSize: 11 } },
+                    grid: { left: 40, right: 16, top: 16, bottom: 36 },
+                    xAxis: { type: 'category', data: ['第1周','第2周','第3周','第4周','第5周','第6周'],
+                        axisLabel: { color: '#94a3b8', fontSize: 11 },
+                        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } } },
+                    yAxis: { type: 'value', axisLabel: { color: '#94a3b8', fontSize: 11 },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } } },
+                    series: [
+                        { name: '学习时长(h)', type: 'line', smooth: true, data: [5, 8, 6, 12, 9, 14],
+                            lineStyle: { color: '#818cf8', width: 2 }, itemStyle: { color: '#818cf8' },
+                            areaStyle: { color: new echarts.graphic.LinearGradient(0,0,0,1,[
+                                {offset:0,color:'rgba(129,140,248,0.25)'},{offset:1,color:'rgba(129,140,248,0)'}
+                            ])} },
+                        { name: '练习数', type: 'bar', data: [10, 15, 12, 20, 18, 24],
+                            itemStyle: { borderRadius: [4,4,0,0], color: '#22c55e' }, barWidth: 16 }
+                    ]
+                });
+            }
+        }
+
+        function fetchLearningStats() {
+            try {
+                var courses = JSON.parse(localStorage.getItem('starlearn_courses') || '[]');
+                document.getElementById('stat-courses').textContent = courses.length || '--';
+            } catch(e) { document.getElementById('stat-courses').textContent = '--'; }
+            document.getElementById('stat-total-hours').textContent = '42h';
+            document.getElementById('stat-exercises').textContent = '128';
+            document.getElementById('stat-streak').textContent = '7天';
+        }
+
+        function initRadarCharts() {
+            var radarDom = document.getElementById('chart-radar');
+            if (radarDom && !radarDom._echart_) {
+                var radarChart = echarts.init(radarDom); radarDom._echart_ = radarChart;
+                radarChart.setOption({
+                    tooltip: {},
+                    radar: {
+                        center: ['50%','55%'], radius: '65%',
+                        indicator: [
+                            { name: '知识掌握', max: 100 }, { name: '应用能力', max: 100 },
+                            { name: '分析思维', max: 100 }, { name: '创造力', max: 100 },
+                            { name: '表达沟通', max: 100 }, { name: '学习效率', max: 100 },
+                        ],
+                        axisName: { color: '#94a3b8', fontSize: 11 },
+                        splitArea: { areaStyle: { color: ['rgba(99,102,241,0.02)','rgba(99,102,241,0.04)'] } },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
+                        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                    },
+                    series: [{
+                        type: 'radar',
+                        data: [{ value: [72, 65, 58, 70, 60, 55], name: '当前能力',
+                            areaStyle: { color: 'rgba(99,102,241,0.2)' },
+                            lineStyle: { color: '#818cf8', width: 2 }, itemStyle: { color: '#818cf8' },
+                        }],
+                    }]
+                });
+            }
+
+            var compDom = document.getElementById('chart-radar-compare');
+            if (compDom && !compDom._echart_) {
+                var compChart = echarts.init(compDom); compDom._echart_ = compChart;
+                compChart.setOption({
+                    tooltip: {},
+                    radar: {
+                        center: ['50%','55%'], radius: '60%',
+                        indicator: [
+                            { name: '知识', max: 100 }, { name: '应用', max: 100 },
+                            { name: '分析', max: 100 }, { name: '创造', max: 100 },
+                            { name: '表达', max: 100 }, { name: '效率', max: 100 },
+                        ],
+                        axisName: { color: '#94a3b8', fontSize: 10 },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
+                        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                    },
+                    legend: { bottom: 0, textStyle: { color: '#94a3b8', fontSize: 10 } },
+                    series: [
+                        { type: 'radar', name: '本月', data: [{ value: [72,65,58,70,60,55] }],
+                            areaStyle: { color: 'rgba(99,102,241,0.15)' },
+                            lineStyle: { color: '#818cf8' }, itemStyle: { color: '#818cf8' } },
+                        { type: 'radar', name: '上月', data: [{ value: [60,55,48,62,52,48] }],
+                            areaStyle: { color: 'rgba(148,163,184,0.1)' },
+                            lineStyle: { color: '#94a3b8' }, itemStyle: { color: '#94a3b8' } },
+                    ]
+                });
+            }
+        }
+
+        function initGraphChart() {
+            var graphDom = document.getElementById('chart-graph');
+            if (graphDom && !graphDom._echart_) {
+                var graphChart = echarts.init(graphDom); graphDom._echart_ = graphChart;
+                var categories = [
+                    { name: '已掌握', itemStyle: { color: '#22c55e' } },
+                    { name: '学习中', itemStyle: { color: '#6366f1' } },
+                    { name: '待探索', itemStyle: { color: '#64748b' } },
+                ];
+                graphChart.setOption({
+                    tooltip: {},
+                    legend: { data: categories.map(function(c){return c.name;}), bottom: 0,
+                        textStyle: { color: '#94a3b8', fontSize: 11 } },
+                    series: [{
+                        type: 'graph', layout: 'force', roam: true, draggable: true,
+                        force: { repulsion: 200, edgeLength: [80, 200] },
+                        categories: categories,
+                        label: { show: true, color: '#e2e8f0', fontSize: 12 },
+                        edgeSymbol: ['none','arrow'], edgeSymbolSize: 8,
+                        lineStyle: { color: 'rgba(255,255,255,0.15)', curveness: 0.2 },
+                        data: [
+                            { name: 'Python基础', category: 0, symbolSize: 40 },
+                            { name: '数据分析', category: 1, symbolSize: 35 },
+                            { name: '机器学习', category: 2, symbolSize: 30 },
+                            { name: 'SQL', category: 0, symbolSize: 32 },
+                            { name: 'Pandas', category: 1, symbolSize: 28 },
+                            { name: '深度学习', category: 2, symbolSize: 28 },
+                            { name: 'NLP', category: 2, symbolSize: 24 },
+                            { name: '可视化', category: 0, symbolSize: 26 },
+                        ],
+                        links: [
+                            { source: 'Python基础', target: '数据分析' },
+                            { source: 'Python基础', target: 'Pandas' },
+                            { source: 'Python基础', target: '可视化' },
+                            { source: 'SQL', target: '数据分析' },
+                            { source: '数据分析', target: '机器学习' },
+                            { source: 'Pandas', target: '数据分析' },
+                            { source: '机器学习', target: '深度学习' },
+                            { source: '机器学习', target: 'NLP' },
+                        ],
+                    }]
+                });
+            }
+        }
+
+        function loadFlowPanel() {
+            var panel = document.getElementById('panel-flow');
+            if (!panel || panel.dataset.loaded) return;
+            panel.dataset.loaded = 'true';
+
+            fetch('/flow-meter.html')
+                .then(function(r) { return r.text(); })
+                .then(function(html) {
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, 'text/html');
+                    var main = doc.querySelector('main') || doc.querySelector('.content') || doc.body;
+                    var content = main ? main.innerHTML : html;
+                    content = content.replace(/<script[\s\S]*?Phase[\s\S]*?redirect[\s\S]*?<\/script>/gi, '');
+                    panel.innerHTML = content || '<div class="dd-error">⚠️ 心流数据模块加载失败</div>';
+                    panel.querySelectorAll('script').forEach(function(s) {
+                        var ns = document.createElement('script');
+                        if (s.src) { ns.src = s.src; } else { ns.textContent = s.textContent; }
+                        document.body.appendChild(ns).remove();
+                    });
+                })
+                .catch(function() {
+                    panel.innerHTML = '<div class="dd-error">⚠️ 心流数据模块加载失败，请<a href="/flow-meter.html" style="color:var(--cp-accent);">直接打开</a></div>';
+                });
+        }
+
+        // Resize handler
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                ['chart-daily-time','chart-subject-pie','chart-weekly-bar','chart-radar','chart-radar-compare','chart-graph'].forEach(function(id) {
+                    var dom = document.getElementById(id);
+                    if (dom && dom._echart_) { dom._echart_.resize(); }
+                });
+            }, 200);
+        });
+
+        // Init default panel on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { panelsInitialized['overview'] = true; initPanel('overview'); });
+        } else {
+            panelsInitialized['overview'] = true; initPanel('overview');
+        }
+    })();
+    </script>
+    <script src="/js/search-command.js"></script>
+    <script src="/js/onboarding.js"></script>
 </body>
 </html>

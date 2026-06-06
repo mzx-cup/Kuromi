@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="/css/loading.css">
     <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/search-command.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
 </head>
 <body class="hub-body">
 
@@ -358,83 +365,146 @@
          ════════════════════════════════════════════ -->
     <div class="hub-layout">
 
-        <!-- 左侧功能导航 -->
+        <!-- 左侧功能导航 (Phase 4: 5-section collapsible, unified entries) -->
         <aside class="hub-sidebar" id="hub-sidebar">
             <div class="sidebar-header">
                 <span class="sidebar-header-text">功能导航</span>
             </div>
             <nav class="sidebar-nav">
+                <!-- 首页 -->
                 <a href="/hub.html" class="nav-item active" data-section="home">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     <span>首页</span>
                 </a>
+
                 <div class="sidebar-divider"></div>
+
+                <!-- 核心功能（无统一入口，每个功能独立页面） -->
                 <div class="sidebar-section">
-                    <span class="sidebar-section-label">核心功能</span>
-                    <a href="/index.html" class="nav-item" data-section="ai-qa">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                        <span>AI 问答</span>
-                    </a>
-                    <a href="/video-player.html" class="nav-item" data-section="video-player">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                        <span>全息视界</span>
-                    </a>
+                    <div class="sidebar-section-header">
+                        <span class="sidebar-section-label" style="flex:1;padding:8px 0 4px;">核心功能</span>
+                        <button class="sidebar-section-toggle" aria-expanded="true" title="展开/折叠">
+                            <svg class="sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <div class="sidebar-section-items">
+                        <a href="/index.html" class="nav-item sidebar-sub-item" data-section="ai-chat">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                            <span>AI 问答</span>
+                            <span class="sidebar-badge">AI</span>
+                        </a>
+                        <a href="/socratic-ai.html" class="nav-item sidebar-sub-item" data-section="socratic-ai">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                            <span>智脑苏格拉底</span>
+                        </a>
+                        <a href="/code.html" class="nav-item sidebar-sub-item" data-section="practice">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                            <span>代码工坊</span>
+                        </a>
+                        <a href="/video-player.html" class="nav-item sidebar-sub-item" data-section="video-player">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            <span>全息视界</span>
+                        </a>
+                    </div>
                 </div>
+
                 <div class="sidebar-divider"></div>
+
+                <!-- 我的课程 → 统一入口 /courses.html（课程中心） -->
                 <div class="sidebar-section">
-                    <span class="sidebar-section-label">学习中心</span>
-                    <a href="/courses.html" class="nav-item" data-section="courses">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                        <span>课程中心</span>
-                    </a>
-                    <a href="/progress.html" class="nav-item" data-section="progress">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        <span>学习进度</span>
-                    </a>
-                    <a href="/calendar.html" class="nav-item" data-section="calendar">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <span>学习日历</span>
-                    </a>
+                    <div class="sidebar-section-header">
+                        <a class="sidebar-section-link" href="/courses.html" title="我的课程统一入口">
+                            <span class="sidebar-section-label">我的课程</span>
+                        </a>
+                        <button class="sidebar-section-toggle" aria-expanded="true" title="展开/折叠">
+                            <svg class="sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <div class="sidebar-section-items">
+                        <a href="/courses.html" class="nav-item sidebar-sub-item" data-section="courses">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            <span>课程中心</span>
+                        </a>
+                        <a href="/progress.html" class="nav-item sidebar-sub-item" data-section="progress">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            <span>学习进度视图</span>
+                        </a>
+                        <a href="/calendar.html" class="nav-item sidebar-sub-item" data-section="calendar">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>学习日历视图</span>
+                        </a>
+                    </div>
                 </div>
+
                 <div class="sidebar-divider"></div>
+
+                <!-- 学习数据 → 统一入口 /data-dashboard.html（学习分析大屏） -->
                 <div class="sidebar-section">
-                    <span class="sidebar-section-label">创作工具</span>
-                    <a href="/code.html" class="nav-item" data-section="practice">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
-                        <span>代码工坊</span>
-                    </a>
+                    <div class="sidebar-section-header">
+                        <a class="sidebar-section-link" href="/data-dashboard.html" title="学习数据统一入口">
+                            <span class="sidebar-section-label">学习数据</span>
+                        </a>
+                        <button class="sidebar-section-toggle" aria-expanded="true" title="展开/折叠">
+                            <svg class="sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <div class="sidebar-section-items">
+                        <a href="/data-dashboard.html#overview" class="nav-item sidebar-sub-item" data-section="data-overview">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            <span>学习分析大屏</span>
+                        </a>
+                        <a href="/data-dashboard.html#radar" class="nav-item sidebar-sub-item" data-section="data-radar">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3c-4.97 0-9 2.015-9 4.5S7.03 12 12 12s9-2.015 9-4.5S16.97 3 12 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12v7.5m0 0c-4.97 0-9-2.015-9-4.5m9 4.5c4.97 0 9-2.015 9-4.5m-9 4.5V12"/></svg>
+                            <span>能力雷达图</span>
+                        </a>
+                        <a href="/data-dashboard.html#graph" class="nav-item sidebar-sub-item" data-section="data-graph">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v3m0 12v3M3 12h3m12 0h3M5.636 5.636l2.121 2.121m8.486 8.486l2.121 2.121M5.636 18.364l2.121-2.121m8.486-8.486l2.121-2.121"/></svg>
+                            <span>知识图谱</span>
+                        </a>
+                    </div>
                 </div>
+
                 <div class="sidebar-divider"></div>
+
+                <!-- 个人中心 → 统一入口 /personal.html#profile（个人资料+设置） -->
                 <div class="sidebar-section">
-                    <span class="sidebar-section-label">探索体验</span>
-                    <a href="/socratic-ai.html" class="nav-item" data-section="socratic-ai">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-                        <span>智脑苏格拉底</span>
-                    </a>
-                    <a href="/plant.html" class="nav-item" data-section="ecology">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/><circle cx="12" cy="12" r="10" stroke-width="2" stroke="currentColor" fill="none"/></svg>
-                        <span>我的生态</span>
-                    </a>
-                    <a href="/stellar-showcase.html" class="nav-item" data-section="stellar-showcase">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                        <span>星云陈列室</span>
-                    </a>
-                    <a href="/flow-meter.html" class="nav-item" data-section="flow-meter">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        <span>心流共振仪</span>
-                    </a>
+                    <div class="sidebar-section-header">
+                        <a class="sidebar-section-link" href="/personal.html#profile" title="个人中心统一入口">
+                            <span class="sidebar-section-label">个人中心</span>
+                        </a>
+                        <button class="sidebar-section-toggle" aria-expanded="true" title="展开/折叠">
+                            <svg class="sidebar-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+                    <div class="sidebar-section-items">
+                        <a href="/personal.html#profile" class="nav-item sidebar-sub-item" data-entry="personal">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            <span>个人资料+设置</span>
+                        </a>
+                        <a href="/stellar-showcase.html" class="nav-item sidebar-sub-item" data-section="achievements">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                            <span>成就展示</span>
+                        </a>
+                        <a href="/plant.html" class="nav-item sidebar-sub-item" data-section="ecology">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
+                            <span>学习生态</span>
+                        </a>
+                        <a href="/flow-meter.html" class="nav-item sidebar-sub-item" data-section="flow-data">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                            <span>心流数据</span>
+                        </a>
+                    </div>
                 </div>
+
+                <!-- 退出登录 -->
                 <div class="sidebar-divider"></div>
-                <div class="sidebar-section">
-                    <span class="sidebar-section-label">个人</span>
-                    <a href="/personal.html" class="nav-item" data-entry="personal">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        <span>个人中心</span>
-                    </a>
-                    <a href="/settings.html" class="nav-item">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <span>设置</span>
-                    </a>
+                <div class="sidebar-footer">
+                    <button class="sidebar-logout-btn" @click="Auth.logout()">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px;height:16px">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <span>退出登录</span>
+                    </button>
                 </div>
             </nav>
         </aside>
@@ -1119,5 +1189,25 @@
     <script src="/js/theme.js"></script>
     <script src="/js/hub.js"></script>
     <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
+
+    <!-- Phase 4: Collapsible sidebar toggle -->
+    <script>
+    (function() {
+        document.querySelectorAll('.sidebar-section-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var section = this.closest('.sidebar-section');
+                var items = section.querySelector('.sidebar-section-items');
+                var expanded = this.getAttribute('aria-expanded') === 'true';
+                this.setAttribute('aria-expanded', !expanded);
+                items.classList.toggle('collapsed');
+            });
+        });
+    })();
+    </script>
+    <script src="/js/search-command.js"></script>
+    <script src="/js/onboarding.js"></script>
 </body>
 </html>

@@ -49,8 +49,14 @@ const learningGoals = [
 ];
 
 function init() {
-    const savedTheme = localStorage.getItem('starlearn_theme') || 'ocean';
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    // 主题由全局 theme.js 管理，不再自行设置 data-theme
+    // 保持与 starlearn_theme_v3 同步
+    if (window.StarTheme) {
+        var st = window.StarTheme.getState();
+        if (st && st.theme) {
+            document.documentElement.setAttribute('data-theme', st.theme);
+        }
+    }
 
     document.getElementById('current-avatar').src = currentUser.avatar;
     document.getElementById('display-name').textContent = currentUser.name;

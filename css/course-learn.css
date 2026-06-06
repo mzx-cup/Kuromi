@@ -80,6 +80,17 @@
   color: var(--primary-light, var(--brand-400));
 }
 
+.cl-logout-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in oklch, var(--danger), transparent 80%);
+  background: transparent; color: var(--danger); cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.cl-logout-btn:hover {
+  background: color-mix(in oklch, var(--danger), transparent 92%);
+}
+
 /* ---- Layout ---- */
 .cl-layout {
   display: flex;

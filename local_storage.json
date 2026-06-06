@@ -1,5 +1,39 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "teacher",
+      "password": "$2b$12$BpMR0GZGFpehiJJdUJXcj.YLUiNxEvwe5zdUoC76Itow9NluX6ZYK",
+      "avatar": "",
+      "nickname": "教师演示",
+      "role": "teacher",
+      "display_name": "教师演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 2,
+      "username": "student",
+      "password": "$2b$12$h6M0Y57Q.CRzLZJ/l8Gbj.0ji2cMg6VlZWBQW7ow60/hzWMBGEole",
+      "avatar": "",
+      "nickname": "学生演示",
+      "role": "student",
+      "display_name": "学生演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 3,
+      "username": "admin",
+      "password": "$2b$12$OBIPDvsrR6wtYPC0pAC2.e2c.7kFyvM7K8egh4SfQXnmlv209VA0m",
+      "avatar": "",
+      "nickname": "管理员",
+      "role": "admin",
+      "display_name": "管理员",
+      "created_at": "local",
+      "last_login": "local"
+    }
+  ],
   "learning_records": [],
   "daily_routes": [
     {

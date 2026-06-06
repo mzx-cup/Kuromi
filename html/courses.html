@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/css/loading.css">
     <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/courses.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="/js/loading.js"></script>
 </head>
 <body class="courses-body" data-page="courses">
@@ -115,5 +117,18 @@
     <script src="/js/theme.js"></script>
     <script src="/js/bilibili-import.js"></script>
     <script src="/js/courses.js"></script>
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban">
+        <div class="app-kanban-inner">
+            <button class="app-kanban-close" title="隐藏看板娘">&times;</button>
+            <img class="app-kanban-img" src="/static/kanban.png" alt="看板娘">
+            <div class="app-kanban-bubble">欢迎来到星识~ 今天也要加油学习哦！</div>
+        </div>
+    </div>
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
 </body>
 </html>

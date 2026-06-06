@@ -291,7 +291,65 @@
 .sidebar-section { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-section-label {
     font-size: 9px; font-weight: var(--font-bold); color: var(--cp-text-tertiary);
-    letter-spacing: 1.2px; padding: 8px var(--space-sm) 4px; text-transform: uppercase;
+    letter-spacing: 1.2px; text-transform: uppercase;
+}
+
+/* Phase 4: Collapsible sidebar section — header row */
+.sidebar-section-header {
+    display: flex; align-items: center;
+    padding: 0 var(--space-sm);
+}
+.sidebar-section-link {
+    flex: 1; text-decoration: none; color: inherit;
+    padding: 8px 0 4px;
+}
+.sidebar-section-link:hover .sidebar-section-label {
+    color: var(--cp-text-secondary);
+}
+.sidebar-section-label {
+    font-size: 9px; font-weight: var(--font-bold); color: var(--cp-text-tertiary);
+    letter-spacing: 1.2px; text-transform: uppercase;
+    transition: color 0.15s;
+}
+
+/* Phase 4: Chevron toggle button (icon-only, beside the link) */
+.sidebar-section-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; padding: 0;
+    border: none; background: none;
+    cursor: pointer; color: var(--cp-text-tertiary);
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.sidebar-section-toggle:hover {
+    background: color-mix(in oklch, var(--info), transparent 90%);
+}
+.sidebar-chevron {
+    width: 12px; height: 12px;
+    transition: transform 0.25s ease;
+}
+.sidebar-section-toggle[aria-expanded="false"] .sidebar-chevron {
+    transform: rotate(-90deg);
+}
+
+/* Phase 4: Section items slide transition */
+.sidebar-section-items {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+    max-height: 600px;
+    opacity: 1;
+}
+.sidebar-section-items.collapsed {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Phase 4: Sub-items indent for hierarchy */
+.sidebar-sub-item {
+    padding-left: 20px !important;
+    font-size: var(--text-xs) !important;
 }
 .sidebar-divider {
     height: 1px; margin: var(--space-sm) var(--space-md);
@@ -311,6 +369,37 @@
     color: var(--info); font-weight: var(--font-semibold);
 }
 .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Phase 4: Sidebar badge (e.g. "AI" label on AI问答 entry) */
+.sidebar-badge {
+    margin-left: auto;
+    font-size: 9px; font-weight: var(--font-bold);
+    padding: 1px 5px; border-radius: 6px;
+    background: var(--cp-accent); color: var(--cp-bg-deep);
+    letter-spacing: 0.3px;
+    line-height: 1.4;
+}
+.nav-item.active .sidebar-badge {
+    background: var(--cp-bg-deep); color: var(--cp-accent);
+}
+
+/* Sidebar footer — logout button */
+.sidebar-footer {
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    margin-top: auto;
+}
+.sidebar-logout-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--danger), transparent 80%);
+    background: transparent;
+    color: var(--danger); cursor: pointer;
+    font-size: var(--text-sm); font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+}
+.sidebar-logout-btn:hover {
+    background: color-mix(in oklch, var(--danger), transparent 92%);
+}
 
 /* ============================================================
    6. 标签导航栏
@@ -1349,9 +1438,8 @@
 .status-badge.pending { background: var(--neutral-300); }
 
 /* ============================================================
-   24. 看板娘
+   24. 看板娘 (v3 角色 — 不再隐藏)
    ============================================================ */
-.app-kanban { display: none; }
 .is-dragging { cursor: grabbing; user-select: none; }
 
 /* ============================================================
@@ -1648,9 +1736,11 @@
         border-right: none; border-bottom: 1px solid var(--cp-card-border);
         overflow-x: auto; gap: 2px;
     }
-    .sidebar-header, .sidebar-divider, .sidebar-section-label { display: none; }
+    .sidebar-header, .sidebar-divider, .sidebar-section-header, .sidebar-section-toggle, .sidebar-chevron, .sidebar-badge { display: none; }
     .sidebar-nav { flex-direction: row; padding: 4px 0; }
     .sidebar-section { flex-direction: row; }
+    .sidebar-section-items { display: contents !important; max-height: none; opacity: 1; pointer-events: auto; }
+    .sidebar-section-items.collapsed { max-height: none; opacity: 1; pointer-events: auto; }
     .nav-item { white-space: nowrap; padding: 6px 10px; font-size: var(--text-xs); }
     .nav-item span { display: inline; }
     .hub-right-panel {

@@ -17,10 +17,12 @@
   var PRESETS = {
     'warm-morning':  { name: '日出晨光', mode: 'light' },
     'forest-light':  { name: '林间晨光', mode: 'light' },
+    'ocean-glass':   { name: 'Ocean 琉璃', mode: 'light' },
     'study-night':   { name: '深夜书房', mode: 'dark' },
     'starry-night':  { name: '星夜',     mode: 'dark' },
     'neon-cyber':    { name: '霓虹电光', mode: 'dark' },
-    'pink-dark':     { name: '暗夜暖黄', mode: 'dark' }
+    'pink-dark':     { name: '暗夜暖黄', mode: 'dark' },
+    'ocean-glass-dark': { name: 'Ocean 深夜', mode: 'dark' }
   };
 
   // ===== Wallpapers =====
@@ -37,10 +39,12 @@
   var PRESET_BRAND_COLORS = {
     'warm-morning': '#f97316',
     'forest-light': '#16a34a',
+    'ocean-glass': '#3b82f6',
     'study-night': '#fb923c',
     'starry-night': '#fbbf24',
     'neon-cyber': '#00e5ff',
-    'pink-dark': '#f59e0b'
+    'pink-dark': '#f59e0b',
+    'ocean-glass-dark': '#3b82f6'
   };
 
   function getThemeBrandColor(themeId) {
@@ -69,8 +73,8 @@
       if (saved && saved.theme && saved.mode) return saved;
     } catch (e) {}
     return {
-      mode: 'dark',
-      theme: 'pink-dark',
+      mode: 'light',
+      theme: 'ocean-glass',
       wallpaperId: 'default',
       brightness: 85,
       blur: 5,

@@ -76,6 +76,30 @@
     --_color-scheme: dark;
 }
 
+/* ---- ocean-glass  Ocean 琉璃 (Personal 页面风格) ---- */
+[data-theme="ocean-glass"] {
+    --_brand-h: 245;           --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 155;         --_success-c: 0.16;     --_success-l: 58%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 15;           --_danger-c: 0.22;      --_danger-l: 52%;
+    --_info-h: 280;            --_info-c: 0.15;        --_info-l: 56%;
+    --_neutral-h: 220;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+/* ---- ocean-glass-dark  Ocean 深夜 ---- */
+[data-theme="ocean-glass-dark"] {
+    --_brand-h: 245;           --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 155;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 48;          --_warning-c: 0.16;     --_warning-l: 68%;
+    --_danger-h: 15;           --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 280;            --_info-c: 0.14;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+
 
 /* ============================================================
    LAYER 2 — 生成色阶（全局计算）
@@ -206,4 +230,79 @@
     --input-bg:        var(--neutral-100);
     --btn-secondary-bg:    var(--neutral-100);
     --btn-secondary-hover: var(--neutral-200);
+}
+
+/* ============================================================
+   THEME OVERRIDES — ocean-glass / ocean-glass-dark
+   精确匹配 Personal 页面的 Ocean Theme 视觉效果
+   ============================================================ */
+
+[data-theme="ocean-glass"] {
+    --surface-page:    #d4dbe0;
+    --surface-card:    rgba(255, 255, 255, 0.72);
+    --surface-hover:   rgba(255, 255, 255, 0.88);
+    --surface-glass:   rgba(255, 255, 255, 0.45);
+    --surface-glass-hover: rgba(255, 255, 255, 0.6);
+    --border-glass:    rgba(255, 255, 255, 0.25);
+    --border-glass-hover: rgba(168, 85, 247, 0.3);
+    --glass-blur:      24px;
+    --glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #0f172a;
+    --text-body:       #475569;
+    --text-muted:      #94a3b8;
+    --text-link:       #2563eb;
+    --text-on-brand:   #ffffff;
+    --bg-card:         var(--surface-card);
+    --primary:         #3b82f6;
+    --primary-light:   #60a5fa;
+    --primary-dark:    #1d4ed8;
+    --primary-glow:    rgba(59, 130, 246, 0.4);
+    --accent:          #8b5cf6;
+    --accent-light:    #a78bfa;
+    --success:         #10b981;
+    --success-bg:      rgba(16, 185, 129, 0.12);
+    --warning:         #f59e0b;
+    --warning-bg:      rgba(245, 158, 11, 0.12);
+    --danger:          #ef4444;
+    --danger-bg:       rgba(239, 68, 68, 0.12);
+    --orb-1:           rgba(99, 102, 241, 0.18);
+    --orb-2:           rgba(236, 72, 153, 0.15);
+    --orb-3:           rgba(59, 130, 246, 0.12);
+    color-scheme: light;
+}
+
+[data-theme="ocean-glass-dark"] {
+    --text-heading:     #f1f5f9;
+    --text-body:        #94a3b8;
+    --text-muted:       #64748b;
+    --text-link:        #60a5fa;
+    --text-on-brand:    #0f172a;
+    --surface-page:     #1a1d23;
+    --surface-card:     rgba(30, 41, 59, 0.72);
+    --surface-hover:    rgba(30, 41, 59, 0.88);
+    --surface-glass:    rgba(30, 41, 59, 0.6);
+    --surface-glass-hover: rgba(30, 41, 59, 0.75);
+    --border-glass:     rgba(255, 255, 255, 0.12);
+    --border-glass-hover: rgba(168, 85, 247, 0.25);
+    --glass-blur:       24px;
+    --glass-shadow:     0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --shadow-glass:     var(--glass-shadow);
+    --bg-card:          var(--surface-card);
+    --primary:          #3b82f6;
+    --primary-light:    #60a5fa;
+    --primary-dark:     #1d4ed8;
+    --primary-glow:     rgba(59, 130, 246, 0.3);
+    --accent:           #8b5cf6;
+    --accent-light:     #a78bfa;
+    --success:          #10b981;
+    --success-bg:       rgba(16, 185, 129, 0.12);
+    --warning:          #f59e0b;
+    --warning-bg:       rgba(245, 158, 11, 0.12);
+    --danger:           #ef4444;
+    --danger-bg:        rgba(239, 68, 68, 0.12);
+    --orb-1:            rgba(99, 102, 241, 0.25);
+    --orb-2:            rgba(236, 72, 153, 0.2);
+    --orb-3:            rgba(59, 130, 246, 0.18);
+    color-scheme: dark;
 }

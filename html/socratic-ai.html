@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
 </head>
 <body class="socratic-body">
     <div class="socratic-bg">
@@ -212,5 +214,18 @@
 
     <script src="/js/data-layer.js"></script>
     <script src="/js/socratic-ai.js"></script>
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban">
+        <div class="app-kanban-inner">
+            <button class="app-kanban-close" title="隐藏看板娘">&times;</button>
+            <img class="app-kanban-img" src="/static/kanban.png" alt="看板娘">
+            <div class="app-kanban-bubble">苏格拉底式对话，深度思考从这里开始~</div>
+        </div>
+    </div>
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
 </body>
 </html>

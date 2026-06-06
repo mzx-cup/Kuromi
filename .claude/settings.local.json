@@ -59,7 +59,9 @@
       "WebFetch(domain:oml2d.com)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(grep -n '#[0-9a-fA-F]\\\\{3,8\\\\}' css/hub.css)",
-      "Bash(grep *)"
+      "Bash(grep *)",
+      "Bash(taskkill //PID 9352 //F)",
+      "Bash(C:/Users/ZWC/AppData/Local/Programs/Python/Python314/python.exe main.py)"
     ]
   }
 }

@@ -68,8 +68,43 @@
     --z-modal: 1000;
 }
 
+/* Ocean Glass Theme — 全局主题兼容 */
+[data-theme="ocean-glass"] {
+    --primary: #3b82f6;
+    --primary-light: #60a5fa;
+    --primary-dark: #1d4ed8;
+    --primary-glow: rgba(59, 130, 246, 0.4);
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --success: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.12);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245, 158, 11, 0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-tertiary: #94a3b8;
+    --text-inverse: #ffffff;
+    --bg-primary: #d4dbe0;
+    --bg-secondary: #c5cdd3;
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-card-hover: rgba(255, 255, 255, 0.88);
+    --bg-elevated: rgba(255, 255, 255, 0.85);
+    --glass-bg: rgba(255, 255, 255, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    --glass-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.18), inset 0 2px 0 rgba(255, 255, 255, 0.7);
+    --glass-blur: 24px;
+    --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    --orb-1: rgba(99, 102, 241, 0.18);
+    --orb-2: rgba(236, 72, 153, 0.15);
+    --orb-3: rgba(59, 130, 246, 0.12);
+}
+
 /* Dark Theme Overrides */
-[data-theme="midnight"] {
+[data-theme="midnight"],
+[data-theme="ocean-glass-dark"] {
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --text-tertiary: #64748b;
@@ -286,6 +321,25 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     letter-spacing: -0.02em;
+}
+
+/* Personal nav actions — logout button */
+.personal-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.personal-logout-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--danger), transparent 80%);
+    background: transparent;
+    color: var(--danger); cursor: pointer;
+    font-size: var(--text-sm); font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+}
+.personal-logout-btn:hover {
+    background: color-mix(in oklch, var(--danger), transparent 92%);
 }
 
 /* Main Glass Card */

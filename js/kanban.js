@@ -1,103 +1,180 @@
 /**
- * 看板娘 — Live2D 角色 + 智能对话系统
+ * 看板娘 — 二次元少女「小星」v3
  *
- * 依赖: oh-my-live2d CDN (动态加载)
- * fallback: 静态立绘 + 3D视差跟随
+ * 纯 CSS 绘制 + JS 表情/状态控制。零外部依赖，不需 Live2D CDN。
+ * 兼容所有已引入 mascot 脚本的页面（hub/code/courses/index/personal/my-courses/socratic-ai）。
+ *
+ * 角色特征:
+ *   - 紫色双马尾 + 星形发夹 + 呆毛
+ *   - 8 种表情 (neutral/happy/thinking/surprised/encourage/celebrate/love/sleepy/cool)
+ *   - 3 种状态 (recording/pomodoro/idle 浮动)
+ *   - 点击/双击/拖拽交互
+ *   - 对话气泡 + 粒子特效
+ *   - 关闭/恢复按钮
  */
 (function() {
   'use strict';
 
   const kanban = document.querySelector('.app-kanban');
-  const img = document.querySelector('.app-kanban-img');
-  const bubble = document.querySelector('.app-kanban-bubble');
-  const closeBtn = document.querySelector('.app-kanban-close');
   if (!kanban) return;
 
-  // ===== 模型配置 =====
-  const MODEL_CONFIGS = [
-    {
-      name: 'Senko',
-      path: 'https://cdn.jsdelivr.net/gh/Eikanya/Live2d-model/Live2D/Senko_Normals/senko.model3.json',
-      scale: 0.1,
-      position: [0, 40],
-      stageStyle: { width: 300, height: 480 }
-    },
-    {
-      name: 'Shizuku',
-      path: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-shizuku@latest/assets/shizuku.model.json',
-      scale: 1,
-      position: [10, 30],
-      stageStyle: { width: 300, height: 480 }
-    }
-  ];
+  // ═══════════════════════════════════════════
+  // 1. 构建角色 DOM
+  // ═══════════════════════════════════════════
+  function buildCharacter() {
+    kanban.innerHTML = /*html*/`
+      <div class="ak-kanban-body idle-anim" id="ak-body">
+        <!-- 关闭按钮 -->
+        <button class="ak-close-btn" id="ak-close" title="隐藏小星">&times;</button>
 
-  // ===== 对话库 =====
-  var GREETINGS = {
+        <!-- 番茄钟指示器 -->
+        <div class="ak-pomodoro-indicator" id="ak-pomodoro-icon">🍅</div>
+
+        <!-- ZZZ 睡眠 -->
+        <span class="ak-zzz" id="ak-zzz">💤</span>
+
+        <!-- 星形发夹 -->
+        <div class="ak-star-pin"></div>
+
+        <!-- 呆毛 -->
+        <div class="ak-ahoge"></div>
+
+        <!-- 后发 + 双马尾 -->
+        <div class="ak-hair-back"></div>
+        <div class="ak-tail ak-tail-l"></div>
+        <div class="ak-tail ak-tail-r"></div>
+        <div class="ak-tail-ribbon ak-tail-ribbon-l"></div>
+        <div class="ak-tail-ribbon ak-tail-ribbon-r"></div>
+
+        <!-- 头部 -->
+        <div class="ak-head">
+          <div class="ak-ear ak-ear-l"></div>
+          <div class="ak-ear ak-ear-r"></div>
+        </div>
+
+        <!-- 手臂 -->
+        <div class="ak-arm ak-arm-l"></div>
+        <div class="ak-arm ak-arm-r"></div>
+
+        <!-- 身体 -->
+        <div class="ak-body">
+          <div class="ak-dress-star"></div>
+        </div>
+        <div class="ak-collar"></div>
+
+        <!-- 前发 -->
+        <div class="ak-hair-front"></div>
+        <div class="ak-bangs"></div>
+        <div class="ak-hair-side-l"></div>
+        <div class="ak-hair-side-r"></div>
+
+        <!-- 五官 -->
+        <div class="ak-eyebrow ak-eyebrow-l"></div>
+        <div class="ak-eyebrow ak-eyebrow-r"></div>
+        <div class="ak-eye ak-eye-l">
+          <div class="ak-iris"></div>
+          <div class="ak-eye-highlight"></div>
+        </div>
+        <div class="ak-eye ak-eye-r">
+          <div class="ak-iris"></div>
+          <div class="ak-eye-highlight"></div>
+        </div>
+        <div class="ak-blush ak-blush-l"></div>
+        <div class="ak-blush ak-blush-r"></div>
+        <div class="ak-nose"></div>
+        <div class="ak-mouth"></div>
+
+        <!-- 对话气泡 -->
+        <div class="ak-bubble" id="ak-bubble"></div>
+      </div>
+    `;
+  }
+
+  buildCharacter();
+
+  // ═══════════════════════════════════════════
+  // 2. DOM 引用
+  // ═══════════════════════════════════════════
+  const body   = document.getElementById('ak-body');
+  const bubble = document.getElementById('ak-bubble');
+  const closeBtn = document.getElementById('ak-close');
+  const pomodoroIcon = document.getElementById('ak-pomodoro-icon');
+  const zzzEl = document.getElementById('ak-zzz');
+
+  // ═══════════════════════════════════════════
+  // 3. 状态
+  // ═══════════════════════════════════════════
+  let isHidden = false;
+  let currentExpression = 'neutral';
+  let currentState = '';
+  let bubbleTimer = null;
+  let idleTipTimer = null;
+  let expressionTimer = null;
+  let clickCount = 0;
+  let clickResetTimer = null;
+
+  // ═══════════════════════════════════════════
+  // 4. 对话库
+  // ═══════════════════════════════════════════
+  const GREETINGS = {
     morning: [
-      '早上好呀~ 新的一天要元气满满哦！',
+      '早上好呀~ 新的一天要元气满满哦！☀️',
       '早安！今天也是学习的好天气呢~',
       '早啊~ 昨晚休息得还好吗？',
-      '早上好！来一杯咖啡开始今天的学习吧',
+      '早上好！来一杯咖啡开始今天的学习吧 ☕',
       '清晨的阳光和知识最配了~'
     ],
     afternoon: [
       '下午好~ 学习进度如何啦？',
       '午后的阳光真舒服，但别打瞌睡哦！',
-      '下午茶时间到~ 休息一下再继续吧',
-      '下午好！今天的每日路线完成了吗？',
+      '下午茶时间到~ 休息一下再继续吧 🍰',
+      '下午好！今天的任务完成了吗？',
       '加油加油！下午的效率最高了~'
     ],
     evening: [
       '晚上好呀~ 今天学习辛苦了！',
-      '天黑了，但学习的热情不能灭',
+      '天黑了，但学习的热情不能灭 🔥',
       '晚上了，来回顾一下今天的学习成果吧~',
       '晚上好！记得按时吃晚饭哦',
       '夜晚是深度学习的好时机呢~'
     ],
     night: [
-      '这么晚了还在学习呀，要注意休息哦~',
+      '这么晚了还在学习呀，要注意休息哦~ 🌙',
       '夜深了呢... 明天再继续吧',
       '该睡觉啦！充足的睡眠才能更好地学习~',
-      '晚安~ 做个好梦，明天见！',
-      '星识的夜空因为有你在努力而更加璀璨'
+      '晚安~ 做个好梦，明天见！💤',
+      '星识的夜空因为有你在努力而更加璀璨 ✨'
     ]
   };
 
-  var CLICK_REACTIONS = [
+  const CLICK_REACTIONS = [
     '诶？你戳我干嘛~',
     '别闹，我在认真学习呢！',
     '嘻嘻，有点痒~',
     '怎么啦？需要帮忙吗？',
     '啊！被你发现了什么小秘密吗~',
-    '点击有惊喜哦... 才怪啦！',
-    '有这时间戳我，不如去背几个单词！',
+    '有这时间戳我，不如去背几个单词！📝',
     '嗯？有什么可以帮到你的？',
     '再戳我就要生气啦！...开玩笑的~',
-    '嘿嘿，其实我一直在默默给你加油呢'
+    '嘿嘿，其实我一直在默默给你加油呢 💪',
+    '点我可以打开AI助手面板哦！'
   ];
 
-  var IDLE_TIPS = [
-    '记得每天完成每日路线打卡哦~',
-    '心流分数越高，学习效果越好！',
-    '试试专注计时器，提升学习效率吧~',
-    '知识生态树每天都在成长呢',
+  const IDLE_TIPS = [
+    '记得每天签到打卡哦~ 📅',
+    '试试番茄钟，提升学习效率吧！🍅',
+    '知识生态树每天都在成长呢 🌳',
     '去自习室找个学习伙伴吧！',
-    '看看今天的数据统计，回顾学习成果~',
-    '定期回顾知识点能帮助记忆哦',
-    '标签云里有你感兴趣的所有主题',
-    '看板可以帮你管理工作和学习任务',
-    '遇到困难的时候，记得休息一下再继续'
+    '看看今天的数据统计，回顾学习成果~ 📊',
+    '定期回顾知识点能帮助记忆哦 🧠',
+    '遇到困难的时候，记得休息一下再继续',
+    '代码工坊可以帮你练习编程哦 💻',
+    '按 Ctrl+Shift+K 可以快速打开AI助手',
+    '今天的小目标都完成了吗？'
   ];
 
-  // ===== 状态 =====
-  var isLive2DReady = false;
-  var live2dInstance = null;
-  var dialogueTimer = null;
-  var isHidden = false;
-
-  // ===== 工具函数 =====
   function getTimePeriod() {
-    var h = new Date().getHours();
+    const h = new Date().getHours();
     if (h >= 6 && h < 12) return 'morning';
     if (h >= 12 && h < 18) return 'afternoon';
     if (h >= 18 && h < 23) return 'evening';
@@ -108,334 +185,286 @@
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  // ===== 对话系统 =====
+  // ═══════════════════════════════════════════
+  // 5. 气泡系统
+  // ═══════════════════════════════════════════
   function showBubble(msg, duration) {
     if (!bubble || isHidden) return;
     duration = duration || 4000;
     bubble.textContent = msg;
     bubble.classList.add('visible');
-    clearTimeout(bubble._timeout);
-    bubble._timeout = setTimeout(function() {
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(() => {
       bubble.classList.remove('visible');
     }, duration);
   }
 
-  function showLive2DTip(msg) {
-    if (isHidden) return;
-    // 优先使用 oh-my-live2d 原生 tipsMessage
-    if (live2dInstance && typeof live2dInstance.tipsMessage === 'function') {
-      live2dInstance.tipsMessage(msg);
-    } else if (
-      live2dInstance &&
-      live2dInstance.stage &&
-      typeof live2dInstance.stage.tipsMessage === 'function'
-    ) {
-      live2dInstance.stage.tipsMessage(msg);
+  function hideBubble() {
+    if (!bubble) return;
+    bubble.classList.remove('visible');
+    clearTimeout(bubbleTimer);
+  }
+
+  // ═══════════════════════════════════════════
+  // 6. 表情系统
+  // ═══════════════════════════════════════════
+  const EXPR_CLASSES = [
+    'ak-expr-happy', 'ak-expr-thinking', 'ak-expr-surprised',
+    'ak-expr-encourage', 'ak-expr-celebrate', 'ak-expr-love',
+    'ak-expr-sleepy', 'ak-expr-cool'
+  ];
+
+  function setExpression(expr, duration) {
+    if (!body || isHidden) return;
+    if (currentExpression === expr && !duration) return;
+
+    // 清除旧表情
+    EXPR_CLASSES.forEach(c => body.classList.remove(c));
+    currentExpression = expr;
+
+    // 设置新表情
+    const cls = 'ak-expr-' + expr;
+    if (EXPR_CLASSES.includes(cls)) {
+      body.classList.add(cls);
+    }
+
+    // 自动恢复
+    clearTimeout(expressionTimer);
+    if (duration && duration > 0) {
+      expressionTimer = setTimeout(() => resetExpression(), duration);
+    }
+  }
+
+  function resetExpression() {
+    if (!body) return;
+    EXPR_CLASSES.forEach(c => body.classList.remove(c));
+    currentExpression = 'neutral';
+    clearTimeout(expressionTimer);
+  }
+
+  // ═══════════════════════════════════════════
+  // 7. 状态系统
+  // ═══════════════════════════════════════════
+  function setState(state, active) {
+    if (!body) return;
+    const cls = 'ak-state-' + state;
+    if (active) {
+      body.classList.add(cls);
+      currentState = state;
     } else {
-      // fallback 到自定义气泡
-      showBubble(msg, 4500);
+      body.classList.remove(cls);
+      if (currentState === state) currentState = '';
     }
   }
 
-  function speakGreeting() {
-    showLive2DTip(randomPick(GREETINGS[getTimePeriod()]));
+  // ═══════════════════════════════════════════
+  // 8. 表情联动动作
+  // ═══════════════════════════════════════════
+  const ACTION_EXPRESSION = {
+    encourage: ['encourage', 4000],
+    celebrate: ['celebrate', 5000],
+    happy:     ['happy', 3000],
+    surprised: ['surprised', 3000],
+    thinking:  ['thinking', 4000],
+    love:      ['love', 4000],
+    sleepy:    ['sleepy', 5000],
+    cool:      ['cool', 3000],
+    checkin:   ['celebrate', 6000],
+    neutral:   [null, 0],
+  };
+
+  function triggerAction(action) {
+    const [expr, duration] = ACTION_EXPRESSION[action] || ACTION_EXPRESSION['happy'];
+    if (expr) {
+      setExpression(expr, duration);
+      const messages = {
+        encourage: '加油！你可以的！💪',
+        celebrate: '太棒了！🎉',
+        checkin:   '签到成功！继续坚持哦~ 🔥',
+        love:      '最喜欢和你一起学习啦~ 💜',
+      };
+      if (messages[action]) showBubble(messages[action], 3000);
+    }
+    // 粒子特效
+    spawnParticles(action === 'celebrate' || action === 'checkin' ? 'celebrate' : 'encourage');
   }
 
-  function showRandomTip() {
+  // ═══════════════════════════════════════════
+  // 9. 粒子特效
+  // ═══════════════════════════════════════════
+  function spawnParticles(type) {
+    const container = document.createElement('div');
+    container.className = 'ak-particles';
+    // 定位在角色上方
+    const rect = kanban.getBoundingClientRect();
+    container.style.left = (rect.left + rect.width / 2 - 100) + 'px';
+    container.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
+    container.style.width = '200px';
+    container.style.height = '200px';
+    document.body.appendChild(container);
+
+    const emojiSets = {
+      encourage: ['⭐', '🌟', '✨', '💪', '🔥'],
+      celebrate: ['🎉', '🎊', '🥳', '✨', '🌟', '💫', '🏆', '🎯'],
+      checkin:   ['🔥', '📅', '✅', '🌟', '💪', '🎯'],
+      default:   ['⭐', '✨', '💫'],
+    };
+    const emojis = emojiSets[type] || emojiSets.default;
+    const count = type === 'celebrate' ? 22 : type === 'checkin' ? 16 : 12;
+
+    for (let i = 0; i < count; i++) {
+      const particle = document.createElement('span');
+      particle.className = 'ak-particle';
+      particle.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      particle.style.left = (15 + Math.random() * 70) + '%';
+      particle.style.bottom = '0';
+      particle.style.animationDelay = (Math.random() * 0.6) + 's';
+      particle.style.animationDuration = (1.2 + Math.random() * 2) + 's';
+      particle.style.fontSize = (14 + Math.random() * 14) + 'px';
+      container.appendChild(particle);
+    }
+
+    setTimeout(() => container.remove(), 2800);
+  }
+
+  // ═══════════════════════════════════════════
+  // 10. 点击 + 双击交互
+  // ═══════════════════════════════════════════
+  body.addEventListener('click', (e) => {
+    if (isHidden || e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+
+    clickCount++;
+    clearTimeout(clickResetTimer);
+    clickResetTimer = setTimeout(() => { clickCount = 0; }, 1500);
+
+    if (clickCount >= 5) {
+      showBubble('啊啊啊别戳了！我认输！(>_<)', 3000);
+      setExpression('surprised', 2500);
+      clickCount = 0;
+    } else {
+      showBubble(randomPick(CLICK_REACTIONS), 3200);
+      // 随机表情
+      const randExpr = randomPick(['happy', 'cool', 'love', 'encourage']);
+      setExpression(randExpr, 2500);
+    }
+
+    // 触发面板切换 (延迟，让点击反应先播放)
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('mascot:kanban-clicked'));
+    }, 150);
+  });
+
+  body.addEventListener('dblclick', (e) => {
     if (isHidden) return;
-    var allTips = IDLE_TIPS.concat(GREETINGS[getTimePeriod()]);
-    showLive2DTip(randomPick(allTips));
-    var nextDelay = 8000 + Math.random() * 12000;
-    dialogueTimer = setTimeout(showRandomTip, nextDelay);
-  }
+    e.preventDefault();
+    showBubble(randomPick([
+      '哇！双击暴击！',
+      '来了来了！有什么吩咐~',
+      '这么热情呀~ 我们一起加油吧！',
+    ]), 3000);
+    setExpression('love', 3000);
+    spawnParticles('encourage');
+  });
 
-  function showClickReaction() {
-    showLive2DTip(randomPick(CLICK_REACTIONS));
-  }
+  // ═══════════════════════════════════════════
+  // 11. 拖拽支持
+  // ═══════════════════════════════════════════
+  let dragging = false;
+  let dragStartX, dragStartY;
+  let kanbanStartRight, kanbanStartBottom;
 
-  // ===== Live2D 加载 =====
-  function loadScript(url) {
-    return new Promise(function(resolve, reject) {
-      var script = document.createElement('script');
-      script.src = url;
-      script.async = true;
-      script.onload = function() { resolve(); };
-      script.onerror = function() { reject(new Error('Script load failed: ' + url)); };
-      document.head.appendChild(script);
-    });
-  }
+  body.addEventListener('mousedown', (e) => {
+    if (e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+    if (e.button !== 0) return;
+    dragging = true;
+    body.classList.add('dragging');
+    body.classList.remove('idle-anim');
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    const style = window.getComputedStyle(kanban);
+    kanbanStartRight = parseInt(style.right) || 12;
+    kanbanStartBottom = parseInt(style.bottom) || -6;
+    kanban.style.transition = 'none';
+    e.preventDefault();
+  });
 
-  function createLoadingIndicator() {
-    var loader = document.createElement('div');
-    loader.className = 'app-kanban-loading active';
-    kanban.appendChild(loader);
-    return loader;
-  }
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = dragStartX - e.clientX;
+    const dy = dragStartY - e.clientY;
+    kanban.style.right = (kanbanStartRight + dx) + 'px';
+    kanban.style.bottom = (kanbanStartBottom + dy) + 'px';
+  });
 
-  function positionOml2dStage() {
-    // oh-my-live2d 创建的元素需要 CSS 定位到右下角
-    var selectors = [
-      '#oml2d-stage',
-      '[class*="oml2d-stage"]',
-      '[id*="oml2d"]',
-      '.oml2d',
-      'canvas[id*="oml2d"]'
-    ];
-    for (var i = 0; i < selectors.length; i++) {
-      try {
-        var el = document.querySelector(selectors[i]);
-        if (el) {
-          el.style.cssText += ';position:fixed !important;bottom:0 !important;right:20px !important;z-index:500 !important;pointer-events:auto !important;';
-          // Also try to find parent container
-          var parent = el.parentElement;
-          if (parent && parent !== document.body && parent.tagName !== 'BODY') {
-            parent.style.cssText += ';position:fixed !important;bottom:0 !important;right:20px !important;z-index:500 !important;pointer-events:none !important;';
-          }
-          return true;
-        }
-      } catch (e) { /* try next selector */ }
-    }
-    return false;
-  }
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    body.classList.remove('dragging');
+    body.classList.add('idle-anim');
+    kanban.style.transition = '';
+  });
 
-  function tryGetTipsMessageAPI() {
-    // oh-my-live2d 不同版本的 tipsMessage 可能在返回值的不同位置
-    if (live2dInstance) {
-      if (typeof live2dInstance.tipsMessage === 'function') return;
-      if (live2dInstance.stage && typeof live2dInstance.stage.tipsMessage === 'function') return;
-    }
+  // 触摸拖拽
+  body.addEventListener('touchstart', (e) => {
+    if (e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+    if (e.touches.length !== 1) return;
+    dragging = true;
+    body.classList.add('dragging');
+    body.classList.remove('idle-anim');
+    dragStartX = e.touches[0].clientX;
+    dragStartY = e.touches[0].clientY;
+    const style = window.getComputedStyle(kanban);
+    kanbanStartRight = parseInt(style.right) || 12;
+    kanbanStartBottom = parseInt(style.bottom) || -6;
+    kanban.style.transition = 'none';
+  }, { passive: false });
 
-    // 检查 OML2D 全局对象
-    if (typeof OML2D !== 'undefined') {
-      if (typeof OML2D.tipsMessage === 'function') {
-        live2dInstance = OML2D;
-        return;
-      }
-      if (OML2D.stage && typeof OML2D.stage.tipsMessage === 'function') {
-        live2dInstance = OML2D;
-        return;
-      }
-      // tipsMessage 可能在 OML2D 的其他属性中
-      for (var key in OML2D) {
-        if (OML2D[key] && typeof OML2D[key].tipsMessage === 'function') {
-          live2dInstance = OML2D[key];
-          return;
-        }
-      }
-    }
-  }
+  document.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = dragStartX - e.touches[0].clientX;
+    const dy = dragStartY - e.touches[0].clientY;
+    kanban.style.right = (kanbanStartRight + dx) + 'px';
+    kanban.style.bottom = (kanbanStartBottom + dy) + 'px';
+  }, { passive: false });
 
-  async function initLive2D() {
-    var loader = createLoadingIndicator();
+  document.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    body.classList.remove('dragging');
+    body.classList.add('idle-anim');
+    kanban.style.transition = '';
+  });
 
-    try {
-      await loadScript('https://cdn.jsdelivr.net/npm/oh-my-live2d/dist/index.min.js');
-    } catch (e) {
-      console.warn('[看板娘] oh-my-live2d CDN 加载失败，使用静态立绘 fallback:', e.message);
-      loader.classList.remove('active');
-      fallbackToStatic();
-      return;
-    }
+  // ═══════════════════════════════════════════
+  // 12. 关闭 / 恢复
+  // ═══════════════════════════════════════════
+  closeBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isHidden = true;
+    kanban.style.opacity = '0';
+    kanban.style.transform = 'scale(0.8)';
+    clearTimeout(idleTipTimer);
+    hideBubble();
 
-    if (typeof OML2D === 'undefined' || typeof OML2D.loadOml2d !== 'function') {
-      console.warn('[看板娘] OML2D 全局对象不可用，使用静态立绘 fallback');
-      loader.classList.remove('active');
-      fallbackToStatic();
-      return;
-    }
+    setTimeout(() => {
+      kanban.style.display = 'none';
+      showRestoreButton();
+    }, 400);
+  });
 
-    for (var i = 0; i < MODEL_CONFIGS.length; i++) {
-      var cfg = MODEL_CONFIGS[i];
-      try {
-        console.log('[看板娘] 尝试加载模型:', cfg.name);
-
-        live2dInstance = OML2D.loadOml2d({
-          models: [{
-            path: cfg.path,
-            scale: cfg.scale,
-            position: cfg.position,
-            stageStyle: cfg.stageStyle
-          }],
-          tips: {
-            style: {
-              width: 240,
-              offsetX: 0,
-              offsetY: -20
-            },
-            idleTips: {
-              interval: 20000
-            }
-          },
-          menus: {},
-          mobileShow: false,
-          dockedPosition: 'right'
-        });
-
-        await new Promise(function(resolve) { setTimeout(resolve, 2000); });
-
-        if (positionOml2dStage()) {
-          console.log('[看板娘] 模型 ' + cfg.name + ' 加载成功');
-          loader.classList.remove('active');
-          isLive2DReady = true;
-          tryGetTipsMessageAPI();
-          onLive2DReady();
-          return;
-        }
-      } catch (e) {
-        console.warn('[看板娘] 模型 ' + cfg.name + ' 加载失败:', e.message);
-      }
-    }
-
-    console.warn('[看板娘] 所有模型加载失败，使用静态立绘 fallback');
-    loader.classList.remove('active');
-    fallbackToStatic();
-  }
-
-  function onLive2DReady() {
-    if (img) {
-      img.style.opacity = '0';
-      img.style.pointerEvents = 'none';
-    }
-
-    // 定期重试定位（某些 Live2D 库异步创建 DOM）
-    var retryCount = 0;
-    var retryInterval = setInterval(function() {
-      retryCount++;
-      if (positionOml2dStage() || retryCount >= 5) {
-        clearInterval(retryInterval);
-      }
-    }, 800);
-
-    setTimeout(function() { speakGreeting(); }, 1500);
-    dialogueTimer = setTimeout(showRandomTip, 12000);
-  }
-
-  function fallbackToStatic() {
-    isLive2DReady = false;
-    if (img) {
-      img.style.opacity = '1';
-      img.style.pointerEvents = 'auto';
-    }
-    initStaticParallax();
-    setTimeout(function() {
-      showBubble(randomPick(GREETINGS[getTimePeriod()]), 5000);
-    }, 1000);
-    dialogueTimer = setTimeout(cycleStaticTips, 12000);
-  }
-
-  function cycleStaticTips() {
-    if (isHidden || isLive2DReady) return;
-    var allTips = IDLE_TIPS.concat(GREETINGS[getTimePeriod()]);
-    showBubble(randomPick(allTips), 4000);
-    dialogueTimer = setTimeout(cycleStaticTips, 8000 + Math.random() * 10000);
-  }
-
-  // ===== 静态立绘 3D 视差 =====
-  function initStaticParallax() {
-    if (!img) return;
-    var mouseX = 0.5, mouseY = 0.5;
-    var currentRotateY = 8, currentRotateX = -2;
-    var baseRotateY = 8, baseRotateX = -2;
-    var maxRotate = 12;
-    var startTime = Date.now();
-
-    document.addEventListener('mousemove', function(e) {
-      mouseX = e.clientX / window.innerWidth;
-      mouseY = e.clientY / window.innerHeight;
-    });
-
-    function animate() {
-      if (isLive2DReady || isHidden) { requestAnimationFrame(animate); return; }
-
-      var elapsed = Date.now() - startTime;
-      var floatY = Math.sin(elapsed * 0.0015) * 10;
-      var targetRY = baseRotateY - (mouseX - 0.5) * maxRotate * 2;
-      var targetRX = baseRotateX + (mouseY - 0.5) * maxRotate;
-
-      currentRotateY += (targetRY - currentRotateY) * 0.08;
-      currentRotateX += (targetRX - currentRotateX) * 0.08;
-
-      img.style.transform =
-        'perspective(800px) ' +
-        'rotateY(' + currentRotateY.toFixed(2) + 'deg) ' +
-        'rotateX(' + currentRotateX.toFixed(2) + 'deg) ' +
-        'translateY(' + floatY.toFixed(2) + 'px)';
-
-      requestAnimationFrame(animate);
-    }
-    requestAnimationFrame(animate);
-  }
-
-  // ===== 关闭按钮 =====
-  if (closeBtn) {
-    var kanbanInner = document.querySelector('.app-kanban-inner');
-    if (kanbanInner) {
-      kanbanInner.addEventListener('mouseenter', function() {
-        if (!isHidden) closeBtn.classList.add('show');
-      });
-      kanbanInner.addEventListener('mouseleave', function() {
-        closeBtn.classList.remove('show');
-      });
-    }
-
-    closeBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      isHidden = true;
-      kanban.style.opacity = '0';
-      kanban.style.transform = 'scale(0.8)';
-      clearTimeout(dialogueTimer);
-      if (bubble) bubble.classList.remove('visible');
-
-      setTimeout(function() {
-        kanban.style.display = 'none';
-        showRestoreButton();
-      }, 400);
-    });
-  }
-
-  // ===== 恢复按钮 =====
   function showRestoreButton() {
-    var restoreBtn = document.querySelector('.app-kanban-restore');
+    let restoreBtn = document.querySelector('.ak-restore-btn');
     if (!restoreBtn) {
       restoreBtn = document.createElement('button');
-      restoreBtn.className = 'app-kanban-restore';
-      restoreBtn.innerHTML =
-        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-        '<circle cx="12" cy="12" r="10"/>' +
-        '<polyline points="12 6 12 12 16 14"/>' +
-        '</svg>';
-      restoreBtn.title = '召唤看板娘';
-      Object.assign(restoreBtn.style, {
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        zIndex: '501',
-        width: '44px',
-        height: '44px',
-        borderRadius: '50%',
-        background: 'var(--surface-glass, rgba(255,255,255,0.1))',
-        border: '1px solid var(--border-glass, rgba(255,255,255,0.15))',
-        color: 'var(--brand, #6366f1)',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-        transition: 'all 0.3s ease-out',
-        animation: 'fadeInUp 0.4s var(--ease-out, ease-out)',
-        padding: '0'
-      });
+      restoreBtn.className = 'ak-restore-btn';
+      restoreBtn.innerHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+      `;
+      restoreBtn.title = '召唤小星';
       restoreBtn.addEventListener('click', restoreKanban);
-      restoreBtn.addEventListener('mouseenter', function() {
-        this.style.transform = 'scale(1.1)';
-        this.style.boxShadow = '0 6px 24px rgba(0,0,0,0.3)';
-      });
-      restoreBtn.addEventListener('mouseleave', function() {
-        this.style.transform = 'scale(1)';
-        this.style.boxShadow = '0 4px 16px rgba(0,0,0,0.2)';
-      });
       document.body.appendChild(restoreBtn);
     }
     restoreBtn.style.display = 'flex';
@@ -444,53 +473,123 @@
   function restoreKanban() {
     isHidden = false;
     kanban.style.display = '';
-    setTimeout(function() {
+    setTimeout(() => {
       kanban.style.opacity = '1';
       kanban.style.transform = 'scale(1)';
     }, 20);
 
-    var restoreBtn = document.querySelector('.app-kanban-restore');
+    const restoreBtn = document.querySelector('.ak-restore-btn');
     if (restoreBtn) restoreBtn.style.display = 'none';
 
-    setTimeout(function() { speakGreeting(); }, 500);
-    dialogueTimer = setTimeout(showRandomTip, 10000);
+    setTimeout(() => {
+      showBubble(randomPick(GREETINGS[getTimePeriod()]), 4500);
+      setExpression('happy', 3000);
+    }, 500);
+
+    startIdleTips();
   }
 
-  // ===== 点击交互 =====
-  if (kanbanInner) {
-    var clickCount = 0;
-    var clickResetTimer = null;
+  // 暴露恢复函数
+  window.MascotCore = window.MascotCore || {};
+  window.MascotCore.restoreKanban = restoreKanban;
 
-    kanbanInner.addEventListener('click', function(e) {
-      if (e.target === closeBtn || isHidden) return;
-      clickCount++;
-      clearTimeout(clickResetTimer);
-      clickResetTimer = setTimeout(function() { clickCount = 0; }, 1500);
-
-      if (clickCount >= 5) {
-        showLive2DTip('啊啊啊别戳了！我认输！(>_<)');
-        clickCount = 0;
-      } else {
-        showClickReaction();
-      }
-    });
-
-    kanbanInner.addEventListener('dblclick', function(e) {
-      if (e.target === closeBtn || isHidden) return;
-      e.preventDefault();
-      showLive2DTip(randomPick([
-        '哇！双击暴击！',
-        '来了来了！有什么吩咐~',
-        '这么热情呀~ 我们一起加油吧！'
-      ]));
-    });
+  // ═══════════════════════════════════════════
+  // 13. 空闲 Tips 循环
+  // ═══════════════════════════════════════════
+  function startIdleTips() {
+    clearTimeout(idleTipTimer);
+    if (isHidden) return;
+    const nextDelay = 15000 + Math.random() * 20000;
+    idleTipTimer = setTimeout(() => {
+      if (isHidden) return;
+      const allTips = IDLE_TIPS.concat(GREETINGS[getTimePeriod()]);
+      showBubble(randomPick(allTips), 5000);
+      startIdleTips();
+    }, nextDelay);
   }
 
-  // ===== 初始化 =====
+  // ═══════════════════════════════════════════
+  // 14. 外部事件监听 (来自 mascot-core / mascot-panel)
+  // ═══════════════════════════════════════════
+
+  // 表情指令
+  window.addEventListener('mascot:set-expression', (e) => {
+    if (isHidden) return;
+    const expr = e.detail;
+    if (expr && expr !== 'neutral') {
+      setExpression(expr, 4000);
+    } else if (expr === 'neutral') {
+      resetExpression();
+    }
+  });
+
+  // 动作触发
+  window.addEventListener('mascot:trigger-action', (e) => {
+    if (isHidden) return;
+    triggerAction(e.detail);
+  });
+
+  // 来自面板的状态同步
+  window.addEventListener('mascot:update-state', (e) => {
+    if (isHidden) return;
+    const { state, active } = e.detail || {};
+    if (state) setState(state, active !== false);
+  });
+
+  // Toast 通知 (面板关闭时 via mascot-core)
+  window.addEventListener('mascot:show-toast', (e) => {
+    // Toast 由 mascot-core 处理，这里只做表情联动
+    const { type } = e.detail || {};
+    if (type === 'success') {
+      setExpression('happy', 3000);
+    } else if (type === 'warning') {
+      setExpression('surprised', 2500);
+    }
+  });
+
+  // 空闲检测 — 角色表现困倦
+  window.addEventListener('mascot:idle-detected', () => {
+    if (isHidden) return;
+    setExpression('sleepy', 6000);
+    showBubble('你已经好一会没动了哦... 需要休息一下吗？😴', 6000);
+  });
+
+  // ═══════════════════════════════════════════
+  // 15. 暴露 API
+  // ═══════════════════════════════════════════
+  window.MascotCore = window.MascotCore || {};
+  Object.assign(window.MascotCore, {
+    setExpression,
+    resetExpression,
+    showBubble,
+    hideBubble,
+    triggerAction,
+    spawnParticles,
+    setState,
+    isHidden: () => isHidden,
+    getExpression: () => currentExpression,
+    getState: () => currentState,
+  });
+
+  // ═══════════════════════════════════════════
+  // 16. 初始化
+  // ═══════════════════════════════════════════
   function init() {
     kanban.style.opacity = '1';
     kanban.style.transform = 'scale(1)';
-    initLive2D();
+
+    // 初次问候
+    setTimeout(() => {
+      if (!isHidden) {
+        showBubble(randomPick(GREETINGS[getTimePeriod()]), 5000);
+        setExpression('happy', 3500);
+      }
+    }, 1200);
+
+    // 启动空闲 Tips
+    startIdleTips();
+
+    console.log('[小星 v3] 二次元少女就绪 ✨ — 紫色双马尾 + 呆毛 + 星形发夹');
   }
 
   if (document.readyState === 'loading') {
@@ -498,5 +597,4 @@
   } else {
     init();
   }
-
 })();

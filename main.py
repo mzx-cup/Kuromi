@@ -169,6 +169,18 @@ app.include_router(courses_router)
 from app.api.mascot import router as mascot_router
 app.include_router(mascot_router, prefix="/api")
 
+# ---- Auth API (用户认证) ----
+from app.api.auth import router as auth_router
+app.include_router(auth_router)
+
+# ---- Teacher API (教师端) ----
+from app.api.teacher import router as teacher_router
+app.include_router(teacher_router)
+
+# ---- Datacenter API (数据仪表盘) ----
+from app.api.datacenter import router as datacenter_router
+app.include_router(datacenter_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -691,9 +703,10 @@ def serve_css(filename: str):
 @app.get("/js/{filename:path}")
 def serve_js(filename: str):
     file_path = os.path.join(JS_DIR, filename)
+    logger.info(f"[serve_js] requested: {filename} -> resolved: {file_path} | exists: {os.path.exists(file_path)}")
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/javascript; charset=utf-8")
-    raise HTTPException(status_code=404, detail="JS文件未找到")
+    raise HTTPException(status_code=404, detail=f"JS文件未找到: {filename}")
 
 @app.get("/audio/{filename}")
 def serve_audio(filename: str):
@@ -1624,6 +1637,49 @@ def serve_classroom():
     if os.path.exists(path):
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="课堂页面未找到")
+
+# ---- Teacher pages ----
+@app.get("/teacher-dashboard.html")
+def serve_teacher_dashboard():
+    path = os.path.join(HTML_DIR, "teacher-dashboard.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="教师仪表盘页面未找到")
+
+@app.get("/teacher-class.html")
+def serve_teacher_class():
+    path = os.path.join(HTML_DIR, "teacher-class.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="班级管理页面未找到")
+
+@app.get("/teacher-manage.html")
+def serve_teacher_manage():
+    path = os.path.join(HTML_DIR, "teacher-manage.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="学生管理页面未找到")
+
+@app.get("/teacher-exam.html")
+def serve_teacher_exam():
+    path = os.path.join(HTML_DIR, "teacher-exam.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="考试管理页面未找到")
+
+@app.get("/teacher-content.html")
+def serve_teacher_content():
+    path = os.path.join(HTML_DIR, "teacher-content.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="内容管理页面未找到")
+
+@app.get("/data-dashboard.html")
+def serve_data_dashboard():
+    path = os.path.join(HTML_DIR, "data-dashboard.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="数据仪表盘页面未找到")
 
 # ========== Socratic AI API ==========
 
