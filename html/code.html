@@ -19,6 +19,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
 <body class="app-body code-body">
     <div id="app-bg" class="app-bg-layer">
@@ -74,7 +75,7 @@
             </div>
         </header>
 
-        <main class="workspace">
+        <main class="workspace fade-in">
             <section class="main-stage">
                 <div class="stage-head">
                     <div class="mode-section">
@@ -105,7 +106,7 @@
                             <div class="problem-tags" id="problem-tags"></div>
                         </div>
 
-                        <div class="brief-card">
+                        <div class="brief-card app-action-card">
                             <div class="section-head">
                                 <h2>任务说明</h2>
                                 <span id="description-mode-tag">Complete Mode</span>
@@ -113,7 +114,7 @@
                             <div class="problem-copy" id="problem-description-text"></div>
                         </div>
 
-                        <div class="brief-card">
+                        <div class="brief-card app-action-card">
                             <div class="section-head">
                                 <h2>示例与诊断点</h2>
                                 <span id="guide-label">补全建议</span>
@@ -121,7 +122,7 @@
                             <div class="problem-examples" id="problem-examples"></div>
                         </div>
 
-                        <div class="brief-card">
+                        <div class="brief-card app-action-card">
                             <div class="section-head">
                                 <h2>操作建议</h2>
                                 <span>Checklist</span>

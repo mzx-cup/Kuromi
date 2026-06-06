@@ -17,6 +17,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
 <body data-bg-preserve="true" class="app-body">
     <div id="app-bg" class="app-bg-layer">
@@ -74,7 +75,7 @@
         </nav>
 
         <!-- 农场主体 -->
-        <div class="plant-main-card">
+        <div class="plant-main-card app-content-card fade-in">
 
             <!-- 花盆区 -->
             <div class="plant-plot-section">
@@ -85,7 +86,7 @@
             </div>
 
             <!-- 植物信息 + 操作（木质指示牌风格） -->
-            <div class="plant-info-panel">
+            <div class="plant-info-panel app-content-card">
                 <div class="plant-info-left">
                     <div class="plant-main-emoji" id="plant-emoji-display">🌱</div>
 
@@ -172,7 +173,7 @@
     <!-- 植物详情弹窗 -->
     <div class="plant-detail-modal" id="plant-detail-modal">
         <div class="plant-detail-overlay" onclick="closePlantDetail()"></div>
-        <div class="plant-detail-card">
+        <div class="plant-detail-card app-chart-card">
             <button class="plant-detail-close" onclick="closePlantDetail()">✕</button>
             <div class="plant-detail-header">
                 <span class="plant-detail-emoji" id="detail-emoji">🌱</span>

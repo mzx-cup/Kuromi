@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body teacher-page">
@@ -73,9 +74,9 @@
       <button @click="openCreateModal()" class="btn-primary" style="margin-bottom:16px">+ 创建班级</button>
 
       <!-- Class Grid -->
-      <div class="class-grid">
+      <div class="class-grid stagger">
         <template x-for="c in classes" :key="c.id">
-          <div class="class-card">
+          <div class="class-card app-content-card prism fade-up">
             <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
             <div class="class-card-header">
               <h3 x-text="c.name"></h3>
@@ -195,15 +196,15 @@
                 </div>
               </div>
               <div class="student-profile-stats">
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="stat-value" x-text="studentProfile.completed_courses || 0"></div>
                   <div class="stat-label">已完成课程</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="stat-value" x-text="(studentProfile.total_study_hours || 0) + 'h'"></div>
                   <div class="stat-label">学习时长</div>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card app-stat-card">
                   <div class="stat-value" x-text="studentProfile.avg_score || '--'"></div>
                   <div class="stat-label">平均成绩</div>
                 </div>

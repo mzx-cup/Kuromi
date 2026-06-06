@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body teacher-page">
@@ -73,7 +74,7 @@
 
       <div x-show="activeTab === 'courses'">
         <button @click="openCourseModal(null)" class="btn-primary" style="margin-bottom:16px">+ 添加根节点</button>
-        <div class="tree-editor">
+        <div class="tree-editor fade-in">
           <template x-for="node in courseTree" :key="node.id">
             <div class="tree-node">
               <div class="tree-node-header">
@@ -106,9 +107,9 @@
           <button x-show="selectedCourse" @click="openResourceModal(selectedCourse)" class="btn-primary">+ 上传资源</button>
         </div>
         <div x-show="!selectedCourse" class="empty-state">请先选择一个课程</div>
-        <div x-show="selectedCourse" class="resources-grid">
+        <div x-show="selectedCourse" class="resources-grid stagger">
           <template x-for="r in resources" :key="r.id">
-            <div class="resource-card"><div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div><div class="resource-card-icon" style="font-size:20px">&#128196;</div><div class="resource-card-body"><div class="resource-card-title" x-text="r.title"></div><div class="resource-card-meta"><span x-text="r.type || '文件'"></span><span x-text="formatBytes(r.size)"></span><span x-show="r.created_at" x-text="formatDate(r.created_at)"></span></div></div><button @click="deleteResource(r.id)" class="btn-sm btn-sm-danger">删除</button></div>
+            <div class="resource-card app-content-card fade-up"><div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div><div class="resource-card-icon" style="font-size:20px">&#128196;</div><div class="resource-card-body"><div class="resource-card-title" x-text="r.title"></div><div class="resource-card-meta"><span x-text="r.type || '文件'"></span><span x-text="formatBytes(r.size)"></span><span x-show="r.created_at" x-text="formatDate(r.created_at)"></span></div></div><button @click="deleteResource(r.id)" class="btn-sm btn-sm-danger">删除</button></div>
           </template>
           <div x-show="resources.length === 0" class="empty-state">暂无资源</div>
         </div>
