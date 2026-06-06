@@ -67,14 +67,14 @@
 
 .ak-fallback-icon {
   font-size: 64px;
-  filter: drop-shadow(0 4px 16px rgba(139, 92, 246, 0.4));
+  filter: drop-shadow(0 4px 16px color-mix(in oklch, var(--brand-500), transparent 60%));
 }
 
 .ak-fallback-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--brand-400);
-  text-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+  text-shadow: 0 0 12px color-mix(in oklch, var(--brand-400), transparent 50%);
 }
 
 @keyframes akFloatFallback {
@@ -284,7 +284,7 @@
   background:
     /* 星云光晕 */
     radial-gradient(ellipse at 30% 20%, color-mix(in oklch, var(--brand), transparent 88%) 0%, transparent 50%),
-    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, color-mix(in oklch, var(--brand-500), transparent 90%) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
     /* 深空渐变 */
     linear-gradient(180deg, #0a0a1e 0%, #0f0f2e 30%, #0c0c24 60%, #0a0a1e 100%);
@@ -545,7 +545,7 @@
   padding: 6px;
   min-width: 180px;
   z-index: 610;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.06);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px color-mix(in oklch, var(--brand), transparent 94%);
 }
 
 .mascot-dropdown button {
@@ -586,13 +586,13 @@
 }
 .mascot-model-switch-btn:hover {
   background: color-mix(in oklch, var(--brand), transparent 80%);
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: color-mix(in oklch, var(--brand), transparent 70%);
   color: #e0e7ff;
   transform: scale(1.08);
 }
 .mascot-model-switch-btn.active {
   background: color-mix(in oklch, var(--brand), transparent 75%);
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: color-mix(in oklch, var(--brand), transparent 60%);
 }
 .mascot-model-spin {
   display: inline-block;
@@ -701,7 +701,7 @@
 }
 .mascot-ai-model-badge:hover {
   background: color-mix(in oklch, var(--brand), transparent 82%);
-  border-color: rgba(99, 102, 241, 0.35);
+  border-color: color-mix(in oklch, var(--brand), transparent 65%);
   color: var(--brand-300);
 }
 .mascot-ai-model-badge.offline {
