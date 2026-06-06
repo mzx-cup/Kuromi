@@ -1,20 +1,33 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星识 - 课程中心</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/css/index.css">
-    <link rel="stylesheet" href="/css/loading.css">
-    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/courses.css">
     <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="/js/loading.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
 </head>
-<body class="courses-body" data-page="courses">
+<body class="app-body courses-body" data-page="courses">
     <!-- Global Wallpaper Background -->
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <div class="global-bg-layer" id="global-bg-layer"></div>
     <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
@@ -112,20 +125,11 @@
     <!-- Toast container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/animations.css">
-    <script src="/js/theme.js"></script>
     <script src="/js/bilibili-import.js"></script>
     <script src="/js/courses.js"></script>
 
     <!-- 小星 AI 助手 -->
-    <div class="app-kanban" id="app-kanban">
-        <div class="app-kanban-inner">
-            <button class="app-kanban-close" title="隐藏看板娘">&times;</button>
-            <img class="app-kanban-img" src="/static/kanban.png" alt="看板娘">
-            <div class="app-kanban-bubble">欢迎来到星识~ 今天也要加油学习哦！</div>
-        </div>
-    </div>
+    <div class="app-kanban" id="app-kanban"></div>
     <script src="/js/kanban.js"></script>
     <script src="/js/mascot-services.js"></script>
     <script src="/js/mascot-core.js"></script>

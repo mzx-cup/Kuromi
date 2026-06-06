@@ -34,13 +34,13 @@
   position: fixed;
   z-index: 902;
   width: 280px;
-  background: rgba(15, 15, 25, 0.95);
+  background: var(--surface-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-glass);
   border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
   opacity: 0;
   transform: translateY(8px);
   transition: all 0.3s ease;
@@ -54,13 +54,13 @@
 .onboard-tooltip-title {
   font-size: 16px;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--text-heading);
   margin-bottom: 8px;
 }
 
 .onboard-tooltip-desc {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 16px;
 }
@@ -85,18 +85,18 @@
 
 .onboard-btn--skip {
   background: transparent;
-  color: #64748b;
+  color: var(--text-muted);
 }
 .onboard-btn--skip:hover {
-  color: #94a3b8;
+  color: var(--text-body);
 }
 
 .onboard-btn--next {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--brand-500), var(--accent-500));
+  color: var(--text-on-brand);
 }
 .onboard-btn--next:hover {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
 }
 
 .onboard-dots {
@@ -108,11 +108,11 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--text-placeholder);
   transition: all 0.2s;
 }
 .onboard-dot.active {
-  background: #6366f1;
+  background: var(--brand-500);
   width: 16px;
   border-radius: 3px;
 }

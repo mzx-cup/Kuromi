@@ -9,15 +9,15 @@
    ============================================================ */
 :root {
     /* Colors - Light mode (default) */
-    --background: #faf8f5;
-    --background-secondary: #f5f0e8;
-    --card: #ffffff;
-    --card-foreground: #1e293b;
-    --primary: #b45309;
-    --primary-foreground: #ffffff;
-    --muted: #f5f0e8;
-    --muted-foreground: #64748b;
-    --border: #ede7dd;
+    --background: var(--surface-page);
+    --background-secondary: var(--surface-card);
+    --card: var(--surface-card);
+    --card-foreground: var(--text-heading);
+    --primary: var(--brand-500);
+    --primary-foreground: var(--text-on-brand);
+    --muted: var(--surface-hover);
+    --muted-foreground: var(--text-muted);
+    --border: var(--border-color);
     --blue-500: #b45309;
     --purple-500: #d97706;
     --green-500: #059669;
@@ -58,8 +58,8 @@
 
 body {
     font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: linear-gradient(180deg, #faf8f5 0%, #f5f0e8 100%);
-    color: #1e293b;
+    background: var(--surface-page);
+    color: var(--text-body);
     min-height: 100dvh;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -67,8 +67,8 @@ body {
 
 @media (prefers-color-scheme: dark) {
     body {
-        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-        color: #f1f5f9;
+        background: var(--surface-page);
+        color: var(--text-body);
     }
 }
 

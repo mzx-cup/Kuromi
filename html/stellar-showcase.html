@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,8 +10,21 @@
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="stellar-body">
+<body class="app-body stellar-body">
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <!-- 星空背景 -->
     <div class="stellar-bg" id="stellar-bg"></div>
 

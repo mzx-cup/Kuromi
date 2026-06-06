@@ -307,7 +307,7 @@
 .teacher-page, .auth-page {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #040816;
+    background: var(--surface-page);
     color: var(--cp-text-primary);
     min-height: 100vh;
     position: relative;

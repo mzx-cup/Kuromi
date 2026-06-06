@@ -1,18 +1,18 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap");
 
 :root {
-    --bg: #060b18;
-    --bg-2: #0b1430;
-    --panel: rgba(10, 22, 45, 0.78);
-    --panel-strong: rgba(8, 17, 34, 0.92);
-    --line: rgba(119, 211, 255, 0.18);
-    --line-strong: rgba(56, 189, 248, 0.44);
-    --text: #eef7ff;
-    --muted: rgba(226, 242, 255, 0.68);
-    --soft: rgba(226, 242, 255, 0.42);
-    --cyan: #22d3ee;
-    --blue: #3b82f6;
-    --brand-400: #60a5fa;
+    --bg: var(--surface-page);
+    --bg-2: var(--surface-card);
+    --panel: var(--surface-card);
+    --panel-strong: var(--surface-elevated);
+    --line: var(--border-color);
+    --line-strong: var(--brand-400);
+    --text: var(--text-body);
+    --muted: var(--text-muted);
+    --soft: var(--text-placeholder);
+    --cyan: var(--info);
+    --blue: var(--brand-500);
+
     --green: #10b981;
     --warn: #f59e0b;
     --danger: #fb7185;

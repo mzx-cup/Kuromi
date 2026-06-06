@@ -1,16 +1,15 @@
 /**
- * 看板娘 — 二次元少女「小星」v3
+ * 看板娘 v4 — Live2D 角色「小星」
  *
- * 纯 CSS 绘制 + JS 表情/状态控制。零外部依赖，不需 Live2D CDN。
- * 兼容所有已引入 mascot 脚本的页面（hub/code/courses/index/personal/my-courses/socratic-ai）。
+ * 使用 pixi-live2d-display + PixiJS 渲染 Live2D 开源模型。
+ * 模型来源: npm live2d-widget-model-* 系列 (jsDelivr CDN)。
  *
- * 角色特征:
- *   - 紫色双马尾 + 星形发夹 + 呆毛
- *   - 8 种表情 (neutral/happy/thinking/surprised/encourage/celebrate/love/sleepy/cool)
- *   - 3 种状态 (recording/pomodoro/idle 浮动)
- *   - 点击/双击/拖拽交互
- *   - 对话气泡 + 粒子特效
- *   - 关闭/恢复按钮
+ * Haru 模型 (live2d-widget-model-haru) — 官方 Live2D 免费示例模型
+ *   8 个表情: f01(neutral) f02(happy) f03(concerned) f04(angry)
+ *             f05-f08(扩展表情)
+ *   支持拖拽、点击、表情切换
+ *
+ * 兼容所有已引入 mascot 脚本的页面。
  */
 (function() {
   'use strict';
@@ -19,102 +18,76 @@
   if (!kanban) return;
 
   // ═══════════════════════════════════════════
-  // 1. 构建角色 DOM
+  // Config
+  // ═══════════════════════════════════════════
+  const PIXI_CDN   = 'https://cdn.jsdelivr.net/npm/pixi.js@5.3.12/dist/pixi.min.js';
+  const CUBISM2_CDN = 'https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism2.min.js'
+  const LIVE2D_CORE_CDN = 'https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js'
+
+  const DEFAULT_MODEL = 'Hibiki';
+
+  const MODEL_LIST = [
+    { name: 'Hibiki',   url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-hibiki@1.0.5/assets/hibiki.model.json' },
+    { name: 'Haru',     url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-haru@1.0.5/01/assets/haru01.model.json' },
+    { name: 'Izumi',    url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-izumi@1.0.5/assets/izumi.model.json' },
+    { name: 'Shizuku',  url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-shizuku@1.0.5/assets/shizuku.model.json' },
+    { name: 'Chitose',  url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-chitose@1.0.5/assets/chitose.model.json' },
+    { name: 'Haruto',   url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-haruto@1.0.5/assets/haruto.model.json' },
+    { name: 'Wanko',    url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-wanko@1.0.5/assets/wanko.model.json' },
+    { name: 'Miku',     url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-miku@1.0.5/assets/miku.model.json' },
+    { name: 'Z16',      url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-z16@1.0.5/assets/z16.model.json' },
+    { name: 'Nito',     url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-nito@1.0.5/assets/nito.model.json' },
+    { name: 'Nico',     url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-nico@1.0.5/assets/nico.model.json' },
+    { name: 'Nipsilon', url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-nipsilon@1.0.5/assets/nipsilon.model.json' },
+    { name: 'Tororo',   url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-tororo@1.0.5/assets/tororo.model.json' },
+    { name: 'Tsumiki',  url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-tsumiki@1.0.5/assets/tsumiki.model.json' },
+    { name: 'Unitychan',url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-unitychan@1.0.5/assets/unitychan.model.json' },
+    { name: 'Koharu',   url: 'https://cdn.jsdelivr.net/npm/live2d-widget-model-koharu@1.0.5/assets/koharu.model.json' },
+  ];
+
+  // ═══════════════════════════════════════════
+  // 1. Build DOM
   // ═══════════════════════════════════════════
   function buildCharacter() {
     kanban.innerHTML = /*html*/`
-      <div class="ak-kanban-body idle-anim" id="ak-body">
-        <!-- 关闭按钮 -->
-        <button class="ak-close-btn" id="ak-close" title="隐藏小星">&times;</button>
-
-        <!-- 番茄钟指示器 -->
-        <div class="ak-pomodoro-indicator" id="ak-pomodoro-icon">🍅</div>
-
-        <!-- ZZZ 睡眠 -->
-        <span class="ak-zzz" id="ak-zzz">💤</span>
-
-        <!-- 星形发夹 -->
-        <div class="ak-star-pin"></div>
-
-        <!-- 呆毛 -->
-        <div class="ak-ahoge"></div>
-
-        <!-- 后发 + 双马尾 -->
-        <div class="ak-hair-back"></div>
-        <div class="ak-tail ak-tail-l"></div>
-        <div class="ak-tail ak-tail-r"></div>
-        <div class="ak-tail-ribbon ak-tail-ribbon-l"></div>
-        <div class="ak-tail-ribbon ak-tail-ribbon-r"></div>
-
-        <!-- 头部 -->
-        <div class="ak-head">
-          <div class="ak-ear ak-ear-l"></div>
-          <div class="ak-ear ak-ear-r"></div>
-        </div>
-
-        <!-- 手臂 -->
-        <div class="ak-arm ak-arm-l"></div>
-        <div class="ak-arm ak-arm-r"></div>
-
-        <!-- 身体 -->
-        <div class="ak-body">
-          <div class="ak-dress-star"></div>
-        </div>
-        <div class="ak-collar"></div>
-
-        <!-- 前发 -->
-        <div class="ak-hair-front"></div>
-        <div class="ak-bangs"></div>
-        <div class="ak-hair-side-l"></div>
-        <div class="ak-hair-side-r"></div>
-
-        <!-- 五官 -->
-        <div class="ak-eyebrow ak-eyebrow-l"></div>
-        <div class="ak-eyebrow ak-eyebrow-r"></div>
-        <div class="ak-eye ak-eye-l">
-          <div class="ak-iris"></div>
-          <div class="ak-eye-highlight"></div>
-        </div>
-        <div class="ak-eye ak-eye-r">
-          <div class="ak-iris"></div>
-          <div class="ak-eye-highlight"></div>
-        </div>
-        <div class="ak-blush ak-blush-l"></div>
-        <div class="ak-blush ak-blush-r"></div>
-        <div class="ak-nose"></div>
-        <div class="ak-mouth"></div>
-
-        <!-- 对话气泡 -->
-        <div class="ak-bubble" id="ak-bubble"></div>
-      </div>
+      <canvas id="ak-canvas"></canvas>
+      <button class="ak-close-btn" id="ak-close" title="隐藏小星">&times;</button>
+      <div class="ak-pomodoro-indicator" id="ak-pomodoro-icon">🍅</div>
+      <span class="ak-zzz" id="ak-zzz">💤</span>
+      <div class="ak-bubble" id="ak-bubble"></div>
     `;
   }
 
   buildCharacter();
 
-  // ═══════════════════════════════════════════
-  // 2. DOM 引用
-  // ═══════════════════════════════════════════
-  const body   = document.getElementById('ak-body');
-  const bubble = document.getElementById('ak-bubble');
+  // DOM refs
+  const canvas  = document.getElementById('ak-canvas');
+  const bubble  = document.getElementById('ak-bubble');
   const closeBtn = document.getElementById('ak-close');
   const pomodoroIcon = document.getElementById('ak-pomodoro-icon');
   const zzzEl = document.getElementById('ak-zzz');
 
   // ═══════════════════════════════════════════
-  // 3. 状态
+  // 2. State
   // ═══════════════════════════════════════════
-  let isHidden = false;
+  let isHidden          = false;
   let currentExpression = 'neutral';
-  let currentState = '';
-  let bubbleTimer = null;
-  let idleTipTimer = null;
-  let expressionTimer = null;
-  let clickCount = 0;
-  let clickResetTimer = null;
+  let currentState      = '';
+  let bubbleTimer       = null;
+  let idleTipTimer      = null;
+  let expressionTimer   = null;
+  let clickCount        = 0;
+  let clickResetTimer   = null;
+  let loadingFailed     = false;
+
+  // PIXI objects
+  let app   = null;
+  let model = null;
+  let availableExpressions = [];   // [{ name: 'f01' }, ...]
+  let exprMap = {};               // ourExpr -> modelExprName
 
   // ═══════════════════════════════════════════
-  // 4. 对话库
+  // 3. Dialogue Library
   // ═══════════════════════════════════════════
   const GREETINGS = {
     morning: [
@@ -186,7 +159,7 @@
   }
 
   // ═══════════════════════════════════════════
-  // 5. 气泡系统
+  // 4. Speech Bubble System
   // ═══════════════════════════════════════════
   function showBubble(msg, duration) {
     if (!bubble || isHidden) return;
@@ -206,29 +179,67 @@
   }
 
   // ═══════════════════════════════════════════
-  // 6. 表情系统
+  // 5. Expression System (Live2D)
   // ═══════════════════════════════════════════
-  const EXPR_CLASSES = [
-    'ak-expr-happy', 'ak-expr-thinking', 'ak-expr-surprised',
-    'ak-expr-encourage', 'ak-expr-celebrate', 'ak-expr-love',
-    'ak-expr-sleepy', 'ak-expr-cool'
-  ];
 
-  function setExpression(expr, duration) {
-    if (!body || isHidden) return;
-    if (currentExpression === expr && !duration) return;
+  /**
+   * Build expression name mapping: our canonical names -> model's actual expression IDs.
+   * Each entry is a priority-ordered list of model expression names to try.
+   */
+  function buildExpressionMap() {
+    const modelExprs = availableExpressions.map(e => e.name || e);
+    // Log what's available for debugging
+    console.log('[小星 v4] 模型可用表情:', modelExprs.join(', '));
 
-    // 清除旧表情
-    EXPR_CLASSES.forEach(c => body.classList.remove(c));
-    currentExpression = expr;
+    // Priority lists for mapping our expressions to model expression names
+    const MAPPING_PRIORITY = {
+      happy:      ['f02', 'happy', 'smile', 'fun', 'f01'],
+      thinking:   ['f03', 'concerned', 'worried', 'sad', 'f04'],
+      surprised:  ['f04', 'surprised', 'angry', 'shock', 'surprise'],
+      encourage:  ['f05', 'encourage', 'f02', 'smile', 'happy'],
+      celebrate:  ['f06', 'celebrate', 'f02', 'fun', 'happy'],
+      love:       ['f07', 'love', 'f02', 'happy', 'smile'],
+      sleepy:     ['f08', 'sleepy', 'tired', 'f03'],
+      cool:       ['cool', 'f02', 'smile', 'f06'],
+    };
 
-    // 设置新表情
-    const cls = 'ak-expr-' + expr;
-    if (EXPR_CLASSES.includes(cls)) {
-      body.classList.add(cls);
+    for (const [ourExpr, priorities] of Object.entries(MAPPING_PRIORITY)) {
+      for (const candidate of priorities) {
+        if (modelExprs.includes(candidate)) {
+          exprMap[ourExpr] = candidate;
+          break;
+        }
+      }
+      if (!exprMap[ourExpr]) {
+        exprMap[ourExpr] = modelExprs[0] || null;
+      }
     }
 
-    // 自动恢复
+    console.log('[小星 v4] 表情映射:', JSON.stringify(exprMap));
+  }
+
+  function setExpression(expr, duration) {
+    if (!model || isHidden) return;
+    if (currentExpression === expr && !duration) return;
+
+    const modelExpr = exprMap[expr];
+    if (!modelExpr) return;
+
+    try {
+      // Set expression on the Live2D model
+      model.expression(modelExpr);
+      currentExpression = expr;
+    } catch (e) {
+      console.warn('[小星 v4] 设置表情失败:', expr, e);
+      return;
+    }
+
+    // Show/hide ZZZ overlay for sleepy expression
+    if (zzzEl) {
+      zzzEl.style.display = (expr === 'sleepy') ? 'block' : 'none';
+    }
+
+    // Auto-reset
     clearTimeout(expressionTimer);
     if (duration && duration > 0) {
       expressionTimer = setTimeout(() => resetExpression(), duration);
@@ -236,29 +247,48 @@
   }
 
   function resetExpression() {
-    if (!body) return;
-    EXPR_CLASSES.forEach(c => body.classList.remove(c));
+    if (!model) return;
+    const neutralExpr = exprMap['neutral'] || availableExpressions[0]?.name;
+    if (neutralExpr) {
+      try {
+        model.expression(neutralExpr);
+      } catch (e) { /* silent */ }
+    }
+    currentExpression = 'neutral';
+    clearTimeout(expressionTimer);
+    // Hide ZZZ
+    if (zzzEl) zzzEl.style.display = 'none';
+  }
+
+  function resetExpression() {
+    if (!model) return;
+    const neutralExpr = exprMap['neutral'] || availableExpressions[0]?.name;
+    if (neutralExpr) {
+      try {
+        model.expression(neutralExpr);
+      } catch (e) { /* silent */ }
+    }
     currentExpression = 'neutral';
     clearTimeout(expressionTimer);
   }
 
   // ═══════════════════════════════════════════
-  // 7. 状态系统
+  // 6. State System
   // ═══════════════════════════════════════════
   function setState(state, active) {
-    if (!body) return;
+    if (!kanban) return;
     const cls = 'ak-state-' + state;
     if (active) {
-      body.classList.add(cls);
+      kanban.classList.add(cls);
       currentState = state;
     } else {
-      body.classList.remove(cls);
+      kanban.classList.remove(cls);
       if (currentState === state) currentState = '';
     }
   }
 
   // ═══════════════════════════════════════════
-  // 8. 表情联动动作
+  // 7. Action Triggers
   // ═══════════════════════════════════════════
   const ACTION_EXPRESSION = {
     encourage: ['encourage', 4000],
@@ -285,17 +315,26 @@
       };
       if (messages[action]) showBubble(messages[action], 3000);
     }
-    // 粒子特效
+    // Try playing a random motion for extra liveliness
+    if (model) {
+      try {
+        const motions = model.getMotions ? model.getMotions() : null;
+        if (motions && motions.length > 0) {
+          const rand = motions[Math.floor(Math.random() * motions.length)];
+          model.motion(rand.group, rand.no || 0);
+        }
+      } catch (e) { /* motion is optional enhancement */ }
+    }
+    // Particle effects
     spawnParticles(action === 'celebrate' || action === 'checkin' ? 'celebrate' : 'encourage');
   }
 
   // ═══════════════════════════════════════════
-  // 9. 粒子特效
+  // 8. Particle Effects
   // ═══════════════════════════════════════════
   function spawnParticles(type) {
     const container = document.createElement('div');
     container.className = 'ak-particles';
-    // 定位在角色上方
     const rect = kanban.getBoundingClientRect();
     container.style.left = (rect.left + rect.width / 2 - 100) + 'px';
     container.style.bottom = (window.innerHeight - rect.top + 20) + 'px';
@@ -328,57 +367,64 @@
   }
 
   // ═══════════════════════════════════════════
-  // 10. 点击 + 双击交互
+  // 9. Click + DblClick Interaction
   // ═══════════════════════════════════════════
-  body.addEventListener('click', (e) => {
-    if (isHidden || e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+  let clickTimeout = null;
 
-    clickCount++;
-    clearTimeout(clickResetTimer);
-    clickResetTimer = setTimeout(() => { clickCount = 0; }, 1500);
+  canvas.addEventListener('click', (e) => {
+    if (isHidden || loadingFailed) return;
 
-    if (clickCount >= 5) {
-      showBubble('啊啊啊别戳了！我认输！(>_<)', 3000);
-      setExpression('surprised', 2500);
-      clickCount = 0;
-    } else {
-      showBubble(randomPick(CLICK_REACTIONS), 3200);
-      // 随机表情
-      const randExpr = randomPick(['happy', 'cool', 'love', 'encourage']);
-      setExpression(randExpr, 2500);
+    // Detect dblclick manually (PIXI canvas swallows native dblclick)
+    if (clickTimeout) {
+      // Double click detected
+      clearTimeout(clickTimeout);
+      clickTimeout = null;
+      e.preventDefault();
+      showBubble(randomPick([
+        '哇！双击暴击！',
+        '来了来了！有什么吩咐~',
+        '这么热情呀~ 我们一起加油吧！',
+      ]), 3000);
+      setExpression('love', 3000);
+      spawnParticles('encourage');
+      return;
     }
 
-    // 触发面板切换 (延迟，让点击反应先播放)
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('mascot:kanban-clicked'));
-    }, 150);
-  });
+    clickTimeout = setTimeout(() => {
+      clickTimeout = null;
+      // Single click
+      clickCount++;
+      clearTimeout(clickResetTimer);
+      clickResetTimer = setTimeout(() => { clickCount = 0; }, 1500);
 
-  body.addEventListener('dblclick', (e) => {
-    if (isHidden) return;
-    e.preventDefault();
-    showBubble(randomPick([
-      '哇！双击暴击！',
-      '来了来了！有什么吩咐~',
-      '这么热情呀~ 我们一起加油吧！',
-    ]), 3000);
-    setExpression('love', 3000);
-    spawnParticles('encourage');
+      if (clickCount >= 5) {
+        showBubble('啊啊啊别戳了！我认输！(>_<)', 3000);
+        setExpression('surprised', 2500);
+        clickCount = 0;
+      } else {
+        showBubble(randomPick(CLICK_REACTIONS), 3200);
+        const randExpr = randomPick(['happy', 'cool', 'love', 'encourage']);
+        setExpression(randExpr, 2500);
+      }
+
+      // Trigger panel toggle
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('mascot:kanban-clicked'));
+      }, 150);
+    }, 280);
   });
 
   // ═══════════════════════════════════════════
-  // 11. 拖拽支持
+  // 10. Drag Support
   // ═══════════════════════════════════════════
   let dragging = false;
   let dragStartX, dragStartY;
   let kanbanStartRight, kanbanStartBottom;
 
-  body.addEventListener('mousedown', (e) => {
-    if (e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+  canvas.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     dragging = true;
-    body.classList.add('dragging');
-    body.classList.remove('idle-anim');
+    kanban.classList.add('dragging');
     dragStartX = e.clientX;
     dragStartY = e.clientY;
     const style = window.getComputedStyle(kanban);
@@ -399,18 +445,15 @@
   document.addEventListener('mouseup', () => {
     if (!dragging) return;
     dragging = false;
-    body.classList.remove('dragging');
-    body.classList.add('idle-anim');
+    kanban.classList.remove('dragging');
     kanban.style.transition = '';
   });
 
-  // 触摸拖拽
-  body.addEventListener('touchstart', (e) => {
-    if (e.target === closeBtn || e.target.closest('.ak-close-btn')) return;
+  // Touch drag
+  canvas.addEventListener('touchstart', (e) => {
     if (e.touches.length !== 1) return;
     dragging = true;
-    body.classList.add('dragging');
-    body.classList.remove('idle-anim');
+    kanban.classList.add('dragging');
     dragStartX = e.touches[0].clientX;
     dragStartY = e.touches[0].clientY;
     const style = window.getComputedStyle(kanban);
@@ -430,13 +473,12 @@
   document.addEventListener('touchend', () => {
     if (!dragging) return;
     dragging = false;
-    body.classList.remove('dragging');
-    body.classList.add('idle-anim');
+    kanban.classList.remove('dragging');
     kanban.style.transition = '';
   });
 
   // ═══════════════════════════════════════════
-  // 12. 关闭 / 恢复
+  // 11. Close / Restore
   // ═══════════════════════════════════════════
   closeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -449,7 +491,7 @@
     setTimeout(() => {
       kanban.style.display = 'none';
       showRestoreButton();
-    }, 400);
+    }, 350);
   });
 
   function showRestoreButton() {
@@ -473,6 +515,10 @@
   function restoreKanban() {
     isHidden = false;
     kanban.style.display = '';
+    // Re-initialize PIXI if needed
+    if (app && app.renderer) {
+      app.renderer.resize(canvas.clientWidth, canvas.clientHeight);
+    }
     setTimeout(() => {
       kanban.style.opacity = '1';
       kanban.style.transform = 'scale(1)';
@@ -489,12 +535,11 @@
     startIdleTips();
   }
 
-  // 暴露恢复函数
   window.MascotCore = window.MascotCore || {};
   window.MascotCore.restoreKanban = restoreKanban;
 
   // ═══════════════════════════════════════════
-  // 13. 空闲 Tips 循环
+  // 12. Idle Tips Loop
   // ═══════════════════════════════════════════
   function startIdleTips() {
     clearTimeout(idleTipTimer);
@@ -509,10 +554,9 @@
   }
 
   // ═══════════════════════════════════════════
-  // 14. 外部事件监听 (来自 mascot-core / mascot-panel)
+  // 13. External Event Listeners
   // ═══════════════════════════════════════════
 
-  // 表情指令
   window.addEventListener('mascot:set-expression', (e) => {
     if (isHidden) return;
     const expr = e.detail;
@@ -523,22 +567,18 @@
     }
   });
 
-  // 动作触发
   window.addEventListener('mascot:trigger-action', (e) => {
     if (isHidden) return;
     triggerAction(e.detail);
   });
 
-  // 来自面板的状态同步
   window.addEventListener('mascot:update-state', (e) => {
     if (isHidden) return;
     const { state, active } = e.detail || {};
     if (state) setState(state, active !== false);
   });
 
-  // Toast 通知 (面板关闭时 via mascot-core)
   window.addEventListener('mascot:show-toast', (e) => {
-    // Toast 由 mascot-core 处理，这里只做表情联动
     const { type } = e.detail || {};
     if (type === 'success') {
       setExpression('happy', 3000);
@@ -547,7 +587,6 @@
     }
   });
 
-  // 空闲检测 — 角色表现困倦
   window.addEventListener('mascot:idle-detected', () => {
     if (isHidden) return;
     setExpression('sleepy', 6000);
@@ -555,8 +594,82 @@
   });
 
   // ═══════════════════════════════════════════
-  // 15. 暴露 API
+  // 14. Expose API
   // ═══════════════════════════════════════════
+  let currentModelLoaded = false;
+
+  async function switchModel(modelName) {
+    const modelInfo = MODEL_LIST.find(m => m.name === modelName);
+    if (!modelInfo) {
+      console.warn(`[小星 v4] 未找到模型: ${modelName}`);
+      return false;
+    }
+    if (modelInfo.loaded && model) {
+      console.log(`[小星 v4] 模型 ${modelName} 已加载，跳过切换`);
+      return true;
+    }
+    if (loadingFailed) {
+      console.warn('[小星 v4] Live2D 加载失败，无法切换模型');
+      return false;
+    }
+
+    console.log(`[小星 v4] 切换模型: → ${modelName}`);
+
+    // Store panel state before destroying
+    const wasPanelOpen = window.dispatchEvent(new CustomEvent('mascot:model-switching', { detail: { from: getCurrentModelName(), to: modelName } }));
+
+    // Remove old model from stage
+    if (model && app && app.stage) {
+      try {
+        app.stage.removeChild(model);
+        if (model.destroy) model.destroy();
+      } catch (e) {
+        console.warn('[小星 v4] 销毁旧模型出错:', e);
+      }
+      model = null;
+    }
+
+    // Reset markers
+    MODEL_LIST.forEach(m => { m.loaded = false; });
+
+    // Load new model
+    try {
+      model = await loadModel(modelInfo);
+      currentModelLoaded = true;
+      showBubble(`${modelName} 来啦~ ✨`, 3000);
+      window.dispatchEvent(new CustomEvent('mascot:model-switched', { detail: { model: modelName } }));
+      return true;
+    } catch (err) {
+      console.error(`[小星 v4] 切换模型失败:`, err);
+      showBubble(`切换失败 😢 重新加载默认模型...`, 3000);
+      // Fallback: reload first model
+      try {
+        const fallback = MODEL_LIST[0];
+        model = await loadModel(fallback);
+        currentModelLoaded = true;
+        window.dispatchEvent(new CustomEvent('mascot:model-switched', { detail: { model: fallback.name } }));
+        return true;
+      } catch (e2) {
+        console.error('[小星 v4] 回退模型也加载失败:', e2);
+        return false;
+      }
+    }
+  }
+
+  function getModelList() {
+    return MODEL_LIST.map(m => ({
+      name: m.name,
+      loaded: !!m.loaded,
+      expressions: m._rawDefinition?.expressions?.length || 0,
+      motions: m._rawDefinition?.motions ? Object.keys(m._rawDefinition.motions).length : 0,
+    }));
+  }
+
+  function getCurrentModelName() {
+    if (loadingFailed || !model) return null;
+    return MODEL_LIST.find(m => m.loaded)?.name || null;
+  }
+
   window.MascotCore = window.MascotCore || {};
   Object.assign(window.MascotCore, {
     setExpression,
@@ -569,29 +682,263 @@
     isHidden: () => isHidden,
     getExpression: () => currentExpression,
     getState: () => currentState,
+    getModelName: getCurrentModelName,
+    getModelList,
+    switchModel,
   });
 
   // ═══════════════════════════════════════════
-  // 16. 初始化
+  // 15. Live2D Core — Script Loading & Init
   // ═══════════════════════════════════════════
-  function init() {
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      // Check if already loaded
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) { resolve(); return; }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.crossOrigin = 'anonymous';
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Script load failed: ' + src));
+      document.head.appendChild(script);
+    });
+  }
+
+  async function loadDependencies() {
+    // Load PixiJS
+    await loadScript(PIXI_CDN);
+    // pixi-live2d-display needs window.PIXI
+    if (!window.PIXI) {
+      throw new Error('PixiJS failed to initialize');
+    }
+    // Load Cubism 2.1 runtime (sets window.Live2D)
+    await loadScript(LIVE2D_CORE_CDN);
+    if (!window.Live2D) {
+      throw new Error('Cubism 2.1 runtime failed to initialize');
+    }
+    // Load pixi-live2d-display Cubism 2 bundle (standalone — includes core + Cubism 2)
+    await loadScript(CUBISM2_CDN);
+    if (!window.PIXI.live2d || !window.PIXI.live2d.Live2DModel) {
+      throw new Error('pixi-live2d-display failed to initialize');
+    }
+  }
+
+  async function initPixiApp() {
+    const { Application } = window.PIXI;
+
+    app = new Application({
+      view: canvas,
+      width: 240,
+      height: 400,
+      transparent: true,
+      antialias: true,
+      resolution: Math.min(window.devicePixelRatio || 1, 2),
+      autoDensity: true,
+    });
+
+    // Ensure the canvas fills the container
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+  }
+
+  async function loadModel(modelInfo) {
+    const { Live2DModel } = window.PIXI.live2d;
+
+    console.log(`[小星 v4] 尝试加载模型: ${modelInfo.name}...`);
+    const m = await Live2DModel.from(modelInfo.url);
+
+    // Auto-scale to fit canvas
+    const canvasW = app.renderer.width / (app.renderer.resolution || 1);
+    const canvasH = app.renderer.height / (app.renderer.resolution || 1);
+
+    const modelW = m.width || m.internalModel?.getCanvasWidth?.() || 1000;
+    const modelH = m.height || m.internalModel?.getCanvasHeight?.() || 1000;
+
+    const scaleX = canvasW / modelW;
+    const scaleY = canvasH / modelH;
+    const scale = Math.min(scaleX, scaleY, 0.6);
+
+    m.scale.set(scale);
+    m.x = canvasW / 2;
+    m.y = canvasH * 0.48;
+    m.anchor?.set?.(0.5, 0.45);
+
+    app.stage.addChild(m);
+
+    // Get available expressions — try multiple approaches
+    availableExpressions = [];
+
+    // Approach 1: model.getExpressions()
+    if (typeof m.getExpressions === 'function') {
+      const raw = m.getExpressions();
+      console.log('[小星 v4] getExpressions() 原始返回:', raw, 'type:', typeof raw, 'isArray:', Array.isArray(raw));
+      if (Array.isArray(raw) && raw.length > 0) {
+        availableExpressions = raw;
+      }
+    }
+
+    // Approach 2: model.internalModel.getExpressions()
+    if (availableExpressions.length === 0 && m.internalModel && typeof m.internalModel.getExpressions === 'function') {
+      const raw = m.internalModel.getExpressions();
+      console.log('[小星 v4] internalModel.getExpressions() 原始返回:', raw);
+      if (Array.isArray(raw) && raw.length > 0) {
+        availableExpressions = raw;
+      }
+    }
+
+    // Approach 3: inspect model.internalModel for expressions
+    if (availableExpressions.length === 0) {
+      const im = m.internalModel;
+      if (im) {
+        console.log('[小星 v4] internalModel keys:', Object.keys(im));
+        // Cubism2 models may store expressions in _expressions or expressions property
+        const candidateKeys = ['_expressions', 'expressions', '_expressionManager', 'expressionManager', 'expressionNames'];
+        for (const key of candidateKeys) {
+          const val = im[key];
+          console.log(`[小星 v4] internalModel.${key}:`, val);
+          if (Array.isArray(val) && val.length > 0) {
+            availableExpressions = val;
+            break;
+          }
+        }
+      }
+    }
+
+    // Approach 4: parse model JSON definition directly as fallback
+    if (availableExpressions.length === 0 && modelInfo._rawDefinition) {
+      const def = modelInfo._rawDefinition;
+      if (def.expressions && Array.isArray(def.expressions)) {
+        console.log('[小星 v4] 从模型 JSON 直接读取 expressions:', def.expressions);
+        availableExpressions = def.expressions;
+      }
+    }
+
+    // Normalize expressions to { name } objects
+    availableExpressions = availableExpressions.map(e => {
+      if (typeof e === 'string') return { name: e };
+      if (e && e.name) return e;
+      return null;
+    }).filter(Boolean);
+
+    buildExpressionMap();
+    modelInfo.loaded = true;
+
+    // Set initial expression to neutral/first
+    if (availableExpressions.length > 0) {
+      const firstExpr = availableExpressions[0].name;
+      if (firstExpr) {
+        try { m.expression(firstExpr); } catch (e) { console.warn('[小星 v4] 初始表情设置失败:', e); }
+      }
+    }
+
+    console.log(`[小星 v4] ✓ 模型 ${modelInfo.name} 加载成功 (${availableExpressions.length} 表情, 缩放 ${scale.toFixed(2)})`);
+    return m;
+  }
+
+  async function initLive2D() {
+    // Pre-fetch model JSON definitions for expression fallback
+    for (const info of MODEL_LIST) {
+      try {
+        const resp = await fetch(info.url);
+        if (resp.ok) {
+          info._rawDefinition = await resp.json();
+          console.log(`[小星 v4] 预加载模型定义: ${info.name} (${info._rawDefinition.expressions?.length || 0} 表达式)`);
+        }
+      } catch (e) {
+        console.warn(`[小星 v4] 预加载 ${info.name} 定义失败:`, e.message);
+      }
+    }
+
+    // Try each model in order
+    for (const modelInfo of MODEL_LIST) {
+      try {
+        model = await loadModel(modelInfo);
+        return; // Success
+      } catch (err) {
+        console.warn(`[小星 v4] 模型 ${modelInfo.name} 加载失败:`, err.message);
+        // Remove failed model from stage if partial
+        if (model && app.stage.children.includes(model)) {
+          app.stage.removeChild(model);
+        }
+        model = null;
+      }
+    }
+
+    // All models failed
+    throw new Error('所有 Live2D 模型均加载失败');
+  }
+
+  // ═══════════════════════════════════════════
+  // 16. Fallback (when Live2D fails entirely)
+  // ═══════════════════════════════════════════
+  function showFallback() {
+    loadingFailed = true;
+    console.warn('[小星 v4] Live2D 不可用，使用降级方案');
+
+    // Replace canvas with a simple character display
+    if (canvas) canvas.style.display = 'none';
+
+    const fallback = document.createElement('div');
+    fallback.className = 'ak-fallback';
+    fallback.innerHTML = `
+      <div class="ak-fallback-character">
+        <span class="ak-fallback-icon">🌟</span>
+        <span class="ak-fallback-label">小星</span>
+      </div>
+    `;
+    kanban.appendChild(fallback);
+
+    // Make the fallback clickable
+    fallback.addEventListener('click', () => {
+      if (isHidden) return;
+      window.dispatchEvent(new CustomEvent('mascot:kanban-clicked'));
+    });
+
+    // Still show greeting via bubble
+    showBubble('小星今天有点害羞... 但还是会陪着你哦~ 💫', 5000);
+  }
+
+  // ═══════════════════════════════════════════
+  // 17. Initialization
+  // ═══════════════════════════════════════════
+  async function init() {
+    try {
+      // Load dependencies (PixiJS + pixi-live2d-display)
+      await loadDependencies();
+
+      // Initialize PixiJS application
+      await initPixiApp();
+
+      // Load a Live2D model
+      await initLive2D();
+    } catch (err) {
+      console.error('[小星 v4] Live2D 初始化失败:', err.message);
+      showFallback();
+    }
+
+    // Show the kanban
     kanban.style.opacity = '1';
     kanban.style.transform = 'scale(1)';
 
-    // 初次问候
-    setTimeout(() => {
-      if (!isHidden) {
-        showBubble(randomPick(GREETINGS[getTimePeriod()]), 5000);
-        setExpression('happy', 3500);
-      }
-    }, 1200);
+    // Initial greeting
+    if (!loadingFailed) {
+      setTimeout(() => {
+        if (!isHidden) {
+          showBubble(randomPick(GREETINGS[getTimePeriod()]), 5000);
+          setExpression('happy', 3500);
+        }
+      }, 1200);
+    }
 
-    // 启动空闲 Tips
+    // Start idle tips
     startIdleTips();
 
-    console.log('[小星 v3] 二次元少女就绪 ✨ — 紫色双马尾 + 呆毛 + 星形发夹');
+    console.log(`[小星 v4] 看板娘就绪 ✨ — Live2D ${loadingFailed ? '降级' : '完整'}模式`);
   }
 
+  // Start when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

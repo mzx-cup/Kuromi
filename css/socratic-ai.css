@@ -27,9 +27,9 @@ body {
 
 .socratic-body {
     font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
-    background: #050508;
+    background: var(--surface-page);
     min-height: 100vh;
-    color: #fff;
+    color: var(--text-body);
     overflow-x: hidden;
 }
 

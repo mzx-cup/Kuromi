@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,8 +10,21 @@
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
+    <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="bg-gray-950 text-white min-h-screen">
+<body class="app-body text-white min-h-screen">
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
 
     <!-- ==========================================
          IDE 主体
@@ -83,7 +96,7 @@
             <!-- 左侧：代码编辑器 -->
             <div class="flex-1 flex flex-col border-r border-white/10">
                 <!-- 编辑器工具栏 -->
-                <div class="flex items-center justify-between px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                <div class="flex items-center justify-between px-4 py-2 bg-neutral-900 border-b border-white/5">
                     <div class="flex items-center gap-4 text-[12px] text-gray-400">
                         <span class="flex items-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,14 +121,14 @@
                 </div>
 
                 <!-- 问题标题 -->
-                <div class="px-4 py-2 bg-[#1e1e1e] border-b border-white/5">
+                <div class="px-4 py-2 bg-neutral-900 border-b border-white/5">
                     <h3 id="problem-title" class="text-[13px] text-gray-300 font-medium">加载中...</h3>
                 </div>
 
                 <!-- 代码编辑区 -->
                 <div id="editor-scroll" class="flex-1 overflow-auto editor-bg relative">
                     <!-- AI生成题目时的loading -->
-                    <div id="code-loading" class="hidden absolute inset-0 flex-col items-center justify-center bg-[#1e1e1e] z-10">
+                    <div id="code-loading" class="hidden absolute inset-0 flex-col items-center justify-center bg-neutral-900 z-10">
                         <div class="text-4xl mb-4 animate-pulse">✨</div>
                         <div class="text-gray-300 mb-2">AI 正在生成个性化题目...</div>
                         <div class="text-gray-500 text-sm">根据你的学习情况定制</div>
@@ -130,7 +143,7 @@
                 </div>
 
                 <!-- 提交批阅按钮 -->
-                <div class="px-4 py-3 bg-[#1e1e1e] border-t border-white/5 flex items-center justify-between">
+                <div class="px-4 py-3 bg-neutral-900 border-t border-white/5 flex items-center justify-between">
                     <div class="text-xs text-gray-500">
                         <span class="text-yellow-400">💡</span> 你可以修改代码，然后点击「AI批阅」让AI检查
                     </div>

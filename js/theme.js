@@ -72,9 +72,17 @@
       var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (saved && saved.theme && saved.mode) return saved;
     } catch (e) {}
+    // 若本地无保存，继承页面当前 data-theme（兼容各页面默认风格）
+    var pageTheme = document.documentElement.getAttribute('data-theme');
+    var pageMode = 'light';
+    if (pageTheme && PRESETS[pageTheme]) {
+      pageMode = PRESETS[pageTheme].mode;
+    } else if (pageTheme) {
+      pageMode = 'dark'; // 未知主题默认按暗色兜底
+    }
     return {
-      mode: 'light',
-      theme: 'ocean-glass',
+      mode: pageMode,
+      theme: pageTheme || 'ocean-glass',
       wallpaperId: 'default',
       brightness: 85,
       blur: 5,
@@ -291,6 +299,10 @@
   function applyAll() {
     applyTheme(state.theme);
     applyWallpaper();
+    // 标记统一背景系统已激活（兼容旧背景层隐藏）
+    if (document.body && !document.body.hasAttribute('data-bg-preserve')) {
+      document.body.setAttribute('data-bg-unified', 'true');
+    }
   }
 
   // ===== Custom Theme CRUD =====
@@ -379,7 +391,18 @@
   // ===== Modal =====
   function initThemeSettingsModal() {
     var triggerBtn = document.getElementById('theme-settings-btn');
-    if (!triggerBtn) return;
+    if (!triggerBtn) {
+      // 页面未放置主题按钮时，自动创建右下角浮动按钮
+      triggerBtn = document.getElementById('app-theme-fab');
+      if (!triggerBtn) {
+        triggerBtn = document.createElement('button');
+        triggerBtn.id = 'app-theme-fab';
+        triggerBtn.setAttribute('aria-label', '主题设置');
+        triggerBtn.title = '主题设置';
+        triggerBtn.innerHTML = '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke-width="2"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/></svg>';
+        document.body.appendChild(triggerBtn);
+      }
+    }
     triggerBtn.addEventListener('click', openThemeModal);
   }
 

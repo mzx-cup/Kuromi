@@ -239,6 +239,8 @@ async def call_llm_async_messages(
 async def call_llm_stream_messages(
     messages: list[dict[str, str]],
     temperature: float = 0.3,
+    max_tokens: int = MAX_OUTPUT_TOKENS,
+    model: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """流式调用 MiniMax-Text-01，支持完整 messages 数组（含历史上下文）。"""
     client = await get_http_client()
@@ -247,11 +249,11 @@ async def call_llm_stream_messages(
         "Authorization": f"Bearer {settings.minimax_api_key}",
     }
     payload = {
-        "model": settings.minimax_model_name,
+        "model": model or settings.minimax_model_name,
         "messages": messages,
         "temperature": temperature,
         "stream": True,
-        "max_tokens": MAX_OUTPUT_TOKENS,
+        "max_tokens": max_tokens,
     }
 
     try:
@@ -304,16 +306,20 @@ async def call_llm_stream_with_log_messages(
     messages: list[dict[str, str]],
     agent_name: str = "generator",
     temperature: float = 0.3,
+    max_tokens: int = MAX_OUTPUT_TOKENS,
+    model: str | None = None,
+    label: str = "",
 ) -> AsyncGenerator[dict, None]:
-    """流式调用（带日志），支持完整 messages 数组（含历史上下文）。"""
-    yield {"type": "log", "message": f"[{agent_name}] 正在调用 MiniMax-Text-01 生成内容（含历史上下文）..."}
+    """流式调用（带日志），支持完整 messages 数组（含历史上下文）及可选模型覆盖。"""
+    model_name = model or settings.minimax_model_name
+    yield {"type": "log", "message": f"[{agent_name}] 正在调用 {model_name} 生成内容（含历史上下文）..."}
 
     full_text = ""
     chunk_count = 0
     start_time = time.time()
 
     try:
-        async for chunk in call_llm_stream_messages(messages, temperature):
+        async for chunk in call_llm_stream_messages(messages, temperature, max_tokens, model):
             full_text += chunk
             chunk_count += 1
             yield {"type": "content_chunk", "content": chunk}

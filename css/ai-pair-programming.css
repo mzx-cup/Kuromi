@@ -124,7 +124,7 @@ input, textarea, select {
 
 /* AI Sidebar */
 .ai-sidebar {
-    background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 100%);
+    background: var(--surface-card);
 }
 
 .ai-status-badge {

@@ -14,18 +14,22 @@ window.MascotServices = (() => {
   // 1. SSE 流式对话
   // ═══════════════════════════════════════════
   async function* streamChat(message, history, pageContext, opts = {}) {
-    const { signal } = opts;
+    const { signal, model, temperature } = opts;
     const studentId = localStorage.getItem('starlearn_student_id') || 'default';
+
+    const body = {
+      message,
+      student_id: studentId,
+      page_context: pageContext || document.title || window.location.pathname,
+      conversation_history: (history || []).slice(-20),
+    };
+    if (model) body.model = model;
+    if (temperature !== undefined) body.temperature = temperature;
 
     const response = await fetch(`${BASE}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        student_id: studentId,
-        page_context: pageContext || document.title || window.location.pathname,
-        conversation_history: (history || []).slice(-20),
-      }),
+      body: JSON.stringify(body),
       signal,
     });
 
@@ -52,6 +56,32 @@ window.MascotServices = (() => {
           yield data;
         } catch (_) { /* skip */ }
       }
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // 1b. AI 模型配置
+  // ═══════════════════════════════════════════
+  async function fetchModels() {
+    try {
+      const res = await fetch(`${BASE}/models`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.success ? (data.data.models || []) : [];
+    } catch {
+      // Fallback: return known model
+      return [{ id: 'MiniMax-Text-01', name: 'MiniMax-Text-01', provider: 'MiniMax', default: true, available: true }];
+    }
+  }
+
+  async function fetchConfig() {
+    try {
+      const res = await fetch(`${BASE}/config`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.success ? data.data : null;
+    } catch {
+      return null;
     }
   }
 
@@ -457,7 +487,7 @@ window.MascotServices = (() => {
   // ═══════════════════════════════════════════
   return {
     // 对话
-    streamChat,
+    streamChat, fetchModels, fetchConfig,
     // 语音
     speechToText, textToSpeech, startRecording, stopRecording,
     // 导航

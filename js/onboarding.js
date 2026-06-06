@@ -55,13 +55,8 @@
   }
 
   function showMascotGreeting() {
-    const bubble = document.querySelector('.app-kanban-bubble');
-    if (bubble) {
-      bubble.textContent = '欢迎来到星识！我是小星~';
-      bubble.classList.add('visible');
-      setTimeout(() => {
-        if (bubble) bubble.classList.remove('visible');
-      }, 4000);
+    if (window.MascotCore && window.MascotCore.showBubble) {
+      window.MascotCore.showBubble('欢迎来到星识！我是小星~', 4000);
     }
   }
 

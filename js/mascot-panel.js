@@ -79,9 +79,58 @@ document.addEventListener('alpine:init', () => {
             🍅 <span x-text="pomodoroDisplay"></span>
           </span>
         </span>
+        <!-- AI 模型指示器 -->
+        <button @click="showAiModelSelector = !showAiModelSelector; showHeaderMenu = false"
+          class="mascot-ai-model-badge"
+          :title="'AI模型: ' + currentAiModel + ' (点击切换)'"
+          x-text="'🤖 ' + (aiConfig && aiConfig.ai_available ? currentAiModel : '离线')"
+          :class="{ offline: !(aiConfig && aiConfig.ai_available) }"></button>
+        <!-- AI 模型选择下拉 -->
+        <div x-show="showAiModelSelector" @click.outside="showAiModelSelector = false"
+          class="mascot-ai-model-dropdown" x-transition>
+          <div class="mascot-ai-model-title">🤖 选择 AI 模型</div>
+          <template x-for="aiModel in aiModels" :key="aiModel.id">
+            <button @click="switchAiModel(aiModel.id); showAiModelSelector = false"
+              class="mascot-ai-model-option"
+              :class="{ active: aiModel.id === currentAiModel, disabled: !aiModel.available }"
+              :disabled="!aiModel.available">
+              <span class="mascot-ai-model-provider" x-text="aiModel.provider"></span>
+              <span class="mascot-ai-model-name" x-text="aiModel.name"></span>
+              <span x-show="aiModel.id === currentAiModel" class="mascot-ai-model-check">✓</span>
+              <span x-show="!aiModel.available" class="mascot-ai-model-unavailable">需配置</span>
+            </button>
+          </template>
+          <div x-show="aiModels.length === 0" class="mascot-ai-model-empty">
+            正在加载模型列表...
+          </div>
+        </div>
         <div class="mascot-panel-header-actions">
+          <!-- 模型切换按钮 -->
+          <button @click="showModelSelector = !showModelSelector; showHeaderMenu = false"
+            class="mascot-model-switch-btn"
+            :class="{ active: modelSwitching }"
+            :disabled="modelSwitching"
+            :title="'切换角色 (当前: ' + currentModelName + ')'">
+            <span x-show="modelSwitching" class="mascot-model-spin">⏳</span>
+            <span x-show="!modelSwitching">🎭</span>
+          </button>
           <button @click="showHeaderMenu = !showHeaderMenu" class="mascot-header-menu-btn" title="更多">⋯</button>
           <button @click="showPanel = false" class="mascot-panel-close" title="关闭面板">&times;</button>
+        </div>
+        <!-- 模型选择下拉 -->
+        <div x-show="showModelSelector" @click.outside="showModelSelector = false" class="mascot-model-dropdown" x-transition>
+          <div class="mascot-model-dropdown-title">🎭 选择角色</div>
+          <template x-for="model in availableModels" :key="model.name">
+            <button
+              @click="switchModel(model.name); showModelSelector = false"
+              class="mascot-model-option"
+              :class="{ active: model.name === currentModelName }"
+              :disabled="modelSwitching">
+              <span class="mascot-model-option-icon" x-text="model.name === currentModelName ? '✅' : '👤'"></span>
+              <span class="mascot-model-option-name" x-text="model.name"></span>
+              <span class="mascot-model-option-badge" x-show="model.name === currentModelName">当前</span>
+            </button>
+          </template>
         </div>
         <!-- 下拉菜单 -->
         <div x-show="showHeaderMenu" @click.outside="showHeaderMenu = false" class="mascot-dropdown" x-transition>
@@ -202,8 +251,8 @@ document.addEventListener('alpine:init', () => {
               <template x-for="action in msg.actions" :key="action.title">
                 <div class="mascot-action-banner" :class="'mascot-action-banner--' + (action.priority || 'normal')">
                   <span class="mascot-action-banner-icon">
-                    <template x-if="action.priority === 'high' || action.priority === 'critical'">⚠️</template>
-                    <template x-if="!action.priority || action.priority === 'normal'">💡</template>
+                    <span x-show="action.priority === 'high' || action.priority === 'critical'">⚠️</span>
+                    <span x-show="!action.priority || action.priority === 'normal'">💡</span>
                   </span>
                   <div class="mascot-action-banner-body">
                     <strong x-text="action.title"></strong>
@@ -329,6 +378,18 @@ document.addEventListener('alpine:init', () => {
     // ─── 菜单 ───
     showHeaderMenu: false,
 
+    // ─── 模型选择 ───
+    showModelSelector: false,
+    availableModels: [],
+    currentModelName: 'Hibiki',
+    modelSwitching: false,
+
+    // ─── AI 模型 ───
+    aiModels: [],
+    currentAiModel: 'MiniMax-Text-01',
+    aiConfig: null,
+    aiModelLoading: false,
+
     // ─── 记忆浏览器 ───
     showMemoryPanel: false,
     memories: [],
@@ -362,12 +423,28 @@ document.addEventListener('alpine:init', () => {
         this.expression = e.detail;
       });
 
+      // 模型切换事件监听
+      window.addEventListener('mascot:model-switched', (e) => {
+        this.currentModelName = e.detail.model;
+        this.loadAvailableModels();
+        this.modelSwitching = false;
+      });
+      window.addEventListener('mascot:model-switching', () => {
+        this.modelSwitching = true;
+      });
+
       // 初始化问候语
       this.greeting = MascotServices.getTimeGreeting();
 
       // 初始化页面感知
       this.pageContext = MascotServices.getPageContext();
       this.quickSuggestions = MascotServices.getQuickSuggestions(this.pageContext);
+
+      // 加载可用模型
+      this.loadAvailableModels();
+
+      // 加载 AI 模型列表
+      this.loadAiModels();
 
       // 加载统计
       this.loadStats();
@@ -408,6 +485,78 @@ document.addEventListener('alpine:init', () => {
     },
 
     // ═══════════════════════════════════
+    // 模型选择与切换
+    // ═══════════════════════════════════
+    loadAvailableModels() {
+      if (window.MascotCore && typeof window.MascotCore.getModelList === 'function') {
+        const list = window.MascotCore.getModelList();
+        if (Array.isArray(list) && list.length > 0) {
+          this.availableModels = list;
+        }
+      }
+      // Fallback: if MascotCore not ready, build from MODEL_LIST (defined in kanban.js)
+      if (this.availableModels.length === 0 && typeof MODEL_LIST !== 'undefined') {
+        this.availableModels = MODEL_LIST.map(m => ({ name: m.name, loaded: false, expressions: 0, motions: 0 }));
+      }
+      if (window.MascotCore && typeof window.MascotCore.getModelName === 'function') {
+        this.currentModelName = window.MascotCore.getModelName() || 'Hibiki';
+      }
+      // Also try to get current from kanban.js global state
+      if (!this.currentModelName && window.MascotCore) {
+        this.currentModelName = window.MascotCore.getModelName?.() || 'Hibiki';
+      }
+    },
+
+    async switchModel(modelName) {
+      if (!window.MascotCore || !window.MascotCore.switchModel) {
+        this.addMsg('system', '模型切换功能不可用~');
+        return;
+      }
+      if (modelName === this.currentModelName) return;
+
+      this.modelSwitching = true;
+      this.addMsg('system', `正在切换为 ${modelName} ... 🎭`);
+
+      const success = await window.MascotCore.switchModel(modelName);
+
+      if (success) {
+        this.currentModelName = modelName;
+        this.loadAvailableModels();
+        this.addMsg('system', `已切换为 ${modelName}，点击角色可互动哦~ ✨`);
+      } else {
+        this.addMsg('system', `切换 ${modelName} 失败，请稍后重试 😢`);
+      }
+
+      this.modelSwitching = false;
+    },
+
+    // ═══════════════════════════════════
+    // AI 模型选择
+    // ═══════════════════════════════════
+    async loadAiModels() {
+      try {
+        const models = await MascotServices.fetchModels();
+        if (models && models.length > 0) {
+          this.aiModels = models;
+          const defaultModel = models.find(m => m.default);
+          if (defaultModel) this.currentAiModel = defaultModel.id;
+        }
+        const config = await MascotServices.fetchConfig();
+        if (config) this.aiConfig = config;
+      } catch (e) {
+        console.warn('[小星] AI 模型列表加载失败:', e);
+      }
+    },
+
+    switchAiModel(modelId) {
+      if (modelId === this.currentAiModel) return;
+      const model = this.aiModels.find(m => m.id === modelId);
+      if (!model || !model.available) return;
+      this.currentAiModel = modelId;
+      this.addMsg('system', `已切换到 ${model.name}，后续对话将使用此模型 🤖`);
+    },
+
+    // ═══════════════════════════════════
     // 发送消息
     // ═══════════════════════════════════
     async sendMessage() {
@@ -439,7 +588,7 @@ document.addEventListener('alpine:init', () => {
 
         for await (const chunk of MascotServices.streamChat(
           text, history, window.MascotContext?.pageContext,
-          { signal: this.abortController.signal }
+          { signal: this.abortController.signal, model: this.currentAiModel }
         )) {
           if (chunk.type === 'text' || chunk.event === 'text_delta') {
             const content = chunk.content || (chunk.data && chunk.data.content) || '';

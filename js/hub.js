@@ -1507,7 +1507,14 @@ function resolveCSSColor(varName, fallback) {
     if (!resolved || resolved === 'rgba(0, 0, 0, 0)' || resolved === 'rgb(0, 0, 0)') {
         _resolvedColorCache[varName] = fallback || '#a855f7';
     } else {
-        _resolvedColorCache[varName] = resolved;
+        // Normalize to rgb() format — getComputedStyle may return oklch(), lab(), etc.
+        // which Canvas API's addColorStop() cannot parse.
+        // Use a scratch canvas to convert any CSS color to rgb().
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = resolved;
+        _resolvedColorCache[varName] = ctx.fillStyle; // Always #rrggbb or rgb(r,g,b)
     }
     return _resolvedColorCache[varName];
 }

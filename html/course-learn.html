@@ -1,20 +1,31 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星识 - 课程学习</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="/css/index.css">
-    <link rel="stylesheet" href="/css/loading.css">
-    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/course-learn.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/loading.js"></script>
+    <script src="/js/theme.js"></script>
 </head>
-<body class="course-learn-body" data-page="course-learn">
+<body class="app-body course-learn-body" data-page="course-learn">
     <!-- Global Wallpaper Background Layer -->
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <div class="global-bg-layer" id="global-bg-layer"></div>
     <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
@@ -136,9 +147,6 @@
     <!-- Toast container -->
     <div class="toast-container" id="toast-container"></div>
 
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/animations.css">
-    <script src="/js/theme.js"></script>
     <script src="/js/course-learn.js"></script>
 </body>
 </html>

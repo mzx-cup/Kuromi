@@ -9,14 +9,14 @@
    ============================================================ */
 :root {
     /* Primary - Warm copper gradient */
-    --primary: #ea580c;
-    --primary-light: #f97316;
-    --primary-dark: #c2410c;
+    --primary: var(--brand-500);
+    --primary-light: var(--brand-400);
+    --primary-dark: var(--brand-600);
     --primary-glow: rgba(234, 88, 12, 0.5);
 
     /* Accent - Rich amber */
-    --accent: #d97706;
-    --accent-light: #f59e0b;
+    --accent: var(--accent-500);
+    --accent-light: var(--accent-light);
     --accent-glow: rgba(217, 119, 6, 0.5);
 
     /* Semantic Colors */
@@ -28,14 +28,14 @@
     --danger-light: #f87171;
 
     /* Background - Deep space theme */
-    --bg-primary: #1a0f00;
-    --bg-secondary: #2a1500;
-    --bg-tertiary: #3d1f00;
+    --bg-primary: var(--surface-page);
+    --bg-secondary: var(--surface-card);
+    --bg-tertiary: var(--surface-elevated);
 
     /* Glass surfaces */
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-bg-hover: rgba(255, 255, 255, 0.06);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-bg: var(--surface-glass);
+    --glass-bg-hover: var(--surface-glass-hover);
+    --glass-border: var(--border-glass);
 
     /* Surface */
     --surface-white: rgba(255, 255, 255, 0.95);
@@ -44,8 +44,8 @@
     --surface-elevated: rgba(255, 255, 255, 0.08);
 
     /* Text hierarchy */
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
+    --text-primary: var(--text-heading);
+    --text-secondary: var(--text-muted);
     --text-tertiary: #64748b;
     --text-muted: #475569;
 

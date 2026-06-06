@@ -1,11 +1,14 @@
 /* ============================================
-   看板娘 AI 助手 — 二次元少女 小星 + 对话面板 v3
+   看板娘 AI 助手 — 小星 + 对话面板 v4
 
-   角色名称: 小星 (Shōsei / Starla)
-   风格:     Chibi 二次元可爱少女
-   技术:     纯 CSS 绘制 + JS 表情/状态控制
-   依赖:     tokens.css (CSS 变量)
-   零外部依赖，不需 Live2D CDN
+   角色: 小星 (Shōsei / Starla)
+   技术: Live2D 开源模型 (Haru/Izumi/Shizuku/Chitose)
+         通过 pixi-live2d-display + PixiJS v5 渲染
+   模型来源: npm live2d-widget-model-* (jsDelivr CDN)
+
+   表情由 Live2D 模型原生驱动 — 8 种表情状态:
+     happy / thinking / surprised / encourage /
+     celebrate / love / sleepy / cool / neutral
    ============================================ */
 
 /* ════════════════════════════════════════════
@@ -13,650 +16,103 @@
    ════════════════════════════════════════════ */
 .app-kanban {
   position: fixed;
-  bottom: -6px;
+  bottom: -10px;
   right: 12px;
   z-index: 500;
-  width: 160px;
-  height: 230px;
+  width: 240px;
+  height: 380px;
   user-select: none;
   pointer-events: none;
   opacity: 0;
-  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-              opacity 0.4s ease-out;
+  transition: opacity 0.4s ease-out,
+              transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   cursor: default;
+  overflow: visible;
 }
 
-/* 隐藏旧版 HTML 元素 (已被 v3 角色替代) */
-.app-kanban-inner,
-.app-kanban-img,
-.app-kanban-loading {
-  display: none !important;
-}
-
-/* ─── 角色根元素 ─── */
-.ak-kanban-body {
-  position: relative;
-  width: 140px;
-  height: 210px;
-  margin: 10px auto 0;
-  pointer-events: auto;
-  cursor: pointer;
-  /* 整体浮动动画由 JS 控制 */
-}
-
-/* ─── 拖拽状态 ─── */
-.ak-kanban-body.dragging {
-  cursor: grabbing;
+/* Drag state */
+.app-kanban.dragging {
   transition: none;
 }
 
-/* ════════════════════════════════════════════
-   CHARACTER: 头部
-   ════════════════════════════════════════════ */
-.ak-head {
-  position: absolute;
-  width: 100px;
-  height: 105px;
-  background: linear-gradient(175deg, #ffe8d6 0%, #ffd6ba 40%, #f5c4a3 100%);
-  border-radius: 50% 50% 48% 48%;
-  top: 36px;
-  left: 20px;
-  z-index: 5;
-  box-shadow: inset 0 8px 12px rgba(255, 220, 190, 0.5);
-}
-
-/* ─── 耳朵 ─── */
-.ak-ear {
-  position: absolute;
-  width: 16px;
-  height: 22px;
-  background: linear-gradient(180deg, #ffe0cc, #f0c0a0);
-  border-radius: 50% 50% 40% 40%;
-  top: 72px;
-  z-index: 4;
-}
-.ak-ear-l { left: 12px; }
-.ak-ear-r { right: 12px; }
-
-/* ════════════════════════════════════════════
-   CHARACTER: 头发 — 后层 + 双马尾
-   ════════════════════════════════════════════ */
-.ak-hair-back {
-  position: absolute;
-  width: 114px;
-  height: 120px;
-  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-  border-radius: 55% 55% 45% 45%;
-  top: 28px;
-  left: 13px;
-  z-index: 3;
-  box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* 双马尾 */
-.ak-tail {
-  position: absolute;
-  width: 22px;
-  height: 75px;
-  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 40%, #5b21b6 100%);
-  border-radius: 50% 45% 35% 40%;
-  z-index: 2;
-  top: 70px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-.ak-tail::after {
-  content: '';
-  position: absolute;
-  bottom: 8px;
-  left: 3px;
-  width: 14px;
-  height: 18px;
-  background: #a78bfa;
-  border-radius: 50%;
-  opacity: 0.5;
-  filter: blur(4px);
-}
-.ak-tail-l { left: 2px;  transform: rotate(-12deg); }
-.ak-tail-r { right: 2px; transform: rotate(12deg); }
-
-/* 马尾丝带/发圈 */
-.ak-tail-ribbon {
-  position: absolute;
-  width: 16px;
-  height: 20px;
-  background: linear-gradient(135deg, #c084fc, #a855f7);
-  border-radius: 4px 6px 4px 6px;
-  z-index: 6;
-  top: 68px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.ak-tail-ribbon-l { left: 4px;  transform: rotate(-5deg); }
-.ak-tail-ribbon-r { right: 4px; transform: rotate(5deg); }
-
-/* ════════════════════════════════════════════
-   CHARACTER: 前发 (刘海 + 侧发)
-   ════════════════════════════════════════════ */
-.ak-hair-front {
-  position: absolute;
-  width: 110px;
-  height: 60px;
-  background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 70%, #6d28d9 100%);
-  border-radius: 55% 55% 0 0;
-  top: 30px;
-  left: 15px;
-  z-index: 7;
-}
-
-/* 刘海分层 */
-.ak-bangs {
-  position: absolute;
-  width: 108px;
-  height: 44px;
-  background: linear-gradient(180deg, #9b6df7 0%, #8b5cf6 60%, #7c3aed 100%);
-  border-radius: 55% 55% 10% 10%;
-  top: 34px;
-  left: 16px;
-  z-index: 8;
-}
-/* 刘海中间缝 */
-.ak-bangs::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 12px;
-  background: linear-gradient(180deg, transparent, #7c3aed 30%, transparent);
-  border-radius: 0 0 50% 50%;
-}
-
-/* 侧发 */
-.ak-hair-side-l,
-.ak-hair-side-r {
-  position: absolute;
-  width: 20px;
-  height: 55px;
-  background: linear-gradient(180deg, #7c3aed, #6d28d9);
-  border-radius: 0 0 50% 30%;
-  z-index: 7;
-  top: 62px;
-}
-.ak-hair-side-l { left: 14px;  transform: rotate(8deg);  border-radius: 0 0 60% 20%; }
-.ak-hair-side-r { right: 14px; transform: rotate(-8deg); border-radius: 0 0 20% 60%; }
-
-/* 呆毛 (ahoge) */
-.ak-ahoge {
-  position: absolute;
-  width: 3px;
-  height: 28px;
-  background: #a78bfa;
-  border-radius: 2px;
-  z-index: 10;
-  top: 24px;
-  left: 58px;
-  transform: rotate(-15deg);
-  transform-origin: bottom center;
-  animation: akAhogeWave 2.5s ease-in-out infinite;
-}
-.ak-ahoge::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -3px;
-  width: 10px;
-  height: 10px;
-  background: #c4b5fd;
-  border-radius: 50%;
-}
-@keyframes akAhogeWave {
-  0%, 100% { transform: rotate(-15deg); }
-  25% { transform: rotate(-22deg); }
-  50% { transform: rotate(-8deg); }
-  75% { transform: rotate(-20deg); }
-}
-
-/* ════════════════════════════════════════════
-   CHARACTER: 五官 — 眉毛
-   ════════════════════════════════════════════ */
-.ak-eyebrow {
-  position: absolute;
-  width: 22px;
-  height: 3px;
-  background: #6d5c4f;
-  border-radius: 3px;
-  z-index: 10;
-  top: 80px;
-  transition: transform 0.2s ease, top 0.2s ease;
-}
-.ak-eyebrow-l { left: 30px; }
-.ak-eyebrow-r { right: 28px; }
-
-/* ════════════════════════════════════════════
-   CHARACTER: 五官 — 眼睛 (灵魂所在!)
-   ════════════════════════════════════════════ */
-.ak-eye {
-  position: absolute;
-  width: 32px;
-  height: 36px;
-  background: #fff;
-  border-radius: 50% 50% 46% 46%;
-  border: 2.5px solid #4c1d95;
-  z-index: 10;
-  top: 86px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  transition: height 0.2s ease, border-radius 0.2s ease;
-}
-.ak-eye-l { left: 26px; }
-.ak-eye-r { right: 22px; }
-
-/* 上睫毛 */
-.ak-eye::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  height: 14px;
-  background: #4c1d95;
-  border-radius: 46% 46% 0 0;
-  z-index: 2;
-}
-
-/* 虹膜 */
-.ak-iris {
-  position: absolute;
-  width: 26px;
-  height: 28px;
-  background: radial-gradient(circle at 45% 40%,
-    #c4b5fd 0%, #a78bfa 15%, #8b5cf6 35%, #7c3aed 55%, #5b21b6 100%);
-  border-radius: 50%;
-  bottom: 1px;
-  left: 3px;
-  z-index: 1;
-  transition: transform 0.3s ease;
-}
-
-/* 瞳孔 */
-.ak-iris::before {
-  content: '';
-  position: absolute;
-  width: 12px;
-  height: 14px;
-  background: #1a0033;
-  border-radius: 50%;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* 高光 1 (大) */
-.ak-iris::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 9px;
-  background: #fff;
-  border-radius: 50%;
-  top: 6px;
-  left: 5px;
-}
-
-/* 高光 2 (小) */
-.ak-eye-highlight {
-  position: absolute;
-  width: 4px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50%;
-  bottom: 6px;
-  left: 14px;
-  z-index: 3;
-}
-
-/* ════════════════════════════════════════════
-   CHARACTER: 五官 — 鼻子 + 嘴 + 腮红
-   ════════════════════════════════════════════ */
-.ak-nose {
-  position: absolute;
-  width: 6px;
-  height: 4px;
-  background: #e8b8a0;
-  border-radius: 0 0 50% 50%;
-  z-index: 10;
-  top: 110px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.ak-mouth {
-  position: absolute;
-  width: 16px;
-  height: 8px;
-  border-bottom: 2.5px solid #e8786a;
-  border-radius: 0 0 50% 50%;
-  z-index: 10;
-  top: 118px;
-  left: 50%;
-  transform: translateX(-50%);
-  transition: width 0.2s ease, height 0.2s ease,
-              border-radius 0.2s ease, border-width 0.2s ease;
-}
-
-.ak-blush {
-  position: absolute;
-  width: 16px;
-  height: 10px;
-  background: rgba(255, 150, 160, 0.35);
-  border-radius: 50%;
-  z-index: 9;
-  top: 112px;
-  filter: blur(3px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-.ak-blush-l { left: 18px; }
-.ak-blush-r { right: 14px; }
-
-/* ════════════════════════════════════════════
-   CHARACTER: 身体 + 服装
-   ════════════════════════════════════════════ */
-.ak-body {
-  position: absolute;
-  width: 80px;
-  height: 52px;
-  background: linear-gradient(180deg,
-    #faf5ff 0%, #f3e8ff 40%, #ede9fe 100%);
-  border-radius: 20px 20px 30% 30%;
-  top: 130px;
-  left: 30px;
-  z-index: 6;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
-/* 领结/蝴蝶结 */
-.ak-collar {
-  position: absolute;
-  width: 30px;
-  height: 12px;
-  background: linear-gradient(135deg, #c084fc, #a855f7);
-  border-radius: 3px 6px 3px 6px;
-  z-index: 8;
-  top: 132px;
-  left: 50%;
-  transform: translateX(-50%);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-}
-.ak-collar::before,
-.ak-collar::after {
-  content: '';
-  position: absolute;
-  top: 4px;
-  width: 10px;
-  height: 14px;
-  background: #c084fc;
-  border-radius: 50%;
-}
-.ak-collar::before { left: -8px; transform: rotate(-20deg); }
-.ak-collar::after  { right: -8px; transform: rotate(20deg); }
-
-/* 衣服星星装饰 */
-.ak-dress-star {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  z-index: 7;
-  top: 148px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.ak-dress-star::before {
-  content: '⭐';
-  position: absolute;
-  font-size: 16px;
-  animation: akStarTwinkle 2s ease-in-out infinite;
-}
-@keyframes akStarTwinkle {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.15); }
-}
-
-/* 手臂 */
-.ak-arm {
-  position: absolute;
-  width: 14px;
-  height: 32px;
-  background: linear-gradient(180deg, #ffe0cc, #f5c4a3);
-  border-radius: 40%;
-  z-index: 5;
-  top: 138px;
-}
-.ak-arm-l { left: 18px;  transform: rotate(10deg); }
-.ak-arm-r { right: 18px; transform: rotate(-10deg); }
-
-/* 手 */
-.ak-arm::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 1px;
-  width: 12px;
-  height: 10px;
-  background: #ffe0cc;
-  border-radius: 50%;
-}
-
-/* ════════════════════════════════════════════
-   CHARACTER: 星形发夹
-   ════════════════════════════════════════════ */
-.ak-star-pin {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  z-index: 11;
-  top: 42px;
-  right: 24px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-  animation: akStarSpin 4s ease-in-out infinite;
-}
-.ak-star-pin::before { content: '🌟'; font-size: 18px; }
-@keyframes akStarSpin {
-  0%, 100% { transform: rotate(0deg) scale(1); }
-  30% { transform: rotate(10deg) scale(1.08); }
-  60% { transform: rotate(-5deg) scale(1.04); }
-}
-
-/* ════════════════════════════════════════════
-   CHARACTER: 浮动动画
-   ════════════════════════════════════════════ */
-.ak-kanban-body.idle-anim {
-  animation: akFloat 3.5s ease-in-out infinite;
-}
-@keyframes akFloat {
-  0%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-7px); }
-  60% { transform: translateY(-3px); }
-}
-
-/* 点击时的小跳 */
-.ak-kanban-body.bop {
-  animation: akBop 0.5s ease-out;
-}
-@keyframes akBop {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.05) translateY(-4px); }
-  60%  { transform: scale(0.97); }
-  100% { transform: scale(1) translateY(0); }
-}
-
-/* ════════════════════════════════════════════
-   表情系统 — 8 种表情
-   ════════════════════════════════════════════ */
-
-/* --- happy: 开心 ^_^ --- */
-.ak-expr-happy .ak-eye {
-  height: 14px;
-  border-radius: 0 0 0 0;
-  border-top: none;
-  border-bottom: 2.8px solid #4c1d95;
-  background: transparent;
-  overflow: visible;
-}
-.ak-expr-happy .ak-eye::before { display: none; }
-.ak-expr-happy .ak-iris { display: none; }
-.ak-expr-happy .ak-eye-highlight { display: none; }
-.ak-expr-happy .ak-blush { opacity: 0.65; }
-.ak-expr-happy .ak-mouth {
-  width: 22px;
-  height: 10px;
-  border-bottom-width: 2.8px;
-  border-radius: 0 0 60% 60%;
-}
-
-/* --- thinking: 思考 🤔 --- */
-.ak-expr-thinking .ak-iris { transform: translate(3px, -4px); }
-.ak-expr-thinking .ak-mouth {
-  width: 8px;
-  height: 8px;
-  border-bottom: 2px solid #e8786a;
-  border-radius: 50%;
-}
-.ak-expr-thinking .ak-eye-l .ak-iris { transform: translate(5px, -4px); }
-.ak-expr-thinking .ak-eye-r .ak-iris { transform: translate(5px, -4px); }
-
-/* --- surprised: 惊讶 😮 --- */
-.ak-expr-surprised .ak-eye {
-  height: 42px;
-  border-radius: 50%;
-}
-.ak-expr-surprised .ak-mouth {
-  width: 20px;
-  height: 20px;
-  background: #e8786a;
-  border: 2px solid #d4605a;
-  border-radius: 50%;
-  border-bottom: none;
-}
-.ak-expr-surprised .ak-mouth::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  left: 3px;
-  width: 10px;
-  height: 6px;
-  background: #f8a0a0;
-  border-radius: 50%;
-}
-
-/* --- encourage: 鼓励 🌟 --- */
-.ak-expr-encourage .ak-eye {
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
-}
-.ak-expr-encourage .ak-iris::after {
-  box-shadow: 0 0 6px #fbbf24;
-}
-.ak-expr-encourage .ak-mouth {
-  width: 18px;
-  border-bottom-width: 2.8px;
-  border-bottom-color: #e8786a;
-}
-.ak-expr-encourage .ak-blush { opacity: 0.5; }
-
-/* --- celebrate: 庆祝 🎉 --- */
-.ak-expr-celebrate .ak-iris {
-  background: radial-gradient(circle at 45% 40%,
-    #fef3c7 0%, #fbbf24 30%, #f59e0b 60%, #d97706 100%) !important;
-}
-.ak-expr-celebrate .ak-eye {
-  box-shadow: 0 0 10px rgba(251, 191, 36, 0.6);
-}
-.ak-expr-celebrate .ak-mouth {
-  width: 24px;
-  height: 14px;
-  border-radius: 4px 4px 50% 50%;
-  border-bottom-width: 3px;
-  border-bottom-color: #e8786a;
-}
-.ak-expr-celebrate .ak-blush { opacity: 0.7; transform: scale(1.2); }
-
-/* --- love: 喜欢 💜 --- */
-.ak-expr-love .ak-iris {
-  background: radial-gradient(circle at 50% 40%,
-    #fbcfe8 0%, #f472b6 40%, #db2777 100%) !important;
-}
-.ak-expr-love .ak-eye {
-  height: 38px;
-  border-radius: 50% 50% 50% 50%;
-}
-.ak-expr-love .ak-mouth {
-  width: 14px;
-  height: 8px;
-  border-bottom-width: 2.2px;
-  border-bottom-color: #f472b6;
-  border-radius: 0 0 50% 50%;
-}
-.ak-expr-love .ak-blush {
-  opacity: 0.75;
-  background: rgba(255, 140, 180, 0.5);
-  transform: scale(1.3);
-}
-
-/* --- sleepy: 困倦 😴 --- */
-.ak-expr-sleepy .ak-eye {
-  height: 8px;
-  border-radius: 0 0 0 0;
-  border-top: none;
-  border-bottom: 2.5px solid #4c1d95;
-  background: transparent;
-  overflow: visible;
-}
-.ak-expr-sleepy .ak-eye::before { display: none; }
-.ak-expr-sleepy .ak-iris { display: none; }
-.ak-expr-sleepy .ak-eye-highlight { display: none; }
-.ak-expr-sleepy .ak-mouth {
-  width: 12px;
-  height: 10px;
-  border-radius: 50%;
-  border-bottom: 2px solid #e8786a;
-}
-/* 困倦泡泡 */
-.ak-expr-sleepy .ak-zzz {
+/* ─── Live2D 画布 ─── */
+#ak-canvas {
   display: block;
-}
-
-/* --- cool: 得意 😎 --- */
-.ak-expr-cool .ak-eyebrow { top: 78px; }
-.ak-expr-cool .ak-eye-l .ak-iris { transform: translate(0, -4px); }
-.ak-expr-cool .ak-mouth {
-  width: 20px;
-  border-bottom-width: 2.8px;
-  border-radius: 0;
-  transform: translateX(-50%) translateY(2px);
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 /* ════════════════════════════════════════════
-   状态指示器
+   Fallback (Live2D 加载失败时的降级显示)
+   ════════════════════════════════════════════ */
+.ak-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.ak-fallback-character {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: akFloatFallback 3s ease-in-out infinite;
+}
+
+.ak-fallback-icon {
+  font-size: 64px;
+  filter: drop-shadow(0 4px 16px rgba(139, 92, 246, 0.4));
+}
+
+.ak-fallback-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #a78bfa;
+  text-shadow: 0 0 12px rgba(167, 139, 250, 0.5);
+}
+
+@keyframes akFloatFallback {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ════════════════════════════════════════════
+   状态指示器 (配合 Live2D 角色)
    ════════════════════════════════════════════ */
 
-/* 录音脉冲环 */
-.ak-state-recording .ak-head {
+/* 录音 — 容器脉冲环 */
+.app-kanban.ak-state-recording::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 14px;
+  border: 2px solid rgba(239, 68, 68, 0.5);
   animation: akRecordPulse 0.8s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
 }
 @keyframes akRecordPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-  50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.04); }
 }
 
-/* 番茄钟指示器 */
+/* 番茄钟 — 显示指示器 */
 .ak-pomodoro-indicator {
   display: none;
   position: absolute;
-  top: -8px;
+  top: -4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
+  font-size: 22px;
   z-index: 12;
   animation: akFloatSmall 2s ease-in-out infinite;
+  filter: drop-shadow(0 2px 6px rgba(245, 158, 11, 0.5));
 }
 .ak-state-pomodoro .ak-pomodoro-indicator { display: block; }
 @keyframes akFloatSmall {
@@ -668,13 +124,14 @@
 .ak-zzz {
   display: none;
   position: absolute;
-  font-size: 14px;
-  top: 8px;
-  right: 15px;
+  font-size: 16px;
+  top: 4px;
+  right: 18px;
   z-index: 12;
-  animation: akZzz 1.5s ease-out infinite;
+  animation: akZzz 2s ease-out infinite;
   opacity: 0;
 }
+.ak-state-sleepy .ak-zzz { display: block; }
 @keyframes akZzz {
   0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
   30% { opacity: 0.8; }
@@ -747,7 +204,7 @@
   z-index: 15;
   pointer-events: auto;
 }
-.ak-kanban-body:hover .ak-close-btn { opacity: 1; }
+.app-kanban:hover .ak-close-btn { opacity: 1; }
 .ak-close-btn:hover {
   background: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
@@ -806,36 +263,129 @@
    响应式
    ════════════════════════════════════════════ */
 @media (max-width: 1024px) {
-  .app-kanban { display: block; }
-  .ak-kanban-body { transform: scale(0.85); }
+  .app-kanban { display: block; width: 200px; height: 320px; }
+  #ak-canvas { width: 200px; height: 320px; }
 }
 @media (max-width: 640px) {
-  .app-kanban { right: 4px; }
-  .ak-kanban-body { transform: scale(0.7); }
+  .app-kanban { right: 4px; width: 170px; height: 280px; }
+  #ak-canvas { width: 170px; height: 280px; }
   .ak-bubble { max-width: 160px; font-size: 12px; padding: 8px 10px; }
 }
 
 /* ════════════════════════════════════════════
-   对话面板
+   对话面板 — 紧邻 Live2D 角色右侧
    ════════════════════════════════════════════ */
 .mascot-panel {
   position: fixed;
-  bottom: 140px;
-  right: 20px;
-  width: 400px;
-  height: 560px;
-  background: var(--surface-glass, rgba(15, 15, 25, 0.94));
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
-  border-radius: 18px;
+  bottom: 0;
+  right: 280px;
+  width: 380px;
+  height: 520px;
+  background:
+    /* 星云光晕 */
+    radial-gradient(ellipse at 30% 20%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 60%, rgba(139, 92, 246, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+    /* 深空渐变 */
+    linear-gradient(180deg, #0a0a1e 0%, #0f0f2e 30%, #0c0c24 60%, #0a0a1e 100%);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   box-shadow:
-    0 8px 48px rgba(0, 0, 0, 0.45),
-    0 0 100px rgba(99, 102, 241, 0.06);
+    0 4px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(99, 102, 241, 0.08) inset,
+    0 1px 0 rgba(255, 255, 255, 0.03) inset;
   display: flex;
   flex-direction: column;
   z-index: 600;
   overflow: hidden;
+}
+/* Subtle gradient line at top of panel */
+.mascot-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #a78bfa, #6366f1);
+  background-size: 200% 100%;
+  animation: mascotPanelGlow 4s linear infinite;
+  z-index: 1;
+  opacity: 0.8;
+}
+@keyframes mascotPanelGlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* 星空背景 — ::after 伪元素 */
+.mascot-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* 用多层 box-shadow 模拟不同大小的星星 */
+  box-shadow:
+    /* 大星 (亮) */
+    20px  40px  0 1px rgba(255,255,255,0.9),
+    320px 60px  0 1px rgba(255,255,255,0.85),
+    80px  120px 0 1px rgba(200,210,255,0.8),
+    280px 180px 0 1px rgba(255,255,255,0.75),
+    340px 250px 0 1px rgba(200,200,255,0.85),
+    50px  280px 0 1px rgba(255,255,255,0.8),
+    180px 350px 0 1px rgba(210,210,255,0.75),
+    300px 380px 0 1px rgba(255,255,255,0.7),
+    120px 440px 0 1px rgba(200,200,255,0.8),
+    350px 470px 0 1px rgba(255,255,255,0.65),
+    /* 中星 */
+    60px  20px  0 0.5px rgba(255,255,255,0.6),
+    150px 35px  0 0.5px rgba(200,210,255,0.55),
+    240px 80px  0 0.5px rgba(255,255,255,0.5),
+    360px 110px 0 0.5px rgba(210,210,255,0.55),
+    40px  170px 0 0.5px rgba(255,255,255,0.5),
+    130px 200px 0 0.5px rgba(200,200,255,0.5),
+    210px 160px 0 0.5px rgba(255,255,255,0.45),
+    310px 210px 0 0.5px rgba(210,210,255,0.5),
+    70px  320px 0 0.5px rgba(255,255,255,0.5),
+    160px 280px 0 0.5px rgba(200,200,255,0.45),
+    260px 310px 0 0.5px rgba(255,255,255,0.5),
+    340px 320px 0 0.5px rgba(210,210,255,0.4),
+    90px  400px 0 0.5px rgba(255,255,255,0.45),
+    220px 430px 0 0.5px rgba(200,200,255,0.4),
+    330px 440px 0 0.5px rgba(255,255,255,0.4),
+    /* 小星 (密的微光) */
+    35px  55px  0 0.3px rgba(255,255,255,0.35),
+    100px 15px  0 0.3px rgba(200,210,255,0.3),
+    185px 45px  0 0.3px rgba(255,255,255,0.3),
+    270px 25px  0 0.3px rgba(210,210,255,0.3),
+    355px 35px  0 0.3px rgba(255,255,255,0.3),
+    15px  100px 0 0.3px rgba(200,200,255,0.3),
+    105px 90px  0 0.3px rgba(255,255,255,0.3),
+    195px 75px  0 0.3px rgba(210,210,255,0.25),
+    290px 95px  0 0.3px rgba(255,255,255,0.3),
+    370px 80px  0 0.3px rgba(200,200,255,0.25),
+    45px  150px 0 0.3px rgba(255,255,255,0.3),
+    135px 140px 0 0.3px rgba(210,210,255,0.25),
+    250px 130px 0 0.3px rgba(255,255,255,0.25),
+    340px 145px 0 0.3px rgba(200,200,255,0.3),
+    80px  230px 0 0.3px rgba(255,255,255,0.25),
+    170px 240px 0 0.3px rgba(210,210,255,0.25),
+    265px 230px 0 0.3px rgba(255,255,255,0.3),
+    360px 270px 0 0.3px rgba(200,200,255,0.25),
+    25px  350px 0 0.3px rgba(255,255,255,0.25),
+    140px 370px 0 0.3px rgba(210,210,255,0.25),
+    230px 360px 0 0.3px rgba(255,255,255,0.2),
+    315px 355px 0 0.3px rgba(200,200,255,0.25),
+    55px  460px 0 0.3px rgba(255,255,255,0.2),
+    200px 480px 0 0.3px rgba(210,210,255,0.2),
+    310px 490px 0 0.3px rgba(255,255,255,0.2);
+  animation: starsTwinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes starsTwinkle {
+  0% { opacity: 0.85; }
+  100% { opacity: 1; }
 }
 
 /* Alpine Transition Classes */
@@ -893,22 +443,24 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
   position: relative;
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .mascot-panel-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
 }
 
 .mascot-panel-title-row {
@@ -985,36 +537,260 @@
   position: absolute;
   top: 48px;
   right: 12px;
-  background: var(--surface-glass, rgba(20, 20, 35, 0.96));
+  background: rgba(16, 16, 32, 0.98);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
   padding: 6px;
-  min-width: 150px;
+  min-width: 180px;
   z-index: 610;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.06);
 }
 
 .mascot-dropdown button {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: 9px 12px;
   border: none;
   border-radius: 8px;
   background: transparent;
   color: var(--text-primary, #e2e8f0);
-  font-size: 13px;
+  font-size: 12.5px;
   text-align: left;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.15s;
 }
-.mascot-dropdown button:hover { background: rgba(255,255,255,0.06); }
+.mascot-dropdown button:hover { background: rgba(99, 102, 241, 0.12); color: #c7d2fe; }
 
 .mascot-dropdown hr {
   border: none;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255,255,255,0.06);
   margin: 4px 0;
+}
+
+/* Model Switch Button in Header */
+.mascot-model-switch-btn {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.04);
+  color: #c7d2fe;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.2s;
+  padding: 0;
+}
+.mascot-model-switch-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #e0e7ff;
+  transform: scale(1.08);
+}
+.mascot-model-switch-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+.mascot-model-spin {
+  display: inline-block;
+  animation: modelSpin 0.8s linear infinite;
+}
+@keyframes modelSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Model Selector Dropdown */
+.mascot-model-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  background: rgba(18, 18, 42, 0.98);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.08);
+  padding: 8px;
+  z-index: 100;
+}
+.mascot-model-dropdown-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.35);
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 4px;
+}
+
+/* Model Selector in Dropdown */
+.mascot-model-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+.mascot-model-list::-webkit-scrollbar { width: 4px; }
+.mascot-model-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.mascot-model-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-primary, #e2e8f0);
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+.mascot-model-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.mascot-model-option:hover:not(:disabled) { background: rgba(99, 102, 241, 0.12); }
+.mascot-model-option.active {
+  background: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+}
+.mascot-model-option-icon {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.mascot-model-option-name { font-weight: 500; }
+.mascot-model-option-badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+/* ════════════════════════════════════════════
+   AI Model Selector
+   ════════════════════════════════════════════ */
+.mascot-ai-model-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.08);
+  color: #a5b4fc;
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.mascot-ai-model-badge:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #c7d2fe;
+}
+.mascot-ai-model-badge.offline {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  color: #fca5a5;
+}
+
+/* AI Model Dropdown */
+.mascot-ai-model-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 40px;
+  width: 240px;
+  background: rgba(18, 18, 42, 0.98);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.08);
+  padding: 8px;
+  z-index: 101;
+}
+.mascot-ai-model-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.35);
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 4px;
+}
+
+.mascot-ai-model-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: #e2e8f0;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+.mascot-ai-model-option:hover:not(.disabled):not(:disabled) {
+  background: rgba(99, 102, 241, 0.12);
+}
+.mascot-ai-model-option.active {
+  background: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+}
+.mascot-ai-model-option.disabled,
+.mascot-ai-model-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mascot-ai-model-provider {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  flex-shrink: 0;
+}
+.mascot-ai-model-name {
+  font-weight: 500;
+  flex: 1;
+}
+.mascot-ai-model-check {
+  color: #34d399;
+  font-weight: 700;
+  margin-left: auto;
+}
+.mascot-ai-model-unavailable {
+  font-size: 10px;
+  color: #f87171;
+  margin-left: auto;
+}
+.mascot-ai-model-empty {
+  padding: 16px;
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
 }
 
 /* ════════════════════════════════════════════
@@ -1063,18 +839,23 @@
 .mascot-quick-btn {
   padding: 8px 14px;
   border-radius: 20px;
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.12));
-  background: var(--surface-elevated, rgba(255, 255, 255, 0.06));
-  color: var(--text-primary, #e2e8f0);
-  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c7d2fe;
+  font-size: 12.5px;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: all 0.2s;
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 5px;
 }
-.mascot-quick-btn:hover { border-color: var(--brand, #6366f1); background: rgba(99, 102, 241, 0.1); }
+.mascot-quick-btn:hover {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
 
 /* ════════════════════════════════════════════
    Message Bubbles
@@ -1097,15 +878,17 @@
 
 .mascot-msg--user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   color: #fff;
   border-bottom-right-radius: 6px;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.25);
 }
 
 .mascot-msg--assistant {
   align-self: flex-start;
-  background: var(--surface-elevated, rgba(255, 255, 255, 0.06));
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary, #e2e8f0);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom-left-radius: 6px;
 }
 
@@ -1552,24 +1335,29 @@
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
-  border-top: 1px solid var(--border-glass, rgba(255, 255, 255, 0.08));
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.01);
 }
 
 .mascot-panel-input {
   flex: 1;
-  background: var(--surface-elevated, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
-  border-radius: 22px;
-  padding: 9px 16px;
-  color: var(--text-primary, #e2e8f0);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 10px 16px;
+  color: #e2e8f0;
   font-size: 13px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: all 0.2s;
 }
-.mascot-panel-input:focus { border-color: var(--brand, #6366f1); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
-.mascot-panel-input::placeholder { color: var(--text-tertiary, #475569); }
-.mascot-panel-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.mascot-panel-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1), 0 0 20px rgba(99, 102, 241, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+}
+.mascot-panel-input::placeholder { color: rgba(255, 255, 255, 0.25); }
+.mascot-panel-input:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .mascot-panel-mic,
 .mascot-panel-pomodoro-btn,
@@ -1689,13 +1477,21 @@
 /* ════════════════════════════════════════════
    Responsive
    ════════════════════════════════════════════ */
-@media (max-width: 640px) {
+@media (max-width: 820px) {
   .mascot-panel {
-    width: calc(100vw - 16px);
-    max-width: 420px;
-    height: 500px;
+    right: 240px;
+    width: 340px;
+    height: 480px;
+  }
+}
+
+@media (max-width: 680px) {
+  .mascot-panel {
     right: 8px;
-    bottom: 100px;
+    bottom: 120px;
+    width: calc(100vw - 16px);
+    max-width: 400px;
+    height: 460px;
     border-radius: 16px;
   }
   .mascot-toast { max-width: 90vw; }
@@ -1703,7 +1499,7 @@
 
 @media (max-width: 400px) {
   .mascot-panel {
-    height: 440px;
+    height: 420px;
     bottom: 80px;
   }
   .mascot-panel-input-row { padding: 8px 10px; gap: 4px; }

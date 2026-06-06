@@ -78,6 +78,8 @@ class MascotChatRequest(BaseModel):
     page_context: str = Field(default="", description="当前页面上下文")
     conversation_history: list[dict] = Field(default_factory=list, description="对话历史")
     persona: str = Field(default="mascot", description="角色设定")
+    model: str = Field(default="MiniMax-Text-01", description="AI 模型名称")
+    temperature: float = Field(default=0.8, ge=0.0, le=2.0, description="生成温度")
 
 
 class MascotCheckinRequest(BaseModel):
@@ -229,18 +231,18 @@ async def mascot_chat_stream(req: MascotChatRequest):
         assistant_message = ""
 
         try:
-            # 流式调用 LLM
+            # 流式调用 LLM — 使用模型参数
             stream = await call_llm_stream_with_log_messages(
-                system_prompt=system_prompt,
                 messages=msg,
-                student_id=req.student_id,
-                temperature=0.8,
-                max_tokens=1024,
+                agent_name="mascot",
+                temperature=req.temperature,
+                max_tokens=2048,
+                model=req.model,
                 label="mascot_chat",
             )
 
             async for chunk in stream:
-                # chunk 可能是字符串
+                # chunk 可能是字符串或 dict
                 content = chunk.get("content", "") if isinstance(chunk, dict) else str(chunk)
                 if content:
                     full_text += content
@@ -617,3 +619,64 @@ async def daily_checkin(req: MascotCheckinRequest):
 # 小星前端通过 /api/memories/ 读写记忆，与 AI 问答页 (index.js) 共享同一
 # 套端点。mascot.py 不再重复暴露 /api/mascot/memories/*。
 # =============================================================================
+
+
+# =============================================================================
+# AI 模型配置接口
+# =============================================================================
+
+@router.get("/models")
+async def list_ai_models():
+    """返回小星可用的 AI 大模型列表"""
+    from config import settings
+
+    models = [
+        {
+            "id": "MiniMax-Text-01",
+            "name": "MiniMax-Text-01",
+            "provider": "MiniMax",
+            "description": "通用大语言模型，擅长学习辅导、代码生成、概念讲解",
+            "default": True,
+            "max_tokens": 8192,
+            "available": bool(settings.minimax_api_key),
+        },
+    ]
+
+    # 如果有讯飞 API Key，也列出
+    if settings.xunfei_api_key:
+        models.append({
+            "id": "astron-code-latest",
+            "name": "星火代码大模型",
+            "provider": "讯飞",
+            "description": "代码专项模型，适合编程与算法学习",
+            "default": False,
+            "max_tokens": 4096,
+            "available": True,
+        })
+
+    return {
+        "success": True,
+        "data": {
+            "models": models,
+            "default_model": "MiniMax-Text-01",
+            "minimax_available": bool(settings.minimax_api_key),
+        },
+    }
+
+
+@router.get("/config")
+async def get_mascot_config():
+    """返回小星面板的运行时配置（模型信息 + 功能开关）"""
+    from config import settings
+
+    return {
+        "success": True,
+        "data": {
+            "ai_model": settings.minimax_model_name if settings.minimax_api_key else "unavailable",
+            "ai_provider": "MiniMax",
+            "ai_available": bool(settings.minimax_api_key),
+            "tts_available": bool(settings.minimax_api_key),
+            "asr_provider": "baidu-asr" if settings.baidu_asr_api_key else "unavailable",
+            "version": "4.0.0",
+        },
+    }

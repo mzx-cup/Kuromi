@@ -100,6 +100,66 @@
     --_color-scheme: dark;
 }
 
+/* ---- sakura-whisper  樱语 (柔和粉白亮色) ---- */
+[data-theme="sakura-whisper"] {
+    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 58%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 52%;
+    --_warning-h: 38;          --_warning-c: 0.16;     --_warning-l: 62%;
+    --_danger-h: 355;          --_danger-c: 0.20;      --_danger-l: 50%;
+    --_info-h: 260;            --_info-c: 0.13;        --_info-l: 56%;
+    --_neutral-h: 30;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+}
+
+/* ---- deep-ocean  深海 (深邃蓝绿暗色) ---- */
+[data-theme="deep-ocean"] {
+    --_brand-h: 200;           --_brand-c: 0.20;       --_brand-l: 58%;
+    --_success-h: 160;         --_success-c: 0.15;     --_success-l: 60%;
+    --_warning-h: 45;          --_warning-c: 0.18;     --_warning-l: 66%;
+    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 56%;
+    --_info-h: 195;            --_info-c: 0.16;        --_info-l: 64%;
+    --_neutral-h: 215;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
+    --_color-scheme: dark;
+}
+
+/* ---- twilight-glow  暮光 (紫琥珀暖色亮色) ---- */
+[data-theme="twilight-glow"] {
+    --_brand-h: 275;           --_brand-c: 0.18;       --_brand-l: 55%;
+    --_success-h: 155;         --_success-c: 0.15;     --_success-l: 55%;
+    --_warning-h: 40;          --_warning-c: 0.20;     --_warning-l: 62%;
+    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 50%;
+    --_info-h: 250;            --_info-c: 0.14;        --_info-l: 55%;
+    --_neutral-h: 35;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.025;
+    --_color-scheme: light;
+}
+
+/* ---- bamboo-grove  竹林 (清新青绿亮色) ---- */
+[data-theme="bamboo-grove"] {
+    --_brand-h: 130;           --_brand-c: 0.16;       --_brand-l: 48%;
+    --_success-h: 145;         --_success-c: 0.15;     --_success-l: 50%;
+    --_warning-h: 50;          --_warning-c: 0.17;     --_warning-l: 60%;
+    --_danger-h: 12;           --_danger-c: 0.18;      --_danger-l: 48%;
+    --_info-h: 180;            --_info-c: 0.13;        --_info-l: 50%;
+    --_neutral-h: 90;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+/* ---- star-vault  星穹 (璀璨金靛暗色) ---- */
+[data-theme="star-vault"] {
+    --_brand-h: 48;            --_brand-c: 0.22;       --_brand-l: 72%;
+    --_success-h: 155;         --_success-c: 0.18;     --_success-l: 65%;
+    --_warning-h: 42;          --_warning-c: 0.20;     --_warning-l: 72%;
+    --_danger-h: 5;            --_danger-c: 0.22;      --_danger-l: 58%;
+    --_info-h: 240;            --_info-c: 0.18;        --_info-l: 68%;
+    --_neutral-h: 250;         --_neutral-c: 0.03;
+    --_shadow-strength: 0.35;  --_surface-saturation: 0.04;
+    --_color-scheme: dark;
+}
+
 
 /* ============================================================
    LAYER 2 — 生成色阶（全局计算）
@@ -177,6 +237,7 @@
                  0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 100%)));
     --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
     --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
+    --shadow-xl: 0 24px 64px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 400%)));
 
     /* 文字色 */
     --text-heading:     var(--neutral-900);
@@ -190,6 +251,7 @@
     --radius-sm: 8px;
     --radius-md: 14px;
     --radius-lg: 20px;
+    --radius-xl: 28px;
     --radius-full: 9999px;
 
     /* 间距 */
@@ -226,10 +288,35 @@
     /* 便捷别名 */
     --bg-card:         var(--surface-card);
     --border-color:    var(--neutral-200);
+    --border-secondary: var(--neutral-300);
     --hover-bg:        var(--surface-hover);
     --input-bg:        var(--neutral-100);
     --btn-secondary-bg:    var(--neutral-100);
     --btn-secondary-hover: var(--neutral-200);
+
+    /* 玻璃态默认值 */
+    --glass-bg:        var(--surface-glass);
+    --glass-blur:      24px;
+
+    /* 色阶快捷引用（兼容 Tailwind 风格命名） */
+    --success-500: var(--success);
+    --warning-500: var(--warning);
+    --danger-500:  var(--danger);
+    --info-500:    var(--info);
+    --accent-500:  var(--brand-500);
+
+    /* 卡片 / 表面语义 */
+    --card-bg:        var(--surface-card);
+    --card-border:    var(--border-color);
+    --surface-elevated: var(--surface-card);
+
+    /* 输入框语义 */
+    --input-border:       var(--border-color);
+    --input-focus-border: var(--brand-500);
+    --input-focus-ring:   color-mix(in oklch, var(--brand-500), transparent 85%);
+
+    /* 间距补充 */
+    --space-2xl: 64px;
 }
 
 /* ============================================================
@@ -304,5 +391,205 @@
     --orb-1:            rgba(99, 102, 241, 0.25);
     --orb-2:            rgba(236, 72, 153, 0.2);
     --orb-3:            rgba(59, 130, 246, 0.18);
+    color-scheme: dark;
+}
+
+/* ============================================================
+   THEME OVERRIDES — sakura-whisper  樱语
+   柔和樱花粉调，轻盈通透的少女感
+   ============================================================ */
+
+[data-theme="sakura-whisper"] {
+    --surface-page:    #fbf5f7;
+    --surface-card:    rgba(255, 255, 255, 0.78);
+    --surface-hover:   rgba(255, 255, 255, 0.92);
+    --surface-glass:   rgba(255, 255, 255, 0.5);
+    --surface-glass-hover: rgba(255, 255, 255, 0.65);
+    --border-glass:    rgba(244, 114, 182, 0.2);
+    --border-glass-hover: rgba(244, 114, 182, 0.4);
+    --glass-blur:      20px;
+    --glass-shadow:    0 4px 24px rgba(189, 93, 128, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #2d1522;
+    --text-body:       #5c3d4e;
+    --text-muted:      #a88a97;
+    --text-link:       #db2777;
+    --text-on-brand:   #ffffff;
+    --bg-card:         var(--surface-card);
+    --primary:         #e91e63;
+    --primary-light:   #f06292;
+    --primary-dark:    #ad1457;
+    --primary-glow:    rgba(233, 30, 99, 0.35);
+    --accent:          #c084fc;
+    --accent-light:    #d8b4fe;
+    --success:         #34d399;
+    --success-bg:      rgba(52, 211, 153, 0.12);
+    --warning:         #fbbf24;
+    --warning-bg:      rgba(251, 191, 36, 0.12);
+    --danger:          #f87171;
+    --danger-bg:       rgba(248, 113, 113, 0.12);
+    --orb-1:           rgba(236, 72, 153, 0.2);
+    --orb-2:           rgba(244, 114, 182, 0.16);
+    --orb-3:           rgba(196, 167, 231, 0.15);
+    color-scheme: light;
+}
+
+/* ============================================================
+   THEME OVERRIDES — deep-ocean  深海
+   深邃蓝绿暗色，沉静专注的深海氛围
+   ============================================================ */
+
+[data-theme="deep-ocean"] {
+    --surface-page:    #0a1628;
+    --surface-card:    rgba(15, 30, 55, 0.75);
+    --surface-hover:   rgba(20, 42, 72, 0.88);
+    --surface-glass:   rgba(15, 30, 55, 0.55);
+    --surface-glass-hover: rgba(20, 42, 72, 0.7);
+    --border-glass:    rgba(56, 189, 248, 0.15);
+    --border-glass-hover: rgba(56, 189, 248, 0.35);
+    --glass-blur:      22px;
+    --glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #e2f0fb;
+    --text-body:       #a0c4e8;
+    --text-muted:      #5a7a9a;
+    --text-link:       #38bdf8;
+    --text-on-brand:   #0a1628;
+    --bg-card:         var(--surface-card);
+    --primary:         #0ea5e9;
+    --primary-light:   #38bdf8;
+    --primary-dark:    #0369a1;
+    --primary-glow:    rgba(14, 165, 233, 0.35);
+    --accent:          #2dd4bf;
+    --accent-light:    #5eead4;
+    --success:         #22c55e;
+    --success-bg:      rgba(34, 197, 94, 0.12);
+    --warning:         #eab308;
+    --warning-bg:      rgba(234, 179, 8, 0.12);
+    --danger:          #ef4444;
+    --danger-bg:       rgba(239, 68, 68, 0.12);
+    --orb-1:           rgba(14, 165, 233, 0.22);
+    --orb-2:           rgba(45, 212, 191, 0.18);
+    --orb-3:           rgba(56, 189, 248, 0.14);
+    color-scheme: dark;
+}
+
+/* ============================================================
+   THEME OVERRIDES — twilight-glow  暮光
+   紫琥珀渐变暖色，温暖而有创意的黄昏氛围
+   ============================================================ */
+
+[data-theme="twilight-glow"] {
+    --surface-page:    #f9f6fd;
+    --surface-card:    rgba(255, 255, 255, 0.76);
+    --surface-hover:   rgba(255, 255, 255, 0.9);
+    --surface-glass:   rgba(255, 255, 255, 0.48);
+    --surface-glass-hover: rgba(255, 255, 255, 0.62);
+    --border-glass:    rgba(168, 85, 247, 0.18);
+    --border-glass-hover: rgba(168, 85, 247, 0.35);
+    --glass-blur:      20px;
+    --glass-shadow:    0 6px 28px rgba(126, 34, 206, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #1e1033;
+    --text-body:       #4a3870;
+    --text-muted:      #9584b0;
+    --text-link:       #7c3aed;
+    --text-on-brand:   #ffffff;
+    --bg-card:         var(--surface-card);
+    --primary:         #7c3aed;
+    --primary-light:   #a78bfa;
+    --primary-dark:    #5b21b6;
+    --primary-glow:    rgba(124, 58, 237, 0.4);
+    --accent:          #f59e0b;
+    --accent-light:    #fbbf24;
+    --success:         #10b981;
+    --success-bg:      rgba(16, 185, 129, 0.12);
+    --warning:         #d97706;
+    --warning-bg:      rgba(217, 119, 6, 0.12);
+    --danger:          #ef4444;
+    --danger-bg:       rgba(239, 68, 68, 0.12);
+    --orb-1:           rgba(168, 85, 247, 0.2);
+    --orb-2:           rgba(245, 158, 11, 0.18);
+    --orb-3:           rgba(236, 72, 153, 0.14);
+    color-scheme: light;
+}
+
+/* ============================================================
+   THEME OVERRIDES — bamboo-grove  竹林
+   清雅竹绿色，自然极简的学习氛围
+   ============================================================ */
+
+[data-theme="bamboo-grove"] {
+    --surface-page:    #f5f8f3;
+    --surface-card:    rgba(255, 255, 255, 0.74);
+    --surface-hover:   rgba(255, 255, 255, 0.9);
+    --surface-glass:   rgba(255, 255, 255, 0.42);
+    --surface-glass-hover: rgba(255, 255, 255, 0.58);
+    --border-glass:    rgba(101, 163, 103, 0.18);
+    --border-glass-hover: rgba(101, 163, 103, 0.38);
+    --glass-blur:      18px;
+    --glass-shadow:    0 4px 20px rgba(46, 125, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #1a2e1a;
+    --text-body:       #3d563d;
+    --text-muted:      #7d9a7d;
+    --text-link:       #2e7d32;
+    --text-on-brand:   #ffffff;
+    --bg-card:         var(--surface-card);
+    --primary:         #388e3c;
+    --primary-light:   #66bb6a;
+    --primary-dark:    #1b5e20;
+    --primary-glow:    rgba(56, 142, 60, 0.3);
+    --accent:          #8d6e63;
+    --accent-light:    #a1887f;
+    --success:         #2e7d32;
+    --success-bg:      rgba(46, 125, 50, 0.1);
+    --warning:         #f9a825;
+    --warning-bg:      rgba(249, 168, 37, 0.12);
+    --danger:          #d32f2f;
+    --danger-bg:       rgba(211, 47, 47, 0.12);
+    --orb-1:           rgba(129, 199, 132, 0.22);
+    --orb-2:           rgba(165, 214, 167, 0.18);
+    --orb-3:           rgba(200, 230, 201, 0.16);
+    color-scheme: light;
+}
+
+/* ============================================================
+   THEME OVERRIDES — star-vault  星穹
+   璀璨金靛暗色，星空穹顶般的奢华沉浸感
+   ============================================================ */
+
+[data-theme="star-vault"] {
+    --surface-page:    #080c24;
+    --surface-card:    rgba(18, 24, 58, 0.72);
+    --surface-hover:   rgba(24, 32, 72, 0.85);
+    --surface-glass:   rgba(18, 24, 58, 0.52);
+    --surface-glass-hover: rgba(24, 32, 72, 0.68);
+    --border-glass:    rgba(250, 204, 21, 0.15);
+    --border-glass-hover: rgba(250, 204, 21, 0.35);
+    --glass-blur:      24px;
+    --glass-shadow:    0 8px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    --shadow-glass:    var(--glass-shadow);
+    --text-heading:    #fef9e7;
+    --text-body:       #c4c8e0;
+    --text-muted:      #6b7094;
+    --text-link:       #facc15;
+    --text-on-brand:   #080c24;
+    --bg-card:         var(--surface-card);
+    --primary:         #eab308;
+    --primary-light:   #facc15;
+    --primary-dark:    #a16207;
+    --primary-glow:    rgba(234, 179, 8, 0.4);
+    --accent:          #818cf8;
+    --accent-light:    #a5b4fc;
+    --success:         #22c55e;
+    --success-bg:      rgba(34, 197, 94, 0.12);
+    --warning:         #eab308;
+    --warning-bg:      rgba(234, 179, 8, 0.15);
+    --danger:          #ef4444;
+    --danger-bg:       rgba(239, 68, 68, 0.12);
+    --orb-1:           rgba(250, 204, 21, 0.18);
+    --orb-2:           rgba(129, 140, 248, 0.2);
+    --orb-3:           rgba(192, 132, 252, 0.16);
     color-scheme: dark;
 }

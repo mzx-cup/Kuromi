@@ -74,10 +74,10 @@
 /* 覆盖原有 --bg-primary 等变量为 McKinsey 风格深色调 */
 :root {
   /* -- Core Backgrounds — 多层径向渐变营造深度感 -- */
-  --bg-primary:   #0d1117;    /* GitHub Dark — 极深但不纯黑 */
-  --bg-secondary: #131820;    /* 微亮的卡片浮层背景 */
-  --bg-tertiary:  #1a1f2b;    /* 悬停态背景 */
-  --bg-elevated:  #1e2430;    /* 最高层浮起卡片 */
+  --bg-primary: var(--surface-page);    /* GitHub Dark — 极深但不纯黑 */
+  --bg-secondary: var(--surface-card);    /* 微亮的卡片浮层背景 */
+  --bg-tertiary: var(--surface-elevated);    /* 悬停态背景 */
+  --bg-elevated: var(--surface-elevated);    /* 最高层浮起卡片 */
 
   /* -- Surface Colors — 半透明白色叠加层 -- */
   --surface-white:         rgba(255, 255, 255, 0.97);
@@ -87,14 +87,14 @@
   --surface-glass-strong:  rgba(255, 255, 255, 0.06);
 
   /* -- Accent — McKinsey Blue 调 -- */
-  --primary:        #3b82f6;   /* Blue-500 */
-  --primary-light:  #60a5fa;   /* Blue-400 */
-  --primary-dark:   #2563eb;   /* Blue-600 */
+  --primary: var(--brand-500);   /* Blue-500 */
+  --primary-light: var(--brand-400);   /* Blue-400 */
+  --primary-dark: var(--brand-600);   /* Blue-600 */
   --primary-glow:   rgba(59, 130, 246, 0.35);
   --primary-subtle: rgba(59, 130, 246, 0.08);
 
-  --accent:         #6366f1;   /* Indigo-500 */
-  --accent-light:   #818cf8;   /* Indigo-400 */
+  --accent: var(--accent-500);   /* Indigo-500 */
+  --accent-light: var(--accent-light);   /* Indigo-400 */
   --accent-glow:    rgba(99, 102, 241, 0.35);
   --accent-subtle:  rgba(99, 102, 241, 0.08);
 
@@ -107,8 +107,8 @@
   --danger-subtle:  rgba(239, 68, 68, 0.08);
 
   /* -- Text Hierarchy -- */
-  --text-primary:    #f1f5f9;   /* Slate-100: 标题、主要文字 */
-  --text-secondary:  #94a3b8;   /* Slate-400: 辅助文字 */
+  --text-primary: var(--text-heading);   /* Slate-100: 标题、主要文字 */
+  --text-secondary: var(--text-muted);   /* Slate-400: 辅助文字 */
   --text-tertiary:   #64748b;   /* Slate-500: 占位/禁用文字 */
   --text-muted:      #334155;   /* Slate-700: 分割线/非活跃 */
   --text-inverse:    #0f172a;   /* Slate-900: 亮色背景上的文字 */

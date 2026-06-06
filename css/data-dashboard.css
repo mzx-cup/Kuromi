@@ -1,5 +1,5 @@
 /* Constellation Prism — Data Dashboard */
-.dd-layout { display: flex; height: 100vh; overflow: hidden; background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); color: #e2e8f0; }
+.dd-layout { display: flex; height: 100vh; overflow: hidden; background: var(--surface-page); color: var(--text-body); }
 .dd-sidebar { width: 220px; flex-shrink: 0; background: color-mix(in oklch, var(--neutral-900), transparent 35%); border-right: 1px solid color-mix(in oklch, var(--info), transparent 88%); backdrop-filter: blur(32px) saturate(140%); -webkit-backdrop-filter: blur(32px) saturate(140%); display: flex; flex-direction: column; padding: var(--space-md); }
 .dd-brand { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--brand-300); letter-spacing: 2px; margin-bottom: var(--space-lg); }
 .dd-nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: var(--radius-sm); color: var(--cp-text-secondary); text-decoration: none; font-size: var(--text-sm); font-weight: var(--font-medium); margin-bottom: 2px; transition: all var(--transition-fast); }

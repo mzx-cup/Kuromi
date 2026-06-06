@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的课程 · 星识</title>
-    <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/hub.css">
-    <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/mascot.css">
     <link rel="stylesheet" href="/css/search-command.css">
     <link rel="stylesheet" href="/css/onboarding.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
     <style>
         .mc-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
         .mc-tabs { display: flex; gap: 4px; padding: 16px 24px; border-bottom: 1px solid var(--cp-card-border); }
@@ -23,19 +26,24 @@
         .mc-loading { text-align: center; padding: 40px; color: var(--cp-text-tertiary); }
         .mc-loading::after { content: ''; display: inline-block; width: 20px; height: 20px; margin-left: 8px; border: 2px solid var(--cp-text-tertiary); border-top-color: var(--cp-accent); border-radius: 50%; animation: mc-spin 0.8s linear infinite; vertical-align: middle; }
         @keyframes mc-spin { to { transform: rotate(360deg); } }
-        .mc-error { text-align: center; padding: 40px; color: var(--cp-danger, #ef4444); }
+        .mc-error { text-align: center; padding: 40px; color: var(--cp-danger, var(--danger)); }
     </style>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
 </head>
-<body class="hub-body">
+<body class="app-body hub-body">
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
 
     <!-- 小星 AI 助手 -->
-    <div class="app-kanban" id="app-kanban">
-        <div class="app-kanban-inner">
-            <button class="app-kanban-close" title="隐藏看板娘">&times;</button>
-            <img class="app-kanban-img" src="/static/kanban.png" alt="看板娘">
-            <div class="app-kanban-bubble">在这里管理你的所有课程~</div>
-        </div>
-    </div>
+    <div class="app-kanban" id="app-kanban"></div>
 
     <div class="mc-page">
         <div class="mc-tabs">
