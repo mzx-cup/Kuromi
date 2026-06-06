@@ -13,6 +13,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body progress-body">
@@ -48,8 +49,8 @@
 
     <main class="progress-main">
         <!-- Overview Stats -->
-        <div class="overview-stats">
-            <div class="stat-card">
+        <div class="overview-stats stagger">
+            <div class="stat-card app-stat-card fade-up">
                 <div class="stat-icon purple">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -62,7 +63,7 @@
                 <span class="stat-label">总学习时长</span>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card app-stat-card fade-up">
                 <div class="stat-icon blue">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
@@ -75,7 +76,7 @@
                 <span class="stat-label">已完成课程</span>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card app-stat-card fade-up">
                 <div class="stat-icon green">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
@@ -88,7 +89,7 @@
                 <span class="stat-label">连续学习</span>
             </div>
 
-            <div class="stat-card">
+            <div class="stat-card app-stat-card fade-up">
                 <div class="stat-icon orange">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
@@ -105,7 +106,7 @@
         <!-- Progress Charts Section -->
         <div class="charts-grid">
             <!-- Weekly Activity Chart -->
-            <div class="chart-card">
+            <div class="chart-card app-chart-card fade-in">
                 <div class="chart-header">
                     <h3 class="chart-title">本周学习活动</h3>
                     <span class="chart-subtitle">每日学习时长分布</span>
@@ -116,7 +117,7 @@
             </div>
 
             <!-- Course Progress Chart -->
-            <div class="chart-card">
+            <div class="chart-card app-chart-card fade-in">
                 <div class="chart-header">
                     <h3 class="chart-title">课程进度概览</h3>
                     <span class="chart-subtitle">各分类学习完成率</span>
@@ -191,33 +192,33 @@
                 <h3 class="section-title">学习成就</h3>
                 <span class="section-subtitle">已解锁的里程碑</span>
             </div>
-            <div class="achievements-grid">
-                <div class="badge-item unlocked">
+            <div class="achievements-grid stagger">
+                <div class="badge-item app-action-card compact unlocked fade-up">
                     <div class="badge-icon">🏆</div>
                     <span class="badge-name">初露锋芒</span>
                     <span class="badge-desc">完成第一门课程</span>
                 </div>
-                <div class="badge-item unlocked">
+                <div class="badge-item app-action-card compact unlocked fade-up">
                     <div class="badge-icon">🔥</div>
                     <span class="badge-name">连续7天</span>
                     <span class="badge-desc">坚持学习一周</span>
                 </div>
-                <div class="badge-item unlocked">
+                <div class="badge-item app-action-card compact unlocked fade-up">
                     <div class="badge-icon">📚</div>
                     <span class="badge-name">学富五车</span>
                     <span class="badge-desc">完成10门课程</span>
                 </div>
-                <div class="badge-item unlocked">
+                <div class="badge-item app-action-card compact unlocked fade-up">
                     <div class="badge-icon">⚡</div>
                     <span class="badge-name">刷题达人</span>
                     <span class="badge-desc">完成100道算法题</span>
                 </div>
-                <div class="badge-item locked">
+                <div class="badge-item app-action-card compact locked fade-up">
                     <div class="badge-icon">🌟</div>
                     <span class="badge-name">学习之星</span>
                     <span class="badge-desc">累计学习100小时</span>
                 </div>
-                <div class="badge-item locked">
+                <div class="badge-item app-action-card compact locked fade-up">
                     <div class="badge-icon">🎯</div>
                     <span class="badge-name">年度目标</span>
                     <span class="badge-desc">完成年度学习计划</span>

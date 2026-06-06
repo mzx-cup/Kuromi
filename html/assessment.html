@@ -131,6 +131,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
 <body class="app-body min-h-screen overflow-x-hidden">
     <div id="app-bg" class="app-bg-layer">
@@ -147,7 +148,7 @@
     <div class="particle w-16 h-16 bottom-20 right-20 float-anim" style="animation-delay: 1s;"></div>
 
     <div class="min-h-screen flex items-center justify-center p-4 md:p-8">
-        <div class="w-full max-w-4xl fade-in">
+        <div class="w-full max-w-4xl fade-in animate-once">
             <!-- Header -->
             <div class="text-center mb-6">
                 <div class="flex items-center justify-center gap-3 mb-4">
@@ -204,7 +205,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="bigdata">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="bigdata">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="database" class="w-6 h-6 text-blue-600"></i>
@@ -215,7 +216,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="ai">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="ai">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="brain" class="w-6 h-6 text-purple-600"></i>
@@ -226,7 +227,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="frontend">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="frontend">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="layout" class="w-6 h-6 text-cyan-600"></i>
@@ -237,7 +238,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="backend">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="backend">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="server" class="w-6 h-6 text-green-600"></i>
@@ -248,7 +249,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="algorithm">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="algorithm">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="git-branch" class="w-6 h-6 text-orange-600"></i>
@@ -259,7 +260,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="database">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningDirection" data-value="database">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
                                         <i data-lucide="hard-drive" class="w-6 h-6 text-red-600"></i>
@@ -286,42 +287,42 @@
                         </div>
 
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="python">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="python">
                                 <div class="text-3xl mb-2">🐍</div>
                                 <div class="font-semibold text-gray-800">Python</div>
                                 <div class="check-icon hidden w-5 h-5 bg-blue-500 rounded-full items-center justify-center absolute top-2 right-2">
                                     <i data-lucide="check" class="w-3 h-3 text-white"></i>
                                 </div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="java">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="java">
                                 <div class="text-3xl mb-2">☕</div>
                                 <div class="font-semibold text-gray-800">Java</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="c">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="c">
                                 <div class="text-3xl mb-2">⚙️</div>
                                 <div class="font-semibold text-gray-800">C语言</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="cpp">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="cpp">
                                 <div class="text-3xl mb-2">🔷</div>
                                 <div class="font-semibold text-gray-800">C++</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="javascript">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="javascript">
                                 <div class="text-3xl mb-2">📜</div>
                                 <div class="font-semibold text-gray-800">JavaScript</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="go">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="go">
                                 <div class="text-3xl mb-2">🐹</div>
                                 <div class="font-semibold text-gray-800">Go</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="sql">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="sql">
                                 <div class="text-3xl mb-2">🗃️</div>
                                 <div class="font-semibold text-gray-800">SQL</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="scala">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="scala">
                                 <div class="text-3xl mb-2">🔴</div>
                                 <div class="font-semibold text-gray-800">Scala</div>
                             </div>
-                            <div class="multi-select-card dimension-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="rust">
+                            <div class="multi-select-card dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl text-center" data-dimension="languages" data-value="rust">
                                 <div class="text-3xl mb-2">🦀</div>
                                 <div class="font-semibold text-gray-800">Rust</div>
                             </div>
@@ -342,7 +343,7 @@
                         </div>
 
                         <div class="space-y-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="zero">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="zero">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="sprout" class="w-5 h-5 text-green-600"></i>
@@ -353,7 +354,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="basic">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="basic">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="book" class="w-5 h-5 text-blue-600"></i>
@@ -364,7 +365,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="intermediate">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="intermediate">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="laptop" class="w-5 h-5 text-purple-600"></i>
@@ -375,7 +376,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="advanced">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="knowledgeBase" data-value="advanced">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="rocket" class="w-5 h-5 text-orange-600"></i>
@@ -402,7 +403,7 @@
                         </div>
 
                         <div class="space-y-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="beginner">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="beginner">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="help-circle" class="w-5 h-5 text-gray-600"></i>
@@ -413,7 +414,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="basic">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="basic">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="file-code" class="w-5 h-5 text-blue-600"></i>
@@ -424,7 +425,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="intermediate">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="intermediate">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="code" class="w-5 h-5 text-purple-600"></i>
@@ -435,7 +436,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="advanced">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="codeSkill" data-value="advanced">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="git-branch" class="w-5 h-5 text-emerald-600"></i>
@@ -462,7 +463,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="exam">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="exam">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="graduation-cap" class="w-5 h-5 text-red-600"></i>
@@ -473,7 +474,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="career">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="career">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="briefcase" class="w-5 h-5 text-blue-600"></i>
@@ -484,7 +485,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="project">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="project">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="folder-kanban" class="w-5 h-5 text-green-600"></i>
@@ -495,7 +496,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="interest">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="interest">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="lightbulb" class="w-5 h-5 text-yellow-600"></i>
@@ -506,7 +507,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="competition">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="competition">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="trophy" class="w-5 h-5 text-purple-600"></i>
@@ -517,7 +518,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="research">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningGoal" data-value="research">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="flask-conical" class="w-5 h-5 text-indigo-600"></i>
@@ -544,7 +545,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="visual">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="visual">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="eye" class="w-7 h-7 text-blue-600"></i>
@@ -553,7 +554,7 @@
                                     <div class="text-sm text-gray-500 mt-1">喜欢图表、流程图、可视化演示</div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="textual">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="textual">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="file-text" class="w-7 h-7 text-purple-600"></i>
@@ -562,7 +563,7 @@
                                     <div class="text-sm text-gray-500 mt-1">喜欢详细文字解释、理论推导</div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="pragmatic">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="cognitiveStyle" data-value="pragmatic">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="hammer" class="w-7 h-7 text-green-600"></i>
@@ -587,7 +588,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="light">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="light">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="feather" class="w-5 h-5 text-gray-600"></i>
@@ -598,7 +599,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="moderate">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="moderate">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="watch" class="w-5 h-5 text-blue-600"></i>
@@ -609,7 +610,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="intensive">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="intensive">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="flame" class="w-5 h-5 text-orange-600"></i>
@@ -620,7 +621,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="immersive">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="studyTime" data-value="immersive">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="zap" class="w-5 h-5 text-red-600"></i>
@@ -647,7 +648,7 @@
                         </div>
 
                         <div class="space-y-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="slow">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="slow">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="turtle" class="w-5 h-5 text-blue-600"></i>
@@ -658,7 +659,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="normal">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="normal">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="activity" class="w-5 h-5 text-green-600"></i>
@@ -669,7 +670,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="fast">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="learningPace" data-value="fast">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
                                         <i data-lucide="rabbit" class="w-5 h-5 text-orange-600"></i>
@@ -696,7 +697,7 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="high">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="high">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="gem" class="w-7 h-7 text-green-600"></i>
@@ -705,7 +706,7 @@
                                     <div class="text-sm text-gray-500 mt-1">能长时间专注，不易分心</div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="medium">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="medium">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-yellow-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="battery-medium" class="w-7 h-7 text-yellow-600"></i>
@@ -714,7 +715,7 @@
                                     <div class="text-sm text-gray-500 mt-1">有时会分心，需要提醒</div>
                                 </div>
                             </div>
-                            <div class="option-btn dimension-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="low">
+                            <div class="option-btn dimension-card app-action-card p-4 border-2 border-gray-200 rounded-xl" data-dimension="focusLevel" data-value="low">
                                 <div class="flex flex-col items-center text-center">
                                     <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-3">
                                         <i data-lucide="wind" class="w-7 h-7 text-red-600"></i>

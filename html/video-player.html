@@ -12,6 +12,7 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body video-player-body">
@@ -49,7 +50,7 @@
     <main class="video-main">
         <section class="bili-theater">
             <div class="player-column">
-                <section class="player-shell">
+                <section class="player-shell app-content-card slide-up">
                     <div class="player-heading">
                         <div>
                             <p class="section-kicker" id="section-kicker">视频播放</p>
@@ -123,18 +124,18 @@
                     </form>
                 </section>
 
-                <section class="video-info-panel">
+                <section class="video-info-panel app-content-card fade-in">
                     <div>
                         <span class="panel-label" id="info-source-label">来源: -</span>
                         <h3 id="info-title">算法复杂度分析</h3>
                         <p id="info-description">掌握 O(1)、O(n)、O(log n) 的判断方法，并能用 Python 代码解释时间与空间消耗。</p>
                     </div>
                     <div class="info-metrics">
-                        <article class="metric-panel">
+                        <article class="metric-panel app-stat-card">
                             <span class="metric-value" id="progress-percent">0%</span>
                             <span class="metric-label">当前进度</span>
                         </article>
-                        <article class="metric-panel">
+                        <article class="metric-panel app-stat-card">
                             <span class="metric-value" id="note-count">0</span>
                             <span class="metric-label">AI笔记</span>
                         </article>
