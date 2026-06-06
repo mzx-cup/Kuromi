@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
 <body class="app-body teacher-page">
@@ -224,23 +225,23 @@
       <h1 class="teacher-page-title animate-fade-in-up">工作台</h1>
 
       <!-- Stat Cards -->
-      <div class="td-stats animate-fade-in-up animate-delay-1">
-        <div class="stat-card">
+      <div class="td-stats animate-fade-in-up animate-delay-1 app-grid-4 app-gap-md">
+        <div class="stat-card app-stat-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="stat-value" x-text="stats.classes"></div>
           <div class="stat-label">授课班级</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card app-stat-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="stat-value" x-text="stats.courses"></div>
           <div class="stat-label">在授课程</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card app-stat-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="stat-value" x-text="stats.pendingReviews"></div>
           <div class="stat-label">待批改</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card app-stat-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="stat-value" x-text="stats.avgScore"></div>
           <div class="stat-label">平均成绩</div>
@@ -249,11 +250,11 @@
 
       <!-- Chart Row -->
       <div class="td-chart-row animate-fade-in-up animate-delay-2">
-        <div class="td-chart-box" x-ref="barChart" style="min-height:300px">
+        <div class="td-chart-box app-chart-card prism" x-ref="barChart" style="min-height:300px">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
         </div>
-        <div class="td-chart-box" x-ref="radarChart" style="min-height:300px">
+        <div class="td-chart-box app-chart-card prism" x-ref="radarChart" style="min-height:300px">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
         </div>
@@ -261,7 +262,7 @@
 
       <!-- Bottom Row: Tasks + AI -->
       <div class="td-chart-row animate-fade-in-up animate-delay-3">
-        <div class="td-chart-box">
+        <div class="td-chart-box app-chart-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <h3>📋 最近任务</h3>
           <template x-if="recentTasks.length === 0">
@@ -278,7 +279,7 @@
           </template>
         </div>
 
-        <div class="td-chart-box">
+        <div class="td-chart-box app-chart-card prism">
           <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
           <h3>💡 AI 教学建议</h3>
           <template x-if="aiSuggestions.length === 0">
@@ -289,7 +290,7 @@
               <div class="ai-suggestion-item">
                 <span class="ai-suggestion-icon" x-text="s.icon || '💡'"></span>
                 <span class="ai-suggestion-text" x-text="s.text"></span>
-                <button x-show="s.action_url" @click="window.location.href=s.action_url" class="btn-sm ai-suggestion-action">查看</button>
+                <button x-show="s.action_url" @click="window.location.href=s.action_url" class="btn-sm ai-suggestion-action app-action-card prism interactive">查看</button>
               </div>
             </template>
           </div>
@@ -300,7 +301,7 @@
       <h2 style="font-size:16px;margin:24px 0 12px;color:var(--cp-text-primary);font-weight:var(--font-bold)">我的班级</h2>
       <div class="class-grid">
         <template x-for="c in classes" :key="c.id">
-          <div class="class-card">
+          <div class="class-card app-content-card prism">
             <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
             <div class="class-card-header">
               <h3 x-text="c.name"></h3>
@@ -311,7 +312,7 @@
               <span style="margin-left:12px" x-text="(c.student_count||0) + ' 名学生'"></span>
               <span x-show="c.avg_score" style="margin-left:12px" x-text="'均分 ' + c.avg_score"></span>
             </div>
-            <a :href="'/teacher-class.html?id=' + c.id" class="btn-sm">管理</a>
+            <a :href="'/teacher-class.html?id=' + c.id" class="btn-sm app-action-card prism interactive">管理</a>
           </div>
         </template>
         <div x-show="classes.length === 0" class="empty-state">暂无班级，前往<a href="/teacher-class.html" style="color:var(--accent)">班级管理</a>创建</div>
