@@ -175,13 +175,14 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
    ============================================================ */
 .btn-primary {
     padding: 8px 20px; border-radius: var(--radius-sm);
-    border: 1px solid color-mix(in oklch, var(--info), transparent 75%);
-    background: color-mix(in oklch, var(--info), transparent 80%);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 55%);
+    background: color-mix(in oklch, var(--info), transparent 65%);
     color: #fff; font-weight: var(--font-semibold); cursor: pointer;
     font-size: var(--text-sm); transition: all var(--transition-fast);
 }
 .btn-primary:hover {
-    background: color-mix(in oklch, var(--info), transparent 70%);
+    background: color-mix(in oklch, var(--info), transparent 50%);
+    border-color: color-mix(in oklch, var(--info), transparent 40%);
 }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -541,4 +542,11 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
 /* ============================================================
    Inline Error
    ============================================================ */
+/* textGradientFlow — 品牌标题渐变动画 (login/register 页使用) */
+@keyframes textGradientFlow {
+    0%   { background-position: 0% center; }
+    50%  { background-position: 100% center; }
+    100% { background-position: 0% center; }
+}
+
 .field-error { color: var(--danger); font-size: var(--text-xs); margin-top: -8px; margin-bottom: 8px; }
