@@ -14,6 +14,7 @@
   <script src="/js/http-intercept.js"></script>
   <script src="/js/pages/login.js"></script>
   <script src="/js/theme.js"></script>
+  <script src="/js/toast.js"></script>
 </head>
 <body class="app-body auth-page">
     <div id="app-bg" class="app-bg-layer">
@@ -223,7 +224,7 @@
     </div>
 
     <!-- 棱晶登录卡片 -->
-    <div class="auth-card-inner animate-fade-in-up animate-delay-1" style="position:relative">
+    <div class="app-form-card scale-in" style="position:relative; max-width:420px; margin:0 auto;">
 
       <!-- 棱晶角折射装饰 -->
       <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
@@ -233,17 +234,17 @@
       <div x-show="success" x-text="success" class="success-banner"></div>
 
       <label class="auth-label">用户名</label>
-      <input x-model="form.username" class="auth-field"
+      <input x-model="form.username" class="app-input" style="width:100%;margin-bottom:12px"
              placeholder="输入用户名" @keydown.enter="doLogin()"
              autocomplete="username">
 
       <label class="auth-label">密码</label>
-      <input x-model="form.password" class="auth-field" type="password"
+      <input x-model="form.password" class="app-input" type="password" style="width:100%;margin-bottom:16px"
              placeholder="输入密码" @keydown.enter="doLogin()"
              autocomplete="current-password">
 
       <button @click="doLogin()" :disabled="loading"
-              class="btn-primary-auth"
+              class="app-btn-primary app-btn-block"
               x-text="loading ? '登录中...' : '登 录'">
         登 录
       </button>
@@ -264,7 +265,7 @@
     </div>
 
     <p class="auth-footer-link animate-fade-in-up animate-delay-2">
-      还没有账号？<a href="/register.html">注册新账号</a>
+      还没有账号？<a href="/register.html" class="app-btn-link">注册新账号</a>
     </p>
   </div>
 
