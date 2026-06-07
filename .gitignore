@@ -68,3 +68,6 @@ coverage/
 
 # Playwright 测试结果
 test-results/
+
+# 审计脚本产物 (audit scripts output)
+output/
