@@ -16,6 +16,12 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 HTML_DIR = ROOT / "html"
 
+# Windows 兼容：确保 stdout 能输出 emoji
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # 顺序由小到大：数值小的排前面
 LAYER_RANK = {
     "tokens.css": 1,
