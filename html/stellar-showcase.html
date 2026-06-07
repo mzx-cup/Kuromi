@@ -14,9 +14,10 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body stellar-body">
+<body data-bg-unified="true" class="app-body stellar-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -50,31 +51,31 @@
     </nav>
 
     <!-- 主内容区域 -->
-    <main class="stellar-main">
+    <main class="stellar-main fade-in">
         <!-- 统计概览 -->
         <div class="stats-overview">
-            <div class="stat-card">
+            <div class="stat-card app-stat-card">
                 <div class="stat-icon legendary">🏆</div>
                 <div class="stat-info">
                     <div class="stat-value" id="legendary-count">0</div>
                     <div class="stat-label">传奇</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card app-stat-card">
                 <div class="stat-icon epic">💎</div>
                 <div class="stat-info">
                     <div class="stat-value" id="epic-count">0</div>
                     <div class="stat-label">史诗</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card app-stat-card">
                 <div class="stat-icon rare">⭐</div>
                 <div class="stat-info">
                     <div class="stat-value" id="rare-count">0</div>
                     <div class="stat-label">稀有</div>
                 </div>
             </div>
-            <div class="stat-card">
+            <div class="stat-card app-stat-card">
                 <div class="stat-icon common">✦</div>
                 <div class="stat-info">
                     <div class="stat-value" id="common-count">0</div>
@@ -104,13 +105,13 @@
         </div>
 
         <!-- 徽章展示网格 -->
-        <div class="badge-showcase" id="badge-showcase"></div>
+        <div class="badge-showcase stagger" id="badge-showcase"></div>
     </main>
 
     <!-- 徽章详情模态框 -->
     <div class="badge-modal" id="badge-modal">
         <div class="modal-backdrop"></div>
-        <div class="modal-content">
+        <div class="modal-content app-form-card">
             <button class="modal-close" id="modal-close">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -156,11 +157,8 @@
 
     <script src="/js/data-layer.js"></script>
     <script src="/js/achievements-data.js"></script>
-    <script src="/js/data-layer.js"></script>
-    <script src="/js/achievement-manager.js"></script>
-    <script src="/js/data-layer.js"></script>
     <script src="/js/notifications.js"></script>
-    <script src="/js/data-layer.js"></script>
+    <script src="/js/achievement-manager.js"></script>
     <script src="/js/stellar-showcase.js"></script>
 </body>
 </html>

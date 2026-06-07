@@ -1,6 +1,29 @@
 {
+  "name": "star-learn",
+  "version": "1.0.0",
+  "description": "星识 Star-Learn — 个人智能学习中枢",
+  "private": true,
+  "scripts": {
+    "test:unit": "vitest run tests/frontend/unit/",
+    "test:unit:watch": "vitest tests/frontend/unit/",
+    "test:unit:coverage": "vitest run tests/frontend/unit/ --coverage",
+    "test:e2e": "playwright test tests/frontend/e2e/",
+    "test:e2e:smoke": "playwright test tests/frontend/e2e/smoke.spec.js",
+    "test:e2e:visual": "playwright test tests/frontend/e2e/visual.spec.js",
+    "test:e2e:visual:update": "playwright test tests/frontend/e2e/visual.spec.js --update-snapshots",
+    "test:a11y": "playwright test tests/frontend/a11y/",
+    "test:all": "npm run test:unit && npm run test:e2e && npm run test:a11y",
+    "test:ci": "npm run test:unit -- --reporter=junit && npm run test:e2e && npm run test:a11y"
+  },
   "dependencies": {
     "@picovoice/picovoice-web": "^3.0.3",
     "@timur00kh/whisper.wasm": "^0.1.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.9.0",
+    "@playwright/test": "^1.45.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "jsdom": "^24.1.0",
+    "vitest": "^1.6.0"
   }
 }

@@ -39,55 +39,11 @@
   // 2. Toast 通知系统
   // ═══════════════════════════════════════════
   function showToast(title, content, opts = {}) {
-    const { duration = 5000, actionLabel, actionCallback, type = 'info' } = opts;
-
-    const toast = document.createElement('div');
-    toast.className = `mascot-toast mascot-toast--${type}`;
-    const iconMap = { info: '💬', warning: '⚠️', success: '✅', error: '❌', tip: '💡' };
-    const icon = iconMap[type] || '💬';
-
-    toast.innerHTML = `
-      <span class="mascot-toast-icon">${icon}</span>
-      <div class="mascot-toast-body">
-        <div class="mascot-toast-title">${escapeHTML(title)}</div>
-        <div class="mascot-toast-content">${escapeHTML(content)}</div>
-      </div>
-      ${actionLabel ? `<button class="mascot-toast-action">${escapeHTML(actionLabel)}</button>` : ''}
-      <button class="mascot-toast-close">&times;</button>
-    `;
-
-    // 事件绑定
-    toast.querySelector('.mascot-toast-close').onclick = () => dismissToast(toast);
-    if (actionLabel && actionCallback) {
-      toast.querySelector('.mascot-toast-action').onclick = () => {
-        actionCallback();
-        dismissToast(toast);
-      };
-    }
-
-    document.body.appendChild(toast);
-
-    // 入场动画
-    requestAnimationFrame(() => toast.classList.add('mascot-toast--visible'));
-
-    if (duration > 0) {
-      toast._timer = setTimeout(() => dismissToast(toast), duration);
-    }
-
-    return toast;
+    return window.Toast.mascot(title, content, opts);
   }
 
   function dismissToast(toast) {
-    if (toast._timer) clearTimeout(toast._timer);
-    toast.classList.remove('mascot-toast--visible');
-    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 400);
-  }
-
-  function escapeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    window.Toast.dismiss(toast);
   }
 
   // 监听 Toast 事件

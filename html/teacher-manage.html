@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-bg-unified="true" lang="zh-CN" data-theme="starry-night">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>题库管理 · 星识</title>
@@ -11,9 +11,10 @@
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body teacher-page">
+<body data-bg-unified="true" class="app-body teacher-page">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -62,7 +63,7 @@
       </nav>
       <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
     </aside>
-    <main class="teacher-main" x-data="teacherManage" x-init="init()">
+    <main class="teacher-main fade-in" x-data="teacherManage" x-init="init()">
       <h1 class="teacher-page-title">题库管理</h1>
       <div x-show="success" x-text="success" class="success-banner"></div>
 
@@ -119,7 +120,7 @@
 
       <!-- Question Create/Edit Modal -->
       <div class="modal-overlay" x-show="showModal" @click.self="showModal = false" x-cloak>
-        <div class="modal-content modal-wide">
+        <div class="modal-content modal-wide app-form-card">
           <h2 x-text="editingQuestion ? '编辑题目' : '添加题目'"></h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
 
@@ -162,7 +163,7 @@
 
       <!-- Batch Import Modal -->
       <div class="modal-overlay" x-show="showImportModal" @click.self="showImportModal = false" x-cloak>
-        <div class="modal-content">
+        <div class="modal-content app-form-card">
           <h2>批量导入题目</h2>
           <div x-show="error" x-text="error" class="error-banner"></div>
           <p style="font-size:13px;color:var(--text-tertiary);margin-bottom:8px">

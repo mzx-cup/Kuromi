@@ -82,7 +82,7 @@
     }
     return {
       mode: pageMode,
-      theme: pageTheme || 'ocean-glass',
+      theme: pageTheme || 'deep-ocean',
       wallpaperId: 'default',
       brightness: 85,
       blur: 5,
@@ -136,6 +136,16 @@
 
   // ===== Apply =====
   function applyTheme(themeId) {
+    // Trigger crossfade
+    document.documentElement.setAttribute('data-theme-transitioning', 'true');
+    document.documentElement.addEventListener('transitionend', function onEnd() {
+      document.documentElement.removeAttribute('data-theme-transitioning');
+      document.documentElement.removeEventListener('transitionend', onEnd);
+    }, { once: true });
+    setTimeout(function() {
+      document.documentElement.removeAttribute('data-theme-transitioning');
+    }, 500);
+
     state.theme = themeId;
     var info = getThemeInfo(themeId);
     state.mode = info.mode;
@@ -335,6 +345,63 @@
     if (state.theme === id) {
       setTheme(state.mode === 'light' ? 'warm-morning' : 'study-night');
     }
+  }
+
+  function exportTheme(themeId) {
+    var info = getThemeInfo(themeId);
+    var primitives = {};
+    if (PRESETS[themeId]) {
+      var root = document.documentElement;
+      for (var i = 0; i < PRIMITIVE_KEYS.length; i++) {
+        var k = PRIMITIVE_KEYS[i];
+        var val = getComputedStyle(root).getPropertyValue('--' + k).trim();
+        if (val) primitives[k] = val;
+      }
+    } else {
+      for (var i = 0; i < customThemes.length; i++) {
+        if (customThemes[i].id === themeId) {
+          primitives = customThemes[i].primitives;
+          break;
+        }
+      }
+    }
+    var exportData = {
+      version: 1,
+      type: 'starlearn-theme',
+      theme: { name: info.name, mode: info.mode, primitives: primitives }
+    };
+    var blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'starlearn-theme-' + themeId + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importTheme(fileInput) {
+    var file = fileInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var data = JSON.parse(e.target.result);
+        if (data.type !== 'starlearn-theme' || !data.theme || !data.theme.primitives) {
+          window.Toast && Toast.error('无效的主题文件格式');
+          return;
+        }
+        var exists = customThemes.some(function(t) { return t.name === data.theme.name; });
+        if (exists) {
+          window.Toast && Toast.warning('同名主题已存在，跳过导入');
+          return;
+        }
+        var id = createCustomTheme(data.theme.name, data.theme.mode, data.theme.primitives);
+        window.Toast && Toast.ok('主题 "' + data.theme.name + '" 导入成功');
+      } catch (err) {
+        window.Toast && Toast.error('主题文件解析失败');
+      }
+    };
+    reader.readAsText(file);
   }
 
   // ===== Server Sync =====
@@ -752,6 +819,30 @@
 
     actions.appendChild(restoreBtn);
     actions.appendChild(advancedLink);
+
+    // Import button
+    var importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.accept = '.json';
+    importInput.style.display = 'none';
+    importInput.addEventListener('change', function() { importTheme(importInput); });
+
+    var importBtn = document.createElement('button');
+    importBtn.className = 'tsm-restore-btn';
+    importBtn.textContent = '导入主题 ↑';
+    importBtn.style.marginLeft = '8px';
+    importBtn.addEventListener('click', function() { importInput.click(); });
+
+    var exportBtn = document.createElement('button');
+    exportBtn.className = 'tsm-restore-btn';
+    exportBtn.textContent = '导出当前主题 ↓';
+    exportBtn.style.marginLeft = '8px';
+    exportBtn.addEventListener('click', function() { exportTheme(state.theme); });
+
+    actions.appendChild(importBtn);
+    actions.appendChild(exportBtn);
+    actions.appendChild(importInput);
+
     modal.appendChild(actions);
 
     overlay.appendChild(modal);
@@ -799,6 +890,8 @@
     createCustomTheme: createCustomTheme,
     updateCustomTheme: updateCustomTheme,
     deleteCustomTheme: deleteCustomTheme,
+    exportTheme: exportTheme,
+    importTheme: importTheme,
     loadFromServer: loadFromServer
   };
 })();

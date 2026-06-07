@@ -3253,7 +3253,7 @@
                 this.slideContainer.style.backgroundColor = theme.backgroundColor;
             } else {
                 // Default: use light background for infographic-style cards
-                this.slideContainer.style.backgroundColor = '#FFFFFF';
+                this.slideContainer.style.backgroundColor = 'var(--surface-card)';
             }
         }
 

@@ -13,9 +13,10 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body calendar-body">
+<body data-bg-unified="true" class="app-body calendar-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -99,23 +100,23 @@
             <!-- Right: Events & Schedule -->
             <div class="schedule-section">
                 <!-- Stats Summary -->
-                <div class="stats-summary">
-                    <div class="summary-card">
+                <div class="stats-summary stagger">
+                    <div class="summary-card app-stat-card fade-up">
                         <span class="summary-value" id="study-days">0</span>
                         <span class="summary-label">本月学习天数</span>
                     </div>
-                    <div class="summary-card">
+                    <div class="summary-card app-stat-card fade-up">
                         <span class="summary-value" id="total-hours-month">0.0</span>
                         <span class="summary-label">本月学习时长(h)</span>
                     </div>
-                    <div class="summary-card">
+                    <div class="summary-card app-stat-card fade-up">
                         <span class="summary-value" id="completed-tasks">0</span>
                         <span class="summary-label">完成任务数</span>
                     </div>
                 </div>
 
                 <!-- Day Detail -->
-                <div class="day-detail-card" id="day-detail">
+                <div class="day-detail-card app-content-card fade-in" id="day-detail">
                     <div class="detail-header">
                         <h3 class="detail-title" id="detail-date">选择日期</h3>
                         <span class="detail-subtitle" id="detail-day">查看当日学习计划</span>

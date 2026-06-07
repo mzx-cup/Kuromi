@@ -15,8 +15,9 @@
     <script src="/js/http-intercept.js"></script>
     <script src="/js/loading.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
-<body class="app-body course-learn-body" data-page="course-learn">
+<body data-bg-unified="true" class="app-body course-learn-body" data-page="course-learn">
     <!-- Global Wallpaper Background Layer -->
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
@@ -58,9 +59,9 @@
     </nav>
 
     <!-- Two-Column Layout -->
-    <div class="cl-layout">
+    <div class="cl-layout fade-in">
         <!-- Left: Chapter Tree -->
-        <aside class="cl-sidebar" id="cl-sidebar">
+        <aside class="cl-sidebar app-content-card" id="cl-sidebar">
             <div class="cl-sidebar-header">
                 <h3 class="cl-sidebar-title">课程目录</h3>
                 <button class="cl-sidebar-toggle" id="cl-sidebar-toggle" title="收起目录">
@@ -80,7 +81,7 @@
         <!-- Right: Main Content -->
         <main class="cl-main">
             <!-- Video Player Section -->
-            <div class="cl-player-section">
+            <div class="cl-player-section app-content-card">
                 <div class="cl-player-wrapper" id="cl-player-wrapper">
                     <div class="cl-player-placeholder" id="cl-player-placeholder">
                         <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24" opacity="0.3">

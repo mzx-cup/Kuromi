@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-bg-unified="true" lang="zh-CN" data-theme="starry-night">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>注册 · 星识 Star-Learn</title>
@@ -14,8 +14,9 @@
   <script src="/js/http-intercept.js"></script>
   <script src="/js/pages/register.js"></script>
   <script src="/js/theme.js"></script>
+  <script src="/js/toast.js"></script>
 </head>
-<body class="app-body auth-page">
+<body data-bg-unified="true" class="app-body auth-page">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -38,24 +39,24 @@
 
       <!-- 星座连线渐隐渐变 -->
       <linearGradient id="constLineGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#7098d0" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#7098d0" stop-opacity="0.55"/>
-        <stop offset="100%" stop-color="#7098d0" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--info)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--info)" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="var(--info)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#b898d8" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#b898d8" stop-opacity="0.50"/>
-        <stop offset="100%" stop-color="#b898d8" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--brand-400)" stop-opacity="0.50"/>
+        <stop offset="100%" stop-color="var(--brand-400)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad3" x1="100%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#c8a868" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#c8a868" stop-opacity="0.45"/>
-        <stop offset="100%" stop-color="#c8a868" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--warning)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--warning)" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="var(--warning)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad4" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#80a0d8" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#80a0d8" stop-opacity="0.48"/>
-        <stop offset="100%" stop-color="#80a0d8" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--info)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--info)" stop-opacity="0.48"/>
+        <stop offset="100%" stop-color="var(--info)" stop-opacity="0"/>
       </linearGradient>
 
       <!-- 星芒辉光滤镜 -->
@@ -216,7 +217,7 @@
     </div>
 
     <!-- 棱晶注册卡片 -->
-    <div class="auth-card-inner animate-fade-in-up animate-delay-1" style="position:relative">
+    <div class="auth-card-inner app-form-card scale-in" style="position:relative">
 
       <!-- 棱晶角折射装饰 -->
       <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
@@ -225,36 +226,36 @@
       <div x-show="error" x-text="error" class="error-banner"></div>
       <div x-show="success" x-text="success" class="success-banner"></div>
 
-      <label class="auth-label">用户名</label>
-      <input x-model="form.username" class="auth-field"
+      <label class="auth-label app-label">用户名</label>
+      <input x-model="form.username" class="auth-field app-input"
              placeholder="输入用户名" autocomplete="username">
 
-      <label class="auth-label">显示名称<span style="color:var(--cp-text-tertiary);margin-left:4px">（选填）</span></label>
-      <input x-model="form.display_name" class="auth-field"
+      <label class="auth-label app-label">显示名称<span style="color:var(--cp-text-tertiary);margin-left:4px">（选填）</span></label>
+      <input x-model="form.display_name" class="auth-field app-input"
              placeholder="设置你的显示名称">
 
-      <label class="auth-label">密码</label>
-      <input x-model="form.password" class="auth-field" type="password"
+      <label class="auth-label app-label">密码</label>
+      <input x-model="form.password" class="auth-field app-input" type="password"
              placeholder="密码（至少 6 位）" autocomplete="new-password">
 
-      <label class="auth-label">确认密码</label>
-      <input x-model="form.confirmPassword" class="auth-field" type="password"
+      <label class="auth-label app-label">确认密码</label>
+      <input x-model="form.confirmPassword" class="auth-field app-input" type="password"
              placeholder="再次输入密码" autocomplete="new-password">
 
-      <label class="auth-label">角色</label>
-      <select x-model="form.role" class="auth-field" style="cursor:pointer">
+      <label class="auth-label app-label">角色</label>
+      <select x-model="form.role" class="auth-field app-input" style="cursor:pointer">
         <option value="teacher">教师</option>
         <option value="student">学生</option>
       </select>
 
       <button @click="doRegister()" :disabled="loading"
-              class="btn-primary-auth"
+              class="btn-primary-auth app-btn-primary app-btn-block"
               x-text="loading ? '注册中...' : '注 册'">
         注 册
       </button>
     </div>
 
-    <p class="auth-footer-link animate-fade-in-up animate-delay-2">
+    <p class="auth-footer-link app-btn-link fade-in" style="text-align:center">
       已有账号？<a href="/login.html">立即登录</a>
     </p>
   </div>

@@ -68,7 +68,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -78,8 +78,8 @@ body {
 }
 
 .nav-back:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--surface-card);
+    color: var(--text-heading);
 }
 
 .nav-title {
@@ -99,9 +99,9 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--text-body);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -112,7 +112,7 @@ body {
 .nav-btn:hover {
     background: rgba(168, 85, 247, 0.2);
     border-color: rgba(168, 85, 247, 0.4);
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .calendar-main {
@@ -133,8 +133,8 @@ body {
 }
 
 .calendar-section {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 20px;
     padding: 24px;
 }
@@ -150,9 +150,9 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--text-body);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -163,13 +163,13 @@ body {
 .month-nav-btn:hover {
     background: rgba(168, 85, 247, 0.2);
     border-color: rgba(168, 85, 247, 0.4);
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .month-title {
     font-size: 20px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .calendar-grid {
@@ -183,7 +183,7 @@ body {
     text-align: center;
     font-size: 12px;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
 }
 
 .calendar-day {
@@ -200,7 +200,7 @@ body {
 }
 
 .calendar-day:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
 }
 
 .calendar-day.empty {
@@ -256,7 +256,7 @@ body {
     align-items: center;
     gap: 8px;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
 }
 
 .legend-dot {
@@ -295,8 +295,8 @@ body {
 }
 
 .summary-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 12px;
     padding: 16px;
     text-align: center;
@@ -314,13 +314,13 @@ body {
 .summary-label {
     display: block;
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     margin-top: 4px;
 }
 
 .day-detail-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 16px;
     padding: 20px;
 }
@@ -332,13 +332,13 @@ body {
 .detail-title {
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
     margin-bottom: 4px;
 }
 
 .detail-subtitle {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
 }
 
 .detail-content {
@@ -351,7 +351,7 @@ body {
     align-items: center;
     justify-content: center;
     height: 120px;
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-muted);
     text-align: center;
     font-size: 13px;
     line-height: 1.6;
@@ -368,13 +368,13 @@ body {
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border-radius: 10px;
     transition: all 0.2s;
 }
 
 .task-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover);
 }
 
 .task-checkbox {
@@ -396,7 +396,7 @@ body {
 
 .task-checkbox.checked::after {
     content: '✓';
-    color: #fff;
+    color: var(--text-heading);
     font-size: 12px;
     font-weight: 600;
 }
@@ -408,7 +408,7 @@ body {
 .task-name {
     font-size: 14px;
     font-weight: 500;
-    color: #fff;
+    color: var(--text-heading);
     margin-bottom: 2px;
 }
 
@@ -419,12 +419,12 @@ body {
 
 .task-meta {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
 }
 
 .upcoming-section {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 16px;
     padding: 20px;
     flex: 1;
@@ -434,7 +434,7 @@ body {
 .section-title {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
     margin-bottom: 16px;
 }
 
@@ -448,13 +448,13 @@ body {
     display: flex;
     gap: 16px;
     padding: 14px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border-radius: 12px;
     transition: all 0.2s;
 }
 
 .event-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover);
     transform: translateX(4px);
 }
 
@@ -476,7 +476,7 @@ body {
 .event-month {
     display: block;
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
 }
 
 .event-content {
@@ -486,13 +486,13 @@ body {
 .event-title {
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
     margin-bottom: 4px;
 }
 
 .event-desc {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     margin-bottom: 8px;
 }
 
@@ -535,13 +535,13 @@ body {
 
 .event-duration {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
 }
 
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--surface-card);
     backdrop-filter: blur(8px);
     z-index: 1000;
     display: flex;
@@ -555,8 +555,8 @@ body {
 }
 
 .modal-content {
-    background: rgba(20, 20, 40, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
+    border: 1px solid var(--border-glass);
     border-radius: 20px;
     width: 100%;
     max-width: 480px;
@@ -573,16 +573,16 @@ body {
 .modal-title {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .modal-close {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -616,16 +616,16 @@ body {
 .form-label {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
 }
 
 .form-input {
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 10px;
     font-size: 14px;
-    color: #fff;
+    color: var(--text-heading);
     outline: none;
     transition: all 0.2s;
 }
@@ -636,16 +636,16 @@ body {
 }
 
 .form-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: var(--text-muted);
 }
 
 .form-textarea {
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 10px;
     font-size: 14px;
-    color: #fff;
+    color: var(--text-heading);
     outline: none;
     resize: vertical;
     min-height: 80px;
@@ -675,8 +675,8 @@ body {
     padding: 8px 14px;
     border-radius: 8px;
     font-size: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     transition: all 0.2s;
 }
 
@@ -701,9 +701,9 @@ body {
     flex: 1;
     padding: 12px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--text-body);
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -711,7 +711,7 @@ body {
 }
 
 .btn-cancel:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
 }
 
 .btn-submit {
@@ -720,7 +720,7 @@ body {
     border-radius: 10px;
     background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
     border: none;
-    color: #fff;
+    color: var(--text-heading);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;

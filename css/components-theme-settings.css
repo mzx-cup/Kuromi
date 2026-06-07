@@ -1,0 +1,299 @@
+/* ============================================================
+   统一组件样式库
+   用途：把散落在各页面和 JS 字符串中的通用组件样式集中管理，
+         让 AI 修改时只需改这一个文件。
+   规则：
+     1. 所有组件以 .app- 前缀命名，避免与页面样式冲突
+     2. 只使用 css/tokens.css 中定义的变量，禁止硬编码颜色
+     3. 交互状态必须有过渡动画
+   ============================================================ */
+
+/* ============================================================
+   一、主题设置弹窗（原有组件，保持兼容）
+   ============================================================ */
+
+/* ---------- 主题设置弹窗遮罩 ---------- */
+#theme-settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ---------- 主题设置弹窗本体 ---------- */
+.tsm-modal {
+  background: var(--surface-card);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-radius: var(--radius-lg);
+  max-width: 560px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: inherit;
+}
+
+.tsm-modal::-webkit-scrollbar { width: 6px; }
+.tsm-modal::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+/* 弹窗头部 */
+.tsm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.tsm-title {
+  margin: 0;
+  color: var(--text-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.tsm-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+.tsm-close:hover { background: var(--surface-hover); }
+
+/* 分区 */
+.tsm-section { margin-bottom: var(--space-md); }
+
+.tsm-section-label {
+  color: var(--text-body);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-sm);
+}
+
+/* 模式切换 */
+.tsm-mode-toggle { display: flex; gap: var(--space-sm); }
+
+.tsm-mode-btn {
+  flex: 1;
+  padding: 8px 16px;
+  border: 2px solid var(--text-muted);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-body);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.tsm-mode-btn.active {
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+}
+
+.tsm-mode-btn:hover:not(.active) { border-color: var(--text-body); }
+
+/* 主题卡片 */
+.tsm-theme-cards {
+  display: flex;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding-bottom: var(--space-xs);
+}
+
+.tsm-theme-cards::-webkit-scrollbar { height: 4px; }
+.tsm-theme-cards::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 2px;
+}
+
+.tsm-theme-card {
+  flex: 0 0 110px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tsm-theme-card:hover { background: var(--surface-hover); }
+
+.tsm-theme-card.active {
+  border-color: var(--brand-500);
+  background: var(--surface-hover);
+}
+
+.tsm-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin: 0 auto var(--space-xs);
+}
+
+.tsm-card-name {
+  font-size: 0.75rem;
+  color: var(--text-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 品牌色 */
+.tsm-brand-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tsm-brand-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border-glass);
+  cursor: pointer;
+  transition: transform 0.15s;
+  padding: 0;
+}
+
+.tsm-brand-swatch:hover { transform: scale(1.2); }
+
+.tsm-brand-input {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border-glass);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+}
+
+.tsm-brand-input::-webkit-color-swatch-wrapper { padding: 0; }
+.tsm-brand-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+/* 壁纸网格 */
+.tsm-wp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.tsm-wp-card {
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+  padding: var(--space-xs);
+  border: 2px solid transparent;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.tsm-wp-card:hover { background: var(--surface-hover); }
+.tsm-wp-card.active { border-color: var(--brand-500); }
+
+.tsm-wp-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: var(--radius-sm);
+  display: block;
+  object-fit: cover;
+}
+
+.tsm-wp-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+}
+
+.tsm-wp-name {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 滑块 */
+.tsm-slider-row { margin-bottom: var(--space-sm); }
+
+.tsm-slider-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.tsm-slider-label span:first-child {
+  font-size: 0.75rem;
+  color: var(--text-body);
+}
+
+.tsm-slider-label span:last-child {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tsm-slider {
+  width: 100%;
+  accent-color: var(--brand-500);
+  cursor: pointer;
+}
+
+/* 底部操作区 */
+.tsm-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--surface-hover);
+}
+
+.tsm-restore-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-body);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.2s;
+}
+
+.tsm-restore-btn:hover { background: var(--surface-hover); }
+
+.tsm-advanced-link {
+  color: var(--brand-500);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.tsm-advanced-link:hover { text-decoration: underline; }
+
+

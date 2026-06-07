@@ -31,8 +31,9 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
-<body class="app-body hub-body">
+<body data-bg-unified="true" class="app-body hub-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -45,20 +46,20 @@
     <!-- 小星 AI 助手 -->
     <div class="app-kanban" id="app-kanban"></div>
 
-    <div class="mc-page">
+    <div class="mc-page fade-in">
         <div class="mc-tabs">
             <button class="mc-tab active" data-tab="courses">📚 课程中心</button>
             <button class="mc-tab" data-tab="progress">📊 学习进度</button>
             <button class="mc-tab" data-tab="calendar">📅 学习日历</button>
         </div>
         <div class="mc-content">
-            <div class="mc-panel active" id="panel-courses">
+            <div class="mc-panel active app-content-card" id="panel-courses">
                 <div class="mc-loading">加载中...</div>
             </div>
-            <div class="mc-panel" id="panel-progress">
+            <div class="mc-panel app-content-card" id="panel-progress">
                 <div class="mc-loading">加载中...</div>
             </div>
-            <div class="mc-panel" id="panel-calendar">
+            <div class="mc-panel app-content-card" id="panel-calendar">
                 <div class="mc-loading">加载中...</div>
             </div>
         </div>

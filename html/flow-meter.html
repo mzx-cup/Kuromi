@@ -13,9 +13,10 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body flow-body">
+<body data-bg-unified="true" class="app-body flow-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -46,8 +47,8 @@
     </nav>
 
     <main class="flow-main">
-        <div class="flow-grid">
-            <div class="flow-card main-waveform">
+        <div class="flow-grid stagger">
+            <div class="flow-card app-chart-card fade-upmain-waveform">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">〰</span>
@@ -89,7 +90,7 @@
                 </div>
             </div>
 
-            <div class="flow-card stats-panel">
+            <div class="flow-card app-chart-card fade-upstats-panel">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">◈</span>
@@ -97,7 +98,7 @@
                     </h2>
                 </div>
                 <div class="stats-grid">
-                    <div class="stat-item deep-state">
+                    <div class="stat-item app-stat-carddeep-state">
                         <div class="stat-ring">
                             <svg viewBox="0 0 100 100">
                                 <circle class="ring-bg" cx="50" cy="50" r="42"/>
@@ -107,22 +108,22 @@
                         </div>
                         <span class="stat-label">深度专注率</span>
                     </div>
-                    <div class="stat-item focus-time">
+                    <div class="stat-item app-stat-cardfocus-time">
                         <div class="stat-value" id="focus-time">45:30</div>
                         <span class="stat-label">累计专注</span>
                     </div>
-                    <div class="stat-item switch-count">
+                    <div class="stat-item app-stat-cardswitch-count">
                         <div class="stat-value" id="switch-count">3</div>
                         <span class="stat-label">切屏次数</span>
                     </div>
-                    <div class="stat-item flow-score">
+                    <div class="stat-item app-stat-cardflow-score">
                         <div class="stat-value" id="flow-score">78</div>
                         <span class="stat-label">心流指数</span>
                     </div>
                 </div>
             </div>
 
-            <div class="flow-card session-panel">
+            <div class="flow-card app-chart-card fade-upsession-panel">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">◇</span>
@@ -155,7 +156,7 @@
                 </div>
             </div>
 
-            <div class="flow-card waveform-history">
+            <div class="flow-card app-chart-card fade-upwaveform-history">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">▤</span>
@@ -198,7 +199,7 @@
                 </div>
             </div>
 
-            <div class="flow-card state-indicator">
+            <div class="flow-card app-chart-card fade-upstate-indicator">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">◉</span>
@@ -225,7 +226,7 @@
                 </div>
             </div>
 
-            <div class="flow-card tips-panel">
+            <div class="flow-card app-chart-card fade-uptips-panel">
                 <div class="card-header">
                     <h2 class="card-title">
                         <span class="title-icon">💡</span>

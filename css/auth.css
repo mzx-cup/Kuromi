@@ -6,4 +6,4 @@
 .fade-in { animation: fadeIn 0.6s ease-out; }
 .auth-input { transition: all 0.3s; }
 .auth-input:focus { box-shadow: 0 0 0 3px rgba(59,130,246,0.3); }
-.particle { position: absolute; border-radius: 50%; background: rgba(255,255,255,0.1); pointer-events: none; }
+.particle { position: absolute; border-radius: 50%; background: var(--surface-card); pointer-events: none; }

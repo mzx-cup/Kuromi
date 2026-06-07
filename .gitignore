@@ -59,3 +59,12 @@ storage/task_storage/
 chrome-profile/
 user-data-dir/=0.*
 *.backup
+
+# 测试报告（自动生成的 HTML/JSON）
+tests/frontend/reports/
+
+# 前端单元测试覆盖率
+coverage/
+
+# Playwright 测试结果
+test-results/

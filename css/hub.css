@@ -9,13 +9,13 @@
    ============================================================ */
 .hub-body {
     /* 深空背景色阶 */
-    --cp-deep-core:   color-mix(in oklch, var(--neutral-900), black 35%);
-    --cp-deep-mid:    color-mix(in oklch, var(--neutral-900), black 15%);
-    --cp-deep-surface:color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%);
+    --cp-deep-core:   var(--surface-page);
+    --cp-deep-mid:    var(--surface-card);
+    --cp-deep-surface:var(--surface-hover);
 
     /* 棱晶卡片表面 & 边框 */
-    --cp-card-bg:       color-mix(in oklch, var(--neutral-700), var(--neutral-800) 60%);
-    --cp-card-bg-hover: color-mix(in oklch, var(--neutral-600), var(--neutral-700) 40%);
+    --cp-card-bg:       var(--surface-card);
+    --cp-card-bg-hover: var(--surface-hover);
     --cp-card-border:   color-mix(in oklch, var(--brand-400), transparent 92%);
     --cp-card-border-strong: color-mix(in oklch, var(--brand-400), transparent 85%);
 
@@ -39,10 +39,10 @@
     --cp-prism-color-c: color-mix(in oklch, var(--brand-300), transparent 94%);     /* 紫晶 */
     --cp-prism-color-d: color-mix(in oklch, var(--warning), transparent 92%);       /* 金色 */
 
-    /* 文本 — 深空背景适配：使用亮色中性色阶，确保可读性 */
-    --cp-text-primary:   color-mix(in oklch, var(--neutral-50), white 20%);
-    --cp-text-secondary: color-mix(in oklch, var(--neutral-300), white 15%);
-    --cp-text-tertiary:  var(--neutral-400);
+    /* 文本 — 使用语义变量，自动适配亮/暗主题 */
+    --cp-text-primary:   var(--text-heading);
+    --cp-text-secondary: var(--text-body);
+    --cp-text-tertiary:  var(--text-muted);
 
     /* 星图网格线 */
     --cp-grid-color: color-mix(in oklch, var(--info), transparent 90%);
@@ -72,7 +72,7 @@
 /* 背景容器 — 纯深空底色 */
 .hub-bg {
     position: fixed; inset: 0; z-index: -2; pointer-events: none;
-    background: #040816;  /* 星座棱晶深空底色 */
+    background: var(--surface-page);
     overflow: hidden;
 }
 
@@ -162,7 +162,7 @@
    ============================================================ */
 .hub-navbar {
     position: sticky; top: 0; z-index: 100;
-    background: color-mix(in oklch, var(--neutral-900), transparent 45%);
+    background: color-mix(in oklch, var(--surface-page), transparent 45%);
     border-bottom: 1px solid color-mix(in oklch, var(--info), transparent 86%);
     backdrop-filter: blur(44px) saturate(150%);
     -webkit-backdrop-filter: blur(44px) saturate(150%);
@@ -186,7 +186,7 @@
 .hub-nav-search { flex: 1; max-width: 360px; }
 .search-box {
     display: flex; align-items: center; gap: 8px;
-    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    background: color-mix(in oklch, var(--surface-card), transparent 58%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
     border-radius: var(--radius-full); padding: 6px 14px;
     transition: border-color var(--transition-fast);
@@ -202,7 +202,7 @@
 .search-input::placeholder { color: var(--cp-text-tertiary); }
 .search-kbd {
     font-size: 10px; padding: 2px 6px; border-radius: 4px;
-    background: color-mix(in oklch, var(--neutral-700), transparent 50%);
+    background: color-mix(in oklch, var(--surface-hover), transparent 50%);
     color: var(--cp-text-tertiary); font-family: monospace;
 }
 
@@ -258,7 +258,7 @@
 .user-pill {
     display: flex; align-items: center; gap: 8px;
     padding: 4px 12px 4px 4px; border-radius: var(--radius-full);
-    background: color-mix(in oklch, var(--neutral-800), transparent 50%);
+    background: color-mix(in oklch, var(--surface-card), transparent 50%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 84%);
     transition: border-color var(--transition-fast); text-decoration: none;
 }
@@ -278,7 +278,7 @@
    ============================================================ */
 .hub-sidebar {
     width: 200px; flex-shrink: 0;
-    background: color-mix(in oklch, var(--neutral-900), transparent 48%);
+    background: color-mix(in oklch, var(--surface-page), transparent 65%);
     border-right: 1px solid color-mix(in oklch, var(--info), transparent 87%);
     backdrop-filter: blur(32px) saturate(140%);
     display: flex; flex-direction: column; padding: var(--space-md) 0;
@@ -406,7 +406,7 @@
    ============================================================ */
 .tab-bar {
     display: flex; gap: 0; padding: 4px; margin-bottom: var(--space-md);
-    background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+    background: color-mix(in oklch, var(--surface-card), transparent 60%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
     border-radius: 12px; width: fit-content;
     backdrop-filter: blur(24px) saturate(140%);
@@ -468,12 +468,14 @@
    ============================================================ */
 .hero-banner {
     background: linear-gradient(170deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 60%), transparent 16%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 20%), transparent 16%) 100%);
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
     padding: var(--space-lg); border-radius: var(--radius-lg); margin-bottom: var(--space-md);
     border: 1px solid color-mix(in oklch, var(--info), transparent 87%);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     position: relative; overflow: hidden;
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
     box-shadow: var(--cp-prism-glow);
 }
 
@@ -505,7 +507,7 @@
 .hero-stat-capsule {
     display: flex; align-items: center; gap: 6px;
     padding: 6px 12px; border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    background: color-mix(in oklch, var(--surface-card), transparent 58%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
 }
 .hero-stat-capsule-icon { width: 16px; height: 16px; color: var(--info); }
@@ -532,12 +534,14 @@
     flex: 1; display: flex; align-items: center; gap: var(--space-md);
     padding: var(--space-md); border-radius: var(--radius-md);
     background: linear-gradient(170deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%), transparent 20%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 15%), transparent 20%) 100%);
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     transition: all var(--cp-transition); text-decoration: none; cursor: pointer;
     box-shadow: var(--cp-prism-glow);
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
 }
 .overview-action-card:hover {
     transform: translateY(-2px);
@@ -563,67 +567,52 @@
 .card-prism, .hub-card, .feature-card, .content-card, .compact-card, .flow-resonance-card,
 .study-hall-card, .holo-incubator, .mothership-card, .chart-card {
     background: linear-gradient(170deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 60%), transparent 22%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 20%), transparent 22%) 100%);
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
+    border: 1px solid var(--cp-card-border);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     padding: var(--space-lg);
     position: relative;
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
     box-shadow: var(--cp-prism-glow);
     transition: all var(--cp-transition);
     overflow: hidden;
 }
 
-/* 悬浮增强 */
+/* 卡片悬浮增强 */
 .hub-card:hover, .feature-card:hover, .content-card:hover, .compact-card:hover,
 .chart-card:hover, .overview-action-card:hover {
     box-shadow: var(--cp-prism-glow-hover);
     border-color: var(--cp-card-border-strong);
+    background: linear-gradient(170deg,
+        color-mix(in oklch, var(--surface-card), transparent 58%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 90%), transparent 48%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 58%) 100%);
 }
 
 /* 卡片内侧微边框 */
 .card-prism::after, .hub-card::after, .feature-card::after {
     content: ''; position: absolute; inset: 1px; pointer-events: none;
-    clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+    border-radius: inherit;
     box-shadow: inset 0 0 0 1px color-mix(in oklch, white, transparent 98%);
 }
 
-/* --- 棱晶角落折射（装饰层） --- */
-.prism-corner {
-    position: absolute; width: 90px; height: 90px; overflow: hidden; pointer-events: none; z-index: 0;
-}
-.prism-corner-tl { top: -1px; left: -1px; }
-.prism-corner-tr { top: -1px; right: -1px; }
-.prism-corner-bl { bottom: -1px; left: -1px; }
-.prism-corner-br { bottom: -1px; right: -1px; }
-
-.prism-corner-tl .prism-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, var(--cp-prism-color-a) 0%, color-mix(in oklch, var(--info), transparent 94%) 25%, var(--cp-prism-color-c) 55%, transparent 75%);
-    clip-path: polygon(0 0, 90px 0, 0 90px);
-}
-.prism-corner-tl .prism-layer-2 {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, transparent 20%, color-mix(in oklch, var(--info), transparent 96%) 40%, transparent 60%);
-    clip-path: polygon(0 0, 60px 0, 0 60px);
+/* 导航栏 / 侧边栏 / 右侧面板 — 透明毛玻璃 */
+.hub-navbar,
+.hub-sidebar,
+.hub-right-panel {
+    background: linear-gradient(170deg,
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    border-color: var(--cp-card-border);
 }
 
-.prism-corner-tr .prism-layer {
-    position: absolute; top: 0; right: 0; width: 100%; height: 100%;
-    background: linear-gradient(225deg, var(--cp-prism-color-d) 0%, color-mix(in oklch, var(--warning), transparent 94%) 35%, transparent 65%);
-    clip-path: polygon(100% 0, 0 0, 100% 100%);
-}
-
-.prism-corner-br .prism-layer {
-    position: absolute; bottom: 0; right: 0; width: 100%; height: 100%;
-    background: linear-gradient(315deg, color-mix(in oklch, var(--info), transparent 88%) 0%, color-mix(in oklch, var(--warning), transparent 94%) 35%, transparent 65%);
-    clip-path: polygon(100% 100%, 0 100%, 100% 0);
-}
-
-.prism-corner-bl .prism-layer {
-    position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(45deg, var(--cp-prism-color-c) 0%, color-mix(in oklch, var(--brand-300), transparent 94%) 30%, transparent 60%);
-    clip-path: polygon(0 100%, 100% 100%, 0 0);
-}
+/* --- 棱晶角落折射（装饰层 — 已移除，改用圆角设计） --- */
 
 /* ============================================================
    10. 功能卡片网格
@@ -634,10 +623,6 @@
 .feature-card {
     display: flex; flex-direction: column; gap: var(--space-sm);
     padding: var(--space-md); text-decoration: none; cursor: pointer;
-    background: linear-gradient(170deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%), transparent 20%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 15%), transparent 20%) 100%);
-    border: 1px solid var(--cp-card-border);
 }
 
 .feature-card-badge {
@@ -673,7 +658,7 @@
 /* ============================================================
    11. 每日航线卡片
    ============================================================ */
-.mothership-card { padding: 0; overflow: visible; }
+.mothership-card { padding: 0; overflow: hidden; }
 .route-content { padding: var(--space-lg); }
 
 .launch-engine { text-align: center; padding: var(--space-xl) 0; }
@@ -839,7 +824,7 @@
 .holo-node .node-sphere { position: relative; width: 36px; height: 36px; flex-shrink: 0; }
 .holo-node .node-inner {
     width: 100%; height: 100%; border-radius: 50%;
-    background: color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%);
+    background: var(--surface-hover);
     border: 2px solid var(--success);
     display: flex; align-items: center; justify-content: center;
     position: relative; z-index: 1;
@@ -869,7 +854,7 @@
 .holo-stats-bar {
     display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
     padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    background: color-mix(in oklch, var(--surface-card), transparent 58%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
 }
 .stat-item { display: flex; align-items: baseline; gap: 4px; }
@@ -888,7 +873,7 @@
     width: 100%; height: 100%; border-radius: 50%;
     border: 2px solid color-mix(in oklch, var(--info), transparent 70%);
     overflow: hidden;
-    background: color-mix(in oklch, var(--neutral-700), var(--neutral-900) 40%);
+    background: var(--surface-hover);
 }
 .avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .online-indicator {
@@ -934,7 +919,7 @@
 .task-item {
     display: flex; align-items: center; gap: var(--space-sm);
     padding: var(--space-sm); border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+    background: color-mix(in oklch, var(--surface-card), transparent 60%);
 }
 .task-status { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 .task-status.completed { background: var(--success); }
@@ -998,7 +983,7 @@
 .heatmap-row { display: flex; gap: 2px; align-items: center; }
 .heatmap-hour {
     flex: 1; aspect-ratio: 1; border-radius: 3px;
-    background: color-mix(in oklch, var(--neutral-700), var(--neutral-800) 50%);
+    background: var(--surface-hover);
     transition: background var(--transition-base);
 }
 .heatmap-hour.level-1 { background: color-mix(in oklch, var(--success), transparent 75%); }
@@ -1024,7 +1009,7 @@
    ============================================================ */
 .hub-right-panel {
     width: 220px; flex-shrink: 0; overflow-y: auto;
-    background: color-mix(in oklch, var(--neutral-900), transparent 45%);
+    background: color-mix(in oklch, var(--surface-page), transparent 45%);
     border-left: 1px solid color-mix(in oklch, var(--info), transparent 87%);
     backdrop-filter: blur(32px) saturate(140%);
     padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-md);
@@ -1047,7 +1032,7 @@
 
 .highlight-card {
     padding: var(--space-sm); border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    background: color-mix(in oklch, var(--surface-card), transparent 58%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
     cursor: pointer; transition: all var(--transition-fast);
 }
@@ -1094,7 +1079,7 @@
    ============================================================ */
 .notification-panel {
     position: fixed; top: 56px; right: 16px; width: 380px; max-height: calc(100vh - 80px);
-    background: color-mix(in oklch, var(--neutral-800), transparent 22%);
+    background: color-mix(in oklch, var(--surface-card), transparent 35%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 82%);
     border-radius: var(--radius-lg); z-index: 150;
     box-shadow: 0 12px 50px color-mix(in oklch, black, transparent 40%);
@@ -1157,7 +1142,7 @@
 }
 .news-modal-card {
     position: relative; width: 90%; max-width: 700px; max-height: 80vh;
-    background: color-mix(in oklch, var(--neutral-800), transparent 20%);
+    background: color-mix(in oklch, var(--surface-card), transparent 35%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 82%);
     border-radius: var(--radius-lg); overflow: hidden;
     box-shadow: 0 20px 60px color-mix(in oklch, black, transparent 30%);
@@ -1187,7 +1172,7 @@
 .news-modal-list { display: flex; flex-direction: column; gap: var(--space-sm); }
 .news-modal-item {
     padding: var(--space-md); border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    background: color-mix(in oklch, var(--surface-card), transparent 58%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
     cursor: pointer; transition: all var(--transition-fast);
 }
@@ -1221,7 +1206,7 @@
 }
 .review-modal.active { display: flex; }
 .review-modal-content {
-    background: color-mix(in oklch, var(--neutral-800), transparent 18%);
+    background: color-mix(in oklch, var(--surface-card), transparent 18%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 78%);
     border-radius: var(--radius-lg); padding: var(--space-lg);
     max-width: 480px; width: 90%;
@@ -1240,7 +1225,7 @@
     padding: 8px 16px; border-radius: var(--radius-full);
     font-size: var(--text-sm); font-weight: var(--font-medium);
     border: 1px solid var(--cp-card-border);
-    background: color-mix(in oklch, var(--neutral-800), transparent 50%);
+    background: color-mix(in oklch, var(--surface-card), transparent 50%);
     color: var(--cp-text-secondary); cursor: pointer;
     transition: all var(--transition-fast);
 }
@@ -1269,7 +1254,7 @@
 .route-scroll-actions { display: flex; gap: var(--space-sm); justify-content: center; margin-top: var(--space-sm); }
 .route-scroll-btn {
     width: 32px; height: 32px; border-radius: 50%;
-    background: color-mix(in oklch, var(--neutral-800), transparent 40%);
+    background: color-mix(in oklch, var(--surface-card), transparent 40%);
     border: 1px solid var(--cp-card-border);
     color: var(--cp-text-secondary); display: flex; align-items: center; justify-content: center;
     transition: all var(--transition-fast); cursor: pointer; font-size: 16px;
@@ -1301,8 +1286,12 @@
 .route-overview-card {
     width: 180px; flex-shrink: 0; padding: var(--space-md);
     background: linear-gradient(180deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%), transparent 22%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 15%), transparent 22%) 100%);
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
+    border-radius: 0;
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     border-right: 1px solid var(--cp-card-border);
     display: flex; flex-direction: column; gap: var(--space-sm);
     position: relative;
@@ -1345,8 +1334,11 @@
 .route-task-card {
     flex-shrink: 0; width: 210px; padding: var(--space-md);
     background: linear-gradient(170deg,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%), transparent 22%) 0%,
-        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 15%), transparent 22%) 100%);
+        color-mix(in oklch, var(--surface-card), transparent 65%) 0%,
+        color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 55%) 35%,
+        color-mix(in oklch, var(--surface-page), transparent 65%) 100%);
+    backdrop-filter: blur(28px) saturate(140%);
+    -webkit-backdrop-filter: blur(28px) saturate(140%);
     border: 1px solid var(--cp-card-border);
     border-radius: var(--radius-md); cursor: pointer;
     transition: all 0.3s var(--ease-out); position: relative;
@@ -1379,7 +1371,7 @@
 .task-card-header { display: flex; align-items: flex-start; gap: var(--space-sm); }
 .task-step {
     width: 28px; height: 28px; border-radius: var(--radius-sm); flex-shrink: 0;
-    background: color-mix(in oklch, var(--neutral-600), var(--neutral-700) 50%);
+    background: var(--surface-elevated);
     color: var(--cp-text-secondary);
     font-size: var(--text-xs); font-weight: var(--font-bold);
     display: flex; align-items: center; justify-content: center;
@@ -1423,7 +1415,7 @@
 .task-row {
     display: flex; align-items: center; gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md); border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--neutral-800), transparent 50%);
+    background: color-mix(in oklch, var(--surface-card), transparent 50%);
     flex-shrink: 0; min-width: 180px;
     transition: background var(--transition-fast);
 }
@@ -1665,7 +1657,7 @@
     display: flex; flex-direction: column; gap: 8px; pointer-events: none;
 }
 .toast-item {
-    background: color-mix(in oklch, var(--neutral-800), transparent 18%);
+    background: color-mix(in oklch, var(--surface-card), transparent 18%);
     border: 1px solid color-mix(in oklch, var(--info), transparent 78%);
     border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md);
     box-shadow: 0 8px 30px color-mix(in oklch, black, transparent 40%);

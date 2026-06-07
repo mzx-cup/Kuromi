@@ -187,8 +187,8 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -256,7 +256,7 @@ body {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--surface-card);
     transition: all 0.3s ease;
     cursor: pointer;
 }
@@ -309,8 +309,8 @@ body {
     border-radius: 10px;
     font-weight: 500;
     transition: all 0.2s ease;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     color: #9ca3af;
 }
 
@@ -432,9 +432,9 @@ kbd {
 
 /* 毛玻璃效果增强 */
 .glass-modal {
-    background: rgba(15, 15, 35, 0.9);
+    background: var(--surface-card);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
     box-shadow:
         0 0 60px rgba(168, 85, 247, 0.1),
         0 25px 50px -12px rgba(0, 0, 0, 0.5);

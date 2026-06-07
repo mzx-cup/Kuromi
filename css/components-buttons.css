@@ -1,0 +1,143 @@
+/* ============================================================
+   三、通用按钮（app-btn）
+   适用：所有交互按钮
+   ============================================================ */
+
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  line-height: 1;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+  user-select: none;
+}
+
+.app-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary */
+.app-btn-primary {
+  background: var(--brand-500);
+  color: var(--text-on-brand);
+  box-shadow: 0 2px 8px color-mix(in oklch, var(--brand-500), transparent 70%);
+}
+
+.app-btn-primary:hover:not(:disabled) {
+  background: var(--brand-600);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px color-mix(in oklch, var(--brand-500), transparent 60%);
+}
+
+.app-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px color-mix(in oklch, var(--brand-500), transparent 70%);
+}
+
+/* Secondary */
+.app-btn-secondary {
+  background: var(--btn-secondary-bg);
+  color: var(--text-body);
+  border: 1px solid var(--border-color);
+}
+
+.app-btn-secondary:hover:not(:disabled) {
+  background: var(--btn-secondary-hover);
+  border-color: var(--neutral-300);
+}
+
+/* Ghost */
+.app-btn-ghost {
+  background: transparent;
+  color: var(--text-body);
+}
+
+.app-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+/* Danger */
+.app-btn-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.app-btn-danger:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--danger), transparent 80%);
+}
+
+/* 尺寸变体 */
+.app-btn-sm {
+  height: 32px;
+  padding: 0 14px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+.app-btn-lg {
+  height: 48px;
+  padding: 0 28px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+}
+
+/* 图标按钮（方形） */
+.app-btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+
+.app-btn-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+
+/* ===== Button Enhancements ===== */
+
+/* Button — outline variant */
+.app-btn-outline {
+  background: transparent; border: 1.5px solid var(--brand-400);
+  color: var(--brand-400);
+}
+.app-btn-outline:hover { background: var(--brand-400); color: white; }
+
+/* Button — glass variant */
+.app-btn-glass {
+  background: color-mix(in oklch, var(--surface-card), transparent 40%);
+  backdrop-filter: blur(8px); border: 1px solid color-mix(in oklch, var(--border-color), transparent 50%);
+}
+
+/* Button — link variant */
+.app-btn-link {
+  background: transparent; border: none; color: var(--brand-400);
+  padding: 0; text-decoration: underline; text-underline-offset: 2px;
+}
+.app-btn-link:hover { color: var(--brand-500); }
+
+/* Button — loading state */
+.app-btn-loading { position: relative; color: transparent !important; pointer-events: none; }
+.app-btn-loading::after {
+  content: ''; position: absolute; inset: 0; margin: auto;
+  width: 16px; height: 16px; border: 2px solid transparent;
+  border-top-color: currentColor; border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Button — block (full width) */
+.app-btn-block { width: 100%; display: flex; justify-content: center; }
+

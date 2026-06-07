@@ -1,0 +1,191 @@
+/* ============================================================
+   四、通用卡片（app-card）
+   适用：内容块、信息面板、列表项容器
+   ============================================================ */
+
+.app-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glass);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.app-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border-glass-hover);
+}
+
+/* 无背景变体 */
+.app-card-ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: var(--space-lg);
+}
+
+.app-card-ghost:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 毛玻璃变体 */
+.app-card-glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+
+/* 卡片头部 */
+.app-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
+}
+
+.app-card-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.app-card-desc {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+/* 卡片操作区 */
+.app-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+
+/* ===== Unified Card System ===== */
+.app-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== Card Variants ===== */
+.app-card-glass {
+  background: color-mix(in oklch, var(--surface-card), transparent 30%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.app-card-ghost { background: transparent; border-color: transparent; box-shadow: none; }
+.app-card-interactive { cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.app-card-interactive:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+.app-card-compact { padding: var(--space-sm); }
+
+/* ---------- Stat Card ---------- */
+.app-stat-card {
+  display: flex; flex-direction: column; gap: 4px; padding: var(--space-md);
+  background: var(--surface-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.app-stat-card .app-stat-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); }
+.app-stat-card .app-stat-value { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-heading); line-height: 1.2; }
+.app-stat-card .app-stat-label { font-size: var(--text-xs); color: var(--text-muted); }
+.app-stat-card .app-stat-delta { font-size: var(--text-xs); display: flex; align-items: center; gap: 4px; }
+.app-stat-card .app-stat-delta.up { color: var(--success); }
+.app-stat-card .app-stat-delta.down { color: var(--danger); }
+
+/* ---------- Content Card ---------- */
+.app-content-card {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); transition: box-shadow 0.2s ease;
+}
+.app-content-card .app-card-thumb {
+  width: 100%; height: 160px; object-fit: cover; background: var(--surface-hover);
+  display: flex; align-items: center; justify-content: center;
+}
+.app-content-card .app-card-body { padding: var(--space-md); display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.app-content-card .app-card-title { font-size: var(--text-base); font-weight: var(--font-semibold); color: var(--text-heading); }
+.app-content-card .app-card-desc { font-size: var(--text-sm); color: var(--text-muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.app-content-card .app-card-meta { font-size: var(--text-xs); color: var(--text-muted); display: flex; gap: 12px; }
+.app-content-card .app-card-actions { padding: 0 var(--space-md) var(--space-md); display: flex; gap: 8px; }
+
+/* ---------- Action Card ---------- */
+.app-action-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: var(--space-lg); text-align: center; cursor: pointer;
+  background: var(--surface-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+.app-action-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
+.app-action-card .app-card-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-md); }
+.app-action-card .app-card-title { font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-heading); }
+.app-action-card .app-card-desc { font-size: var(--text-xs); color: var(--text-muted); }
+
+/* ---------- Form Card ---------- */
+.app-form-card {
+  background: var(--surface-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: var(--space-lg);
+}
+.app-form-card .app-card-header { margin-bottom: var(--space-md); }
+.app-form-card .app-card-header h2 { font-size: var(--text-xl); font-weight: var(--font-bold); color: var(--text-heading); }
+.app-form-card .app-card-footer { margin-top: var(--space-md); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ---------- Chart Card ---------- */
+.app-chart-card {
+  background: var(--surface-card); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  padding: var(--space-md); overflow: hidden;
+}
+.app-chart-card .app-card-header { margin-bottom: var(--space-sm); font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-heading); }
+.app-chart-card .app-chart-body { width: 100%; min-height: 200px; }
+
+/* ---------- Prism Corner Decor ---------- */
+.app-card-prism { position: relative; overflow: hidden; }
+.app-card-prism::before {
+  content: ''; position: absolute; top: 0; right: 0;
+  width: 0; height: 0;
+  border-style: solid;
+  border-width: 0 24px 24px 0;
+  border-color: transparent var(--brand-300) transparent transparent;
+  opacity: 0.4; transition: opacity 0.3s ease;
+}
+.app-card-prism:hover::before { opacity: 0.7; }
+
+/* ===== Legacy Class Name Compatibility ===== */
+.stat-card, .dd-stat, .metric-panel, .summary-card,
+.hub-stat, .progress-stat, .dashboard-stat, .teacher-stat,
+.calendar-stat, .flow-stat, .quantum-metric, .cockpit-stat-card {
+  /* Inherits from .app-stat-card via page migration */
+}
+
+.content-card, .resource-card, .class-card, .exam-card,
+.video-info-panel, .player-shell, .plant-info-panel {
+  /* Inherits from .app-content-card */
+}
+
+.feature-card, .func-card, .overview-action-card, .compact-card,
+.pref-card, .brief-card, .dimension-card, .option-btn {
+  /* Inherits from .app-action-card */
+}
+
+.auth-card-inner, .form-card, .setting-card {
+  /* Inherits from .app-form-card */
+}
+
+.chart-card, .td-chart-box, .flow-card, .badge-card,
+.plant-detail-card, .main-card {
+  /* Inherits from .app-chart-card */
+}
+

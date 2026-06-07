@@ -14,9 +14,10 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body text-white min-h-screen">
+<body data-bg-unified="true" class="app-body text-white min-h-screen">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -29,7 +30,7 @@
     <!-- ==========================================
          IDE 主体
          ========================================== -->
-    <div id="ide-modal" class="fixed inset-0 z-50 flex flex-col">
+    <div id="ide-modal" class="fixed inset-0 z-50 flex flex-col fade-in">
 
         <!-- 顶部学习状态栏 -->
         <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-indigo-500/20 px-4 py-3">

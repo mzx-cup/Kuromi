@@ -17,8 +17,9 @@
     <script src="/js/http-intercept.js"></script>
     <script src="/js/loading.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
-<body class="app-body settings-body">
+<body data-bg-unified="true" class="app-body settings-body">
     <!-- Global Wallpaper Background Layer -->
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
@@ -113,6 +114,8 @@
             <div class="settings-content">
                 <!-- Appearance Section -->
                 <section class="settings-section active" id="section-appearance">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>外观设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">外观设置</h2>
                         <p class="section-desc">自定义界面外观和颜色主题</p>
@@ -123,7 +126,7 @@
                                 <span class="setting-label">深色模式</span>
                                 <span class="setting-desc">开启深色背景，减少眼睛疲劳</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="dark-mode" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -133,7 +136,7 @@
                                 <span class="setting-label">毛玻璃效果</span>
                                 <span class="setting-desc">启用卡片毛玻璃模糊效果</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="glass-effect" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -143,7 +146,7 @@
                                 <span class="setting-label">动画效果</span>
                                 <span class="setting-desc">启用页面过渡动画</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="animations" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -288,13 +291,21 @@
                             <button class="action-btn token-save-btn" id="save-custom-theme-btn">保存为自定义主题</button>
                             <button class="action-btn" id="reset-token-editor-btn">重置</button>
                         </div>
+                        <div class="token-action-buttons" style="margin-top:12px;">
+                            <button class="app-btn-outline" onclick="StarTheme.exportTheme(StarTheme.getState().theme)">导出当前主题 ↓</button>
+                            <button class="app-btn-outline" onclick="document.getElementById('importFileInput').click()">导入主题 ↑</button>
+                            <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="StarTheme.importTheme(this)">
+                        </div>
                     </div>
                 </div>
 
+                    </div>
                 </section>
 
                 <!-- Notifications Section -->
                 <section class="settings-section" id="section-notifications">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>通知设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">通知设置</h2>
                         <p class="section-desc">管理学习提醒和系统通知</p>
@@ -305,7 +316,7 @@
                                 <span class="setting-label">推送通知</span>
                                 <span class="setting-desc">接收系统推送消息</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="push-notifications" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -315,7 +326,7 @@
                                 <span class="setting-label">学习提醒</span>
                                 <span class="setting-desc">定时提醒学习时间</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="study-reminder" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -332,7 +343,7 @@
                                 <span class="setting-label">成就通知</span>
                                 <span class="setting-desc">学习成就解锁时通知</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="achievement-notify" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -342,16 +353,19 @@
                                 <span class="setting-label">邮件通知</span>
                                 <span class="setting-desc">接收学习报告邮件</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="email-notifications">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
                     </div>
+                    </div>
                 </section>
 
                 <!-- Privacy Section -->
                 <section class="settings-section" id="section-privacy">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>隐私设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">隐私设置</h2>
                         <p class="section-desc">控制数据共享和隐私选项</p>
@@ -362,7 +376,7 @@
                                 <span class="setting-label">学习数据同步</span>
                                 <span class="setting-desc">同步学习记录到云端</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="data-sync" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -372,7 +386,7 @@
                                 <span class="setting-label">匿名使用统计</span>
                                 <span class="setting-desc">帮助改进产品，共享匿名数据</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="analytics">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -382,7 +396,7 @@
                                 <span class="setting-label">活动历史记录</span>
                                 <span class="setting-desc">记录页面访问和操作历史</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="activity-history" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -392,16 +406,19 @@
                                 <span class="setting-label">公开个人资料</span>
                                 <span class="setting-desc">允许其他用户查看您的资料</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="public-profile">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
                     </div>
+                    </div>
                 </section>
 
                 <!-- Display Section -->
                 <section class="settings-section" id="section-display">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>显示设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">显示设置</h2>
                         <p class="section-desc">调整界面显示偏好</p>
@@ -412,7 +429,7 @@
                                 <span class="setting-label">侧边栏默认展开</span>
                                 <span class="setting-desc">启动时自动展开侧边栏</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="sidebar-expanded">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -422,7 +439,7 @@
                                 <span class="setting-label">紧凑模式</span>
                                 <span class="setting-desc">减少界面元素间距</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="compact-mode">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -451,10 +468,13 @@
                             </select>
                         </div>
                     </div>
+                    </div>
                 </section>
 
                 <!-- Sound Section -->
                 <section class="settings-section" id="section-sound">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>声音设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">声音设置</h2>
                         <p class="section-desc">配置界面音效和提示音</p>
@@ -465,7 +485,7 @@
                                 <span class="setting-label">界面音效</span>
                                 <span class="setting-desc">启用按钮点击等界面音效</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="ui-sounds">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -475,7 +495,7 @@
                                 <span class="setting-label">通知提示音</span>
                                 <span class="setting-desc">新消息和提醒的声音</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="notification-sounds" checked>
                                 <span class="toggle-slider"></span>
                             </label>
@@ -492,16 +512,19 @@
                                 <span class="setting-label">语音播报</span>
                                 <span class="setting-desc">AI回答支持语音朗读</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="voice-readout">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
                     </div>
+                    </div>
                 </section>
 
                 <!-- Language Section -->
                 <section class="settings-section" id="section-language">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>语言设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">语言设置</h2>
                         <p class="section-desc">选择界面显示语言</p>
@@ -531,10 +554,13 @@
                             </select>
                         </div>
                     </div>
+                    </div>
                 </section>
 
                 <!-- Account Section -->
                 <section class="settings-section" id="section-account">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>账户设置</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">账户设置</h2>
                         <p class="section-desc">管理账户信息和安全设置</p>
@@ -559,7 +585,7 @@
                                 <span class="setting-label">双因素认证</span>
                                 <span class="setting-desc">启用双重身份验证</span>
                             </div>
-                            <label class="toggle-switch">
+                            <label class="toggle-switch app-toggle">
                                 <input type="checkbox" id="two-factor">
                                 <span class="toggle-slider"></span>
                             </label>
@@ -588,6 +614,8 @@
 
                 <!-- Data Section -->
                 <section class="settings-section" id="section-data">
+                    <div class="app-form-card">
+                        <div class="app-card-header"><h2>数据管理</h2></div>
                     <div class="section-header">
                         <h2 class="section-title">数据管理</h2>
                         <p class="section-desc">导入导出和清理数据</p>
@@ -642,6 +670,7 @@
                             </div>
                             <button class="danger-btn" id="reset-progress-btn">重置进度</button>
                         </div>
+                    </div>
                     </div>
                 </section>
             </div>

@@ -65,7 +65,7 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    background: linear-gradient(90deg, transparent, var(--border-glass), transparent);
     animation: shimmer 2s ease infinite;
 }
 
@@ -120,14 +120,14 @@ body {
 }
 
 .export-btn.secondary {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #d1d5db;
 }
 
 .export-btn.secondary:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--surface-card);
+    border-color: var(--text-muted);
     color: white;
 }
 
@@ -167,7 +167,7 @@ body {
 
 .tab-btn:hover {
     color: #d1d5db;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
 }
 
 .tab-btn.active {
@@ -253,7 +253,7 @@ body {
 
 /* 项目列表 */
 #projects-panel {
-    box-shadow: -4px 0 30px rgba(0, 0, 0, 0.3);
+    box-shadow: -4px 0 30px var(--shadow-lg);
 }
 
 .project-item {
@@ -262,7 +262,7 @@ body {
     margin-bottom: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-glass);
     border: 1px solid transparent;
 }
 
@@ -273,7 +273,7 @@ body {
 
 .project-item.active {
     background: rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: var(--brand-300);
 }
 
 .delete-btn {
@@ -307,18 +307,18 @@ body {
 .tech-card {
     padding: 20px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     transition: all 0.3s ease;
     animation: fadeInUp 0.5s ease forwards;
     opacity: 0;
 }
 
 .tech-card:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(99, 102, 241, 0.3);
+    background: var(--surface-hover);
+    border-color: var(--brand-300);
     transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+    box-shadow: 0 8px 30px var(--shadow-lg);
 }
 
 .tech-card-header {
@@ -347,7 +347,7 @@ body {
 
 .tech-progress {
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -379,7 +379,7 @@ body {
     gap: 20px;
     margin-bottom: 20px;
     padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-glass);
     border-radius: 10px;
     font-size: 12px;
 }
@@ -409,7 +409,7 @@ body {
 }
 
 .er-table {
-    background: rgba(20, 20, 40, 0.8);
+    background: var(--surface-card);
     border: 1px solid rgba(99, 102, 241, 0.3);
     border-radius: 12px;
     overflow: hidden;
@@ -497,7 +497,7 @@ body {
     left: 24px;
     right: 0;
     height: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
     border-radius: 2px;
     z-index: 0;
 }
@@ -561,8 +561,8 @@ body {
 }
 
 .timeline-content {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
     border-radius: 14px;
     padding: 20px;
     transition: all 0.3s ease;
@@ -570,7 +570,7 @@ body {
 
 .timeline-item.current .timeline-content {
     background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: var(--brand-300);
 }
 
 .timeline-header {
@@ -605,7 +605,7 @@ body {
 }
 
 .timeline-task:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-glass);
 }
 
 .timeline-task input[type="checkbox"] {

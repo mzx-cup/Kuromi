@@ -41,9 +41,11 @@ document.addEventListener('alpine:init', () => {
           }
         } else {
           this.error = data.detail || '登录失败';
+          window.Toast && Toast.error(this.error || '登录失败');
         }
       } catch (e) {
         this.error = '网络错误，请稍后重试';
+        window.Toast && Toast.error(this.error || '登录失败');
       } finally {
         this.loading = false;
       }

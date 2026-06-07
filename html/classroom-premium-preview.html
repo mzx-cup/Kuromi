@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-bg-unified="true" lang="zh-CN" data-theme="premium-dark">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -231,8 +231,9 @@
     <script src="/js/auth.js"></script>
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
-<body class="app-body">
+<body data-bg-unified="true" class="app-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -242,7 +243,7 @@
     </div>
 
 
-<div class="classroom">
+<div class="classroom fade-in">
 
   <!-- Immersive radial gradient background -->
   <div class="classroom-bg"></div>
@@ -290,19 +291,19 @@
 
         <div class="card-grid">
           <!-- Card 1 -->
-          <div class="insight-card">
+          <div class="insight-card app-content-card">
             <div class="card-icon blue"><i class="fas fa-server"></i></div>
             <h3>NameNode</h3>
             <p>主控节点，管理文件系统命名空间、维护文件到数据块的映射关系。所有元数据存储在内存中以保证高性能。</p>
           </div>
           <!-- Card 2 -->
-          <div class="insight-card">
+          <div class="insight-card app-content-card">
             <div class="card-icon purple"><i class="fas fa-database"></i></div>
             <h3>DataNode</h3>
             <p>工作节点，负责实际存储数据块。默认每个块 128MB，复制 3 份到不同节点以保障容错性。</p>
           </div>
           <!-- Card 3 -->
-          <div class="insight-card">
+          <div class="insight-card app-content-card">
             <div class="card-icon green"><i class="fas fa-shield-haltered"></i></div>
             <h3>副本策略</h3>
             <p>机架感知（Rack Awareness）：第一份存本地机架，第二份存同机架另一节点，第三份存不同机架。</p>
@@ -333,7 +334,7 @@
     </main>
 
     <!-- Right: Chat Panel -->
-    <aside class="chat-panel">
+    <aside class="chat-panel app-form-card">
       <div class="chat-header">
         <i class="fas fa-comments" style="color:var(--primary-light);"></i>
         <span>课堂讨论</span>

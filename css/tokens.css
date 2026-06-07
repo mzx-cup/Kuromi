@@ -9,8 +9,20 @@
    LAYER 1 — 原始令牌（按主题）
    ============================================================ */
 
-/* ---- warm-morning  日出晨光 (默认亮色) ---- */
-:root, [data-theme="warm-morning"] {
+/* ---- 默认主题：deep-ocean  深海 (深邃蓝绿暗色) ---- */
+:root {
+    --_brand-h: 200;           --_brand-c: 0.20;       --_brand-l: 58%;
+    --_success-h: 160;         --_success-c: 0.15;     --_success-l: 60%;
+    --_warning-h: 45;          --_warning-c: 0.18;     --_warning-l: 66%;
+    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 56%;
+    --_info-h: 195;            --_info-c: 0.16;        --_info-l: 64%;
+    --_neutral-h: 215;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
+    --_color-scheme: dark;
+}
+
+/* ---- warm-morning  日出晨光 (亮色) ---- */
+[data-theme="warm-morning"] {
     --_brand-h: 42;            --_brand-c: 0.18;       --_brand-l: 62%;
     --_success-h: 145;         --_success-c: 0.16;     --_success-l: 58%;
     --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
@@ -214,11 +226,11 @@
     --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 40%);
     --surface-nav:     color-mix(in oklch, var(--neutral-50), transparent 15%);
 
-    /* 毛玻璃表面 */
-    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 20%);
-    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 15%);
-    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 40%);
-    --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 30%);
+    /* 毛玻璃表面 — 统一 glassmorphism: 半透明 + backdrop-filter */
+    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 65%);
+    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 55%);
+    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 60%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 40%);
 
     /* 品牌强调背景/边框 */
     --accent-bg:     color-mix(in oklch, var(--brand-500), transparent 88%);
@@ -238,6 +250,11 @@
     --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
     --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
     --shadow-xl: 0 24px 64px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 400%)));
+    --shadow-inset: inset 0 2px 4px rgba(0,0,0, calc(var(--_shadow-strength) * 0.5));
+    --shadow-glow: 0 0 20px color-mix(in oklch, var(--brand-400), transparent 60%);
+    --shadow-card-hover: 0 8px 30px rgba(0,0,0, calc(var(--_shadow-strength) * 1.2));
+    --shadow-modal: 0 20px 60px rgba(0,0,0, calc(var(--_shadow-strength) * 1.5));
+    --shadow-toast: 0 4px 20px rgba(0,0,0, calc(var(--_shadow-strength) * 1));
 
     /* 文字色 */
     --text-heading:     var(--neutral-900);
@@ -309,6 +326,13 @@
     --card-bg:        var(--surface-card);
     --card-border:    var(--border-color);
     --surface-elevated: var(--surface-card);
+    --surface-raised: color-mix(in oklch, var(--surface-card), white 5%);
+    --surface-sunken: color-mix(in oklch, var(--surface-card), black 5%);
+    --separator: color-mix(in oklch, var(--border-color), transparent 50%);
+    --overlay-dim: rgba(0, 0, 0, 0.5);
+    --focus-ring: 0 0 0 3px color-mix(in oklch, var(--brand-400), transparent 60%);
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --radius-pill: 9999px;
 
     /* 输入框语义 */
     --input-border:       var(--border-color);
@@ -317,6 +341,23 @@
 
     /* 间距补充 */
     --space-2xl: 64px;
+    --space-3xl: 80px;
+    --space-section: 48px;
+    --space-gutter: 24px;
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap-md: 16px;
+    --gap-lg: 24px;
+    --gap-xl: 32px;
+
+    /* ===== Z-Index Scale ===== */
+    --z-base: 0;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-toast: 1100;
+    --z-tooltip: 1200;
 }
 
 /* ============================================================
@@ -368,8 +409,8 @@
     --surface-page:     #1a1d23;
     --surface-card:     rgba(30, 41, 59, 0.72);
     --surface-hover:    rgba(30, 41, 59, 0.88);
-    --surface-glass:    rgba(30, 41, 59, 0.6);
-    --surface-glass-hover: rgba(30, 41, 59, 0.75);
+    --surface-glass:    rgba(30, 41, 59, 0.4);
+    --surface-glass-hover: rgba(30, 41, 59, 0.55);
     --border-glass:     rgba(255, 255, 255, 0.12);
     --border-glass-hover: rgba(168, 85, 247, 0.25);
     --glass-blur:       24px;
@@ -443,8 +484,8 @@
     --surface-page:    #0a1628;
     --surface-card:    rgba(15, 30, 55, 0.75);
     --surface-hover:   rgba(20, 42, 72, 0.88);
-    --surface-glass:   rgba(15, 30, 55, 0.55);
-    --surface-glass-hover: rgba(20, 42, 72, 0.7);
+    --surface-glass:   rgba(15, 30, 55, 0.4);
+    --surface-glass-hover: rgba(20, 42, 72, 0.55);
     --border-glass:    rgba(56, 189, 248, 0.15);
     --border-glass-hover: rgba(56, 189, 248, 0.35);
     --glass-blur:      22px;
@@ -563,8 +604,8 @@
     --surface-page:    #080c24;
     --surface-card:    rgba(18, 24, 58, 0.72);
     --surface-hover:   rgba(24, 32, 72, 0.85);
-    --surface-glass:   rgba(18, 24, 58, 0.52);
-    --surface-glass-hover: rgba(24, 32, 72, 0.68);
+    --surface-glass:   rgba(18, 24, 58, 0.4);
+    --surface-glass-hover: rgba(24, 32, 72, 0.55);
     --border-glass:    rgba(250, 204, 21, 0.15);
     --border-glass-hover: rgba(250, 204, 21, 0.35);
     --glass-blur:      24px;

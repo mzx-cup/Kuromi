@@ -70,6 +70,54 @@ const Auth = (() => {
     return me && me.role === 'admin';
   }
 
+  /** Decode JWT payload to check expiration */
+  function isTokenValid() {
+    const token = getToken();
+    if (!token) return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (!payload.exp) return true;
+      return Date.now() < payload.exp * 1000;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** Check token on load — if expiring soon, try refresh */
+  function checkTokenOnLoad() {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.exp && (payload.exp * 1000 - Date.now()) < 5 * 60 * 1000) {
+        fetchMe().catch(function() {});
+      }
+    } catch (e) {}
+  }
+
+  /** Scan DOM for data-auth-role and show/hide elements */
+  function applyRoleVisibility() {
+    const role = me ? me.role : 'guest';
+    document.querySelectorAll('[data-auth-role]').forEach(function(el) {
+      const required = el.getAttribute('data-auth-role');
+      if (required === 'user') {
+        el.style.display = role !== 'guest' ? '' : 'none';
+      } else if (required === 'guest') {
+        el.style.display = role === 'guest' ? '' : 'none';
+      } else {
+        el.style.display = role === required ? '' : 'none';
+      }
+    });
+  }
+
+  // Apply role visibility after fetchMe completes
+  const _originalFetchMe = fetchMe;
+  fetchMe = async function() {
+    const result = await _originalFetchMe();
+    applyRoleVisibility();
+    return result;
+  };
+
   // ---- 公开 API ----
   window.Auth = {
     get me() { return me; },
@@ -80,7 +128,13 @@ const Auth = (() => {
     isTeacher,
     isStudent,
     isAdmin,
+    isTokenValid,
+    applyRoleVisibility,
   };
+
+  // Run on page load
+  checkTokenOnLoad();
+  applyRoleVisibility();
 
   return window.Auth;
 })();
