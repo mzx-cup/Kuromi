@@ -5,98 +5,79 @@
    ============================================================ */
 
 :root {
-    /* ═══════════════════════════════════════════════════════
+  /* ═══════════════════════════════════════════════════════
        色彩系统 - 马卡龙/莫兰迪色系
        ═══════════════════════════════════════════════════════ */
 
     /* 天空渐变 - 柔和清新 */
     --sky-top: #c5ddf0;
-    --sky-mid: #d8ebf5;
-    --sky-bottom: #f2f8fc;
-
-    /* 地面水彩渐变 */
+  --sky-mid: #d8ebf5;
+  --sky-bottom: #f2f8fc;
+  /* 地面水彩渐变 */
     --grass-light: #c5ddaa;
-    --grass-mid: #a8c98a;
-    --grass-dark: #8fb878;
-    --soil-light: #d4c4a0;
-    --soil-mid: #b8a67a;
-    --soil-dark: #9a8a60;
-
-    /* 陶土盆 - 温暖米色系 */
+  --grass-mid: #a8c98a;
+  --grass-dark: #8fb878;
+  --soil-light: #d4c4a0;
+  --soil-mid: #b8a67a;
+  --soil-dark: #9a8a60;
+  /* 陶土盆 - 温暖米色系 */
     --pot-light: #f0d8c0;
-    --pot-mid: #e0c4a0;
-    --pot-dark: #c8a880;
-    --pot-shadow: #a08060;
-
-    /* 植物绿 - 柔和莫兰迪绿 */
+  --pot-mid: #e0c4a0;
+  --pot-dark: #c8a880;
+  --pot-shadow: #a08060;
+  /* 植物绿 - 柔和莫兰迪绿 */
     --leaf-light: #b8d8a8;
-    --leaf-mid: #98c888;
-    --leaf-dark: #78b068;
-
-    /* 按钮色系 - 马卡龙色 */
+  --leaf-mid: #98c888;
+  --leaf-dark: #78b068;
+  /* 按钮色系 - 马卡龙色 */
     --btn-plant: #8fcc8a;
-    --btn-plant-hover: #a0dc9a;
-    --btn-plant-shadow: rgba(140, 200, 138, 0.4);
-
-    --btn-water: #8ec8e0;
-    --btn-water-hover: #a0d8f0;
-    --btn-water-shadow: rgba(142, 200, 224, 0.4);
-
-    --btn-nutrient: #e8d090;
-    --btn-nutrient-hover: #f0e0a0;
-    --btn-nutrient-shadow: rgba(232, 208, 144, 0.4);
-
-    --btn-harvest: #f8d878;
-    --btn-harvest-hover: #ffe888;
-    --btn-harvest-shadow: rgba(248, 216, 120, 0.5);
-
-    --btn-insulation: #e8a890;
-    --btn-insulation-hover: #f8b8a0;
-    --btn-insulation-shadow: rgba(232, 168, 144, 0.4);
-
-    /* 状态条颜色 - 柔和马卡龙 */
+  --btn-plant-hover: #a0dc9a;
+  --btn-plant-shadow: rgba(140, 200, 138, 0.4);
+  --btn-water: #8ec8e0;
+  --btn-water-hover: #a0d8f0;
+  --btn-water-shadow: rgba(142, 200, 224, 0.4);
+  --btn-nutrient: #e8d090;
+  --btn-nutrient-hover: #f0e0a0;
+  --btn-nutrient-shadow: rgba(232, 208, 144, 0.4);
+  --btn-harvest: #f8d878;
+  --btn-harvest-hover: #ffe888;
+  --btn-harvest-shadow: rgba(248, 216, 120, 0.5);
+  --btn-insulation: #e8a890;
+  --btn-insulation-hover: #f8b8a0;
+  --btn-insulation-shadow: rgba(232, 168, 144, 0.4);
+  /* 状态条颜色 - 柔和马卡龙 */
     --water-track: rgba(142, 200, 224, 0.25);
-    --water-fill-start: #a8dcf0;
-    --water-fill-end: #6ab8d8;
-    --water-glow: rgba(142, 200, 224, 0.6);
-
-    --nutrient-track: rgba(232, 208, 144, 0.25);
-    --nutrient-fill-start: #f0e0a8;
-    --nutrient-fill-end: #d8c070;
-    --nutrient-glow: rgba(232, 208, 144, 0.6);
-
-    /* 毛玻璃系统 */
+  --water-fill-start: #a8dcf0;
+  --water-fill-end: #6ab8d8;
+  --water-glow: rgba(142, 200, 224, 0.6);
+  --nutrient-track: rgba(232, 208, 144, 0.25);
+  --nutrient-fill-start: #f0e0a8;
+  --nutrient-fill-end: #d8c070;
+  --nutrient-glow: rgba(232, 208, 144, 0.6);
+  /* 毛玻璃系统 */
     --glass-bg: var(--surface-glass);
-    --glass-bg-heavy: rgba(255, 255, 255, 0.82);
-    --glass-border: var(--border-glass);
-    --glass-border-subtle: rgba(255, 255, 255, 0.3);
-    --glass-shadow: 0 8px 32px rgba(100, 130, 160, 0.12), 0 2px 8px rgba(100, 130, 160, 0.08);
-    --glass-shadow-hover: 0 12px 40px rgba(100, 130, 160, 0.18), 0 4px 12px rgba(100, 130, 160, 0.1);
-    --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
-
-    /* 文字颜色 */
+  --glass-bg-heavy: rgba(255, 255, 255, 0.82);
+  --glass-border: var(--border-glass);
+  --glass-border-subtle: rgba(255, 255, 255, 0.3);
+  --glass-shadow-hover: 0 12px 40px rgba(100, 130, 160, 0.18), 0 4px 12px rgba(100, 130, 160, 0.1);
+  --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  /* 文字颜色 */
     --text-primary: var(--text-heading);
-    --text-secondary: var(--text-muted);
-    --text-muted: #9aaabc;
-    --text-on-dark: #ffffff;
-
-    /* 稀有度 - 柔和莫兰迪色 */
+  --text-secondary: var(--text-muted);
+  --text-on-dark: #ffffff;
+  /* 稀有度 - 柔和莫兰迪色 */
     --rarity-common: #9ab0c0;
-    --rarity-rare: #78b0d8;
-    --rarity-fine: #a898d0;
-    --rarity-epic: #e0b878;
-    --rarity-legendary: #d88888;
-
-    /* 动画曲线 */
+  --rarity-rare: #78b0d8;
+  --rarity-fine: #a898d0;
+  --rarity-epic: #e0b878;
+  --rarity-legendary: #d88888;
+  /* 动画曲线 */
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
-    --ease-in-out: cubic-bezier(0.4, 0.0, 0.2, 1);
-
-    /* 呼吸动画 */
+  --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* 呼吸动画 */
     --breath-slow: 4s;
-    --breath-medium: 3s;
-    --breath-fast: 2s;
+  --breath-medium: 3s;
+  --breath-fast: 2s
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -112,7 +93,7 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--surface-glass);
     border-radius: 4px;
 }
 
@@ -210,7 +191,7 @@ body {
 
 .plant-cloud {
     position: absolute;
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--surface-card);
     border-radius: 50px;
     filter: blur(1px);
     animation: cloudDrift linear infinite;
@@ -218,7 +199,7 @@ body {
 .plant-cloud::before, .plant-cloud::after {
     content: '';
     position: absolute;
-    background: rgba(255, 255, 255, 0.92);
+    background: var(--surface-card);
     border-radius: 50%;
 }
 .plant-cloud.c1 { top: 30px; left: -150px; width: 110px; height: 38px; animation-duration: 55s; }
@@ -312,14 +293,14 @@ body {
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--surface-card);
     border: 1px solid var(--glass-border);
     border-radius: 50%;
     color: var(--text-primary);
     cursor: pointer;
     text-decoration: none;
     transition: all 0.3s var(--ease-smooth);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-sm);
     flex-shrink: 0;
     z-index: 2;
 }
@@ -387,7 +368,7 @@ body {
 }
 
 .weather-display:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--surface-card);
     transform: scale(1.02);
     box-shadow: var(--glass-shadow-hover);
 }
@@ -437,7 +418,7 @@ body {
 }
 
 .weather-settings-btn:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--surface-card);
     transform: rotate(45deg);
     color: var(--text-primary);
     box-shadow: var(--glass-shadow-hover);
@@ -494,7 +475,7 @@ body {
 .plant-plot-title {
     font-size: 13px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--text-heading);
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -710,7 +691,7 @@ body.weather-rain .plant-in-pot {
     margin-top: 8px;
     font-size: 11px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-heading);
     background: rgba(90, 70, 50, 0.5);
     padding: 4px 14px;
     border-radius: 14px;
@@ -819,7 +800,7 @@ body.weather-rain .plant-in-pot {
     align-items: center;
     gap: 6px;
     padding: 5px 16px;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--surface-hover);
     border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: 20px;
     font-size: 12px;
@@ -858,7 +839,7 @@ body.weather-rain .plant-in-pot {
 }
 
 .plant-stat-row {
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--surface-hover);
     border-radius: 16px;
     padding: 12px 14px;
     border: 1px solid rgba(0, 0, 0, 0.04);
@@ -866,7 +847,7 @@ body.weather-rain .plant-in-pot {
 }
 
 .plant-stat-row:hover {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--surface-glass);
     transform: translateY(-2px);
 }
 
@@ -939,7 +920,7 @@ body.weather-rain .plant-in-pot {
     left: -100%;
     width: 60%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    background: linear-gradient(90deg, transparent, var(--border-glass), transparent);
     animation: shimmer 2.5s ease-in-out infinite;
 }
 
@@ -988,7 +969,7 @@ body.weather-rain .plant-in-pot {
     left: 0;
     right: 0;
     height: 50%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent);
+    background: linear-gradient(180deg, var(--border-glass), transparent);
     border-radius: 18px 18px 0 0;
     pointer-events: none;
 }
@@ -1107,7 +1088,7 @@ body.weather-rain .plant-in-pot {
 
 .plant-tip-box {
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--surface-hover);
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-left: 4px solid var(--btn-nutrient);
     border-radius: 10px;
@@ -1182,7 +1163,7 @@ body.weather-rain .plant-in-pot {
     flex-direction: column;
     align-items: center;
     padding: 10px 5px;
-    background: rgba(255, 255, 255, 0.5);
+    background: var(--surface-card);
     border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: 14px;
     transition: all 0.35s var(--ease-spring);
@@ -1191,14 +1172,14 @@ body.weather-rain .plant-in-pot {
 }
 
 .plant-collection-item:hover {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--surface-card);
     transform: translateY(-4px) scale(1.05);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
 .plant-collection-item.owned {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.8);
+    background: var(--surface-card);
+    border-color: var(--text-body);
 }
 
 .item-rarity-dot {
@@ -1266,13 +1247,13 @@ body.weather-rain .plant-in-pot {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--surface-card);
     backdrop-filter: blur(4px);
 }
 
 .plant-detail-card {
     position: relative;
-    background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+    background: var(--surface-card);
     border-radius: 20px;
     padding: 28px 24px;
     max-width: 340px;
@@ -1293,7 +1274,7 @@ body.weather-rain .plant-in-pot {
     width: 28px;
     height: 28px;
     border: none;
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--surface-hover);
     border-radius: 50%;
     font-size: 14px;
     cursor: pointer;
@@ -1302,7 +1283,7 @@ body.weather-rain .plant-in-pot {
 }
 
 .plant-detail-close:hover {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--surface-hover);
     color: #333;
 }
 
@@ -1343,7 +1324,7 @@ body.weather-rain .plant-in-pot {
     margin-bottom: 18px;
     line-height: 1.5;
     padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.04);
+    background: var(--surface-hover);
     border-radius: 10px;
 }
 
@@ -1358,7 +1339,7 @@ body.weather-rain .plant-in-pot {
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.03);
+    background: var(--surface-glass);
     border-radius: 10px;
 }
 
@@ -2699,7 +2680,7 @@ input, textarea, select {
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.8);
+    background: var(--surface-card);
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
@@ -2743,7 +2724,7 @@ input, textarea, select {
     gap: 4px;
     padding: 10px 4px;
     border-radius: 12px;
-    background: rgba(0,0,0,0.03);
+    background: var(--surface-glass);
     border: 1.5px solid transparent;
     transition: all 0.3s ease;
 }
@@ -2779,7 +2760,7 @@ input, textarea, select {
 }
 
 .plant-detail-stats {
-    background: rgba(0,0,0,0.02);
+    background: var(--surface-glass);
     border-radius: 12px;
     padding: 4px 0;
 }
@@ -2845,13 +2826,13 @@ input, textarea, select {
     align-items: center;
     gap: 6px;
     border-radius: 20px;
-    background: rgba(255,255,255,0.15);
+    background: var(--surface-card);
     backdrop-filter: blur(8px);
     transition: all 0.3s ease;
 }
 
 .weather-display:hover {
-    background: rgba(255,255,255,0.25);
+    background: var(--surface-card);
     transform: translateY(-1px);
 }
 
@@ -2894,7 +2875,7 @@ input, textarea, select {
 }
 
 .plant-tip-box:hover {
-    background: rgba(0,0,0,0.06);
+    background: var(--surface-glass);
     transform: translateX(4px);
 }
 
@@ -2904,7 +2885,7 @@ input, textarea, select {
     font-size: 13px;
     padding: 8px 16px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.6);
+    background: var(--surface-card);
     backdrop-filter: blur(8px);
     animation: weatherTipFade 0.4s ease-out;
 }

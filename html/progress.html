@@ -16,7 +16,7 @@
     <script src="/js/toast.js"></script>
     <link rel="stylesheet" href="/css/app-bg.css">
 </head>
-<body class="app-body progress-body">
+<body data-bg-unified="true" class="app-body progress-body">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -140,8 +140,8 @@
                     <svg class="radar-chart" viewBox="0 0 300 260">
                         <defs>
                             <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#a855f7" stop-opacity="0.6"/>
-                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.3"/>
+                                <stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0.6"/>
+                                <stop offset="100%" stop-color="var(--info)" stop-opacity="0.3"/>
                             </linearGradient>
                         </defs>
                         <g class="radar-grid">

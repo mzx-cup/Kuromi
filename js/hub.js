@@ -1822,7 +1822,7 @@ async function initHeatmap(period = 'week') {
             if (intensity > 0) {
                 barFill.classList.add(`level-${intensity}`);
             } else {
-                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+                barFill.style.background = 'var(--surface-glass)';
             }
             barFill.style.height = `${Math.max(heightPercent, 4)}%`;
             barFill.title = `${dayLabels[i]} - ${weekMinutesArr[i]}分钟`;
@@ -1878,7 +1878,7 @@ async function initHeatmap(period = 'week') {
             if (intensity > 0) {
                 barFill.classList.add(`level-${intensity}`);
             } else {
-                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+                barFill.style.background = 'var(--surface-glass)';
             }
             barFill.style.height = `${Math.max(heightPercent, 4)}%`;
             barFill.title = `第${w + 1}周 - ${weekMinutesArr[w]}分钟`;
@@ -1928,7 +1928,7 @@ async function initHeatmap(period = 'week') {
             if (intensity > 0) {
                 barFill.classList.add(`level-${intensity}`);
             } else {
-                barFill.style.background = 'rgba(255, 255, 255, 0.05)';
+                barFill.style.background = 'var(--surface-glass)';
             }
             barFill.style.height = `${Math.max(heightPercent, 4)}%`;
             barFill.title = `${monthLabels[m]} - ${monthMinutesArr[m]}分钟`;

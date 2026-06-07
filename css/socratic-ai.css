@@ -200,7 +200,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -210,8 +210,8 @@ body {
 }
 
 .nav-back:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
+    background: var(--surface-hover);
+    color: var(--text-heading);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
 
@@ -221,7 +221,7 @@ body {
     gap: 12px;
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
     letter-spacing: 2px;
     text-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
 }
@@ -259,14 +259,14 @@ body {
 
 .status-text {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
 }
 
 /* Role Toggle */
 .role-toggle {
     display: flex;
     gap: 8px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     padding: 4px;
@@ -280,7 +280,7 @@ body {
     background: transparent;
     border: none;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -288,13 +288,13 @@ body {
 }
 
 .role-btn:hover {
-    color: rgba(255, 255, 255, 0.8);
-    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-body);
+    background: var(--surface-glass);
 }
 
 .role-btn.active {
     background: rgba(168, 85, 247, 0.3);
-    color: #fff;
+    color: var(--text-heading);
     box-shadow: 0 0 15px rgba(168, 85, 247, 0.2);
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
@@ -691,7 +691,7 @@ body {
 
 .transcript-hint {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
     animation: hintPulse 2s ease-in-out infinite;
 }
 
@@ -774,14 +774,14 @@ body {
     padding: 10px 14px;
     border-radius: 8px;
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
 .voice-option:hover {
     background: rgba(168, 85, 247, 0.2);
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .voice-option.selected {
@@ -884,7 +884,7 @@ body {
     z-index: 1;
     font-size: 36px;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-heading);
     line-height: 1;
     text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
     animation: scoreNumberGlow 0.5s ease 0.4s both;
@@ -907,14 +907,14 @@ body {
     position: relative;
     z-index: 1;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     margin-top: 4px;
     animation: scoreNumberGlow 0.4s ease 0.5s both;
 }
 
 .score-feedback {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     text-align: center;
     line-height: 1.6;
     max-width: 400px;
@@ -1013,7 +1013,7 @@ body {
 
 .response-text {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
 }
 
 /* Hint Text */
@@ -1073,11 +1073,11 @@ body {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: rgba(20, 20, 40, 0.7);
+    background: var(--surface-card);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(168, 85, 247, 0.3);
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1088,7 +1088,7 @@ body {
 .voice-btn:hover {
     background: rgba(40, 40, 80, 0.85);
     border-color: rgba(168, 85, 247, 0.6);
-    color: #fff;
+    color: var(--text-heading);
     box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
 }
 
@@ -1103,14 +1103,14 @@ body {
     bottom: 100%;
     left: 0;
     margin-bottom: 8px;
-    background: rgba(20, 20, 40, 0.95);
+    background: var(--surface-card);
     border: 1px solid rgba(168, 85, 247, 0.3);
     border-radius: 12px;
     padding: 8px;
     min-width: 120px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -4px 24px var(--shadow-xl);
     z-index: 200;
 }
 
@@ -1124,13 +1124,13 @@ body {
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     transition: all 0.2s;
 }
 
 .voice-option:hover {
     background: rgba(168, 85, 247, 0.2);
-    color: #fff;
+    color: var(--text-heading);
 }
 
 .voice-option.selected {
@@ -1161,7 +1161,7 @@ body {
     position: absolute;
     cursor: pointer;
     inset: 0;
-    background: rgba(20, 20, 40, 0.8);
+    background: var(--surface-card);
     border: 1px solid rgba(168, 85, 247, 0.3);
     border-radius: 24px;
     transition: 0.3s ease;
@@ -1174,10 +1174,10 @@ body {
     width: 18px;
     left: 2px;
     bottom: 2px;
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--surface-card);
     border-radius: 50%;
     transition: 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 .toggle-switch input:checked + .toggle-slider {
@@ -1194,7 +1194,7 @@ body {
 
 .toggle-label {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     transition: color 0.3s ease;
 }
 
@@ -1334,7 +1334,7 @@ body {
 .mic-icon {
     width: 32px;
     height: 32px;
-    color: #fff;
+    color: var(--text-heading);
     transition: all 0.3s;
 }
 
@@ -1358,7 +1358,7 @@ body {
 .mic-waves .wave {
     width: 4px;
     height: 20px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 2px;
     animation: micWave 0.6s ease-in-out infinite;
 }
@@ -1378,7 +1378,7 @@ body {
 
 .label-text {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     letter-spacing: 1px;
 }
 
@@ -1421,7 +1421,7 @@ body {
 .history-header h3 {
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-heading);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
 }
 
@@ -1429,9 +1429,9 @@ body {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: none;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1458,7 +1458,7 @@ body {
 
 .history-item {
     padding: 16px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
     margin-bottom: 12px;
@@ -1480,7 +1480,7 @@ body {
 
 .history-question {
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-body);
     margin-top: 8px;
     line-height: 1.5;
 }
@@ -1496,7 +1496,7 @@ body {
 
 .score-label {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
 }
 
 .score-value {
@@ -1514,9 +1514,9 @@ body {
     width: 48px;
     height: 48px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1530,7 +1530,7 @@ body {
 .history-toggle:hover {
     background: rgba(168, 85, 247, 0.15);
     border-color: rgba(168, 85, 247, 0.3);
-    color: #fff;
+    color: var(--text-heading);
     box-shadow: 0 0 20px rgba(168, 85, 247, 0.2);
 }
 
@@ -1593,13 +1593,13 @@ body {
    ========================================== */
 .socratic-body ::selection {
     background: rgba(168, 85, 247, 0.35);
-    color: #fff;
+    color: var(--text-heading);
     text-shadow: 0 0 8px rgba(168, 85, 247, 0.3);
 }
 
 .socratic-body ::-moz-selection {
     background: rgba(168, 85, 247, 0.35);
-    color: #fff;
+    color: var(--text-heading);
 }
 
 /* ==========================================
@@ -3368,14 +3368,14 @@ body {
     gap: 8px;
     margin-bottom: 8px;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     transition: all 0.3s ease;
 }
 
 .transcription-row:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--surface-hover);
     border-color: rgba(168, 85, 247, 0.15);
 }
 
@@ -3388,7 +3388,7 @@ body {
 
 .transcription-text {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--text-heading);
     word-break: break-all;
     line-height: 1.4;
 }
@@ -3408,23 +3408,23 @@ body {
 .manual-answer-input {
     flex: 1;
     padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: 1px solid rgba(168, 85, 247, 0.3);
     border-radius: 8px;
-    color: #fff;
+    color: var(--text-heading);
     font-size: 12px;
     outline: none;
     transition: all 0.3s ease;
 }
 
 .manual-answer-input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--text-muted);
 }
 
 .manual-answer-input:focus {
     border-color: rgba(168, 85, 247, 0.6);
     box-shadow: 0 0 15px rgba(168, 85, 247, 0.15);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--surface-hover);
 }
 
 .manual-submit-btn {
@@ -3432,7 +3432,7 @@ body {
     background: rgba(168, 85, 247, 0.3);
     border: 1px solid rgba(168, 85, 247, 0.5);
     border-radius: 8px;
-    color: #fff;
+    color: var(--text-heading);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

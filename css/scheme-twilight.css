@@ -79,6 +79,6 @@
 
 /* ---- 暮光导航栏 ---- */
 [data-theme="twilight-glow"] .app-nav {
-  background: rgba(255, 255, 255, 0.55);
+  background: var(--surface-card);
   border-bottom: 1px solid rgba(168, 85, 247, 0.12);
 }

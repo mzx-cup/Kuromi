@@ -504,10 +504,10 @@ function selectQuizOption(index) {
         const optIndex = parseInt(btn.dataset.index);
         if (optIndex === question.correct) {
             btn.classList.add('correct');
-            btn.querySelector('.option-letter').style.background = 'rgba(255,255,255,0.3)';
+            btn.querySelector('.option-letter').style.background = 'var(--surface-hover)';
         } else if (optIndex === index && !isCorrect) {
             btn.classList.add('wrong');
-            btn.querySelector('.option-letter').style.background = 'rgba(255,255,255,0.3)';
+            btn.querySelector('.option-letter').style.background = 'var(--surface-hover)';
         }
     });
 
@@ -661,7 +661,7 @@ function updateStepUI() {
             if (i < currentStep || (currentStep === 10 && i >= 9)) {
                 lineEl.style.background = '#10b981';
             } else {
-                lineEl.style.background = 'rgba(255,255,255,0.2)';
+                lineEl.style.background = 'var(--surface-glass)';
             }
         }
     }

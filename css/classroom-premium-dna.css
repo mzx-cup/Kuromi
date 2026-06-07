@@ -234,7 +234,7 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 
   /* 半透明边框 — McKinsey 风格的微妙分隔 */
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
 
   /* 卡片深度 */
   box-shadow:
@@ -373,7 +373,7 @@ pre, code, .code-block, textarea.exercise-answer {
   height: 40px;
   border-radius: var(--radius-sm);
   background: var(--surface-glass);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
   color: var(--text-secondary);
   display: flex;
   align-items: center;
@@ -383,7 +383,7 @@ pre, code, .code-block, textarea.exercise-answer {
 }
 .icon-btn:hover {
   background: var(--surface-glass-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-glass);
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
@@ -401,7 +401,7 @@ pre, code, .code-block, textarea.exercise-answer {
   background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
   border: none !important;
   border-radius: var(--radius-sm) !important;
-  color: #fff !important;
+  color: var(--text-heading) !important;
   font-family: var(--font-sans);
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
@@ -430,7 +430,7 @@ pre, code, .code-block, textarea.exercise-answer {
 .nav-btn,
 .completion-back-btn {
   background: var(--surface-glass);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
   color: var(--text-secondary);
   font-family: var(--font-sans);
@@ -443,7 +443,7 @@ pre, code, .code-block, textarea.exercise-answer {
 .btn-secondary:hover,
 .nav-btn:hover {
   background: var(--surface-glass-hover);
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: var(--border-glass);
   color: var(--text-primary);
 }
 
@@ -488,7 +488,7 @@ input[type="search"],
 textarea,
 .chat-input-area input {
   background: var(--surface-glass);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -505,7 +505,7 @@ input:focus, textarea:focus {
 /* -- 6.6 Progress Bar — 渐变色进度条 -- */
 .progress-bar {
   height: 3px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-glass);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -538,7 +538,7 @@ input:focus, textarea:focus {
   overflow: hidden;
 }
 .scene-thumb:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-glass);
   transform: translateY(-2px) scale(1.05);
   box-shadow: var(--shadow-md);
 }
@@ -576,11 +576,11 @@ input:focus, textarea:focus {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--surface-card);
 }
 
 
@@ -772,8 +772,8 @@ input:focus, textarea:focus {
 .slide-content h2 { font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); }
 .slide-content h3 { font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--text-secondary); }
 .slide-content p, .slide-content li { font-size: var(--text-base); color: var(--text-secondary); line-height: 1.8; }
-.slide-content code { font-family: var(--font-mono); background: rgba(255,255,255,0.06); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
-.slide-content pre { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid rgba(255,255,255,0.06); }
+.slide-content code { font-family: var(--font-mono); background: var(--surface-hover); padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; }
+.slide-content pre { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border-glass); }
 
 
 /* ==========================================================================
@@ -784,7 +784,7 @@ input:focus, textarea:focus {
 .spotlight-veil {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0);          /* 默认透明 */
+  background: transparent;          /* 默认透明 */
   pointer-events: none;
   z-index: 10;
   transition: background 0.5s ease;
@@ -898,7 +898,7 @@ input:focus, textarea:focus {
   flex: 0 0 380px;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--surface-glass);
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   padding: 1.5rem;
   overflow-y: auto;
@@ -919,7 +919,7 @@ input:focus, textarea:focus {
   background: linear-gradient(135deg, var(--primary), var(--accent));
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 15px var(--primary-glow);
-  font-size: 0.9rem; color: #fff;
+  font-size: 0.9rem; color: var(--text-heading);
 }
 
 .exercise-mode-label {
@@ -943,8 +943,8 @@ input:focus, textarea:focus {
 }
 
 .exercise-content pre {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--surface-glass);
+  border: 1px solid var(--border-glass);
   border-radius: var(--radius-sm);
   padding: 0.75rem;
   margin: 0.5rem 0;
@@ -992,8 +992,8 @@ input:focus, textarea:focus {
 }
 
 .editor-lang-select {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-glass);
   border-radius: 6px;
   color: #a9b1d6;
   font-size: 0.7rem;
@@ -1053,8 +1053,8 @@ input:focus, textarea:focus {
 
 .exercise-run-btn {
   background: linear-gradient(135deg, #10b981, #059669);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  color: var(--text-heading);
+  box-shadow: 0 2px 8px var(--success-bg);
 }
 .exercise-run-btn:hover {
   transform: scale(1.05);
@@ -1062,18 +1062,18 @@ input:focus, textarea:focus {
 }
 
 .exercise-reset-btn {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
   color: var(--text-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
 }
 .exercise-reset-btn:hover {
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--surface-hover);
   transform: scale(1.05);
 }
 
 .exercise-submit-btn {
   background: linear-gradient(135deg, var(--primary), var(--accent));
-  color: #fff;
+  color: var(--text-heading);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
   margin-left: auto;
 }
@@ -1105,7 +1105,7 @@ input:focus, textarea:focus {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 -4px 20px var(--shadow-lg);
   z-index: var(--z-header);
 }
 
@@ -1113,7 +1113,7 @@ input:focus, textarea:focus {
 .player-progress {
   position: relative;
   height: 3px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
   cursor: pointer;
   transition: height 150ms ease;
 }
@@ -1138,7 +1138,7 @@ input:focus, textarea:focus {
   position: absolute;
   top: 50%;
   width: 10px; height: 10px;
-  background: #fff;
+  background: var(--surface-card);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   box-shadow: 0 0 6px rgba(255,255,255,0.4);
@@ -1185,7 +1185,7 @@ input:focus, textarea:focus {
 
 .player-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
 }
 
 .player-btn:active {
@@ -1197,7 +1197,7 @@ input:focus, textarea:focus {
   width: 44px;
   height: 44px;
   background: linear-gradient(135deg, var(--primary), var(--accent)) !important;
-  color: #fff !important;
+  color: var(--text-heading) !important;
   font-size: 1rem !important;
   box-shadow:
     0 2px 8px rgba(59, 130, 246, 0.3),
@@ -1216,7 +1216,7 @@ input:focus, textarea:focus {
   color: var(--primary-light);
 }
 .player-btn-voice:hover {
-  color: #fff;
+  color: var(--text-heading);
   text-shadow: 0 0 12px var(--primary-glow);
 }
 
@@ -1252,7 +1252,7 @@ input:focus, textarea:focus {
 .player-divider {
   width: 1px;
   height: 20px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
   margin: 0 0.5rem;
 }
 
@@ -1318,8 +1318,8 @@ input:focus, textarea:focus {
 }
 
 .scene-thumb:hover {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border-color: rgba(255, 255, 255, 0.10) !important;
+  background: var(--surface-glass) !important;
+  border-color: var(--border-glass) !important;
   color: var(--text-primary);
 }
 
@@ -1336,7 +1336,7 @@ input:focus, textarea:focus {
   width: 2px;
   flex: 1;
   min-height: 40px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-glass);
   border-radius: 1px;
   margin-top: 0.5rem;
   position: relative;
@@ -1447,7 +1447,7 @@ input:focus, textarea:focus {
 .scene-sidebar {
   flex-shrink: 0;
   width: 72px;
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: var(--surface-glass) !important;
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -1498,7 +1498,7 @@ input:focus, textarea:focus {
     rgba(255, 255, 255, 0.025) 50%,
     rgba(255, 255, 255, 0.04) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
   border-radius: 20px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.4),
@@ -1536,10 +1536,10 @@ input:focus, textarea:focus {
   position: absolute;
   top: 12px;
   right: 16px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-hover);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
   border-radius: 20px;
   padding: 4px 12px;
   font-family: var(--font-mono);
@@ -1572,7 +1572,7 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-heading);
   font-size: 1.5rem;
   box-shadow:
     0 4px 20px rgba(59, 130, 246, 0.4),
@@ -1589,7 +1589,7 @@ input:focus, textarea:focus {
 .whiteboard-overlay {
   position: absolute;
   inset: 16px;              /* inset-4 */
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--surface-card);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 2px solid rgba(99, 102, 241, 0.2);
@@ -1655,7 +1655,7 @@ input:focus, textarea:focus {
   transition: all 150ms ease;
 }
 .wb-header-btn:hover {
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--surface-glass);
   color: #333;
 }
 
@@ -1684,7 +1684,7 @@ input:focus, textarea:focus {
   align-items: stretch;
   gap: 0;
   padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-glass);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -1760,7 +1760,7 @@ input:focus, textarea:focus {
   );
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
   border-radius: 28px;
   padding: 1rem 1.5rem;
   box-shadow:
@@ -1801,16 +1801,16 @@ input:focus, textarea:focus {
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-glass);
   border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
 }
 .student-dock-avatar {
   width: 32px; height: 32px;
   border-radius: 50%;
   background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; color: #fff;
+  font-size: 0.7rem; color: var(--text-heading);
   cursor: pointer;
   transition: transform 0.2s ease;
 }
@@ -1825,10 +1825,10 @@ input:focus, textarea:focus {
   align-items: center;
   gap: 0.5rem;
   padding: 0.375rem 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-glass);
   border-radius: 12px;
   position: absolute;
   bottom: 0.75rem;
@@ -1848,7 +1848,7 @@ input:focus, textarea:focus {
   transition: all 150ms ease;
 }
 .canvas-toolbar-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 .canvas-toolbar-btn.active {
@@ -1861,7 +1861,7 @@ input:focus, textarea:focus {
 .chat-panel {
   flex-shrink: 0;
   width: 340px;
-  background: rgba(255, 255, 255, 0.03) !important;
+  background: var(--surface-glass) !important;
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -1900,7 +1900,7 @@ input:focus, textarea:focus {
 /* -- 18.10 Header Refinements (OpenMAIC style) -- */
 .classroom-header {
   height: 52px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-glass);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);

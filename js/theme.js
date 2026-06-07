@@ -82,7 +82,7 @@
     }
     return {
       mode: pageMode,
-      theme: pageTheme || 'ocean-glass',
+      theme: pageTheme || 'deep-ocean',
       wallpaperId: 'default',
       brightness: 85,
       blur: 5,

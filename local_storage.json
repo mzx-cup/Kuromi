@@ -1007,6 +1007,84 @@
       "completed": [],
       "generated_at": "2026-06-06T17:31:13.155257",
       "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础数学概念复习",
+          "description": "复习代数和几何基础概念",
+          "type": "review",
+          "duration": 30,
+          "subject": "math",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "一元二次方程练习",
+          "description": "完成5道一元二次方程练习题",
+          "type": "practice",
+          "duration": 45,
+          "subject": "math",
+          "difficulty": "medium",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "基础物理概念学习",
+          "description": "学习力和运动的基本概念",
+          "type": "study",
+          "duration": 60,
+          "subject": "physics",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "逻辑推理训练",
+          "description": "完成10道逻辑推理选择题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "logic",
+          "difficulty": "medium",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 5,
+          "title": "苏格拉底式AI辅导",
+          "description": "与AI讨论今日学习难点",
+          "type": "study",
+          "duration": 30,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "轻松休息时间",
+          "description": "玩虚拟宠物游戏放松",
+          "type": "relax",
+          "duration": 15,
+          "subject": "relaxation",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        },
+        {
+          "id": 7,
+          "title": "学习进度回顾",
+          "description": "查看今日学习成果与不足",
+          "type": "review",
+          "duration": 15,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/progress.html"
+        }
+      ],
+      "date": "2026-06-07",
+      "completed": [],
+      "generated_at": "2026-06-07T02:28:20.780835",
+      "user_id": 2
     }
   ],
   "classroom_records": [

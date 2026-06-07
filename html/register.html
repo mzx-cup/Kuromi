@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html data-bg-unified="true" lang="zh-CN" data-theme="starry-night">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>注册 · 星识 Star-Learn</title>
@@ -16,7 +16,7 @@
   <script src="/js/theme.js"></script>
   <script src="/js/toast.js"></script>
 </head>
-<body class="app-body auth-page">
+<body data-bg-unified="true" class="app-body auth-page">
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -39,24 +39,24 @@
 
       <!-- 星座连线渐隐渐变 -->
       <linearGradient id="constLineGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#7098d0" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#7098d0" stop-opacity="0.55"/>
-        <stop offset="100%" stop-color="#7098d0" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--info)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--info)" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="var(--info)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#b898d8" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#b898d8" stop-opacity="0.50"/>
-        <stop offset="100%" stop-color="#b898d8" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--brand-400)" stop-opacity="0.50"/>
+        <stop offset="100%" stop-color="var(--brand-400)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad3" x1="100%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#c8a868" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#c8a868" stop-opacity="0.45"/>
-        <stop offset="100%" stop-color="#c8a868" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--warning)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--warning)" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="var(--warning)" stop-opacity="0"/>
       </linearGradient>
       <linearGradient id="constLineGrad4" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#80a0d8" stop-opacity="0"/>
-        <stop offset="50%" stop-color="#80a0d8" stop-opacity="0.48"/>
-        <stop offset="100%" stop-color="#80a0d8" stop-opacity="0"/>
+        <stop offset="0%" stop-color="var(--info)" stop-opacity="0"/>
+        <stop offset="50%" stop-color="var(--info)" stop-opacity="0.48"/>
+        <stop offset="100%" stop-color="var(--info)" stop-opacity="0"/>
       </linearGradient>
 
       <!-- 星芒辉光滤镜 -->

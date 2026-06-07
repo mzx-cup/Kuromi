@@ -1,0 +1,249 @@
+/* ============================================================
+   统一 Glass Card 效果
+   所有卡片统一使用毛玻璃 + 大圆角
+   ============================================================ */
+
+/* ---------- 核心卡片统一 glass ---------- */
+.hub-card,
+.feature-card,
+.content-card,
+.compact-card,
+.flow-resonance-card,
+.study-hall-card,
+.holo-incubator,
+.mothership-card,
+.chart-card,
+.card-prism,
+.overview-action-card,
+.stat-card,
+.dd-stat-card,
+.dd-chart-panel,
+.course-card,
+.main-card,
+.search-card,
+.progress-card,
+.cockpit-stat-card,
+.eco-card,
+.plant-detail-card,
+.plant-info-panel,
+.plant-harvest-reveal-card,
+.token-preview-card,
+.modal-content,
+.cmd-panel,
+.link-card,
+.message-card,
+.brief-panel,
+.editor-panel,
+.assistant-panel,
+.generation-panel,
+.tech-card,
+.summary-card,
+.day-detail-card,
+.flow-card,
+.achievement-popup,
+.task-card,
+.notification-item,
+.mascot-panel,
+.personal-main,
+.notification-panel,
+.news-modal,
+.review-modal,
+.history-panel,
+.transcription-panel,
+.ai-suggestions-panel,
+.player-shell,
+.player-side-panel,
+.video-info-panel,
+.metric-panel,
+.modal-panel,
+.glass-modal,
+.app-card,
+.app-stat-card,
+.app-panel,
+.app-modal,
+.card,
+.panel,
+.modal,
+.popup,
+.drawer,
+.media-card,
+.status-panel,
+.pet-selector-panel,
+.hero-stat-capsule {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-xl) !important;
+}
+
+/* ---------- Hover 状态 ---------- */
+.hub-card:hover,
+.feature-card:hover,
+.content-card:hover,
+.compact-card:hover,
+.chart-card:hover,
+.overview-action-card:hover,
+.course-card:hover,
+.tech-card:hover,
+.stat-card:hover,
+.link-card:hover,
+.task-card:hover,
+.app-card:hover,
+.card:hover,
+.panel:hover {
+  background: var(--surface-glass-hover) !important;
+  border-color: var(--border-glass-hover) !important;
+}
+
+/* ---------- 遮罩层 — 半透明暗化，不是 glass 卡片 ---------- */
+.modal-overlay,
+.modal-backdrop,
+.modal-backdrop-custom,
+.plant-harvest-reveal {
+  background: var(--surface-overlay) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+/* ---------- 排除列表 ---------- */
+/* 伪元素、内部装饰线 */
+.card-prism::after,
+.hub-card::after,
+.feature-card::after,
+.main-card::before,
+.link-card::before,
+.hub-bg-nebula,
+.hub-bg-orb-1,
+.hub-bg-orb-2,
+.hub-bg-stars,
+.classroom-bg,
+.hub-bg,
+.app-bg-layer,
+.global-bg-layer,
+#app-bg,
+.bg-decor,
+.particle-bg {
+  background: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+}
+
+/* 代码编辑器、视频、Canvas、图表 — 不使用 glass */
+.CodeMirror,
+.cm-editor,
+code,
+pre,
+video,
+canvas,
+svg:not(.hub-bg-stars):not(.flow-ring):not(.ecg-svg),
+.heatmap-cell,
+.player-video,
+.chart-canvas,
+.slide-container,
+.slide-code,
+.code-input,
+.CodeMirror-gutters,
+.CodeMirror-linenumber {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  border-radius: 0 !important;
+}
+
+/* 按钮、标签、徽章 — 不使用 glass */
+button:not(.modal-close):not(.review-modal-close):not(.news-modal-close):not(.mascot-model-switch-btn):not(.cmd-result-item),
+.app-btn,
+.btn,
+.badge,
+.tag,
+.pill,
+.chip,
+.label,
+.nav-item,
+.tab-btn,
+.theme-option,
+.filter-tag,
+.topic-tag,
+.course-tag,
+.skill-tag,
+.status-badge,
+.role-badge {
+  backdrop-filter: none !important;
+}
+
+/* 输入框 — 轻微 glass */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+.search-input,
+.form-input,
+.cmd-input,
+.app-input {
+  background: color-mix(in oklch, var(--glass-bg), transparent 40%) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* 表单/下拉/选择器面板 — glass */
+.dropdown-menu,
+.avatar-dropdown,
+.theme-panel,
+.custom-select-options,
+.voice-options,
+.mascot-ai-model-dropdown,
+.mascot-persona-dropdown {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-xl) !important;
+}
+
+/* ---------- 导航栏 / 顶部栏 / 侧边栏 / 右侧面板 统一 glass ---------- */
+/* 顶部导航栏、头部工具栏 — 不强制圆角（保持页面原有形状） */
+.app-nav,
+.hub-navbar,
+.topbar,
+.classroom-header,
+.top-bar-glass,
+.code-editor-toolbar,
+.mascot-panel-header,
+.composer-glass-bar,
+.calendar-nav,
+.flow-nav,
+.stellar-nav,
+.socratic-nav,
+.progress-nav,
+.settings-nav,
+.video-nav,
+.cl-nav,
+.courses-nav,
+.plant-nav,
+.chat-header {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  border-color: var(--glass-border) !important;
+}
+
+/* 侧边栏、右侧面板 */
+.hub-sidebar,
+.hub-right-panel,
+.scene-sidebar,
+.teacher-sidebar,
+.cl-sidebar,
+.dd-sidebar,
+.settings-sidebar,
+.ai-sidebar,
+.chat-panel,
+.flow-sidebar,
+.flow-sidebar-right,
+.sidebar-title,
+.sidebar-body,
+.output-panel {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
+  border-color: var(--glass-border) !important;
+}

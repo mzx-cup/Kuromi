@@ -6,12 +6,12 @@
     <title>星识 Star-Learn — 个人智能学习中枢</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/loading.css">
-    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/mascot.css">
     <link rel="stylesheet" href="/css/search-command.css">
     <link rel="stylesheet" href="/css/onboarding.css">
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <link rel="stylesheet" href="/css/app-bg.css">
@@ -21,6 +21,70 @@
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/toast.js"></script>
+
+    <!-- ★ Hub 透明毛玻璃终极覆盖 — 加载顺序最后 + 祖先选择器高特异性 ★ -->
+    <style>
+        /* 导航栏（在 .hub-layout 外部） */
+        body.hub-body .hub-navbar {
+            background: linear-gradient(170deg,
+                color-mix(in oklch, var(--surface-card), transparent 60%) 0%,
+                color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 50%) 35%,
+                color-mix(in oklch, var(--surface-page), transparent 60%) 100%) !important;
+            backdrop-filter: blur(28px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(140%) !important;
+        }
+
+        /* 所有卡片 */
+        body.hub-body .hub-card,
+        body.hub-body .feature-card,
+        body.hub-body .content-card,
+        body.hub-body .compact-card,
+        body.hub-body .chart-card,
+        body.hub-body .overview-action-card,
+        body.hub-body .flow-resonance-card,
+        body.hub-body .study-hall-card,
+        body.hub-body .holo-incubator,
+        body.hub-body .mothership-card,
+        body.hub-body .card-prism,
+        body.hub-body .route-task-card,
+        body.hub-body .route-overview-card {
+            background: linear-gradient(170deg,
+                color-mix(in oklch, var(--surface-card), transparent 60%) 0%,
+                color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 50%) 35%,
+                color-mix(in oklch, var(--surface-page), transparent 60%) 100%) !important;
+            backdrop-filter: blur(28px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(140%) !important;
+            border: 1px solid var(--cp-card-border) !important;
+            border-radius: var(--radius-lg) !important;
+            clip-path: none !important;
+        }
+
+        /* 卡片悬浮 */
+        body.hub-body .hub-card:hover,
+        body.hub-body .feature-card:hover,
+        body.hub-body .content-card:hover,
+        body.hub-body .compact-card:hover,
+        body.hub-body .chart-card:hover,
+        body.hub-body .overview-action-card:hover {
+            background: linear-gradient(170deg,
+                color-mix(in oklch, var(--surface-card), transparent 52%) 0%,
+                color-mix(in oklch, color-mix(in oklch, white, transparent 90%), transparent 42%) 35%,
+                color-mix(in oklch, var(--surface-page), transparent 52%) 100%) !important;
+            border-color: var(--cp-card-border-strong) !important;
+            box-shadow: var(--cp-prism-glow-hover) !important;
+        }
+
+        /* 侧边栏 + 右侧面板 */
+        body.hub-body .hub-sidebar,
+        body.hub-body .hub-right-panel {
+            background: linear-gradient(170deg,
+                color-mix(in oklch, var(--surface-card), transparent 60%) 0%,
+                color-mix(in oklch, color-mix(in oklch, white, transparent 92%), transparent 50%) 35%,
+                color-mix(in oklch, var(--surface-page), transparent 60%) 100%) !important;
+            backdrop-filter: blur(28px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(28px) saturate(140%) !important;
+        }
+    </style>
 </head>
 <body class="app-body hub-body">
 
@@ -538,10 +602,6 @@
 
                 <!-- Hero 欢迎卡 · 棱晶切角 -->
                 <div class="hero-banner hub-card" id="hero-status-card">
-                    <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div><div class="prism-layer-2"></div></div>
-                    <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
-                    <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
-                    <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                     <div class="hero-banner-inner">
                         <div class="hero-banner-left">
                             <div class="hero-date-row">
@@ -596,7 +656,6 @@
                 <!-- 快捷操作卡 · 棱晶切角 -->
                 <div class="hero-actions-row">
                     <div class="overview-action-card hub-card" data-overview-action="focus" data-action="focus">
-                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
                         </div>
@@ -607,7 +666,6 @@
                         </div>
                     </div>
                     <div class="overview-action-card hub-card" data-overview-action="mastery" data-action="mastery">
-                        <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-6"/></svg>
                         </div>
@@ -618,7 +676,6 @@
                         </div>
                     </div>
                     <div class="overview-action-card hub-card" data-overview-action="rhythm" data-action="rhythm">
-                        <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                         <div class="overview-action-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
                         </div>
@@ -646,7 +703,6 @@
                     <div class="feature-grid stagger fade-in" id="feature-grid" style="--stagger-delay:60ms;">
                         <a href="/index.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="core">
                             <span class="feature-card-badge hot">热门</span>
-                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--info)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
@@ -655,7 +711,6 @@
                             <div class="feature-card-footer"><span class="feature-card-tag">AI驱动</span><span class="feature-card-tag">实时</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/video-player.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="core">
-                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-400)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             </div>
@@ -665,7 +720,6 @@
                         </a>
                         <a href="/courses.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="learn">
                             <span class="feature-card-badge new">上新</span>
-                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--success)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
                             </div>
@@ -674,7 +728,6 @@
                             <div class="feature-card-footer"><span class="feature-card-tag">系统</span><span class="feature-card-tag">路径</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/code.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="create">
-                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-300)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                             </div>
@@ -684,7 +737,6 @@
                         </a>
                         <a href="/socratic-ai.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
                             <span class="feature-card-badge beta">实验</span>
-                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--danger)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                             </div>
@@ -693,7 +745,6 @@
                             <div class="feature-card-footer"><span class="feature-card-tag">思维</span><span class="feature-card-tag">AI</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/plant.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
-                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--warning)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg>
                             </div>
@@ -702,7 +753,6 @@
                             <div class="feature-card-footer"><span class="feature-card-tag">养成</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/stellar-showcase.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
-                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--brand-500)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             </div>
@@ -711,7 +761,6 @@
                             <div class="feature-card-footer"><span class="feature-card-tag">展示</span><span class="feature-card-tag">成就</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/flow-meter.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="explore">
-                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="feature-card-icon" style="--card-accent: var(--info)">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                             </div>
@@ -724,9 +773,7 @@
 
                 <!-- 每日航线 -->
                 <section class="overview-section" id="daily-route">
-                    <div class="mothership-card hub-card fade-in" style="padding:0; overflow:visible;">
-                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div><div class="prism-layer-2"></div></div>
-                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
+                    <div class="mothership-card hub-card fade-in">
                         <div class="route-content" id="route-content">
                             <div class="launch-engine" id="launch-engine">
                                 <button class="launch-btn" id="launch-btn">
@@ -765,8 +812,6 @@
                         </div>
                     </div>
                     <div class="flow-resonance-card hub-card fade-in">
-                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
-                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="flow-resonance-header">
                             <h4 class="flow-resonance-title">心流共振</h4>
                             <svg class="flow-ring" viewBox="0 0 100 100" width="64" height="64">
@@ -806,8 +851,6 @@
                         </div>
                     </div>
                     <div class="holo-incubator hub-card fade-in">
-                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
-                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="holo-header">
                             <div class="holo-heading">
                                 <h2 class="holo-title"><span class="holo-title-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4.97-4.97 4.97-13.03 0-18-4.97 4.97-4.97 13.03 0 18z"/><path d="M12 14a2 2 0 100-4 2 2 0 000 4z"/></svg></span>知识生态<span class="pending-review-badge" id="pending-review-badge" style="display:none;">0</span></h2>
@@ -874,7 +917,6 @@
                     </div>
                     <div class="content-grid stagger fade-in" id="content-grid" style="--stagger-delay:80ms;">
                         <a href="/courses.html" class="content-card hub-card content-card-compact app-content-card slide-up">
-                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--info),black 70%),color-mix(in oklch,var(--brand-300),black 70%))">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--info), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
@@ -890,7 +932,6 @@
                             </div>
                         </a>
                         <a href="/courses.html" class="content-card hub-card content-card-compact app-content-card slide-up">
-                            <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
                             <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--brand-400),black 70%),color-mix(in oklch,var(--brand-300),black 70%))">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--brand-400), transparent 40%)" stroke-width="1.5"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.387-1 1.732V11h3a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4a2 2 0 012-2h3V5.732A2.001 2.001 0 0112 2z"/><circle cx="12" cy="18" r="2"/></svg>
                             </div>
@@ -906,7 +947,6 @@
                             </div>
                         </a>
                         <a href="/code.html" class="content-card hub-card content-card-compact app-content-card slide-up">
-                            <div class="prism-corner prism-corner-bl"><div class="prism-layer"></div></div>
                             <div class="content-card-image" style="background:linear-gradient(135deg,color-mix(in oklch,var(--success),black 70%),color-mix(in oklch,var(--info),black 70%))">
                                 <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="color-mix(in oklch, var(--success), transparent 40%)" stroke-width="1.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                             </div>
@@ -939,8 +979,6 @@
                         </div>
                     </div>
                     <div class="study-hall-card hub-card fade-in">
-                        <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
-                        <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                         <div class="peer-pods-grid">
                             <div class="peer-pod current-user">
                                 <div class="pod-inner">
@@ -991,7 +1029,6 @@
                 <div class="tools-grid">
                     <div class="tools-left">
                         <div class="compact-card hub-card task-list-card">
-                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="compact-header">
                                 <h4 class="compact-title">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
@@ -1017,7 +1054,6 @@
                     </div>
                     <div class="tools-right">
                         <div class="compact-card hub-card tags-card">
-                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="compact-header">
                                 <h4 class="compact-title">
                                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
@@ -1053,7 +1089,6 @@
                     </div>
                     <div class="dashboard-charts-row">
                         <div class="chart-card hub-card trend-chart-card fade-in">
-                            <div class="prism-corner prism-corner-tl"><div class="prism-layer"></div></div>
                             <div class="chart-header">
                                 <h4 class="chart-title">学习趋势</h4>
                                 <span class="chart-badge">近7天</span>
@@ -1061,7 +1096,6 @@
                             <canvas id="overviewTrendChart"></canvas>
                         </div>
                         <div class="chart-card hub-card heatmap-card">
-                            <div class="prism-corner prism-corner-br"><div class="prism-layer"></div></div>
                             <div class="chart-header">
                                 <h4 class="chart-title">学习时段</h4>
                                 <div class="heatmap-toggle">

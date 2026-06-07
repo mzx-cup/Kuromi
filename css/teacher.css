@@ -501,7 +501,7 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
     padding: 8px 20px; border-radius: var(--radius-sm);
     border: 1px solid color-mix(in oklch, var(--info), transparent 55%);
     background: color-mix(in oklch, var(--info), transparent 65%);
-    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    color: var(--text-heading); font-weight: var(--font-semibold); cursor: pointer;
     font-size: var(--text-sm); font-family: inherit;
     transition: all var(--transition-fast);
 }
@@ -517,7 +517,7 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
     width: 100%; padding: 12px; border-radius: var(--radius-sm);
     border: 1px solid color-mix(in oklch, var(--info), transparent 55%);
     background: color-mix(in oklch, var(--info), transparent 65%);
-    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    color: var(--text-heading); font-weight: var(--font-semibold); cursor: pointer;
     font-size: var(--text-base); margin-top: 8px;
     transition: all var(--transition-fast);
     font-family: inherit;
@@ -548,7 +548,7 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
     padding: 8px 20px; border-radius: var(--radius-sm);
     border: 1px solid color-mix(in oklch, var(--warning), transparent 75%);
     background: color-mix(in oklch, var(--warning), transparent 82%);
-    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    color: var(--text-heading); font-weight: var(--font-semibold); cursor: pointer;
     font-size: var(--text-sm); font-family: inherit;
     transition: all var(--transition-fast);
 }
@@ -850,7 +850,7 @@ select.auth-field option { background: var(--neutral-800); color: var(--cp-text-
 .student-avatar {
     width: 64px; height: 64px; border-radius: 50%;
     background: color-mix(in oklch, var(--info), transparent 75%);
-    color: #fff; display: flex; align-items: center; justify-content: center;
+    color: var(--text-heading); display: flex; align-items: center; justify-content: center;
     font-size: 24px; font-weight: var(--font-bold); flex-shrink: 0;
 }
 .student-profile-name { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--cp-text-primary); }

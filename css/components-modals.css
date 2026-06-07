@@ -1,0 +1,107 @@
+/* ============================================================
+   五、通用弹窗（app-modal）
+   适用：确认框、表单弹窗、详情弹窗
+   ============================================================ */
+
+.app-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: var(--space-md);
+  animation: fade-in 0.2s var(--ease-out);
+}
+
+.app-modal {
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  max-width: 520px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-glass);
+  animation: scale-in 0.25s var(--ease-out);
+}
+
+.app-modal::-webkit-scrollbar { width: 6px; }
+.app-modal::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+/* 大尺寸弹窗 */
+.app-modal-lg {
+  max-width: 720px;
+}
+
+/* 小尺寸弹窗 */
+.app-modal-sm {
+  max-width: 380px;
+}
+
+/* 弹窗头部 */
+.app-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.app-modal-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.app-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.app-modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-heading);
+}
+
+/* 弹窗内容 */
+.app-modal-body {
+  color: var(--text-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+/* 弹窗底部 */
+.app-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--border-color);
+}
+
+

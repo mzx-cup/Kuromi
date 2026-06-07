@@ -8,35 +8,31 @@
    CSS Variables & Colors
    ============================================================ */
 :root {
-    /* Colors - Light mode (default) */
+  /* Colors - Light mode (default) */
     --background: var(--surface-page);
-    --background-secondary: var(--surface-card);
-    --card: var(--surface-card);
-    --card-foreground: var(--text-heading);
-    --primary: var(--brand-500);
-    --primary-foreground: var(--text-on-brand);
-    --muted: var(--surface-hover);
-    --muted-foreground: var(--text-muted);
-    --border: var(--border-color);
-    --blue-500: #b45309;
-    --purple-500: #d97706;
-    --green-500: #059669;
-    --red-500: #dc2626;
-    --amber-500: #f59e0b;
-    --starlight: #fbbf24;
-    --accent-glow: rgba(180, 83, 9, 0.15);
-
-    /* Spacing & Sizing */
+  --background-secondary: var(--surface-card);
+  --card: var(--surface-card);
+  --card-foreground: var(--text-heading);
+  --primary: var(--brand-500);
+  --primary-foreground: var(--text-on-brand);
+  --muted: var(--surface-hover);
+  --muted-foreground: var(--text-muted);
+  --border: var(--border-color);
+  --blue-500: #b45309;
+  --purple-500: #d97706;
+  --green-500: #059669;
+  --red-500: #dc2626;
+  --amber-500: #f59e0b;
+  --starlight: #fbbf24;
+  --accent-glow: rgba(180, 83, 9, 0.15);
+  /* Spacing & Sizing */
     --radius: 0.75rem;
-    --radius-lg: 1rem;
-
-    /* Shadows */
-    --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.12);
-    --shadow-glow: 0 0 60px rgba(180, 83, 9, 0.12);
+  /* Shadows */
+    --shadow-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.12)
 }
 
 .dark {
-    --background: #0f172a;
+    --background: var(--surface-page);
     --background-secondary: #1e293b;
     --card: #1e293b;
     --card-foreground: #f1f5f9;
@@ -151,14 +147,14 @@ body {
 }
 
 .back-button:hover {
-    color: #1e293b;
-    background: rgba(15, 23, 42, 0.05);
+    color: var(--text-heading);
+    background: var(--surface-glass);
 }
 
 @media (prefers-color-scheme: dark) {
     .back-button:hover {
-        color: #f1f5f9;
-        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-body);
+        background: var(--surface-card);
     }
 }
 
@@ -196,7 +192,7 @@ body {
    ============================================================ */
 .main-card {
     width: 100%;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--surface-card);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(237, 231, 221, 0.6);
@@ -337,8 +333,8 @@ body {
     height: 112px;
     background: linear-gradient(145deg, #ffffff 0%, #faf8f5 100%);
     border-radius: 8px;
-    border: 1px solid #ede7dd;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -436,11 +432,11 @@ body {
 
 .search-card {
     width: 176px;
-    background: #ffffff;
-    border: 1px solid #ede7dd;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -483,7 +479,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
     .search-bar {
-        background: #0f172a;
+        background: var(--surface-page);
     }
 }
 
@@ -539,7 +535,7 @@ body {
 
 .result-title-text {
     font-size: 13px;
-    color: #1e293b;
+    color: var(--text-heading);
     font-weight: 500;
     line-height: 1.4;
     margin-bottom: 2px;
@@ -559,10 +555,10 @@ body {
 
 @media (prefers-color-scheme: dark) {
     .result-title-text {
-        color: #f1f5f9;
+        color: var(--text-body);
     }
     .result-url-text {
-        color: #94a3b8;
+        color: var(--text-muted);
     }
 }
 
@@ -582,7 +578,7 @@ body {
 .search-scan {
     position: absolute;
     inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.15) 50%, transparent 60%);
+    background: linear-gradient(105deg, transparent 40%, var(--border-glass) 50%, transparent 60%);
     animation: searchScan 2s linear infinite;
     animation-delay: 2s;
 }
@@ -623,11 +619,11 @@ body {
 .outline-card {
     width: 160px;
     height: 208px;
-    background: #ffffff;
-    border: 1px solid #ede7dd;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
     transform: rotate(-2deg);
     transition: transform 0.4s ease;
 }
@@ -658,7 +654,7 @@ body {
     content: '';
     width: 8px;
     height: 8px;
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -734,7 +730,7 @@ body {
 
 .outline-text-sub {
     font-size: 0.6rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     padding-left: 14px;
 }
 
@@ -853,8 +849,8 @@ body {
 .content-card {
     width: 160px;
     height: 112px;
-    background: #ffffff;
-    border: 1px solid #ede7dd;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 12px;
     display: flex;
@@ -927,7 +923,7 @@ body {
 .content-scan {
     position: absolute;
     inset: 0;
-    background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.1) 50%, transparent 60%);
+    background: linear-gradient(105deg, transparent 40%, var(--border-glass) 50%, transparent 60%);
     animation: contentScan 1.5s linear infinite;
     animation-delay: 1s;
 }
@@ -955,11 +951,11 @@ body {
 
 .actions-card {
     width: 176px;
-    background: #ffffff;
-    border: 1px solid #ede7dd;
+    background: var(--surface-card);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -999,7 +995,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
     .actions-title {
-        background: #0f172a;
+        background: var(--surface-page);
     }
 }
 
@@ -1046,7 +1042,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-size: 0.75rem;
 }
 
@@ -1103,14 +1099,14 @@ body {
 .status-title {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #1e293b;
+    color: var(--text-heading);
     margin-bottom: 0.5rem;
     letter-spacing: -0.025em;
 }
 
 @media (prefers-color-scheme: dark) {
     .status-title {
-        color: #f1f5f9;
+        color: var(--text-body);
     }
 }
 
@@ -1122,7 +1118,7 @@ body {
 
 @media (prefers-color-scheme: dark) {
     .status-desc {
-        color: #94a3b8;
+        color: var(--text-muted);
     }
 }
 
@@ -1165,7 +1161,7 @@ body {
     justify-content: center;
     gap: 0.75rem;
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--text-muted);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1190,9 +1186,9 @@ body {
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
     background: transparent;
-    border: 1px solid #ede7dd;
+    border: 1px solid var(--border-color);
     border-radius: 9999px;
-    color: #1e293b;
+    color: var(--text-heading);
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
@@ -1203,7 +1199,7 @@ body {
 @media (prefers-color-scheme: dark) {
     .retry-button {
         border: 1px solid #334155;
-        color: #f1f5f9;
+        color: var(--text-body);
     }
 }
 
@@ -1300,7 +1296,7 @@ body {
    AI教师分配展示
    ============================================================ */
 .teacher-assign-display {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 20px;
@@ -1310,7 +1306,7 @@ body {
 
 @media (prefers-color-scheme: light) {
     .teacher-assign-display {
-        background: rgba(255, 255, 255, 0.8);
+        background: var(--surface-card);
         border: 1px solid rgba(237, 231, 221, 0.5);
     }
 }
@@ -1332,17 +1328,17 @@ body {
 .teacher-assign-name {
     font-weight: 700;
     font-size: 1.25rem;
-    color: #fff;
+    color: var(--text-heading);
 }
 
 @media (prefers-color-scheme: light) {
     .teacher-assign-name {
-        color: #1e293b;
+        color: var(--text-heading);
     }
 }
 
 .teacher-assign-profession {
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-body);
     font-size: 0.875rem;
 }
 
@@ -1361,11 +1357,11 @@ body {
 
 .teacher-personality,
 .teacher-style {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-card);
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-body);
 }
 
 @media (prefers-color-scheme: light) {
@@ -1377,13 +1373,13 @@ body {
 }
 
 .teacher-match-reason {
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-muted);
     font-size: 0.8rem;
 }
 
 @media (prefers-color-scheme: light) {
     .teacher-match-reason {
-        color: #94a3b8;
+        color: var(--text-muted);
     }
 }
 
@@ -1412,7 +1408,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(255, 255, 255, 0.6);
+    background: var(--surface-card);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(237, 231, 221, 0.5);
     border-radius: 9999px;
@@ -1427,7 +1423,7 @@ body {
     .feature-card {
         background: rgba(30, 41, 59, 0.6);
         border-color: rgba(51, 65, 85, 0.5);
-        color: #94a3b8;
+        color: var(--text-muted);
     }
 }
 

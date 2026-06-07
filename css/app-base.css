@@ -75,12 +75,12 @@ body {
   color: var(--text-body, #475569);
   cursor: pointer;
   transition: all 0.2s var(--ease-out, cubic-bezier(0,0,0.2,1));
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-sm);
 }
 .theme-settings-btn:hover {
   background: var(--surface-hover, rgba(255,255,255,0.6));
   transform: scale(1.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-md);
 }
 .theme-settings-btn svg {
   width: 20px;
@@ -105,12 +105,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.2);
   transition: all 0.3s var(--ease-out, cubic-bezier(0,0,0.2,1));
 }
 #app-theme-fab:hover {
   transform: scale(1.1) rotate(15deg);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--border-glass);
 }
 #app-theme-fab:active { transform: scale(0.95); }
 #app-theme-fab svg {

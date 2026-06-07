@@ -100,7 +100,7 @@ body {
 
 .star {
     position: absolute;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -190,7 +190,7 @@ body {
 
 .cloud {
     position: absolute;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--surface-card);
     border-radius: 20px;
     animation: float-cloud linear infinite;
 }
@@ -398,7 +398,7 @@ body {
     left: 3px;
     width: 4px;
     height: 4px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -659,7 +659,7 @@ body {
     gap: 10px;
     margin-bottom: 12px;
     padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border-radius: 12px;
 }
 
@@ -726,7 +726,7 @@ body {
 
 .stat-bar {
     height: 8px;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--surface-hover);
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -746,7 +746,7 @@ body {
     left: 0;
     right: 0;
     height: 50%;
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--surface-card);
     border-radius: 4px 4px 0 0;
 }
 
@@ -785,7 +785,7 @@ body {
 
 .pet-slot {
     aspect-ratio: 1;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--surface-hover);
     border: 2px solid transparent;
     border-radius: 8px;
     cursor: pointer;
@@ -874,7 +874,7 @@ body {
     left: 10px;
     width: 32px;
     height: 16px;
-    background: rgba(255,255,255,0.4);
+    background: var(--surface-card);
     border-radius: 8px;
 }
 
@@ -944,7 +944,7 @@ body {
     right: 1px;
     width: 3px;
     height: 3px;
-    background: rgba(255,255,255,0.4);
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1169,7 +1169,7 @@ body {
     left: 1px;
     width: 3px;
     height: 3px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1273,7 +1273,7 @@ body {
     left: 1px;
     width: 3px;
     height: 3px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1320,7 +1320,7 @@ body {
     left: 8px;
     width: 28px;
     height: 14px;
-    background: rgba(255,255,255,0.4);
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1375,7 +1375,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1452,7 +1452,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1487,7 +1487,7 @@ body {
     left: 6px;
     width: 36px;
     height: 10px;
-    background: rgba(255,255,255,0.2);
+    background: var(--surface-card);
     border-radius: 6px;
 }
 
@@ -1532,7 +1532,7 @@ body {
     left: 12px;
     width: 18px;
     height: 12px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 6px;
 }
 
@@ -1553,7 +1553,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1588,7 +1588,7 @@ body {
     top: 0;
     width: 10px;
     height: 16px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 0 10px 10px 0;
 }
 
@@ -1665,7 +1665,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1742,7 +1742,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1807,7 +1807,7 @@ body {
     left: 1px;
     width: 2px;
     height: 2px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
 }
 
@@ -1887,7 +1887,7 @@ body {
     position: absolute;
     width: 5px;
     height: 5px;
-    background: #fff;
+    background: var(--surface-card);
     border-radius: 50%;
     bottom: 52px;
     animation: blink 4s ease-in-out infinite;
@@ -1980,8 +1980,8 @@ body {
     bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
-    background: linear-gradient(180deg, #ffffff, #fffdf8);
-    border: 2px solid rgba(31,41,55,0.12);
+    background: var(--surface-card);
+    border: 2px solid var(--border-color);
     color: #1f2937; /* 深色文字，提升可读性 */
     font-weight: 700;
     border-radius: 14px;
@@ -2078,8 +2078,8 @@ body {
 
 /* 让气泡颜色在夜晚更柔和 */
 .sky.night + .emotion-bubble, .sky.night .emotion-bubble {
-    background: linear-gradient(180deg, #fffdf8, #fffbe6);
-    color: #111827;
+    background: var(--surface-card);
+    color: var(--text-heading);
 }
 
 .emotion-bubble::after {
@@ -2171,7 +2171,7 @@ body {
 }
 
 .action-btn.special .label {
-    color: #fff;
+    color: var(--text-heading);
 }
 
 /* ===== 粒子效果 ===== */
@@ -2339,7 +2339,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0,0,0,0.5);
+    background: var(--surface-card);
     padding: 8px 16px;
     border-radius: 20px;
     border: 2px solid var(--card-border);
@@ -2377,7 +2377,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0,0,0,0.5);
+    background: var(--surface-card);
     padding: 8px 16px;
     border-radius: 20px;
     border: 2px solid var(--card-border);
@@ -2400,7 +2400,7 @@ body {
 
 @keyframes score-pop {
     0% { transform: scale(1); }
-    50% { transform: scale(1.3); color: #fff; }
+    50% { transform: scale(1.3); color: var(--text-heading); }
     100% { transform: scale(1); }
 }
 
@@ -2637,7 +2637,7 @@ body {
     transform: translateX(-50%);
     font-size: 11px;
     color: var(--text-secondary);
-    background: rgba(0,0,0,0.5);
+    background: var(--surface-card);
     padding: 8px 16px;
     border-radius: 12px;
     white-space: nowrap;
@@ -2815,7 +2815,7 @@ body {
 
 .snowflake {
     position: absolute;
-    color: #fff;
+    color: var(--text-heading);
     font-size: 12px;
     animation: snow-fall 4s linear infinite;
 }
