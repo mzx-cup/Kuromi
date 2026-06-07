@@ -1,7 +1,8 @@
 /* 玄武·AI 结对编程舱 样式 */
 
 /* Zoom level compatibility */
-* {
+.ai-pair-page,
+.ai-pair-page * {
     font-family: 'Inter', 'JetBrains Mono', 'PingFang SC', sans-serif;
     box-sizing: border-box;
 }
@@ -644,15 +645,10 @@ kbd {
    ============================================ */
 
 /* Base zoom level compatibility */
-html {
+.ai-pair-page {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-}
-
-body {
     line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Large Desktop - 1440px+ */
