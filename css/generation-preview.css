@@ -46,23 +46,23 @@
 /* ============================================================
    Reset & Base
    ============================================================ */
-*, *::before, *::after {
+.gen-preview-page,
+.gen-preview-page *,
+.gen-preview-page *::before,
+.gen-preview-page *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
+.gen-preview-page {
     font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--surface-page);
-    color: var(--text-body);
     min-height: 100dvh;
     overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
-    body {
+    .gen-preview-page {
         background: var(--surface-page);
         color: var(--text-body);
     }
