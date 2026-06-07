@@ -125,6 +125,7 @@ def _normalize_video(api_data: dict) -> dict:
     first_page = pages[0] if pages else {}
     cid = first_page.get("cid", api_data.get("cid", 0))
 
+    ugc_season = api_data.get("ugc_season") or {}
     return {
         "bvid": api_data.get("bvid", ""),
         "title": api_data.get("title", ""),
@@ -139,6 +140,10 @@ def _normalize_video(api_data: dict) -> dict:
             {"page": p.get("page", 1), "partTitle": p.get("part", ""), "cid": p.get("cid", 0), "duration": p.get("duration", 0)}
             for p in pages
         ],
+        "ugcSeasonId": ugc_season.get("id"),
+        "ugcSeasonTitle": ugc_season.get("title", ""),
+        "ugcSeasonCount": ugc_season.get("ep_count", 0),
+        "ugcSeasonMid": ugc_season.get("mid") or owner.get("mid"),
     }
 
 
@@ -167,13 +172,15 @@ def _scrape_video_page(html: str, bvid: str) -> dict | None:
         vd = state.get("videoData", {})
         if not vd:
             return None
+        ugc = vd.get("ugc_season") or {}
+        owner = vd.get("owner") or {}
         return {
             "bvid": vd.get("bvid", bvid),
             "title": vd.get("title", ""),
             "description": vd.get("desc", ""),
             "duration": vd.get("duration", 0),
             "coverUrl": vd.get("pic", ""),
-            "authorName": (vd.get("owner") or {}).get("name", ""),
+            "authorName": owner.get("name", ""),
             "playCount": (vd.get("stat") or {}).get("view", 0),
             "tags": [],
             "cid": vd.get("cid", 0),
@@ -181,6 +188,10 @@ def _scrape_video_page(html: str, bvid: str) -> dict | None:
                 {"page": p.get("page", 1), "partTitle": p.get("part", ""), "cid": p.get("cid", 0), "duration": p.get("duration", 0)}
                 for p in (vd.get("pages") or [])
             ],
+            "ugcSeasonId": ugc.get("id"),
+            "ugcSeasonTitle": ugc.get("title", ""),
+            "ugcSeasonCount": ugc.get("ep_count", 0),
+            "ugcSeasonMid": ugc.get("mid") or owner.get("mid"),
         }
     except Exception:
         return None
@@ -269,22 +280,30 @@ def parse_playlist(url: str) -> list[dict]:
                 if items:
                     return items
 
-        # fallback: multi-page video
+        # fallback: multi-page video (multiple "P" within a single BV)
+        # also checks ugc_season (B站合集) — video may belong to a collection
         if bvid:
             info = parse_video(url)
-            if info and len(info.get("pages", [])) > 1:
-                return [
-                    {
-                        "bvid": bvid,
-                        "title": p["partTitle"] or info["title"],
-                        "duration": p.get("duration", 0),
-                        "coverUrl": info.get("coverUrl", ""),
-                        "authorName": info.get("authorName", ""),
-                    }
-                    for p in info["pages"]
-                ]
+            if info:
+                if len(info.get("pages", [])) > 1:
+                    return [
+                        {
+                            "bvid": bvid,
+                            "title": p["partTitle"] or info["title"],
+                            "duration": p.get("duration", 0),
+                            "coverUrl": info.get("coverUrl", ""),
+                            "authorName": info.get("authorName", ""),
+                        }
+                        for p in info["pages"]
+                    ]
 
-        # fallback: try space channel
+                if info.get("ugcSeasonId"):
+                    mid = info.get("ugcSeasonMid")
+                    items = _fetch_collection(cli, str(info["ugcSeasonId"]), mid)
+                    if items:
+                        return items
+
+        # fallback: try space channel (scrape page HTML for embedded episode list)
         if bvid:
             items = _try_space_channel(cli, url)
             if items:
@@ -318,8 +337,11 @@ def _fetch_series(cli: httpx.Client, series_id: str) -> list[dict]:
     ]
 
 
-def _fetch_collection(cli: httpx.Client, col_id: str, page: int = 1) -> list[dict]:
-    params = _wbi_sign({"season_id": col_id, "page_num": page, "page_size": 30}, cli)
+def _fetch_collection(cli: httpx.Client, col_id: str, mid: int | None = None, page: int = 1) -> list[dict]:
+    api_params: dict[str, Any] = {"season_id": col_id, "page_num": page, "page_size": 30}
+    if mid:
+        api_params["mid"] = mid
+    params = _wbi_sign(api_params, cli)
     r = cli.get(
         "https://api.bilibili.com/x/polymer/space/seasons_archives_list",
         params=params,
@@ -344,7 +366,7 @@ def _fetch_collection(cli: httpx.Client, col_id: str, page: int = 1) -> list[dic
     total = data.get("data", {}).get("page", {}).get("total", 0)
     if len(items) < total:
         for p in range(2, (total // 30) + 2):
-            more = _fetch_collection(cli, col_id, p)
+            more = _fetch_collection(cli, col_id, mid, p)
             if more:
                 items.extend(more)
             else:
@@ -358,6 +380,8 @@ def _try_space_channel(cli: httpx.Client, url: str) -> list[dict]:
         return []
     text = r.text
     m = re.search(r"window\.__INITIAL_STATE__\s*=\s*(\{.+?\});\s*\(function", text, re.DOTALL)
+    if not m:
+        m = re.search(r"window\.__INITIAL_STATE__\s*=\s*(\{.+?\});", text, re.DOTALL)
     if not m:
         return []
     try:

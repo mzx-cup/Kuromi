@@ -1,0 +1,118 @@
+/* ============================================================
+   Phase 4: Onboarding Spotlight Tour
+   ============================================================ */
+
+.onboard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.onboard-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.onboard-spotlight {
+  position: fixed;
+  z-index: 901;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 24px rgba(99, 102, 241, 0.3);
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.onboard-spotlight.visible {
+  opacity: 1;
+}
+
+.onboard-tooltip {
+  position: fixed;
+  z-index: 902;
+  width: 280px;
+  background: var(--surface-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.3s ease;
+}
+
+.onboard-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.onboard-tooltip-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 8px;
+}
+
+.onboard-tooltip-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.onboard-tooltip-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.onboard-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.onboard-btn--skip {
+  background: transparent;
+  color: var(--text-muted);
+}
+.onboard-btn--skip:hover {
+  color: var(--text-body);
+}
+
+.onboard-btn--next {
+  background: linear-gradient(135deg, var(--brand-500), var(--accent-500));
+  color: var(--text-on-brand);
+}
+.onboard-btn--next:hover {
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-500));
+}
+
+.onboard-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.onboard-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-placeholder);
+  transition: all 0.2s;
+}
+.onboard-dot.active {
+  background: var(--brand-500);
+  width: 16px;
+  border-radius: 3px;
+}

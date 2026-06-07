@@ -229,9 +229,9 @@ body {
 
 /* 毛玻璃弹窗 */
 .glass-modal {
-    background: rgba(15, 15, 35, 0.85);
+    background: var(--surface-glass);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
 }
 
 /* 关键词高亮 */

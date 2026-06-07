@@ -1,0 +1,189 @@
+/* ============================================================
+   App Background — 统一背景视觉系统
+   用途：为所有非AI问答页面提供统一的、可随主题切换的背景层。
+   规则：
+     1. 所有背景色使用 tokens.css 变量，禁止硬编码（除星星白点）
+     2. 与 theme.js 壁纸系统共存：壁纸层 z-index 高于默认背景层
+     3. 亮色主题 → 柔和渐变/毛玻璃质感；暗色主题 → 深空星空
+   ============================================================ */
+
+/* ---------- 统一背景层容器 ---------- */
+#app-bg,
+.app-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -4;
+  pointer-events: none;
+  overflow: hidden;
+  transition: background 0.6s ease, opacity 0.6s ease;
+}
+
+/* ---------- 亮色主题默认背景 ---------- */
+/*  所有亮色主题默认背景 */
+[data-theme="warm-morning"] .app-bg-layer,
+[data-theme="forest-light"] .app-bg-layer,
+[data-theme="ocean-glass"] .app-bg-layer,
+[data-theme="sakura-whisper"] .app-bg-layer,
+[data-theme="twilight-glow"] .app-bg-layer,
+[data-theme="bamboo-grove"] .app-bg-layer {
+  background:
+    radial-gradient(ellipse at 15% 25%, color-mix(in oklch, var(--brand-200), transparent 75%) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 75%, color-mix(in oklch, var(--info), transparent 85%) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, color-mix(in oklch, var(--brand-100), transparent 60%) 0%, transparent 70%),
+    var(--surface-page, #f8f7f5);
+}
+
+/* ---------- 暗色主题默认背景 ---------- */
+[data-theme="study-night"] .app-bg-layer,
+[data-theme="starry-night"] .app-bg-layer,
+[data-theme="neon-cyber"] .app-bg-layer,
+[data-theme="ocean-glass-dark"] .app-bg-layer,
+[data-theme="pink-dark"] .app-bg-layer,
+[data-theme="deep-ocean"] .app-bg-layer,
+[data-theme="star-vault"] .app-bg-layer {
+  background: #040816;
+}
+
+/* ---------- 星星层（仅暗色主题显示） ---------- */
+.app-bg-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.95) 1px, transparent 0),
+    radial-gradient(1.5px 1.5px at 32% 42%, rgba(255,255,255,0.7) 1px, transparent 0),
+    radial-gradient(2px 2px at 55% 12%, rgba(255,255,255,0.85) 1px, transparent 0),
+    radial-gradient(1px 1px at 72% 58%, rgba(255,255,255,0.6) 1px, transparent 0),
+    radial-gradient(2px 2px at 88% 28%, rgba(255,255,255,0.9) 1px, transparent 0),
+    radial-gradient(1.5px 1.5px at 18% 78%, rgba(255,255,255,0.75) 1px, transparent 0),
+    radial-gradient(2px 2px at 48% 88%, rgba(255,255,255,0.8) 1px, transparent 0),
+    radial-gradient(1px 1px at 68% 15%, rgba(255,255,255,0.55) 1px, transparent 0),
+    radial-gradient(2px 2px at 82% 82%, rgba(255,255,255,0.9) 1px, transparent 0),
+    radial-gradient(1.5px 1.5px at 28% 55%, rgba(255,255,255,0.7) 1px, transparent 0),
+    radial-gradient(2px 2px at 42% 32%, rgba(255,255,255,0.85) 1px, transparent 0),
+    radial-gradient(1px 1px at 62% 72%, rgba(255,255,255,0.6) 1px, transparent 0),
+    radial-gradient(2px 2px at 92% 62%, rgba(255,255,255,0.8) 1px, transparent 0),
+    radial-gradient(1.5px 1.5px at 8% 52%, rgba(255,255,255,0.7) 1px, transparent 0),
+    radial-gradient(2px 2px at 38% 8%, rgba(255,255,255,0.9) 1px, transparent 0);
+  background-size: 220px 220px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* 暗色主题激活星星 */
+[data-theme="study-night"] .app-bg-stars,
+[data-theme="starry-night"] .app-bg-stars,
+[data-theme="neon-cyber"] .app-bg-stars,
+[data-theme="ocean-glass-dark"] .app-bg-stars,
+[data-theme="pink-dark"] .app-bg-stars,
+[data-theme="deep-ocean"] .app-bg-stars,
+[data-theme="star-vault"] .app-bg-stars {
+  opacity: 1;
+  animation: app-bg-twinkle 4s ease-in-out infinite alternate;
+}
+
+@keyframes app-bg-twinkle {
+  0%   { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+
+/* ---------- 星云光斑（暗色主题额外层） ---------- */
+.app-bg-nebula {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  background:
+    radial-gradient(ellipse at 25% 30%, color-mix(in oklch, var(--info), transparent 85%) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 60%, color-mix(in oklch, var(--brand-300), transparent 88%) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, color-mix(in oklch, var(--info), transparent 90%) 0%, transparent 45%);
+}
+
+[data-theme="study-night"] .app-bg-nebula,
+[data-theme="starry-night"] .app-bg-nebula,
+[data-theme="neon-cyber"] .app-bg-nebula,
+[data-theme="ocean-glass-dark"] .app-bg-nebula,
+[data-theme="pink-dark"] .app-bg-nebula,
+[data-theme="deep-ocean"] .app-bg-nebula,
+[data-theme="star-vault"] .app-bg-nebula {
+  opacity: 1;
+}
+
+/* ---------- 亮色主题柔和光斑 ---------- */
+.app-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.app-bg-orb-1 {
+  width: 50vw; height: 50vw;
+  top: -10%; left: -10%;
+  background: color-mix(in oklch, var(--brand-200), transparent 70%);
+}
+.app-bg-orb-2 {
+  width: 40vw; height: 40vw;
+  bottom: -10%; right: -10%;
+  background: color-mix(in oklch, var(--info), transparent 75%);
+}
+.app-bg-orb-3 {
+  width: 30vw; height: 30vw;
+  top: 40%; left: 40%;
+  background: color-mix(in oklch, var(--success), transparent 80%);
+}
+
+[data-theme="warm-morning"] .app-bg-orb,
+[data-theme="forest-light"] .app-bg-orb,
+[data-theme="ocean-glass"] .app-bg-orb,
+[data-theme="sakura-whisper"] .app-bg-orb,
+[data-theme="twilight-glow"] .app-bg-orb,
+[data-theme="bamboo-grove"] .app-bg-orb {
+  opacity: 0.6;
+}
+
+/* ---------- 统一 body 基础 ---------- */
+.app-body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background: transparent !important; /* 背景交给 #app-bg */
+  color: var(--text-body, #475569);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  font-size: var(--text-base, 15px);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 暗色主题 body 文字适配 */
+[data-theme$="night"] .app-body,
+[data-theme$="dark"] .app-body,
+[data-theme="neon-cyber"] .app-body {
+  color: var(--cp-text-secondary, var(--text-body, #94a3b8));
+}
+
+/* ---------- 兼容性：旧背景层隐藏 ---------- */
+/* 当 data-bg-unified="true" 时，彻底隐藏旧背景层，由 #app-bg 接管 */
+[data-bg-unified="true"] .teacher-bg,
+[data-bg-unified="true"] .hub-bg,
+[data-bg-unified="true"] .settings-bg,
+[data-bg-unified="true"] .progress-bg,
+[data-bg-unified="true"] .stellar-bg,
+[data-bg-unified="true"] .flow-bg,
+[data-bg-unified="true"] .calendar-bg,
+[data-bg-unified="true"] .video-bg,
+[data-bg-unified="true"] .classroom-bg,
+[data-bg-unified="true"] .bg-decor,
+[data-bg-unified="true"] .particle-bg,
+[data-bg-unified="true"] .personal-bg,
+[data-bg-unified="true"] .courses-bg::before,
+[data-bg-unified="true"] .code-body::before,
+[data-bg-unified="true"] .assessment-body::before,
+/* .gradient-bg 通常用在 body 上，不能 display:none；
+   由对应页面自行移除 class 或覆盖样式 */
+
+/* 保留游戏/生态场景页面背景（通过 data-bg-preserve 豁免） */
+[data-bg-preserve="true"] .app-bg-layer {
+  opacity: 0;
+}

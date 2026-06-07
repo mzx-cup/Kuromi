@@ -1,0 +1,133 @@
+/* ============================================================
+   App Base — 全局页面基础样式
+   用途：为所有非 AI 问答页面提供统一的基础视觉层。
+   规则：
+     1. 只使用 tokens.css 变量，禁止硬编码颜色
+     2. 特异性尽量低，不覆盖页面专有样式
+     3. 与 teacher.css / hub.css / index.css 共存不冲突
+   ============================================================ */
+
+/* ---------- 1. 全局 reset 与基础 ---------- */
+html {
+  color-scheme: var(--_color-scheme, light);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  font-size: var(--text-base, 15px);
+  line-height: 1.6;
+  color: var(--text-body, #475569);
+  background: var(--surface-page, #f8f7f5);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 选中文本高亮 */
+::selection {
+  background: var(--accent-bg, rgba(249,115,22,0.12));
+  color: var(--text-heading, #1c1917);
+}
+
+/* ---------- 2. 统一滚动条 ---------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted, #78756e);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-body, #475569); }
+
+/* ---------- 3. 壁纸背景层（与 theme.js 壁纸系统联动） ---------- */
+.global-bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background: var(--leleo-bg-image, none) center/cover no-repeat;
+  filter: brightness(var(--leleo-brightness, 85%)) blur(var(--leleo-blur, 5px));
+  transition: filter 0.3s ease;
+}
+.global-bg-video {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+/* ---------- 4. 主题设置按钮（页面已有时使用） ---------- */
+.theme-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-glass, rgba(255,255,255,0.45));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-body, #475569);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out, cubic-bezier(0,0,0.2,1));
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.theme-settings-btn:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.6));
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.theme-settings-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- 5. 自动浮动主题按钮（theme.js 自动创建） ---------- */
+#app-theme-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9998;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border-glass, rgba(255,255,255,0.25));
+  background: var(--surface-glass, rgba(255,255,255,0.45));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  color: var(--text-body, #475569);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.3s var(--ease-out, cubic-bezier(0,0,0.2,1));
+}
+#app-theme-fab:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+#app-theme-fab:active { transform: scale(0.95); }
+#app-theme-fab svg {
+  width: 22px;
+  height: 22px;
+  color: var(--brand-500, #f97316);
+}
+
+/* ---------- 6. 通用页面容器 ---------- */
+.app-page {
+  min-height: 100vh;
+  background: var(--surface-page, #f8f7f5);
+}
+
+/* ---------- 7. 工具类兼容 ---------- */
+.text-heading { color: var(--text-heading, #1c1917); }
+.text-body    { color: var(--text-body, #475569); }
+.text-muted   { color: var(--text-muted, #78756e); }
+.bg-card      { background: var(--bg-card, var(--surface-card, #ffffff)); }
+.border-glass { border-color: var(--border-glass, #e7e5e0); }

@@ -2169,6 +2169,9 @@ function goToPersonal() {
 function logout() {
     const dropdown = document.getElementById('avatar-dropdown');
     if (dropdown) dropdown.classList.remove('show');
+    // Clear all auth keys consistently with Auth.logout()
+    localStorage.removeItem('sp_token');
+    localStorage.removeItem('sp_user');
     localStorage.removeItem('starlearn_user');
     window.location.href = '/login.html';
 }

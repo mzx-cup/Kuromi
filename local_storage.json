@@ -1,5 +1,39 @@
 {
-  "users": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "teacher",
+      "password": "$2b$12$BpMR0GZGFpehiJJdUJXcj.YLUiNxEvwe5zdUoC76Itow9NluX6ZYK",
+      "avatar": "",
+      "nickname": "教师演示",
+      "role": "teacher",
+      "display_name": "教师演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 2,
+      "username": "student",
+      "password": "$2b$12$h6M0Y57Q.CRzLZJ/l8Gbj.0ji2cMg6VlZWBQW7ow60/hzWMBGEole",
+      "avatar": "",
+      "nickname": "学生演示",
+      "role": "student",
+      "display_name": "学生演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 3,
+      "username": "admin",
+      "password": "$2b$12$OBIPDvsrR6wtYPC0pAC2.e2c.7kFyvM7K8egh4SfQXnmlv209VA0m",
+      "avatar": "",
+      "nickname": "管理员",
+      "role": "admin",
+      "display_name": "管理员",
+      "created_at": "local",
+      "last_login": "local"
+    }
+  ],
   "learning_records": [],
   "daily_routes": [
     {
@@ -680,6 +714,298 @@
       "date": "2026-06-01",
       "completed": [],
       "generated_at": "2026-06-01T19:07:52.111154",
+      "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "英语单词记忆",
+          "description": "背诵20个核心词汇",
+          "type": "study",
+          "duration": 20,
+          "subject": "英语",
+          "difficulty": "easy",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "高数专项练习",
+          "description": "完成5道极限练习题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 3,
+          "title": "错题回顾",
+          "description": "复习本周典型错题",
+          "type": "review",
+          "duration": 25,
+          "subject": "通用",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "算法挑战",
+          "description": "完成2道简单算法题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "/html/courses.html"
+        },
+        {
+          "id": 5,
+          "title": "喂养星宝",
+          "description": "放松一下，照顾虚拟宠物",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/html/pet.html"
+        }
+      ],
+      "date": "2026-06-02",
+      "completed": [],
+      "generated_at": "2026-06-02T00:54:09.033150",
+      "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Python基础语法入门",
+          "description": "观看变量与数据类型的教学视频",
+          "type": "study",
+          "duration": 25,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "video-player.html"
+        },
+        {
+          "id": 2,
+          "title": "完成5道基础练习",
+          "description": "编写Hello World及简单变量运算程序",
+          "type": "practice",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "基础概念测评",
+          "description": "通过测评找出需要加强的薄弱知识点",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "assessment.html"
+        },
+        {
+          "id": 4,
+          "title": "知识图谱梳理",
+          "description": "用概念分析工具构建今日学习内容框架",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "concept-analyzer.html"
+        },
+        {
+          "id": 5,
+          "title": "AI问答复习",
+          "description": "通过苏格拉底式提问巩固编程基础概念",
+          "type": "study",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "专注力训练",
+          "description": "完成一次25分钟番茄钟专注练习",
+          "type": "practice",
+          "duration": 30,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 7,
+          "title": "虚拟宠物互动",
+          "description": "喂养虚拟宠物，放松学习间隙",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-06-03",
+      "completed": [],
+      "generated_at": "2026-06-03T11:04:15.995323",
+      "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "Python基础语法入门",
+          "description": "学习变量、数据类型、print输出",
+          "type": "study",
+          "duration": 15,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "courses.html"
+        },
+        {
+          "id": 2,
+          "title": "数据类型练习",
+          "description": "完成5道整数和字符串练习题",
+          "type": "practice",
+          "duration": 20,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 3,
+          "title": "条件语句实战",
+          "description": "编写3个if-else判断小程序",
+          "type": "practice",
+          "duration": 25,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 4,
+          "title": "数学计算训练",
+          "description": "完成10道四则运算应用题",
+          "type": "practice",
+          "duration": 20,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "code.html"
+        },
+        {
+          "id": 5,
+          "title": "算法思维入门",
+          "description": "学习流程图和基础算法逻辑",
+          "type": "study",
+          "duration": 15,
+          "subject": "计算机",
+          "difficulty": "easy",
+          "taskUrl": "courses.html"
+        },
+        {
+          "id": 6,
+          "title": "专注计时",
+          "description": "完成25分钟专注学习时段",
+          "type": "study",
+          "duration": 25,
+          "subject": "通用",
+          "difficulty": "medium",
+          "taskUrl": "flow-meter.html"
+        },
+        {
+          "id": 7,
+          "title": "植物养成",
+          "description": "浇水施肥，让学习小树成长",
+          "type": "relax",
+          "duration": 10,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "plant.html"
+        }
+      ],
+      "date": "2026-06-05",
+      "completed": [],
+      "generated_at": "2026-06-05T12:43:04.649520",
+      "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "学习基础数学概念",
+          "description": "观看基础数学概念视频课程",
+          "type": "study",
+          "duration": 30,
+          "subject": "math",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "完成10道基础代数题",
+          "description": "练习一元一次方程和简单代数运算",
+          "type": "practice",
+          "duration": 45,
+          "subject": "math",
+          "difficulty": "medium",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "复习基础物理知识",
+          "description": "学习力和运动的基本概念",
+          "type": "review",
+          "duration": 30,
+          "subject": "physics",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "AI问答练习",
+          "description": "通过苏格拉底式AI问答巩固知识",
+          "type": "practice",
+          "duration": 30,
+          "subject": "general",
+          "difficulty": "medium",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 5,
+          "title": "基础编程入门",
+          "description": "学习Python基础语法并编写简单程序",
+          "type": "practice",
+          "duration": 45,
+          "subject": "programming",
+          "difficulty": "easy",
+          "taskUrl": "/ai-pair-programming.html"
+        },
+        {
+          "id": 6,
+          "title": "放松时间",
+          "description": "玩虚拟宠物游戏放松心情",
+          "type": "relax",
+          "duration": 15,
+          "subject": "relaxation",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        },
+        {
+          "id": 7,
+          "title": "制定学习计划",
+          "description": "使用日历工具规划本周学习任务",
+          "type": "review",
+          "duration": 15,
+          "subject": "planning",
+          "difficulty": "easy",
+          "taskUrl": "/calendar.html"
+        }
+      ],
+      "date": "2026-06-06",
+      "completed": [],
+      "generated_at": "2026-06-06T17:31:13.155257",
       "user_id": 2
     }
   ],

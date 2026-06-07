@@ -33,6 +33,7 @@ from db import (
     update_course_generation_status,
 )
 import asyncio
+from contextlib import asynccontextmanager
 
 from state import ChatRequestV2, ChatResponseV2, StudentState, StreamChatRequest, CognitiveStyle, DialogueRole, DebateRequest, LearningPortrait, CourseGenerationRequest, CourseData, SceneOutline, Slide, SlideContent, SlideElement, TeacherInfo, GenerateImageRequest, GenerateImageResponse, GenerateTTSRequest, GenerateTTSResponse, CourseSaveRequest, CourseListResponse, CourseChatRequest, InteractiveScene, TextCardComponent, QuizComponent, CodeEditorComponent, SimulationComponent, QuizOption, QuizGradeRequest, QuizGradeResponse, RunCodeRequest, RunCodeResponse, parse_interactive_scene
 from proactive_tutor import (
@@ -68,7 +69,18 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
 VIDEO_DIR = os.path.join(BASE_DIR, "video")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """管理应用启动/关闭的生命周期事件。"""
+    # Startup
+    all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
+    v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
+    logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
+    yield
+    # Shutdown
+    await close_http_client()
+
+app = FastAPI(lifespan=lifespan)
 
 # ── 学习路径实时刷新防抖 ──
 _path_refresh_debounce: dict[int, float] = {}
@@ -154,6 +166,22 @@ app.include_router(bilibili_router)
 from app.api.courses import router as courses_router
 app.include_router(courses_router)
 
+# ---- Mascot API (小星 AI 助手) ----
+from app.api.mascot import router as mascot_router
+app.include_router(mascot_router, prefix="/api")
+
+# ---- Auth API (用户认证) ----
+from app.api.auth import router as auth_router
+app.include_router(auth_router)
+
+# ---- Teacher API (教师端) ----
+from app.api.teacher import router as teacher_router
+app.include_router(teacher_router)
+
+# ---- Datacenter API (数据仪表盘) ----
+from app.api.datacenter import router as datacenter_router
+app.include_router(datacenter_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -169,18 +197,6 @@ async def log_requests(request: Request, call_next):
     else:
         req_logger.info(f"{request.method} {request.url.path} -> {response.status_code} ({elapsed:.0f}ms)")
     return response
-
-
-@app.on_event("startup")
-async def startup_debug():
-    all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
-    v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
-    logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await close_http_client()
 
 
 def coerce_learning_path(value):
@@ -413,7 +429,7 @@ def retrieve_knowledge(keywords: list):
     return context, sources, source_links
 
 def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
-    """调用 MiniMax M2.7 大模型生成内容（已完全切换自讯飞）"""
+    """调用 MiniMax-Text-01 大模型生成内容（已完全切换自讯飞）"""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",
@@ -459,7 +475,7 @@ def call_llm(system_prompt: str, user_prompt: str, temperature=0.3):
 
 
 def call_llm_with_messages(messages: list[dict], temperature=0.3):
-    """调用 MiniMax M2.7，支持完整 messages 数组（含历史上下文）。"""
+    """调用 MiniMax-Text-01，支持完整 messages 数组（含历史上下文）。"""
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {settings.minimax_api_key}",
@@ -678,19 +694,20 @@ def serve_struggle_test():
         return FileResponse(struggle_path)
     raise HTTPException(status_code=404, detail="struggle_test.html 未找到")
 
-@app.get("/css/{filename}")
+@app.get("/css/{filename:path}")
 def serve_css(filename: str):
     file_path = os.path.join(CSS_DIR, filename)
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="text/css; charset=utf-8")
     raise HTTPException(status_code=404, detail="CSS文件未找到")
 
-@app.get("/js/{filename}")
+@app.get("/js/{filename:path}")
 def serve_js(filename: str):
     file_path = os.path.join(JS_DIR, filename)
+    logger.info(f"[serve_js] requested: {filename} -> resolved: {file_path} | exists: {os.path.exists(file_path)}")
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type="application/javascript; charset=utf-8")
-    raise HTTPException(status_code=404, detail="JS文件未找到")
+    raise HTTPException(status_code=404, detail=f"JS文件未找到: {filename}")
 
 @app.get("/audio/{filename}")
 def serve_audio(filename: str):
@@ -1621,6 +1638,49 @@ def serve_classroom():
     if os.path.exists(path):
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="课堂页面未找到")
+
+# ---- Teacher pages ----
+@app.get("/teacher-dashboard.html")
+def serve_teacher_dashboard():
+    path = os.path.join(HTML_DIR, "teacher-dashboard.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="教师仪表盘页面未找到")
+
+@app.get("/teacher-class.html")
+def serve_teacher_class():
+    path = os.path.join(HTML_DIR, "teacher-class.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="班级管理页面未找到")
+
+@app.get("/teacher-manage.html")
+def serve_teacher_manage():
+    path = os.path.join(HTML_DIR, "teacher-manage.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="学生管理页面未找到")
+
+@app.get("/teacher-exam.html")
+def serve_teacher_exam():
+    path = os.path.join(HTML_DIR, "teacher-exam.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="考试管理页面未找到")
+
+@app.get("/teacher-content.html")
+def serve_teacher_content():
+    path = os.path.join(HTML_DIR, "teacher-content.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="内容管理页面未找到")
+
+@app.get("/data-dashboard.html")
+def serve_data_dashboard():
+    path = os.path.join(HTML_DIR, "data-dashboard.html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    raise HTTPException(status_code=404, detail="数据仪表盘页面未找到")
 
 # ========== Socratic AI API ==========
 

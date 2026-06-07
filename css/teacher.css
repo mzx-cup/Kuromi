@@ -1,0 +1,935 @@
+/* ============================================================
+   Constellation Prism — Teacher & Auth Shared Styles
+   星座棱晶设计语言 · 教师端 + 登录注册 通用样式系统
+   0 硬编码 hex 颜色 — 所有色值透过 tokens.css 变量驱动
+   与 hub.html 使用同一设计体系，确保风格统一
+
+   覆盖面：
+   - 深空背景系统（4 层叠加：星云 + 星场 + 星座 + 坐标网格）
+   - 棱晶卡片系统（切角 clip-path + 6 层光学镀膜 box-shadow + 内侧微边框）
+   - 棱晶角折射装饰（4 角 prism-corner + prism-layer 叠层）
+   - 教师端布局（侧边栏 + 主内容 + 各类卡片/表格/表单）
+   - 登录/注册页（居中卡片 + 品牌标识 + 快捷登录）
+   ============================================================ */
+
+/* ============================================================
+   1. CSS 变量别名 (匹配 hub.css 星座棱晶体系)
+   ============================================================ */
+.teacher-page, .auth-page {
+    /* 深空背景色阶 */
+    --cp-deep-core:    color-mix(in oklch, var(--neutral-900), black 35%);
+    --cp-deep-mid:     color-mix(in oklch, var(--neutral-900), black 15%);
+    --cp-deep-surface: color-mix(in oklch, var(--neutral-800), var(--neutral-900) 50%);
+
+    /* 棱晶卡片表面 & 边框 */
+    --cp-card-bg:       color-mix(in oklch, var(--neutral-700), var(--neutral-800) 60%);
+    --cp-card-bg-hover: color-mix(in oklch, var(--neutral-600), var(--neutral-700) 40%);
+    --cp-card-border:   color-mix(in oklch, var(--brand-400), transparent 92%);
+    --cp-card-border-strong: color-mix(in oklch, var(--brand-400), transparent 85%);
+
+    /* 棱晶光学镀膜 — 5 层 box-shadow 叠层 */
+    --cp-prism-glow:    0 0 0 1px color-mix(in oklch, var(--info), transparent 92%),
+                        0 0 0 2px color-mix(in oklch, var(--info), transparent 96%),
+                        0 0 0 3px color-mix(in oklch, var(--info), transparent 98%),
+                        0 4px 40px color-mix(in oklch, black, transparent 55%),
+                        inset 0 1px 0 color-mix(in oklch, white, transparent 98%);
+
+    /* 棱晶卡片 hover 发光增强 */
+    --cp-prism-glow-hover: 0 0 0 1px color-mix(in oklch, var(--info), transparent 88%),
+                           0 0 0 2px color-mix(in oklch, var(--info), transparent 93%),
+                           0 0 0 3px color-mix(in oklch, var(--info), transparent 96%),
+                           0 6px 50px color-mix(in oklch, black, transparent 50%),
+                           inset 0 1px 0 color-mix(in oklch, white, transparent 97%);
+
+    /* 棱晶折射高光色（彩虹微光配色） */
+    --cp-prism-color-a: color-mix(in oklch, var(--info), transparent 85%);
+    --cp-prism-color-b: color-mix(in oklch, var(--brand-400), transparent 93%);
+    --cp-prism-color-c: color-mix(in oklch, var(--brand-300), transparent 94%);
+    --cp-prism-color-d: color-mix(in oklch, var(--warning), transparent 92%);
+
+    /* 文本 — 深空背景适配 */
+    --cp-text-primary:   color-mix(in oklch, var(--neutral-50), white 20%);
+    --cp-text-secondary: color-mix(in oklch, var(--neutral-300), white 15%);
+    --cp-text-tertiary:  var(--neutral-400);
+
+    /* 过渡 */
+    --cp-transition: 0.35s var(--ease-out);
+
+    /* 星图网格线 */
+    --cp-grid-color: color-mix(in oklch, var(--info), transparent 90%);
+
+    /* 分隔线 */
+    --cp-divider: linear-gradient(90deg,
+        color-mix(in oklch, var(--info), transparent 85%) 0%,
+        color-mix(in oklch, var(--info), transparent 94%) 40%,
+        transparent 60%);
+
+    /* 桥接变量 — 兼容内联样式中对 text-secondary/text-tertiary 的引用 */
+    --text-secondary: var(--cp-text-secondary);
+    --text-tertiary:  var(--cp-text-tertiary);
+}
+
+
+/* ============================================================
+   2. 深空背景系统（4 层叠加 · Constellation Prism）
+   Layer 1+4: 星云光斑 (CSS radial-gradient)
+   Layer 2+3: 星场 + 星座网格 (SVG)
+   ============================================================ */
+
+/* 背景容器 — 纯深空底色 */
+.teacher-bg {
+    position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background: #040816;  /* 星座棱晶深空底色 */
+    overflow: hidden;
+}
+
+/* Layer 1+4: 星云光斑 */
+.teacher-bg-nebula {
+    position: absolute; inset: 0;
+    background:
+        /* 左上 靛蓝光斑 */
+        radial-gradient(ellipse at 25% 30%, rgba(30,55,120,0.75) 0%, transparent 60%),
+        /* 右下 紫光斑 */
+        radial-gradient(ellipse at 70% 60%, rgba(50,25,90,0.65) 0%, transparent 55%),
+        /* 右上 青光斑 */
+        radial-gradient(ellipse at 85% 20%, rgba(20,60,90,0.55) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Layer 2+3: 星场 + 星座网格 SVG overlay */
+.teacher-bg-stars {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0.65; pointer-events: none;
+}
+
+/* Layer 4: 大尺寸星云光斑 orb-1 */
+.teacher-bg-orb-1 {
+    position: absolute; pointer-events: none;
+    top: 15%; left: 50%;
+    width: 350px; height: 350px; border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(100,160,220,0.15) 0%,
+        rgba(140,120,210,0.10) 40%,
+        transparent 70%);
+}
+
+/* Layer 4: 大尺寸星云光斑 orb-2 */
+.teacher-bg-orb-2 {
+    position: absolute; pointer-events: none;
+    bottom: 10%; right: 20%;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(200,160,100,0.12) 0%,
+        rgba(160,130,210,0.10) 50%,
+        transparent 75%);
+}
+
+/* 散布星场 — 呼吸动画 */
+.teacher-star-scatter {
+    animation: starFieldBreathe 8s ease-in-out infinite;
+}
+@keyframes starFieldBreathe {
+    0%, 100% { opacity: 0.45; }
+    50%      { opacity: 0.7; }
+}
+
+/* 天文坐标网格 overlay */
+.teacher-bg::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 119px, rgba(90,140,220,0.10) 119px, rgba(90,140,220,0.10) 120px),
+        repeating-linear-gradient(90deg, transparent, transparent 119px, rgba(90,140,220,0.10) 119px, rgba(90,140,220,0.10) 120px);
+    opacity: 0.7; pointer-events: none;
+}
+
+
+/* ============================================================
+   3. 棱晶卡片系统 · Constellation Prism Card
+   切角 clip-path + 光学镀膜 box-shadow + 内侧微边框
+   ============================================================ */
+
+/* 基础棱晶卡片 mixin — 所有卡片共享 */
+.teacher-prism-card,
+.stat-card,
+.td-chart-box,
+.exam-card,
+.class-card,
+.grading-panel,
+.student-profile-card,
+.resource-card,
+.modal-content,
+.auth-card-inner {
+    background: linear-gradient(170deg,
+        color-mix(in oklch, color-mix(in oklch, var(--neutral-800), var(--neutral-900) 60%), transparent 22%) 0%,
+        color-mix(in oklch, color-mix(in oklch, var(--neutral-900), black 20%), transparent 22%) 100%);
+    border: 1px solid var(--cp-card-border);
+    box-shadow: var(--cp-prism-glow);
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    transition: all var(--cp-transition);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 内侧微边框 — 棱晶光学镀膜内层 */
+.teacher-prism-card::after,
+.stat-card::after,
+.td-chart-box::after,
+.exam-card::after,
+.class-card::after,
+.grading-panel::after,
+.student-profile-card::after,
+.resource-card::after,
+.modal-content::after,
+.auth-card-inner::after {
+    content: ''; position: absolute; inset: 1px; pointer-events: none; z-index: 0;
+    clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, white, transparent 98%);
+}
+
+/* 悬浮增强 */
+.stat-card:hover,
+.td-chart-box:hover,
+.exam-card:hover,
+.class-card:hover,
+.grading-panel:hover,
+.student-profile-card:hover,
+.resource-card:hover,
+.auth-card-inner:hover {
+    box-shadow: var(--cp-prism-glow-hover);
+    border-color: var(--cp-card-border-strong);
+}
+
+
+/* ============================================================
+   4. 棱晶角落折射装饰 · Constellation Prism Corner Refractions
+   与 hub.html 完全一致：90px 角装饰 + prism-layer 内部叠层
+   ============================================================ */
+
+/* 角装饰容器 */
+.prism-corner {
+    position: absolute; width: 90px; height: 90px; overflow: hidden;
+    pointer-events: none; z-index: 1;
+}
+.prism-corner-tl { top: -1px; left: -1px; }
+.prism-corner-tr { top: -1px; right: -1px; }
+.prism-corner-bl { bottom: -1px; left: -1px; }
+.prism-corner-br { bottom: -1px; right: -1px; }
+
+/* 棱晶层 — 基础渐变折射 */
+.prism-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+
+/* ---- 左上角 tl — 双层折射 ---- */
+.prism-corner-tl .prism-layer {
+    background: linear-gradient(135deg,
+        var(--cp-prism-color-a) 0%,
+        color-mix(in oklch, var(--info), transparent 94%) 25%,
+        var(--cp-prism-color-c) 55%,
+        transparent 75%);
+    clip-path: polygon(0 0, 90px 0, 0 90px);
+}
+.prism-corner-tl .prism-layer-2 {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg,
+        transparent 20%,
+        color-mix(in oklch, var(--info), transparent 96%) 40%,
+        transparent 60%);
+    clip-path: polygon(0 0, 60px 0, 0 60px);
+}
+
+/* ---- 右上角 tr — 金色渐变折射 ---- */
+.prism-corner-tr .prism-layer {
+    background: linear-gradient(225deg,
+        var(--cp-prism-color-d) 0%,
+        color-mix(in oklch, var(--warning), transparent 94%) 35%,
+        transparent 65%);
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+}
+
+/* ---- 右下角 br — 靛蓝+金色渐变折射 ---- */
+.prism-corner-br .prism-layer {
+    background: linear-gradient(315deg,
+        color-mix(in oklch, var(--info), transparent 88%) 0%,
+        color-mix(in oklch, var(--warning), transparent 94%) 35%,
+        transparent 65%);
+    clip-path: polygon(100% 100%, 0 100%, 100% 0);
+}
+
+/* ---- 左下角 bl — 紫晶渐变折射 ---- */
+.prism-corner-bl .prism-layer {
+    background: linear-gradient(45deg,
+        var(--cp-prism-color-c) 0%,
+        color-mix(in oklch, var(--brand-300), transparent 94%) 30%,
+        transparent 60%);
+    clip-path: polygon(0 100%, 100% 100%, 0 0);
+}
+
+
+/* ============================================================
+   5. 渐变文字 + 入场动画
+   ============================================================ */
+
+@keyframes textGradientFlow {
+    0%   { background-position: 0% center; }
+    50%  { background-position: 100% center; }
+    100% { background-position: 0% center; }
+}
+
+.gradient-text {
+    background: linear-gradient(135deg,
+        var(--info),
+        var(--brand-300),
+        color-mix(in oklch, var(--brand-300), white 20%));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: textGradientFlow 4s linear infinite;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.55s var(--ease-out) both;
+}
+.animate-delay-1 { animation-delay: 0.1s; }
+.animate-delay-2 { animation-delay: 0.25s; }
+.animate-delay-3 { animation-delay: 0.4s; }
+
+
+/* ============================================================
+   6. 页面基础布局
+   ============================================================ */
+.teacher-page, .auth-page {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--surface-page);
+    color: var(--cp-text-primary);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* 当 teacher-bg 存在时，teacher-page 自身背景透明（透过深空背景） */
+.teacher-page:has(.teacher-bg) {
+    background: transparent;
+}
+
+/* ============================================================
+   7. 教师端布局：侧边栏 + 主内容
+   ============================================================ */
+.teacher-layout {
+    display: flex; min-height: 100vh;
+    position: relative; z-index: 1;
+}
+
+/* 侧边栏 — 毛玻璃 + 星座边框（匹配 hub sidebar） */
+.teacher-sidebar {
+    width: 200px; min-width: 200px; flex-shrink: 0;
+    background: color-mix(in oklch, var(--neutral-900), transparent 48%);
+    border-right: 1px solid color-mix(in oklch, var(--info), transparent 87%);
+    backdrop-filter: blur(32px) saturate(140%);
+    -webkit-backdrop-filter: blur(32px) saturate(140%);
+    color: var(--cp-text-secondary);
+    padding: var(--space-md) 0;
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+}
+.teacher-page:has(.teacher-bg) .teacher-sidebar {
+    background: color-mix(in oklch, var(--neutral-900), transparent 42%);
+}
+
+.teacher-brand {
+    font-size: 14px; font-weight: var(--font-bold);
+    padding: 0 var(--space-md) var(--space-md);
+    color: var(--cp-text-primary);
+    letter-spacing: 0.8px;
+}
+.teacher-brand .gradient-text {
+    /* gradient-text already defined in section 5, fine to use */
+}
+
+.teacher-nav { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 0 var(--space-sm); }
+
+.teacher-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    color: var(--cp-text-secondary); text-decoration: none;
+    font-size: var(--text-sm); font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+}
+.teacher-nav-item:hover {
+    background: color-mix(in oklch, var(--info), transparent 94%);
+    color: var(--cp-text-primary);
+}
+.teacher-nav-item.active {
+    background: color-mix(in oklch, var(--info), transparent 88%);
+    color: var(--info); font-weight: var(--font-semibold);
+}
+
+.teacher-sidebar-footer {
+    padding: var(--space-md); margin-top: auto;
+    border-top: 1px solid color-mix(in oklch, var(--info), transparent 90%);
+}
+.teacher-logout-btn {
+    width: 100%; padding: 8px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--danger), transparent 80%);
+    background: transparent;
+    color: var(--danger); cursor: pointer;
+    font-size: var(--text-sm);
+    transition: all var(--transition-fast);
+}
+.teacher-logout-btn:hover {
+    background: color-mix(in oklch, var(--danger), transparent 92%);
+}
+
+/* 主内容 */
+.teacher-main {
+    flex: 1; padding: var(--space-lg);
+    overflow-y: auto; overflow-x: hidden;
+}
+.teacher-page:has(.teacher-bg) .teacher-main {
+    background: transparent;
+}
+
+/* 页面标题 — 带底部渐变分割线 */
+.teacher-page-title {
+    font-size: var(--text-xl); font-weight: var(--font-bold);
+    color: var(--cp-text-primary);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-sm);
+    background: var(--cp-divider);
+    background-repeat: no-repeat;
+    background-position: left bottom;
+    background-size: 100% 1px;
+}
+
+
+/* ============================================================
+   8. 登录/注册页布局
+   ============================================================ */
+.auth-page {
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+}
+.auth-page-content {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 440px;
+    padding: var(--space-xl);
+}
+.auth-card {
+    width: 100%; max-width: 420px;
+    position: relative; z-index: 1;
+}
+.auth-card-inner {
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+}
+
+/* 登录页品牌标识 */
+.auth-brand {
+    text-align: center; margin-bottom: var(--space-lg);
+}
+.auth-brand .gradient-text {
+    font-size: var(--text-2xl); font-weight: var(--font-bold);
+    letter-spacing: 1.5px;
+}
+.auth-subtitle {
+    font-size: var(--text-xs); color: var(--cp-text-tertiary);
+    margin-top: 4px; letter-spacing: 0.5px;
+}
+
+/* 底部链接 */
+.auth-footer-link {
+    text-align: center; margin-top: var(--space-md);
+    font-size: var(--text-sm); color: var(--cp-text-tertiary);
+}
+.auth-footer-link a {
+    color: var(--info); font-weight: var(--font-medium);
+    text-decoration: none; transition: color var(--transition-fast);
+}
+.auth-footer-link a:hover {
+    color: color-mix(in oklch, var(--info), white 20%);
+}
+
+
+/* ============================================================
+   9. 表单控件
+   ============================================================ */
+.auth-label {
+    font-size: var(--text-xs); color: var(--cp-text-secondary);
+    display: block; margin-bottom: 2px; font-weight: var(--font-medium);
+}
+
+.auth-field {
+    width: 100%; padding: 10px 14px;
+    margin: 6px 0 14px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 84%);
+    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    color: var(--cp-text-primary);
+    box-sizing: border-box; font-size: var(--text-sm);
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+.auth-field:focus {
+    outline: none;
+    border-color: color-mix(in oklch, var(--info), transparent 55%);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--info), transparent 90%);
+}
+.auth-field::placeholder { color: var(--cp-text-tertiary); }
+
+textarea.auth-field { resize: vertical; min-height: 80px; font-family: inherit; }
+select.auth-field { cursor: pointer; color: var(--cp-text-primary); }
+select.auth-field option { background: var(--neutral-800); color: var(--cp-text-primary); }
+
+.field-error {
+    color: var(--danger); font-size: var(--text-xs);
+    margin-top: -8px; margin-bottom: 8px;
+}
+
+
+/* ============================================================
+   10. 按钮系统
+   ============================================================ */
+
+/* 主按钮 */
+.btn-primary {
+    padding: 8px 20px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 55%);
+    background: color-mix(in oklch, var(--info), transparent 65%);
+    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    font-size: var(--text-sm); font-family: inherit;
+    transition: all var(--transition-fast);
+}
+.btn-primary:hover {
+    background: color-mix(in oklch, var(--info), transparent 50%);
+    border-color: color-mix(in oklch, var(--info), transparent 40%);
+    box-shadow: 0 0 20px color-mix(in oklch, var(--info), transparent 80%);
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 全宽主按钮 — 登录/注册页用 */
+.btn-primary-auth {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 55%);
+    background: color-mix(in oklch, var(--info), transparent 65%);
+    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    font-size: var(--text-base); margin-top: 8px;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+.btn-primary-auth:hover {
+    background: color-mix(in oklch, var(--info), transparent 48%);
+    border-color: color-mix(in oklch, var(--info), transparent 38%);
+    box-shadow: 0 0 20px color-mix(in oklch, var(--info), transparent 80%);
+}
+.btn-primary-auth:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* 取消/次要按钮 */
+.btn-cancel {
+    padding: 8px 20px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    background: transparent;
+    color: var(--cp-text-secondary); cursor: pointer;
+    font-size: var(--text-sm); font-family: inherit;
+    transition: all var(--transition-fast);
+}
+.btn-cancel:hover {
+    background: color-mix(in oklch, var(--neutral-700), transparent 70%);
+    color: var(--cp-text-primary);
+}
+
+/* 强调按钮 */
+.btn-accent {
+    padding: 8px 20px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--warning), transparent 75%);
+    background: color-mix(in oklch, var(--warning), transparent 82%);
+    color: #fff; font-weight: var(--font-semibold); cursor: pointer;
+    font-size: var(--text-sm); font-family: inherit;
+    transition: all var(--transition-fast);
+}
+.btn-accent:hover { background: color-mix(in oklch, var(--warning), transparent 70%); }
+
+/* 小型按钮 */
+.btn-sm {
+    padding: 4px 12px; border-radius: 6px;
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    background: transparent; font-size: var(--text-sm); cursor: pointer;
+    color: var(--cp-text-secondary); font-family: inherit;
+    transition: all var(--transition-fast);
+}
+.btn-sm:hover {
+    background: color-mix(in oklch, var(--neutral-700), transparent 70%);
+    color: var(--cp-text-primary);
+}
+
+.btn-sm-success { color: var(--success); border-color: color-mix(in oklch, var(--success), transparent 78%); }
+.btn-sm-success:hover { background: color-mix(in oklch, var(--success), transparent 92%); }
+.btn-sm-danger  { color: var(--danger);  border-color: color-mix(in oklch, var(--danger), transparent 78%); }
+.btn-sm-danger:hover  { background: color-mix(in oklch, var(--danger), transparent 92%); }
+.btn-sm-info    { color: var(--info);    border-color: color-mix(in oklch, var(--info), transparent 78%); }
+.btn-sm-info:hover    { background: color-mix(in oklch, var(--info), transparent 92%); }
+
+/* 危险按钮 */
+.btn-danger {
+    padding: 6px 14px; border-radius: 6px;
+    border: none; background: transparent;
+    color: var(--danger); cursor: pointer; font-size: var(--text-sm);
+    transition: background var(--transition-fast);
+}
+.btn-danger:hover { background: color-mix(in oklch, var(--danger), transparent 92%); }
+
+/* 快捷登录按钮 */
+.quick-login-row {
+    display: flex; gap: var(--space-sm); margin-top: 16px;
+    justify-content: center; flex-wrap: wrap;
+}
+.quick-login-label {
+    font-size: var(--text-xs); color: var(--cp-text-tertiary);
+    flex-basis: 100%; text-align: center; margin-bottom: 8px;
+}
+.quick-login-btn {
+    padding: 7px 16px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 85%);
+    background: color-mix(in oklch, var(--neutral-800), transparent 65%);
+    color: var(--cp-text-secondary); cursor: pointer;
+    font-size: var(--text-xs); font-family: inherit;
+    transition: all var(--transition-fast);
+}
+.quick-login-btn:hover {
+    border-color: color-mix(in oklch, var(--info), transparent 65%);
+    background: color-mix(in oklch, var(--neutral-700), transparent 55%);
+    color: var(--info);
+}
+.quick-login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+
+/* ============================================================
+   11. 模态框
+   ============================================================ */
+.modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 1000;
+    background: color-mix(in oklch, black, transparent 35%);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    align-items: center; justify-content: center;
+}
+.modal-overlay[x-show] { display: flex; }
+.modal-overlay[x-cloak] { display: none; }
+
+.modal-content {
+    border-radius: var(--radius-md);
+    padding: var(--space-lg);
+    max-width: 640px; width: 90%; max-height: 85vh; overflow-y: auto;
+}
+.modal-content h2 {
+    margin: 0 0 var(--space-md) 0; position: relative; z-index: 2;
+    font-size: var(--text-lg); color: var(--cp-text-primary);
+}
+.modal-actions {
+    display: flex; gap: var(--space-sm);
+    justify-content: flex-end; margin-top: var(--space-md);
+    position: relative; z-index: 2;
+}
+.modal-wide { max-width: 900px; }
+
+/* 模态框内容区 — 确保在角装饰上层 */
+.modal-content > *:not(.prism-corner) {
+    position: relative; z-index: 2;
+}
+
+
+/* ============================================================
+   12. 状态标签 (Status Badges)
+   ============================================================ */
+.status-badge {
+    display: inline-block; padding: 2px 10px;
+    border-radius: 10px; font-size: var(--text-xs); font-weight: var(--font-medium);
+}
+.status-badge-draft     { background: color-mix(in oklch, var(--neutral-400), transparent 85%); color: var(--neutral-400); }
+.status-badge-published { background: color-mix(in oklch, var(--success), transparent 85%); color: var(--success); }
+.status-badge-ended     { background: color-mix(in oklch, var(--danger), transparent 85%); color: var(--danger); }
+.status-badge-pending   { background: color-mix(in oklch, var(--warning), transparent 85%); color: var(--warning); }
+.status-badge-approved  { background: color-mix(in oklch, var(--success), transparent 85%); color: var(--success); }
+.status-badge-rejected  { background: color-mix(in oklch, var(--danger), transparent 85%); color: var(--danger); }
+.status-badge-archived  { background: color-mix(in oklch, var(--neutral-400), transparent 85%); color: var(--neutral-400); }
+
+
+/* ============================================================
+   13. 通知横幅
+   ============================================================ */
+.error-banner {
+    color: var(--danger); font-size: var(--text-sm);
+    margin-bottom: var(--space-sm); padding: 8px 12px;
+    background: color-mix(in oklch, var(--danger), transparent 92%);
+    border: 1px solid color-mix(in oklch, var(--danger), transparent 84%);
+    border-radius: 6px; text-align: center;
+}
+.success-banner {
+    color: var(--success); font-size: var(--text-sm);
+    margin-bottom: var(--space-sm); padding: 8px 12px;
+    background: color-mix(in oklch, var(--success), transparent 92%);
+    border: 1px solid color-mix(in oklch, var(--success), transparent 84%);
+    border-radius: 6px; text-align: center;
+}
+
+
+/* ============================================================
+   14. 教师端仪表板组件
+   ============================================================ */
+
+/* 统计卡片行 */
+.td-stats { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); flex-wrap: wrap; }
+.td-chart-row { display: flex; gap: var(--space-md); margin-bottom: var(--space-lg); }
+@media (max-width: 768px) { .td-chart-row { flex-direction: column; } }
+
+/* 统计卡片 */
+.stat-card {
+    border-radius: var(--radius-md); padding: 16px 20px;
+    flex: 1; min-width: 120px;
+}
+.stat-value {
+    font-size: var(--text-2xl); font-weight: var(--font-bold);
+    color: var(--info); position: relative; z-index: 2;
+}
+.stat-label {
+    font-size: var(--text-xs); color: var(--cp-text-secondary);
+    margin-top: 4px; position: relative; z-index: 2;
+}
+
+/* 图表箱 */
+.td-chart-box {
+    flex: 1; min-height: 300px;
+    border-radius: var(--radius-md); padding: var(--space-md);
+}
+.td-chart-box h3 {
+    font-size: var(--text-base); margin: 0 0 12px 0; position: relative; z-index: 2;
+    color: var(--cp-text-secondary); font-weight: var(--font-bold);
+}
+
+
+/* ============================================================
+   15. 考试管理组件
+   ============================================================ */
+.exam-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+@media (max-width: 768px) { .exam-grid { grid-template-columns: 1fr; } }
+.exam-card {
+    border-radius: var(--radius-md); padding: 20px;
+}
+.exam-card h3 {
+    font-size: var(--text-base); margin: 0 0 8px 0; position: relative; z-index: 2;
+    color: var(--cp-text-primary);
+}
+.exam-card .exam-meta {
+    font-size: var(--text-xs); color: var(--cp-text-tertiary);
+    display: flex; gap: var(--space-md); margin-bottom: 12px; flex-wrap: wrap;
+    position: relative; z-index: 2;
+}
+.exam-card > *:not(.prism-corner) { position: relative; z-index: 2; }
+
+
+/* ============================================================
+   16. 班级管理组件
+   ============================================================ */
+.class-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-md); }
+@media (max-width: 768px) { .class-grid { grid-template-columns: 1fr; } }
+.class-card {
+    border-radius: var(--radius-md); padding: 20px;
+}
+.class-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 12px; position: relative; z-index: 2;
+}
+.class-card-header h3 {
+    font-size: var(--text-base); margin: 0; color: var(--cp-text-primary);
+}
+.class-card-meta {
+    font-size: var(--text-xs); color: var(--cp-text-tertiary);
+    margin-bottom: 8px; position: relative; z-index: 2;
+}
+.class-card > *:not(.prism-corner) { position: relative; z-index: 2; }
+
+
+/* ============================================================
+   17. 题库/表格组件
+   ============================================================ */
+.q-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.q-table th {
+    text-align: left; padding: 10px 12px;
+    border-bottom: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    color: var(--cp-text-secondary); font-weight: var(--font-semibold);
+}
+.q-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid color-mix(in oklch, var(--info), transparent 93%);
+}
+.q-table tr:hover { background: color-mix(in oklch, var(--neutral-700), transparent 80%); }
+
+.checkbox-group {
+    max-height: 200px; overflow-y: auto;
+    margin: 6px 0 12px; font-size: var(--text-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    border-radius: var(--radius-sm); padding: var(--space-sm);
+}
+.checkbox-group label {
+    display: block; margin: 4px 0; cursor: pointer;
+    padding: 2px 0; color: var(--cp-text-secondary);
+}
+.checkbox-group label:hover { color: var(--info); }
+
+
+/* ============================================================
+   18. 标签页 (Tabs)
+   ============================================================ */
+.tabs-wrapper {
+    display: flex; gap: 0; padding: 4px;
+    margin-bottom: var(--space-md);
+    background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    border-radius: 12px; width: fit-content;
+    backdrop-filter: blur(24px) saturate(140%);
+}
+.tab-btn {
+    padding: 7px 20px; border-radius: 9px;
+    font-size: var(--text-sm); font-weight: var(--font-medium);
+    color: var(--cp-text-secondary);
+    background: transparent; border: none; cursor: pointer;
+    transition: all var(--transition-fast); font-family: inherit;
+}
+.tab-btn:hover { color: var(--cp-text-primary); }
+.tab-btn.active {
+    background: color-mix(in oklch, var(--info), transparent 88%);
+    color: var(--cp-text-primary); font-weight: var(--font-bold);
+}
+
+
+/* ============================================================
+   19. 资源卡片
+   ============================================================ */
+.resources-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-sm);
+}
+.resource-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; margin: 0;
+    border-radius: var(--radius-sm); font-size: var(--text-sm);
+}
+.resource-card-icon { font-size: 20px; flex-shrink: 0; position: relative; z-index: 2; }
+.resource-card-body { flex: 1; position: relative; z-index: 2; }
+.resource-card-title { font-weight: var(--font-medium); color: var(--cp-text-primary); margin-bottom: 2px; }
+.resource-card-meta { font-size: var(--text-xs); color: var(--cp-text-tertiary); display: flex; gap: 12px; }
+.resource-card > button { position: relative; z-index: 2; }
+
+
+/* ============================================================
+   20. 评分面板
+   ============================================================ */
+.grading-panel {
+    border-radius: var(--radius-md); padding: 20px; margin-bottom: var(--space-md);
+}
+.grading-panel > * { position: relative; z-index: 2; }
+.grading-ai-score { font-size: var(--text-xs); color: var(--info); margin: 4px 0; }
+.grading-ai-comment { font-size: var(--text-xs); color: var(--cp-text-tertiary); font-style: italic; margin: 4px 0; }
+.grading-score-input { width: 80px; text-align: center; }
+
+
+/* ============================================================
+   21. 学生档案卡片
+   ============================================================ */
+.student-profile-card {
+    border-radius: var(--radius-md); padding: 20px; margin-top: var(--space-md);
+}
+.student-profile-card > * { position: relative; z-index: 2; }
+.student-profile-header { display: flex; gap: var(--space-md); align-items: center; margin-bottom: var(--space-md); }
+.student-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: color-mix(in oklch, var(--info), transparent 75%);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: var(--font-bold); flex-shrink: 0;
+}
+.student-profile-name { font-size: var(--text-lg); font-weight: var(--font-semibold); color: var(--cp-text-primary); }
+.student-profile-meta { font-size: var(--text-sm); color: var(--cp-text-tertiary); }
+.student-profile-stats { display: flex; gap: var(--space-md); margin-top: 12px; }
+
+
+/* ============================================================
+   22. AI 建议 / 文件上传 / 树形编辑器
+   ============================================================ */
+.ai-suggestions { margin-bottom: var(--space-md); }
+.ai-suggestions-panel {
+    padding: 12px; border-radius: var(--radius-sm);
+    background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    font-size: var(--text-sm); color: var(--cp-text-secondary);
+}
+.ai-suggestion-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 12px; margin: 6px 0;
+    background: color-mix(in oklch, var(--neutral-800), transparent 60%);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    border-radius: var(--radius-sm); font-size: var(--text-sm);
+}
+.ai-suggestion-icon { font-size: var(--text-lg); flex-shrink: 0; margin-top: 1px; }
+.ai-suggestion-text { flex: 1; color: var(--cp-text-secondary); }
+.ai-suggestion-action { flex-shrink: 0; }
+
+.file-upload-area {
+    border: 2px dashed color-mix(in oklch, var(--info), transparent 80%);
+    border-radius: var(--radius-md); padding: 24px;
+    text-align: center; cursor: pointer;
+    transition: all var(--transition-fast); margin: 6px 0 12px;
+    background: color-mix(in oklch, var(--neutral-800), transparent 70%);
+}
+.file-upload-area:hover, .file-upload-area.drag-over {
+    border-color: color-mix(in oklch, var(--info), transparent 50%);
+    background: color-mix(in oklch, var(--info), transparent 94%);
+}
+.file-upload-area p { color: var(--cp-text-tertiary); font-size: var(--text-sm); margin: 0; }
+.file-upload-area .file-name { color: var(--info); font-weight: var(--font-semibold); margin-top: 4px; }
+
+.gen-select {
+    padding: 8px 12px; border-radius: var(--radius-sm);
+    border: 1px solid color-mix(in oklch, var(--info), transparent 84%);
+    background: color-mix(in oklch, var(--neutral-800), transparent 58%);
+    color: var(--cp-text-primary); min-width: 180px;
+    font-size: var(--text-sm);
+}
+
+.tree-editor {
+    border: 1px solid color-mix(in oklch, var(--info), transparent 88%);
+    border-radius: var(--radius-sm); padding: var(--space-sm);
+    max-height: 400px; overflow-y: auto;
+}
+.tree-node {
+    padding: 6px 8px; margin: 2px 0;
+    border-radius: 6px; cursor: pointer;
+    font-size: var(--text-sm); transition: background var(--transition-fast);
+}
+.tree-node:hover { background: color-mix(in oklch, var(--info), transparent 94%); }
+.tree-node.selected {
+    background: color-mix(in oklch, var(--info), transparent 88%);
+    color: var(--info);
+}
+.tree-node-header { display: flex; align-items: center; gap: 8px; }
+.tree-node-toggle { width: 16px; font-size: 10px; color: var(--cp-text-tertiary); cursor: pointer; flex-shrink: 0; }
+.tree-node-title { flex: 1; font-weight: var(--font-medium); color: var(--cp-text-primary); }
+.tree-node-meta { font-size: var(--text-xs); color: var(--cp-text-tertiary); }
+.tree-node-actions { display: flex; gap: 4px; opacity: 0; transition: opacity var(--transition-fast); }
+.tree-node:hover .tree-node-actions { opacity: 1; }
+.tree-children { margin-left: 20px; }
+.tree-drag-ghost { opacity: 0.5; background: color-mix(in oklch, var(--info), transparent 85%); }
+
+
+/* ============================================================
+   23. 空状态
+   ============================================================ */
+.empty-state {
+    color: var(--cp-text-tertiary); text-align: center;
+    padding: 40px; grid-column: 1 / -1;
+}

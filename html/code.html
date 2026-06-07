@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,11 +9,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/code.css?v=20260509-ui">
+    <link rel="stylesheet" href="/css/mascot.css">
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
 </head>
-<body class="code-body">
+<body class="app-body code-body">
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <div class="app-shell">
         <header class="topbar">
             <div class="topbar-left">
@@ -249,5 +264,12 @@
 
     <script src="/js/data-layer.js"></script>
     <script src="/js/code.js?v=20260509-1"></script>
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban"></div>
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
 </body>
 </html>

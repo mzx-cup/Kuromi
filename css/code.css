@@ -1,18 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-    --bg: #070a10;
-    --bg-soft: #0a0f1b;
-    --panel: rgba(14, 18, 29, 0.96);
-    --panel-soft: rgba(18, 23, 36, 0.9);
-    --panel-muted: rgba(27, 33, 48, 0.72);
-    --line: rgba(160, 174, 210, 0.11);
-    --line-strong: rgba(165, 180, 220, 0.22);
-    --text: #f5f7fb;
-    --text-soft: #d4dbea;
-    --text-muted: #98a5bd;
-    --text-dim: #6f7c94;
-    --accent: #7768f3;
+    --bg: var(--surface-page);
+    --bg-soft: var(--surface-card);
+    --panel: var(--surface-card);
+    --panel-soft: var(--surface-hover);
+    --panel-muted: var(--surface-elevated);
+    --line: var(--border-color);
+    --line-strong: var(--border-secondary);
+    --text: var(--text-body);
+    --text-soft: var(--text-muted);
+    --text-muted: var(--text-placeholder);
+    --text-dim: var(--text-placeholder);
+    --accent: var(--brand-500);
     --accent-strong: #6757e8;
     --accent-soft: rgba(119, 104, 243, 0.16);
     --accent-fade: rgba(119, 104, 243, 0.08);
@@ -38,7 +38,7 @@ body.code-body {
     overflow: hidden;
     font-family: 'IBM Plex Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     color: var(--text);
-    background: linear-gradient(180deg, #080b12 0%, #0a0f18 48%, #070a10 100%);
+    background: var(--surface-page);
     padding: 12px;
 }
 

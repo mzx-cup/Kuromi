@@ -1,0 +1,84 @@
+/* ============================================================
+   Scheme: 暮光 Twilight Glow
+   紫琥珀渐变 + 温暖光晕 + 创意灵感
+   使用方式: <html data-theme="twilight-glow">
+   ============================================================ */
+
+/* ---- 暮光悬浮光粒子 ---- */
+.twilight-particles {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.twilight-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.5), transparent);
+  animation: twilight-float ease-in-out infinite;
+}
+
+.twilight-particle:nth-child(1)  { width: 4px;  height: 4px;  top: 25%; left: 10%; animation-duration: 7s;  }
+.twilight-particle:nth-child(2)  { width: 6px;  height: 6px;  top: 60%; left: 85%; animation-duration: 9s;  animation-delay: 1s; }
+.twilight-particle:nth-child(3)  { width: 3px;  height: 3px;  top: 15%; left: 45%; animation-duration: 8s;  animation-delay: 2s; }
+.twilight-particle:nth-child(4)  { width: 5px;  height: 5px;  top: 75%; left: 30%; animation-duration: 10s; animation-delay: 0.5s; }
+.twilight-particle:nth-child(5)  { width: 4px;  height: 4px;  top: 40%; left: 60%; animation-duration: 7.5s;animation-delay: 3s; }
+.twilight-particle:nth-child(6)  { width: 7px;  height: 7px;  top: 10%; left: 75%; animation-duration: 11s; animation-delay: 1.5s; }
+.twilight-particle:nth-child(7)  { width: 3px;  height: 3px;  top: 85%; left: 15%; animation-duration: 8.5s;animation-delay: 4s; }
+.twilight-particle:nth-child(8)  { width: 5px;  height: 5px;  top: 50%; left: 40%; animation-duration: 9.5s;animation-delay: 2.5s; }
+.twilight-particle:nth-child(9)  { width: 4px;  height: 4px;  top: 30%; left: 90%; animation-duration: 6s;   animation-delay: 5s; }
+.twilight-particle:nth-child(10) { width: 6px;  height: 6px;  top: 65%; left: 55%; animation-duration: 8s;   animation-delay: 3.5s; }
+
+@keyframes twilight-float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.4; }
+  25%      { transform: translateY(-30px) scale(1.2); opacity: 0.8; }
+  50%      { transform: translateY(-15px) scale(0.9); opacity: 0.5; }
+  75%      { transform: translateY(-40px) scale(1.1); opacity: 0.7; }
+}
+
+/* ---- 暮光地平线渐变条 ---- */
+.twilight-horizon {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40vh;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    rgba(245, 158, 11, 0.08) 0%,
+    rgba(168, 85, 247, 0.05) 30%,
+    rgba(236, 72, 153, 0.03) 60%,
+    transparent 100%);
+}
+
+/* ---- 暮光卡片 ---- */
+[data-theme="twilight-glow"] .app-card {
+  border-color: rgba(168, 85, 247, 0.1);
+}
+
+[data-theme="twilight-glow"] .app-card:hover {
+  border-color: rgba(168, 85, 247, 0.25);
+  box-shadow:
+    0 8px 30px rgba(126, 34, 206, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* ---- 暮光按钮 ---- */
+[data-theme="twilight-glow"] .app-btn-primary {
+  background: linear-gradient(135deg, #6d28d9, #7c3aed);
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+}
+
+[data-theme="twilight-glow"] .app-btn-primary:hover {
+  background: linear-gradient(135deg, #7c3aed, #a78bfa);
+  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.5);
+}
+
+/* ---- 暮光导航栏 ---- */
+[data-theme="twilight-glow"] .app-nav {
+  background: rgba(255, 255, 255, 0.55);
+  border-bottom: 1px solid rgba(168, 85, 247, 0.12);
+}

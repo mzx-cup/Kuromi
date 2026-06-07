@@ -66,17 +66,17 @@
     --nutrient-glow: rgba(232, 208, 144, 0.6);
 
     /* 毛玻璃系统 */
-    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-bg: var(--surface-glass);
     --glass-bg-heavy: rgba(255, 255, 255, 0.82);
-    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-border: var(--border-glass);
     --glass-border-subtle: rgba(255, 255, 255, 0.3);
     --glass-shadow: 0 8px 32px rgba(100, 130, 160, 0.12), 0 2px 8px rgba(100, 130, 160, 0.08);
     --glass-shadow-hover: 0 12px 40px rgba(100, 130, 160, 0.18), 0 4px 12px rgba(100, 130, 160, 0.1);
     --glass-inset: inset 0 1px 0 rgba(255, 255, 255, 0.8), inset 0 -1px 0 rgba(0, 0, 0, 0.03);
 
     /* 文字颜色 */
-    --text-primary: #4a5a6a;
-    --text-secondary: #6a7a8a;
+    --text-primary: var(--text-heading);
+    --text-secondary: var(--text-muted);
     --text-muted: #9aaabc;
     --text-on-dark: #ffffff;
 

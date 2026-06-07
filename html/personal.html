@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="warm-morning">
+<html data-bg-unified="true" lang="zh-CN" data-theme="warm-morning">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,18 +9,32 @@
     <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/personal.css">
     <link rel="stylesheet" href="/css/notifications.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/loading.js"></script>
-    <link rel="stylesheet" href="/css/components.css">
-    <link rel="stylesheet" href="/css/tokens.css">
-    <link rel="stylesheet" href="/css/animations.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/theme.js"></script>
 </head>
-<body>
+<body class="app-body">
 
     <!-- Global Wallpaper Background Layer -->
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <div class="global-bg-layer" id="global-bg-layer"></div>
     <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
@@ -81,12 +95,20 @@
                 <span>返回</span>
             </a>
             <h1 class="nav-title">个人中心</h1>
-            <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置"></button>
+            <div class="personal-nav-actions" style="display:flex;align-items:center;gap:8px">
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置"></button>
+                <button class="personal-logout-btn" onclick="Auth.logout()" title="退出登录">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                    <span>退出</span>
+                </button>
+            </div>
         </nav>
 
         <main class="personal-main">
 
-            <section class="personal-section">
+            <section class="personal-section" id="section-profile">
                 <div class="section-header">
                     <div class="section-header-icon">
                         <i data-lucide="user-circle"></i>
@@ -322,7 +344,7 @@
             </section>
 
             <!-- 星识·生态空间 -->
-            <section class="eco-space-section">
+            <section class="eco-space-section" id="section-ecology">
                 <div class="section-header">
                     <div class="section-header-icon">
                         <i data-lucide="leaf"></i>
@@ -509,7 +531,23 @@
                 </div>
             </section>
 
-            <section class="personal-section">
+            <!-- 成就展示（内嵌星云陈列室） -->
+            <section class="personal-section" id="section-achievements">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="trophy"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">成就展示</div>
+                        <div class="section-subtitle">你的学习勋章与成就</div>
+                    </div>
+                </div>
+                <div id="achievements-content">
+                    <div class="dd-loading">加载成就数据...</div>
+                </div>
+            </section>
+
+            <section class="personal-section" id="section-settings">
                 <div class="section-header">
                     <div class="section-header-icon">
                         <i data-lucide="settings"></i>
@@ -690,6 +728,22 @@
                 <div class="task-grid" id="task-grid"></div>
             </section>
 
+            <!-- 心流数据（内嵌心流共振仪） -->
+            <section class="personal-section" id="section-flow">
+                <div class="section-header">
+                    <div class="section-header-icon">
+                        <i data-lucide="activity"></i>
+                    </div>
+                    <div>
+                        <div class="section-title">心流数据</div>
+                        <div class="section-subtitle">实时专注力与心流状态监测</div>
+                    </div>
+                </div>
+                <div id="flow-content">
+                    <div class="dd-loading">加载心流数据...</div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -756,6 +810,35 @@
     <script src="/js/personal.js"></script>
     <script>
         if (window.lucide) lucide.createIcons();
+    </script>
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban"></div>
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
+
+    <!-- Hash-based section navigation (scroll-to-section) -->
+    <script>
+    (function() {
+        function activateTabFromHash() {
+            var hash = location.hash.replace('#', '');
+            if (!hash) return;
+            var tabBtn = document.querySelector('[data-tab="' + hash + '"]');
+            if (tabBtn) { tabBtn.click(); return; }
+            var section = document.getElementById('section-' + hash);
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', activateTabFromHash);
+        } else {
+            activateTabFromHash();
+        }
+        window.addEventListener('hashchange', activateTabFromHash);
+    })();
     </script>
 </body>
 </html>

@@ -20,7 +20,7 @@
 /* 主动消息特殊样式 */
 .msg-bubble--proactive {
     border: 1px solid var(--accent-border);
-    background: linear-gradient(135deg, var(--surface-glass), rgba(99, 102, 241, 0.08));
+    background: linear-gradient(135deg, var(--surface-glass), var(--accent-bg));
     animation: proactiveGlow 3s ease-in-out infinite;
 }
 

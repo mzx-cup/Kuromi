@@ -1,0 +1,180 @@
+/* ============================================================
+   Scheme: 星穹 Star Vault
+   璀璨金靛 + 星座连线 + 星空穹顶奢华感
+   使用方式: <html data-theme="star-vault">
+   ============================================================ */
+
+/* ---- 星座连线 ---- */
+.star-constellations {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.12;
+}
+
+.star-constellation-line {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(250, 204, 21, 0.6),
+    rgba(129, 140, 248, 0.4),
+    transparent);
+  transform-origin: left center;
+  animation: star-line-pulse 5s ease-in-out infinite alternate;
+}
+
+.star-constellation-line:nth-child(1) {
+  top: 20%; left: 15%;
+  width: 200px;
+  transform: rotate(25deg);
+  animation-delay: 0s;
+}
+.star-constellation-line:nth-child(2) {
+  top: 45%; left: 55%;
+  width: 180px;
+  transform: rotate(-15deg);
+  animation-delay: 2s;
+}
+.star-constellation-line:nth-child(3) {
+  top: 65%; left: 30%;
+  width: 160px;
+  transform: rotate(10deg);
+  animation-delay: 4s;
+}
+.star-constellation-line:nth-child(4) {
+  top: 15%; left: 70%;
+  width: 140px;
+  transform: rotate(-30deg);
+  animation-delay: 1s;
+}
+.star-constellation-line:nth-child(5) {
+  top: 75%; left: 10%;
+  width: 220px;
+  transform: rotate(35deg);
+  animation-delay: 3s;
+}
+
+@keyframes star-line-pulse {
+  0%   { opacity: 0.3; }
+  100% { opacity: 0.9; }
+}
+
+/* ---- 流星划过 ---- */
+.star-shooting {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.star-shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 80px;
+  background: linear-gradient(to bottom,
+    rgba(250, 204, 21, 0.8),
+    rgba(250, 204, 21, 0.4) 40%,
+    transparent);
+  border-radius: 50%;
+  animation: star-shoot linear infinite;
+  opacity: 0;
+}
+
+.star-shooting-star:nth-child(1) {
+  top: 10%; left: 20%;
+  animation-duration: 4s;
+  animation-delay: 1s;
+  height: 60px;
+}
+
+.star-shooting-star:nth-child(2) {
+  top: 5%; left: 60%;
+  animation-duration: 5s;
+  animation-delay: 4s;
+  height: 90px;
+}
+
+.star-shooting-star:nth-child(3) {
+  top: 15%; left: 80%;
+  animation-duration: 3.5s;
+  animation-delay: 7s;
+  height: 70px;
+}
+
+@keyframes star-shoot {
+  0%    { transform: translate(0, 0) rotate(-25deg); opacity: 0; }
+  10%   { opacity: 1; }
+  30%   { opacity: 0; }
+  100%  { transform: translate(-200px, 300px) rotate(-25deg); opacity: 0; }
+}
+
+/* ---- 星座亮点 ---- */
+.star-constellation-dots {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.star-constellation-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(250, 204, 21, 0.8);
+  box-shadow:
+    0 0 6px rgba(250, 204, 21, 0.6),
+    0 0 12px rgba(250, 204, 21, 0.3);
+  animation: star-dot-pulse 3s ease-in-out infinite alternate;
+}
+
+.star-constellation-dot:nth-child(1)  { top: 20%; left: 15%; animation-delay: 0s;   }
+.star-constellation-dot:nth-child(2)  { top: 18%; left: 32%; animation-delay: 0.5s; width: 3px; height: 3px; }
+.star-constellation-dot:nth-child(3)  { top: 45%; left: 55%; animation-delay: 1s;   }
+.star-constellation-dot:nth-child(4)  { top: 42%; left: 63%; animation-delay: 1.5s; width: 5px; height: 5px; }
+.star-constellation-dot:nth-child(5)  { top: 65%; left: 30%; animation-delay: 2s;   }
+.star-constellation-dot:nth-child(6)  { top: 62%; left: 38%; animation-delay: 2.5s; width: 3px; height: 3px; }
+.star-constellation-dot:nth-child(7)  { top: 15%; left: 70%; animation-delay: 3s;   }
+.star-constellation-dot:nth-child(8)  { top: 12%; left: 78%; animation-delay: 0.3s; }
+.star-constellation-dot:nth-child(9)  { top: 75%; left: 10%; animation-delay: 1.8s; width: 5px; height: 5px; }
+.star-constellation-dot:nth-child(10) { top: 72%; left: 22%; animation-delay: 2.2s; }
+
+@keyframes star-dot-pulse {
+  0%   { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 1;   transform: scale(1.4); }
+}
+
+/* ---- 星穹卡片 ---- */
+[data-theme="star-vault"] .app-card {
+  border-color: rgba(250, 204, 21, 0.08);
+}
+
+[data-theme="star-vault"] .app-card:hover {
+  border-color: rgba(250, 204, 21, 0.25);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(250, 204, 21, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---- 星穹按钮 ---- */
+[data-theme="star-vault"] .app-btn-primary {
+  background: linear-gradient(135deg, #a16207, #ca8a04);
+  box-shadow: 0 4px 18px rgba(234, 179, 8, 0.4);
+}
+
+[data-theme="star-vault"] .app-btn-primary:hover {
+  background: linear-gradient(135deg, #ca8a04, #eab308);
+  box-shadow: 0 6px 28px rgba(234, 179, 8, 0.55);
+}
+
+/* ---- 星穹导航栏 ---- */
+[data-theme="star-vault"] .app-nav {
+  background: rgba(8, 12, 36, 0.75);
+  border-bottom: 1px solid rgba(250, 204, 21, 0.1);
+}

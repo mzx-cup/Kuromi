@@ -33,8 +33,8 @@
         heartbeat: 'elem-attention-heartbeat'
     };
 
-    // MiniMax TTS voice mapping (string key -> {index, name, description})
-    // index 0-4 maps to /api/socratic/tts voice_id
+    // MiniMax TTS voice mapping (string key -> {name, description})
+    // v2 endpoints use string voice IDs directly; index field is vestigial
     const MINIMAX_VOICES = {
         'female-shaonv': { index: 0, name: '晓雅', description: '活泼可爱的年轻女声' },
         'female-yujie': { index: 0, name: '晓雅', description: '成熟温柔的姐姐声音' },
@@ -120,10 +120,6 @@
             this.currentAnimationEffects = [];
             this.isTransitioning = false;
             this.animationQueue = [];
-
-            // TTS 预加载状态（按需：用户停留7秒后预加载下一场景）
-            this._ttsPreloadTimer = null;
-            this._ttsPreloadPromises = new Map(); // sceneId -> Promise
 
             // Spotlight/laser state
             this.spotlightElement = null;
@@ -1329,9 +1325,6 @@
             this.updateNav();
             if (this.isPlaying) this.playSceneAudio(scene);
             this.checkCompletion();
-
-            // 按需预加载：停留7秒后缓存下一场景的语音
-            this._scheduleNextScenePreload(index);
         }
 
         hideAllSceneContainers() {
@@ -2734,11 +2727,6 @@
             render(scene, container) {
                 if (!scene || !container) return;
 
-                // 停止上一个场景的 TTS
-                if (window.speechSynthesis) {
-                    window.speechSynthesis.cancel();
-                }
-
                 // 渲染 audio_script（需要用户点击播放）
                 this._renderAudioNarration(scene, container);
 
@@ -3067,10 +3055,11 @@
             }
         };
 
-        // TTS 播放控制（全局）
+        // TTS 播放控制（全局）— 使用 MiniMax TTS + audioPlayer
         initTTS() {
             window.ttsIsPlaying = false;
-            document.addEventListener('click', (e) => {
+            const self = this;
+            document.addEventListener('click', async (e) => {
                 const ttsBtn = e.target.closest('.tts-play-btn');
                 if (!ttsBtn) return;
 
@@ -3078,7 +3067,7 @@
                 e.stopPropagation();
 
                 if (window.ttsIsPlaying) {
-                    window.speechSynthesis.cancel();
+                    self.stopAudio();
                     window.ttsIsPlaying = false;
                     const icon = ttsBtn.querySelector('.tts-icon');
                     const label = ttsBtn.querySelector('.tts-label');
@@ -3088,36 +3077,47 @@
                     const script = decodeURIComponent(ttsBtn.dataset.script || '');
                     if (!script) return;
 
-                    const utterance = new SpeechSynthesisUtterance(script);
-                    utterance.lang = 'zh-CN';
-                    utterance.rate = 1.0;
+                    const icon = ttsBtn.querySelector('.tts-icon');
+                    const label = ttsBtn.querySelector('.tts-label');
+                    if (icon) icon.textContent = '⏳';
+                    if (label) label.textContent = '生成中...';
 
-                    utterance.onstart = () => {
-                        window.ttsIsPlaying = true;
-                        const icon = ttsBtn.querySelector('.tts-icon');
-                        const label = ttsBtn.querySelector('.tts-label');
+                    window.ttsIsPlaying = true;
+                    const result = await self.generateTTS(script);
+                    if (result.success && result.audioUrl && self.audioPlayer) {
                         if (icon) icon.textContent = '⏸';
                         if (label) label.textContent = '暂停';
-                    };
-                    utterance.onend = utterance.onerror = () => {
+                        self.audioPlayer.load();
+                        self.audioPlayer.src = result.audioUrl;
+                        self.audioPlayer.onended = () => {
+                            window.ttsIsPlaying = false;
+                            if (icon) icon.textContent = '🔊';
+                            if (label) label.textContent = '播放旁白';
+                            if (result.audioUrl && result.audioUrl.startsWith('blob:')) {
+                                URL.revokeObjectURL(result.audioUrl);
+                            }
+                        };
+                        self.audioPlayer.onerror = () => {
+                            window.ttsIsPlaying = false;
+                            if (icon) icon.textContent = '🔊';
+                            if (label) label.textContent = '播放旁白';
+                        };
+                        self.audioPlayer.play().catch(() => {
+                            window.ttsIsPlaying = false;
+                            if (icon) icon.textContent = '🔊';
+                            if (label) label.textContent = '播放旁白';
+                        });
+                    } else {
                         window.ttsIsPlaying = false;
-                        const icon = ttsBtn.querySelector('.tts-icon');
-                        const label = ttsBtn.querySelector('.tts-label');
                         if (icon) icon.textContent = '🔊';
                         if (label) label.textContent = '播放旁白';
-                    };
-
-                    window.speechSynthesis.cancel();
-                    window.speechSynthesis.speak(utterance);
+                        console.warn('[Classroom] TTS generation failed for narration');
+                    }
                 }
             }, true);
 
             window.addEventListener('beforeunload', () => {
-                window.speechSynthesis?.cancel();
                 if (this.pollingInterval) clearInterval(this.pollingInterval);
-            });
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) window.speechSynthesis?.cancel();
             });
         }
 
@@ -4051,72 +4051,38 @@
                 };
 
                 this.audioPlayer.onerror = () => {
-                    // Fallback to browser TTS
-                    this._speakText(text, voiceId, speed);
+                    // MiniMax TTS playback error — log and clean up UI
+                    console.error('[Classroom] Audio playback error:', this.audioPlayer.error);
+                    this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.clearSpotlight();
                 };
 
-                await this.audioPlayer.play().catch(() => {
-                    this._speakText(text, voiceId, speed);
+                await this.audioPlayer.play().catch((e) => {
+                    console.error('[Classroom] Audio play() rejected:', e);
+                    this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.clearSpotlight();
                 });
             } else {
-                // Fallback to browser TTS
-                await this._speakText(text, voiceId, speed);
+                // MiniMax TTS generation failed — log and clean up UI
+                console.error('[Classroom] TTS generation failed:', ttsResult.error);
+                this.showSpeechSyncIndicator(false);
+                this.updateTeacherStatus('待机中', false);
+                if (this.teacherAvatar) {
+                    this.teacherAvatar.classList.remove('speaking');
+                }
+                this.clearSpotlight();
+                showToast('语音生成失败，请稍后重试', 'error');
             }
         }
 
-        _speakText(text, voiceId = null, speed = 1.0) {
-            return new Promise((resolve) => {
-                if (!window.speechSynthesis) {
-                    resolve();
-                    return;
-                }
-
-                // Cancel any ongoing speech
-                window.speechSynthesis.cancel();
-
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-CN';
-                utterance.rate = speed;
-
-                // Map to browser voice if available
-                if (voiceId && window.speechSynthesis.getVoices) {
-                    const voices = window.speechSynthesis.getVoices();
-                    const targetVoice = voices.find(v => v.lang.includes('zh'));
-                    if (targetVoice) {
-                        utterance.voice = targetVoice;
-                    }
-                }
-
-                utterance.onstart = () => {
-                    if (this.teacherAvatar) {
-                        this.teacherAvatar.classList.add('speaking');
-                    }
-                    this.showSpeechSyncIndicator(true);
-                    this.updateTeacherStatus('讲解中', true);
-                };
-
-                utterance.onend = () => {
-                    if (this.teacherAvatar) {
-                        this.teacherAvatar.classList.remove('speaking');
-                    }
-                    this.showSpeechSyncIndicator(false);
-                    this.updateTeacherStatus('待机中', false);
-                    this.clearSpotlight();
-                    resolve();
-                };
-
-                utterance.onerror = () => {
-                    if (this.teacherAvatar) {
-                        this.teacherAvatar.classList.remove('speaking');
-                    }
-                    this.showSpeechSyncIndicator(false);
-                    this.updateTeacherStatus('待机中', false);
-                    resolve();
-                };
-
-                window.speechSynthesis.speak(utterance);
-            });
-        }
 
         _findElementForSpeech(text) {
             if (!this.courseData || !this.courseData.scenes) return null;
@@ -4208,34 +4174,175 @@
         }
 
         async generateTTS(text, voiceId = null, speed = 1.0) {
+            // v2 端点使用字符串音色 ID，不再需要整数索引映射
             const voice = voiceId || TTS_CONFIG.voice;
-            const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
-            const voiceIndex = voiceConfig.index || 0;
+            // MINIMAX_VOICES 的 key 就是字符串 ID，验证其存在
+            const validVoice = MINIMAX_VOICES[voice] ? voice : 'female-yujie';
 
             try {
-                // Use /api/socratic/tts endpoint (same as socratic-ai.html)
-                const response = await fetch('/api/socratic/tts', {
+                // 尝试流式 SSE 端点
+                const result = await this._collectSSEStream(text, validVoice, speed);
+                if (result.success && result.blobUrl) {
+                    console.log('[Classroom] TTS stream success:', result.blobUrl, result.wordTimestamps?.length, 'word timestamps');
+                    return {
+                        success: true,
+                        audioUrl: result.blobUrl,
+                        wordTimestamps: result.wordTimestamps || []
+                    };
+                }
+                console.warn('[Classroom] SSE stream failed, falling back to base64:', result.error);
+            } catch (e) {
+                console.warn('[Classroom] SSE stream exception, falling back to base64:', e);
+            }
+
+            // 降级：v2 base64 端点
+            try {
+                const response = await fetch('/api/v2/tts/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        voice_id: voiceIndex
+                        voice: validVoice,
+                        speed: speed
                     })
                 });
-
                 const data = await response.json();
-                console.log('[Classroom] TTS response:', data);
-                if (data.success && data.audio_url && typeof data.audio_url === 'string' && data.audio_url.trim().length > 0) {
-                    console.log('[Classroom] TTS audioUrl:', data.audio_url);
-                    return { success: true, audioUrl: data.audio_url.trim() };
+                if (data.audio_base64) {
+                    const mimeType = 'audio/' + (data.format || 'mp3');
+                    const dataUri = 'data:' + mimeType + ';base64,' + data.audio_base64;
+                    console.log('[Classroom] TTS base64 fallback success');
+                    return {
+                        success: true,
+                        audioUrl: dataUri,
+                        wordTimestamps: data.word_timestamps || []
+                    };
                 }
-                if (data.error) {
-                    console.error('[Classroom] TTS API error:', data.error);
-                }
-                return { success: false, error: data.error || 'TTS generation failed' };
+                return { success: false, error: data.detail || 'TTS generation failed' };
             } catch (e) {
-                console.error('TTS API error:', e);
+                console.error('[Classroom] TTS base64 fallback error:', e);
                 return { success: false, error: e.message };
+            }
+        }
+
+        /**
+         * 从 v2 SSE 流式 TTS 端点收集音频数据。
+         * 消费 SSE text/event-stream，提取所有 audio chunk (hex) 和 word timestamp。
+         * 返回 Blob 和逐字时间戳数组，供后续播放和同步高亮使用。
+         *
+         * @param {string} text - 要合成语音的文本
+         * @param {string} voiceId - MiniMax 音色字符串 ID (如 'female-yujie')
+         * @param {number} speed - 语速 (0.5 ~ 2.0)
+         * @returns {Promise<{success: boolean, audioBlob?: Blob, blobUrl?: string, wordTimestamps?: Array, error?: string}>}
+         */
+        async _collectSSEStream(text, voiceId, speed = 1.0) {
+            const controller = new AbortController();
+            // 保存到实例，stopAudio() 时可以通过它中断流
+            this._activeStreamController = controller;
+
+            try {
+                const response = await fetch('/api/v2/tts/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        voice: voiceId,
+                        speed: speed
+                    }),
+                    signal: controller.signal
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    return { success: false, error: errData.detail || 'TTS stream request failed' };
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                const audioChunks = [];      // Uint8Array[]
+                const wordTimestamps = [];   // {word, start_ms, end_ms}[]
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    // 最后一行可能不完整，保留到下次循环
+                    buffer = lines.pop() || '';
+
+                    let currentEvent = '';
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.slice(7).trim();
+                        } else if (line.startsWith('data: ') && currentEvent) {
+                            const dataStr = line.slice(6);
+                            try {
+                                const data = JSON.parse(dataStr);
+                                if (currentEvent === 'audio' && data.hex) {
+                                    const bytes = new Uint8Array(data.hex.length / 2);
+                                    for (let i = 0; i < data.hex.length; i += 2) {
+                                        bytes[i / 2] = parseInt(data.hex.substring(i, i + 2), 16);
+                                    }
+                                    audioChunks.push(bytes);
+                                } else if (currentEvent === 'word') {
+                                    wordTimestamps.push({
+                                        word: data.word,
+                                        start_ms: data.start_ms,
+                                        end_ms: data.end_ms,
+                                        sentence_index: data.sentence_index
+                                    });
+                                }
+                                // 'done' event: stream finished, nothing extra to extract
+                                // 'error' event: stream error
+                                if (currentEvent === 'error') {
+                                    return { success: false, error: data.message || 'TTS stream error' };
+                                }
+                            } catch (e) {
+                                // skip unparseable lines
+                            }
+                            currentEvent = '';
+                        }
+                    }
+                }
+
+                if (audioChunks.length === 0) {
+                    return { success: false, error: 'No audio data received from stream' };
+                }
+
+                // 拼接所有音频块为完整 Blob
+                const totalLength = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+                const combined = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const chunk of audioChunks) {
+                    combined.set(chunk, offset);
+                    offset += chunk.length;
+                }
+                const audioBlob = new Blob([combined], { type: 'audio/mp3' });
+
+                // 创建 blob URL（stopAudio 时通过 revokeObjectURL 释放）
+                const blobUrl = URL.createObjectURL(audioBlob);
+                // 保存引用以便后续清理
+                this._activeBlobUrl = blobUrl;
+
+                console.log('[Classroom] SSE stream collected:',
+                    audioChunks.length, 'chunks,',
+                    totalLength, 'bytes,',
+                    wordTimestamps.length, 'word timestamps');
+                return {
+                    success: true,
+                    audioBlob: audioBlob,
+                    blobUrl: blobUrl,
+                    wordTimestamps: wordTimestamps
+                };
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    return { success: false, error: 'Stream aborted' };
+                }
+                console.error('[Classroom] SSE stream error:', e);
+                return { success: false, error: e.message };
+            } finally {
+                this._activeStreamController = null;
             }
         }
 
@@ -4283,95 +4390,48 @@
             return text && text.trim().length > 0 ? text.trim() : null;
         }
 
-        _scheduleNextScenePreload(currentIdx) {
-            // 取消之前的定时器
-            if (this._ttsPreloadTimer) {
-                clearTimeout(this._ttsPreloadTimer);
-                this._ttsPreloadTimer = null;
-            }
-
-            const nextIdx = currentIdx + 1;
-            if (nextIdx >= this.scenes.length) return;
-
-            const nextScene = this.scenes[nextIdx];
-            const text = this.getSceneSpeechText(nextScene);
-            if (!text) return;
-
-            // 如果已经缓存，不需要再预加载
-            if (nextScene.audioUrl || this.courseData.tts_audio_urls?.[String(nextScene.id)]) return;
-
-            // 15秒后如果用户还在当前场景，预加载下一场景
-            this._ttsPreloadTimer = setTimeout(() => {
-                if (this.currentIndex !== currentIdx) return; // 用户已切换场景，取消
-                this._preloadSceneTTS(nextScene);
-            }, 7000);
-        }
-
-        async _preloadSceneTTS(scene) {
-            const text = this.getSceneSpeechText(scene);
-            if (!text) return;
-            const sceneId = String(scene.id);
-
-            // 如果已经在缓存中，跳过
-            if (scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId]) return;
-
-            // 如果该场景正在预加载中，复用 Promise
-            if (this._ttsPreloadPromises.has(sceneId)) {
-                return this._ttsPreloadPromises.get(sceneId);
-            }
-
-            const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
-            const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
-
-            const preloadPromise = (async () => {
-                try {
-                    const result = await this.generateTTS(text, voiceId, speed);
-                    if (result.success && result.audioUrl) {
-                        scene.audioUrl = result.audioUrl;
-                        if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
-                        this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
-                        // 持久化到 sessionStorage，刷新后缓存仍有效
-                        try {
-                            sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
-                        } catch (e) {}
-                        console.log('[Classroom] TTS preloaded for scene', scene.id, ':', result.audioUrl);
-                    }
-                } catch (e) {
-                    console.warn('[Classroom] TTS preload failed for scene', scene.id, e);
-                }
-            })();
-
-            this._ttsPreloadPromises.set(sceneId, preloadPromise);
-            return preloadPromise;
-        }
 
         async _ensureSceneTTSCached(scene) {
             const sceneId = String(scene.id);
-            // 1. 检查内存缓存
+            // 1. 检查内存缓存（blob URL 或 data URI）
             if (scene.audioUrl) return scene.audioUrl;
             if (this.courseData.tts_audio_urls?.[sceneId]) {
                 scene.audioUrl = this.courseData.tts_audio_urls[sceneId];
                 return scene.audioUrl;
             }
 
+            // 2. 从持久化 base64 缓存恢复（转换回 data URI，因为 blob URL 已过期）
+            if (scene.audioBase64 || this.courseData.tts_audio_base64?.[sceneId]) {
+                const b64 = scene.audioBase64 || this.courseData.tts_audio_base64[sceneId];
+                if (b64) {
+                    const dataUri = 'data:audio/mp3;base64,' + b64;
+                    scene.audioUrl = dataUri;
+                    return dataUri;
+                }
+            }
+
             const text = this.getSceneSpeechText(scene);
             if (!text) return null;
 
-            // 2. 如果该场景正在后台预加载中，等待它完成
-            if (this._ttsPreloadPromises.has(sceneId)) {
-                await this._ttsPreloadPromises.get(sceneId);
-                return scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId] || null;
-            }
-
-            // 3. 否则立即生成（插队）
+            // 3. 立即生成（按需，非预加载）
             this.updateTeacherStatus('正在合成语音...', false);
             const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
             const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
             const result = await this.generateTTS(text, voiceId, speed);
             if (result.success && result.audioUrl) {
                 scene.audioUrl = result.audioUrl;
+                let base64Data = null;
+                if (result.audioUrl.startsWith('data:')) {
+                    const commaIdx = result.audioUrl.indexOf(',');
+                    if (commaIdx >= 0) base64Data = result.audioUrl.substring(commaIdx + 1);
+                }
+                scene.audioBase64 = base64Data;
                 if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
                 this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
+                if (base64Data) {
+                    if (!this.courseData.tts_audio_base64) this.courseData.tts_audio_base64 = {};
+                    this.courseData.tts_audio_base64[sceneId] = base64Data;
+                }
                 try {
                     sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
                 } catch (e) {}
@@ -6346,8 +6406,9 @@
             if (cachedUrl && this.audioPlayer) {
                 this._playAudioUrl(cachedUrl, scene);
             } else {
-                // 生成失败，回退到浏览器 TTS
-                this.fallbackTTS(scene);
+                console.error('[Classroom] TTS generation failed — no cached URL or audio player');
+                this.speechSync.style.display = 'none';
+                showToast('语音生成失败，请稍后重试', 'error');
             }
         }
 
@@ -6361,7 +6422,10 @@
             this.speechSync.style.display = 'flex';
             this.audioPlayer.load();
             this.audioPlayer.src = url;
-            this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
+            this.audioPlayer.play().catch((e) => {
+                console.error('[Classroom] Audio play() rejected:', e);
+                this.speechSync.style.display = 'none';
+            });
             this.audioPlayer.onended = () => {
                 this.speechSync.style.display = 'none';
                 const playBtn = document.getElementById('playback-play-btn');
@@ -6371,6 +6435,10 @@
                     playBtn.title = '播放';
                 }
                 if (playIcon) playIcon.className = 'fas fa-play';
+                // Clean up blob URL after playback completes
+                if (url && url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url);
+                }
                 if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                     setTimeout(() => this.nextScene(), 800);
                 }
@@ -6395,8 +6463,8 @@
                     console.log('[Classroom] audio play event fired!');
                 };
                 this.audioPlayer.onerror = () => {
-                    console.error('[Classroom] audio error, falling back to browser TTS:', this.audioPlayer.error);
-                    this.fallbackTTS({ slide: { speech: text } });
+                    console.error('[Classroom] audio playback error:', this.audioPlayer.error);
+                    this.speechSync.style.display = 'none';
                 };
                 this.audioPlayer.onended = () => {
                     this.speechSync.style.display = 'none';
@@ -6411,43 +6479,17 @@
                         setTimeout(() => this.nextScene(), 800);
                     }
                 };
-                this.audioPlayer.play().catch(() => {
-                    this.fallbackTTS({ slide: { speech: text } });
+                this.audioPlayer.play().catch((e) => {
+                    console.error('[Classroom] Audio play() rejected:', e);
+                    this.speechSync.style.display = 'none';
                 });
             } else {
-                this.fallbackTTS({ slide: { speech: text } });
+                console.error('[Classroom] TTS generation failed:', result.error);
+                this.speechSync.style.display = 'none';
+                showToast('语音生成失败，请稍后重试', 'error');
             }
         }
 
-        fallbackTTS(scene) {
-            const text = scene.slide?.speech || scene.quiz?.speech || scene.slides_v2?.[0]?.content?.[0]?.narration || '';
-            if (!text) return;
-            // Use browser SpeechSynthesis since HTMLAudioElement is blocked on this machine
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
-                var utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'zh-CN';
-                utterance.rate = this.ttsConfig?.speed || TTS_CONFIG.speed;
-                utterance.onend = () => {
-                    this.speechSync.style.display = 'none';
-                    const playBtn = document.getElementById('playback-play-btn');
-                    const playIcon = playBtn?.querySelector('i');
-                    if (playBtn) {
-                        playBtn.classList.remove('playing');
-                        playBtn.title = '播放';
-                    }
-                    if (playIcon) playIcon.className = 'fas fa-play';
-                    if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
-                        setTimeout(() => this.nextScene(), 800);
-                    }
-                };
-                utterance.onerror = () => { this.speechSync.style.display = 'none'; };
-                this.speechSynthesisUtterance = utterance;
-                window.speechSynthesis.speak(utterance);
-            } else {
-                this.speechSync.style.display = 'none';
-            }
-        }
 
         toggleVoice() {
             this.isPlaying = !this.isPlaying;
@@ -6469,6 +6511,16 @@
         }
 
         stopAudio() {
+            // Abort any in-flight SSE stream
+            if (this._activeStreamController) {
+                try { this._activeStreamController.abort(); } catch (e) {}
+                this._activeStreamController = null;
+            }
+            // Clean up blob URL from current/last stream
+            if (this._activeBlobUrl) {
+                try { URL.revokeObjectURL(this._activeBlobUrl); } catch (e) {}
+                this._activeBlobUrl = null;
+            }
             if (this.audioPlayer) {
                 // Remove event listeners first to prevent fallback TTS from firing when we clear src
                 this.audioPlayer.onloadedmetadata = null;
@@ -6480,7 +6532,6 @@
                 // (code 4: MEDIA_ELEMENT_ERROR: Empty src attribute). Just pause and clear
                 // listeners; the next play call will set a new src.
             }
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
             if (this.openmaicPlayer) this.openmaicPlayer.stop({ keepSlide: true });
             if (this.speechSync) this.speechSync.style.display = 'none';
             // Clear spotlight when audio stops
@@ -6515,10 +6566,6 @@
             if (this.audioPlayer && !this.audioPlayer.paused) {
                 this.audioPausedBefore = true;
                 this.audioPlayer.pause();
-            }
-            // Cancel browser TTS (Web Speech API doesn't support pause/resume well)
-            if (window.speechSynthesis && window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
             }
         }
 

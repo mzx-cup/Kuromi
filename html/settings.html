@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +8,26 @@
     <link rel="stylesheet" href="/css/loading.css">
     <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/settings.css">
-    <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/app-bg.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
     <script src="/js/loading.js"></script>
     <script src="/js/theme.js"></script>
 </head>
-<body class="settings-body">
+<body class="app-body settings-body">
     <!-- Global Wallpaper Background Layer -->
+    <div id="app-bg" class="app-bg-layer">
+        <div class="app-bg-stars"></div>
+        <div class="app-bg-nebula"></div>
+        <div class="app-bg-orb app-bg-orb-1"></div>
+        <div class="app-bg-orb app-bg-orb-2"></div>
+        <div class="app-bg-orb app-bg-orb-3"></div>
+    </div>
+
     <div class="global-bg-layer" id="global-bg-layer"></div>
     <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
 
@@ -551,6 +563,18 @@
                                 <input type="checkbox" id="two-factor">
                                 <span class="toggle-slider"></span>
                             </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="setting-label">退出登录</span>
+                                <span class="setting-desc">安全退出当前账户</span>
+                            </div>
+                            <button class="action-btn logout-btn" onclick="Auth.logout()">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin-right:4px;vertical-align:middle">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                退出登录
+                            </button>
                         </div>
                         <div class="setting-item">
                             <div class="setting-info">

@@ -19,7 +19,7 @@ body {
 
 .stellar-body {
     min-height: 100vh;
-    background: #020617;
+    background: var(--surface-page);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     overflow-x: hidden;
     position: relative;

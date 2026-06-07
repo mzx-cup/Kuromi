@@ -25,6 +25,15 @@ let audioChunks = [];
 let autoPlayEnabled = true;
 let finalTranscript = '';
 
+// v2 TTS 音色映射：整数选中的 voiceId → MiniMax 字符串 voice ID
+const SOCRATIC_VOICE_MAP = {
+    0: 'female-shaonv',
+    1: 'male-qn-qingse',
+    2: 'female-yujie',
+    3: 'male-qingshu',
+    4: 'female-danyun'
+};
+
 // ========== 角色切换 ==========
 
 function initRoleToggle() {
@@ -176,18 +185,20 @@ async function playQuestionVoice() {
     updateOrbStatus('AI 播声中...');
 
     try {
-        const response = await fetch('/api/socratic/tts', {
+        const voiceId = SOCRATIC_VOICE_MAP[selectedVoiceId] || 'female-shaonv';
+        const response = await fetch('/api/v2/tts/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 text: currentQuestion.text,
-                voice_id: selectedVoiceId
+                voice: voiceId
             })
         });
 
         const data = await response.json();
-        if (data.success && data.audio_url) {
-            const audio = new Audio(data.audio_url);
+        if (data.audio_base64) {
+            const mimeType = 'audio/' + (data.format || 'mp3');
+            const audio = new Audio('data:' + mimeType + ';base64,' + data.audio_base64);
             audio.onended = () => {
                 voiceBtn.classList.remove('playing');
                 isPlayingAudio = false;
@@ -201,7 +212,7 @@ async function playQuestionVoice() {
             };
             await audio.play();
         } else {
-            showToast(data.error || '语音合成失败', 'error');
+            showToast(data.detail || '语音合成失败', 'error');
             voiceBtn.classList.remove('playing');
             isPlayingAudio = false;
         }
