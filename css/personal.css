@@ -112,13 +112,9 @@ input, textarea, select {
     font-size: 100%;
 }
 
-html {
+/* 全局 reset 与字体平滑已由 app-base.css 提供；本页仅在 .app-body 范围保留 personal 页面基线 */
+.app-body {
     scroll-behavior: smooth;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 15px;
     line-height: 1.6;
