@@ -8,7 +8,9 @@
     --neon-red: #ef4444;
 }
 
-* {
+/* 全局 reset 已移至 app-base.css；本页仅保留 settings 页面专属基线 */
+.settings-body,
+.settings-body * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -20,7 +22,7 @@ input, textarea, select {
     font-size: 100%;
 }
 
-body {
+.settings-body {
     overflow-wrap: break-word;
     word-wrap: break-word;
     -webkit-hyphens: auto;
