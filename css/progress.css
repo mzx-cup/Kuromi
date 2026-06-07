@@ -7,7 +7,9 @@
     --neon-orange: #f97316;
 }
 
-* {
+/* 全局 reset 已由 app-base.css 提供；本页仅在 .progress-body 范围保留基线 */
+.progress-body,
+.progress-body * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -19,7 +21,7 @@ input, textarea, select {
     font-size: 100%;
 }
 
-body {
+.progress-body {
     overflow-wrap: break-word;
     word-wrap: break-word;
     -webkit-hyphens: auto;
