@@ -26,6 +26,12 @@ from html.parser import HTMLParser
 ROOT = Path(__file__).parent.parent
 HTML_DIR = ROOT / "html"
 
+# Windows 兼容：确保 stdout 能输出 emoji
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 # 标准加载顺序：层名 -> 该层允许的 CSS 文件名（按出现顺序）
 LOAD_ORDER = [
     ("tokens",     ["tokens.css"]),
