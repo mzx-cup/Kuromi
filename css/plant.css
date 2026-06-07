@@ -83,7 +83,7 @@
 /* ═══════════════════════════════════════════════════════
    自定义滚动条 - 与页面风格统一
    ═══════════════════════════════════════════════════════ */
-html {
+.app-body {
     overflow-y: auto;
 }
 
@@ -111,11 +111,7 @@ html {
     background: transparent;
 }
 
-/* Firefox 滚动条 */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(140, 160, 180, 0.35) rgba(0, 0, 0, 0.06);
-}
+/* Firefox 滚动条 — 已由 app-base.css 提供全局 * 重置 */
 
 /* ═══════════════════════════════════════════════════════
    基础重置
@@ -134,7 +130,7 @@ html, body {
     overflow-x: hidden;
 }
 
-body {
+.app-body {
     min-width: 100%;
     width: 100%;
     font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
@@ -1622,8 +1618,8 @@ body.weather-sandstorm .plant-sky {
    响应式适配 - 多分辨率 & 缩放支持
    ============================================ */
 
-/* Base zoom level compatibility */
-html {
+/* Base zoom level compatibility — 限定到 .app-body */
+.app-body {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
