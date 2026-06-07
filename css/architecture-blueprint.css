@@ -1,7 +1,8 @@
 /* 创世·架构蓝图引擎 样式 */
 
 /* 基础样式 & Zoom Level 兼容性 */
-* {
+.arch-blueprint-page,
+.arch-blueprint-page * {
     font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     box-sizing: border-box;
 }
@@ -30,15 +31,10 @@ input, textarea, select {
 }
 
 /* Base typography */
-html {
+.arch-blueprint-page {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-}
-
-body {
     line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 /* 渐变动画按钮 */
