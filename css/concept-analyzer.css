@@ -1,6 +1,7 @@
 /* 灵犀·动态概念拆解仪 样式 */
 
-* {
+.concept-analyzer-page,
+.concept-analyzer-page * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -12,7 +13,7 @@ input, textarea, select {
     font-size: 100%;
 }
 
-body {
+.concept-analyzer-page {
     overflow-wrap: break-word;
     word-wrap: break-word;
     -webkit-hyphens: auto;
