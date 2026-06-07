@@ -32,9 +32,53 @@
       "display_name": "管理员",
       "created_at": "local",
       "last_login": "local"
+    },
+    {
+      "id": 4,
+      "username": "teacher",
+      "password": "$2b$12$N2tmXJkNoSpe6KmplS1/s.1w0whbqFUuv5oatF.q8U96oxcFIw/CS",
+      "avatar": "",
+      "nickname": "教师演示",
+      "role": "teacher",
+      "display_name": "教师演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 5,
+      "username": "student",
+      "password": "$2b$12$CBvIMhvDsQeFVkjrga9Q0.GoZ9EEFScndC.W9WVR1ZT2TtCQw0b/u",
+      "avatar": "",
+      "nickname": "学生演示",
+      "role": "student",
+      "display_name": "学生演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 6,
+      "username": "admin",
+      "password": "$2b$12$v7m4DwbF1esf/S6x9htOae4t8dUoMfMiJOTud810E8Pmk8sEqYF5S",
+      "avatar": "",
+      "nickname": "管理员",
+      "role": "admin",
+      "display_name": "管理员",
+      "created_at": "local",
+      "last_login": "local"
     }
   ],
-  "learning_records": [],
+  "learning_records": [
+    {
+      "id": 1,
+      "user_id": 5,
+      "interaction_count": 11,
+      "code_practice_time": 0,
+      "socratic_pass_rate": 0.0,
+      "difficulty_level": "medium",
+      "profile_json": "{\"focus_time_today\": 6, \"flashcards_studied\": 0, \"streak_days\": 0}",
+      "updated_at": "local"
+    }
+  ],
   "daily_routes": [
     {
       "tasks": [
@@ -1085,6 +1129,84 @@
       "completed": [],
       "generated_at": "2026-06-07T02:28:20.780835",
       "user_id": 2
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "学习基础数学概念",
+          "description": "观看基础数学概念视频课程",
+          "type": "study",
+          "duration": 30,
+          "subject": "math",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "完成5道基础代数练习题",
+          "description": "练习一元一次方程和简单代数运算",
+          "type": "practice",
+          "duration": 45,
+          "subject": "math",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "基础英语词汇记忆",
+          "description": "学习并记忆20个基础英语词汇",
+          "type": "study",
+          "duration": 30,
+          "subject": "english",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "英语词汇应用练习",
+          "description": "用新学词汇造句并完成5道选择题",
+          "type": "practice",
+          "duration": 45,
+          "subject": "english",
+          "difficulty": "easy",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 5,
+          "title": "AI苏格拉底问答练习",
+          "description": "与AI进行基础问答互动，提升理解力",
+          "type": "practice",
+          "duration": 30,
+          "subject": "general",
+          "difficulty": "medium",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "制定下周学习计划",
+          "description": "使用日历工具规划未来学习任务",
+          "type": "review",
+          "duration": 30,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/calendar.html"
+        },
+        {
+          "id": 7,
+          "title": "喂养虚拟宠物",
+          "description": "放松一下，照顾你的虚拟宠物",
+          "type": "relax",
+          "duration": 15,
+          "subject": "general",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-06-08",
+      "completed": [],
+      "generated_at": "2026-06-08T02:15:03.227464",
+      "user_id": 5
     }
   ],
   "classroom_records": [
