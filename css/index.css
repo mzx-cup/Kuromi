@@ -481,9 +481,13 @@ body, .text-auto {
     transition: color 500ms ease-in-out, background-color 500ms ease-in-out;
 }
 
-* { box-sizing: border-box; }
+/* 全局 reset 已移至 app-base.css；本页仅在 .glass-app 范围保留基线（与原 body/* 等价） */
+.glass-app,
+.glass-app * {
+    box-sizing: border-box;
+}
 
-body {
+.glass-app {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     font-size: 14px;
     line-height: 1.6;
@@ -7444,8 +7448,8 @@ body.light-theme .path-tree-empty {
    响应式适配 - 多分辨率 & 缩放支持
    ============================================ */
 
-/* Base zoom level compatibility */
-html {
+/* Base zoom level compatibility — 限定到 .glass-app，避免全局 html 选择器 */
+.glass-app {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
