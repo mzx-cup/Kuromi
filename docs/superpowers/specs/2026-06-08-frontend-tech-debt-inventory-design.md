@@ -235,7 +235,7 @@ html/ css/ js/                  (项目源)
 |---------|------|---------|
 | 单个 CSS 文件无法读取 | 记录警告到 stderr，继续扫其他文件 | 终端输出 `⚠️ skip: css/xxx.css (PermissionError)` |
 | 单个文件 parse 错误（CSS 语法严重损坏） | 用 `try/except` 包裹正则匹配，记录该文件 skipped | 报告中 `skipped_files` 字段列出 |
-| 某个新脚本崩溃 | Layer 1 整体退出码非 0，但 Layer 2 仍用已有 partial JSON 继续 | 终端红色 `FAIL: audit_xxx crashed` + 报告顶部告警条 |
+| 某个新脚本崩溃 | 该脚本退出码非 0，其他 2 个脚本的 JSON 仍可被 Layer 2 读取 | 终端红色 `FAIL: audit_xxx crashed` + 报告顶部告警条标记 partial 状态 |
 | 报告生成器发现缺某个 JSON | 列出缺失的输入，提示 `请先运行 python scripts/audit_xxx.py` | 终端红色 `MISSING: output/audit_xxx.json` |
 | 报告遗留问题中 Playwright L3（环境未装） | 不报错，标记为 `[Deferred: env not ready]` | 报告 §遗留状态块明确标注 |
 
