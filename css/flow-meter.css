@@ -1,4 +1,5 @@
-* {
+.flow-body,
+.flow-body * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -10,7 +11,7 @@ input, textarea, select {
     font-size: 100%;
 }
 
-body {
+.flow-body {
     overflow-wrap: break-word;
     word-wrap: break-word;
     -webkit-hyphens: auto;
