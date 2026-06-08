@@ -187,3 +187,71 @@ class TestAggregateProfile:
         # low:  0.8*0.6 + 0.2 = 0.68
         assert high["score"] == pytest.approx(0.78)
         assert low["score"] == pytest.approx(0.68)
+
+
+# ====== 🆕 pytest parametrize 改造：9 种记忆类型映射 ======
+
+MEMORY_TYPE_MAPPING = [
+    pytest.param("learning_trait", "learning_traits", id="learning_trait→learning"),
+    pytest.param("knowledge",       "learning_traits", id="knowledge→learning"),
+    pytest.param("personality",     "personality_traits", id="personality→personality"),
+    pytest.param("emotion",         "personality_traits", id="emotion→personality"),
+    pytest.param("interaction",     "personality_traits", id="interaction→personality"),
+    pytest.param("background",      "goals_interests", id="background→goals"),
+    pytest.param("preference",      "goals_interests", id="preference→goals"),
+    pytest.param("interest",        "goals_interests", id="interest→goals"),
+    pytest.param("goal",            "goals_interests", id="goal→goals"),
+]
+
+
+@pytest.mark.parametrize("memory_type,expected_category", MEMORY_TYPE_MAPPING)
+def test_memory_type_mapped_to_correct_category(memory_type, expected_category):
+    """参数化：验证 9 种记忆类型各自映射到正确的画像类别
+
+    这是 pytest parametrize 的高级用法 — 把 9 个重复测试压缩为 1 个数据驱动测试。
+    加新记忆类型只需在 MEMORY_TYPE_MAPPING 列表里加一行。
+    """
+    memories = [{
+        "id": f"mem_{memory_type}",
+        "memory_type": memory_type,
+        "content": f"测试内容-{memory_type}",
+        "confidence": 0.8,
+        "access_count": 1,
+        "confirmed": 0,
+    }]
+    result = aggregate_profile(memories)
+
+    # 期望的类别应有 1 条记录，其他类别为空
+    assert len(result[expected_category]) == 1, \
+        f"类型 '{memory_type}' 应映射到 '{expected_category}'，实际为 {len(result[expected_category])} 条"
+    assert result[expected_category][0]["memory_type"] == memory_type, \
+        f"映射后的 memory_type 应为 '{memory_type}'"
+
+
+# ====== 🆕 评分公式白盒测试 — 参数化 ======
+
+SCORE_CALCULATION_CASES = [
+    # (confidence, access_count, confirmed, expected_score, desc)
+    pytest.param(0.9, 5, 1, 0.94, "高置信度+中频访问+已确认", id="high-confirmed"),
+    pytest.param(0.6, 0, 0, 0.36, "低置信度+无访问+未确认", id="low-bare"),
+    pytest.param(0.8, 20, 0, 0.78, "access_count达封顶上限", id="access-capped"),
+    pytest.param(0.8, 2, 0, 0.68, "access_count未达封顶", id="access-uncapped"),
+    pytest.param(0.8, 0, 1, 0.48 + 0.1, "仅确认加分", id="confirmed-only"),  # 0.48 + 0.1 = 0.58
+    pytest.param(0.5, 0, 0, 0.30, "最低有效分数", id="minimal-score"),
+    pytest.param(1.0, 10, 1, 1.00, "满分场景", id="full-score"),
+]
+
+
+@pytest.mark.parametrize("confidence,access_count,confirmed,expected_score,desc",
+                          SCORE_CALCULATION_CASES)
+def test_score_calculation_formula(confidence, access_count, confirmed, expected_score, desc):
+    """白盒测试：参数化验证评分公式
+
+    公式: score = confidence * 0.6 + min(access_count / 10, 0.3) + (confirmed ? 0.1 : 0)
+
+    7 组数据覆盖了公式的每个组成部分的典型值。
+    """
+    from app.services.profile_aggregator import _calculate_score
+    result = _calculate_score(confidence, access_count, confirmed)
+    assert result == pytest.approx(expected_score, abs=1e-4), \
+        f"场景 '{desc}'：期望 {expected_score}，实际 {result:.4f}"
