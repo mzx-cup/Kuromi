@@ -146,17 +146,22 @@ def main() -> int:
     print(f"✏️  Appended {len(p0_vars)} vars to {TOKENS_FILE.name}")
 
     # 5) 删除外溢文件的完整规则块
+    # 注意：按行号倒序处理，避免前面的删除让后面的行号错位
     for fname, hits in overflow.items():
         css_file = CSS_DIR / fname
         if not css_file.exists():
             print(f"⚠️  {fname} not found, skip")
             continue
+        sorted_hits = sorted(
+            (h for h in hits if "line" in h and "selector" in h),
+            key=lambda h: h["line"],
+            reverse=True,
+        )
         total_lines = 0
-        for h in hits:
-            if "line" in h and "selector" in h:
-                n = delete_overflow_rule(css_file, h["line"], h["selector"])
-                total_lines += n
-        print(f"✏️  Cleaned {len(hits)} rules ({total_lines} lines) from {fname}")
+        for h in sorted_hits:
+            n = delete_overflow_rule(css_file, h["line"], h["selector"])
+            total_lines += n
+        print(f"✏️  Cleaned {len(sorted_hits)} rules ({total_lines} lines) from {fname}")
 
     # 6) 摘要
     print()
