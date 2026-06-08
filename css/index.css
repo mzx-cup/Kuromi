@@ -499,10 +499,6 @@ body, .text-auto {
     transition: color 0.5s ease-in-out, background-color 0.5s ease-in-out;
 }
 
-*, *::before, *::after {
-    transition: color 0.5s ease-in-out, background-color 0.5s ease-in-out, border-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out;
-}
-
 .theme-toggle-btn {
     position: relative;
     display: flex;

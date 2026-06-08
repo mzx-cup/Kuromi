@@ -116,19 +116,6 @@
 /* ═══════════════════════════════════════════════════════
    基础重置
    ═══════════════════════════════════════════════════════ */
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-html, body {
-    height: 100%;
-    min-width: 100%;
-    width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
 
 .app-body {
     min-width: 100%;

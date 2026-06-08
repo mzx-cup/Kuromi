@@ -100,14 +100,6 @@
    2. Base Styles & Reset
    ============================================ */
 
-*, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-text-size-adjust: 100%;
-    text-size-adjust: 100%;
-}
-
 input, textarea, select {
     font-size: 100%;
 }
