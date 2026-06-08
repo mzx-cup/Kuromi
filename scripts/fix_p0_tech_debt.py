@@ -59,18 +59,49 @@ def build_tokens_appendix(vars_list: list[str]) -> str:
     return "\n".join(lines)
 
 
-def delete_overflow_rules(css_file: Path, line_numbers: set[int]) -> None:
-    """从 css_file 中删除指定行号集合的内容"""
-    if not line_numbers:
-        return
+def delete_overflow_rule(css_file: Path, line_number: int, selector_text: str) -> int:
+    """删除从 line_number 开始的完整规则块（选择器 + body + 闭合 }）
+
+    Args:
+        css_file: CSS 文件路径
+        line_number: 选择器开始的 1-indexed 行号
+        selector_text: 选择器文本（可能跨多行，含 \\n）
+
+    Returns:
+        删除的行数。越界返回 0。
+    """
     text = css_file.read_text(encoding="utf-8")
     lines = text.splitlines(keepends=True)
-    # 保留不在 line_numbers 中的行
-    kept = [
-        line for idx, line in enumerate(lines, start=1)
-        if idx not in line_numbers
-    ]
+
+    if line_number < 1 or line_number > len(lines):
+        return 0
+
+    start_idx = line_number - 1  # 转 0-indexed
+
+    # 从 start_idx 向前扫描，找匹配的 '}'
+    depth = 0
+    saw_open = False
+    end_idx = None
+    for i in range(start_idx, len(lines)):
+        for ch in lines[i]:
+            if ch == '{':
+                depth += 1
+                saw_open = True
+            elif ch == '}':
+                depth -= 1
+                if saw_open and depth == 0:
+                    end_idx = i
+                    break
+        if end_idx is not None:
+            break
+
+    if end_idx is None:
+        return 0
+
+    # 删除 start_idx 到 end_idx（含）的所有行
+    kept = lines[:start_idx] + lines[end_idx + 1:]
     css_file.write_text("".join(kept), encoding="utf-8")
+    return end_idx - start_idx + 1
 
 
 def _load_or_exit(path: Path) -> dict | None:
@@ -114,15 +145,18 @@ def main() -> int:
         f.write(appendix)
     print(f"✏️  Appended {len(p0_vars)} vars to {TOKENS_FILE.name}")
 
-    # 5) 删除 5 个外溢文件的规则
+    # 5) 删除外溢文件的完整规则块
     for fname, hits in overflow.items():
         css_file = CSS_DIR / fname
         if not css_file.exists():
             print(f"⚠️  {fname} not found, skip")
             continue
-        line_nums = {h["line"] for h in hits if "line" in h}
-        delete_overflow_rules(css_file, line_nums)
-        print(f"✏️  Cleaned {len(line_nums)} rules from {fname}")
+        total_lines = 0
+        for h in hits:
+            if "line" in h and "selector" in h:
+                n = delete_overflow_rule(css_file, h["line"], h["selector"])
+                total_lines += n
+        print(f"✏️  Cleaned {len(hits)} rules ({total_lines} lines) from {fname}")
 
     # 6) 摘要
     print()

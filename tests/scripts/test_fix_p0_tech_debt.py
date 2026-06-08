@@ -8,7 +8,7 @@ from scripts.fix_p0_tech_debt import (
     extract_p0_vars,
     extract_overflow_files,
     build_tokens_appendix,
-    delete_overflow_rules,
+    delete_overflow_rule,
 )
 
 
@@ -63,29 +63,75 @@ class BuildTokensAppendixTest(unittest.TestCase):
         self.assertIn("TODO: refine color", appendix)
 
 
-class DeleteOverflowRulesTest(unittest.TestCase):
-    def test_removes_named_lines(self):
+class DeleteOverflowRuleTest(unittest.TestCase):
+    def test_deletes_single_line_rule(self):
+        """单行选择器规则完整删除（选择器+body+闭合大括号）"""
         with tempfile.TemporaryDirectory() as tmpdir:
             css_file = Path(tmpdir) / "x.css"
             css_file.write_text(
                 "* { box-sizing: border-box; }\n"
-                ".card { padding: 16px; }\n"
-                "html { font-size: 16px; }\n",
+                ".card { padding: 16px; }\n",
                 encoding="utf-8",
             )
-            # 删除第 1 行 (* rule) 和第 3 行 (html rule)
-            delete_overflow_rules(css_file, {1, 3})
+            n = delete_overflow_rule(css_file, 1, "*")
+            self.assertEqual(n, 1)
             content = css_file.read_text(encoding="utf-8")
             self.assertNotIn("box-sizing", content)
             self.assertIn(".card", content)
-            self.assertNotIn("font-size", content)
+            self.assertEqual(content.count("{"), content.count("}"))
 
-    def test_empty_hits_no_change(self):
+    def test_deletes_multi_line_selector_with_body(self):
+        """多行选择器 '*::before,\n  *::after' 整块删除（包括 @media 内的 body 和 }）"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            css_file = Path(tmpdir) / "x.css"
+            css_file.write_text(
+                "@media (prefers-reduced-motion: reduce) {\n"
+                "  *::before,\n"
+                "  *::after {\n"
+                "    animation-duration: 0.01ms !important;\n"
+                "    transition-duration: 0.01ms !important;\n"
+                "  }\n"
+                "  .other { display: none; }\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            # 选择器在 line 2 (1-indexed)，跨 2 行
+            n = delete_overflow_rule(css_file, 2, "*::before,\n  *::after")
+            self.assertEqual(n, 5)  # lines 2-6 (selector+body+})
+            content = css_file.read_text(encoding="utf-8")
+            self.assertNotIn("animation-duration", content)
+            self.assertNotIn("*::before", content)
+            self.assertIn(".other", content)
+            self.assertIn("@media", content)
+            self.assertEqual(content.count("{"), content.count("}"))
+
+    def test_brace_count_stays_balanced(self):
+        """删除 html, body 规则后 brace count 仍平衡"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            css_file = Path(tmpdir) / "x.css"
+            css_file.write_text(
+                "html, body {\n"
+                "    height: 100%;\n"
+                "    margin: 0;\n"
+                "    overflow: hidden;\n"
+                "}\n",
+                encoding="utf-8",
+            )
+            n = delete_overflow_rule(css_file, 1, "html, body")
+            self.assertEqual(n, 5)
+            content = css_file.read_text(encoding="utf-8")
+            self.assertEqual(content.count("{"), content.count("}"))
+            self.assertEqual(content.count("{"), 0)
+            self.assertEqual(content, "")
+
+    def test_invalid_line_returns_zero(self):
+        """越界行号返回 0，文件不变"""
         with tempfile.TemporaryDirectory() as tmpdir:
             css_file = Path(tmpdir) / "x.css"
             original = ".card { padding: 16px; }\n"
             css_file.write_text(original, encoding="utf-8")
-            delete_overflow_rules(css_file, set())
+            n = delete_overflow_rule(css_file, 99, "nonexistent")
+            self.assertEqual(n, 0)
             self.assertEqual(css_file.read_text(encoding="utf-8"), original)
 
 
