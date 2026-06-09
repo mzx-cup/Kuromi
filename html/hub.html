@@ -1120,18 +1120,38 @@
              ════════════════════════════════════════════ -->
         <aside class="hub-right-panel">
 
-            <!-- 专注日历 -->
-            <div class="compact-card hub-card calendar-card">
-                <div class="compact-header">
-                    <h4 class="compact-title">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        专注日历
+            <!-- 专注日历（v2 重构:静态 7×6 骨架 + JS 填数字 + 5 档学习强度 + 完整 a11y） -->
+            <section class="compact-card hub-card focus-calendar" aria-labelledby="focus-calendar-title">
+                <header class="focus-calendar__header">
+                    <h4 class="focus-calendar__title" id="focus-calendar-title">
+                        <i data-lucide="calendar-days" aria-hidden="true"></i>
+                        <span>专注日历</span>
                     </h4>
-                    <span class="compact-badge">6月</span>
+                    <span class="focus-calendar__month-badge" id="focus-calendar-month" aria-live="polite">—月</span>
+                </header>
+                <!-- 星期表头:日一二三四五六 -->
+                <div class="focus-calendar__weekdays" role="row">
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期日">日</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期一">一</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期二">二</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期三">三</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期四">四</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期五">五</span>
+                    <span class="focus-calendar__weekday" role="columnheader" aria-label="星期六">六</span>
                 </div>
-                <!-- 月度日期网格（hub.js loadFocusCalendar 动态渲染） -->
-                <div class="mini-calendar-grid" id="focus-calendar-grid"></div>
-            </div>
+                <!-- 6 行 × 7 列 网格,JS 动态填充日期 (focus-calendar.js) -->
+                <div class="focus-calendar__grid" id="focus-calendar-grid" role="grid" aria-label="本月学习日历"></div>
+                <!-- 图例:5 档学习强度 -->
+                <div class="focus-calendar__legend" aria-label="学习强度图例">
+                    <span class="focus-calendar__legend-label">少</span>
+                    <span class="focus-calendar__legend-swatch" data-level="0" aria-label="无学习"></span>
+                    <span class="focus-calendar__legend-swatch" data-level="1" aria-label="少量学习"></span>
+                    <span class="focus-calendar__legend-swatch" data-level="2" aria-label="一般"></span>
+                    <span class="focus-calendar__legend-swatch" data-level="3" aria-label="较多"></span>
+                    <span class="focus-calendar__legend-swatch" data-level="4" aria-label="大量"></span>
+                    <span class="focus-calendar__legend-label">多</span>
+                </div>
+            </section>
 
             <!-- 今日要闻 -->
             <section class="daily-highlights-section" id="daily-highlights">
@@ -1220,6 +1240,7 @@
     <script src="/js/achievement-manager.js"></script>
     <script src="/js/focus-sync.js"></script>
     <script src="/js/theme.js"></script>
+    <script src="/js/focus-calendar.js"></script>
     <script src="/js/hub.js"></script>
     <script src="/js/kanban.js"></script>
     <script src="/js/mascot-services.js"></script>

@@ -813,15 +813,35 @@
 }
 .holo-review-link svg { width: 16px; height: 16px; }
 
-.holo-tree-container { position: relative; width: 100%; padding-bottom: 55%; margin-bottom: var(--space-md); }
-.holo-connections { position: absolute; inset: 0; width: 100%; height: 100%; }
-.holo-nodes { position: absolute; inset: 0; }
+.holo-tree-container { position: relative; width: 100%; padding-bottom: 62%; margin-bottom: var(--space-md); }
+.holo-connections { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.holo-nodes { position: absolute; inset: 0; z-index: 1; }
 
 .holo-node {
-    position: absolute; display: flex; align-items: center; gap: 8px;
-    transition: all 0.5s var(--ease-out);
+    position: absolute; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    text-align: center; cursor: pointer; user-select: none;
+    transition: top 0.5s var(--ease-out), left 0.5s var(--ease-out), transform 0.3s var(--ease-out);
 }
-.holo-node .node-sphere { position: relative; width: 36px; height: 36px; flex-shrink: 0; }
+.holo-node:hover { z-index: 10; }
+.holo-node:hover .node-sphere { transform: scale(1.1); }
+.holo-node .node-sphere { position: relative; width: 36px; height: 36px; flex-shrink: 0; transition: transform 0.3s var(--ease-out); }
+/* SVG-handled lines - hide the decorative connector divs */
+.branch-connector, .leaf-connector { display: none; }
+
+/* ===== 静态树根布局（API 数据缺省时的回退）===== */
+/* 根：顶部居中 */
+.holo-node[data-id="python-core"] { left: 50%; top: 10%; transform: translate(-50%, -50%); }
+/* 一级分支：中间一行均匀分布 */
+.holo-node[data-id="math"]      { left: 14%; top: 48%; transform: translate(-50%, -50%); }
+.holo-node[data-id="web-dev"]   { left: 38%; top: 48%; transform: translate(-50%, -50%); }
+.holo-node[data-id="database"]  { left: 62%; top: 48%; transform: translate(-50%, -50%); }
+.holo-node[data-id="english"]   { left: 86%; top: 48%; transform: translate(-50%, -50%); }
+/* 叶子：底部一行，对齐到各自父节点正下方 */
+.holo-node[data-id="ml"]          { left: 14%; top: 84%; transform: translate(-50%, -50%); }
+.holo-node[data-id="algorithm"]   { left: 38%; top: 84%; transform: translate(-50%, -50%); }
+.holo-node[data-id="se"]          { left: 62%; top: 84%; transform: translate(-50%, -50%); }
+.holo-node[data-id="english-adv"] { left: 86%; top: 84%; transform: translate(-50%, -50%); }
+
 .holo-node .node-inner {
     width: 100%; height: 100%; border-radius: 50%;
     background: var(--surface-hover);
@@ -836,9 +856,14 @@
     background: radial-gradient(circle, color-mix(in oklch, var(--success), transparent 88%) 0%, transparent 70%);
     transition: background 0.5s;
 }
-.holo-node .node-info { display: flex; flex-direction: column; }
-.holo-node .node-name { font-size: var(--text-xs); color: var(--cp-text-primary); font-weight: var(--font-semibold); }
-.holo-node .node-status { font-size: 10px; color: var(--cp-text-tertiary); }
+.holo-node .node-info { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
+.holo-node .node-name { font-size: var(--text-xs); color: var(--cp-text-primary); font-weight: var(--font-semibold); white-space: nowrap; }
+.holo-node .node-status { font-size: 10px; color: var(--cp-text-tertiary); white-space: nowrap; }
+
+/* SVG 连线兜底色（当渐变 <defs> 因主题切换尚未注入时） */
+.connection-line { stroke: color-mix(in oklch, var(--success), transparent 30%); fill: none; }
+.connection-line.warning { stroke: color-mix(in oklch, var(--warning), transparent 30%); }
+.connection-line.danger { stroke: color-mix(in oklch, var(--danger), transparent 30%); }
 
 /* 节点状态色 */
 .holo-node.healthy .node-inner { border-color: var(--success); }
@@ -1025,56 +1050,186 @@
 .week-heat-bar.level-3 { background: var(--info); }
 .week-heat-label { font-size: 9px; color: var(--cp-text-tertiary); }
 
-/* 专注日历 — 月度日期网格（hub.js 动态渲染） */
-.calendar-card { padding: 16px 16px 12px; }
-.mini-calendar-grid {
+/* ════════════════════════════════════════════
+   专注日历 (v2 重构)
+   - 静态 7×6 骨架 + JS 填数字
+   - 5 档学习强度色阶 (--cal-l0 ~ --cal-l4)
+   - 独立 .focus-calendar* 命名空间, 不污染 heatmap
+   ════════════════════════════════════════════ */
+
+/* 5 档强度色阶 — 默认主题 */
+:root {
+    --cal-l0: color-mix(in oklch, var(--text-tertiary), transparent 90%);  /* 无学习 */
+    --cal-l1: color-mix(in oklch, var(--info), transparent 80%);
+    --cal-l2: color-mix(in oklch, var(--info), transparent 55%);
+    --cal-l3: color-mix(in oklch, var(--info), transparent 25%);
+    --cal-l4: var(--info);                                                  /* 满强度 */
+    --cal-today-ring: color-mix(in oklch, var(--info), transparent 40%);
+}
+
+.focus-calendar {
+    padding: 14px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.focus-calendar__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.focus-calendar__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: var(--font-semibold);
+    color: var(--cp-text-primary);
+    margin: 0;
+}
+.focus-calendar__title i {
+    width: 14px;
+    height: 14px;
+    color: var(--info);
+}
+.focus-calendar__month-badge {
+    font-size: 10px;
+    font-weight: var(--font-medium);
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--info), transparent 88%);
+    color: var(--info);
+}
+
+/* 星期表头 — 与 grid 列严格对齐 */
+.focus-calendar__weekdays {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    grid-auto-rows: 1fr;
     column-gap: 2px;
-    row-gap: 4px;
-    margin-top: var(--space-xs);
+    padding: 0 1px;
+}
+.focus-calendar__weekday {
+    text-align: center;
+    font-size: 9px;
+    color: var(--cp-text-tertiary);
+    line-height: 1.4;
+    user-select: none;
+}
+.focus-calendar__weekday:first-child,
+.focus-calendar__weekday:last-child {
+    color: color-mix(in oklch, var(--cp-text-tertiary), var(--danger) 30%);
+}
+
+/* 日期网格 — 固定 6 行 × 固定 7 列, 不被父容器撑开 */
+.focus-calendar__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-rows: repeat(6, 24px);    /* 关键: 固定行高, 不被父撑 */
+    grid-auto-rows: 24px;
+    column-gap: 2px;
+    row-gap: 2px;
     width: 100%;
     box-sizing: border-box;
-    background: color-mix(in oklch, var(--surface-card), transparent 70%);
-    border-radius: var(--radius-sm);
 }
-.mini-calendar-grid .empty,
-.mini-calendar-grid .day {
+
+/* 单个日期格子 — 用 button 保证可交互 + a11y */
+.focus-calendar__cell {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
     min-width: 0;
-    width: auto;
-    max-width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    font: inherit;
     font-size: 10px;
     font-weight: var(--font-medium);
-    color: var(--cp-text-secondary);
-    border-radius: 3px;
-    background: transparent;
-    transition: all var(--transition-fast);
     line-height: 1;
-    height: 20px;
+    color: var(--cp-text-secondary);
+    background: var(--cal-l0);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+    font-variant-numeric: tabular-nums;
 }
-.mini-calendar-grid .empty {
-    background: transparent;
+.focus-calendar__cell:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--info), transparent 50%);
+    z-index: 1;
+}
+.focus-calendar__cell:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--info);
+    z-index: 2;
+}
+
+/* 空白占位 — 占位但不显示 (避免 1fr 撑开) */
+.focus-calendar__cell--empty {
+    background: transparent !important;
+    visibility: hidden;        /* 占位, 但视觉上不渲染 */
+    pointer-events: none;
+    cursor: default;
+}
+
+/* 学习强度 5 档 */
+.focus-calendar__cell[data-level="0"] { background: var(--cal-l0); color: var(--cp-text-tertiary); }
+.focus-calendar__cell[data-level="1"] { background: var(--cal-l1); color: var(--cp-text-secondary); }
+.focus-calendar__cell[data-level="2"] { background: var(--cal-l2); color: var(--cp-text-primary); }
+.focus-calendar__cell[data-level="3"] { background: var(--cal-l3); color: var(--cp-text-primary); }
+.focus-calendar__cell[data-level="4"] { background: var(--cal-l4); color: #fff; font-weight: var(--font-semibold); }
+
+/* 今天 — 蓝色环 + 浅蓝底 (与强度叠加不冲突) */
+.focus-calendar__cell--today {
+    box-shadow: 0 0 0 2px var(--cal-today-ring);
+    position: relative;
+}
+.focus-calendar__cell--today[data-level="0"],
+.focus-calendar__cell--today[data-level="1"] {
+    color: var(--info);
+    font-weight: var(--font-bold);
+}
+
+/* 未来日期 — 半透明不可点 */
+.focus-calendar__cell--future {
+    opacity: 0.35;
+    cursor: not-allowed;
     pointer-events: none;
 }
-.mini-calendar-grid .day {
-    cursor: default;
-    background: color-mix(in oklch, var(--info), transparent 95%);
+
+/* 周末 — 微微淡色 (可选) */
+.focus-calendar__cell--weekend:not(.focus-calendar__cell--today) {
+    color: color-mix(in oklch, var(--cp-text-secondary), var(--danger) 20%);
 }
-.mini-calendar-grid .day.completed {
-    background: color-mix(in oklch, var(--info), transparent 60%);
-    color: var(--cp-text-primary);
-    font-weight: var(--font-semibold);
+
+/* 图例 */
+.focus-calendar__legend {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    color: var(--cp-text-tertiary);
+    margin-top: 2px;
 }
-.mini-calendar-grid .day.today {
-    background: var(--info);
-    color: #fff;
-    font-weight: var(--font-bold);
-    box-shadow: 0 0 0 2px color-mix(in oklch, var(--info), transparent 50%);
+.focus-calendar__legend-label {
+    padding: 0 2px;
 }
+.focus-calendar__legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+}
+.focus-calendar__legend-swatch[data-level="0"] { background: var(--cal-l0); }
+.focus-calendar__legend-swatch[data-level="1"] { background: var(--cal-l1); }
+.focus-calendar__legend-swatch[data-level="2"] { background: var(--cal-l2); }
+.focus-calendar__legend-swatch[data-level="3"] { background: var(--cal-l3); }
+.focus-calendar__legend-swatch[data-level="4"] { background: var(--cal-l4); }
 
 /* 今日要闻 */
 .daily-highlights-section { display: flex; flex-direction: column; gap: var(--space-sm); }
@@ -1802,8 +1957,8 @@
     .tab-btn { white-space: nowrap; }
     .holo-header { flex-direction: column; }
     .holo-legend { flex-wrap: wrap; gap: var(--space-sm); }
-    .holo-node { transform: scale(0.85); }
-    .holo-node.node-root { transform: translateX(-50%) scale(0.85); }
+    .holo-node .node-sphere { transform: scale(0.85); }
+    .holo-tree-container { padding-bottom: 78%; }
     .notification-panel { width: 90vw; right: 5vw; }
 }
 

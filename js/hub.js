@@ -1338,86 +1338,23 @@ function renderTaskItemsFromGoals(container, badge, goals) {
     }).join('');
 }
 
-// 加载专注日历（动态渲染）
+// 加载专注日历 — 委托给独立模块 js/focus-calendar.js (v2 重构)
 async function loadFocusCalendar() {
     const user = safeGetJSON('starlearn_user', {});
-    if (!user || !user.id) return;
-
-    const grid = document.querySelector('.mini-calendar-grid');
-    const badge = document.querySelector('.calendar-card .compact-badge');
-    if (!grid) return;
-
-    try {
-        const response = await fetch(`/api/stats/heatmap/${user.id}?weeks=4`);
-        const result = await response.json();
-
-        if (result.success && result.heatmap && result.heatmap.length > 0) {
-            renderCalendarGrid(grid, badge, result.heatmap);
-        } else {
-            // 无数据时显示空白日历
-            renderEmptyCalendar(grid, badge);
+    if (!user || !user.id) {
+        if (window.FocusCalendar) {
+            window.FocusCalendar.renderFallback(
+                document.getElementById('focus-calendar-grid'),
+                document.getElementById('focus-calendar-month'),
+                '请登录'
+            );
         }
-    } catch (e) {
-        console.log('[Calendar] 加载失败');
-        renderEmptyCalendar(grid, badge);
+        return;
     }
-}
-
-// 渲染日历网格
-function renderCalendarGrid(grid, badge, heatmapData) {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    if (badge) badge.textContent = currentMonth + '月';
-
-    // 获取本月数据
-    const monthData = {};
-    heatmapData.forEach(item => {
-        const date = new Date(item.date);
-        if (date.getMonth() + 1 === currentMonth) {
-            monthData[date.getDate()] = item.minutes > 0;
-        }
-    });
-
-    // 计算本月第一天是星期几
-    const firstDay = new Date(today.getFullYear(), currentMonth - 1, 1).getDay();
-    const daysInMonth = new Date(today.getFullYear(), currentMonth, 0).getDate();
-
-    let html = '';
-
-    // 填充空白
-    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-    for (let i = 0; i < firstDay; i++) {
-        html += '<span class="empty"></span>';
+    if (window.FocusCalendar) {
+        return window.FocusCalendar.load(user.id);
     }
-
-    // 填充日期
-    for (let day = 1; day <= daysInMonth; day++) {
-        const isToday = day === today.getDate();
-        const hasStudy = monthData[day];
-        html += `<span class="day${hasStudy ? ' completed' : ''}${isToday ? ' today' : ''}">${day}</span>`;
-    }
-
-    grid.innerHTML = html;
-}
-
-// 渲染空白日历
-function renderEmptyCalendar(grid, badge) {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    if (badge) badge.textContent = currentMonth + '月';
-
-    const firstDay = new Date(today.getFullYear(), currentMonth - 1, 1).getDay();
-    const daysInMonth = new Date(today.getFullYear(), currentMonth, 0).getDate();
-
-    let html = '';
-    for (let i = 0; i < firstDay; i++) {
-        html += '<span class="empty"></span>';
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-        const isToday = day === today.getDate();
-        html += `<span class="day${isToday ? ' today' : ''}">${day}</span>`;
-    }
-    grid.innerHTML = html;
+    console.warn('[hub] window.FocusCalendar not loaded, 请检查 js/focus-calendar.js 是否被引入');
 }
 
 // 加载学习领域标签（从知识节点或用户画像）
@@ -2285,14 +2222,32 @@ async function initHoloEcosystem() {
             drawEbbinghausLayout();
         }, 100);
     } else {
-        drawTreeConnections();
+        // 等首帧布局完成后再画静态树根，避免标签页隐藏时 rect 为 0
+        requestAnimationFrame(() => requestAnimationFrame(drawTreeConnections));
     }
     updateHoloPrioritySummary();
+
+    // 标签页切换可见时（display:none → block）容器尺寸才确定，需要重画
+    const learnPanel = document.getElementById('tab-learn');
+    if (learnPanel && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    if (knowledgeNodesCache.length > 0) drawEbbinghausLayout();
+                    else drawTreeConnections();
+                }
+            });
+        }, { threshold: 0.1 });
+        io.observe(learnPanel);
+    }
 
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(drawEbbinghausLayout, 100);
+        resizeTimeout = setTimeout(() => {
+            if (knowledgeNodesCache.length > 0) drawEbbinghausLayout();
+            else drawTreeConnections();
+        }, 100);
     });
 }
 
@@ -2450,8 +2405,13 @@ function drawTreeConnections() {
     const containerWidth = containerRect.width;
     const containerHeight = containerRect.height;
 
+    // 容器尚未布局（标签页隐藏 / display:none），跳过本次绘制，等待 observer 重画
+    if (containerWidth === 0 || containerHeight === 0) return;
+
     function getNodeCenter(node) {
-        const rect = node.getBoundingClientRect();
+        // 锚点在球体中心而不是整张卡片的中心，避免 SVG 线尾巴落到文字标签上
+        const sphereEl = node.querySelector('.node-sphere') || node;
+        const rect = sphereEl.getBoundingClientRect();
         const containerRect = nodesContainer.getBoundingClientRect();
         const x = ((rect.left + rect.width / 2) - containerRect.left) / containerWidth * 100;
         const y = ((rect.top + rect.height / 2) - containerRect.top) / containerHeight * 100;
@@ -2468,21 +2428,26 @@ function drawTreeConnections() {
         const status = getNodeStatus(branchNode);
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const midY = (rootCenter.y + branchCenter.y) / 2;
-        const d = `M${rootCenter.x} ${rootCenter.y} Q${rootCenter.x} ${midY} ${branchCenter.x} ${branchCenter.y - 10}`;
+        // 三次贝塞尔：两端控制点都垂直延伸，形成自然的"根系"曲线
+        const dy = branchCenter.y - rootCenter.y;
+        const cy1 = rootCenter.y + dy * 0.55;
+        const cy2 = branchCenter.y - dy * 0.45;
+        const d = `M${rootCenter.x} ${rootCenter.y} C${rootCenter.x} ${cy1}, ${branchCenter.x} ${cy2}, ${branchCenter.x} ${branchCenter.y}`;
 
         path.setAttribute('d', d);
         path.setAttribute('class', `connection-line ${status}`);
+        path.setAttribute('stroke', `url(#lineGradient${status === 'danger' ? 'Danger' : status === 'warning' ? 'Warning' : 'Healthy'})`);
         path.setAttribute('filter', 'url(#glow)');
         path.style.opacity = '0';
         path.style.strokeWidth = '1';
         path.style.fill = 'none';
+        path.style.strokeLinecap = 'round';
 
         svgContainer.appendChild(path);
 
         setTimeout(() => {
-            path.style.transition = 'opacity 0.5s ease';
-            path.style.opacity = '0.6';
+            path.style.transition = 'opacity 0.6s ease';
+            path.style.opacity = '0.85';
         }, 300 + Math.random() * 300);
     });
 
@@ -2496,21 +2461,25 @@ function drawTreeConnections() {
         const status = getNodeStatus(leafNode);
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const midY = (parentCenter.y + leafCenter.y) / 2;
-        const d = `M${parentCenter.x} ${parentCenter.y} Q${parentCenter.x} ${midY} ${leafCenter.x} ${leafCenter.y - 10}`;
+        const dy = leafCenter.y - parentCenter.y;
+        const cy1 = parentCenter.y + dy * 0.55;
+        const cy2 = leafCenter.y - dy * 0.45;
+        const d = `M${parentCenter.x} ${parentCenter.y} C${parentCenter.x} ${cy1}, ${leafCenter.x} ${cy2}, ${leafCenter.x} ${leafCenter.y}`;
 
         path.setAttribute('d', d);
         path.setAttribute('class', `connection-line ${status}`);
+        path.setAttribute('stroke', `url(#lineGradient${status === 'danger' ? 'Danger' : status === 'warning' ? 'Warning' : 'Healthy'})`);
         path.setAttribute('filter', 'url(#glow)');
         path.style.opacity = '0';
         path.style.strokeWidth = '0.8';
         path.style.fill = 'none';
+        path.style.strokeLinecap = 'round';
 
         svgContainer.appendChild(path);
 
         setTimeout(() => {
-            path.style.transition = 'opacity 0.5s ease';
-            path.style.opacity = '0.5';
+            path.style.transition = 'opacity 0.6s ease';
+            path.style.opacity = '0.75';
         }, 400 + Math.random() * 300);
     });
 }
