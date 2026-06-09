@@ -1025,6 +1025,57 @@
 .week-heat-bar.level-3 { background: var(--info); }
 .week-heat-label { font-size: 9px; color: var(--cp-text-tertiary); }
 
+/* 专注日历 — 月度日期网格（hub.js 动态渲染） */
+.calendar-card { padding: 16px 16px 12px; }
+.mini-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
+    column-gap: 2px;
+    row-gap: 4px;
+    margin-top: var(--space-xs);
+    width: 100%;
+    box-sizing: border-box;
+    background: color-mix(in oklch, var(--surface-card), transparent 70%);
+    border-radius: var(--radius-sm);
+}
+.mini-calendar-grid .empty,
+.mini-calendar-grid .day {
+    min-width: 0;
+    width: auto;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: var(--font-medium);
+    color: var(--cp-text-secondary);
+    border-radius: 3px;
+    background: transparent;
+    transition: all var(--transition-fast);
+    line-height: 1;
+    height: 20px;
+}
+.mini-calendar-grid .empty {
+    background: transparent;
+    pointer-events: none;
+}
+.mini-calendar-grid .day {
+    cursor: default;
+    background: color-mix(in oklch, var(--info), transparent 95%);
+}
+.mini-calendar-grid .day.completed {
+    background: color-mix(in oklch, var(--info), transparent 60%);
+    color: var(--cp-text-primary);
+    font-weight: var(--font-semibold);
+}
+.mini-calendar-grid .day.today {
+    background: var(--info);
+    color: #fff;
+    font-weight: var(--font-bold);
+    box-shadow: 0 0 0 2px color-mix(in oklch, var(--info), transparent 50%);
+}
+
 /* 今日要闻 */
 .daily-highlights-section { display: flex; flex-direction: column; gap: var(--space-sm); }
 .highlights-grid { display: flex; flex-direction: column; gap: var(--space-sm); }
