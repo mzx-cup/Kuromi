@@ -1,30 +1,60 @@
 /**
- * Course Learning Page
- * Two-column layout: chapter tree (left) + B站 player & content (right)
+ * Course Learn Page (v2 重构)
+ * 跟随式 5+1 步学习流程: 观看 → 字幕 → 笔记 → 概念 → 导图 → 练习
+ *
+ * 模块:
+ *   - 章节树渲染与切换
+ *   - B 站视频播放 (iframe embed)
+ *   - 字幕加载 / 渲染 / 点击跳转
+ *   - AI 讲义渲染
+ *   - 笔记自动保存 (localStorage)
+ *   - 关键概念 (从 course-learn-data.js 取)
+ *   - 思维导图 SVG 渲染 (递归布局, 支持缩放拖动)
+ *   - 课后练习 (选择/判断/填空, 自动判分)
+ *   - 步骤引导 (stepper) 进度同步
+ *   - 上一节 / 下一节 / 章节完成状态
  */
-
-(function() {
+(function () {
   'use strict';
 
-  var STORAGE_KEY = 'starlearn_courses_data';
-  var NOTES_KEY = 'starlearn_course_notes';
-  var PROGRESS_KEY = 'starlearn_course_progress';
+  /* ===================== 常量 ===================== */
+  var STORAGE_KEY     = 'starlearn_courses_data';
+  var NOTES_KEY       = 'starlearn_course_notes';
+  var PROGRESS_KEY    = 'starlearn_course_progress';
+  var STEP_PROGRESS_KEY = 'starlearn_course_step_progress';
+  var EXERCISE_KEY    = 'starlearn_course_exercise_state';
 
-  var courseId = null;
-  var subjectSlug = null;
-  var course = null;
-  var chapters = [];
+  var STEP_ORDER = ['watch', 'subtitles', 'notes', 'concepts', 'mindmap', 'exercises'];
+  var STEP_NAMES = {
+    watch:     '观看视频',
+    subtitles: '阅读字幕',
+    notes:     '记录笔记',
+    concepts:  '理解概念',
+    mindmap:   '梳理导图',
+    exercises: '完成练习'
+  };
+
+  /* ===================== 状态 ===================== */
+  var courseId          = null;
+  var course            = null;
+  var chapters          = [];
   var currentChapterIdx = -1;
-  var currentSubIdx = -1;
-  var subtitleData = [];
-  var sidebarCollapsed = false;
+  var currentSubIdx     = -1;
+  var subtitleData      = [];
+  var sidebarCollapsed  = false;
+  var currentStep       = 'watch';
+  var mindmapZoom       = 1;
+  var mindmapOffsetX    = 0;
+  var mindmapOffsetY    = 0;
+  var isDraggingMM      = false;
+  var dragStartX        = 0;
+  var dragStartY        = 0;
+  var currentMindMap    = null;  // 当前 mindmap 数据, 用于切换步骤时重渲染
 
-  // ---- Init ----
-
+  /* ===================== 入口 ===================== */
   function init() {
     var params = new URLSearchParams(window.location.search);
     courseId = params.get('courseId');
-    subjectSlug = params.get('subject');
 
     if (!courseId) {
       showToast('未指定课程', 'error');
@@ -33,34 +63,42 @@
 
     loadCourse();
     if (!course) {
-      // Try loading from backend first, then fall back to bvid from URL or courseId
-      course = { id: courseId, title: '加载中...', bvid: extractBvidFromCourseId(courseId), totalLessons: 1, totalDuration: 0, progress: 0 };
+      course = {
+        id: courseId,
+        title: '加载中...',
+        bvid: extractBvidFromCourseId(courseId),
+        totalLessons: 1,
+        totalDuration: 0,
+        progress: 0
+      };
     }
 
     document.getElementById('cl-course-title').textContent = course.title;
+    document.getElementById('cl-welcome-title-text').textContent = course.title;
     buildChapterTree();
     loadNotes();
+    loadExerciseState();
     bindEvents();
 
-    // Try loading from backend for richer data (will rebuild tree on success)
+    // Try backend for richer data
     loadCourseFromBackend();
   }
 
   function extractBvidFromCourseId(id) {
-    // courseId may be a URL like 'https://...' or contain a BV id
-    var match = id.match(/BV[a-zA-Z0-9]{10}/);
-    return match ? match[0] : '';
+    var m = (id || '').match(/BV[a-zA-Z0-9]{10}/);
+    return m ? m[0] : '';
   }
 
+  /* ===================== 课程与章节 ===================== */
   function loadCourse() {
     try {
       var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!data || !data.subjects) return;
       for (var i = 0; i < data.subjects.length; i++) {
-        var courses = data.subjects[i].courses;
-        for (var j = 0; j < courses.length; j++) {
-          if (courses[j].id === courseId) {
-            course = courses[j];
+        var list = data.subjects[i].courses || [];
+        for (var j = 0; j < list.length; j++) {
+          if (list[j].id === courseId) {
+            course = list[j];
             return;
           }
         }
@@ -70,9 +108,9 @@
 
   function loadCourseFromBackend() {
     fetch('/api/courses/courses/' + courseId)
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res.code === 200 && res.data) {
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.code === 200 && res.data) {
           var d = res.data;
           course = {
             id: d.id,
@@ -81,15 +119,14 @@
             totalLessons: d.total_lessons,
             totalDuration: d.total_duration,
             progress: d.progress,
-            coverUrl: d.cover_url,
+            coverUrl: d.cover_url
           };
-          // Build chapters from backend nested data
-          chapters = (d.chapters || []).map(function(ch) {
+          chapters = (d.chapters || []).map(function (ch) {
             return {
               id: ch.id,
               title: ch.title,
               expanded: true,
-              children: (ch.subchapters || []).map(function(sc) {
+              children: (ch.subchapters || []).map(function (sc) {
                 return {
                   id: sc.id,
                   title: sc.title,
@@ -97,23 +134,20 @@
                   cid: sc.cid,
                   page: sc.page,
                   bvid: sc.bvid,
-                  completed: sc.completed,
+                  completed: !!sc.completed
                 };
-              }),
+              })
             };
           });
           document.getElementById('cl-course-title').textContent = course.title;
+          document.getElementById('cl-welcome-title-text').textContent = course.title;
           renderChapterTree();
-          var startIdx = findStartIndex();
-          if (chapters.length > 0) {
-            selectChapter(startIdx, 0);
-          }
+          var start = findStartIndex();
+          if (chapters.length > 0) selectChapter(start, 0);
         }
       })
-      .catch(function() { /* silent fail, keep localStorage data */ });
+      .catch(function () { /* silent fail */ });
   }
-
-  // ---- Chapter Tree ----
 
   function buildChapterTree() {
     chapters = [];
@@ -122,7 +156,7 @@
     if (course.bvid) {
       loadBilibiliChapters(course.bvid);
     } else {
-      // No bvid — show placeholder, will be populated by loadCourseFromBackend
+      // 占位: 等待后端
       chapters = [{
         id: 'ch-1',
         title: course.title || '课程内容',
@@ -130,11 +164,7 @@
         children: [{
           id: 'sub-1',
           title: '加载中...',
-          duration: 0,
-          cid: 0,
-          page: 1,
-          bvid: '',
-          completed: false
+          duration: 0, cid: 0, page: 1, bvid: '', completed: false
         }]
       }];
       renderChapterTree();
@@ -142,27 +172,26 @@
   }
 
   function loadBilibiliChapters(bvid) {
-    var treeContainer = document.getElementById('cl-chapter-tree');
-    treeContainer.innerHTML = '<div class="cl-tree-loading">正在加载课程目录...</div>';
+    var tree = document.getElementById('cl-chapter-tree');
+    tree.innerHTML = '<div class="cl-tree-loading"><div class="cl-spinner"></div><span>正在加载课程目录...</span></div>';
 
     fetch('/api/bilibili/parse', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: 'https://www.bilibili.com/video/' + bvid })
     })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res.code === 200 && res.data) {
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.code === 200 && res.data) {
           var videoData = res.data;
           var pages = videoData.pages || [];
 
           if (pages.length > 0) {
-            // Multi-page video: each page is a subchapter
             chapters = [{
               id: 'ch-1',
               title: videoData.title || '课程内容',
               expanded: true,
-              children: pages.map(function(p) {
+              children: pages.map(function (p) {
                 return {
                   id: 'sub-' + p.page,
                   title: p.partTitle || ('第' + p.page + '讲'),
@@ -174,13 +203,11 @@
                 };
               })
             }];
-
-            if (chapters.length > 0 && chapters[0].children.length > 0) {
+            if (chapters[0].children.length > 0) {
               course.totalLessons = chapters[0].children.length;
-              course.totalDuration = chapters[0].children.reduce(function(s, c) { return s + (c.duration || 0); }, 0);
+              course.totalDuration = chapters[0].children.reduce(function (s, c) { return s + (c.duration || 0); }, 0);
             }
           } else {
-            // Single video: one chapter
             chapters = [{
               id: 'ch-1',
               title: videoData.title || '课程内容',
@@ -189,46 +216,24 @@
                 id: 'sub-1',
                 title: videoData.title || '视频',
                 duration: videoData.duration || 0,
-                cid: videoData.cid,
-                page: 1,
-                bvid: bvid,
-                completed: false
+                cid: videoData.cid, page: 1, bvid: bvid, completed: false
               }]
             }];
             course.totalLessons = 1;
             course.totalDuration = videoData.duration || 0;
           }
-
           saveCourseData();
         } else {
-          // API failed; create fallback single chapter
-          chapters = [{
-            id: 'ch-1',
-            title: course.title || '课程内容',
-            expanded: true,
-            children: [{
-              id: 'sub-1',
-              title: course.title || '视频',
-              duration: course.totalDuration || 0,
-              cid: 0,
-              page: 1,
-              bvid: bvid,
-              completed: false
-            }]
-          }];
-          course.totalLessons = 1;
+          throw new Error('parse failed');
         }
 
         renderChapterTree();
-        updateTotalCount();
-
-        // Select first chapter
         if (chapters.length > 0 && chapters[0].children.length > 0) {
           selectChapter(0, 0);
         }
       })
-      .catch(function() {
-        // Network error; create fallback
+      .catch(function () {
+        // 兜底章节
         chapters = [{
           id: 'ch-1',
           title: course.title || '课程内容',
@@ -237,17 +242,12 @@
             id: 'sub-1',
             title: course.title || '视频',
             duration: course.totalDuration || 0,
-            cid: 0,
-            page: 1,
-            bvid: bvid,
-            completed: false
+            cid: 0, page: 1, bvid: bvid, completed: false
           }]
         }];
         course.totalLessons = 1;
         renderChapterTree();
-        if (chapters.length > 0 && chapters[0].children.length > 0) {
-          selectChapter(0, 0);
-        }
+        if (chapters[0].children.length > 0) selectChapter(0, 0);
       });
   }
 
@@ -261,25 +261,25 @@
     var html = '';
     for (var i = 0; i < chapters.length; i++) {
       var ch = chapters[i];
-      var isExpanded = ch.expanded !== false;
+      var expanded = ch.expanded !== false;
       html += '<div class="cl-chapter-node">';
       html += '<div class="cl-chapter-header' + (currentChapterIdx === i ? ' active' : '') + '" data-chapter="' + i + '">';
-      html += '<svg class="cl-chapter-arrow' + (isExpanded ? ' expanded' : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
-      html += '<div class="cl-chapter-icon video"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
+      html += '<svg class="cl-chapter-arrow' + (expanded ? ' expanded' : '') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+      html += '<div class="cl-chapter-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>';
       html += '<div class="cl-chapter-info">';
       html += '<div class="cl-chapter-name">' + escapeHtml(ch.title) + '</div>';
       html += '<div class="cl-chapter-meta">' + (ch.children ? ch.children.length : 0) + ' 个视频</div>';
-      html += '</div>';
-      html += '</div>';
+      html += '</div></div>';
 
       if (ch.children && ch.children.length > 0) {
-        html += '<div class="cl-chapter-children' + (isExpanded ? '' : ' collapsed') + '" data-chapter-children="' + i + '">';
+        html += '<div class="cl-chapter-children' + (expanded ? '' : ' collapsed') + '" data-chapter-children="' + i + '">';
         for (var j = 0; j < ch.children.length; j++) {
           var sub = ch.children[j];
           var isActive = currentChapterIdx === i && currentSubIdx === j;
           html += '<div class="cl-subchapter' + (isActive ? ' active' : '') + (sub.completed ? ' completed' : '') + '" data-chapter="' + i + '" data-sub="' + j + '">';
-          html += '<div class="cl-subchapter-dot"></div>';
+          html += '<span class="cl-subchapter-dot"></span>';
           html += '<span class="cl-subchapter-name">' + escapeHtml(sub.title) + '</span>';
+          html += '<span class="cl-subchapter-check">✓</span>';
           html += '<span class="cl-subchapter-dur">' + formatDuration(sub.duration) + '</span>';
           html += '</div>';
         }
@@ -289,26 +289,23 @@
     }
     container.innerHTML = html;
 
-    // Bind chapter header clicks (expand/collapse)
-    container.querySelectorAll('.cl-chapter-header').forEach(function(header) {
-      header.addEventListener('click', function(e) {
-        var idx = parseInt(this.getAttribute('data-chapter'));
-        toggleChapter(idx);
+    // 绑定事件
+    container.querySelectorAll('.cl-chapter-header').forEach(function (h) {
+      h.addEventListener('click', function () {
+        toggleChapter(parseInt(h.getAttribute('data-chapter')));
       });
     });
-
-    // Bind subchapter clicks
-    container.querySelectorAll('.cl-subchapter').forEach(function(sub) {
-      sub.addEventListener('click', function(e) {
+    container.querySelectorAll('.cl-subchapter').forEach(function (s) {
+      s.addEventListener('click', function (e) {
         e.stopPropagation();
-        var chIdx = parseInt(this.getAttribute('data-chapter'));
-        var subIdx = parseInt(this.getAttribute('data-sub'));
-        selectChapter(chIdx, subIdx);
+        var ci = parseInt(s.getAttribute('data-chapter'));
+        var si = parseInt(s.getAttribute('data-sub'));
+        selectChapter(ci, si);
       });
     });
 
-    // Set children container heights for animation
-    container.querySelectorAll('.cl-chapter-children').forEach(function(el) {
+    // 自适应高度
+    container.querySelectorAll('.cl-chapter-children').forEach(function (el) {
       if (!el.classList.contains('collapsed')) {
         el.style.maxHeight = el.scrollHeight + 'px';
       } else {
@@ -319,29 +316,27 @@
 
   function toggleChapter(idx) {
     chapters[idx].expanded = !chapters[idx].expanded;
-    var container = document.querySelector('[data-chapter-children="' + idx + '"]');
-    if (container) {
+    var c = document.querySelector('[data-chapter-children="' + idx + '"]');
+    if (c) {
       if (chapters[idx].expanded) {
-        container.classList.remove('collapsed');
-        container.style.maxHeight = container.scrollHeight + 'px';
+        c.classList.remove('collapsed');
+        c.style.maxHeight = c.scrollHeight + 'px';
       } else {
-        container.style.maxHeight = container.scrollHeight + 'px';
-        requestAnimationFrame(function() {
-          container.classList.add('collapsed');
-          container.style.maxHeight = '0px';
+        c.style.maxHeight = c.scrollHeight + 'px';
+        requestAnimationFrame(function () {
+          c.classList.add('collapsed');
+          c.style.maxHeight = '0px';
         });
       }
     }
-    // Update arrow
-    var header = document.querySelector('[data-chapter="' + idx + '"].cl-chapter-header');
-    if (header) {
-      var arrow = header.querySelector('.cl-chapter-arrow');
+    var h = document.querySelector('[data-chapter="' + idx + '"].cl-chapter-header');
+    if (h) {
+      var arrow = h.querySelector('.cl-chapter-arrow');
       if (arrow) arrow.classList.toggle('expanded', chapters[idx].expanded);
     }
   }
 
-  // ---- Chapter Selection ----
-
+  /* ===================== 章节切换 ===================== */
   function selectChapter(chIdx, subIdx) {
     if (chIdx >= chapters.length) return;
     var ch = chapters[chIdx];
@@ -349,172 +344,135 @@
 
     currentChapterIdx = chIdx;
     currentSubIdx = subIdx;
-
     var sub = ch.children[subIdx];
-    loadVideo(sub.bvid, sub.page, sub.cid);
-    loadSubtitles(sub.bvid);
 
-    // Update active states
+    loadVideo(sub.bvid, sub.page);
+    loadSubtitles(sub.bvid);
+    loadLearningContent(sub);
+
+    // 重置 stepper 到第一步
+    setStep('watch', false);
     renderChapterTree();
     updateNavigation();
   }
 
-  function loadVideo(bvid, page, cid) {
+  function loadVideo(bvid, page) {
     var player = document.getElementById('cl-bilibili-player');
     var placeholder = document.getElementById('cl-player-placeholder');
-
-    var embedUrl = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + (page || 1) + '&high_quality=1&autoplay=1';
-
-    player.src = embedUrl;
+    if (!bvid) {
+      player.style.display = 'none';
+      placeholder.style.display = 'flex';
+      return;
+    }
+    var url = 'https://player.bilibili.com/player.html?bvid=' + bvid + '&page=' + (page || 1) + '&high_quality=1&autoplay=1';
+    player.src = url;
     player.style.display = 'block';
     placeholder.style.display = 'none';
   }
 
-  // ---- Subtitles ----
-
+  /* ===================== 字幕 ===================== */
   function loadSubtitles(bvid) {
     var container = document.getElementById('cl-subtitle-container');
     container.innerHTML = '<div class="cl-subtitle-empty">加载字幕中...</div>';
+
+    if (!bvid) {
+      // 走样例数据
+      var content = window.CourseLearnData.getContent(currentSubId());
+      renderSubtitles(content.subtitles);
+      return;
+    }
 
     fetch('/api/bilibili/subtitles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bvid: bvid })
     })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        if (res.code === 200 && res.data && res.data.length > 0) {
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res && res.code === 200 && res.data && res.data.length > 0) {
           subtitleData = res.data[0].content || [];
-          renderSubtitles();
+          renderSubtitles(subtitleData);
         } else {
-          container.innerHTML = '<div class="cl-subtitle-empty">该视频暂无字幕</div>';
-          subtitleData = [];
+          var content = window.CourseLearnData.getContent(currentSubId());
+          renderSubtitles(content.subtitles);
         }
       })
-      .catch(function() {
-        container.innerHTML = '<div class="cl-subtitle-empty">字幕加载失败</div>';
-        subtitleData = [];
+      .catch(function () {
+        var content = window.CourseLearnData.getContent(currentSubId());
+        renderSubtitles(content.subtitles);
       });
   }
 
-  function renderSubtitles() {
+  function renderSubtitles(list) {
+    subtitleData = list || [];
     var container = document.getElementById('cl-subtitle-container');
     if (subtitleData.length === 0) {
       container.innerHTML = '<div class="cl-subtitle-empty">该视频暂无字幕</div>';
       return;
     }
-
     var html = '';
     for (var i = 0; i < subtitleData.length; i++) {
-      var sub = subtitleData[i];
-      html += '<div class="cl-subtitle-line" data-time="' + sub.from + '" data-index="' + i + '">';
-      html += '<span class="cl-subtitle-time">' + formatTime(sub.from) + '</span>';
-      html += '<span class="cl-subtitle-text">' + escapeHtml(sub.content) + '</span>';
+      var s = subtitleData[i];
+      html += '<div class="cl-subtitle-line" data-time="' + s.from + '" data-index="' + i + '">';
+      html += '<span class="cl-subtitle-time">' + formatTime(s.from) + '</span>';
+      html += '<span class="cl-subtitle-text">' + escapeHtml(s.content) + '</span>';
       html += '</div>';
     }
     container.innerHTML = html;
 
-    // Click to seek
-    container.querySelectorAll('.cl-subtitle-line').forEach(function(line) {
-      line.addEventListener('click', function() {
-        var time = parseFloat(this.getAttribute('data-time'));
-        seekTo(time);
+    container.querySelectorAll('.cl-subtitle-line').forEach(function (line) {
+      line.addEventListener('click', function () {
+        var t = parseFloat(line.getAttribute('data-time'));
+        seekTo(t);
+        container.querySelectorAll('.cl-subtitle-line').forEach(function (l) { l.classList.remove('active'); });
+        line.classList.add('active');
+        markStepCompleted('subtitles');
       });
     });
   }
 
   function seekTo(seconds) {
     var player = document.getElementById('cl-bilibili-player');
-    // B站 iframe postMessage API
-    if (player.contentWindow) {
-      player.contentWindow.postMessage({
-        type: 'seek',
-        time: seconds
-      }, '*');
+    if (player && player.contentWindow) {
+      player.contentWindow.postMessage({ type: 'seek', time: seconds }, '*');
     }
   }
 
-  // ---- Navigation ----
+  /* ===================== 学习内容加载 (核心) ===================== */
+  function loadLearningContent(sub) {
+    var content = window.CourseLearnData.getContent(sub.id);
+    var ch = chapters[currentChapterIdx];
+    var sub = ch && ch.children[currentSubIdx];
 
-  function updateNavigation() {
-    var prevBtn = document.getElementById('cl-nav-prev');
-    var nextBtn = document.getElementById('cl-nav-next');
-    var counter = document.getElementById('cl-nav-counter');
+    // 1. 欢迎标题
+    document.getElementById('cl-welcome-title-text').textContent =
+      (course ? course.title + ' · ' : '') + (sub ? sub.title : '');
 
-    var totalSubs = 0;
-    var currentFlatIdx = 0;
-
-    for (var i = 0; i < chapters.length; i++) {
-      var children = chapters[i].children || [];
-      for (var j = 0; j < children.length; j++) {
-        if (i === currentChapterIdx && j === currentSubIdx) {
-          currentFlatIdx = totalSubs;
-        }
-        totalSubs++;
-      }
+    // 2. 讲义
+    var transcriptEl = document.getElementById('cl-transcript-content');
+    if (content.transcript) {
+      transcriptEl.innerHTML = content.transcript;
+    } else {
+      transcriptEl.innerHTML = '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
     }
 
-    counter.textContent = (currentFlatIdx + 1) + ' / ' + totalSubs;
-    prevBtn.disabled = currentFlatIdx === 0;
-    nextBtn.disabled = currentFlatIdx >= totalSubs - 1;
+    // 3. 关键概念
+    renderConcepts(content.concepts || []);
 
-    updateProgressBar(currentFlatIdx + 1, totalSubs);
+    // 4. 思维导图
+    renderMindMap(content.mindMap);
+
+    // 5. 练习
+    renderExercises(content.exercises || []);
   }
 
-  function updateTotalCount() {
-    var totalSubs = 0;
-    for (var i = 0; i < chapters.length; i++) {
-      totalSubs += (chapters[i].children || []).length;
-    }
-    document.getElementById('cl-nav-counter').textContent = '0 / ' + totalSubs;
+  function currentSubId() {
+    if (currentChapterIdx < 0 || !chapters[currentChapterIdx]) return null;
+    var sub = chapters[currentChapterIdx].children[currentSubIdx];
+    return sub ? sub.id : null;
   }
 
-  function updateProgressBar(current, total) {
-    var pct = total > 0 ? Math.round((current / total) * 100) : 0;
-    document.getElementById('cl-progress-fill').style.width = pct + '%';
-    document.getElementById('cl-progress-text').textContent = pct + '%';
-
-    // Save progress
-    course.progress = pct;
-    saveCourseData();
-    saveProgress();
-  }
-
-  function navigatePrev() {
-    if (currentSubIdx > 0) {
-      selectChapter(currentChapterIdx, currentSubIdx - 1);
-    } else if (currentChapterIdx > 0) {
-      var prevCh = chapters[currentChapterIdx - 1];
-      var lastSubIdx = (prevCh.children || []).length - 1;
-      if (lastSubIdx >= 0) {
-        selectChapter(currentChapterIdx - 1, lastSubIdx);
-      }
-    }
-  }
-
-  function navigateNext() {
-    var currentCh = chapters[currentChapterIdx];
-    if (currentCh && currentSubIdx < (currentCh.children || []).length - 1) {
-      selectChapter(currentChapterIdx, currentSubIdx + 1);
-    } else if (currentChapterIdx < chapters.length - 1) {
-      var nextCh = chapters[currentChapterIdx + 1];
-      if (nextCh.children && nextCh.children.length > 0) {
-        selectChapter(currentChapterIdx + 1, 0);
-      }
-    }
-  }
-
-  function findStartIndex() {
-    // Load progress to resume
-    var saved = loadProgress();
-    if (saved && saved.currentChapterIdx !== undefined) {
-      return saved.currentChapterIdx;
-    }
-    return 0;
-  }
-
-  // ---- Notes ----
-
+  /* ===================== 笔记 ===================== */
   function loadNotes() {
     var editor = document.getElementById('cl-notes-editor');
     if (!editor) return;
@@ -533,31 +491,589 @@
       var notes = JSON.parse(localStorage.getItem(NOTES_KEY)) || {};
       notes[courseId] = editor.value;
       localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+      flashSaveStatus('已自动保存');
+      markStepCompleted('notes');
     } catch (e) { /* ignore */ }
   }
 
-  // ---- Progress Persistence ----
+  function flashSaveStatus(text) {
+    var el = document.getElementById('cl-notes-save-status');
+    if (!el) return;
+    el.textContent = text;
+  }
 
+  function insertTimestamp() {
+    var editor = document.getElementById('cl-notes-editor');
+    if (!editor) return;
+    var pos = editor.selectionStart || 0;
+    var timeStr = '\n[时间戳 ' + formatTime(Date.now() / 1000 % 3600) + '] ';
+    editor.value = editor.value.slice(0, pos) + timeStr + editor.value.slice(editor.selectionEnd || pos);
+    editor.focus();
+    editor.selectionStart = editor.selectionEnd = pos + timeStr.length;
+    saveNotes();
+  }
+
+  /* ===================== 步骤引导 (Stepper) ===================== */
+  function setStep(stepName, scrollIntoView) {
+    if (STEP_ORDER.indexOf(stepName) < 0) return;
+    currentStep = stepName;
+
+    // 更新 stepper UI
+    var currentIdx = STEP_ORDER.indexOf(stepName);
+    document.querySelectorAll('.cl-step').forEach(function (el) {
+      var step = el.getAttribute('data-step');
+      var idx = STEP_ORDER.indexOf(step);
+      el.classList.toggle('active', step === stepName);
+      el.classList.toggle('completed', idx < currentIdx);
+    });
+
+    // 进度条
+    var pct = currentIdx === 0 ? 0 : (currentIdx / (STEP_ORDER.length - 1)) * 100;
+    document.getElementById('cl-stepper-progress').style.width = pct + '%';
+
+    // 切换面板
+    document.querySelectorAll('.cl-step-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-panel') === stepName);
+    });
+
+    // 思维导图需要按当前可见视口尺寸重渲染
+    if (stepName === 'mindmap' && currentMindMap) {
+      // 等 DOM 真正可见后取尺寸, 再渲染
+      requestAnimationFrame(function () {
+        renderMindMap(currentMindMap);
+      });
+    }
+
+    // 滚动到内容区
+    if (scrollIntoView) {
+      var main = document.querySelector('.cl-main');
+      if (main) {
+        var panels = document.querySelector('.cl-step-panels');
+        if (panels) panels.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // 持久化当前步骤
+    saveStepProgress();
+  }
+
+  function markStepCompleted(stepName) {
+    if (STEP_ORDER.indexOf(stepName) < 0) return;
+    var el = document.querySelector('.cl-step[data-step="' + stepName + '"]');
+    if (el) el.classList.add('completed');
+  }
+
+  function loadStepProgress() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STEP_PROGRESS_KEY)) || {};
+      var subId = currentSubId();
+      if (subId && data[subId]) {
+        // 恢复已完成的步骤
+        data[subId].forEach(function (s) { markStepCompleted(s); });
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  function saveStepProgress() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STEP_PROGRESS_KEY)) || {};
+      var subId = currentSubId();
+      if (!subId) return;
+      var completed = [];
+      document.querySelectorAll('.cl-step.completed').forEach(function (el) {
+        completed.push(el.getAttribute('data-step'));
+      });
+      data[subId] = completed;
+      localStorage.setItem(STEP_PROGRESS_KEY, JSON.stringify(data));
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ===================== 关键概念 ===================== */
+  var conceptFilter = 'all';
+
+  function renderConcepts(concepts) {
+    var grid = document.getElementById('cl-concepts-grid');
+    document.getElementById('cl-concepts-count').textContent = concepts.length;
+
+    if (concepts.length === 0) {
+      grid.innerHTML = '<div class="cl-empty-card"><p>暂无概念</p></div>';
+      return;
+    }
+
+    var levelColors = {
+      core:     'var(--cl-danger)',
+      basic:    'var(--cl-info)',
+      advanced: 'var(--cl-warning)'
+    };
+    var levelLabels = { core: '核心', basic: '基础', advanced: '进阶' };
+
+    var html = '';
+    concepts.forEach(function (c, idx) {
+      var lvl = c.level || 'basic';
+      var color = levelColors[lvl] || 'var(--cl-accent)';
+      html += '<div class="cl-concept-card" data-level="' + lvl + '" style="--concept-color: ' + color + '">';
+      html += '  <div class="cl-concept-head">';
+      html += '    <div class="cl-concept-term">' + escapeHtml(c.term) + '</div>';
+      html += '    <span class="cl-concept-level ' + lvl + '">' + (levelLabels[lvl] || lvl) + '</span>';
+      html += '  </div>';
+      html += '  <p class="cl-concept-def">' + escapeHtml(c.definition) + '</p>';
+      if (c.example) {
+        html += '  <div class="cl-concept-example">💡 ' + escapeHtml(c.example) + '</div>';
+      }
+      html += '</div>';
+    });
+    grid.innerHTML = html;
+
+    applyConceptFilter();
+  }
+
+  function applyConceptFilter() {
+    var cards = document.querySelectorAll('.cl-concept-card');
+    cards.forEach(function (c) {
+      if (conceptFilter === 'all' || c.getAttribute('data-level') === conceptFilter) {
+        c.style.display = '';
+      } else {
+        c.style.display = 'none';
+      }
+    });
+  }
+
+  /* ===================== 思维导图 ===================== */
+  function renderMindMap(data) {
+    currentMindMap = data;  // 保存供后续重渲染
+    var stage = document.getElementById('cl-mindmap-stage');
+    mindmapZoom = 1; mindmapOffsetX = 0; mindmapOffsetY = 0;
+
+    if (!data) {
+      stage.innerHTML = '<div class="cl-empty-card"><p>暂无思维导图</p></div>';
+      return;
+    }
+
+    // 递归布局: 根节点居中, 子节点左右展开
+    // 用视口实际尺寸作为画布, 这样节点就一定落在可见区域
+    var stage = document.getElementById('cl-mindmap-stage');
+    var viewport = document.getElementById('cl-mindmap-viewport');
+    var vw = (viewport ? viewport.clientWidth : 800) || 800;
+    var vh = (viewport ? viewport.clientHeight : 360) || 360;
+    var W = vw;
+    var H = vh;
+    var root = data;
+    var nodes = [];
+    var lines = [];
+
+    // 先把根的子节点分成左右两侧
+    var sideMap = {};
+    if (root.children && root.children.length > 0) {
+      var half = Math.ceil(root.children.length / 2);
+      root.children.forEach(function (c, i) {
+        sideMap[i] = i < half ? 1 : -1;
+      });
+    }
+
+    // 单次递归: 走遍整棵树, 用 sideMap 决定一级节点的左右
+    function walk(node, depth, side, parentX, parentY) {
+      var x, y;
+      if (depth === 0) {
+        x = W / 2; y = H / 2;
+      } else {
+        var siblings = node._siblings || 1;
+        var idx = node._idxInSiblings || 0;
+        var range = Math.min(H - 80, siblings * 56);
+        var offset = siblings > 1 ? (idx / (siblings - 1) - 0.5) * range : 0;
+        y = parentY + offset;
+        if (depth === 1) {
+          x = parentX + side * 160;
+        } else {
+          x = parentX + side * 130;
+        }
+        // 夹紧到画布内
+        x = Math.max(60, Math.min(W - 60, x));
+        y = Math.max(20, Math.min(H - 20, y));
+      }
+      node._x = x; node._y = y;
+      node._depth = depth;
+      nodes.push({ x: x, y: y, name: node.name, depth: depth });
+
+      if (node.children) {
+        for (var i = 0; i < node.children.length; i++) {
+          var child = node.children[i];
+          child._parent = node;
+          child._siblings = node.children.length;
+          child._idxInSiblings = i;
+          // 二级以下沿用父节点的方向
+          walk(child, depth + 1, side, x, y);
+        }
+      }
+    }
+    root._parent = null;
+    walk(root, 0, 0, W / 2, H / 2);
+    // 一级节点按 sideMap 走第二遍覆盖位置
+    if (root.children) {
+      root.children.forEach(function (c, i) {
+        // 注意: 不要再设 c._parent = root, 否则会丢失
+        walk(c, 1, sideMap[i], W / 2, H / 2);
+      });
+    }
+
+    // 生成 SVG + 节点
+    var svgHtml = '<svg width="' + W + '" height="' + H + '" style="position:absolute;left:0;top:0;pointer-events:none;overflow:visible;">';
+    function drawLines(node) {
+      if (node._parent) {
+        // 简单贝塞尔曲线
+        var x1 = node._parent._x, y1 = node._parent._y;
+        var x2 = node._x, y2 = node._y;
+        var midX = (x1 + x2) / 2;
+        svgHtml += '<path class="cl-mindmap-line' + (node._parent._parent ? ' l2' : '') + '" d="M' + x1 + ' ' + y1 + ' C' + midX + ' ' + y1 + ' ' + midX + ' ' + y2 + ' ' + x2 + ' ' + y2 + '"/>';
+      }
+      if (node.children) node.children.forEach(drawLines);
+    }
+    drawLines(root);
+    svgHtml += '</svg>';
+
+    var nodeHtml = '';
+    function buildNode(n) {
+      var x = n._x, y = n._y, name = n.name, depth = n._depth;
+      var cls = depth === 0 ? 'root' : (depth === 1 ? 'l1' : 'l2');
+      nodeHtml += '<div class="cl-mindmap-node ' + cls + '" style="left:' + x + 'px;top:' + y + 'px">' + escapeHtml(name) + '</div>';
+      if (n.children) n.children.forEach(buildNode);
+    }
+    buildNode(root);
+
+    stage.innerHTML = svgHtml + nodeHtml +
+      '<div class="cl-mindmap-legend">' +
+      '<span><i style="background:var(--cl-accent)"></i>核心</span>' +
+      '<span><i style="background:var(--cl-accent-2)"></i>分支</span>' +
+      '<span><i style="background:#666"></i>细节</span>' +
+      '</div>';
+
+    applyMindMapTransform();
+    markStepCompleted('mindmap');
+  }
+
+  function applyMindMapTransform() {
+    var stage = document.getElementById('cl-mindmap-stage');
+    if (!stage) return;
+    stage.style.transform = 'translate(' + mindmapOffsetX + 'px,' + mindmapOffsetY + 'px) scale(' + mindmapZoom + ')';
+  }
+
+  function zoomMindMap(delta) {
+    mindmapZoom = Math.max(0.4, Math.min(2.4, mindmapZoom + delta));
+    applyMindMapTransform();
+  }
+
+  function resetMindMap() {
+    mindmapZoom = 1; mindmapOffsetX = 0; mindmapOffsetY = 0;
+    applyMindMapTransform();
+  }
+
+  /* ===================== 课后练习 ===================== */
+  var exerciseState = {};  // { idx: userAnswer }
+
+  function loadExerciseState() {
+    try {
+      var data = JSON.parse(localStorage.getItem(EXERCISE_KEY)) || {};
+      exerciseState = data[courseId] || {};
+    } catch (e) {
+      exerciseState = {};
+    }
+  }
+
+  function saveExerciseState() {
+    try {
+      var data = JSON.parse(localStorage.getItem(EXERCISE_KEY)) || {};
+      data[courseId] = exerciseState;
+      localStorage.setItem(EXERCISE_KEY, JSON.stringify(data));
+    } catch (e) { /* ignore */ }
+  }
+
+  function renderExercises(exercises) {
+    var list = document.getElementById('cl-exercise-list');
+    document.getElementById('cl-exercises-count').textContent = exercises.length;
+
+    if (exercises.length === 0) {
+      list.innerHTML = '<div class="cl-empty-card"><p>暂无练习</p></div>';
+      updateExerciseScore();
+      return;
+    }
+
+    var typeMap = {
+      choice: '选择题',
+      bool:   '判断题',
+      fill:   '填空题'
+    };
+
+    var html = '';
+    exercises.forEach(function (ex, idx) {
+      var answered = exerciseState.hasOwnProperty(idx);
+      var isCorrect = answered && checkAnswer(ex, exerciseState[idx]);
+      var cls = 'cl-exercise-item' + (answered ? ' answered' : '') + (isCorrect ? ' correct' : (answered ? ' wrong' : ''));
+
+      html += '<div class="' + cls + '" data-idx="' + idx + '" data-type="' + ex.type + '">';
+      html += '  <div class="cl-exercise-head">';
+      html += '    <span class="cl-exercise-num">' + (idx + 1) + '</span>';
+      html += '    <span class="cl-exercise-type">' + (typeMap[ex.type] || ex.type) + '</span>';
+      html += '  </div>';
+      html += '  <p class="cl-exercise-q">' + ex.question + '</p>';
+
+      if (ex.type === 'choice') {
+        html += '<div class="cl-exercise-options">';
+        ex.options.forEach(function (opt, oi) {
+          var sel = exerciseState[idx] === oi;
+          var optCls = 'cl-exercise-option';
+          if (answered) {
+            optCls += ' disabled';
+            if (oi === ex.answer) optCls += ' correct';
+            else if (sel) optCls += ' wrong';
+          } else if (sel) {
+            optCls += ' selected';
+          }
+          html += '<div class="' + optCls + '" data-opt="' + oi + '">';
+          html += '  <span class="cl-exercise-marker">' + String.fromCharCode(65 + oi) + '</span>';
+          html += '  <span>' + escapeHtml(opt) + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      } else if (ex.type === 'bool') {
+        var u = exerciseState[idx];
+        html += '<div class="cl-exercise-truefalse">';
+        [true, false].forEach(function (val) {
+          var sel = u === val;
+          var optCls = 'cl-exercise-option';
+          if (answered) {
+            optCls += ' disabled';
+            if (val === ex.answer) optCls += ' correct';
+            else if (sel) optCls += ' wrong';
+          } else if (sel) {
+            optCls += ' selected';
+          }
+          html += '<div class="' + optCls + '" data-bool="' + (val ? 'true' : 'false') + '">';
+          html += '  <span class="cl-exercise-marker">' + (val ? '✓' : '✗') + '</span>';
+          html += '  <span>' + (val ? '正确' : '错误') + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      } else if (ex.type === 'fill') {
+        var inputCls = '';
+        if (answered) {
+          inputCls = isCorrect ? 'correct' : 'wrong';
+        }
+        html += '<div class="cl-exercise-fill">';
+        html += '  <input type="text" class="' + inputCls + '" placeholder="请输入答案" value="' + escapeHtml(answered ? String(exerciseState[idx] || '') : '') + '" ' + (answered ? 'disabled' : '') + '>';
+        html += '  <button class="cl-exercise-reset" type="button" data-fill-submit="' + idx + '" ' + (answered ? 'style="display:none"' : '') + '>提交</button>';
+        if (answered && !isCorrect) {
+          html += '  <div style="font-size:12px;color:var(--cl-danger);margin-left:8px">正确答案: ' + escapeHtml(ex.answer) + '</div>';
+        }
+        html += '</div>';
+      }
+
+      html += '  <div class="cl-exercise-explain">💡 ' + escapeHtml(ex.explanation || '') + '</div>';
+      html += '</div>';
+    });
+    list.innerHTML = html;
+
+    bindExerciseEvents(exercises);
+    updateExerciseScore();
+  }
+
+  function checkAnswer(ex, user) {
+    if (user === undefined || user === null) return false;
+    if (ex.type === 'choice') return user === ex.answer;
+    if (ex.type === 'bool')   return user === ex.answer;
+    if (ex.type === 'fill')   return String(user).trim() === String(ex.answer).trim();
+    return false;
+  }
+
+  function bindExerciseEvents(exercises) {
+    // 选择题 / 判断题
+    document.querySelectorAll('.cl-exercise-option').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        if (opt.classList.contains('disabled')) return;
+        var item = opt.closest('.cl-exercise-item');
+        var idx = parseInt(item.getAttribute('data-idx'));
+        var ex = exercises[idx];
+
+        if (ex.type === 'bool') {
+          exerciseState[idx] = opt.getAttribute('data-bool') === 'true';
+        } else {
+          exerciseState[idx] = parseInt(opt.getAttribute('data-opt'));
+        }
+        saveExerciseState();
+        renderExercises(exercises);
+        showFeedback(item, ex);
+      });
+    });
+    // 填空题提交
+    document.querySelectorAll('[data-fill-submit]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = parseInt(btn.getAttribute('data-fill-submit'));
+        var item = btn.closest('.cl-exercise-item');
+        var input = item.querySelector('input');
+        var ex = exercises[idx];
+        exerciseState[idx] = input.value;
+        saveExerciseState();
+        renderExercises(exercises);
+      });
+    });
+  }
+
+  function showFeedback(item, ex) {
+    // 答完自动滚动到下一题
+    var next = item.nextElementSibling;
+    if (next && next.classList.contains('cl-exercise-item')) {
+      // 只在视口外时滚动
+      var r = next.getBoundingClientRect();
+      if (r.bottom > window.innerHeight) {
+        next.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      // 最后一题, 触发完成检测
+      var allAnswered = checkAllAnswered();
+      if (allAnswered) {
+        markStepCompleted('exercises');
+        showToast('已完成全部练习, 继续保持!', 'success');
+      }
+    }
+  }
+
+  function checkAllAnswered() {
+    var total = document.querySelectorAll('.cl-exercise-item').length;
+    var answered = document.querySelectorAll('.cl-exercise-item.answered').length;
+    return total > 0 && total === answered;
+  }
+
+  function updateExerciseScore() {
+    var items = document.querySelectorAll('.cl-exercise-item');
+    var total = items.length;
+    var answered = 0, correct = 0;
+    items.forEach(function (it) {
+      if (it.classList.contains('answered')) {
+        answered++;
+        if (it.classList.contains('correct')) correct++;
+      }
+    });
+    document.getElementById('cl-exercise-score').textContent = '已答 ' + answered + ' / ' + total;
+    var rate = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+    document.getElementById('cl-exercise-rate').textContent = '正确率 ' + rate + '%';
+
+    var submitBtn = document.getElementById('cl-exercise-submit');
+    if (submitBtn) submitBtn.disabled = answered === 0;
+  }
+
+  function resetExercises() {
+    exerciseState = {};
+    saveExerciseState();
+    var subId = currentSubId();
+    if (subId) {
+      var content = window.CourseLearnData.getContent(subId);
+      renderExercises(content.exercises || []);
+    }
+  }
+
+  function submitExercises() {
+    var total = document.querySelectorAll('.cl-exercise-item').length;
+    var answered = document.querySelectorAll('.cl-exercise-item.answered').length;
+    if (answered === 0) {
+      showToast('请先作答再交卷', 'error');
+      return;
+    }
+    var correct = document.querySelectorAll('.cl-exercise-item.correct').length;
+    var rate = Math.round((correct / answered) * 100);
+    showToast('本次得分: ' + correct + ' / ' + answered + ' (正确率 ' + rate + '%)', 'success');
+    markStepCompleted('exercises');
+  }
+
+  /* ===================== 章节导航 ===================== */
+  function updateNavigation() {
+    var prevBtn = document.getElementById('cl-nav-prev');
+    var nextBtn = document.getElementById('cl-nav-next');
+    var counter = document.getElementById('cl-nav-counter');
+    var currentEl = document.getElementById('cl-nav-current');
+
+    var totalSubs = 0;
+    var currentFlatIdx = 0;
+
+    for (var i = 0; i < chapters.length; i++) {
+      var children = chapters[i].children || [];
+      for (var j = 0; j < children.length; j++) {
+        if (i === currentChapterIdx && j === currentSubIdx) currentFlatIdx = totalSubs;
+        totalSubs++;
+      }
+    }
+    counter.textContent = (currentFlatIdx + 1) + ' / ' + totalSubs;
+    prevBtn.disabled = currentFlatIdx === 0;
+    nextBtn.disabled = currentFlatIdx >= totalSubs - 1;
+
+    var ch = chapters[currentChapterIdx];
+    var sub = ch && ch.children[currentSubIdx];
+    currentEl.textContent = sub ? sub.title : '第 ' + (currentFlatIdx + 1) + ' 节';
+
+    updateProgressBar(currentFlatIdx + 1, totalSubs);
+  }
+
+  function updateProgressBar(current, total) {
+    var pct = total > 0 ? Math.round((current / total) * 100) : 0;
+    document.getElementById('cl-progress-fill').style.width = pct + '%';
+    document.getElementById('cl-progress-text').textContent = pct + '%';
+    if (course) course.progress = pct;
+    saveCourseData();
+    saveProgress();
+  }
+
+  function navigatePrev() {
+    if (currentSubIdx > 0) selectChapter(currentChapterIdx, currentSubIdx - 1);
+    else if (currentChapterIdx > 0) {
+      var prev = chapters[currentChapterIdx - 1];
+      var last = (prev.children || []).length - 1;
+      if (last >= 0) selectChapter(currentChapterIdx - 1, last);
+    }
+  }
+
+  function navigateNext() {
+    var cur = chapters[currentChapterIdx];
+    if (cur && currentSubIdx < (cur.children || []).length - 1) {
+      selectChapter(currentChapterIdx, currentSubIdx + 1);
+    } else if (currentChapterIdx < chapters.length - 1) {
+      var next = chapters[currentChapterIdx + 1];
+      if (next.children && next.children.length > 0) selectChapter(currentChapterIdx + 1, 0);
+    }
+  }
+
+  function findStartIndex() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
+      var p = saved[courseId];
+      if (p && p.currentChapterIdx !== undefined) return p.currentChapterIdx;
+    } catch (e) { /* ignore */ }
+    return 0;
+  }
+
+  /* ===================== 标记章节完成 ===================== */
+  function markChapterComplete() {
+    if (currentChapterIdx < 0) return;
+    var sub = chapters[currentChapterIdx].children[currentSubIdx];
+    if (!sub) return;
+    sub.completed = true;
+    renderChapterTree();
+    var btn = document.getElementById('cl-mark-complete');
+    if (btn) {
+      btn.classList.add('completed');
+      btn.querySelector('span').textContent = '已完成';
+    }
+    showToast('已标记本节完成 🎉', 'success');
+  }
+
+  /* ===================== 持久化 ===================== */
   function saveProgress() {
     try {
-      var progress = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
-      progress[courseId] = {
+      var data = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
+      data[courseId] = {
         currentChapterIdx: currentChapterIdx,
         currentSubIdx: currentSubIdx,
-        progress: course.progress,
+        progress: course ? course.progress : 0,
         updatedAt: new Date().toISOString()
       };
-      localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(data));
     } catch (e) { /* ignore */ }
-  }
-
-  function loadProgress() {
-    try {
-      var progress = JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {};
-      return progress[courseId] || null;
-    } catch (e) {
-      return null;
-    }
   }
 
   function saveCourseData() {
@@ -565,45 +1081,37 @@
       var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
       if (!data || !data.subjects) return;
       for (var i = 0; i < data.subjects.length; i++) {
-        var courses = data.subjects[i].courses;
-        for (var j = 0; j < courses.length; j++) {
-          if (courses[j].id === courseId) {
-            courses[j].totalLessons = course.totalLessons;
-            courses[j].totalDuration = course.totalDuration;
-            courses[j].progress = course.progress;
-            break;
+        var list = data.subjects[i].courses || [];
+        for (var j = 0; j < list.length; j++) {
+          if (list[j].id === courseId) {
+            list[j].totalLessons = course.totalLessons;
+            list[j].totalDuration = course.totalDuration;
+            list[j].progress = course.progress;
+            return;
           }
         }
       }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) { /* ignore */ }
   }
 
-  // ---- Tab Switching ----
-
-  function switchTab(tabName) {
-    document.querySelectorAll('.cl-content-tab').forEach(function(t) {
-      t.classList.toggle('active', t.getAttribute('data-tab') === tabName);
+  /* ===================== Tab / Sidebar 切换 ===================== */
+  function switchSubtab(name) {
+    document.querySelectorAll('.cl-subtab').forEach(function (t) {
+      t.classList.toggle('active', t.getAttribute('data-subtab') === name);
     });
-    document.querySelectorAll('.cl-tab-panel').forEach(function(p) {
-      p.classList.toggle('active', p.id === 'cl-panel-' + tabName);
+    document.querySelectorAll('.cl-subtab-panel').forEach(function (p) {
+      p.classList.toggle('active', p.getAttribute('data-subtab-panel') === name);
     });
+    if (name === 'subtitles') markStepCompleted('subtitles');
   }
-
-  // ---- Sidebar Toggle ----
 
   function toggleSidebar() {
     sidebarCollapsed = !sidebarCollapsed;
-    var sidebar = document.getElementById('cl-sidebar');
-    if (sidebarCollapsed) {
-      sidebar.classList.add('collapsed');
-    } else {
-      sidebar.classList.remove('collapsed');
-    }
+    var sb = document.getElementById('cl-sidebar');
+    sb.classList.toggle('collapsed', sidebarCollapsed);
   }
 
-  // ---- Helpers ----
-
+  /* ===================== 工具 ===================== */
   function formatDuration(seconds) {
     if (!seconds) return '--:--';
     var m = Math.floor(seconds / 60);
@@ -612,20 +1120,17 @@
   }
 
   function formatTime(seconds) {
-    var s = Math.floor(seconds);
+    var s = Math.floor(seconds || 0);
     var m = Math.floor(s / 60);
     var h = Math.floor(m / 60);
-    m = m % 60;
-    s = s % 60;
-    if (h > 0) {
-      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-    }
+    m = m % 60; s = s % 60;
+    if (h > 0) return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
   function escapeHtml(str) {
     var div = document.createElement('div');
-    div.textContent = str || '';
+    div.textContent = str == null ? '' : String(str);
     return div.innerHTML;
   }
 
@@ -636,63 +1141,135 @@
     toast.className = 'toast ' + (type || 'info');
     toast.textContent = message;
     container.appendChild(toast);
-    setTimeout(function() {
+    setTimeout(function () {
       toast.style.opacity = '0';
       toast.style.transform = 'translateX(40px)';
-      setTimeout(function() { toast.remove(); }, 300);
+      setTimeout(function () { toast.remove(); }, 300);
     }, 3000);
   }
 
-  // ---- Event Bindings ----
-
+  /* ===================== 事件绑定 ===================== */
   function bindEvents() {
-    // Prev/Next navigation
+    // 上一节 / 下一节
     document.getElementById('cl-nav-prev').addEventListener('click', navigatePrev);
     document.getElementById('cl-nav-next').addEventListener('click', navigateNext);
 
-    // Sidebar toggle
+    // 侧边栏
     document.getElementById('cl-sidebar-toggle').addEventListener('click', toggleSidebar);
     document.getElementById('cl-sidebar-expand').addEventListener('click', toggleSidebar);
 
-    // Content tabs
-    document.querySelectorAll('.cl-content-tab').forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        switchTab(this.getAttribute('data-tab'));
+    // 步骤引导
+    document.querySelectorAll('.cl-step').forEach(function (el) {
+      el.addEventListener('click', function () {
+        setStep(el.getAttribute('data-step'), true);
       });
     });
 
-    // Notes auto-save
-    var notesEditor = document.getElementById('cl-notes-editor');
-    if (notesEditor) {
-      var saveTimeout;
-      notesEditor.addEventListener('input', function() {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(saveNotes, 1000);
+    // Subtab
+    document.querySelectorAll('.cl-subtab').forEach(function (t) {
+      t.addEventListener('click', function () { switchSubtab(t.getAttribute('data-subtab')); });
+    });
+
+    // 概念筛选
+    document.querySelectorAll('.cl-filter-chip').forEach(function (c) {
+      c.addEventListener('click', function () {
+        document.querySelectorAll('.cl-filter-chip').forEach(function (x) { x.classList.remove('active'); });
+        c.classList.add('active');
+        conceptFilter = c.getAttribute('data-level');
+        applyConceptFilter();
       });
+    });
+
+    // 思维导图缩放
+    var mmIn = document.getElementById('cl-mm-zoom-in');
+    var mmOut = document.getElementById('cl-mm-zoom-out');
+    var mmReset = document.getElementById('cl-mm-reset');
+    if (mmIn) mmIn.addEventListener('click', function () { zoomMindMap(0.15); });
+    if (mmOut) mmOut.addEventListener('click', function () { zoomMindMap(-0.15); });
+    if (mmReset) mmReset.addEventListener('click', resetMindMap);
+
+    // 思维导图拖动
+    var viewport = document.getElementById('cl-mindmap-viewport');
+    if (viewport) {
+      viewport.addEventListener('mousedown', function (e) {
+        if (e.target.closest('.cl-mindmap-node')) return;
+        isDraggingMM = true;
+        dragStartX = e.clientX - mindmapOffsetX;
+        dragStartY = e.clientY - mindmapOffsetY;
+        viewport.style.cursor = 'grabbing';
+      });
+      window.addEventListener('mousemove', function (e) {
+        if (!isDraggingMM) return;
+        mindmapOffsetX = e.clientX - dragStartX;
+        mindmapOffsetY = e.clientY - dragStartY;
+        applyMindMapTransform();
+      });
+      window.addEventListener('mouseup', function () {
+        if (isDraggingMM) {
+          isDraggingMM = false;
+          if (viewport) viewport.style.cursor = 'grab';
+        }
+      });
+      // 滚轮缩放
+      viewport.addEventListener('wheel', function (e) {
+        if (e.ctrlKey || e.metaKey || Math.abs(e.deltaY) > 30) {
+          e.preventDefault();
+          zoomMindMap(e.deltaY > 0 ? -0.1 : 0.1);
+        }
+      }, { passive: false });
     }
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'ArrowLeft' && !e.target.closest('input, textarea')) {
-        navigatePrev();
-      } else if (e.key === 'ArrowRight' && !e.target.closest('input, textarea')) {
-        navigateNext();
-      }
+    // 笔记
+    var notesEditor = document.getElementById('cl-notes-editor');
+    if (notesEditor) {
+      var saveT;
+      notesEditor.addEventListener('input', function () {
+        clearTimeout(saveT);
+        flashSaveStatus('保存中...');
+        saveT = setTimeout(saveNotes, 800);
+      });
+      notesEditor.addEventListener('blur', saveNotes);
+    }
+    var insertBtn = document.getElementById('cl-notes-insert-time');
+    if (insertBtn) insertBtn.addEventListener('click', insertTimestamp);
+
+    // 标记完成
+    var markBtn = document.getElementById('cl-mark-complete');
+    if (markBtn) markBtn.addEventListener('click', markChapterComplete);
+
+    // 欢迎下一步
+    var welcomeNext = document.getElementById('cl-welcome-next');
+    if (welcomeNext) welcomeNext.addEventListener('click', function () {
+      markStepCompleted('watch');
+      setStep('subtitles', true);
+    });
+
+    // 练习交卷 / 重置
+    var submitBtn = document.getElementById('cl-exercise-submit');
+    var resetBtn = document.getElementById('cl-exercise-reset');
+    if (submitBtn) submitBtn.addEventListener('click', submitExercises);
+    if (resetBtn) resetBtn.addEventListener('click', resetExercises);
+
+    // 键盘快捷键
+    document.addEventListener('keydown', function (e) {
+      if (e.target.closest('input, textarea')) return;
+      if (e.key === 'ArrowLeft') navigatePrev();
+      else if (e.key === 'ArrowRight') navigateNext();
     });
   }
 
-  // ---- Init on load ----
-
+  /* ===================== 启动 ===================== */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
 
-  // Expose
+  // 暴露给 Playwright / 调试
   window.CourseLearn = {
-    getCourse: function() { return course; },
-    getChapters: function() { return chapters; },
-    selectChapter: selectChapter
+    getCourse: function () { return course; },
+    getChapters: function () { return chapters; },
+    selectChapter: selectChapter,
+    setStep: setStep
   };
 })();

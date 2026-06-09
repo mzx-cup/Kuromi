@@ -153,14 +153,21 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  /* flex 子项默认 min-width: auto, 防止内部 input 撑出 */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .auth-password-wrap {
   position: relative;
   display: block;
+  /* flex/grid 子项默认 min-width: auto, 防止密码框超出父容器 */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .auth-password-wrap .app-input {
+  /* 44px = 32px 按钮 + 8px×2 安全间距，避免文字覆盖眼睛图标 */
   padding-right: 44px;
 }
 

@@ -5,7 +5,12 @@
 .app-input,
 .app-textarea,
 .app-select {
+  /* border-box 让 width: 100% 包含 padding / border,
+     避免在父容器中撑出 — 这是表单元素的最佳实践 */
+  box-sizing: border-box;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: var(--input-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
