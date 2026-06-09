@@ -33,7 +33,12 @@
             </a>
             <h1 class="nav-title">学习日历</h1>
             <div class="nav-actions">
-                <button class="nav-btn" id="add-event-btn" type="button" aria-label="添加学习计划">
+                <button class="nav-btn ghost" id="today-btn" type="button" aria-label="回到今天">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+                <button class="nav-btn primary" id="add-event-btn" type="button" aria-label="添加学习计划">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -45,20 +50,97 @@
     <!-- 主体 -->
     <main class="calendar-main">
         <div class="calendar-layout">
-            <!-- 左侧：日历 -->
-            <section class="calendar-section" aria-label="月历">
+
+            <!-- 顶部 KPI 横条 -->
+            <section class="kpi-strip stagger" aria-label="本月概览">
+                <div class="kpi-card kpi-card--streak fade-up">
+                    <div class="kpi-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-meta">
+                        <span class="kpi-label">连续打卡</span>
+                        <div class="kpi-value-row">
+                            <span class="kpi-value" id="kpi-streak">0</span>
+                            <span class="kpi-unit">天</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card fade-up">
+                    <div class="kpi-icon info">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-meta">
+                        <span class="kpi-label">今日待办</span>
+                        <div class="kpi-value-row">
+                            <span class="kpi-value" id="kpi-todo-today">0</span>
+                            <span class="kpi-unit">项</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card fade-up">
+                    <div class="kpi-icon success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-meta">
+                        <span class="kpi-label">本月学习</span>
+                        <div class="kpi-value-row">
+                            <span class="kpi-value" id="kpi-month-hours">0.0</span>
+                            <span class="kpi-unit">小时</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="kpi-card fade-up">
+                    <div class="kpi-icon warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                        </svg>
+                    </div>
+                    <div class="kpi-meta">
+                        <span class="kpi-label">本周完成率</span>
+                        <div class="kpi-value-row">
+                            <span class="kpi-value" id="kpi-week-rate">0</span>
+                            <span class="kpi-unit">%</span>
+                        </div>
+                        <div class="kpi-progress">
+                            <div class="kpi-progress-bar" id="kpi-week-rate-bar" style="width:0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 左侧主区 -->
+            <section class="calendar-section fade-in" aria-label="月历">
                 <header class="month-header">
-                    <button class="month-nav-btn" id="prev-month" type="button" aria-label="上个月">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-                    <h2 class="month-title" id="month-title">学习日历</h2>
-                    <button class="month-nav-btn" id="next-month" type="button" aria-label="下个月">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
+                    <div class="month-header-left">
+                        <button class="month-nav-btn" id="prev-month" type="button" aria-label="上个月">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <div class="month-title-wrap">
+                            <h2 class="month-title" id="month-title">2026年6月</h2>
+                            <span class="month-subtitle" id="month-subtitle">本周 · 6月8日 - 6月14日</span>
+                        </div>
+                        <button class="month-nav-btn" id="next-month" type="button" aria-label="下个月">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="month-header-right">
+                        <div class="view-toggle" role="tablist" aria-label="视图切换">
+                            <button class="view-toggle-btn active" data-view="month" type="button" role="tab">月</button>
+                            <button class="view-toggle-btn" data-view="week" type="button" role="tab">周</button>
+                            <button class="view-toggle-btn" data-view="list" type="button" role="tab">列表</button>
+                        </div>
+                    </div>
                 </header>
 
                 <div class="calendar-grid" id="calendar-grid">
@@ -75,49 +157,97 @@
                     <div class="legend-item"><span class="legend-dot completed"></span><span>已完成</span></div>
                     <div class="legend-item"><span class="legend-dot partial"></span><span>部分完成</span></div>
                     <div class="legend-item"><span class="legend-dot today"></span><span>今日</span></div>
-                    <div class="legend-item"><span class="legend-dot future"></span><span>已计划</span></div>
+                    <div class="legend-item"><span class="legend-dot scheduled"></span><span>已计划</span></div>
+                    <div class="legend-item"><span class="legend-dot weekend"></span><span>周末</span></div>
                 </div>
             </section>
 
-            <!-- 右侧：详情 / 计划 -->
+            <!-- 右侧主区 -->
             <aside class="schedule-section">
-                <div class="stats-summary stagger">
-                    <div class="summary-card fade-up">
-                        <span class="summary-value" id="study-days">0</span>
-                        <span class="summary-label">本月学习天数</span>
+
+                <!-- 今日打卡 -->
+                <div class="checkin-card fade-in" id="checkin-card">
+                    <div class="checkin-ring">
+                        <svg viewBox="0 0 120 120" class="checkin-ring-svg" aria-hidden="true">
+                            <circle cx="60" cy="60" r="52" class="checkin-ring-bg"/>
+                            <circle cx="60" cy="60" r="52" class="checkin-ring-fg" id="checkin-ring-fg"
+                                stroke-dasharray="326.7" stroke-dashoffset="326.7"/>
+                        </svg>
+                        <div class="checkin-ring-inner">
+                            <span class="checkin-percent" id="checkin-percent">0%</span>
+                            <span class="checkin-percent-label">今日进度</span>
+                        </div>
                     </div>
-                    <div class="summary-card fade-up">
-                        <span class="summary-value" id="total-hours-month">0.0</span>
-                        <span class="summary-label">学习时长 (h)</span>
-                    </div>
-                    <div class="summary-card fade-up">
-                        <span class="summary-value" id="completed-tasks">0</span>
-                        <span class="summary-label">完成任务数</span>
+                    <div class="checkin-meta">
+                        <div class="checkin-meta-top">
+                            <span class="checkin-date" id="checkin-date">6月9日 周二</span>
+                            <span class="checkin-status" id="checkin-status">学习中</span>
+                        </div>
+                        <h3 class="checkin-title">学习打卡</h3>
+                        <p class="checkin-desc" id="checkin-desc">完成今日计划，开启高效一天</p>
+                        <button class="checkin-btn" id="checkin-btn" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span id="checkin-btn-text">立即打卡</span>
+                        </button>
                     </div>
                 </div>
 
-                <div class="day-detail-card fade-in" id="day-detail">
-                    <div class="detail-header">
-                        <h3 class="detail-title" id="detail-date">选择日期</h3>
-                        <span class="detail-subtitle" id="detail-day">查看当日学习计划</span>
-                    </div>
-                    <div class="detail-content" id="detail-content">
-                        <div class="empty-state">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                <!-- 每日提醒 -->
+                <div class="reminder-card fade-in" id="reminder-card">
+                    <div class="reminder-header">
+                        <span class="reminder-tag">每日提醒</span>
+                        <button class="reminder-refresh" id="reminder-refresh" type="button" aria-label="换一句">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                             </svg>
-                            <p>点击左侧日历中的日期<br>查看当日学习详情</p>
+                        </button>
+                    </div>
+                    <p class="reminder-quote" id="reminder-quote">不积跬步，无以至千里；不积小流，无以成江海。</p>
+                    <span class="reminder-source" id="reminder-source">— 荀子《劝学》</span>
+                </div>
+
+                <!-- 今日任务清单 -->
+                <div class="today-tasks fade-in">
+                    <header class="section-header">
+                        <h3 class="section-title">今日任务</h3>
+                        <span class="section-count" id="today-tasks-count">0/0</span>
+                    </header>
+                    <div class="task-list" id="today-tasks-list">
+                        <div class="empty-state small">
+                            <p>暂无任务，点击右上角 + 添加</p>
                         </div>
                     </div>
                 </div>
 
-                <div class="upcoming-section">
-                    <h3 class="section-title">近期学习计划</h3>
-                    <div class="events-list" id="events-list">
-                        <div class="empty-state">正在加载学习计划...</div>
-                    </div>
+                <!-- 7 日热力图 -->
+                <div class="heatmap-card fade-in">
+                    <header class="section-header">
+                        <h3 class="section-title">近 7 日学习</h3>
+                        <span class="section-count" id="heatmap-total">0 h</span>
+                    </header>
+                    <div class="heatmap-grid" id="heatmap-grid"></div>
                 </div>
+
             </aside>
+
+            <!-- 底部：近期计划 -->
+            <section class="upcoming-section fade-in" aria-label="近期学习计划">
+                <header class="section-header">
+                    <h3 class="section-title">近期学习计划</h3>
+                    <div class="section-filter">
+                        <button class="filter-chip active" data-filter="all" type="button">全部</button>
+                        <button class="filter-chip" data-filter="study" type="button">学习</button>
+                        <button class="filter-chip" data-filter="review" type="button">复习</button>
+                        <button class="filter-chip" data-filter="exam" type="button">考试</button>
+                    </div>
+                </header>
+                <div class="events-list" id="events-list">
+                    <div class="empty-state">正在加载学习计划...</div>
+                </div>
+            </section>
+
         </div>
     </main>
 
@@ -135,7 +265,7 @@
             <form class="event-form" id="event-form">
                 <div class="form-group">
                     <label class="form-label" for="event-title">学习内容</label>
-                    <input type="text" class="form-input" placeholder="输入学习主题" id="event-title" required>
+                    <input type="text" class="form-input" placeholder="例如：复习高数第三章" id="event-title" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -143,13 +273,33 @@
                         <input type="date" class="form-input" id="event-date" required>
                     </div>
                     <div class="form-group">
+                        <label class="form-label" for="event-time">时段</label>
+                        <select class="form-input" id="event-time">
+                            <option value="morning">上午 (08-12)</option>
+                            <option value="afternoon" selected>下午 (14-18)</option>
+                            <option value="evening">晚上 (19-22)</option>
+                            <option value="all-day">全天</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
                         <label class="form-label" for="event-duration">时长</label>
                         <select class="form-input" id="event-duration">
+                            <option value="0.5">0.5 小时</option>
                             <option value="1">1 小时</option>
+                            <option value="1.5">1.5 小时</option>
                             <option value="2">2 小时</option>
                             <option value="3" selected>3 小时</option>
                             <option value="4">4 小时</option>
-                            <option value="5">5 小时</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="event-priority">优先级</label>
+                        <select class="form-input" id="event-priority">
+                            <option value="low">🟢 普通</option>
+                            <option value="medium" selected>🟡 重要</option>
+                            <option value="high">🔴 紧急</option>
                         </select>
                     </div>
                 </div>
@@ -157,30 +307,41 @@
                     <span class="form-label">分类</span>
                     <div class="category-options">
                         <label class="category-option">
-                            <input type="radio" name="event-category" value="python" checked>
+                            <input type="radio" name="event-category" value="study" checked>
+                            <span class="category-tag study">📘 学习</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="review">
+                            <span class="category-tag review">🔁 复习</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="exam">
+                            <span class="category-tag exam">📝 考试</span>
+                        </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="python">
                             <span class="category-tag python">🐍 Python</span>
-                        </label>
-                        <label class="category-option">
-                            <input type="radio" name="event-category" value="algorithm">
-                            <span class="category-tag algorithm">🧮 算法</span>
-                        </label>
-                        <label class="category-option">
-                            <input type="radio" name="event-category" value="database">
-                            <span class="category-tag database">🗄️ 数据库</span>
-                        </label>
-                        <label class="category-option">
-                            <input type="radio" name="event-category" value="web">
-                            <span class="category-tag web">🌐 Web</span>
                         </label>
                         <label class="category-option">
                             <input type="radio" name="event-category" value="ai">
                             <span class="category-tag ai">🤖 AI</span>
                         </label>
+                        <label class="category-option">
+                            <input type="radio" name="event-category" value="web">
+                            <span class="category-tag web">🌐 Web</span>
+                        </label>
                     </div>
                 </div>
                 <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" id="event-remind" checked>
+                        <span class="form-checkbox-box"></span>
+                        <span>开始前 30 分钟提醒我</span>
+                    </label>
+                </div>
+                <div class="form-group">
                     <label class="form-label" for="event-desc">备注</label>
-                    <textarea class="form-textarea" placeholder="添加备注信息..." id="event-desc" rows="3"></textarea>
+                    <textarea class="form-textarea" placeholder="添加备注信息，例如：重点看例题 3.2" id="event-desc" rows="3"></textarea>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" id="cancel-btn">取消</button>
@@ -189,6 +350,9 @@
             </form>
         </div>
     </div>
+
+    <!-- 每日提醒 Toast 容器 -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
     <script src="/js/data-layer.js"></script>
     <script src="/js/calendar.js"></script>

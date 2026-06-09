@@ -33,13 +33,18 @@
 
   /**
    * 401 处理: 清除 token 并重定向
+   * 用 replace 跳转，避免「后退」按钮回到已退出的页面
    */
   function handle401() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem('sp_user');
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    try { localStorage.removeItem('sp_user'); } catch (_) {}
+    try { localStorage.removeItem('starlearn_user'); } catch (_) {}
+    try { localStorage.removeItem('auth_token'); } catch (_) {}
+    try { localStorage.removeItem('auth_user'); } catch (_) {}
+    try { window.dispatchEvent(new CustomEvent('auth:logout')); } catch (_) {}
     // 防止循环重定向
     if (!window.location.pathname.includes('login.html')) {
-      window.location.href = LOGIN_URL;
+      window.location.replace(LOGIN_URL);
     }
   }
 

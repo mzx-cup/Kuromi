@@ -25,12 +25,36 @@ const Auth = (() => {
     if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
-  /** 清除全部认证状态 */
+  /** 清除全部认证状态（与 index.js logout 保持完全一致） */
   function logout() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(USER_KEY);
+    // 1) 清空内存中的 me
     me = null;
-    window.location.href = '/login.html';
+    // 2) 清除 localStorage 中所有可能残留的认证键
+    const KEYS_TO_CLEAR = [
+      STORAGE_KEY,     // sp_token
+      USER_KEY,        // sp_user
+      'starlearn_user', // index.js 用的旧键
+      'auth_token',    // 旧版兼容
+      'auth_user',
+    ];
+    KEYS_TO_CLEAR.forEach((k) => {
+      try { localStorage.removeItem(k); } catch (_) {}
+    });
+    // 3) 清除 sessionStorage 中残留的用户态
+    try {
+      const sessionKeys = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && (k.includes('user') || k.includes('profile') || k.includes('personal'))) {
+          sessionKeys.push(k);
+        }
+      }
+      sessionKeys.forEach((k) => sessionStorage.removeItem(k));
+    } catch (_) {}
+    // 4) 广播登出事件，通知仍在内存中的其他模块
+    try { window.dispatchEvent(new CustomEvent('auth:logout')); } catch (_) {}
+    // 5) 使用 replace 跳转，让用户无法通过「后退」回到已退出账号的页面
+    window.location.replace('/login.html');
   }
 
   /** 验证 token 并从服务端拉取最新用户信息 */
@@ -70,12 +94,28 @@ const Auth = (() => {
     return me && me.role === 'admin';
   }
 
-  /** Decode JWT payload to check expiration */
+  /**
+   * Decode a base64url / base64 string. PyJWT、Go-jwt、js-jwt 等不同实现的
+   * 输出略有差异：base64url 用 `-` `_`，无 `=` padding；标准 base64
+   * 可能有 `+` `/` `=`。统一做归一化，避免 atob 在部分 token 上抛错。
+   */
+  function decodeBase64(str) {
+    if (!str) return '';
+    let s = str.replace(/-/g, '+').replace(/_/g, '/');
+    // 补齐 padding
+    const pad = s.length % 4;
+    if (pad) s += '='.repeat(4 - pad);
+    try { return atob(s); } catch (_) { return ''; }
+  }
+
+  /** Decode JWT payload to check expiration. 兼容 base64 / base64url / 无 padding */
   function isTokenValid() {
     const token = getToken();
     if (!token) return false;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const seg = token.split('.')[1];
+      if (!seg) return false;
+      const payload = JSON.parse(decodeBase64(seg));
       if (!payload.exp) return true;
       return Date.now() < payload.exp * 1000;
     } catch (e) {
@@ -88,7 +128,9 @@ const Auth = (() => {
     const token = getToken();
     if (!token) return;
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const seg = token.split('.')[1];
+      if (!seg) return;
+      const payload = JSON.parse(decodeBase64(seg));
       if (payload.exp && (payload.exp * 1000 - Date.now()) < 5 * 60 * 1000) {
         fetchMe().catch(function() {});
       }
