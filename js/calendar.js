@@ -243,18 +243,29 @@ function updateSummary() {
     setText('completed-tasks', completedTasks);
 }
 
+const CATEGORY_LABELS = {
+    python: '🐍 Python',
+    algorithm: '🧮 算法',
+    database: '🗄️ 数据库',
+    web: '🌐 Web',
+    ai: '🤖 AI',
+    study: '📘 学习'
+};
+
 function renderUpcomingEvents() {
     const list = document.getElementById('events-list');
     if (!list) return;
 
     const upcoming = calendarData.upcoming || [];
     if (!upcoming.length) {
-        list.innerHTML = `<div class="empty-state">暂无近期学习计划</div>`;
+        list.innerHTML = `<div class="empty-state">暂无近期学习计划<br>点击右上角 + 添加</div>`;
         return;
     }
 
     list.innerHTML = upcoming.map(event => {
         const date = parseDate(event.date);
+        const category = event.category || 'study';
+        const categoryLabel = CATEGORY_LABELS[category] || category;
         return `
             <div class="event-item">
                 <div class="event-date">
@@ -263,10 +274,10 @@ function renderUpcomingEvents() {
                 </div>
                 <div class="event-content">
                     <h4 class="event-title">${escapeHtml(event.name || '学习计划')}</h4>
-                    <p class="event-desc">${escapeHtml(event.desc || '')}</p>
+                    ${event.desc ? `<p class="event-desc">${escapeHtml(event.desc)}</p>` : ''}
                     <div class="event-meta">
-                        <span class="event-tag ${escapeHtml(event.category || 'study')}">${escapeHtml(event.category || 'study')}</span>
-                        <span class="event-duration">${escapeHtml(event.duration || '')}</span>
+                        <span class="event-tag ${escapeHtml(category)}">${escapeHtml(categoryLabel)}</span>
+                        ${event.duration ? `<span class="event-duration">${escapeHtml(event.duration)}</span>` : ''}
                     </div>
                 </div>
             </div>

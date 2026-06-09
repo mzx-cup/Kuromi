@@ -1033,11 +1033,18 @@
 
                     <!-- AI教师选择区域（移出agent-bar，独立块级布局） -->
                     <div id="teacher-select-wrapper" class="teacher-select-wrapper">
-                        <label class="openmaic-label">
-                            <i data-lucide="user-cog" class="w-3.5 h-3.5"></i> 选择AI教师
-                        </label>
-                        <div class="teacher-cards">
-                            <!-- 动态渲染老师卡片 -->
+                        <button type="button" class="openmaic-label teacher-toggle" id="teacher-toggle-btn" aria-expanded="false" aria-controls="teacher-cards-panel">
+                            <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+                            <span class="teacher-toggle-label-text">选择AI教师</span>
+                            <span class="teacher-current-name" id="teacher-current-name">（未选择）</span>
+                            <svg class="teacher-toggle-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="teacher-cards-panel" id="teacher-cards-panel">
+                            <div class="teacher-cards">
+                                <!-- 动态渲染老师卡片 -->
+                            </div>
                         </div>
                     </div>
 
@@ -1245,7 +1252,7 @@
             if (!container || typeof TEACHERS_CONFIG === 'undefined') return;
 
             container.innerHTML = TEACHERS_CONFIG.map(teacher => `
-                <div class="teacher-card" data-teacher-id="${teacher.id}">
+                <div class="teacher-card" data-teacher-id="${teacher.id}" data-teacher-name="${teacher.name}">
                     <div class="teacher-card-icon">${teacher.icon}</div>
                     <div class="teacher-card-name">${teacher.name}</div>
                     <div class="teacher-card-profession">${teacher.profession}</div>
@@ -1259,13 +1266,55 @@
                     card.classList.add('selected');
                     const select = document.getElementById('openmaic-teacher-select');
                     if (select) select.value = card.dataset.teacherId;
+
+                    // 同步 trigger 上显示的当前选择
+                    const currentNameEl = document.getElementById('teacher-current-name');
+                    if (currentNameEl) {
+                        currentNameEl.textContent = card.dataset.teacherName || '（未选择）';
+                    }
+
+                    // 选中后自动折叠面板
+                    collapseTeacherPanel();
                 });
             });
+        }
+
+        // 展开 / 折叠 教师选择面板
+        function expandTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+        }
+        function collapseTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        function toggleTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (!btn) return;
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            if (expanded) collapseTeacherPanel();
+            else expandTeacherPanel();
         }
 
         // 初始化老师卡片和切换逻辑
         document.addEventListener('DOMContentLoaded', () => {
             renderTeacherCards();
+
+            // 绑定教师面板 toggle
+            const teacherToggleBtn = document.getElementById('teacher-toggle-btn');
+            if (teacherToggleBtn) {
+                teacherToggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleTeacherPanel();
+                });
+            }
+            // 点击面板外区域自动折叠
+            document.addEventListener('click', (e) => {
+                const wrapper = document.getElementById('teacher-select-wrapper');
+                if (wrapper && !wrapper.contains(e.target)) {
+                    collapseTeacherPanel();
+                }
+            });
 
             // 监听agent-mode切换
             const agentMode = document.getElementById('openmaic-agent-select');
@@ -1274,13 +1323,18 @@
                 agentMode.addEventListener('change', () => {
                     if (agentMode.value === 'preset') {
                         teacherWrapper.classList.add('visible');
+                        expandTeacherPanel();
                     } else {
                         teacherWrapper.classList.remove('visible');
+                        collapseTeacherPanel();
                     }
                 });
                 // 初始状态
                 if (agentMode.value === 'preset') {
                     teacherWrapper.classList.add('visible');
+                    expandTeacherPanel();
+                } else {
+                    collapseTeacherPanel();
                 }
             }
 

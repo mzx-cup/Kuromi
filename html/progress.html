@@ -1,18 +1,27 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星识 Star-Learn - 学习进度</title>
-    <script defer src="https://cdn.tailwindcss.com"></script>
+    <title>学习进度 · 星识 Star-Learn</title>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <link rel="stylesheet" href="/css/app-bg.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/search-command.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
     <link rel="stylesheet" href="/css/progress.css">
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
 </head>
-<body data-bg-unified="true" class="app-body progress-body">
+<body data-bg-unified="true" class="app-body hub-body progress-body">
+    <!-- 统一背景层 -->
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -21,211 +30,241 @@
         <div class="app-bg-orb app-bg-orb-3"></div>
     </div>
 
-    <div class="progress-bg"></div>
-
-    <nav class="progress-nav">
-        <div class="nav-container">
-            <a href="/hub.html" class="nav-back">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                </svg>
-                <span>返回中枢</span>
-            </a>
-            <h1 class="nav-title">学习进度</h1>
-            <div class="nav-actions">
-                <select class="time-select" id="time-range">
-                    <option value="week">本周</option>
-                    <option value="month" selected>本月</option>
-                    <option value="year">本年</option>
-                    <option value="all">全部</option>
-                </select>
+    <!-- 顶部导航 — 使用统一 .app-nav 组件 -->
+    <nav class="app-nav">
+        <div class="app-nav-inner">
+            <div class="app-nav-left">
+                <a href="/hub.html" class="app-nav-back" title="返回中枢" aria-label="返回中枢">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div>
+                    <h1 class="app-nav-title">学习进度</h1>
+                    <p class="app-nav-subtitle">可视化呈现你的成长轨迹</p>
+                </div>
+            </div>
+            <div class="app-nav-right">
+                <div class="time-range" role="tablist" aria-label="时间范围">
+                    <button class="time-range-btn" data-range="week" role="tab" aria-selected="false">本周</button>
+                    <button class="time-range-btn active" data-range="month" role="tab" aria-selected="true">本月</button>
+                    <button class="time-range-btn" data-range="year" role="tab" aria-selected="false">本年</button>
+                    <button class="time-range-btn" data-range="all" role="tab" aria-selected="false">全部</button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <main class="progress-main">
-        <!-- Overview Stats -->
-        <div class="overview-stats stagger">
-            <div class="stat-card app-stat-card fade-up">
-                <div class="stat-icon purple">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    <main class="progress-page fade-in">
+        <!-- 顶部统计卡 -->
+        <section class="stat-grid" id="stat-grid" aria-label="学习数据概览">
+            <div class="stat-card" data-stat="total-hours">
+                <div class="stat-card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <polyline points="12 7 12 12 15 14"/>
                     </svg>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-value" id="total-hours">0</span>
-                    <span class="stat-unit">小时</span>
+                <div class="stat-card-body">
+                    <div class="stat-card-value">
+                        <span data-field="value">0</span>
+                        <span class="unit">小时</span>
+                    </div>
+                    <div class="stat-card-label">
+                        <span>总学习时长</span>
+                        <span class="stat-card-delta neutral" data-field="delta">—</span>
+                    </div>
                 </div>
-                <span class="stat-label">总学习时长</span>
             </div>
 
-            <div class="stat-card app-stat-card fade-up">
-                <div class="stat-icon blue">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+            <div class="stat-card" data-stat="completed-courses">
+                <div class="stat-card-icon success">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 12l2 2 4-4"/>
+                        <circle cx="12" cy="12" r="9"/>
                     </svg>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-value" id="completed-courses">0</span>
-                    <span class="stat-unit">门</span>
+                <div class="stat-card-body">
+                    <div class="stat-card-value">
+                        <span data-field="value">0</span>
+                        <span class="unit">门</span>
+                    </div>
+                    <div class="stat-card-label">
+                        <span>已完成课程</span>
+                        <span class="stat-card-delta neutral" data-field="delta">—</span>
+                    </div>
                 </div>
-                <span class="stat-label">已完成课程</span>
             </div>
 
-            <div class="stat-card app-stat-card fade-up">
-                <div class="stat-icon green">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+            <div class="stat-card" data-stat="current-streak">
+                <div class="stat-card-icon warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2c1 3 4 5.5 4 9a4 4 0 11-8 0c0-1.5.5-2.5 1-3.5C8 9 8 11 9 12c0-3 2-5 2-7 1 1 2 2 2 4 0-2-1-4-1-7z"/>
                     </svg>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-value" id="current-streak">0</span>
-                    <span class="stat-unit">天</span>
+                <div class="stat-card-body">
+                    <div class="stat-card-value">
+                        <span data-field="value">0</span>
+                        <span class="unit">天</span>
+                    </div>
+                    <div class="stat-card-label">
+                        <span>连续学习</span>
+                        <span class="stat-card-delta neutral" data-field="delta">—</span>
+                    </div>
                 </div>
-                <span class="stat-label">连续学习</span>
             </div>
 
-            <div class="stat-card app-stat-card fade-up">
-                <div class="stat-icon orange">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
+            <div class="stat-card" data-stat="avg-daily">
+                <div class="stat-card-icon info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"/>
+                        <path d="M7 14l3-3 4 4 5-7"/>
                     </svg>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-value" id="avg-daily">0.0</span>
-                    <span class="stat-unit">小时</span>
-                </div>
-                <span class="stat-label">日均学习</span>
-            </div>
-        </div>
-
-        <!-- Progress Charts Section -->
-        <div class="charts-grid">
-            <!-- Weekly Activity Chart -->
-            <div class="chart-card app-chart-card fade-in">
-                <div class="chart-header">
-                    <h3 class="chart-title">本周学习活动</h3>
-                    <span class="chart-subtitle">每日学习时长分布</span>
-                </div>
-                <div class="weekly-chart" id="weekly-chart">
-                    <div class="empty-state">正在加载学习活动...</div>
+                <div class="stat-card-body">
+                    <div class="stat-card-value">
+                        <span data-field="value">0.0</span>
+                        <span class="unit">小时</span>
+                    </div>
+                    <div class="stat-card-label">
+                        <span>日均学习</span>
+                        <span class="stat-card-delta neutral" data-field="delta">—</span>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Course Progress Chart -->
-            <div class="chart-card app-chart-card fade-in">
-                <div class="chart-header">
-                    <h3 class="chart-title">课程进度概览</h3>
-                    <span class="chart-subtitle">各分类学习完成率</span>
+        <!-- 图表区 -->
+        <section class="charts-row" aria-label="学习活动与课程进度">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h2 class="chart-card-title">本周学习活动</h2>
+                        <p class="chart-card-subtitle">每日学习时长分布</p>
+                    </div>
                 </div>
-                <div class="course-progress-list" id="course-progress-list">
-                    <div class="empty-state">正在加载课程进度...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Learning Radar & Timeline -->
-        <div class="detail-grid">
-            <!-- Skill Radar -->
-            <div class="chart-card radar-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">能力雷达图</h3>
-                    <span class="chart-subtitle">综合能力评估</span>
-                </div>
-                <div class="radar-chart-container">
-                    <svg class="radar-chart" viewBox="0 0 300 260">
-                        <defs>
-                            <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0.6"/>
-                                <stop offset="100%" stop-color="var(--info)" stop-opacity="0.3"/>
-                            </linearGradient>
-                        </defs>
-                        <g class="radar-grid">
-                            <polygon points="150,30 255,90 220,210 80,210 45,90" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                            <polygon points="150,60 225,100 200,190 100,190 75,100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                            <polygon points="150,90 195,110 180,170 120,170 105,110" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                            <polygon points="150,120 165,120 160,150 140,150 135,120" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-                        </g>
-                        <g class="radar-axis">
-                            <line x1="150" y1="150" x2="150" y2="30" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                            <line x1="150" y1="150" x2="255" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                            <line x1="150" y1="150" x2="220" y2="210" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                            <line x1="150" y1="150" x2="80" y2="210" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                            <line x1="150" y1="150" x2="45" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
-                        </g>
-                        <g class="radar-labels">
-                            <text x="150" y="18" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">编程能力</text>
-                            <text x="268" y="90" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="start">算法思维</text>
-                            <text x="225" y="225" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">系统设计</text>
-                            <text x="75" y="225" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="middle">工程实践</text>
-                            <text x="32" y="90" fill="rgba(255,255,255,0.6)" font-size="11" text-anchor="end">理论知识</text>
-                        </g>
-                        <polygon class="radar-data" points="150,55 220,105 195,175 110,165 85,100" fill="url(#radarGradient)" stroke="#a855f7" stroke-width="2"/>
-                        <circle class="radar-point" cx="150" cy="55" r="4" fill="#a855f7"/>
-                        <circle class="radar-point" cx="220" cy="105" r="4" fill="#a855f7"/>
-                        <circle class="radar-point" cx="195" cy="175" r="4" fill="#a855f7"/>
-                        <circle class="radar-point" cx="110" cy="165" r="4" fill="#a855f7"/>
-                        <circle class="radar-point" cx="85" cy="100" r="4" fill="#a855f7"/>
-                    </svg>
+                <div class="chart-card-body">
+                    <div class="bar-chart" id="weekly-chart" role="img" aria-label="本周学习时长柱状图">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="20" x2="12" y2="10"/>
+                                    <line x1="18" y1="20" x2="18" y2="4"/>
+                                    <line x1="6" y1="20" x2="6" y2="16"/>
+                                </svg>
+                            </div>
+                            <p class="empty-state-title">正在加载学习活动...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Activity Timeline -->
-            <div class="chart-card timeline-card">
-                <div class="chart-header">
-                    <h3 class="chart-title">最近学习记录</h3>
-                    <span class="chart-subtitle">近期学习动态</span>
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h2 class="chart-card-title">课程进度概览</h2>
+                        <p class="chart-card-subtitle">各分类学习完成率</p>
+                    </div>
                 </div>
-                <div class="timeline" id="learning-timeline">
-                    <div class="empty-state">正在加载学习记录...</div>
+                <div class="chart-card-body">
+                    <div class="course-progress-list" id="course-progress-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
+                                </svg>
+                            </div>
+                            <p class="empty-state-title">正在加载课程进度...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Achievement Badges -->
-        <div class="achievements-section">
+        <!-- 能力雷达 + 学习记录 -->
+        <section class="charts-row" aria-label="能力雷达与学习记录">
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h2 class="chart-card-title">能力雷达图</h2>
+                        <p class="chart-card-subtitle">综合能力评估</p>
+                    </div>
+                </div>
+                <div class="chart-card-body">
+                    <div class="radar-container">
+                        <svg class="radar-svg" viewBox="0 0 320 280" role="img" aria-label="能力雷达图">
+                            <defs>
+                                <linearGradient id="radarGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0.55"/>
+                                    <stop offset="100%" stop-color="var(--info)" stop-opacity="0.25"/>
+                                </linearGradient>
+                            </defs>
+                            <g class="radar-grid" id="radar-grid">
+                                <!-- 由 JS 渲染 -->
+                            </g>
+                            <g class="radar-axis" id="radar-axis">
+                                <!-- 由 JS 渲染 -->
+                            </g>
+                            <g class="radar-labels" id="radar-labels">
+                                <!-- 由 JS 渲染 -->
+                            </g>
+                            <polygon class="radar-shape" id="radar-shape" points="" fill="url(#radarGradient)"/>
+                            <g class="radar-points" id="radar-points">
+                                <!-- 由 JS 渲染 -->
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-card-header">
+                    <div>
+                        <h2 class="chart-card-title">最近学习记录</h2>
+                        <p class="chart-card-subtitle">近期学习动态</p>
+                    </div>
+                </div>
+                <div class="chart-card-body">
+                    <div class="timeline-list" id="learning-timeline">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="9"/>
+                                    <polyline points="12 7 12 12 15 14"/>
+                                </svg>
+                            </div>
+                            <p class="empty-state-title">正在加载学习记录...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 学习成就 -->
+        <section class="achievements" aria-label="学习成就">
             <div class="section-header">
-                <h3 class="section-title">学习成就</h3>
-                <span class="section-subtitle">已解锁的里程碑</span>
-            </div>
-            <div class="achievements-grid stagger">
-                <div class="badge-item app-action-card compact unlocked fade-up">
-                    <div class="badge-icon">🏆</div>
-                    <span class="badge-name">初露锋芒</span>
-                    <span class="badge-desc">完成第一门课程</span>
+                <div>
+                    <h2 class="section-title">学习成就</h2>
+                    <p class="section-subtitle">已解锁的里程碑</p>
                 </div>
-                <div class="badge-item app-action-card compact unlocked fade-up">
-                    <div class="badge-icon">🔥</div>
-                    <span class="badge-name">连续7天</span>
-                    <span class="badge-desc">坚持学习一周</span>
-                </div>
-                <div class="badge-item app-action-card compact unlocked fade-up">
-                    <div class="badge-icon">📚</div>
-                    <span class="badge-name">学富五车</span>
-                    <span class="badge-desc">完成10门课程</span>
-                </div>
-                <div class="badge-item app-action-card compact unlocked fade-up">
-                    <div class="badge-icon">⚡</div>
-                    <span class="badge-name">刷题达人</span>
-                    <span class="badge-desc">完成100道算法题</span>
-                </div>
-                <div class="badge-item app-action-card compact locked fade-up">
-                    <div class="badge-icon">🌟</div>
-                    <span class="badge-name">学习之星</span>
-                    <span class="badge-desc">累计学习100小时</span>
-                </div>
-                <div class="badge-item app-action-card compact locked fade-up">
-                    <div class="badge-icon">🎯</div>
-                    <span class="badge-name">年度目标</span>
-                    <span class="badge-desc">完成年度学习计划</span>
+                <div class="section-meta">
+                    已解锁 <strong id="unlocked-count">0</strong> / <span id="total-count">0</span>
                 </div>
             </div>
-        </div>
+            <div class="achievements-grid" id="achievements-grid">
+                <!-- 由 JS 渲染 -->
+            </div>
+        </section>
     </main>
 
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
     <script src="/js/data-layer.js"></script>
     <script src="/js/progress.js"></script>
+    <script src="/js/search-command.js"></script>
+    <script src="/js/onboarding.js"></script>
 </body>
 </html>
-
-

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html data-bg-unified="true" lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/css/calendar.css">
 </head>
 <body data-bg-unified="true" class="app-body calendar-body">
+    <!-- 统一背景层 -->
     <div id="app-bg" class="app-bg-layer">
         <div class="app-bg-stars"></div>
         <div class="app-bg-nebula"></div>
@@ -21,20 +22,19 @@
         <div class="app-bg-orb app-bg-orb-3"></div>
     </div>
 
-    <div class="calendar-bg"></div>
-
+    <!-- 顶部导航 -->
     <nav class="calendar-nav">
         <div class="nav-container">
-            <a href="/hub.html" class="nav-back">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <a href="/hub.html" class="nav-back" aria-label="返回中枢">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
                 <span>返回中枢</span>
             </a>
             <h1 class="nav-title">学习日历</h1>
             <div class="nav-actions">
-                <button class="nav-btn" id="add-event-btn">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button class="nav-btn" id="add-event-btn" type="button" aria-label="添加学习计划">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
                 </button>
@@ -42,26 +42,25 @@
         </div>
     </nav>
 
+    <!-- 主体 -->
     <main class="calendar-main">
         <div class="calendar-layout">
-            <!-- Left: Calendar View -->
-            <div class="calendar-section">
-                <!-- Month Navigation -->
-                <div class="month-header">
-                    <button class="month-nav-btn" id="prev-month">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- 左侧：日历 -->
+            <section class="calendar-section" aria-label="月历">
+                <header class="month-header">
+                    <button class="month-nav-btn" id="prev-month" type="button" aria-label="上个月">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                     </button>
                     <h2 class="month-title" id="month-title">学习日历</h2>
-                    <button class="month-nav-btn" id="next-month">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <button class="month-nav-btn" id="next-month" type="button" aria-label="下个月">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </button>
-                </div>
+                </header>
 
-                <!-- Calendar Grid -->
                 <div class="calendar-grid" id="calendar-grid">
                     <div class="calendar-weekday">日</div>
                     <div class="calendar-weekday">一</div>
@@ -72,106 +71,90 @@
                     <div class="calendar-weekday">六</div>
                 </div>
 
-                <!-- Legend -->
                 <div class="calendar-legend">
-                    <div class="legend-item">
-                        <div class="legend-dot completed"></div>
-                        <span>已完成</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot partial"></div>
-                        <span>部分完成</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot today"></div>
-                        <span>今日</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot future"></div>
-                        <span>已计划</span>
-                    </div>
+                    <div class="legend-item"><span class="legend-dot completed"></span><span>已完成</span></div>
+                    <div class="legend-item"><span class="legend-dot partial"></span><span>部分完成</span></div>
+                    <div class="legend-item"><span class="legend-dot today"></span><span>今日</span></div>
+                    <div class="legend-item"><span class="legend-dot future"></span><span>已计划</span></div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Right: Events & Schedule -->
-            <div class="schedule-section">
-                <!-- Stats Summary -->
+            <!-- 右侧：详情 / 计划 -->
+            <aside class="schedule-section">
                 <div class="stats-summary stagger">
-                    <div class="summary-card app-stat-card fade-up">
+                    <div class="summary-card fade-up">
                         <span class="summary-value" id="study-days">0</span>
                         <span class="summary-label">本月学习天数</span>
                     </div>
-                    <div class="summary-card app-stat-card fade-up">
+                    <div class="summary-card fade-up">
                         <span class="summary-value" id="total-hours-month">0.0</span>
-                        <span class="summary-label">本月学习时长(h)</span>
+                        <span class="summary-label">学习时长 (h)</span>
                     </div>
-                    <div class="summary-card app-stat-card fade-up">
+                    <div class="summary-card fade-up">
                         <span class="summary-value" id="completed-tasks">0</span>
                         <span class="summary-label">完成任务数</span>
                     </div>
                 </div>
 
-                <!-- Day Detail -->
-                <div class="day-detail-card app-content-card fade-in" id="day-detail">
+                <div class="day-detail-card fade-in" id="day-detail">
                     <div class="detail-header">
                         <h3 class="detail-title" id="detail-date">选择日期</h3>
                         <span class="detail-subtitle" id="detail-day">查看当日学习计划</span>
                     </div>
                     <div class="detail-content" id="detail-content">
                         <div class="empty-state">
-                            <svg class="w-12 h-12 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                             </svg>
-                            <p>点击日历中的日期<br>查看当日学习详情</p>
+                            <p>点击左侧日历中的日期<br>查看当日学习详情</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Upcoming Events -->
                 <div class="upcoming-section">
                     <h3 class="section-title">近期学习计划</h3>
                     <div class="events-list" id="events-list">
                         <div class="empty-state">正在加载学习计划...</div>
                     </div>
                 </div>
-            </div>
+            </aside>
         </div>
     </main>
 
-    <!-- Add Event Modal -->
-    <div class="modal-overlay hidden" id="event-modal">
+    <!-- 添加计划弹窗 -->
+    <div class="modal-overlay hidden" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">添加学习计划</h3>
-                <button class="modal-close" id="close-modal">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <h3 class="modal-title" id="modal-title">添加学习计划</h3>
+                <button class="modal-close" id="close-modal" type="button" aria-label="关闭">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
             <form class="event-form" id="event-form">
                 <div class="form-group">
-                    <label class="form-label">学习内容</label>
+                    <label class="form-label" for="event-title">学习内容</label>
                     <input type="text" class="form-input" placeholder="输入学习主题" id="event-title" required>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">日期</label>
+                        <label class="form-label" for="event-date">日期</label>
                         <input type="date" class="form-input" id="event-date" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">时长</label>
+                        <label class="form-label" for="event-duration">时长</label>
                         <select class="form-input" id="event-duration">
-                            <option value="1">1小时</option>
-                            <option value="2">2小时</option>
-                            <option value="3" selected>3小时</option>
-                            <option value="4">4小时</option>
-                            <option value="5">5小时</option>
+                            <option value="1">1 小时</option>
+                            <option value="2">2 小时</option>
+                            <option value="3" selected>3 小时</option>
+                            <option value="4">4 小时</option>
+                            <option value="5">5 小时</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">分类</label>
+                    <span class="form-label">分类</span>
                     <div class="category-options">
                         <label class="category-option">
                             <input type="radio" name="event-category" value="python" checked>
@@ -187,7 +170,7 @@
                         </label>
                         <label class="category-option">
                             <input type="radio" name="event-category" value="web">
-                            <span class="category-tag web">🌐 Web开发</span>
+                            <span class="category-tag web">🌐 Web</span>
                         </label>
                         <label class="category-option">
                             <input type="radio" name="event-category" value="ai">
@@ -196,7 +179,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">备注</label>
+                    <label class="form-label" for="event-desc">备注</label>
                     <textarea class="form-textarea" placeholder="添加备注信息..." id="event-desc" rows="3"></textarea>
                 </div>
                 <div class="form-actions">

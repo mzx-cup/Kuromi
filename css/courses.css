@@ -54,8 +54,10 @@
   padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid var(--border-glass);
-  background: var(--bg-glass);
-  color: var(--text-secondary);
+  background: var(--surface-glass);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-body);
   font-size: 13px;
   font-weight: 500;
   font-family: inherit;
@@ -63,10 +65,19 @@
   transition: all 0.2s;
 }
 
+.courses-edit-btn svg {
+  color: var(--text-body);
+  flex-shrink: 0;
+}
+
 .courses-edit-btn:hover {
-  background: var(--bg-glass-hover);
-  color: var(--text-primary);
+  background: var(--surface-glass-hover);
+  color: var(--text-heading);
   border-color: rgba(249, 115, 22, 0.3);
+}
+
+.courses-edit-btn:hover svg {
+  color: var(--text-heading);
 }
 
 /* ---- Main Content ---- */
