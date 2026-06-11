@@ -61,8 +61,8 @@
     function getCurrentUserId() {
         try {
             const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
-            return user.id || 1;
-        } catch (e) { return 1; }
+            return user.id || null;
+        } catch (e) { return null; }
     }
     function setText(id, value) {
         const el = document.getElementById(id);
@@ -108,8 +108,14 @@
     async function loadCalendarData() {
         if (isLoading) return;
         isLoading = true;
+        const userId = getCurrentUserId();
+        if (!userId) {
+            isLoading = false;
+            renderLoginRequired();
+            return;
+        }
         try {
-            const response = await fetch(`/api/calendar-events/load/${getCurrentUserId()}`);
+            const response = await fetch(`/api/calendar-events/load/${userId}`);
             const data = await response.json();
             if (!response.ok || !data.success) throw new Error(data.detail || 'load failed');
             eventsData = data.eventsData || {};
@@ -124,6 +130,17 @@
         // 兜底：把 eventsData 扁平化为 days 数据，便于 heatmap
         enrichCalendarFromEvents();
         refreshAll();
+    }
+
+    function renderLoginRequired() {
+        const root = document.querySelector('.calendar-root') || document.body;
+        root.innerHTML = '' +
+            '<div class="calendar-empty">' +
+                '<div class="calendar-empty-icon">✦</div>' +
+                '<h3 class="calendar-empty-title">请先登录</h3>' +
+                '<p class="calendar-empty-desc">登录后即可查看你的学习日历</p>' +
+                '<a href="/login.html" class="calendar-empty-btn">前往登录</a>' +
+            '</div>';
     }
 
     function enrichCalendarFromEvents() {

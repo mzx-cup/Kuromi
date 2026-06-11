@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { mkdir } from 'fs/promises';
 
-const URL = 'http://localhost:8765/html/data-dashboard.html';
+const URL = 'http://localhost:8765/data-dashboard.html';
 const OUT = 'C:/Users/zwc/Downloads/Kuromi-main/Kuromi-main/verify-dd-out';
 
 async function run() {

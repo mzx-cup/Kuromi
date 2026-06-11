@@ -38,7 +38,7 @@ const path = require('path');
     await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ detail: 'mock - 不实际播放' }) });
   });
 
-  const url = 'http://localhost:8001/html/video-player.html';
+  const url = 'http://localhost:8001/video-player.html';
   await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
   await page.waitForTimeout(1200);
 

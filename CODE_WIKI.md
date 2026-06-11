@@ -188,19 +188,19 @@ graph TD
 
 | 页面名称 | 功能 | 文件路径 |
 |---------|------|----------|
-| 登录页面 | 用户登录 | [login.html](file:///workspace/html/login.html) |
-| 注册页面 | 用户注册 | [register.html](file:///workspace/html/register.html) |
-| 个人中心 | 用户信息管理 | [personal.html](file:///workspace/html/personal.html) |
-| 评估页面 | 学习风格评估 | [assessment.html](file:///workspace/html/assessment.html) |
-| 中枢主页 | 系统主界面 | [hub.html](file:///workspace/html/hub.html) |
-| 课程中心 | 课程管理 | [courses.html](file:///workspace/html/courses.html) |
-| 代码练习 | 代码编写和运行 | [code.html](file:///workspace/html/code.html) |
-| 学习进度 | 学习进度跟踪 | [progress.html](file:///workspace/html/progress.html) |
-| 学习日历 | 学习计划管理 | [calendar.html](file:///workspace/html/calendar.html) |
-| 智脑苏格拉底 | 苏格拉底式教学 | [socratic-ai.html](file:///workspace/html/socratic-ai.html) |
-| 星云陈列室 | 学习资源展示 | [stellar-showcase.html](file:///workspace/html/stellar-showcase.html) |
-| 心流共振仪 | 学习状态监测 | [flow-meter.html](file:///workspace/html/flow-meter.html) |
-| 林场页面 | 学习成就展示 | [plant.html](file:///workspace/html/plant.html) |
+| 登录页面 | 用户登录 | [login.html](file:///workspace/login.html) |
+| 注册页面 | 用户注册 | [register.html](file:///workspace/register.html) |
+| 个人中心 | 用户信息管理 | [personal.html](file:///workspace/personal.html) |
+| 评估页面 | 学习风格评估 | [assessment.html](file:///workspace/assessment.html) |
+| 中枢主页 | 系统主界面 | [hub.html](file:///workspace/hub.html) |
+| 课程中心 | 课程管理 | [courses.html](file:///workspace/courses.html) |
+| 代码练习 | 代码编写和运行 | [code.html](file:///workspace/code.html) |
+| 学习进度 | 学习进度跟踪 | [progress.html](file:///workspace/progress.html) |
+| 学习日历 | 学习计划管理 | [calendar.html](file:///workspace/calendar.html) |
+| 智脑苏格拉底 | 苏格拉底式教学 | [socratic-ai.html](file:///workspace/socratic-ai.html) |
+| 星云陈列室 | 学习资源展示 | [stellar-showcase.html](file:///workspace/stellar-showcase.html) |
+| 心流共振仪 | 学习状态监测 | [flow-meter.html](file:///workspace/flow-meter.html) |
+| 林场页面 | 学习成就展示 | [plant.html](file:///workspace/plant.html) |
 
 ### 4.2 前端功能
 

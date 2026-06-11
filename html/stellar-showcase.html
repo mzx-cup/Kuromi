@@ -4,157 +4,247 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>星云陈列室 - 星识 Star-Learn</title>
-    <script defer src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/app-base.css">
-    <link rel="stylesheet" href="/css/app-bg.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/stellar-showcase.css">
-    <link rel="stylesheet" href="/css/notifications.css">
 </head>
-<body data-bg-unified="true" class="app-body stellar-body">
-    <div id="app-bg" class="app-bg-layer">
-        <div class="app-bg-stars"></div>
-        <div class="app-bg-nebula"></div>
-        <div class="app-bg-orb app-bg-orb-1"></div>
-        <div class="app-bg-orb app-bg-orb-2"></div>
-        <div class="app-bg-orb app-bg-orb-3"></div>
-    </div>
-
-    <!-- 星空背景 -->
-    <div class="stellar-bg" id="stellar-bg"></div>
-
-    <!-- 顶部导航 -->
-    <nav class="stellar-nav">
-        <div class="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-            <a href="/hub.html" class="flex items-center gap-3 text-white/80 hover:text-white transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                <span class="text-sm">返回中枢</span>
-            </a>
-            <div class="flex items-center gap-2">
-                <span class="text-amber-400 text-lg">✦</span>
-                <h1 class="text-white font-semibold tracking-wide">星云陈列室</h1>
+<body data-bg-unified="true" class="app-body stellar-body" data-page="stellar-showcase">
+    
+<!-- 顶部导航 -->
+    <nav class="ss-nav">
+        <div class="ss-nav-inner">
+            <div class="ss-nav-left">
+                <a href="/hub.html" class="ss-back-link" aria-label="返回中枢">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                    <span>中枢</span>
+                </a>
+                <div class="ss-nav-divider"></div>
+                <div class="ss-nav-title-block">
+                    <span class="ss-nav-icon" aria-hidden="true">✦</span>
+                    <h1 class="ss-nav-title">星云陈列室</h1>
+                </div>
             </div>
-            <div class="text-right">
-                <span class="text-xs text-white/50">已解锁</span>
-                <span class="text-amber-400 font-bold ml-1" id="badge-count">0</span>
-                <span class="text-xs text-white/50">/ <span id="badge-total">0</span></span>
+            <div class="ss-nav-right">
+                <div class="ss-counter" aria-label="解锁进度">
+                    <span class="ss-counter-label">已解锁</span>
+                    <span class="ss-counter-value" id="ss-counter-value">0</span>
+                    <span class="ss-counter-divider">/</span>
+                    <span class="ss-counter-total" id="ss-counter-total">0</span>
+                </div>
+                <button class="ss-icon-btn" id="theme-settings-btn" type="button" title="主题设置" aria-label="主题设置">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="ss-icon-btn" onclick="Auth.logout()" type="button" title="退出登录" aria-label="退出登录">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
 
-    <!-- 主内容区域 -->
-    <main class="stellar-main fade-in">
-        <!-- 统计概览 -->
-        <div class="stats-overview">
-            <div class="stat-card app-stat-card">
-                <div class="stat-icon legendary">🏆</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="legendary-count">0</div>
-                    <div class="stat-label">传奇</div>
-                </div>
-            </div>
-            <div class="stat-card app-stat-card">
-                <div class="stat-icon epic">💎</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="epic-count">0</div>
-                    <div class="stat-label">史诗</div>
-                </div>
-            </div>
-            <div class="stat-card app-stat-card">
-                <div class="stat-icon rare">⭐</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="rare-count">0</div>
-                    <div class="stat-label">稀有</div>
-                </div>
-            </div>
-            <div class="stat-card app-stat-card">
-                <div class="stat-icon common">✦</div>
-                <div class="stat-info">
-                    <div class="stat-value" id="common-count">0</div>
-                    <div class="stat-label">普通</div>
-                </div>
-            </div>
-        </div>
+    <!-- 主体 -->
+    <main class="ss-main">
+        <div class="ss-container">
 
-        <!-- 分类标签 -->
-        <div class="category-tabs">
-            <button class="category-tab active" data-category="all">
-                <span class="text-lg">✧</span>
-                <span>全部</span>
-            </button>
-            <button class="category-tab" data-category="skill">
-                <span class="text-lg">⚔</span>
-                <span>技能徽章</span>
-            </button>
-            <button class="category-tab" data-category="course">
-                <span class="text-lg">📜</span>
-                <span>课程证书</span>
-            </button>
-            <button class="category-tab" data-category="master">
-                <span class="text-lg">🌟</span>
-                <span>大师成就</span>
-            </button>
-        </div>
+            <!-- 顶部: 标题 + 概览 -->
+            <section class="ss-hero">
+                <div class="ss-hero-text">
+                    <h2 class="ss-hero-title">你在星识之旅中收集到的勋章</h2>
+                    <p class="ss-hero-sub">从第一次学习到年度霸主的每一道里程碑,都在这里发出微光</p>
+                </div>
+                <div class="ss-hero-progress" aria-label="总进度">
+                    <svg class="ss-hero-ring" viewBox="0 0 64 64" aria-hidden="true">
+                        <circle cx="32" cy="32" r="28" class="ss-hero-ring-track"/>
+                        <circle cx="32" cy="32" r="28" class="ss-hero-ring-fill" id="ss-hero-ring-fill"/>
+                    </svg>
+                    <div class="ss-hero-progress-text">
+                        <span class="ss-hero-progress-pct" id="ss-hero-progress-pct">0%</span>
+                        <span class="ss-hero-progress-label">总进度</span>
+                    </div>
+                </div>
+            </section>
 
-        <!-- 徽章展示网格 -->
-        <div class="badge-showcase stagger" id="badge-showcase"></div>
+            <!-- 稀有度统计 -->
+            <section class="ss-stats" id="ss-stats" aria-label="稀有度分布">
+                <article class="ss-stat" data-tier="legendary">
+                    <div class="ss-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M8 4h8l-2 6h4l-7 10 1.5-7H7l3-5H8z" fill="currentColor" stroke="none"/>
+                            <path d="M5 21h14" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="ss-stat-body">
+                        <div class="ss-stat-value" id="ss-stat-legendary">0</div>
+                        <div class="ss-stat-label">传奇</div>
+                    </div>
+                    <div class="ss-stat-bar"><span id="ss-stat-bar-legendary" style="width:0%"></span></div>
+                </article>
+                <article class="ss-stat" data-tier="epic">
+                    <div class="ss-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M6 3h12l3 7-9 11L3 10z" fill="currentColor" stroke="none" opacity="0.4"/>
+                            <path d="M6 3h12l3 7-9 11L3 10z" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </div>
+                    <div class="ss-stat-body">
+                        <div class="ss-stat-value" id="ss-stat-epic">0</div>
+                        <div class="ss-stat-label">史诗</div>
+                    </div>
+                    <div class="ss-stat-bar"><span id="ss-stat-bar-epic" style="width:0%"></span></div>
+                </article>
+                <article class="ss-stat" data-tier="rare">
+                    <div class="ss-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4-6.5 4 2-7L2 9h7z" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </div>
+                    <div class="ss-stat-body">
+                        <div class="ss-stat-value" id="ss-stat-rare">0</div>
+                        <div class="ss-stat-label">稀有</div>
+                    </div>
+                    <div class="ss-stat-bar"><span id="ss-stat-bar-rare" style="width:0%"></span></div>
+                </article>
+                <article class="ss-stat" data-tier="common">
+                    <div class="ss-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                            <path d="M12 2v20M2 12h20M5 5l14 14M19 5L5 19" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="ss-stat-body">
+                        <div class="ss-stat-value" id="ss-stat-common">0</div>
+                        <div class="ss-stat-label">普通</div>
+                    </div>
+                    <div class="ss-stat-bar"><span id="ss-stat-bar-common" style="width:0%"></span></div>
+                </article>
+            </section>
+
+            <!-- 筛选区: 分类 + 稀有度 + 状态 -->
+            <section class="ss-filters" aria-label="筛选">
+                <div class="ss-filter-group" role="tablist" aria-label="分类">
+                    <button class="ss-tab active" data-category="all" type="button" role="tab">
+                        <span class="ss-tab-emoji">✧</span>
+                        <span>全部</span>
+                        <span class="ss-tab-count" id="ss-tab-count-all">0</span>
+                    </button>
+                    <button class="ss-tab" data-category="skill" type="button" role="tab">
+                        <span class="ss-tab-emoji">⚔</span>
+                        <span>技能徽章</span>
+                        <span class="ss-tab-count" id="ss-tab-count-skill">0</span>
+                    </button>
+                    <button class="ss-tab" data-category="course" type="button" role="tab">
+                        <span class="ss-tab-emoji">📜</span>
+                        <span>课程证书</span>
+                        <span class="ss-tab-count" id="ss-tab-count-course">0</span>
+                    </button>
+                    <button class="ss-tab" data-category="master" type="button" role="tab">
+                        <span class="ss-tab-emoji">🌟</span>
+                        <span>大师成就</span>
+                        <span class="ss-tab-count" id="ss-tab-count-master">0</span>
+                    </button>
+                </div>
+                <div class="ss-filter-meta">
+                    <div class="ss-chip-group" role="tablist" aria-label="稀有度">
+                        <button class="ss-chip active" data-tier="all" type="button">全部</button>
+                        <button class="ss-chip" data-tier="legendary" type="button">传奇</button>
+                        <button class="ss-chip" data-tier="epic" type="button">史诗</button>
+                        <button class="ss-chip" data-tier="rare" type="button">稀有</button>
+                        <button class="ss-chip" data-tier="common" type="button">普通</button>
+                    </div>
+                    <div class="ss-chip-group" role="tablist" aria-label="状态">
+                        <button class="ss-chip active" data-status="all" type="button">全部</button>
+                        <button class="ss-chip" data-status="unlocked" type="button">已解锁</button>
+                        <button class="ss-chip" data-status="locked" type="button">未解锁</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 徽章主体 -->
+            <section class="ss-body" id="ss-body" aria-live="polite">
+                <div class="ss-loading">
+                    <div class="ss-spinner"></div>
+                    <span>正在加载勋章...</span>
+                </div>
+            </section>
+
+        </div>
     </main>
 
-    <!-- 徽章详情模态框 -->
-    <div class="badge-modal" id="badge-modal">
-        <div class="modal-backdrop"></div>
-        <div class="modal-content app-form-card">
-            <button class="modal-close" id="modal-close">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    <!-- 徽章详情弹窗 -->
+    <div class="ss-modal" id="ss-modal" hidden>
+        <div class="ss-modal-backdrop" data-close></div>
+        <div class="ss-modal-panel" role="dialog" aria-modal="true" aria-labelledby="ss-modal-title">
+            <button class="ss-modal-close" data-close type="button" aria-label="关闭">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
             </button>
-            <div class="modal-badge">
-                <div class="badge-base large" id="modal-badge-base">
-                    <div class="badge-icon" id="modal-icon-container"></div>
-                    <div class="badge-glare"></div>
-                    <div class="badge-glow"></div>
+
+            <div class="ss-modal-hero" id="ss-modal-hero">
+                <div class="ss-medal" id="ss-modal-medal">
+                    <div class="ss-medal-ring"></div>
+                    <div class="ss-medal-disc" id="ss-modal-disc">
+                        <div class="ss-medal-icon" id="ss-modal-icon"></div>
+                    </div>
+                    <div class="ss-medal-shine"></div>
                 </div>
             </div>
-            <div class="modal-info">
-                <h2 class="modal-title" id="modal-title">成就名称</h2>
-                <p class="modal-desc" id="modal-desc">成就描述</p>
-                <div class="modal-meta">
-                    <span class="modal-tier" id="modal-tier">传奇</span>
-                    <span class="modal-date" id="modal-date"></span>
+
+            <div class="ss-modal-body">
+                <div class="ss-modal-tags">
+                    <span class="ss-modal-tier" id="ss-modal-tier">传奇</span>
+                    <span class="ss-modal-category" id="ss-modal-category">技能徽章</span>
+                    <span class="ss-modal-status" id="ss-modal-status">未解锁</span>
                 </div>
-                <div class="modal-progress" id="modal-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
+                <h2 class="ss-modal-name" id="ss-modal-title">成就名称</h2>
+                <p class="ss-modal-desc" id="ss-modal-desc">成就描述</p>
+
+                <div class="ss-modal-progress" id="ss-modal-progress" hidden>
+                    <div class="ss-progress-label">
+                        <span>当前进度</span>
+                        <span class="ss-progress-value" id="ss-modal-progress-text">0 / 0</span>
                     </div>
-                    <div class="progress-text" id="progress-text">0 / 0</div>
+                    <div class="ss-progress-track">
+                        <div class="ss-progress-fill" id="ss-modal-progress-fill" style="width:0%"></div>
+                    </div>
                 </div>
-                <div class="modal-stats" id="modal-stats">
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-unlocked-time">-</span>
-                        <span class="stat-label">解锁时间</span>
+
+                <div class="ss-modal-stats">
+                    <div class="ss-modal-stat">
+                        <div class="ss-modal-stat-label">解锁时间</div>
+                        <div class="ss-modal-stat-value" id="ss-stat-unlock-time">-</div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-category">-</span>
-                        <span class="stat-label">类别</span>
+                    <div class="ss-modal-stat">
+                        <div class="ss-modal-stat-label">稀有度</div>
+                        <div class="ss-modal-stat-value" id="ss-stat-rarity">-</div>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-value" id="stat-rarity">-</span>
-                        <span class="stat-label">稀有度</span>
+                    <div class="ss-modal-stat">
+                        <div class="ss-modal-stat-label">编号</div>
+                        <div class="ss-modal-stat-value" id="ss-stat-code">-</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="/js/data-layer.js"></script>
+    <!-- Toast -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/loading.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
     <script src="/js/achievements-data.js"></script>
-    <script src="/js/notifications.js"></script>
-    <script src="/js/achievement-manager.js"></script>
     <script src="/js/stellar-showcase.js"></script>
 </body>
 </html>

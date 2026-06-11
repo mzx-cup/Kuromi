@@ -5260,11 +5260,11 @@ def generate_daily_route(request: DailyRouteRequest):
         today_key = datetime.now().strftime("%Y-%m-%d")
 
         default_tasks = [
-            {"id": 1, "title": "英语单词记忆", "description": "背诵20个核心词汇", "type": "study", "duration": 20, "subject": "英语", "difficulty": "easy", "taskUrl": "/html/courses.html"},
-            {"id": 2, "title": "高数专项练习", "description": "完成5道极限练习题", "type": "practice", "duration": 30, "subject": "数学", "difficulty": "medium", "taskUrl": "/html/courses.html"},
-            {"id": 3, "title": "错题回顾", "description": "复习本周典型错题", "type": "review", "duration": 25, "subject": "通用", "difficulty": "medium", "taskUrl": "/html/courses.html"},
-            {"id": 4, "title": "算法挑战", "description": "完成2道简单算法题", "type": "practice", "duration": 30, "subject": "编程", "difficulty": "medium", "taskUrl": "/html/courses.html"},
-            {"id": 5, "title": "喂养星宝", "description": "放松一下，照顾虚拟宠物", "type": "relax", "duration": 10, "subject": "休闲", "difficulty": "easy", "taskUrl": "/html/pet.html"},
+            {"id": 1, "title": "英语单词记忆", "description": "背诵20个核心词汇", "type": "study", "duration": 20, "subject": "英语", "difficulty": "easy", "taskUrl": "/courses.html"},
+            {"id": 2, "title": "高数专项练习", "description": "完成5道极限练习题", "type": "practice", "duration": 30, "subject": "数学", "difficulty": "medium", "taskUrl": "/courses.html"},
+            {"id": 3, "title": "错题回顾", "description": "复习本周典型错题", "type": "review", "duration": 25, "subject": "通用", "difficulty": "medium", "taskUrl": "/courses.html"},
+            {"id": 4, "title": "算法挑战", "description": "完成2道简单算法题", "type": "practice", "duration": 30, "subject": "编程", "difficulty": "medium", "taskUrl": "/courses.html"},
+            {"id": 5, "title": "喂养星宝", "description": "放松一下，照顾虚拟宠物", "type": "relax", "duration": 10, "subject": "休闲", "difficulty": "easy", "taskUrl": "/pet.html"},
         ]
 
         if not user_id:
@@ -5420,7 +5420,7 @@ def generate_daily_route(request: DailyRouteRequest):
             if 'id' not in task:
                 task['id'] = i + 1
             if 'taskUrl' not in task:
-                task['taskUrl'] = '/html/courses.html'
+                task['taskUrl'] = '/courses.html'
 
         try:
             cache_data = {

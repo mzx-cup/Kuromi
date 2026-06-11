@@ -19,11 +19,11 @@ const AxeBuilder = require('@axe-core/playwright').default;
 
 // 核心页面（选择代表各类布局的页面）
 const A11Y_PAGES = [
-  { name: 'login', path: '/html/login.html' },
-  { name: 'register', path: '/html/register.html' },
-  { name: 'hub', path: '/html/hub.html' },
-  { name: 'settings', path: '/html/settings.html' },
-  { name: 'stellar-showcase', path: '/html/stellar-showcase.html' },
+  { name: 'login', path: '/login.html' },
+  { name: 'register', path: '/register.html' },
+  { name: 'hub', path: '/hub.html' },
+  { name: 'settings', path: '/settings.html' },
+  { name: 'stellar-showcase', path: '/stellar-showcase.html' },
 ];
 
 A11Y_PAGES.forEach(({ name, path }) => {
@@ -58,7 +58,7 @@ A11Y_PAGES.forEach(({ name, path }) => {
 // 键盘导航测试
 test.describe('键盘可访问性', () => {
   test('登录页 — Tab 键应能导航到所有交互元素', async ({ page }) => {
-    await page.goto('/html/login.html', { waitUntil: 'networkidle' });
+    await page.goto('/login.html', { waitUntil: 'networkidle' });
 
     // 按 Tab 聚焦第一个可聚焦元素
     await page.keyboard.press('Tab');
@@ -81,7 +81,7 @@ test.describe('键盘可访问性', () => {
 // 颜色对比度专项测试
 test.describe('颜色对比度', () => {
   test('hub.html — 文字应与背景有足够对比度', async ({ page }) => {
-    await page.goto('/html/hub.html', { waitUntil: 'networkidle' });
+    await page.goto('/hub.html', { waitUntil: 'networkidle' });
 
     // 使用 axe 仅运行 color-contrast 规则
     const results = await new AxeBuilder({ page })

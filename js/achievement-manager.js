@@ -57,7 +57,7 @@
                 title: '🏆 成就解锁！',
                 content: `${achievement.name} - ${achievement.desc}`,
                 actionLabel: '查看详情',
-                actionUrl: '/html/stellar-showcase.html',
+                actionUrl: '/stellar-showcase.html',
                 type: 'achievement'
             });
         }

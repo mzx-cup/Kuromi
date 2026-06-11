@@ -46,7 +46,7 @@ const path = require('path');
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(demo) });
   });
 
-  const url = 'http://localhost:8001/html/progress.html';
+  const url = 'http://localhost:8001/progress.html';
   await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });
   // 等待数据动画
   await page.waitForTimeout(1500);

@@ -7,7 +7,8 @@
     <script defer src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/app-base.css">
-    <link rel="stylesheet" href="/css/app-bg.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/course-learn.css">
@@ -19,18 +20,9 @@
 </head>
 <body data-bg-unified="true" class="app-body course-learn-body" data-page="course-learn">
     <!-- 统一背景层 -->
-    <div id="app-bg" class="app-bg-layer">
-        <div class="app-bg-stars"></div>
-        <div class="app-bg-nebula"></div>
-        <div class="app-bg-orb app-bg-orb-1"></div>
-        <div class="app-bg-orb app-bg-orb-2"></div>
-        <div class="app-bg-orb app-bg-bg-orb-3"></div>
-    </div>
-
-    <div class="global-bg-layer" id="global-bg-layer"></div>
-    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
-
-    <!-- 顶部导航 -->
+    <div class="app-bg-orb app-bg-bg-orb-3"></div>
+    
+<!-- 顶部导航 -->
     <nav class="cl-nav">
         <div class="cl-nav-inner">
             <div class="cl-nav-left">
@@ -357,7 +349,6 @@
     <!-- Toast 容器 -->
     <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
-    <script src="/js/course-learn-data.js"></script>
     <script src="/js/course-learn.js"></script>
 </body>
 </html>

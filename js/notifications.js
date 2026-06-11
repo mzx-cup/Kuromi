@@ -278,7 +278,7 @@
                 title: '🌱 获得种子',
                 content: `完成专注，获得 1 颗种子（当前：${newCount}）`,
                 actionLabel: '前往林场',
-                actionUrl: '/html/plant.html',
+                actionUrl: '/plant.html',
                 type: 'seed'
             });
         }

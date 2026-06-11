@@ -65,7 +65,7 @@ async function waitAuth(page, timeout = 5000) {
     });
   });
 
-  const url = 'http://localhost:8001/html/login.html';
+  const url = 'http://localhost:8001/login.html';
 
   // ───────── 1. 视觉：3 主题 ─────────
   await page.goto(url, { waitUntil: 'networkidle', timeout: 15000 });

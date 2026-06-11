@@ -5,10 +5,9 @@
  * 模块:
  *   - 章节树渲染与切换
  *   - B 站视频播放 (iframe embed)
- *   - 字幕加载 / 渲染 / 点击跳转
- *   - AI 讲义渲染
+ *   - 字幕加载 / 渲染 / 点击跳转 (B 站 API, 无则空状态)
+ *   - AI 讲义 / 关键概念 / 思维导图 / 课后练习 — 由后端返回, 无则空状态
  *   - 笔记自动保存 (localStorage)
- *   - 关键概念 (从 course-learn-data.js 取)
  *   - 思维导图 SVG 渲染 (递归布局, 支持缩放拖动)
  *   - 课后练习 (选择/判断/填空, 自动判分)
  *   - 步骤引导 (stepper) 进度同步
@@ -50,6 +49,7 @@
   var dragStartX        = 0;
   var dragStartY        = 0;
   var currentMindMap    = null;  // 当前 mindmap 数据, 用于切换步骤时重渲染
+  var currentExercises  = [];    // 当前练习, 用于重置答卷时重渲染
 
   /* ===================== 入口 ===================== */
   function init() {
@@ -376,9 +376,7 @@
     container.innerHTML = '<div class="cl-subtitle-empty">加载字幕中...</div>';
 
     if (!bvid) {
-      // 走样例数据
-      var content = window.CourseLearnData.getContent(currentSubId());
-      renderSubtitles(content.subtitles);
+      renderSubtitles([]);
       return;
     }
 
@@ -391,15 +389,14 @@
       .then(function (res) {
         if (res && res.code === 200 && res.data && res.data.length > 0) {
           subtitleData = res.data[0].content || [];
-          renderSubtitles(subtitleData);
         } else {
-          var content = window.CourseLearnData.getContent(currentSubId());
-          renderSubtitles(content.subtitles);
+          subtitleData = [];
         }
+        renderSubtitles(subtitleData);
       })
       .catch(function () {
-        var content = window.CourseLearnData.getContent(currentSubId());
-        renderSubtitles(content.subtitles);
+        subtitleData = [];
+        renderSubtitles(subtitleData);
       });
   }
 
@@ -440,30 +437,42 @@
 
   /* ===================== 学习内容加载 (核心) ===================== */
   function loadLearningContent(sub) {
-    var content = window.CourseLearnData.getContent(sub.id);
     var ch = chapters[currentChapterIdx];
-    var sub = ch && ch.children[currentSubIdx];
+    var currentSub = ch && ch.children[currentSubIdx];
 
     // 1. 欢迎标题
     document.getElementById('cl-welcome-title-text').textContent =
-      (course ? course.title + ' · ' : '') + (sub ? sub.title : '');
+      (course ? course.title + ' · ' : '') + (currentSub ? currentSub.title : '');
 
-    // 2. 讲义
-    var transcriptEl = document.getElementById('cl-transcript-content');
-    if (content.transcript) {
-      transcriptEl.innerHTML = content.transcript;
-    } else {
-      transcriptEl.innerHTML = '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
-    }
+    // 2. 讲义 / 概念 / 导图 / 练习 — 全部走后端, 无数据则空状态
+    fetch('/api/courses/courses/' + encodeURIComponent(courseId) + '/subchapters/' + encodeURIComponent(sub.id) + '/content')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (res) {
+        var data = (res && res.data) || {};
 
-    // 3. 关键概念
-    renderConcepts(content.concepts || []);
+        var transcriptEl = document.getElementById('cl-transcript-content');
+        if (data.transcript) {
+          transcriptEl.innerHTML = data.transcript;
+        } else {
+          transcriptEl.innerHTML = '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
+        }
 
-    // 4. 思维导图
-    renderMindMap(content.mindMap);
+        currentMindMap   = data.mindMap || null;
+        currentExercises = data.exercises || [];
 
-    // 5. 练习
-    renderExercises(content.exercises || []);
+        renderConcepts(data.concepts || []);
+        renderMindMap(currentMindMap);
+        renderExercises(currentExercises);
+      })
+      .catch(function () {
+        document.getElementById('cl-transcript-content').innerHTML =
+          '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
+        currentMindMap   = null;
+        currentExercises = [];
+        renderConcepts([]);
+        renderMindMap(null);
+        renderExercises([]);
+      });
   }
 
   function currentSubId() {
@@ -962,11 +971,7 @@
   function resetExercises() {
     exerciseState = {};
     saveExerciseState();
-    var subId = currentSubId();
-    if (subId) {
-      var content = window.CourseLearnData.getContent(subId);
-      renderExercises(content.exercises || []);
-    }
+    renderExercises(currentExercises);
   }
 
   function submitExercises() {

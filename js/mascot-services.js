@@ -164,22 +164,22 @@ window.MascotServices = (() => {
   // 4. 导航
   // ═══════════════════════════════════════════
   const ROUTE_MAP = {
-    'AI问答':       '/html/index.html',
-    '课程中心':     '/html/courses.html',
-    '我的课程':     '/html/courses.html',
-    '课程':         '/html/courses.html',
-    '学习数据':     '/html/personal.html',
-    '数据看板':     '/html/personal.html',
-    '个人中心':     '/html/personal.html',
-    '代码工坊':     '/html/code.html',
-    '代码':         '/html/code.html',
-    '苏格拉底教学': '/html/socratic-ai.html',
-    '苏格拉底':     '/html/socratic-ai.html',
-    '全息视界':     '/html/video-player.html',
-    'AI编程':       '/html/ai-pair-programming.html',
-    '日历':         '/html/calendar.html',
-    '进度':         '/html/progress.html',
-    '评测':         '/html/assessment.html',
+    'AI问答':       '/index.html',
+    '课程中心':     '/courses.html',
+    '我的课程':     '/courses.html',
+    '课程':         '/courses.html',
+    '学习数据':     '/personal.html',
+    '数据看板':     '/personal.html',
+    '个人中心':     '/personal.html',
+    '代码工坊':     '/code.html',
+    '代码':         '/code.html',
+    '苏格拉底教学': '/socratic-ai.html',
+    '苏格拉底':     '/socratic-ai.html',
+    '全息视界':     '/video-player.html',
+    'AI编程':       '/ai-pair-programming.html',
+    '日历':         '/calendar.html',
+    '进度':         '/progress.html',
+    '评测':         '/assessment.html',
   };
 
   function navigate(target) {

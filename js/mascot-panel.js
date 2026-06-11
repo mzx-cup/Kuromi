@@ -754,10 +754,10 @@ document.addEventListener('alpine:init', () => {
     // ═══════════════════════════════════
     handleProactiveAction(action) {
       const label = action.action_label || '';
-      if (label.includes('复习')) window.location.href = '/html/courses.html';
+      if (label.includes('复习')) window.location.href = '/courses.html';
       else if (label.includes('练习') || label.includes('提示')) this.addMsg('system', '请直接告诉我你需要什么帮助~');
       else if (label.includes('休息') || label.includes('知道')) this.addMsg('system', '好的，注意劳逸结合哦~');
-      else if (label.includes('计划') || label.includes('查看')) window.location.href = '/html/personal.html';
+      else if (label.includes('计划') || label.includes('查看')) window.location.href = '/personal.html';
       else if (label.includes('番茄')) this.togglePomodoro();
       else this.addMsg('system', '好的，请告诉我你需要什么~');
     },

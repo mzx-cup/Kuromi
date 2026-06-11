@@ -25,10 +25,10 @@ const { test, expect } = require('@playwright/test');
 
 // 需要视觉回归覆盖的核心页面
 const VISUAL_PAGES = [
-  { name: 'login', path: '/html/login.html', fullPage: false },
-  { name: 'hub', path: '/html/hub.html', fullPage: true, maxDiff: 2000 },
-  { name: 'settings', path: '/html/settings.html', fullPage: false },
-  { name: 'stellar-showcase', path: '/html/stellar-showcase.html', fullPage: true, maxDiff: 500 },
+  { name: 'login', path: '/login.html', fullPage: false },
+  { name: 'hub', path: '/hub.html', fullPage: true, maxDiff: 2000 },
+  { name: 'settings', path: '/settings.html', fullPage: false },
+  { name: 'stellar-showcase', path: '/stellar-showcase.html', fullPage: true, maxDiff: 500 },
 ];
 
 VISUAL_PAGES.forEach(({ name, path, fullPage, maxDiff }) => {
@@ -59,7 +59,7 @@ test.describe('主题切换 — 视觉一致性', () => {
         document.documentElement.setAttribute('data-theme', t);
       }, theme);
 
-      await page.goto('/html/hub.html', { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto('/hub.html', { waitUntil: 'networkidle', timeout: 30000 });
       await page.waitForTimeout(1500);
 
       await expect(page).toHaveScreenshot(`hub-${theme}.png`, {
@@ -70,7 +70,7 @@ test.describe('主题切换 — 视觉一致性', () => {
   });
 
   test('settings.html — 主题弹窗打开后应正常显示', async ({ page }) => {
-    await page.goto('/html/settings.html', { waitUntil: 'networkidle' });
+    await page.goto('/settings.html', { waitUntil: 'networkidle' });
 
     // 点击主题设置按钮
     const fab = page.locator('#app-theme-fab');

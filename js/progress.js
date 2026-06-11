@@ -33,9 +33,9 @@ document.addEventListener('DOMContentLoaded', function() {
 function getCurrentUserId() {
     try {
         const user = JSON.parse(localStorage.getItem('starlearn_user') || '{}');
-        return user.id || 1;
+        return user.id || null;
     } catch (e) {
-        return 1;
+        return null;
     }
 }
 
@@ -98,8 +98,14 @@ async function loadProgressSummary(range) {
     const rangeKey = range || getCurrentRange();
     renderLoadingState();
 
+    const userId = getCurrentUserId();
+    if (!userId) {
+        renderLoginRequired();
+        return;
+    }
+
     try {
-        const response = await fetch(`/api/progress/summary/${getCurrentUserId()}?range=${encodeURIComponent(rangeKey)}`);
+        const response = await fetch(`/api/progress/summary/${userId}?range=${encodeURIComponent(rangeKey)}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.detail || 'load progress failed');
@@ -111,7 +117,7 @@ async function loadProgressSummary(range) {
     } catch (error) {
         console.error('加载学习进度失败:', error);
         if (window.toast?.error) {
-            window.toast.error('学习数据加载失败，已显示占位数据');
+            window.toast.error('学习数据加载失败');
         }
         renderProgressSummary({
             total_hours: 0,
@@ -124,6 +130,17 @@ async function loadProgressSummary(range) {
             radar: null,
         }, {});
     }
+}
+
+function renderLoginRequired() {
+    const root = document.querySelector('.progress-root') || document.body;
+    root.innerHTML = '' +
+        '<div class="progress-empty">' +
+            '<div class="progress-empty-icon">✦</div>' +
+            '<h3 class="progress-empty-title">请先登录</h3>' +
+            '<p class="progress-empty-desc">登录后即可查看你的学习进度</p>' +
+            '<a href="/login.html" class="progress-empty-btn">前往登录</a>' +
+        '</div>';
 }
 
 /* ---------- 4. 渲染总入口 ---------- */

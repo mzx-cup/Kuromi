@@ -424,7 +424,7 @@ function getCurrentUserId() {
             return window.StarData.user.id;
         }
     } catch (e) {}
-    return localStorage.getItem('starlearn-user-id') || 'anonymous';
+    return localStorage.getItem('starlearn-user-id') || null;
 }
 
 function renderPlaylistVideos(playlist) {
@@ -757,9 +757,10 @@ function showToast(message, type) {
 
 // ============ 初始化 ============
 document.addEventListener('DOMContentLoaded', async function() {
+    const userId = getCurrentUserId();
+    if (!userId) return;
     await loadPlaylist();
     try {
-        const userId = getCurrentUserId();
         const playlistResp = await fetch('/api/video-playlists?user_id=' + encodeURIComponent(userId));
         if (playlistResp.ok) {
             const data = await playlistResp.json();

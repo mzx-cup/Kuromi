@@ -91,31 +91,31 @@ ALL_PAGES.forEach((pageName) => {
 // 核心页面专项测试
 test.describe('核心页面 — 专项验证', () => {
   test('login.html — 应包含 app-form-card', async ({ page }) => {
-    await page.goto('/html/login.html', { waitUntil: 'networkidle' });
+    await page.goto('/login.html', { waitUntil: 'networkidle' });
     const card = page.locator('.auth-card-inner');
     await expect(card).toBeVisible();
   });
 
   test('hub.html — 应包含 data-bg-unified 属性', async ({ page }) => {
-    await page.goto('/html/hub.html', { waitUntil: 'networkidle' });
+    await page.goto('/hub.html', { waitUntil: 'networkidle' });
     const html = page.locator('html');
     await expect(html).toHaveAttribute('data-bg-unified', 'true');
   });
 
   test('settings.html — 应包含主题设置入口', async ({ page }) => {
-    await page.goto('/html/settings.html', { waitUntil: 'networkidle' });
+    await page.goto('/settings.html', { waitUntil: 'networkidle' });
     const themeBtn = page.locator('#app-theme-fab');
     await expect(themeBtn).toBeAttached({ timeout: 5000 });
   });
 
   test('stellar-showcase.html — 不应有重复 data-layer.js', async ({ page }) => {
-    await page.goto('/html/stellar-showcase.html', { waitUntil: 'networkidle' });
+    await page.goto('/stellar-showcase.html', { waitUntil: 'networkidle' });
     const scripts = await page.locator('script[src="/js/data-layer.js"]').count();
     expect(scripts).toBeLessThanOrEqual(1);
   });
 
   test('pixel-pet-game.html — 应保留 data-bg-preserve 豁免', async ({ page }) => {
-    await page.goto('/html/pixel-pet-game.html', { waitUntil: 'networkidle' });
+    await page.goto('/pixel-pet-game.html', { waitUntil: 'networkidle' });
     const body = page.locator('body');
     await expect(body).toHaveAttribute('data-bg-preserve', 'true');
   });
@@ -127,7 +127,7 @@ test.describe('设计令牌 — CSS 变量注入', () => {
 
   TOKEN_PAGES.forEach((pageName) => {
     test(`${pageName}.html — 应注入核心 CSS 令牌`, async ({ page }) => {
-      await page.goto(`/html/${pageName}.html`, { waitUntil: 'networkidle' });
+      await page.goto(`/${pageName}.html`, { waitUntil: 'networkidle' });
 
       const tokens = await page.evaluate(() => {
         const styles = getComputedStyle(document.documentElement);

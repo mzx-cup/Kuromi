@@ -1134,11 +1134,20 @@ async function loadStudyOverviewData() {
         if (overviewData.success && overviewData.overview) {
             const o = overviewData.overview;
 
-            // 更新 Hero 状态卡 — 新布局
+            // ── Hero · 今日学习驾驶舱 ──
             const heroTitle = document.getElementById('hero-title');
             const heroMotto = document.getElementById('hero-motto');
-            const todayDuration = formatStudyDuration(o.today_minutes || 0);
-            const weekDuration = formatStudyDuration(o.week_minutes || 0);
+            const todayMin    = o.today_minutes || 0;
+            const dailyGoal   = o.daily_goal_minutes || 240;       // 默认 4h 目标
+            const xpToNext    = o.xp_to_next_level   || 320;       // 距离下一级 XP
+            const xpCurrent   = o.xp_in_current_level || 1680;     // 当前等级内 XP
+            const xpTotal     = o.xp_level_total      || (xpCurrent + xpToNext);
+            const todayDuration = formatStudyDuration(todayMin);
+            const goalDuration  = formatStudyDuration(dailyGoal);
+            const todayPct    = Math.min(100, Math.round(todayMin / dailyGoal * 100));
+            const streakPct   = Math.min(100, Math.round((o.streak_days || 0) / 30 * 100));
+            const masteryPct  = Math.min(100, Math.round(o.mastery_rate || 0));
+            const xpPct       = Math.min(100, Math.round(xpCurrent / xpTotal * 100));
 
             if (heroTitle) {
                 const hour = new Date().getHours();
@@ -1146,21 +1155,57 @@ async function loadStudyOverviewData() {
                 heroTitle.textContent = `${greeting}，李同学 👋`;
             }
             if (heroMotto) {
-                heroMotto.textContent = (o.today_minutes || 0) > 0
+                heroMotto.textContent = todayMin > 0
                     ? `保持节奏，今天又是充实的一天`
-                    : `本周累计 ${weekDuration.text}，先从一个小任务开始。`;
+                    : `本周累计 ${formatStudyDuration(o.week_minutes || 0).text}，先从一个小任务开始。`;
             }
 
-            // 更新数据胶囊
-            const studyEl = document.getElementById('hero-stat-study');
-            const streakEl = document.getElementById('hero-stat-streak');
-            const masteryEl = document.getElementById('hero-stat-mastery');
-            const levelEl = document.getElementById('hero-stat-level');
-            if (studyEl) studyEl.textContent = todayDuration.value + todayDuration.unit;
-            if (streakEl) streakEl.textContent = (o.streak_days || 0) + '天';
-            if (masteryEl) masteryEl.textContent = (o.mastery_rate || 88) + '%';
-            if (levelEl) levelEl.textContent = 'Lv.' + (o.level || 24);
+            // 今日目标进度条
+            const goalTextEl = document.getElementById('hero-daily-goal-text');
+            const goalPctEl  = document.getElementById('hero-daily-goal-pct');
+            const goalFillEl = document.getElementById('hero-daily-goal-fill');
+            if (goalTextEl) goalTextEl.textContent = `${todayDuration.text} / ${goalDuration.text}`;
+            if (goalPctEl)  goalPctEl.textContent  = todayPct + '%';
+            if (goalFillEl) goalFillEl.style.width  = todayPct + '%';
 
+            // 3 个核心指标横条
+            const studyValEl  = document.getElementById('hero-bar-study');
+            const studyFillEl = document.getElementById('hero-bar-study-fill');
+            if (studyValEl)  studyValEl.textContent  = todayDuration.value + todayDuration.unit;
+            if (studyFillEl) studyFillEl.style.width = todayPct + '%';
+
+            const streakValEl  = document.getElementById('hero-bar-streak');
+            const streakFillEl = document.getElementById('hero-bar-streak-fill');
+            if (streakValEl)  streakValEl.textContent  = (o.streak_days || 0) + '天';
+            if (streakFillEl) streakFillEl.style.width = streakPct + '%';
+
+            const masteryValEl  = document.getElementById('hero-bar-mastery');
+            const masteryFillEl = document.getElementById('hero-bar-mastery-fill');
+            if (masteryValEl)  masteryValEl.textContent  = masteryPct + '%';
+            if (masteryFillEl) masteryFillEl.style.width = masteryPct + '%';
+
+            // 双环目标值
+            const ringOuter  = document.getElementById('hero-ring-fill-outer');
+            const ringInner  = document.getElementById('hero-ring-fill-inner');
+            const ringOuterV = document.getElementById('hero-ring-outer-value');
+            const ringInnerV = document.getElementById('hero-ring-inner-value');
+            if (ringOuter)  ringOuter.dataset.target  = (todayPct / 100).toFixed(3);
+            if (ringInner)  ringInner.dataset.target  = (masteryPct / 100).toFixed(3);
+            if (ringOuterV) ringOuterV.textContent    = todayPct + '%';
+            if (ringInnerV) ringInnerV.textContent    = '掌握 ' + masteryPct + '%';
+
+            // 等级 XP
+            const levelTagEl  = document.getElementById('hero-level-tag');
+            const levelNextEl = document.getElementById('hero-level-next');
+            const xpFillEl    = document.getElementById('hero-xp-fill');
+            if (levelTagEl)  levelTagEl.textContent  = 'Lv.' + (o.level || 24);
+            if (levelNextEl) levelNextEl.textContent = '下一级还需 ' + xpToNext + ' XP';
+            if (xpFillEl)    xpFillEl.style.width    = xpPct + '%';
+
+            // 重启双环动画,让新数据驱动 stroke-dashoffset
+            if (typeof animateHeroRings === 'function') animateHeroRings();
+
+            // ── Overview Action 3 卡(下方快捷操作) ──
             const goalCount = o.total_goals || 0;
             const mastery = o.avg_mastery || 0;
             const knowledgeCount = o.knowledge_count || 0;
@@ -3712,26 +3757,77 @@ function startFlowBarsPolling() {
     setInterval(updateFlowBars, 3000);
 }
 
-// Hero 环形进度入场动画
-function animateRing() {
-    const ring = document.getElementById('hero-ring-fill');
-    const text = document.getElementById('hero-ring-value');
-    if (!ring || !text) return;
-    const circumference = 314.16;
-    const targetPercent = 0.88;
-    let current = 0;
+// Hero 双环进度入场动画(外环=今日目标 / 内环=掌握率)
+let _heroRingsRafId = null;     // 全局 rAF id,防止重入
+function animateHeroRings() {
+    const ringOuter  = document.getElementById('hero-ring-fill-outer');
+    const ringInner  = document.getElementById('hero-ring-fill-inner');
+    const textOuter  = document.getElementById('hero-ring-outer-value');
+    const textInner  = document.getElementById('hero-ring-inner-value');
+    if (!ringOuter || !ringInner) return;
+
+    // 取消上一轮动画(数据更新时不会新旧 rAF 互相覆盖)
+    if (_heroRingsRafId != null) {
+        cancelAnimationFrame(_heroRingsRafId);
+        _heroRingsRafId = null;
+    }
+
+    const CIRC_OUTER = 314.16;   // r=50
+    const CIRC_INNER = 226.19;   // r=36
+    const targetOuter = parseFloat(ringOuter.dataset.target) || 0;
+    const targetInner = parseFloat(ringInner.dataset.target) || 0;
     const duration = 800;
     const start = performance.now();
+
+    // 初始重置为 0(满圆空状态),确保动画可见
+    ringOuter.style.strokeDashoffset = CIRC_OUTER;
+    ringInner.style.strokeDashoffset = CIRC_INNER;
+
     function step(now) {
         const elapsed = now - start;
         const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        current = targetPercent * eased;
-        ring.style.strokeDashoffset = circumference * (1 - current);
-        text.textContent = Math.round(current * 100) + '%';
-        if (progress < 1) requestAnimationFrame(step);
+        const eased = 1 - Math.pow(1 - progress, 3);   // cubic-out
+
+        const curOuter = targetOuter * eased;
+        const curInner = targetInner * eased;
+        ringOuter.style.strokeDashoffset = CIRC_OUTER * (1 - curOuter);
+        ringInner.style.strokeDashoffset = CIRC_INNER * (1 - curInner);
+
+        if (textOuter) textOuter.textContent = Math.round(curOuter * 100) + '%';
+        if (textInner) {
+            if (textInner.dataset.prefix == null) textInner.dataset.prefix = '掌握 ';
+            textInner.textContent = textInner.dataset.prefix + Math.round(curInner * 100) + '%';
+        }
+
+        if (progress < 1) {
+            _heroRingsRafId = requestAnimationFrame(step);
+        } else {
+            _heroRingsRafId = null;
+        }
     }
-    requestAnimationFrame(step);
+    _heroRingsRafId = requestAnimationFrame(step);
+}
+
+// Hero CTA 按钮事件绑定(开启今日航线 / 快速回顾)
+function initHeroCtas() {
+    const launchBtn = document.getElementById('hero-cta-launch');
+    const reviewBtn = document.getElementById('hero-cta-review');
+    if (launchBtn) {
+        launchBtn.addEventListener('click', function() {
+            // 复用现有 #launch-btn 的点击(避免重复 handleLaunch 逻辑)
+            const orig = document.getElementById('launch-btn');
+            if (orig) { orig.click(); return; }
+            // 兜底:无 launch-btn 时跳转学习 tab
+            const learnTab = document.querySelector('.tab-btn[data-tab="learn"]');
+            if (learnTab) learnTab.click();
+        });
+    }
+    if (reviewBtn) {
+        reviewBtn.addEventListener('click', function() {
+            const learnTab = document.querySelector('.tab-btn[data-tab="learn"]');
+            if (learnTab) learnTab.click();
+        });
+    }
 }
 
 // 激励文案轮播
@@ -3786,7 +3882,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Hub polish — 新增初始化
     startFlowBarsPolling();
-    animateRing();
+    animateHeroRings();
+    initHeroCtas();
     startMottoRotation();
 
     // 热力图切换按钮事件

@@ -28,7 +28,7 @@ const MIME = {
 function serve() {
   return http.createServer((req, res) => {
     let urlPath = decodeURIComponent(req.url.split('?')[0]);
-    if (urlPath === '/' ) urlPath = '/html/hub.html';
+    if (urlPath === '/' ) urlPath = '/hub.html';
     const filePath = path.join(ROOT, urlPath);
 
     // Stub /api/* endpoints with a "no data" response so the JS falls into the
@@ -72,7 +72,7 @@ function serve() {
     localStorage.setItem('hub_onboarding_completed', '1');
   });
 
-  await page.goto(`http://localhost:${PORT}/html/hub.html`, { waitUntil: 'networkidle' });
+  await page.goto(`http://localhost:${PORT}/hub.html`, { waitUntil: 'networkidle' });
 
   // Switch to the 学习 tab where the knowledge ecosystem lives
   await page.evaluate(() => {

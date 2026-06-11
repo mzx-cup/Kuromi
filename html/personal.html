@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/tailwind.css">
     <link rel="stylesheet" href="/css/app-base.css">
-    <link rel="stylesheet" href="/css/app-bg.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/loading.css">
@@ -25,20 +26,8 @@
     <script src="/js/toast.js"></script>
 </head>
 <body data-bg-unified="true" class="app-body">
-
-    <!-- Global Wallpaper Background Layer -->
-    <div id="app-bg" class="app-bg-layer">
-        <div class="app-bg-stars"></div>
-        <div class="app-bg-nebula"></div>
-        <div class="app-bg-orb app-bg-orb-1"></div>
-        <div class="app-bg-orb app-bg-orb-2"></div>
-        <div class="app-bg-orb app-bg-orb-3"></div>
-    </div>
-
-    <div class="global-bg-layer" id="global-bg-layer"></div>
-    <video class="global-bg-video" id="global-bg-video" style="display:none;" autoplay loop muted playsinline></video>
-
-    <!-- Star-Friend Pet Selection Modal -->
+    
+<!-- Star-Friend Pet Selection Modal -->
     <div id="pet-selection-modal" class="crop-modal hidden">
         <div class="crop-modal-backdrop"></div>
         <div class="crop-modal-content" style="max-width: 520px;">

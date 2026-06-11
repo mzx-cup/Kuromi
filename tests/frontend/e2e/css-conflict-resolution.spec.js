@@ -9,11 +9,11 @@
 const { test, expect } = require('@playwright/test');
 
 const HIGH_RISK_PAGES = [
-  { path: '/html/login.html', name: 'login', forbiddenCss: ['teacher.css'] },
-  { path: '/html/register.html', name: 'register', forbiddenCss: ['teacher.css'] },
-  { path: '/html/hub.html', name: 'hub', forbiddenCss: ['hub-perfect.css', 'hub-winmoes.css'] },
-  { path: '/html/personal.html', name: 'personal', forbiddenCss: [] },
-  { path: '/html/teacher-dashboard.html', name: 'teacher-dashboard', forbiddenCss: [] },
+  { path: '/login.html', name: 'login', forbiddenCss: ['teacher.css'] },
+  { path: '/register.html', name: 'register', forbiddenCss: ['teacher.css'] },
+  { path: '/hub.html', name: 'hub', forbiddenCss: ['hub-perfect.css', 'hub-winmoes.css'] },
+  { path: '/personal.html', name: 'personal', forbiddenCss: [] },
+  { path: '/teacher-dashboard.html', name: 'teacher-dashboard', forbiddenCss: [] },
 ];
 
 for (const page of HIGH_RISK_PAGES) {

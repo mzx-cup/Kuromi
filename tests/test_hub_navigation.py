@@ -14,7 +14,6 @@ class HubNavigationTest(unittest.TestCase):
 
         self.assertIsNotNone(home_link)
         self.assertEqual(home_link.group(1), "/hub.html")
-        self.assertNotIn('href="/html/index.html"', hub_html)
 
 
 if __name__ == "__main__":

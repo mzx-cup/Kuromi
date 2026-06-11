@@ -39,26 +39,9 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-body, #475569); }
 
-/* ---------- 3. 壁纸背景层（与 theme.js 壁纸系统联动） ---------- */
-.global-bg-layer {
-  position: fixed;
-  inset: 0;
-  z-index: -3;
-  pointer-events: none;
-  background: var(--leleo-bg-image, none) center/cover no-repeat;
-  filter: brightness(var(--leleo-brightness, 85%)) blur(var(--leleo-blur, 5px));
-  transition: filter 0.3s ease;
-}
-.global-bg-video {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  object-fit: cover;
-  width: 100%;
-  height: 100%;
-  display: none;
-}
+/* ---------- 3. 壁纸背景层 ---------- */
+/* 注：旧的 .global-bg-layer / .global-bg-video 已迁移到 theme-bg.css
+   由 #theme-bg 统一容器接管。旧选择器在 theme-bg.css 第 7 节强制隐藏。*/
 
 /* ---------- 4. 主题设置按钮（页面已有时使用） ---------- */
 .theme-settings-btn {

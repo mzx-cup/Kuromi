@@ -1,174 +1,153 @@
 /* ============================================================
-   Design Tokens — 全局设计令牌
-   用途：让所有页面共享同一套颜色、间距、阴影、圆角系统。
-   说明：从 index.css 提取的精简变量层，不包含任何具体样式规则。
-         已引入 index.css 的页面无需重复引入此文件。
+   Design Tokens v4 — 全局设计令牌（新主题系统）
+   规则：
+     1. 三层架构：原始 HCL → 计算色阶 → 语义令牌
+     2. 6 个精品预设（3 亮 + 3 暗）+ 旧主题 ID 映射保留兼容
+     3. 颜色全部走 oklch + color-mix 推导，禁止硬编码 hex
+     4. 暗黑模式靠 [data-theme] 自动激活 --_color-scheme
    ============================================================ */
+
 
 /* ============================================================
-   LAYER 1 — 原始令牌（按主题）
+   LAYER 1 — 原始令牌（HCL 三元组）
    ============================================================ */
 
-/* ---- 默认主题：deep-ocean  深海 (深邃蓝绿暗色) ---- */
+/* 默认主题：dawn 晨曦（亮色暖橙） */
 :root {
-    --_brand-h: 200;           --_brand-c: 0.20;       --_brand-l: 58%;
-    --_success-h: 160;         --_success-c: 0.15;     --_success-l: 60%;
-    --_warning-h: 45;          --_warning-c: 0.18;     --_warning-l: 66%;
-    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 56%;
-    --_info-h: 195;            --_info-c: 0.16;        --_info-l: 64%;
-    --_neutral-h: 215;         --_neutral-c: 0.018;
-    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
-    --_color-scheme: dark;
-}
-
-/* ---- warm-morning  日出晨光 (亮色) ---- */
-[data-theme="warm-morning"] {
-    --_brand-h: 42;            --_brand-c: 0.18;       --_brand-l: 62%;
-    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 58%;
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 56%;
     --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
-    --_danger-h: 15;           --_danger-c: 0.22;      --_danger-l: 52%;
-    --_info-h: 250;            --_info-c: 0.15;        --_info-l: 56%;
-    --_neutral-h: 50;          --_neutral-c: 0.015;
-    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_danger-h: 12;           --_danger-c: 0.22;      --_danger-l: 54%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 58%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
     --_color-scheme: light;
 }
 
-[data-theme="forest-light"] {
+/* ---- 亮色主题 ---- */
+
+/* dawn 晨曦（暖橙） */
+[data-theme="dawn"] {
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 56%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 12;           --_danger-c: 0.22;      --_danger-l: 54%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 58%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+/* forest 森野（翠绿） */
+[data-theme="forest"] {
     --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
     --_success-h: 152;         --_success-c: 0.15;     --_success-l: 50%;
     --_warning-h: 56;          --_warning-c: 0.16;     --_warning-l: 62%;
     --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 48%;
-    --_info-h: 245;            --_info-c: 0.14;        --_info-l: 54%;
-    --_neutral-h: 135;         --_neutral-c: 0.018;
-    --_shadow-strength: 0.05;  --_surface-saturation: 0.03;
+    --_info-h: 195;            --_info-c: 0.14;        --_info-l: 54%;
+    --_neutral-h: 135;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.025;
     --_color-scheme: light;
 }
 
-[data-theme="study-night"] {
-    --_brand-h: 40;            --_brand-c: 0.19;       --_brand-l: 68%;
-    --_success-h: 148;         --_success-c: 0.14;     --_success-l: 62%;
-    --_warning-h: 50;          --_warning-c: 0.16;     --_warning-l: 68%;
-    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 58%;
-    --_info-h: 248;            --_info-c: 0.14;        --_info-l: 64%;
-    --_neutral-h: 220;         --_neutral-c: 0.012;
-    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
-    --_color-scheme: dark;
-}
-
-[data-theme="starry-night"] {
-    --_brand-h: 52;            --_brand-c: 0.17;       --_brand-l: 72%;
-    --_success-h: 150;         --_success-c: 0.13;     --_success-l: 60%;
-    --_warning-h: 46;          --_warning-c: 0.15;     --_warning-l: 70%;
-    --_danger-h: 10;           --_danger-c: 0.18;      --_danger-l: 56%;
-    --_info-h: 260;            --_info-c: 0.16;        --_info-l: 66%;
-    --_neutral-h: 240;         --_neutral-c: 0.02;
-    --_shadow-strength: 0.33;  --_surface-saturation: 0.03;
-    --_color-scheme: dark;
-}
-
-[data-theme="neon-cyber"] {
-    --_brand-h: 195;           --_brand-c: 0.26;       --_brand-l: 62%;
-    --_success-h: 160;         --_success-c: 0.22;     --_success-l: 60%;
-    --_warning-h: 45;          --_warning-c: 0.24;     --_warning-l: 65%;
-    --_danger-h: 0;            --_danger-c: 0.28;      --_danger-l: 58%;
-    --_info-h: 210;            --_info-c: 0.24;        --_info-l: 64%;
-    --_neutral-h: 220;         --_neutral-c: 0.04;
-    --_shadow-strength: 0.55;  --_surface-saturation: 0.08;
-    --_color-scheme: dark;
-}
-
-[data-theme="pink-dark"] {
-    --_brand-h: 78;            --_brand-c: 0.17;       --_brand-l: 72%;
-    --_success-h: 155;         --_success-c: 0.16;     --_success-l: 65%;
-    --_warning-h: 75;          --_warning-c: 0.18;     --_warning-l: 75%;
-    --_danger-h: 25;           --_danger-c: 0.20;      --_danger-l: 60%;
-    --_info-h: 210;            --_info-c: 0.15;        --_info-l: 75%;
-    --_neutral-h: 280;         --_neutral-c: 0.02;
-    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
-    --_color-scheme: dark;
-}
-
-/* ---- ocean-glass  Ocean 琉璃 (Personal 页面风格) ---- */
-[data-theme="ocean-glass"] {
-    --_brand-h: 245;           --_brand-c: 0.18;       --_brand-l: 62%;
-    --_success-h: 155;         --_success-c: 0.16;     --_success-l: 58%;
-    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
-    --_danger-h: 15;           --_danger-c: 0.22;      --_danger-l: 52%;
-    --_info-h: 280;            --_info-c: 0.15;        --_info-l: 56%;
-    --_neutral-h: 220;         --_neutral-c: 0.012;
-    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
-    --_color-scheme: light;
-}
-
-/* ---- ocean-glass-dark  Ocean 深夜 ---- */
-[data-theme="ocean-glass-dark"] {
-    --_brand-h: 245;           --_brand-c: 0.18;       --_brand-l: 62%;
-    --_success-h: 155;         --_success-c: 0.14;     --_success-l: 62%;
-    --_warning-h: 48;          --_warning-c: 0.16;     --_warning-l: 68%;
-    --_danger-h: 15;           --_danger-c: 0.20;      --_danger-l: 58%;
-    --_info-h: 280;            --_info-c: 0.14;        --_info-l: 64%;
-    --_neutral-h: 220;         --_neutral-c: 0.012;
-    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
-    --_color-scheme: dark;
-}
-
-/* ---- sakura-whisper  樱语 (柔和粉白亮色) ---- */
-[data-theme="sakura-whisper"] {
-    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 58%;
+/* sakura 樱语（樱花粉） */
+[data-theme="sakura"] {
+    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 60%;
     --_success-h: 150;         --_success-c: 0.14;     --_success-l: 52%;
     --_warning-h: 38;          --_warning-c: 0.16;     --_warning-l: 62%;
-    --_danger-h: 355;          --_danger-c: 0.20;      --_danger-l: 50%;
-    --_info-h: 260;            --_info-c: 0.13;        --_info-l: 56%;
-    --_neutral-h: 30;          --_neutral-c: 0.014;
+    --_danger-h: 355;          --_danger-c: 0.20;      --_danger-l: 52%;
+    --_info-h: 270;            --_info-c: 0.13;        --_info-l: 56%;
+    --_neutral-h: 350;         --_neutral-c: 0.012;
     --_shadow-strength: 0.04;  --_surface-saturation: 0.03;
     --_color-scheme: light;
 }
 
-/* ---- deep-ocean  深海 (深邃蓝绿暗色) ---- */
-[data-theme="deep-ocean"] {
-    --_brand-h: 200;           --_brand-c: 0.20;       --_brand-l: 58%;
-    --_success-h: 160;         --_success-c: 0.15;     --_success-l: 60%;
-    --_warning-h: 45;          --_warning-c: 0.18;     --_warning-l: 66%;
-    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 56%;
-    --_info-h: 195;            --_info-c: 0.16;        --_info-l: 64%;
-    --_neutral-h: 215;         --_neutral-c: 0.018;
-    --_shadow-strength: 0.30;  --_surface-saturation: 0.02;
+/* ---- 暗色主题 ---- */
+
+/* midnight 子夜（琥珀） */
+[data-theme="midnight"] {
+    --_brand-h: 38;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 50;          --_warning-c: 0.16;     --_warning-l: 68%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 64%;
+    --_neutral-h: 224;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.01;
     --_color-scheme: dark;
 }
 
-/* ---- twilight-glow  暮光 (紫琥珀暖色亮色) ---- */
+/* nebula 星云（紫蓝） */
+[data-theme="nebula"] {
+    --_brand-h: 268;           --_brand-c: 0.18;       --_brand-l: 70%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 68%;
+    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 220;            --_info-c: 0.16;        --_info-l: 66%;
+    --_neutral-h: 250;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.32;  --_surface-saturation: 0.025;
+    --_color-scheme: dark;
+}
+
+/* cyber 赛博（霓虹青） */
+[data-theme="cyber"] {
+    --_brand-h: 192;           --_brand-c: 0.24;       --_brand-l: 64%;
+    --_success-h: 158;         --_success-c: 0.22;     --_success-l: 62%;
+    --_warning-h: 45;          --_warning-c: 0.22;     --_warning-l: 65%;
+    --_danger-h: 358;          --_danger-c: 0.28;      --_danger-l: 60%;
+    --_info-h: 210;            --_info-c: 0.22;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.03;
+    --_shadow-strength: 0.50;  --_surface-saturation: 0.05;
+    --_color-scheme: dark;
+}
+
+
+/* ============================================================
+   LEGACY 主题 ID 映射 — 保留旧 data-theme 兼容
+   pink-dark / deep-ocean / star-vault / starry-night 等
+   都会按品牌色相近原则映射到 6 个新主题
+   ============================================================ */
+
+[data-theme="warm-morning"],
+[data-theme="ocean-glass"],
 [data-theme="twilight-glow"] {
-    --_brand-h: 275;           --_brand-c: 0.18;       --_brand-l: 55%;
-    --_success-h: 155;         --_success-c: 0.15;     --_success-l: 55%;
-    --_warning-h: 40;          --_warning-c: 0.20;     --_warning-l: 62%;
-    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 50%;
-    --_info-h: 250;            --_info-c: 0.14;        --_info-l: 55%;
-    --_neutral-h: 35;          --_neutral-c: 0.014;
-    --_shadow-strength: 0.04;  --_surface-saturation: 0.025;
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
     --_color-scheme: light;
 }
-
-/* ---- bamboo-grove  竹林 (清新青绿亮色) ---- */
+[data-theme="forest-light"],
 [data-theme="bamboo-grove"] {
-    --_brand-h: 130;           --_brand-c: 0.16;       --_brand-l: 48%;
-    --_success-h: 145;         --_success-c: 0.15;     --_success-l: 50%;
-    --_warning-h: 50;          --_warning-c: 0.17;     --_warning-l: 60%;
-    --_danger-h: 12;           --_danger-c: 0.18;      --_danger-l: 48%;
-    --_info-h: 180;            --_info-c: 0.13;        --_info-l: 50%;
-    --_neutral-h: 90;          --_neutral-c: 0.014;
-    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
+    --_neutral-h: 135;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.025;
     --_color-scheme: light;
 }
-
-/* ---- star-vault  星穹 (璀璨金靛暗色) ---- */
+[data-theme="sakura-whisper"] {
+    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 60%;
+    --_neutral-h: 350;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+}
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"] {
+    --_brand-h: 38;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_neutral-h: 224;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
 [data-theme="star-vault"] {
-    --_brand-h: 48;            --_brand-c: 0.22;       --_brand-l: 72%;
-    --_success-h: 155;         --_success-c: 0.18;     --_success-l: 65%;
-    --_warning-h: 42;          --_warning-c: 0.20;     --_warning-l: 72%;
-    --_danger-h: 5;            --_danger-c: 0.22;      --_danger-l: 58%;
-    --_info-h: 240;            --_info-c: 0.18;        --_info-l: 68%;
-    --_neutral-h: 250;         --_neutral-c: 0.03;
-    --_shadow-strength: 0.35;  --_surface-saturation: 0.04;
+    --_brand-h: 268;           --_brand-c: 0.18;       --_brand-l: 70%;
+    --_neutral-h: 250;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.32;  --_surface-saturation: 0.025;
+    --_color-scheme: dark;
+}
+[data-theme="neon-cyber"] {
+    --_brand-h: 192;           --_brand-c: 0.24;       --_brand-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.03;
+    --_shadow-strength: 0.50;  --_surface-saturation: 0.05;
     --_color-scheme: dark;
 }
 
@@ -206,7 +185,7 @@
     --danger-border:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 75%);
     --info-border:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 75%);
 
-    /* 中性色阶 */
+    /* 中性色阶（亮色：浅；暗色：深 — 由 color-scheme 调整 oklch L） */
     --neutral-50:  oklch(96% var(--_neutral-c) var(--_neutral-h));
     --neutral-100: oklch(90% var(--_neutral-c) var(--_neutral-h));
     --neutral-200: oklch(82% var(--_neutral-c) var(--_neutral-h));
@@ -218,28 +197,52 @@
     --neutral-800: oklch(20% var(--_neutral-c) var(--_neutral-h));
     --neutral-900: oklch(13% var(--_neutral-c) var(--_neutral-h));
 
-    /* 表面色 */
-    --surface-page:    color-mix(in oklch, var(--neutral-50), oklch(100% 0 none)  calc(var(--_surface-saturation) * 100%));
+    /* 表面色（亮色基线） */
+    --surface-page:    color-mix(in oklch, var(--neutral-50), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
     --surface-card:    color-mix(in oklch, var(--neutral-100), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
     --surface-hover:   color-mix(in oklch, var(--neutral-200), oklch(100% 0 none) calc(var(--_surface-saturation) * 80%));
     --surface-pressed: color-mix(in oklch, var(--neutral-300), oklch(100% 0 none) calc(var(--_surface-saturation) * 60%));
     --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 40%);
     --surface-nav:     color-mix(in oklch, var(--neutral-50), transparent 15%);
 
-    /* 毛玻璃表面 — 统一 glassmorphism: 半透明 + backdrop-filter */
-    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 65%);
-    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 55%);
-    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 60%);
+    /* 毛玻璃 */
+    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 60%);
+    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 50%);
+    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 55%);
     --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 40%);
 
-    /* 品牌强调背景/边框 */
+    /* 品牌强调 */
     --accent-bg:     color-mix(in oklch, var(--brand-500), transparent 88%);
     --accent-border: color-mix(in oklch, var(--brand-500), transparent 78%);
 }
 
 
+/* ---- 暗色模式表面色反转（不再依赖每个主题手写 override） ---- */
+[data-theme="midnight"],
+[data-theme="nebula"],
+[data-theme="cyber"],
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"],
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
+[data-theme="star-vault"],
+[data-theme="neon-cyber"] {
+    --surface-page:    oklch(14% var(--_neutral-c) var(--_neutral-h));
+    --surface-card:    color-mix(in oklch, oklch(20% var(--_neutral-c) var(--_neutral-h)), transparent 25%);
+    --surface-hover:   color-mix(in oklch, oklch(26% var(--_neutral-c) var(--_neutral-h)), transparent 15%);
+    --surface-pressed: oklch(30% var(--_neutral-c) var(--_neutral-h));
+    --surface-overlay: color-mix(in oklch, oklch(8% var(--_neutral-c) var(--_neutral-h)), transparent 30%);
+    --surface-nav:     color-mix(in oklch, oklch(18% var(--_neutral-c) var(--_neutral-h)), transparent 20%);
+    --surface-glass:       color-mix(in oklch, oklch(22% var(--_neutral-c) var(--_neutral-h)), transparent 50%);
+    --surface-glass-hover: color-mix(in oklch, oklch(28% var(--_neutral-c) var(--_neutral-h)), transparent 40%);
+    --border-glass:        color-mix(in oklch, oklch(45% var(--_neutral-c) var(--_neutral-h)), transparent 70%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-400), transparent 50%);
+}
+
+
 /* ============================================================
-   LAYER 3 — 语义令牌（组件消费的唯一接口）
+   LAYER 3 — 语义令牌（组件唯一接口）
    ============================================================ */
 
 :root {
@@ -256,7 +259,7 @@
     --shadow-modal: 0 20px 60px rgba(0,0,0, calc(var(--_shadow-strength) * 1.5));
     --shadow-toast: 0 4px 20px rgba(0,0,0, calc(var(--_shadow-strength) * 1));
 
-    /* 文字色 */
+    /* 文字色（亮色基线） */
     --text-heading:     var(--neutral-900);
     --text-body:        var(--neutral-700);
     --text-muted:       var(--neutral-500);
@@ -270,6 +273,7 @@
     --radius-lg: 20px;
     --radius-xl: 28px;
     --radius-full: 9999px;
+    --radius-pill: 9999px;
 
     /* 间距 */
     --space-xs: 4px;
@@ -277,6 +281,15 @@
     --space-md: 16px;
     --space-lg: 24px;
     --space-xl: 40px;
+    --space-2xl: 64px;
+    --space-3xl: 80px;
+    --space-section: 48px;
+    --space-gutter: 24px;
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap-md: 16px;
+    --gap-lg: 24px;
+    --gap-xl: 32px;
 
     /* 缓动 */
     --ease-out:     cubic-bezier(0, 0, 0.2, 1);
@@ -295,6 +308,7 @@
     --font-medium: 500;
     --font-semibold: 600;
     --font-bold: 700;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 
     /* 过渡 */
     --transition-fast:   var(--ease-standard);
@@ -304,53 +318,37 @@
 
     /* 便捷别名 */
     --bg-card:         var(--surface-card);
+    --card-bg:         var(--surface-card);
+    --card-border:     var(--neutral-200);
     --border-color:    var(--neutral-200);
     --border-secondary: var(--neutral-300);
     --hover-bg:        var(--surface-hover);
     --input-bg:        var(--neutral-100);
+    --input-border:    var(--neutral-200);
+    --input-focus-border: var(--brand-500);
+    --input-focus-ring: color-mix(in oklch, var(--brand-500), transparent 85%);
     --btn-secondary-bg:    var(--neutral-100);
     --btn-secondary-hover: var(--neutral-200);
 
-    /* 玻璃态默认值 */
     --glass-bg:        var(--surface-glass);
     --glass-blur:      24px;
+    --glass-shadow:    var(--shadow-md);
+    --shadow-glass:    var(--shadow-md);
 
-    /* 色阶快捷引用（兼容 Tailwind 风格命名） */
     --success-500: var(--success);
     --warning-500: var(--warning);
     --danger-500:  var(--danger);
     --info-500:    var(--info);
     --accent-500:  var(--brand-500);
 
-    /* 卡片 / 表面语义 */
-    --card-bg:        var(--surface-card);
-    --card-border:    var(--border-color);
     --surface-elevated: var(--surface-card);
     --surface-raised: color-mix(in oklch, var(--surface-card), white 5%);
     --surface-sunken: color-mix(in oklch, var(--surface-card), black 5%);
     --separator: color-mix(in oklch, var(--border-color), transparent 50%);
     --overlay-dim: rgba(0, 0, 0, 0.5);
     --focus-ring: 0 0 0 3px color-mix(in oklch, var(--brand-400), transparent 60%);
-    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-    --radius-pill: 9999px;
 
-    /* 输入框语义 */
-    --input-border:       var(--border-color);
-    --input-focus-border: var(--brand-500);
-    --input-focus-ring:   color-mix(in oklch, var(--brand-500), transparent 85%);
-
-    /* 间距补充 */
-    --space-2xl: 64px;
-    --space-3xl: 80px;
-    --space-section: 48px;
-    --space-gutter: 24px;
-    --gap-xs: 4px;
-    --gap-sm: 8px;
-    --gap-md: 16px;
-    --gap-lg: 24px;
-    --gap-xl: 32px;
-
-    /* ===== Z-Index Scale ===== */
+    /* Z-Index */
     --z-base: 0;
     --z-dropdown: 100;
     --z-sticky: 200;
@@ -358,495 +356,41 @@
     --z-modal: 1000;
     --z-toast: 1100;
     --z-tooltip: 1200;
+
+    /* ----- 壁纸控制变量（theme.js 动态写入） ----- */
+    --theme-bg-image: none;
+    --theme-bg-video: none;
+    --theme-brightness: 100%;
+    --theme-blur: 0px;
+    --theme-overlay: 0;
+    --theme-text-contrast: 0%;
+
+    /* Legacy 兼容：旧 leleo-* 变量映射（壁纸） */
+    --leleo-bg-image: var(--theme-bg-image);
+    --leleo-bg-video: var(--theme-bg-video);
+    --leleo-brightness: var(--theme-brightness);
+    --leleo-blur: var(--theme-blur);
+    --leleo-text-contrast: var(--theme-text-contrast);
 }
 
-/* ============================================================
-   THEME OVERRIDES — ocean-glass / ocean-glass-dark
-   精确匹配 Personal 页面的 Ocean Theme 视觉效果
-   ============================================================ */
-
-[data-theme="ocean-glass"] {
-    --surface-page:    #d4dbe0;
-    --surface-card:    rgba(255, 255, 255, 0.72);
-    --surface-hover:   rgba(255, 255, 255, 0.88);
-    --surface-glass:   rgba(255, 255, 255, 0.45);
-    --surface-glass-hover: rgba(255, 255, 255, 0.6);
-    --border-glass:    rgba(255, 255, 255, 0.25);
-    --border-glass-hover: rgba(168, 85, 247, 0.3);
-    --glass-blur:      24px;
-    --glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #0f172a;
-    --text-body:       #475569;
-    --text-muted:      #94a3b8;
-    --text-link:       #2563eb;
-    --text-on-brand:   #ffffff;
-    --bg-card:         var(--surface-card);
-    --primary:         #3b82f6;
-    --primary-light:   #60a5fa;
-    --primary-dark:    #1d4ed8;
-    --primary-glow:    rgba(59, 130, 246, 0.4);
-    --accent:          #8b5cf6;
-    --accent-light:    #a78bfa;
-    --success:         #10b981;
-    --success-bg:      rgba(16, 185, 129, 0.12);
-    --warning:         #f59e0b;
-    --warning-bg:      rgba(245, 158, 11, 0.12);
-    --danger:          #ef4444;
-    --danger-bg:       rgba(239, 68, 68, 0.12);
-    --orb-1:           rgba(99, 102, 241, 0.18);
-    --orb-2:           rgba(236, 72, 153, 0.15);
-    --orb-3:           rgba(59, 130, 246, 0.12);
-    color-scheme: light;
+/* ---- 暗色模式文字色 ---- */
+[data-theme="midnight"],
+[data-theme="nebula"],
+[data-theme="cyber"],
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"],
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
+[data-theme="star-vault"],
+[data-theme="neon-cyber"] {
+    --text-heading:     var(--neutral-50);
+    --text-body:        var(--neutral-200);
+    --text-muted:       var(--neutral-400);
+    --text-placeholder: var(--neutral-500);
+    --text-link:        var(--brand-300);
+    --text-on-brand:    oklch(14% var(--_neutral-c) var(--_neutral-h));
 }
 
-[data-theme="ocean-glass-dark"] {
-    --text-heading:     #f1f5f9;
-    --text-body:        #94a3b8;
-    --text-muted:       #64748b;
-    --text-link:        #60a5fa;
-    --text-on-brand:    #0f172a;
-    --surface-page:     #1a1d23;
-    --surface-card:     rgba(30, 41, 59, 0.72);
-    --surface-hover:    rgba(30, 41, 59, 0.88);
-    --surface-glass:    rgba(30, 41, 59, 0.4);
-    --surface-glass-hover: rgba(30, 41, 59, 0.55);
-    --border-glass:     rgba(255, 255, 255, 0.12);
-    --border-glass-hover: rgba(168, 85, 247, 0.25);
-    --glass-blur:       24px;
-    --glass-shadow:     0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    --shadow-glass:     var(--glass-shadow);
-    --bg-card:          var(--surface-card);
-    --primary:          #3b82f6;
-    --primary-light:    #60a5fa;
-    --primary-dark:     #1d4ed8;
-    --primary-glow:     rgba(59, 130, 246, 0.3);
-    --accent:           #8b5cf6;
-    --accent-light:     #a78bfa;
-    --success:          #10b981;
-    --success-bg:       rgba(16, 185, 129, 0.12);
-    --warning:          #f59e0b;
-    --warning-bg:       rgba(245, 158, 11, 0.12);
-    --danger:           #ef4444;
-    --danger-bg:        rgba(239, 68, 68, 0.12);
-    --orb-1:            rgba(99, 102, 241, 0.25);
-    --orb-2:            rgba(236, 72, 153, 0.2);
-    --orb-3:            rgba(59, 130, 246, 0.18);
-    color-scheme: dark;
-}
-
-/* ============================================================
-   THEME OVERRIDES — sakura-whisper  樱语
-   柔和樱花粉调，轻盈通透的少女感
-   ============================================================ */
-
-[data-theme="sakura-whisper"] {
-    --surface-page:    #fbf5f7;
-    --surface-card:    rgba(255, 255, 255, 0.78);
-    --surface-hover:   rgba(255, 255, 255, 0.92);
-    --surface-glass:   rgba(255, 255, 255, 0.5);
-    --surface-glass-hover: rgba(255, 255, 255, 0.65);
-    --border-glass:    rgba(244, 114, 182, 0.2);
-    --border-glass-hover: rgba(244, 114, 182, 0.4);
-    --glass-blur:      20px;
-    --glass-shadow:    0 4px 24px rgba(189, 93, 128, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #2d1522;
-    --text-body:       #5c3d4e;
-    --text-muted:      #a88a97;
-    --text-link:       #db2777;
-    --text-on-brand:   #ffffff;
-    --bg-card:         var(--surface-card);
-    --primary:         #e91e63;
-    --primary-light:   #f06292;
-    --primary-dark:    #ad1457;
-    --primary-glow:    rgba(233, 30, 99, 0.35);
-    --accent:          #c084fc;
-    --accent-light:    #d8b4fe;
-    --success:         #34d399;
-    --success-bg:      rgba(52, 211, 153, 0.12);
-    --warning:         #fbbf24;
-    --warning-bg:      rgba(251, 191, 36, 0.12);
-    --danger:          #f87171;
-    --danger-bg:       rgba(248, 113, 113, 0.12);
-    --orb-1:           rgba(236, 72, 153, 0.2);
-    --orb-2:           rgba(244, 114, 182, 0.16);
-    --orb-3:           rgba(196, 167, 231, 0.15);
-    color-scheme: light;
-}
-
-/* ============================================================
-   THEME OVERRIDES — deep-ocean  深海
-   深邃蓝绿暗色，沉静专注的深海氛围
-   ============================================================ */
-
-[data-theme="deep-ocean"] {
-    --surface-page:    #0a1628;
-    --surface-card:    rgba(15, 30, 55, 0.75);
-    --surface-hover:   rgba(20, 42, 72, 0.88);
-    --surface-glass:   rgba(15, 30, 55, 0.4);
-    --surface-glass-hover: rgba(20, 42, 72, 0.55);
-    --border-glass:    rgba(56, 189, 248, 0.15);
-    --border-glass-hover: rgba(56, 189, 248, 0.35);
-    --glass-blur:      22px;
-    --glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #e2f0fb;
-    --text-body:       #a0c4e8;
-    --text-muted:      #5a7a9a;
-    --text-link:       #38bdf8;
-    --text-on-brand:   #0a1628;
-    --bg-card:         var(--surface-card);
-    --primary:         #0ea5e9;
-    --primary-light:   #38bdf8;
-    --primary-dark:    #0369a1;
-    --primary-glow:    rgba(14, 165, 233, 0.35);
-    --accent:          #2dd4bf;
-    --accent-light:    #5eead4;
-    --success:         #22c55e;
-    --success-bg:      rgba(34, 197, 94, 0.12);
-    --warning:         #eab308;
-    --warning-bg:      rgba(234, 179, 8, 0.12);
-    --danger:          #ef4444;
-    --danger-bg:       rgba(239, 68, 68, 0.12);
-    --orb-1:           rgba(14, 165, 233, 0.22);
-    --orb-2:           rgba(45, 212, 191, 0.18);
-    --orb-3:           rgba(56, 189, 248, 0.14);
-    color-scheme: dark;
-}
-
-/* ============================================================
-   THEME OVERRIDES — twilight-glow  暮光
-   紫琥珀渐变暖色，温暖而有创意的黄昏氛围
-   ============================================================ */
-
-[data-theme="twilight-glow"] {
-    --surface-page:    #f9f6fd;
-    --surface-card:    rgba(255, 255, 255, 0.76);
-    --surface-hover:   rgba(255, 255, 255, 0.9);
-    --surface-glass:   rgba(255, 255, 255, 0.48);
-    --surface-glass-hover: rgba(255, 255, 255, 0.62);
-    --border-glass:    rgba(168, 85, 247, 0.18);
-    --border-glass-hover: rgba(168, 85, 247, 0.35);
-    --glass-blur:      20px;
-    --glass-shadow:    0 6px 28px rgba(126, 34, 206, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #1e1033;
-    --text-body:       #4a3870;
-    --text-muted:      #9584b0;
-    --text-link:       #7c3aed;
-    --text-on-brand:   #ffffff;
-    --bg-card:         var(--surface-card);
-    --primary:         #7c3aed;
-    --primary-light:   #a78bfa;
-    --primary-dark:    #5b21b6;
-    --primary-glow:    rgba(124, 58, 237, 0.4);
-    --accent:          #f59e0b;
-    --accent-light:    #fbbf24;
-    --success:         #10b981;
-    --success-bg:      rgba(16, 185, 129, 0.12);
-    --warning:         #d97706;
-    --warning-bg:      rgba(217, 119, 6, 0.12);
-    --danger:          #ef4444;
-    --danger-bg:       rgba(239, 68, 68, 0.12);
-    --orb-1:           rgba(168, 85, 247, 0.2);
-    --orb-2:           rgba(245, 158, 11, 0.18);
-    --orb-3:           rgba(236, 72, 153, 0.14);
-    color-scheme: light;
-}
-
-/* ============================================================
-   THEME OVERRIDES — bamboo-grove  竹林
-   清雅竹绿色，自然极简的学习氛围
-   ============================================================ */
-
-[data-theme="bamboo-grove"] {
-    --surface-page:    #f5f8f3;
-    --surface-card:    rgba(255, 255, 255, 0.74);
-    --surface-hover:   rgba(255, 255, 255, 0.9);
-    --surface-glass:   rgba(255, 255, 255, 0.42);
-    --surface-glass-hover: rgba(255, 255, 255, 0.58);
-    --border-glass:    rgba(101, 163, 103, 0.18);
-    --border-glass-hover: rgba(101, 163, 103, 0.38);
-    --glass-blur:      18px;
-    --glass-shadow:    0 4px 20px rgba(46, 125, 50, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #1a2e1a;
-    --text-body:       #3d563d;
-    --text-muted:      #7d9a7d;
-    --text-link:       #2e7d32;
-    --text-on-brand:   #ffffff;
-    --bg-card:         var(--surface-card);
-    --primary:         #388e3c;
-    --primary-light:   #66bb6a;
-    --primary-dark:    #1b5e20;
-    --primary-glow:    rgba(56, 142, 60, 0.3);
-    --accent:          #8d6e63;
-    --accent-light:    #a1887f;
-    --success:         #2e7d32;
-    --success-bg:      rgba(46, 125, 50, 0.1);
-    --warning:         #f9a825;
-    --warning-bg:      rgba(249, 168, 37, 0.12);
-    --danger:          #d32f2f;
-    --danger-bg:       rgba(211, 47, 47, 0.12);
-    --orb-1:           rgba(129, 199, 132, 0.22);
-    --orb-2:           rgba(165, 214, 167, 0.18);
-    --orb-3:           rgba(200, 230, 201, 0.16);
-    color-scheme: light;
-}
-
-/* ============================================================
-   THEME OVERRIDES — star-vault  星穹
-   璀璨金靛暗色，星空穹顶般的奢华沉浸感
-   ============================================================ */
-
-[data-theme="star-vault"] {
-    --surface-page:    #080c24;
-    --surface-card:    rgba(18, 24, 58, 0.72);
-    --surface-hover:   rgba(24, 32, 72, 0.85);
-    --surface-glass:   rgba(18, 24, 58, 0.4);
-    --surface-glass-hover: rgba(24, 32, 72, 0.55);
-    --border-glass:    rgba(250, 204, 21, 0.15);
-    --border-glass-hover: rgba(250, 204, 21, 0.35);
-    --glass-blur:      24px;
-    --glass-shadow:    0 8px 40px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    --shadow-glass:    var(--glass-shadow);
-    --text-heading:    #fef9e7;
-    --text-body:       #c4c8e0;
-    --text-muted:      #6b7094;
-    --text-link:       #facc15;
-    --text-on-brand:   #080c24;
-    --bg-card:         var(--surface-card);
-    --primary:         #eab308;
-    --primary-light:   #facc15;
-    --primary-dark:    #a16207;
-    --primary-glow:    rgba(234, 179, 8, 0.4);
-    --accent:          #818cf8;
-    --accent-light:    #a5b4fc;
-    --success:         #22c55e;
-    --success-bg:      rgba(34, 197, 94, 0.12);
-    --warning:         #eab308;
-    --warning-bg:      rgba(234, 179, 8, 0.15);
-    --danger:          #ef4444;
-    --danger-bg:       rgba(239, 68, 68, 0.12);
-    --orb-1:           rgba(250, 204, 21, 0.18);
-    --orb-2:           rgba(129, 140, 248, 0.2);
-    --orb-3:           rgba(192, 132, 252, 0.16);
-    color-scheme: dark;
-}
-
-/* P0 fix — auto-generated by fix_p0_tech_debt.py on 2026-06-08 */
-:root {
-    --accent-amber: #f59e0b;
-    --accent-glow: #fef3c7;
-    --accent-hover: #fde68a;
-    --accent-rose: #f43f5e;
-    --accent-strong: #1e40af;
-    --accent-teal: #14b8a6;
-    --accent-violet: #8b5cf6;
-    --agent-color: #9ca3af;  /* TODO: refine color */
-    --agent-theme-color: #9ca3af;  /* TODO: refine color */
-    --agent-theme-glow: #fef3c7;
-    --avatar-gradient-agent: #8b5cf6;
-    --avatar-gradient-moderator: #f59e0b;
-    --avatar-gradient-student: #3b82f6;
-    --avatar-gradient-teacher: #10b981;
-    --badge-index: #3b82f6;
-    --bg: #9ca3af;  /* TODO: refine color */
-    --bg-card-hover: #fde68a;
-    --bg-elevated: #9ca3af;  /* TODO: refine color */
-    --bg-glass: #9ca3af;  /* TODO: refine color */
-    --bg-glass-hover: #fde68a;
-    --bg-navbar: #9ca3af;  /* TODO: refine color */
-    --bg-primary: #9ca3af;  /* TODO: refine color */
-    --bg-secondary: #9ca3af;  /* TODO: refine color */
-    --bg-soft: #9ca3af;  /* TODO: refine color */
-    --bg-tertiary: #9ca3af;  /* TODO: refine color */
-    --blue: #3b82f6;
-    --border-light: #9ca3af;  /* TODO: refine color */
-    --brand: #9ca3af;  /* TODO: refine color */
-    --breath-slow: #9ca3af;  /* TODO: refine color */
-    --btn-harvest: #9ca3af;  /* TODO: refine color */
-    --btn-harvest-hover: #fde68a;
-    --btn-harvest-shadow: #9ca3af;  /* TODO: refine color */
-    --btn-insulation: #9ca3af;  /* TODO: refine color */
-    --btn-insulation-hover: #fde68a;
-    --btn-nutrient: #9ca3af;  /* TODO: refine color */
-    --btn-nutrient-hover: #fde68a;
-    --btn-nutrient-shadow: #9ca3af;  /* TODO: refine color */
-    --btn-plant: #9ca3af;  /* TODO: refine color */
-    --btn-plant-hover: #fde68a;
-    --btn-plant-shadow: #9ca3af;  /* TODO: refine color */
-    --btn-water: #9ca3af;  /* TODO: refine color */
-    --btn-water-hover: #fde68a;
-    --btn-water-shadow: #9ca3af;  /* TODO: refine color */
-    --card-accent: #9ca3af;  /* TODO: refine color */
-    --card-foreground: #9ca3af;  /* TODO: refine color */
-    --chat-width: #9ca3af;  /* TODO: refine color */
-    --color: #9ca3af;  /* TODO: refine color */
-    --controls-height: #9ca3af;  /* TODO: refine color */
-    --cp-accent: #9ca3af;  /* TODO: refine color */
-    --cp-bg-deep: #9ca3af;  /* TODO: refine color */
-    --cp-card-bg: #9ca3af;  /* TODO: refine color */
-    --cp-card-border: #9ca3af;  /* TODO: refine color */
-    --cp-card-border-strong: #1e40af;
-    --cp-deep-core: #9ca3af;  /* TODO: refine color */
-    --cp-deep-mid: #9ca3af;  /* TODO: refine color */
-    --cp-deep-surface: #9ca3af;  /* TODO: refine color */
-    --cp-divider: #9ca3af;  /* TODO: refine color */
-    --cp-prism-color-a: #9ca3af;  /* TODO: refine color */
-    --cp-prism-color-c: #9ca3af;  /* TODO: refine color */
-    --cp-prism-color-d: #9ca3af;  /* TODO: refine color */
-    --cp-prism-glow: #fef3c7;
-    --cp-prism-glow-hover: #fef3c7;
-    --cp-text-primary: #9ca3af;  /* TODO: refine color */
-    --cp-text-secondary: #9ca3af;  /* TODO: refine color */
-    --cp-text-tertiary: #9ca3af;  /* TODO: refine color */
-    --cp-transition: #9ca3af;  /* TODO: refine color */
-    --cyan: #06b6d4;
-    --danger-light: #9ca3af;  /* TODO: refine color */
-    --default-font-feature-settings: #9ca3af;  /* TODO: refine color */
-    --default-font-variation-settings: #9ca3af;  /* TODO: refine color */
-    --default-mono-font-feature-settings: #9ca3af;  /* TODO: refine color */
-    --default-mono-font-variation-settings: #9ca3af;  /* TODO: refine color */
-    --delay: #9ca3af;  /* TODO: refine color */
-    --dropdown-bg: #9ca3af;  /* TODO: refine color */
-    --dur: #9ca3af;  /* TODO: refine color */
-    --duration: #9ca3af;  /* TODO: refine color */
-    --ease-out-back: #9ca3af;  /* TODO: refine color */
-    --ease-out-expo: #9ca3af;  /* TODO: refine color */
-    --ease-smooth: #9ca3af;  /* TODO: refine color */
-    --ease-spring: #9ca3af;  /* TODO: refine color */
-    --error-500: #9ca3af;  /* TODO: refine color */
-    --error-bg: #9ca3af;  /* TODO: refine color */
-    --font-extrabold: #9ca3af;  /* TODO: refine color */
-    --foreground: #9ca3af;  /* TODO: refine color */
-    --glass-bg-heavy: #9ca3af;  /* TODO: refine color */
-    --glass-bg-hover: #fde68a;
-    --glass-bg-strong: #1e40af;
-    --glass-blur-active: #9ca3af;  /* TODO: refine color */
-    --glass-border: #9ca3af;  /* TODO: refine color */
-    --glass-border-subtle: #9ca3af;  /* TODO: refine color */
-    --glass-highlight: #9ca3af;  /* TODO: refine color */
-    --glass-inset: #9ca3af;  /* TODO: refine color */
-    --glass-shadow-hover: #fde68a;
-    --grass-dark: #9ca3af;  /* TODO: refine color */
-    --grass-light: #9ca3af;  /* TODO: refine color */
-    --grass-mid: #9ca3af;  /* TODO: refine color */
-    --green: #10b981;
-    --header-height: #9ca3af;  /* TODO: refine color */
-    --item-theme-color: #9ca3af;  /* TODO: refine color */
-    --laser-end-x: #9ca3af;  /* TODO: refine color */
-    --laser-end-y: #9ca3af;  /* TODO: refine color */
-    --laser-start-x: #9ca3af;  /* TODO: refine color */
-    --laser-start-y: #9ca3af;  /* TODO: refine color */
-    --leading-snug: #9ca3af;  /* TODO: refine color */
-    --leading-tight: #9ca3af;  /* TODO: refine color */
-    --leleo-bg-image: #9ca3af;  /* TODO: refine color */
-    --leleo-blur: #9ca3af;  /* TODO: refine color */
-    --leleo-brightness: #9ca3af;  /* TODO: refine color */
-    --line: #9ca3af;  /* TODO: refine color */
-    --line-strong: #1e40af;
-    --mesh-1: #9ca3af;  /* TODO: refine color */
-    --mesh-2: #9ca3af;  /* TODO: refine color */
-    --mesh-3: #9ca3af;  /* TODO: refine color */
-    --mesh-4: #9ca3af;  /* TODO: refine color */
-    --mesh-accent-1: #9ca3af;  /* TODO: refine color */
-    --mesh-accent-2: #9ca3af;  /* TODO: refine color */
-    --mouse-x: #9ca3af;  /* TODO: refine color */
-    --mouse-y: #9ca3af;  /* TODO: refine color */
-    --muted: #9ca3af;  /* TODO: refine color */
-    --mx1: #9ca3af;  /* TODO: refine color */
-    --mx2: #9ca3af;  /* TODO: refine color */
-    --mx3: #9ca3af;  /* TODO: refine color */
-    --my1: #9ca3af;  /* TODO: refine color */
-    --my2: #9ca3af;  /* TODO: refine color */
-    --my3: #9ca3af;  /* TODO: refine color */
-    --neon-blue: #3b82f6;
-    --neon-color: #9ca3af;  /* TODO: refine color */
-    --neon-green: #10b981;
-    --neon-orange: #f97316;
-    --neon-purple: #8b5cf6;
-    --neon-red: #ef4444;
-    --nutrient-fill-end: #9ca3af;  /* TODO: refine color */
-    --nutrient-fill-start: #9ca3af;  /* TODO: refine color */
-    --nutrient-glow: #fef3c7;
-    --nutrient-track: #9ca3af;  /* TODO: refine color */
-    --panel: #9ca3af;  /* TODO: refine color */
-    --panel-strong: #1e40af;
-    --percent: #9ca3af;  /* TODO: refine color */
-    --plant-frame-width: #9ca3af;  /* TODO: refine color */
-    --plant-grid-cell: #9ca3af;  /* TODO: refine color */
-    --plant-grid-gap: #9ca3af;  /* TODO: refine color */
-    --pot-dark: #9ca3af;  /* TODO: refine color */
-    --pot-light: #9ca3af;  /* TODO: refine color */
-    --pot-mid: #9ca3af;  /* TODO: refine color */
-    --pot-shadow: #9ca3af;  /* TODO: refine color */
-    --primary-subtle: #9ca3af;  /* TODO: refine color */
-    --progress-width: #9ca3af;  /* TODO: refine color */
-    --radius: #9ca3af;  /* TODO: refine color */
-    --role-agent-accent: #9ca3af;  /* TODO: refine color */
-    --role-agent-bg: #9ca3af;  /* TODO: refine color */
-    --role-agent-border: #9ca3af;  /* TODO: refine color */
-    --role-moderator-accent: #9ca3af;  /* TODO: refine color */
-    --role-moderator-bg: #9ca3af;  /* TODO: refine color */
-    --role-moderator-border: #9ca3af;  /* TODO: refine color */
-    --role-student-accent: #9ca3af;  /* TODO: refine color */
-    --role-student-bg: #9ca3af;  /* TODO: refine color */
-    --role-student-border: #9ca3af;  /* TODO: refine color */
-    --role-system-bg: #9ca3af;  /* TODO: refine color */
-    --role-system-border: #9ca3af;  /* TODO: refine color */
-    --role-system-text: #9ca3af;  /* TODO: refine color */
-    --role-teacher-accent: #9ca3af;  /* TODO: refine color */
-    --role-teacher-bg: #9ca3af;  /* TODO: refine color */
-    --role-teacher-border: #9ca3af;  /* TODO: refine color */
-    --role-user-border: #9ca3af;  /* TODO: refine color */
-    --role-user-gradient: #9ca3af;  /* TODO: refine color */
-    --score: #9ca3af;  /* TODO: refine color */
-    --shadow: #9ca3af;  /* TODO: refine color */
-    --shadow-2xl: #9ca3af;  /* TODO: refine color */
-    --shadow-color: #9ca3af;  /* TODO: refine color */
-    --shadow-glow-primary: #fef3c7;
-    --sidebar-width: #9ca3af;  /* TODO: refine color */
-    --size: #9ca3af;  /* TODO: refine color */
-    --sky-bottom: #0ea5e9;
-    --sky-mid: #0ea5e9;
-    --sky-top: #0ea5e9;
-    --slide-shadow: #9ca3af;  /* TODO: refine color */
-    --soft: #9ca3af;  /* TODO: refine color */
-    --soil-dark: #9ca3af;  /* TODO: refine color */
-    --soil-light: #9ca3af;  /* TODO: refine color */
-    --soil-mid: #9ca3af;  /* TODO: refine color */
-    --spot-x: #9ca3af;  /* TODO: refine color */
-    --spot-y: #9ca3af;  /* TODO: refine color */
-    --stagger-delay: #9ca3af;  /* TODO: refine color */
-    --stagger-index: #3b82f6;
-    --success-light: #9ca3af;  /* TODO: refine color */
-    --success-soft: #9ca3af;  /* TODO: refine color */
-    --surface: #9ca3af;  /* TODO: refine color */
-    --surface-glass-strong: #1e40af;
-    --text: #9ca3af;  /* TODO: refine color */
-    --text-dim: #9ca3af;  /* TODO: refine color */
-    --text-main: #9ca3af;  /* TODO: refine color */
-    --text-on-accent: #9ca3af;  /* TODO: refine color */
-    --text-primary: #9ca3af;  /* TODO: refine color */
-    --text-secondary: #9ca3af;  /* TODO: refine color */
-    --text-soft: #9ca3af;  /* TODO: refine color */
-    --text-tertiary: #9ca3af;  /* TODO: refine color */
-    --tracking-tight: #9ca3af;  /* TODO: refine color */
-    --transition-normal: #9ca3af;  /* TODO: refine color */
-    --tx: #9ca3af;  /* TODO: refine color */
-    --ty: #9ca3af;  /* TODO: refine color */
-    --variant-accent: #9ca3af;  /* TODO: refine color */
-    --variant-accent-2: #9ca3af;  /* TODO: refine color */
-    --variant-hue: #9ca3af;  /* TODO: refine color */
-    --warn: #9ca3af;  /* TODO: refine color */
-    --warning-light: #9ca3af;  /* TODO: refine color */
-    --water-fill-end: #9ca3af;  /* TODO: refine color */
-    --water-fill-start: #9ca3af;  /* TODO: refine color */
-    --water-glow: #fef3c7;
-    --water-track: #9ca3af;  /* TODO: refine color */
-    --xxx: #9ca3af;  /* TODO: refine color */
-    --z-header: #9ca3af;  /* TODO: refine color */
-    --z-sidebar: #9ca3af;  /* TODO: refine color */
-}
+/* ---- color-scheme: 控制浏览器原生 UI（滚动条/表单） ---- */
+html { color-scheme: var(--_color-scheme, light); }

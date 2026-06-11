@@ -21,15 +21,15 @@ from html.parser import HTMLParser
 
 BASE = "http://localhost:8765"
 PAGES = [
-    ("login",            "/html/login.html",
+    ("login",            "/login.html",
      ["tokens", "app-base", "app-bg", "components", "animations"]),
-    ("register",         "/html/register.html",
+    ("register",         "/register.html",
      ["tokens", "app-base", "app-bg", "components", "animations"]),
-    ("hub",              "/html/hub.html",
+    ("hub",              "/hub.html",
      ["tokens", "app-base", "app-bg", "components", "animations"]),
-    ("personal",         "/html/personal.html",
+    ("personal",         "/personal.html",
      ["tokens", "app-base", "app-bg", "components", "animations"]),
-    ("teacher-dashboard", "/html/teacher-dashboard.html",
+    ("teacher-dashboard", "/teacher-dashboard.html",
      ["tokens", "app-base", "app-bg", "components", "animations"]),
 ]
 

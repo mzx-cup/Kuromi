@@ -88,7 +88,7 @@ class TestLoginPageUI(unittest.TestCase):
 
     def _open_login_page(self):
         """打开登录页面并等待表单加载完成"""
-        self.driver.get(f"{BASE_URL}/html/login.html")
+        self.driver.get(f"{BASE_URL}/login.html")
         self.wait.until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".auth-card-inner"))
         )
