@@ -1,0 +1,79 @@
+/* ============================================================
+   Scheme: 樱语 Sakura Whisper
+   樱花飘落 + 柔和粉调 + 轻盈通透
+   使用方式: <html data-theme="sakura-whisper">
+   ============================================================ */
+
+/* ---- 樱花花瓣飘落动画 ---- */
+.sakura-petals {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.sakura-petal {
+  position: absolute;
+  top: -10%;
+  width: 12px;
+  height: 12px;
+  background: radial-gradient(ellipse at 60% 40%, rgba(255, 182, 193, 0.8), rgba(255, 154, 180, 0.3));
+  border-radius: 50% 0 50% 0;
+  animation: sakura-fall linear infinite;
+  opacity: 0;
+}
+
+.sakura-petal:nth-child(1)  { left: 5%;  animation-duration: 12s; animation-delay: 0s;   width: 14px; height: 14px; }
+.sakura-petal:nth-child(2)  { left: 12%; animation-duration: 15s; animation-delay: 2s;   width: 10px; height: 10px; }
+.sakura-petal:nth-child(3)  { left: 20%; animation-duration: 11s; animation-delay: 4s;   width: 16px; height: 16px; }
+.sakura-petal:nth-child(4)  { left: 28%; animation-duration: 14s; animation-delay: 1s;   width: 11px; height: 11px; }
+.sakura-petal:nth-child(5)  { left: 35%; animation-duration: 13s; animation-delay: 3s;   width: 13px; height: 13px; }
+.sakura-petal:nth-child(6)  { left: 43%; animation-duration: 16s; animation-delay: 0.5s; width: 9px;  height: 9px;  }
+.sakura-petal:nth-child(7)  { left: 50%; animation-duration: 10s; animation-delay: 2.5s; width: 15px; height: 15px; }
+.sakura-petal:nth-child(8)  { left: 58%; animation-duration: 14s; animation-delay: 5s;   width: 12px; height: 12px; }
+.sakura-petal:nth-child(9)  { left: 65%; animation-duration: 12s; animation-delay: 1.5s; width: 10px; height: 10px; }
+.sakura-petal:nth-child(10) { left: 73%; animation-duration: 17s; animation-delay: 3.5s; width: 14px; height: 14px; }
+.sakura-petal:nth-child(11) { left: 80%; animation-duration: 11s; animation-delay: 2s;   width: 11px; height: 11px; }
+.sakura-petal:nth-child(12) { left: 88%; animation-duration: 15s; animation-delay: 4.5s; width: 13px; height: 13px; }
+.sakura-petal:nth-child(13) { left: 15%; animation-duration: 18s; animation-delay: 6s;   width: 8px;  height: 8px;  }
+.sakura-petal:nth-child(14) { left: 55%; animation-duration: 13s; animation-delay: 7s;   width: 12px; height: 12px; }
+.sakura-petal:nth-child(15) { left: 92%; animation-duration: 16s; animation-delay: 8s;   width: 10px; height: 10px; }
+
+@keyframes sakura-fall {
+  0%    { transform: translateY(0)    rotate(0deg)  scale(0); opacity: 0; }
+  5%    { opacity: 0.7; }
+  10%   { transform: translateY(8vh)  rotate(45deg) scale(1); opacity: 0.8; }
+  50%   { transform: translateY(50vh) rotate(220deg) translateX(30px); opacity: 0.6; }
+  90%   { opacity: 0.3; }
+  100%  { transform: translateY(105vh) rotate(400deg) translateX(-20px); opacity: 0; }
+}
+
+/* ---- 樱语主题专属卡片微调 ---- */
+[data-theme="sakura-whisper"] .app-card {
+  border-color: rgba(244, 114, 182, 0.12);
+}
+
+[data-theme="sakura-whisper"] .app-card:hover {
+  border-color: rgba(244, 114, 182, 0.3);
+  box-shadow:
+    0 8px 30px rgba(189, 93, 128, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* ---- 樱语主题按钮微调 ---- */
+[data-theme="sakura-whisper"] .app-btn-primary {
+  background: linear-gradient(135deg, #e91e63, #ec4899);
+  box-shadow: 0 4px 16px rgba(233, 30, 99, 0.3);
+}
+
+[data-theme="sakura-whisper"] .app-btn-primary:hover {
+  background: linear-gradient(135deg, #ec4899, #f06292);
+  box-shadow: 0 6px 24px rgba(233, 30, 99, 0.4);
+}
+
+/* ---- 樱语导航栏 ---- */
+[data-theme="sakura-whisper"] .app-nav {
+  background: var(--surface-card);
+  border-bottom: 1px solid rgba(244, 114, 182, 0.15);
+}

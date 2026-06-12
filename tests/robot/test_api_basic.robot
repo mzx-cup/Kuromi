@@ -129,7 +129,8 @@ ${SHORT_CONTENT}   Hadoop
     ${payload}    Create Dictionary    user_id=${uid}    course_id=bigdata    content=${LONG_CONTENT}    count=3
     ${resp}    POST On Session    starlearn    /api/v2/flashcard/generate    json=${payload}    timeout=60
     Status Should Be    200    ${resp}
-    Dictionary Should Contain Key    ${resp.json()}    flashcards    msg=闪卡响应应包含 flashcards 字段
+    Dictionary Should Contain Key    ${resp.json()}    data    msg=闪卡响应应包含 data 字段
+    Dictionary Should Contain Key    ${resp.json()}[data]    flashcards    msg=data 字段应包含 flashcards 子字段
 
 生成闪卡-短内容边界值应不崩
     [Documentation]    边界值: 内容过短 → 期望不崩 (允许空 flashcards)

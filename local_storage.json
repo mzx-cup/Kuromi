@@ -1285,6 +1285,84 @@
       "completed": [],
       "generated_at": "2026-06-11T18:36:31.930048",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础数学概念学习",
+          "description": "学习一元一次方程基础知识",
+          "type": "study",
+          "duration": 30,
+          "subject": "数学",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "一元一次方程练习",
+          "description": "完成5道一元一次方程练习题",
+          "type": "practice",
+          "duration": 45,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 3,
+          "title": "英语词汇记忆",
+          "description": "记忆20个常用英语词汇",
+          "type": "review",
+          "duration": 30,
+          "subject": "英语",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "英语阅读理解",
+          "description": "完成一篇英语短文阅读理解",
+          "type": "practice",
+          "duration": 45,
+          "subject": "英语",
+          "difficulty": "medium",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 5,
+          "title": "AI问答练习",
+          "description": "使用AI问答功能解决一道数学题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "制定学习计划",
+          "description": "使用日历功能规划明日学习任务",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/calendar.html"
+        },
+        {
+          "id": 7,
+          "title": "放松娱乐",
+          "description": "玩虚拟宠物游戏放松心情",
+          "type": "relax",
+          "duration": 15,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-06-12",
+      "completed": [],
+      "generated_at": "2026-06-12T18:42:34.159834",
+      "user_id": 1004
     }
   ],
   "classroom_records": [
