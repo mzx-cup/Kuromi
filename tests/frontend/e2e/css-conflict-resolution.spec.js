@@ -50,9 +50,10 @@ for (const page of HIGH_RISK_PAGES) {
     expect(before, '应能读取到 --brand-400 变量').not.toBe('');
 
     // 切换 data-theme 属性（模拟主题切换）
+    // 用 css/ 中实际存在的主题：sakura-whisper ↔ bamboo-grove
     await browserPage.evaluate(() => {
       const current = document.documentElement.getAttribute('data-theme');
-      const next = current && current.includes('sakura') ? 'bamboo-dark' : 'sakura-dark';
+      const next = current && current.includes('sakura') ? 'bamboo-grove' : 'sakura-whisper';
       document.documentElement.setAttribute('data-theme', next);
     });
 

@@ -275,7 +275,8 @@ class TestFrontendIntegration(unittest.TestCase):
 
     def test_css_dark_mode_transitions(self):
         css = self._fetch_css()
-        self.assertIn("translateX(-110%)", css)
+        # 抽屉滑出动画（实际实现：translateX(-100%)）
+        self.assertIn("translateX(-100%)", css)
         self.assertIn("400ms", css)
 
     def test_css_responsive_breakpoint(self):

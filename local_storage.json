@@ -65,6 +65,39 @@
       "display_name": "管理员",
       "created_at": "local",
       "last_login": "local"
+    },
+    {
+      "id": 7,
+      "username": "teacher",
+      "password": "$2b$12$EOuIPx2JX2jACVdEAISfzOzf32K5ktlFesk7bVaWuyh3FqWPCJKRC",
+      "avatar": "",
+      "nickname": "教师演示",
+      "role": "teacher",
+      "display_name": "教师演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 8,
+      "username": "student",
+      "password": "$2b$12$msjGJ.uVgGF9ss0EpoqAF.WGpuC7QsBdRPnDep5e9sP8ZgqUToI96",
+      "avatar": "",
+      "nickname": "学生演示",
+      "role": "student",
+      "display_name": "学生演示",
+      "created_at": "local",
+      "last_login": "local"
+    },
+    {
+      "id": 9,
+      "username": "admin",
+      "password": "$2b$12$KQtk4IHZaKL2HyGalhjAyOTztLyHLZdPKymxEeFYVYUSGiudB018e",
+      "avatar": "",
+      "nickname": "管理员",
+      "role": "admin",
+      "display_name": "管理员",
+      "created_at": "local",
+      "last_login": "local"
     }
   ],
   "learning_records": [
