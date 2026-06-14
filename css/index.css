@@ -481,7 +481,7 @@ body, .text-auto {
     transition: color 500ms ease-in-out, background-color 500ms ease-in-out;
 }
 
-/* 全局 reset 已移至 app-base.css；本页仅在 .glass-app 范围保留基线（与原 body/* 等价） */
+/* 全局 reset 已移至 app-base.css；本页仅在 .glass-app 范围保留基线（与原 body 等价） */
 .glass-app,
 .glass-app * {
     box-sizing: border-box;
@@ -2443,7 +2443,8 @@ html body .msg-bubble,
     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
 }
 .think-strip.is-open + .think-log-timeline,
-.think-log-timeline.is-open {
+.think-log-timeline.is-open,
+.think-done-timeline:not(.hidden) .think-log-timeline {
     max-height: 260px;
     opacity: 1;
     overflow-y: auto;
@@ -2746,69 +2747,200 @@ html body .msg-bubble,
         0 0 0 1px rgba(168,85,247,0.08) inset;
 }
 
-.path-tree { font-size: 12px; }
-.path-tree-node {
-    padding: 7px 10px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 500ms ease-in-out;
+/* ── AI 学习路径分析视图 ── */
+.path-analysis-root {
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.path-analysis-banner {
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.path-analysis-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.path-analysis-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.path-analysis-line {
+    line-height: 1.6;
+    color: var(--text-main);
+    font-size: 11.5px;
+}
+
+.path-analysis-highlight {
+    color: var(--primary-light);
+    font-weight: 600;
+}
+
+.path-analysis-desc {
+    color: var(--text-tertiary);
+    font-size: 10.5px;
+    display: block;
+    padding-left: 12px;
+}
+
+.path-analysis-trail {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.path-analysis-trail-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.path-analysis-trail-path {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    word-break: break-all;
+}
+
+/* 紧凑进度条 */
+.path-analysis-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.path-analysis-progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border-glass);
+    overflow: hidden;
+}
+
+.path-analysis-progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--primary-light), var(--accent));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.path-analysis-progress-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 9px;
+}
+
+.path-analysis-stat {
+    font-weight: 500;
+}
+
+.path-analysis-stat.completed { color: var(--success); }
+.path-analysis-stat.inprogress { color: var(--primary-light); }
+.path-analysis-stat.locked { color: var(--text-tertiary); }
+
+.path-analysis-footer {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 3px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    justify-content: flex-end;
 }
-.path-tree-node:hover {
-    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(168,85,247,0.05));
-    border-radius: 10px;
-    color: var(--text-primary);
-}
-.path-tree-node.active {
-    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.12));
-    font-weight: 700;
-    color: #c4b5fd;
-    letter-spacing: 0.03em;
-    box-shadow: 0 0 12px rgba(168,85,247,0.08);
-    border: 1px solid rgba(168,85,247,0.1);
-}
-.path-tree-node-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    transition: box-shadow 0.3s ease;
-}
-.path-tree-node-dot.completed {
-    background: #22c55e;
-    box-shadow: 0 0 8px rgba(34,197,94,0.4), 0 0 20px rgba(34,197,94,0.15);
-}
-.path-tree-node-dot.in-progress {
-    background: #8b5cf6;
-    animation: agentBreathe 2s ease-in-out infinite;
-    box-shadow: 0 0 10px rgba(139,92,246,0.5), 0 0 22px rgba(139,92,246,0.2);
-}
-.path-tree-node-dot.locked {
-    background: var(--surface-hover);
-    box-shadow: none;
-}
-.path-tree-children {
-    padding-left: 22px;
-    border-left: 2px solid rgba(168,85,247,0.12);
-    margin-left: 14px;
-    border-radius: 0 0 0 4px;
-    transition: border-color 500ms ease-in-out;
-}
-.path-tree-toggle { cursor: pointer; color: var(--text-tertiary); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-.path-tree-toggle.expanded { transform: rotate(90deg); }
-.path-tree-badge { font-size: 8px; padding: 2px 6px; border-radius: 6px; font-weight: 700; margin-left: auto; letter-spacing: 0.04em; backdrop-filter: blur(4px); }
-.path-tree-badge.important { background: rgba(245,158,11,0.15); color: #fbbf24; box-shadow: 0 0 6px rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15); }
-.path-tree-time { font-size: 9px; color: var(--text-tertiary); transition: color 500ms ease-in-out; }
 
-/* 学习路径总体进度 */
+.path-analysis-time {
+    font-size: 9px;
+    color: var(--text-tertiary);
+}
+
+/* 旧树形路径样式 — 不再渲染 */
+.path-tree-node { display: none; }
+.path-tree-children { display: none; }
+.path-tree-node-dot { display: none; }
+.path-tree-badge { display: none; }
+.path-tree-time { display: none; }
+.path-tree-toggle { display: none; }
+.path-tree-node-text { display: none; }
+.path-tree-child-text { display: none; }
+.path-progress-header { display: none; }
+.path-tree-loading { display: none; }
+.path-header-row { display: none; }
+.path-progress-meta { display: none; }
+.path-progress-label { display: none; }
+.path-progress-value { display: none; }
+.path-progress-bar-bg { display: none; }
+.path-progress-bar-fill { display: none; }
+.path-progress-stats { display: none; }
+.path-stat-completed { display: none; }
+.path-stat-inprogress { display: none; }
+.path-stat-locked { display: none; }
+.path-tree-node-label { display: none; }
+.path-tree-child-label { display: none; }
+.path-tree-empty { display: none; }
+
+/* AI 分析加载态 */
+.path-analysis-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    gap: 8px;
+}
+
+.path-analysis-loading:not(.hidden) {
+    display: flex;
+}
+
+.path-analysis-loading .path-loading-bar {
+    width: 120px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--border-glass);
+    overflow: hidden;
+    position: relative;
+}
+
+.path-analysis-loading .path-loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
+    animation: pathAnalysisLoading 1.2s ease-in-out infinite;
+}
+
+@keyframes pathAnalysisLoading {
+    0% { left: -40%; }
+    100% { left: 100%; }
+}
+
+/* 旧树形路径详细样式 — 全部隐藏 */
+.path-tree-toggle { display: none; }
+.path-tree-badge { display: none; }
+.path-tree-time { display: none; }
+
+/* 学习路径总体进度（保留旧样式避免引用错误） */
 .path-progress-header {
     padding: 10px 12px;
     margin-bottom: 8px;
@@ -12105,4 +12237,167 @@ body.light-theme .openmaic-btn-ghost:hover,
     font-size: 10px;
     color: #64748b;
     flex-shrink: 0;
+}
+
+/* ── 多维能力分析区 ── */
+.path-analysis-dimensions {
+    margin: 12px 0;
+    padding: 0 4px;
+}
+
+.path-analysis-dim-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));
+}
+
+.path-analysis-dim-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.path-analysis-dim-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: var(--fill-glass, rgba(255,255,255,0.03));
+    border: 1px solid var(--border-glass, rgba(255,255,255,0.04));
+}
+
+.path-analysis-dim-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.path-analysis-dim-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.path-analysis-dim-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.path-analysis-dim-value {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-primary, #e2e8f0);
+}
+
+/* ── 各节点学习目标列表 ── */
+.path-analysis-goals {
+    margin: 12px 0;
+    padding: 0 4px;
+}
+
+.path-analysis-goals-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-glass, rgba(255,255,255,0.06));
+}
+
+.path-analysis-goals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.path-analysis-goal-item {
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: var(--fill-glass, rgba(255,255,255,0.03));
+    border: 1px solid var(--border-glass, rgba(255,255,255,0.04));
+}
+
+.path-analysis-goal-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+    flex-wrap: wrap;
+}
+
+.path-analysis-goal-status {
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+.path-analysis-goal-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary, #e2e8f0);
+}
+
+.path-analysis-goal-desc {
+    font-size: 10.5px;
+    line-height: 1.45;
+    color: var(--text-secondary, #94a3b8);
+    margin: 2px 0 0 18px;
+}
+
+.path-analysis-goal-rationale {
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--accent-blue, #60a5fa);
+    margin: 3px 0 0 18px;
+    font-style: italic;
+}
+
+.path-analysis-goal-dim {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--fill-glass, rgba(255,255,255,0.06));
+    color: var(--accent-purple, #a78bfa);
+    font-weight: 500;
+}
+
+/* ── 节点详情面板：学习目标 & 能力适配 ── */
+.path-detail-goal-text {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text-primary, #e2e8f0);
+    padding: 4px 0;
+}
+
+.path-detail-rationale-text {
+    font-size: 11.5px;
+    line-height: 1.5;
+    color: var(--accent-blue, #60a5fa);
+    padding: 4px 0;
+    font-style: italic;
+}
+
+.path-detail-dimensions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.path-detail-dim-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--fill-glass, rgba(255,255,255,0.06));
+    color: var(--accent-purple, #a78bfa);
+    border: 1px solid var(--border-glass, rgba(255,255,255,0.08));
+    font-weight: 500;
 }

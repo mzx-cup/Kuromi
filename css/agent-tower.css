@@ -47,17 +47,45 @@
 .tower-log-agent { color: var(--primary-light); }
 .tower-log-err { color: var(--danger); }
 
-/* assets drawer */
+/* assets drawer — 评估报告 */
 .tower-drawer {
-  border-top: 1px solid var(--border-glass); padding: 12px 18px;
-  display: none;
+  border-top: 1px solid var(--border-glass);
+  max-height: 0; overflow: hidden;
+  transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1), padding 300ms;
+  padding: 0 18px;
 }
-.tower-drawer.is-open { display: block; }
-.tower-drawer h3 { font-size: 13px; margin: 0 0 8px; color: var(--text-secondary); }
-.tower-asset-chip {
-  display: inline-block; margin: 4px 6px 0 0; padding: 4px 10px;
-  background: var(--surface-glass); border-radius: 999px; font-size: 12px;
-  color: var(--text-primary); cursor: pointer;
+.tower-drawer.is-open {
+  max-height: 400px; padding: 12px 18px; overflow-y: auto;
+}
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.drawer-header h3 { font-size: 13px; margin: 0; color: var(--text-secondary); }
+.drawer-header #drawer-close { padding: 2px 8px; font-size: 14px; }
+.drawer-body { display: flex; flex-direction: column; gap: 10px; }
+.drawer-metrics {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+}
+.drawer-metric {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 10px;
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+}
+.drawer-metric-icon { width: 18px; height: 18px; flex-shrink: 0; }
+.drawer-metric-label { font-size: 11px; color: var(--text-secondary); }
+.drawer-metric-value { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-left: auto; }
+.drawer-spark {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 10px; border-radius: 10px;
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  font-size: 11px; color: var(--text-secondary);
+}
+.drawer-spark svg { width: 100%; height: 32px; }
+.drawer-summary {
+  font-size: 12px; line-height: 1.55; color: var(--text-secondary);
+  margin: 0; padding: 6px 10px; border-left: 2px solid var(--primary-light);
+  background: var(--surface-glass); border-radius: 0 8px 8px 0;
 }
 
 /* === 学情画像 4 卡 (已删除, 改由 #profile-container 8 tile 实时更新承载) === */

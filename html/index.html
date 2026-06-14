@@ -193,8 +193,15 @@
                         <div class="tower-flow" id="tower-flow"></div>
                         <div class="tower-terminal" id="tower-terminal"></div>
                         <div class="tower-drawer" id="tower-drawer">
-                            <h3>资源抽屉</h3>
-                            <div id="tower-assets"></div>
+                            <div class="drawer-header">
+                                <h3>📊 评估报告</h3>
+                                <button class="tower-btn" id="drawer-close" title="关闭" aria-label="关闭评估报告">✕</button>
+                            </div>
+                            <div class="drawer-body">
+                                <div class="drawer-metrics" id="drawer-metrics"></div>
+                                <div class="drawer-spark" id="drawer-spark"></div>
+                                <p class="drawer-summary" id="drawer-summary">等待评估完成…</p>
+                            </div>
                         </div>
                         <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
                             <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
@@ -402,7 +409,7 @@
                     <span class="expand-text text-xs font-medium">收起</span>
                 </button>
                 <div class="sidebar-section-content" id="path-section">
-                    <div class="path-tree-loading hidden" id="path-tree-loading">
+                    <div class="path-analysis-loading hidden" id="path-tree-loading">
                         <div class="path-loading-bar"></div>
                     </div>
                     <div class="path-tree" id="path-tree-container"></div>

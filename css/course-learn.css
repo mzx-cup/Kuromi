@@ -555,6 +555,81 @@
   color: #052e16;
 }
 
+/* 5.1b AI 讲解视频生成 */
+.cl-ai-section {
+  padding: 12px 16px 16px;
+  background: var(--cl-bg-card);
+  border-bottom: 1px solid var(--cl-border);
+}
+.cl-ai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cl-ai-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--cl-text);
+}
+.cl-ai-title svg {
+  color: var(--cl-accent-2);
+}
+.cl-ai-gen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--cl-radius-full);
+  border: 1px solid var(--cl-accent);
+  background: rgba(167, 139, 250, 0.12);
+  color: var(--cl-accent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--cl-transition);
+}
+.cl-ai-gen-btn:hover {
+  background: rgba(167, 139, 250, 0.25);
+  border-color: var(--cl-accent-2);
+}
+.cl-ai-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0 8px;
+  color: var(--cl-text-soft);
+  font-size: 13px;
+}
+.cl-ai-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--cl-border-strong);
+  border-top-color: var(--cl-accent);
+  border-radius: 50%;
+  animation: cl-ai-spin 0.8s linear infinite;
+}
+@keyframes cl-ai-spin {
+  to { transform: rotate(360deg); }
+}
+.cl-ai-player {
+  padding: 12px 0 0;
+}
+.cl-ai-player video {
+  width: 100%;
+  border-radius: var(--cl-radius-md);
+  background: #000;
+  max-height: 30vh;
+}
+.cl-ai-error {
+  padding: 12px 0 0;
+  font-size: 13px;
+  color: var(--cl-danger);
+}
+
 /* 5.2 跟随式 5 步引导 */
 .cl-stepper {
   position: relative;

@@ -97,6 +97,8 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
       // Task #49: 控制塔 start/pause/stop 交互
       startPipeline, pausePipeline, stopPipeline, finishPipeline,
       wireTowerControlButtons, runMockPipeline, _parseSseEnvelope,
+      // 评估报告抽屉
+      renderEvalReport, setupDrawerClose, buildEvalSummary,
       __state: {
         get agentCatalog() { return agentCatalog; },
         get towerAgentStatus() { return towerAgentStatus; },
@@ -826,5 +828,228 @@ describe('agent-tower — 新数据源渲染', () => {
     expect(() => sb.wireTowerControlButtons()).not.toThrow();
     expect(document.getElementById('tower-start').dataset.wired).toBe('1');
     expect(document.getElementById('tower-toggle').dataset.wired).toBeUndefined();
+  });
+
+  // === Task #54: 评估报告抽屉 (#tower-drawer) ===
+
+  it('wireTowerControlButtons 折叠按钮幂等: 二次调用不重复挂 handler', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="track-a-container">'
+      + '  <button id="tower-start">▶ 启动协作</button>'
+      + '  <button id="tower-pause" disabled>⏸</button>'
+      + '  <button id="tower-stop" disabled>⏹</button>'
+      + '  <button id="tower-toggle">⇆ 折叠</button>'
+      + '</div>',
+    });
+    // 第一次: 绑
+    sb.wireTowerControlButtons();
+    const toggleBtn = document.getElementById('tower-toggle');
+    expect(toggleBtn.dataset.wired).toBe('1');
+
+    // 手动挂第二个计数 handler — 如果 wireTowerControlButtons 第二次真绑了第二个 listener, 会触发 2 次
+    let extraCount = 0;
+    toggleBtn.addEventListener('click', () => { extraCount++; });
+
+    // 第二次: dataset.wired='1' 守卫应早退
+    sb.wireTowerControlButtons();
+    // 触发一次 click — wireTowerControlButtons 自己绑的 handler 跑 1 次 + 我们的额外 1 次 = 2
+    toggleBtn.click();
+    // 关键: 2 次说明没有重复绑定 (如果重复绑定, wireTowerControlButtons 的 handler 会跑 2 次 + extra 1 次 = 3)
+    expect(extraCount).toBe(1);
+    // 折叠状态应被 wireTowerControlButtons 的 handler 切换 1 次
+    const container = document.getElementById('track-a-container');
+    expect(container.classList.contains('collapsed')).toBe(true);
+  });
+
+  it('buildEvalSummary 派生中文一句话总结 (含交互数/启发率/难度/代码实操)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    const summary = sb.buildEvalSummary({
+      interactionCount: 12, socraticPassRate: 0.67,
+      difficultyLevel: 'advanced', codePracticeTime: 35,
+    });
+    expect(summary).toContain('12');
+    expect(summary).toContain('67%');
+    expect(summary).toContain('进阶');
+    expect(summary).toContain('35min');
+
+    // 空对象 -> 0% + 中等
+    const empty = sb.buildEvalSummary({});
+    expect(empty).toContain('0');
+    expect(empty).toContain('中等');
+  });
+
+  it('renderEvalReport 渲染 4 指标卡 + sparkline + summary 到 #tower-drawer', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="tower-drawer">'
+      + '  <div class="drawer-header">'
+      + '    <h3>📊 评估报告</h3>'
+      + '    <button id="drawer-close">✕</button>'
+      + '  </div>'
+      + '  <div class="drawer-body">'
+      + '    <div class="drawer-metrics" id="drawer-metrics"></div>'
+      + '    <div class="drawer-spark" id="drawer-spark"></div>'
+      + '    <p class="drawer-summary" id="drawer-summary">等待评估完成…</p>'
+      + '  </div>'
+      + '</div>',
+    });
+    // sandbox 默认没有 evaluation 全局 (顶部代码块只截取 towerBlock, 不含 line 1824)
+    // 直接 set 它到 sandbox 不可行 (不在 closure 内)。 改用 setupDrawerClose 同源:
+    // 我们知道 evaluation 是顶层 let, 我们的 towerBlock 截取不包含它, 但 renderEvalReport 内部
+    // 用 typeof evaluation !== 'undefined' 检查 — sandbox 里 evaluation 是 undefined,
+    // 会走 ev = {} 兜底。 所以我们期望: 0 交互数, 0% 启发率, 中等难度, 0min 代码实操。
+    sb.renderEvalReport();
+    const metrics = document.querySelectorAll('#drawer-metrics .drawer-metric');
+    expect(metrics.length).toBe(4);
+    // 第一张: 交互次数 — 兜底值 0
+    expect(metrics[0].querySelector('.drawer-metric-label').textContent).toContain('交互');
+    expect(metrics[0].querySelector('.drawer-metric-value').textContent).toBe('0');
+    // 第二张: 启发通关率
+    expect(metrics[1].querySelector('.drawer-metric-value').textContent).toBe('0%');
+    // 第三张: 代码实操
+    expect(metrics[2].querySelector('.drawer-metric-value').textContent).toBe('0min');
+    // 第四张: 难度 (sandbox 没有 evaluation 全局, 走兜底 '中等')
+    expect(metrics[3].querySelector('.drawer-metric-value').textContent).toBe('中等');
+
+    // summary 已被覆盖
+    const summary = document.getElementById('drawer-summary').textContent;
+    expect(summary).not.toBe('等待评估完成…');
+    expect(summary.length).toBeGreaterThan(0);
+  });
+
+  it('evaluator agent_step 成功后自动展开 #tower-drawer (加 is-open 类)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="tower-drawer">'
+      + '  <div class="drawer-header">'
+      + '    <button id="drawer-close">✕</button>'
+      + '  </div>'
+      + '  <div class="drawer-body">'
+      + '    <div class="drawer-metrics" id="drawer-metrics"></div>'
+      + '    <div class="drawer-spark" id="drawer-spark"></div>'
+      + '    <p class="drawer-summary" id="drawer-summary">等待评估完成…</p>'
+      + '  </div>'
+      + '</div>'
+      + '<div id="tower-flow"></div>'
+      + '<div id="tower-terminal"></div>',
+    });
+    // 重置订阅旗 + agentBus
+    sb.__state._towerBusSubscribed = false;
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
+    // 需要先加载 catalog + 渲染 flow, 让 subscribeToAgentBus 走完不报错
+    await sb.loadAgentCatalog();
+    sb.renderTowerFlow();
+    sb.subscribeToAgentBus();
+    expect(sb.__state._towerBusSubscribed).toBe(true);
+
+    // 起始: 抽屉不含 is-open
+    const drawer = document.getElementById('tower-drawer');
+    expect(drawer.classList.contains('is-open')).toBe(false);
+
+    // emit evaluator 的 success agent_step
+    window.agentBus.emit('agent_step', {
+      from: 'evaluator',
+      intent: '评估学情',
+      payload: { status: 'success', output_summary: '评估完成' },
+      timestamp: Date.now(),
+      trace_id: 't-eval-1',
+    });
+
+    // 抽屉应自动展开
+    expect(drawer.classList.contains('is-open')).toBe(true);
+    // metrics 也被渲染 (4 张卡)
+    const metrics = drawer.querySelectorAll('#drawer-metrics .drawer-metric');
+    expect(metrics.length).toBe(4);
+  });
+
+  it('非 evaluator 的 success agent_step 不会自动展开抽屉', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="tower-drawer">'
+      + '  <button id="drawer-close">✕</button>'
+      + '</div>'
+      + '<div id="tower-flow"></div>'
+      + '<div id="tower-terminal"></div>',
+    });
+    sb.__state._towerBusSubscribed = false;
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
+    await sb.loadAgentCatalog();
+    sb.renderTowerFlow();
+    sb.subscribeToAgentBus();
+
+    // emit profiler 的 success — 不是 evaluator
+    window.agentBus.emit('agent_step', {
+      from: 'profiler',
+      intent: '画像分析',
+      payload: { status: 'success', output_summary: '画像完成' },
+      timestamp: Date.now(),
+    });
+
+    const drawer = document.getElementById('tower-drawer');
+    expect(drawer.classList.contains('is-open')).toBe(false);
+  });
+
+  it('#tower-toggle 折叠时把外部 #sandbox-expand-btn 加 .visible (避免丢三落四)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="track-a-container">'
+      + '  <button id="tower-start">▶ 启动协作</button>'
+      + '  <button id="tower-pause" disabled>⏸</button>'
+      + '  <button id="tower-stop" disabled>⏹</button>'
+      + '  <button id="tower-toggle" aria-label="折叠控制塔">⇆ 折叠</button>'
+      + '</div>'
+      + '<button id="sandbox-expand-btn"></button>',
+    });
+    sb.wireTowerControlButtons();
+    const toggleBtn = document.getElementById('tower-toggle');
+    const expandBtn = document.getElementById('sandbox-expand-btn');
+    // 起始: 外部展开按钮不应可见
+    expect(expandBtn.classList.contains('visible')).toBe(false);
+
+    // 第一次 click: 折叠, 外部按钮应可见
+    toggleBtn.click();
+    expect(document.getElementById('track-a-container').classList.contains('collapsed')).toBe(true);
+    expect(expandBtn.classList.contains('visible')).toBe(true);
+
+    // 第二次 click: 展开, 外部按钮应隐藏
+    toggleBtn.click();
+    expect(document.getElementById('track-a-container').classList.contains('collapsed')).toBe(false);
+    expect(expandBtn.classList.contains('visible')).toBe(false);
+  });
+
+  it('setupDrawerClose 关闭按钮: 点击去掉 is-open 类', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="tower-drawer" class="is-open"><button id="drawer-close">✕</button></div>',
+    });
+    sb.setupDrawerClose();
+    expect(document.getElementById('drawer-close').dataset.wired).toBe('1');
+    document.getElementById('drawer-close').click();
+    expect(document.getElementById('tower-drawer').classList.contains('is-open')).toBe(false);
+
+    // 二次调用幂等
+    sb.setupDrawerClose();
+    // wired 仍是 '1', 没多挂
+    expect(document.getElementById('drawer-close').dataset.wired).toBe('1');
   });
 });

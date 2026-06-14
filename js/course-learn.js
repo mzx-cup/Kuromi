@@ -51,6 +51,9 @@
   var currentMindMap    = null;  // 当前 mindmap 数据, 用于切换步骤时重渲染
   var currentExercises  = [];    // 当前练习, 用于重置答卷时重渲染
 
+  /* ===================== AI 视频生成状态 ===================== */
+  var aiVideoState = { taskId: null, status: null, pollTimer: null };
+
   /* ===================== 入口 ===================== */
   function init() {
     var params = new URLSearchParams(window.location.search);
@@ -1153,6 +1156,104 @@
     }, 3000);
   }
 
+  /* ===================== AI 视频生成 ===================== */
+  function generateAIVideo() {
+    var ch = chapters[currentChapterIdx];
+    var sub = ch && ch.children[currentSubIdx];
+    if (!sub) { showToast('请先选择章节', 'error'); return; }
+
+    var prompt = '制作一个关于"' + (course ? course.title : '') + ' · ' + sub.title + '"的教学讲解视频, 面向学生, 语言简洁易懂。';
+
+    var btn = document.getElementById('cl-ai-gen-btn');
+    var progress = document.getElementById('cl-ai-progress');
+    var player = document.getElementById('cl-ai-player');
+    var errorEl = document.getElementById('cl-ai-error');
+
+    btn.style.display = 'none';
+    errorEl.style.display = 'none';
+    player.style.display = 'none';
+    progress.style.display = 'flex';
+
+    fetch('/api/seed/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: prompt,
+        ratio: '16:9',
+        duration: 5,
+        generate_audio: true,
+        watermark: true
+      })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      if (res.code !== 200) throw new Error((res.data && res.data.error) || '创建任务失败');
+      aiVideoState.taskId = res.data.task_id;
+      aiVideoState.status = 'queued';
+      pollVideoTask();
+    })
+    .catch(function (err) {
+      showAIError(err.message);
+    });
+  }
+
+  function pollVideoTask() {
+    clearTimeout(aiVideoState.pollTimer);
+
+    if (!aiVideoState.taskId) return;
+
+    fetch('/api/seed/video/' + encodeURIComponent(aiVideoState.taskId))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.code !== 200) throw new Error((res.data && res.data.error) || '查询失败');
+        var data = res.data;
+        aiVideoState.status = data.status;
+
+        if (data.status === 'succeeded') {
+          if (data.local_url) {
+            showAIVideoPlayer(data.local_url);
+          } else {
+            showAIError('视频生成成功但获取地址失败');
+          }
+        } else if (data.status === 'failed') {
+          showAIError((data.error && data.error.message) || '视频生成失败');
+        } else if (data.status === 'cancelled') {
+          showAIError('视频生成已取消');
+        } else {
+          updateAIProgressText(data.status === 'queued' ? '排队中...' : 'AI 生成中, 请耐心等待...');
+          aiVideoState.pollTimer = setTimeout(pollVideoTask, 5000);
+        }
+      })
+      .catch(function (err) {
+        showAIError(err.message);
+      });
+  }
+
+  function showAIVideoPlayer(url) {
+    document.getElementById('cl-ai-progress').style.display = 'none';
+    var player = document.getElementById('cl-ai-player');
+    var video = document.getElementById('cl-ai-video');
+    video.src = url;
+    player.style.display = 'block';
+    showToast('AI 讲解视频已生成!', 'success');
+  }
+
+  function showAIError(msg) {
+    document.getElementById('cl-ai-progress').style.display = 'none';
+    var btn = document.getElementById('cl-ai-gen-btn');
+    btn.style.display = 'inline-flex';
+    btn.querySelector('span').textContent = '重新生成';
+    var errorEl = document.getElementById('cl-ai-error');
+    errorEl.textContent = msg;
+    errorEl.style.display = 'block';
+    showToast(msg, 'error');
+  }
+
+  function updateAIProgressText(text) {
+    var el = document.getElementById('cl-ai-progress-text');
+    if (el) el.textContent = text;
+  }
+
   /* ===================== 事件绑定 ===================== */
   function bindEvents() {
     // 上一节 / 下一节
@@ -1241,6 +1342,10 @@
     // 标记完成
     var markBtn = document.getElementById('cl-mark-complete');
     if (markBtn) markBtn.addEventListener('click', markChapterComplete);
+
+    // AI 生成讲解视频
+    var aiBtn = document.getElementById('cl-ai-gen-btn');
+    if (aiBtn) aiBtn.addEventListener('click', generateAIVideo);
 
     // 欢迎下一步
     var welcomeNext = document.getElementById('cl-welcome-next');

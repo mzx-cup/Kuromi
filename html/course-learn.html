@@ -122,6 +122,33 @@
                 </div>
             </section>
 
+            <!-- AI 生成讲解视频 (火山方舟 Seedance 2.0) -->
+            <section class="cl-ai-section" id="cl-ai-section">
+                <div class="cl-ai-header">
+                    <h4 class="cl-ai-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M12 2a4 4 0 014 4c0 2-2 4-4 6-2-2-4-4-4-6a4 4 0 014-4z"/>
+                            <path d="M12 18v4"/><path d="M8 22h8"/><path d="M2 12h2"/><path d="M20 12h2"/>
+                        </svg>
+                        AI 讲解视频
+                    </h4>
+                    <button class="cl-ai-gen-btn" id="cl-ai-gen-btn" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        <span>生成 AI 讲解</span>
+                    </button>
+                </div>
+                <div class="cl-ai-progress" id="cl-ai-progress" style="display:none">
+                    <div class="cl-ai-spinner"></div>
+                    <span class="cl-ai-progress-text" id="cl-ai-progress-text">正在生成 AI 讲解视频...</span>
+                </div>
+                <div class="cl-ai-player" id="cl-ai-player" style="display:none">
+                    <video id="cl-ai-video" controls preload="auto" playsinline></video>
+                </div>
+                <div class="cl-ai-error" id="cl-ai-error" style="display:none"></div>
+            </section>
+
             <!-- 2. 跟随式 5 步学习引导 -->
             <section class="cl-stepper" aria-label="学习步骤">
                 <div class="cl-stepper-track">

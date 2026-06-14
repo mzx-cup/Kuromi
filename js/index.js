@@ -1547,6 +1547,9 @@ function normalizeLearningPath(value) {
             if (item.completion_source) node.completion_source = item.completion_source;
             if (item.rule_verified != null) node.rule_verified = item.rule_verified;
             if (item.llm_verified != null) node.llm_verified = item.llm_verified;
+            if (item.learning_goal) node.learning_goal = item.learning_goal;
+            if (item.capability_rationale) node.capability_rationale = item.capability_rationale;
+            if (item.targeted_dimensions) node.targeted_dimensions = item.targeted_dimensions;
             return node;
         });
         return mapped.length > 0 ? mapped : [...DEFAULT_LEARNING_PATH];
@@ -1921,6 +1924,9 @@ let currentPath = normalizeLearningPath([
     { topic: '大数据导论', status: 'current' },
     { topic: '分布式文件系统', status: 'locked' }
 ]);
+
+/** 多维能力分析数据（由后端 LLM 生成，描述知识适配、目标对齐、认知适配等信息） */
+let capabilityAnalysis = {};
 
 let messages = [];
 
@@ -5092,6 +5098,14 @@ function subscribeToAgentBus() {
         renderTowerFlow();
         // 同步把这一步推到 #tower-terminal 日志流
         if (typeof renderTowerLog === 'function') renderTowerLog(envelope);
+        // 评估智能体跑成功 -> 渲染报告抽屉 + 自动展开
+        if (agentId === 'evaluator' && status === 'success' && typeof renderEvalReport === 'function') {
+            try {
+                renderEvalReport();
+                const drawer = document.getElementById('tower-drawer');
+                if (drawer) drawer.classList.add('is-open');
+            } catch (_) { /* 静默兜底 */ }
+        }
     });
 
     bus.subscribe('pipeline_complete', () => {
@@ -5128,6 +5142,89 @@ function subscribeToAgentBus() {
         if (typeof applyProfileFromSnapshot === 'function') {
             try { applyProfileFromSnapshot(data); } catch (_) { /* 静默兜底 */ }
         }
+    });
+}
+
+/**
+ * 评估报告抽屉 — 把现有 4 标量 (interactionCount / socraticPassRate /
+ * difficultyLevel / codePracticeTime) + interactionHistory 渲染到
+ * #tower-drawer 内的 4 张指标卡 + sparkline + 一句话总结。
+ * 数据源: 全局 evaluation 对象 (与现有 #eval-container 8 卡同源)。
+ * 调用方: evaluator agent 跑成功时 (subscribeToAgentBus agent_step from==='evaluator')。
+ */
+function renderEvalReport() {
+    const drawer = document.getElementById('tower-drawer');
+    if (!drawer) return;
+    const metricsEl = drawer.querySelector('#drawer-metrics');
+    if (!metricsEl) return;
+    const ev = (typeof evaluation !== 'undefined' && evaluation) ? evaluation : {};
+    const rate = ((ev.socraticPassRate || 0) * 100).toFixed(0);
+    const diffLabels = { basic: '基础', medium: '中等', advanced: '进阶' };
+    const diffLabel = diffLabels[ev.difficultyLevel] || '中等';
+    const hist = Array.isArray(ev.interactionHistory) ? ev.interactionHistory : [];
+    const recentCount = hist.slice(-10).reduce((s, v) => s + (Number(v) || 0), 0);
+
+    metricsEl.innerHTML = `
+        <div class="drawer-metric glass-eval-card">
+            <i data-lucide="message-square" class="drawer-metric-icon" style="color: var(--accent);"></i>
+            <span class="drawer-metric-label">交互次数</span>
+            <span class="drawer-metric-value">${ev.interactionCount || 0}</span>
+        </div>
+        <div class="drawer-metric glass-eval-card">
+            <i data-lucide="check-circle" class="drawer-metric-icon" style="color: var(--primary-light);"></i>
+            <span class="drawer-metric-label">启发通关率</span>
+            <span class="drawer-metric-value">${rate}%</span>
+        </div>
+        <div class="drawer-metric glass-eval-card">
+            <i data-lucide="code" class="drawer-metric-icon" style="color: var(--success);"></i>
+            <span class="drawer-metric-label">代码实操</span>
+            <span class="drawer-metric-value">${ev.codePracticeTime || 0}min</span>
+        </div>
+        <div class="drawer-metric glass-eval-card">
+            <i data-lucide="gauge" class="drawer-metric-icon" style="color: var(--warning);"></i>
+            <span class="drawer-metric-label">下一阶段难度</span>
+            <span class="drawer-metric-value">${diffLabel}</span>
+        </div>
+    `;
+
+    const sparkEl = drawer.querySelector('#drawer-spark');
+    if (sparkEl && typeof renderSparkline === 'function') {
+        sparkEl.innerHTML = `
+            <i data-lucide="trending-up" class="drawer-metric-icon" style="color: var(--accent);"></i>
+            <span>近 10 次交互合计 ${recentCount}</span>
+            <span style="flex:1; min-width:0;">${renderSparkline(hist, 240, 32)}</span>
+        `;
+    }
+
+    const summaryEl = drawer.querySelector('#drawer-summary');
+    if (summaryEl) summaryEl.textContent = buildEvalSummary(ev);
+
+    if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * 一句话总结 — 从 evaluation 4 个标量派生
+ */
+function buildEvalSummary(ev) {
+    const ev2 = (ev && typeof ev === 'object') ? ev : {};
+    const rate = ((ev2.socraticPassRate || 0) * 100).toFixed(0);
+    const diffLabels = { basic: '基础', medium: '中等', advanced: '进阶' };
+    const diffLabel = diffLabels[ev2.difficultyLevel] || '中等';
+    const ic = ev2.interactionCount || 0;
+    const cp = ev2.codePracticeTime || 0;
+    return `累计 ${ic} 次交互, 启发通关率 ${rate}%, 代码实操 ${cp}min, 下一阶段难度 ${diffLabel}。`;
+}
+
+/**
+ * 评估报告抽屉关闭按钮 — 去掉 is-open 类即可折叠 (CSS max-height 0)
+ */
+function setupDrawerClose() {
+    const btn = document.getElementById('drawer-close');
+    if (!btn || btn.dataset.wired === '1') return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', () => {
+        const drawer = document.getElementById('tower-drawer');
+        if (drawer) drawer.classList.remove('is-open');
     });
 }
 
@@ -5392,13 +5489,20 @@ function wireTowerControlButtons() {
     startBtn.addEventListener('click', () => { startPipeline(); });
     pauseBtn.addEventListener('click', () => { pausePipeline(); });
     stopBtn.addEventListener('click', () => { stopPipeline(); });
-    // Task #50: 折叠按钮 — 与外部 sandboxCollapseBtn 行为一致 (切换 #track-a-container.collapsed)
+    // Task #50: 折叠按钮 — 切 #track-a-container.collapsed + 同步外部 #sandbox-expand-btn 可见性
+    // (之前只调 dispatchEvent('resize'), 没更新 .visible 类, 外部展开按钮丢失, 用户看不到恢复入口)
     const toggleBtn = document.getElementById('tower-toggle');
     const trackAContainer = document.getElementById('track-a-container');
+    const sandboxExpandBtn = document.getElementById('sandbox-expand-btn');
     if (toggleBtn && trackAContainer) {
         toggleBtn.dataset.wired = '1';
         toggleBtn.addEventListener('click', () => {
             const isCollapsed = trackAContainer.classList.toggle('collapsed');
+            // 同步外部展开按钮可见性 — 让用户折叠后能再次展开
+            if (sandboxExpandBtn) {
+                sandboxExpandBtn.classList.toggle('visible', isCollapsed);
+            }
+            // 同步按钮文案 + aria-label
             toggleBtn.textContent = isCollapsed ? '⇆ 展开' : '⇆ 折叠';
             toggleBtn.setAttribute('aria-label', isCollapsed ? '展开控制塔' : '折叠控制塔');
             window.dispatchEvent(new Event('resize'));
@@ -5431,6 +5535,8 @@ async function initAgentTower() {
     subscribeToAgentBus();
     // Task #49: 绑定 start/pause/stop 三个按钮的 click handler, 让用户能交互启动流水线
     if (typeof wireTowerControlButtons === 'function') wireTowerControlButtons();
+    // 评估报告抽屉关闭按钮 — 同一个幂等来源
+    if (typeof setupDrawerClose === 'function') setupDrawerClose();
 }
 
 /**
@@ -5738,63 +5844,144 @@ function renderPathTree() {
     const inProgressNodes = currentPath.filter(n => n.status === 'in_progress').length;
     const progressPercent = Math.round(((completedNodes + inProgressNodes * 0.5) / totalNodes) * 100);
 
-    let html = `<div class="path-progress-header">
-        <div class="path-progress-meta">
-            <span class="path-progress-label">总体进度</span>
-            <span class="path-progress-value">${progressPercent}%</span>
+    // 当前进行中的节点
+    const current = currentPath.find(n => n.status === 'in_progress');
+    const next = currentPath.find(n => n.status === 'locked');
+    const displayName = current ? (current.topic || current.name || current.title || '当前任务') : null;
+
+    // 构建 AI 分析文本
+    const now = new Date();
+    const timestamp = now.toLocaleString('zh-CN', {
+        month: 'numeric', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+
+    const analysisParts = [];
+    analysisParts.push(`🧠 星识认知引擎根据你近期的学习行为，生成了包含 <strong>${totalNodes}</strong> 个节点的专属学习路径。`);
+
+    if (displayName) {
+        const currentDesc = current.description || current.reason || '';
+        analysisParts.push(`📌 <strong>当前学习</strong>：<span class="path-analysis-highlight">${escapeHtml(displayName)}</span>`);
+        if (currentDesc) analysisParts.push(`<span class="path-analysis-desc">${escapeHtml(currentDesc)}</span>`);
+    } else if (completedNodes === totalNodes) {
+        analysisParts.push('🎉 恭喜！你已完成了所有学习任务！');
+    }
+
+    if (next) {
+        const nextName = next.topic || next.name || next.title || '下一任务';
+        const nextDesc = next.description || next.reason || '';
+        analysisParts.push(`➡️ <strong>推荐下一步</strong>：${escapeHtml(nextName)}`);
+        if (nextDesc) analysisParts.push(`<span class="path-analysis-desc">${escapeHtml(nextDesc)}</span>`);
+    }
+
+    if (inProgressNodes > 0 && current && current.mastery_score != null) {
+        const mastery = Math.round(current.mastery_score * 100);
+        analysisParts.push(`📊 当前掌握度：<strong>${mastery}%</strong>`);
+    }
+
+    // ── 多维能力分析区块 ──
+    const dimConfig = [
+        { key: 'knowledge_base_assessment', icon: '📚', label: '知识适配' },
+        { key: 'learning_goal_alignment', icon: '🎯', label: '目标对齐' },
+        { key: 'cognitive_style_adaptation', icon: '🧠', label: '认知适配' },
+        { key: 'weakness_reinforcement', icon: '⚡', label: '短板强化' },
+        { key: 'learning_pace', icon: '📊', label: '节奏建议' },
+    ];
+
+    const hasCapability = capabilityAnalysis && Object.keys(capabilityAnalysis).length > 0;
+
+    let dimHtml = '';
+    if (hasCapability) {
+        dimHtml = `<div class="path-analysis-dimensions">
+            <div class="path-analysis-dim-title">🎯 多维能力规划</div>
+            <div class="path-analysis-dim-grid">`;
+        for (const cfg of dimConfig) {
+            const val = capabilityAnalysis[cfg.key];
+            if (val) {
+                dimHtml += `<div class="path-analysis-dim-item">
+                    <span class="path-analysis-dim-icon">${cfg.icon}</span>
+                    <div class="path-analysis-dim-body">
+                        <span class="path-analysis-dim-label">${cfg.label}</span>
+                        <span class="path-analysis-dim-value">${escapeHtml(val)}</span>
+                    </div>
+                </div>`;
+            }
+        }
+        dimHtml += `</div></div>`;
+    }
+
+    // ── 各节点学习目标列表 ──
+    const goalNodes = currentPath.filter(n => n.learning_goal);
+    let goalHtml = '';
+    if (goalNodes.length > 0) {
+        goalHtml = `<div class="path-analysis-goals">
+            <div class="path-analysis-goals-title">📋 各节点学习目标</div>
+            <div class="path-analysis-goals-list">`;
+        for (const gn of goalNodes) {
+            const gnName = gn.topic || gn.name || gn.title || '节点';
+            const gnGoal = gn.learning_goal || '';
+            const gnStatus = gn.status || 'locked';
+            const gnDim = gn.targeted_dimensions || [];
+            const dimBadges = gnDim.map(d => `<span class="path-analysis-goal-dim">${d}</span>`).join('');
+            const statusIcon = gnStatus === 'completed' ? '✅' : gnStatus === 'in_progress' ? '▶️' : '🔒';
+            goalHtml += `<div class="path-analysis-goal-item">
+                <div class="path-analysis-goal-header">
+                    <span class="path-analysis-goal-status">${statusIcon}</span>
+                    <span class="path-analysis-goal-name">${escapeHtml(gnName)}</span>
+                    ${dimBadges}
+                </div>
+                <div class="path-analysis-goal-desc">${escapeHtml(gnGoal)}</div>
+                ${gn.capability_rationale ? `<div class="path-analysis-goal-rationale">💡 ${escapeHtml(gn.capability_rationale)}</div>` : ''}
+            </div>`;
+        }
+        goalHtml += `</div></div>`;
+    }
+
+    // 生成学习轨迹
+    const pathSummary = currentPath
+        .filter(n => n.status !== 'locked')
+        .map(n => n.topic || n.name || n.title || '')
+        .filter(Boolean)
+        .join(' → ');
+
+    let html = `<div class="path-analysis-root">
+        <div class="path-analysis-banner">
+            <span class="path-analysis-icon">🧙‍♂️</span>
+            <div class="path-analysis-text" id="path-analysis-text">
+                ${analysisParts.map(p => `<div class="path-analysis-line">${p}</div>`).join('')}
+            </div>
+        </div>`;
+
+    // 插入多维能力分析
+    html += dimHtml;
+
+    // 插入节点学习目标列表
+    html += goalHtml;
+
+    if (pathSummary) {
+        html += `<div class="path-analysis-trail">
+            <div class="path-analysis-trail-label">学习轨迹</div>
+            <div class="path-analysis-trail-path">${escapeHtml(pathSummary)}</div>
+        </div>`;
+    }
+
+    // 紧凑进度条
+    html += `<div class="path-analysis-progress">
+        <div class="path-analysis-progress-bar-bg">
+            <div class="path-analysis-progress-bar-fill" style="width: ${progressPercent}%;"></div>
         </div>
-        <div class="path-progress-bar-bg">
-            <div class="path-progress-bar-fill" style="width: ${progressPercent}%;"></div>
-        </div>
-        <div class="path-progress-stats">
-            <span class="path-stat-completed">${completedNodes} 已完成</span>
-            <span class="path-stat-inprogress">${inProgressNodes} 进行中</span>
-            <span class="path-stat-locked">${totalNodes - completedNodes - inProgressNodes} 待解锁</span>
+        <div class="path-analysis-progress-stats">
+            <span class="path-analysis-stat completed">${completedNodes} 已完成</span>
+            <span class="path-analysis-stat inprogress">${inProgressNodes} 进行中</span>
+            <span class="path-analysis-stat locked">${totalNodes - completedNodes - inProgressNodes} 待解锁</span>
         </div>
     </div>`;
 
-    html += currentPath.map((node, idx) => {
-        const status = node.status || 'locked';
-        const dotClass = status === 'completed' ? 'completed' : status === 'in_progress' ? 'in-progress' : 'locked';
-        const isImportant = node.importance === 'high' || node.importance === 'core';
-        const hasChildren = node.children && node.children.length > 0;
-        const time = node.estimated_time || node.estimatedMinutes || '';
-        const displayName = node.topic || node.name || node.title || '学习任务';
-        const isCompleted = status === 'completed';
-        const isCurrent = status === 'in_progress';
-        const nodeId = node.node_id || node.id || '';
-
-        const nodeReason = node.description || node.reason || '';
-        let html = `<div class="path-tree-node ${nodeReason ? '' : ''}" data-idx="${idx}" data-node-id="${escapeHtml(nodeId)}" onclick="onPathNodeClick(${idx})" tabindex="0" role="treeitem" aria-label="${escapeHtml(displayName)}" ${nodeReason ? `data-reason="${escapeHtml(nodeReason)}"` : ''}>
-            ${hasChildren ? '<i data-lucide="chevron-right" class="w-3 h-3 path-tree-toggle"></i>' : '<span class="w-3"></span>'}
-            <div class="path-tree-node-dot ${dotClass} ${isCurrent ? 'pulse' : ''}"></div>
-            <span class="path-tree-node-text">${escapeHtml(displayName)}</span>
-            ${isCompleted ? '<i data-lucide="check" class="w-3 h-3" style="color: var(--success); margin-left: auto;"></i>' : ''}
-            ${isImportant && !isCompleted ? '<span class="path-tree-badge important">核心</span>' : ''}
-            ${time && !isCompleted ? `<span class="path-tree-time">${time}min</span>` : ''}
-        </div>`;
-
-        if (hasChildren) {
-            html += `<div class="path-tree-children">`;
-            for (const child of node.children) {
-                const cStatus = child.status || 'locked';
-                const cDotClass = cStatus === 'completed' ? 'completed' : cStatus === 'in_progress' ? 'in-progress' : 'locked';
-                const childName = child.topic || child.name || child.title || '子节点';
-                const cCompleted = cStatus === 'completed';
-                html += `<div class="path-tree-node" tabindex="0" role="treeitem" aria-label="${escapeHtml(childName)}">
-                    <span class="w-3"></span>
-                    <div class="path-tree-node-dot ${cDotClass}"></div>
-                    <span class="path-tree-node-text path-tree-child-text">${escapeHtml(childName)}</span>
-                    ${cCompleted ? '<i data-lucide="check" class="w-3 h-3" style="color: var(--success); margin-left: auto;"></i>' : ''}
-                </div>`;
-            }
-            html += '</div>';
-        }
-        return html;
-    }).join('');
+    html += `<div class="path-analysis-footer">
+        <span class="path-analysis-time">🕐 ${timestamp}</span>
+    </div></div>`;
 
     container.innerHTML = html;
-    if (window.lucide) lucide.createIcons();
 }
 
 function onPathNodeClick(idx) {
@@ -5879,9 +6066,29 @@ function showPathNodeDetail(idx) {
         <div class="path-detail-body">
             <div class="path-detail-desc">${escapeHtml(description)}</div>
 
+            ${node.learning_goal ? `
+            <div class="path-detail-section">
+                <div class="path-detail-section-title">🎯 本节点学习目标</div>
+                <div class="path-detail-goal-text">${escapeHtml(node.learning_goal)}</div>
+            </div>` : ''}
+
+            ${node.capability_rationale ? `
+            <div class="path-detail-section">
+                <div class="path-detail-section-title">🧠 能力适配说明</div>
+                <div class="path-detail-rationale-text">${escapeHtml(node.capability_rationale)}</div>
+            </div>` : ''}
+
+            ${node.targeted_dimensions && node.targeted_dimensions.length > 0 ? `
+            <div class="path-detail-section">
+                <div class="path-detail-section-title">📐 针对能力维度</div>
+                <div class="path-detail-dimensions">
+                    ${node.targeted_dimensions.map(d => `<span class="path-detail-dim-tag">${escapeHtml(d)}</span>`).join('')}
+                </div>
+            </div>` : ''}
+
             ${prerequisites.length ? `
             <div class="path-detail-section">
-                <div class="path-detail-section-title">前置知识</div>
+                <div class="path-detail-section-title">📋 前置知识</div>
                 <div class="path-detail-prereqs">
                     ${prerequisites.map(p => `<span class="path-detail-prereq-tag">${escapeHtml(p)}</span>`).join('')}
                 </div>
@@ -6775,6 +6982,7 @@ async function initLearningPath() {
         const fresh = await fetchLearningPath(user.id);
         if (fresh && fresh.path && fresh.path.length > 0) {
             currentPath = normalizeLearningPath(fresh.path);
+            capabilityAnalysis = fresh.capability_analysis || {};
             renderPathTree();
             updatePathLastUpdated(fresh.generated_at);
         } else {
@@ -6835,6 +7043,7 @@ async function refreshLearningPath(force = false) {
             const oldPathJson = JSON.stringify(currentPath);
             const newPathJson = JSON.stringify(data.path);
             currentPath = normalizeLearningPath(data.path);
+            capabilityAnalysis = data.capability_analysis || {};
             renderPathTree();
             updatePathLastUpdated(data.generated_at);
             if (oldPathJson !== newPathJson) {
@@ -6910,66 +7119,11 @@ async function refreshNodeState(nodeId, source) {
 
 function updateNodeState(nodeId, newStatus) {
     if (!nodeId || !newStatus) return;
-    const el = document.querySelector(`.path-tree-node[data-node-id="${nodeId}"]`);
-    if (!el) return;
-
-    const dot = el.querySelector('.path-tree-node-dot');
-    if (!dot) return;
-
-    // 更新当前内存中的路径状态
-    const idx = parseInt(el.dataset.idx);
-    if (!isNaN(idx) && currentPath[idx]) {
-        currentPath[idx].status = newStatus;
-    }
-
-    // 更新圆点样式
-    dot.classList.remove('completed', 'in-progress', 'locked', 'pulse');
-    if (newStatus === 'completed') {
-        dot.classList.add('completed');
-    } else if (newStatus === 'in_progress') {
-        dot.classList.add('in-progress', 'pulse');
-    } else {
-        dot.classList.add('locked');
-    }
-
-    // 更新勾选图标
-    const existingCheck = el.querySelector('[data-lucide="check"]');
-    if (newStatus === 'completed' && !existingCheck) {
-        const check = document.createElement('i');
-        check.setAttribute('data-lucide', 'check');
-        check.className = 'w-3 h-3';
-        check.style.cssText = 'color: var(--success); margin-left: auto;';
-        el.appendChild(check);
-        if (window.lucide) lucide.createIcons();
-    } else if (newStatus !== 'completed' && existingCheck) {
-        existingCheck.remove();
-    }
-
-    // 更新进度条（不重新渲染整棵树）
-    updatePathProgressBar();
-}
-
-function updatePathProgressBar() {
-    const totalNodes = currentPath.length;
-    if (totalNodes === 0) return;
-    const completedNodes = currentPath.filter(n => n.status === 'completed').length;
-    const inProgressNodes = currentPath.filter(n => n.status === 'in_progress').length;
-    const progressPercent = Math.round(((completedNodes + inProgressNodes * 0.5) / totalNodes) * 100);
-
-    const fillEl = document.querySelector('.path-progress-bar-fill');
-    if (fillEl) fillEl.style.width = `${progressPercent}%`;
-
-    const valueEl = document.querySelector('.path-progress-value');
-    if (valueEl) valueEl.textContent = `${progressPercent}%`;
-
-    const statCompleted = document.querySelector('.path-stat-completed');
-    if (statCompleted) statCompleted.textContent = `${completedNodes} 已完成`;
-
-    const statInprogress = document.querySelector('.path-stat-inprogress');
-    if (statInprogress) statInprogress.textContent = `${inProgressNodes} 进行中`;
-
-    const statLocked = document.querySelector('.path-stat-locked');
-    if (statLocked) statLocked.textContent = `${totalNodes - completedNodes - inProgressNodes} 待解锁`;
+    // 更新 currentPath 中的节点状态
+    const node = currentPath.find(n => n.node_id === nodeId || n.id === nodeId);
+    if (node) node.status = newStatus;
+    // 全量重渲染
+    renderPathTree();
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -7326,19 +7480,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // Task #50: 控制塔内部 ⇆ 折叠按钮 — 与外部 sandboxCollapseBtn 行为一致,
-    // 额外同步按钮文案 (折叠/展开), 避免用户失去反馈
-    const towerToggleBtn = document.getElementById('tower-toggle');
-    if (towerToggleBtn && trackAContainer) {
-        towerToggleBtn.addEventListener('click', () => {
-            const isCollapsed = trackAContainer.classList.toggle('collapsed');
-            // 同步外部展开按钮的可见性 + 触发窗口 resize 让聊天框 / 输入框重排
-            updateSandboxState(isCollapsed);
-            // 同步按钮文案, 让用户知道下一次点击是"展开"
-            towerToggleBtn.textContent = isCollapsed ? '⇆ 展开' : '⇆ 折叠';
-            towerToggleBtn.setAttribute('aria-label', isCollapsed ? '展开控制塔' : '折叠控制塔');
-        });
-    }
+    // 注: #tower-toggle 的 click 绑定在 wireTowerControlButtons() 内 (js/index.js:5396-5406),
+    // 由 initAgentTower() 在 DOMContentLoaded 时调用。早期版本曾在此处重复绑定,
+    // 两次 classList.toggle('collapsed') 互相抵消, 用户点击 ⇆ 折叠按钮看似无反应。
+    // 唯一来源在 wireTowerControlButtons 内, 保留 dataset.wired='1' 守卫, 幂等。
 
     if (sandboxExpandBtn) {
         sandboxExpandBtn.addEventListener('click', () => {

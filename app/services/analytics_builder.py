@@ -63,7 +63,14 @@ def build_student_analytics(user_id: str | int) -> dict[str, Any]:
 
     # 7. 当前路径
     path_raw = database.get_learning_path(user_id)
-    current_path = _safe_json(path_raw.get("path_json")) if path_raw else []
+    raw_path_data = _safe_json(path_raw.get("path_json")) if path_raw else []
+    # 兼容新格式 {path: [...], capability_analysis: {...}} 和旧格式 [...]
+    if isinstance(raw_path_data, dict) and "path" in raw_path_data:
+        current_path = raw_path_data["path"]
+    elif isinstance(raw_path_data, list):
+        current_path = raw_path_data
+    else:
+        current_path = []
     path_meta = {
         "generated_at": path_raw.get("generated_at") if path_raw else None,
         "reasoning": path_raw.get("reasoning") if path_raw else None,

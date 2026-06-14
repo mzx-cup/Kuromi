@@ -46,6 +46,7 @@ class GenerateLearningPathResponse(BaseModel):
     data_sources: list[str]
     generated_at: str
     confidence: float
+    capability_analysis: dict = {}  # 多维能力分析（知识适配、目标对齐、认知适配、短板强化、节奏建议）
 
 
 # ── 节点级增量刷新模型 ──
@@ -191,26 +192,44 @@ def _merge_node_states_into_path(user_id: int, path: list[dict]) -> list[dict]:
 
 # ── Prompt 构建 ──
 
-LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体，专精于根据学生学情数据生成个性化学习路径。
+LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体，专精于根据学生多维度学情数据生成个性化学习路径。
 
 ## 任务
-根据提供的完整学情报告，生成或调整学生的学习路径树。
+根据提供的完整学情报告，生成或调整学生的学习路径树。你需要综合考虑学生的**全部能力维度**来规划合理的学习目标，确保每个节点都有明确的培养意图。
 
 ## 输出格式
-必须输出**纯 JSON 数组**，格式如下：
-[
-  {
-    "topic": "节点标题（中文，简短）",
-    "status": "completed | in_progress | locked",
-    "importance": "core | high | normal",
-    "estimated_time": 30,
-    "prerequisites": ["前置知识1", "前置知识2"],
-    "description": "该节点学习内容的一句话描述",
-    "children": [
-      {"topic": "子节点标题", "status": "locked", "importance": "normal"}
-    ]
-  }
-]
+必须输出**纯 JSON 对象**，包含 capability_analysis 和 path 两个字段，格式如下：
+{
+  "capability_analysis": {
+    "knowledge_base_assessment": "根据知识基础（xxx），路径起点选在xxx，跳过/强化xxx",
+    "learning_goal_alignment": "根据学习目标（xxx），路径侧重xxx方向",
+    "cognitive_style_adaptation": "根据认知风格（xxx），推荐以xxx方式学习各节点",
+    "weakness_reinforcement": "针对知识短板（xxx），安排了xxx强化内容",
+    "learning_pace": "根据专注程度（xxx），建议每天学习X个节点，每X分钟休息"
+  },
+  "path": [
+    {
+      "topic": "节点标题（中文，简短）",
+      "status": "completed | in_progress | locked",
+      "importance": "core | high | normal",
+      "estimated_time": 30,
+      "prerequisites": ["前置知识1", "前置知识2"],
+      "description": "该节点学习内容的一句话描述",
+      "learning_goal": "本节点的学习目标，明确说明要培养什么能力/掌握什么知识",
+      "capability_rationale": "该节点为何适合该学生当前能力水平的简短说明（如：因学生基础为进阶，跳过基础概念直接讲原理）",
+      "targeted_dimensions": ["knowledge_base", "code_skill"],
+      "children": [
+        {
+          "topic": "子节点标题",
+          "status": "locked",
+          "importance": "normal",
+          "learning_goal": "子节点的学习目标",
+          "capability_rationale": "子节点的能力适配说明"
+        }
+      ]
+    }
+  ]
+}
 
 ## 规则
 1. **学情驱动**：必须根据学生的掌握率、薄弱点、学习风格、认知等级来调整路径。
@@ -223,11 +242,19 @@ LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体�
 4. **estimated_time**：根据认知风格调整。视觉型学生给更多图示时间，实践型给更多编码时间。
 5. **禁止输出**任何 JSON 之外的文本、解释、markdown 标记。
 6. **路径节点数量**：一般 5-12 个主节点，每个主节点可有 0-4 个子节点。
+
+## 多维能力映射规则
+7. **知识基础适配**：knowledge_base 决定路径起点深度（零基础→概念入门，基础→核心原理，进阶→实践应用，深入→研究拓展），在节点 capability_rationale 中标注。
+8. **编程能力适配**：code_skill 决定编程内容深度（新手→语法示例，基础→逻辑项目，熟练→架构设计，高手→优化重构），learning_goal 中体现能力培养层次。
+9. **学习目标对齐**：learning_goal 决定路径权重方向（考试→考点习题，职业→实战项目，项目→完整流程，兴趣→广度探索，竞赛→算法技巧，科研→前沿方法），路径整体应服务于该目标。
+10. **认知风格适配**：cognitive_style 影响节点描述中的学习方式建议（视觉型→图示视频，文字型→文档笔记，实践型→编码实验），在 capability_rationale 里给出适配说明。
+11. **知识短板强化**：weakness 中列出的薄弱领域应在路径中有对应强化节点，标注为 core 优先级。
+12. **专注度调整**：focus_level 影响路径密度和 estimated_time（高专注→每天 2-3 节点，中等→每天 1-2 节点，低→每天 1 节点并增加复习节点），在 capability_analysis.learning_pace 中给出具体建议。
 """
 
 
 def _build_user_prompt(analytics: dict) -> str:
-    """将学情报告构建为 LLM user prompt。"""
+    """将学情报告构建为 LLM user prompt，突出多维能力数据。"""
     profile = analytics.get("profile", {})
     cockpit = analytics.get("cockpit", {})
     quizzes = analytics.get("quizzes", {})
@@ -240,16 +267,94 @@ def _build_user_prompt(analytics: dict) -> str:
     lines = []
     lines.append("## 学生学情报告")
     lines.append("")
-    lines.append("### 基础画像")
-    lines.append(f"- 学习风格: {profile.get('learning_style', '未知')}")
-    lines.append(f"- 认知等级: {profile.get('cognitive_level', '未知')}")
-    lines.append(f"- 认知风格: {profile.get('cognitive_style', '未知')}")
-    lines.append(f"- 专注度: {profile.get('focus_level', '未知')}")
-    lines.append(f"- 学习目标: {profile.get('learning_goals', [])}")
-    lines.append(f"- 知识基础: {profile.get('knowledge_base', '未知')}")
-    lines.append(f"- 代码能力: {profile.get('code_skill', '未知')}")
-    lines.append(f"- 知识短板: {profile.get('weakness', '暂无')}")
+
+    # ── 多维能力总览（结构化，便于 LLM 逐维度决策） ──
+    lines.append("### 📊 多维能力总览")
     lines.append("")
+    lines.append("【知识基础】" + (" " + profile.get('knowledge_base', '未知') if profile.get('knowledge_base') else "未知"))
+    lines.append("【代码能力】" + (" " + profile.get('code_skill', '未知') if profile.get('code_skill') else "未知"))
+    lines.append("【学习目标】" + (" " + str(profile.get('learning_goals', [])) if profile.get('learning_goals') else "未知"))
+    lines.append("【认知风格】" + (" " + profile.get('cognitive_style', '未知') if profile.get('cognitive_style') else "未知"))
+    lines.append("【专注程度】" + (" " + profile.get('focus_level', '未知') if profile.get('focus_level') else "未知"))
+    lines.append("【知识短板】" + (" " + profile.get('weakness', '暂无') if profile.get('weakness') else "暂无"))
+    lines.append("- 思维深度: {}/95".format(cockpit.get('thinking_depth', 0)))
+    lines.append("- 概念掌握率: {}%".format(cockpit.get('concept_mastery', 0)))
+    lines.append("- 学习动能: {}/98".format(cockpit.get('learning_momentum', 0)))
+    lines.append("- 认知等级: {}".format(cockpit.get('cognitive_level', '未知')))
+    lines.append("")
+
+    # ── 维度说明（逐维度详细描述） ──
+    lines.append("### 各维度详细分析")
+    lines.append("")
+
+    # 知识基础
+    kb = profile.get('knowledge_base', '')
+    kb_desc_map = {
+        '零基础入门': '完全零基础，需要从最基本的概念和原理开始',
+        '基础入门': '有一定了解，但尚未系统掌握核心概念',
+        '进阶学习': '已经掌握基础，可以进入更深入的内容',
+        '深入掌握': '基础扎实，适合进行高阶研究和拓展',
+    }
+    lines.append("【知识基础维度】" + kb_desc_map.get(kb, '') + ("（当前等级：" + kb + "）" if kb else "无评估数据"))
+    lines.append("")
+
+    # 代码能力
+    cs = profile.get('code_skill', '')
+    cs_desc_map = {
+        '编程新手': '几乎没有编程经验，需要从基本语法和逻辑开始',
+        '基础掌握': '能写简单代码，理解基本编程概念',
+        '熟练编程': '能独立完成中等复杂度项目，理解常见设计模式',
+        '编程高手': '能进行代码优化、系统设计，具备工程化能力',
+    }
+    lines.append("【编程能力维度】" + cs_desc_map.get(cs, '') + ("（当前等级：" + cs + "）" if cs else "无评估数据"))
+    lines.append("")
+
+    # 认知风格
+    cog = profile.get('cognitive_style', '')
+    cog_desc_map = {
+        '视觉型': '偏好图示、视频、思维导图等可视化学习材料',
+        '文字型': '偏好文档、书籍、文字笔记等阅读型学习',
+        '实践型': '偏好动手编码、实验操作、项目实践',
+    }
+    lines.append("【认知风格维度】" + cog_desc_map.get(cog, '') + ("（当前风格：" + cog + "）" if cog else "无评估数据"))
+    lines.append("")
+
+    # 专注度
+    fl = profile.get('focus_level', '')
+    fl_desc_map = {
+        '高专注': '能够长时间集中注意力，适合密集学习安排，每次可持续2小时以上',
+        '中等专注': '注意力适中，需要45-60分钟分段学习',
+        '需要引导': '容易分散注意力，需要更短的学习单元和更多互动',
+    }
+    lines.append("【专注度维度】" + fl_desc_map.get(fl, '') + ("（当前等级：" + fl + "）" if fl else "无评估数据"))
+    lines.append("")
+
+    # 学习目标
+    lgs = profile.get('learning_goals', [])
+    lg_desc = {
+        'exam': '应对考试——需要系统覆盖考点、重点和典型习题',
+        'career': '职业发展——需要实际项目经验和行业最佳实践',
+        'project': '项目实战——需要完整的项目开发流程训练',
+        'interest': '兴趣探索——需要广泛的知识面覆盖和趣味性内容',
+        'competition': '竞赛备战——需要算法训练和解题技巧',
+        'research': '科研学术——需要论文阅读和前沿方法探索',
+    }
+    lg_texts = [lg_desc.get(g, g) for g in lgs] if lgs else ['未设定']
+    lines.append("【学习目标维度】" + "；".join(lg_texts))
+    if lgs:
+        lines.append("  → 路径整体应主要服务于：" + "、".join(lg_texts[:2]))
+    lines.append("")
+
+    # 测验薄弱点
+    q_summary = quizzes.get("summary", {})
+    weak = q_summary.get("weak_areas", [])
+    strong = q_summary.get("strong_areas", [])
+    if weak:
+        lines.append("【测验薄弱领域】" + str(weak) + "——路径中应优先安排这些领域的强化学习")
+    if strong:
+        lines.append("【测验优势领域】" + str(strong) + "——可适当减少这些领域的重复学习")
+    lines.append("")
+
     lines.append("### 驾驶舱指标")
     lines.append(f"- 思维深度: {cockpit.get('thinking_depth', 0)}/95")
     lines.append(f"- 概念掌握率: {cockpit.get('concept_mastery', 0)}/95")
@@ -260,7 +365,6 @@ def _build_user_prompt(analytics: dict) -> str:
     lines.append(f"- 完成任务: {cockpit.get('completed_tasks', 0)}")
     lines.append("")
     lines.append("### 测验表现")
-    q_summary = quizzes.get("summary", {})
     lines.append(f"- 平均分: {q_summary.get('avg_score', 0)}")
     lines.append(f"- 通过率: {q_summary.get('pass_rate', 0)}%")
     lines.append(f"- 薄弱领域: {q_summary.get('weak_areas', [])}")
@@ -294,7 +398,11 @@ def _build_user_prompt(analytics: dict) -> str:
     lines.append("### 近期对话主题")
     lines.append(f"{conversations.get('recent_topics', [])}")
     lines.append("")
-    lines.append("请基于以上学情，生成该学生的个性化学习路径。")
+    lines.append("请基于以上全部多维能力数据，生成该学生的个性化学习路径。注意：")
+    lines.append("1. 每个路径节点的 learning_goal 必须明确写出该节点要培养的能力")
+    lines.append("2. capability_rationale 要解释该节点为何适合该生的当前能力水平")
+    lines.append("3. targeted_dimensions 至少要标注该节点针对哪些能力维度")
+    lines.append("4. capability_analysis 要综合所有维度给出整体学习策略")
 
     return "\n".join(lines)
 
@@ -329,12 +437,19 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
             try:
                 last_gen = datetime.fromisoformat(existing["generated_at"])
                 if (datetime.now() - last_gen).total_seconds() < 300:
-                    path = _normalize_path(existing.get("path_json"))
+                    stored = existing.get("path_json")
+                    capability_analysis = {}
+                    if isinstance(stored, dict) and "path" in stored:
+                        capability_analysis = stored.get("capability_analysis", {})
+                        path = _normalize_path(stored["path"])
+                    else:
+                        path = _normalize_path(stored)
                     # 融合节点状态（如果有更新的节点状态）
                     path = _merge_node_states_into_path(user_id, path)
                     return GenerateLearningPathResponse(
                         success=True,
                         path=path,
+                        capability_analysis=capability_analysis,
                         reasoning=existing.get("reasoning", "缓存路径"),
                         data_sources=existing.get("data_sources", []),
                         generated_at=existing["generated_at"],
@@ -352,18 +467,34 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"路径生成失败: {e}")
 
-    # 4. 解析路径
-    raw_path = _extract_json(llm_response, is_array=True)
-    if not raw_path or not isinstance(raw_path, list):
-        raw_path = _extract_json(llm_response, is_array=True)
-    path = _normalize_path(raw_path)
+    # 4. 解析路径（兼容新格式 {path, capability_analysis} 和旧格式 [...]）
+    raw = _extract_json(llm_response, is_array=False) or _extract_json(llm_response, is_array=True)
+    capability_analysis = {}
+    if isinstance(raw, dict) and "path" in raw:
+        # 新格式：{ "capability_analysis": {...}, "path": [...] }
+        capability_analysis = raw.get("capability_analysis", {})
+        path = _normalize_path(raw["path"])
+        stored_obj = raw  # 保存完整对象（path + capability_analysis）
+    elif isinstance(raw, list):
+        # 旧格式：纯数组
+        path = _normalize_path(raw)
+        stored_obj = path
+    else:
+        path = []
+        stored_obj = path
 
     if not path:
         existing = database.get_learning_path(user_id)
-        path = _normalize_path(existing.get("path_json")) if existing else []
+        existing_path = existing.get("path_json") if existing else []
+        if isinstance(existing_path, dict) and "path" in existing_path:
+            path = _normalize_path(existing_path["path"])
+            capability_analysis = existing_path.get("capability_analysis", {})
+        else:
+            path = _normalize_path(existing_path)
         return GenerateLearningPathResponse(
             success=True,
             path=path,
+            capability_analysis=capability_analysis,
             reasoning="LLM 返回格式异常，返回已保存路径",
             data_sources=["fallback"],
             generated_at=datetime.now().isoformat(),
@@ -376,14 +507,18 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
     # 6. 同步路径到节点追踪表（初始化缺失节点）
     database.sync_path_to_nodes(user_id, path)
 
-    # 7. 保存到数据库
-    data_sources = ["profile", "cockpit_analysis", "quiz_records", "classroom_sessions", "user_stats", "daily_route", "messages", "node_states"]
+    # 7. 保存到数据库（若为新格式，保存完整对象；旧格式仍保存数组）
+    data_sources = ["profile", "cockpit_analysis", "quiz_records", "classroom_sessions", "user_stats", "daily_route", "messages", "node_states", "capability_analysis"]
     reasoning = f"基于学生最新学情生成：认知等级 {analytics['cockpit']['cognitive_level']}，概念掌握率 {analytics['cockpit']['concept_mastery']}%，近期测验通过率 {analytics['quizzes']['summary']['pass_rate']}%"
     confidence = min(0.99, 0.7 + len(path) * 0.02)
 
+    # 更新 stored_obj 中的 path 为融合后的版本
+    if isinstance(stored_obj, dict) and "path" in stored_obj:
+        stored_obj["path"] = path
+
     database.save_learning_path(
         user_id=user_id,
-        path_json=path,
+        path_json=stored_obj,
         reasoning=reasoning,
         data_sources=data_sources,
         confidence=confidence,
@@ -392,6 +527,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
     return GenerateLearningPathResponse(
         success=True,
         path=path,
+        capability_analysis=capability_analysis,
         reasoning=reasoning,
         data_sources=data_sources,
         generated_at=datetime.now().isoformat(),
@@ -424,12 +560,21 @@ async def get_current_learning_path(user_id: int):
             confidence=0.0,
         )
 
-    path = _normalize_path(existing.get("path_json"))
+    stored = existing.get("path_json")
+    capability_analysis = {}
+    if isinstance(stored, dict) and "path" in stored:
+        # 新格式：{ path, capability_analysis }
+        capability_analysis = stored.get("capability_analysis", {})
+        path = _normalize_path(stored["path"])
+    else:
+        # 旧格式：纯数组
+        path = _normalize_path(stored)
     # 融合节点状态
     path = _merge_node_states_into_path(user_id, path)
     return GenerateLearningPathResponse(
         success=True,
         path=path,
+        capability_analysis=capability_analysis,
         reasoning=existing.get("reasoning") or "",
         data_sources=existing.get("data_sources") or [],
         generated_at=existing.get("generated_at") or datetime.now().isoformat(),

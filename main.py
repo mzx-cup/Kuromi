@@ -20,6 +20,10 @@ import httpx
 import numpy as np
 import base64
 from urllib.parse import quote
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import db as database
 import pymysql
 from db import (
@@ -189,6 +193,13 @@ app.include_router(agent_orchestration_router)
 # ---- Telemetry API (前端批量埋点接收) ----
 from app.api.telemetry import router as telemetry_router
 app.include_router(telemetry_router)
+
+# ---- Seed Media API (火山方舟 AI 视频/图片生成) ----
+try:
+    from app.api.seed_media import router as seed_media_router
+    app.include_router(seed_media_router)
+except ImportError:
+    print("[main] Seed Media 模块不可用，跳过")
 
 
 @app.middleware("http")
