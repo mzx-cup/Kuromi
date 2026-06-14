@@ -71,6 +71,7 @@
                     <div class="radar-loading" id="radar-loading">加载中...</div>
                     <canvas id="radar-chart" style="display:none; max-width: 100%; max-height: 100%;"></canvas>
                 </div>
+                <div id="radar-dim-list"></div>
             </div>
         </div>
 
@@ -179,40 +180,96 @@
         <div id="chat-view" class="tab-view flex-1 flex h-full min-h-0">
             <div class="flex flex-col md:flex-row w-full h-full min-h-0">
 
-                <div id="track-a-container" class="relative md:shrink-0">
+                <div id="track-a-container" class="relative md:shrink-0 collapsed">
+                    <div id="tower-collapsed-indicator" class="tower-collapsed-indicator hidden">
+                        <span class="tci-pulse"></span>
+                        <span class="tci-text">流水线运行中</span>
+                    </div>
                     <div id="track-a" class="track-sandbox flex flex-col h-[35vh] md:h-full">
+                        <!-- Header -->
                         <div class="tower-header">
-                            <h2>🛰 Agent 编排控制塔</h2>
+                            <h2><span id="tower-status-dot" class="tower-status-dot"></span> 🛰 控制塔</h2>
                             <div class="tower-actions">
+                                <button class="tower-btn" id="tower-start" title="启动协作">▶ 启动</button>
                                 <button class="tower-btn" id="tower-pause" disabled title="暂停">⏸</button>
                                 <button class="tower-btn" id="tower-stop" disabled title="停止">⏹</button>
-                                <button class="tower-btn" id="tower-start" title="启动协作">▶ 启动协作</button>
-                                <button class="tower-btn" id="tower-toggle" title="折叠/展开控制塔" aria-label="折叠控制塔">⇆ 折叠</button>
+                                <button class="tower-btn" id="tower-toggle" title="折叠控制塔" aria-label="折叠控制塔">✕</button>
                             </div>
                         </div>
-                        <div class="tower-flow" id="tower-flow"></div>
-                        <div class="tower-terminal" id="tower-terminal"></div>
-                        <div class="tower-drawer" id="tower-drawer">
-                            <div class="drawer-header">
-                                <h3>📊 评估报告</h3>
-                                <button class="tower-btn" id="drawer-close" title="关闭" aria-label="关闭评估报告">✕</button>
+
+                        <!-- Tabs -->
+                        <div class="tower-tabs" id="tower-tabs">
+                            <button class="tower-tab is-active" data-tab="status">📊 实时学情</button>
+                            <button class="tower-tab" data-tab="control">🎛 教学调控</button>
+                            <button class="tower-tab" data-tab="plan">📋 任务编排</button>
+                        </div>
+
+                        <!-- Tab: 实时学情 -->
+                        <div class="tower-tab-content is-active" id="tab-status">
+                            <div class="tower-scroll-area">
+                                <!-- Status cards -->
+                                <div class="tower-card-grid" id="tower-status-cards"></div>
+                                <!-- Weakness alerts -->
+                                <div class="tower-section-title">⚠️ 薄弱环节</div>
+                                <div id="tower-weakness-list"></div>
+                                <!-- Mini pipeline status -->
+                                <div class="tower-section-title">🔄 流水线状态</div>
+                                <div class="tower-flow" id="tower-flow"></div>
+                                <div class="tower-terminal" id="tower-terminal"></div>
                             </div>
-                            <div class="drawer-body">
-                                <div class="drawer-metrics" id="drawer-metrics"></div>
-                                <div class="drawer-spark" id="drawer-spark"></div>
-                                <p class="drawer-summary" id="drawer-summary">等待评估完成…</p>
+                        </div>
+
+                        <!-- Tab: 教学调控 -->
+                        <div class="tower-tab-content" id="tab-control">
+                            <div class="tower-scroll-area">
+                                <div class="tower-section-title">👤 教师人格</div>
+                                <div class="tcg-persona-grid" id="tcg-persona-grid"></div>
+                                <div class="tower-section-title">📈 难度偏好</div>
+                                <div class="tcg-slider-wrap">
+                                    <span class="tcg-slider-label">简单</span>
+                                    <input type="range" id="tcg-difficulty-slider" min="1" max="5" value="3" class="tcg-slider">
+                                    <span class="tcg-slider-label">困难</span>
+                                    <span class="tcg-slider-value" id="tcg-difficulty-val">适中</span>
+                                </div>
+                                <div class="tower-section-title">🧠 教学策略</div>
+                                <div class="tcg-strategy-pills" id="tcg-strategy-pills"></div>
+                                <div class="tower-section-title">💉 知识注入</div>
+                                <div class="tcg-inject-row">
+                                    <input type="text" id="tcg-inject-input" class="tcg-inject-input" placeholder="输入你想学的知识点..." maxlength="100">
+                                    <button class="tower-btn" id="tcg-inject-btn">注入</button>
+                                </div>
+                                <div class="tcg-tags" id="tcg-injected-tags"></div>
                             </div>
                         </div>
-                        <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                            <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
+
+                        <!-- Tab: 任务编排 -->
+                        <div class="tower-tab-content" id="tab-plan">
+                            <div class="tower-scroll-area">
+                                <div class="tower-section-title">🎯 学习目标</div>
+                                <div class="tcg-inject-row">
+                                    <input type="text" id="tcg-goal-input" class="tcg-inject-input" placeholder="描述你的学习目标..." maxlength="200">
+                                    <button class="tower-btn" id="tcg-goal-btn">AI 拆解</button>
+                                </div>
+                                <div class="tower-plan-tasks" id="tower-plan-tasks">
+                                    <div class="tower-plan-empty">输入目标并点击 "AI 拆解" 来生成学习计划</div>
+                                </div>
+                                <div class="tower-plan-progress" id="tower-plan-progress" style="display:none">
+                                    <div class="tower-plan-progress-bar-bg">
+                                        <div class="tower-plan-progress-bar-fill" id="tower-plan-progress-fill" style="width:0%"></div>
+                                    </div>
+                                    <span class="tower-plan-progress-text" id="tower-plan-progress-text">0%</span>
+                                </div>
+                                <button class="tower-btn tower-plan-replan" id="tower-plan-replan" style="display:none">🔄 重新规划</button>
+                            </div>
                         </div>
-                        <div id="sandbox-filter-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                            <div class="flex flex-wrap gap-1" id="sandbox-filter-chips"></div>
+
+                        <!-- Hidden: sandbox internals for backward compat -->
+                        <div id="sandbox-search-bar" class="hidden" style="display:none">
+                            <input type="text" id="sandbox-search-input">
                         </div>
-                        <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="display:none; border-color: var(--border-glass); background: var(--surface-glass);">
-                            <div class="flex items-center gap-1 min-w-max" id="flow-node-container"></div>
-                        </div>
-                        <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll" style="display:none;"></div>
+                        <div id="sandbox-filter-bar" class="hidden" style="display:none"></div>
+                        <div id="flow-nodes" style="display:none"><div id="flow-node-container"></div></div>
+                        <div id="sandbox-logs" style="display:none"></div>
                     </div>
                 </div>
 

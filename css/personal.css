@@ -2684,6 +2684,32 @@ input, textarea, select {
     background: var(--surface-card);
 }
 
+.avatar-option--upload {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: var(--surface-card);
+    border: 2px dashed var(--glass-border);
+    color: var(--text-secondary);
+    transition: all 0.4s var(--ease-out-expo);
+}
+.avatar-option--upload:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: color-mix(in oklch, var(--primary), transparent 90%);
+    transform: scale(1.1);
+}
+.avatar-option--upload svg {
+    flex-shrink: 0;
+}
+.avatar-option__label {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+}
+
 /* ============================================
    9. Stats Cards
    ============================================ */
@@ -4787,6 +4813,17 @@ input, textarea, select {
    14. Utility Classes
    ============================================ */
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
 .hidden { display: none !important; }
 .flex { display: flex !important; }
 .grid { display: grid !important; }

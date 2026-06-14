@@ -1,407 +1,453 @@
-class FlowWaveform {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.isRunning = true;
-        this.init();
+/**
+ * FlowMeter — 心流共振仪
+ * 使用 FocusAnalysis 共享模块 + ECharts 驱动所有面板数据
+ */
+(function () {
+  'use strict';
+
+  var _waveformChart = null;
+  var _timeOfDayChart = null;
+  var _filterRange = 'week';
+  var _resizeObserver = null;
+
+  // ============ helpers ============
+
+  function formatMinutes(mins) {
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return h > 0
+      ? h + ':' + String(m).padStart(2, '0') + ':00'
+      : String(m).padStart(2, '0') + ':00';
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ============ chart init ============
+
+  function initCharts() {
+    var wf = document.getElementById('waveform-chart');
+    var td = document.getElementById('timeofday-chart');
+    if (wf) { _waveformChart = echarts.init(wf); }
+    if (td) { _timeOfDayChart = echarts.init(td); }
+
+    // ResizeObserver for responsive charts
+    if (_resizeObserver) { _resizeObserver.disconnect(); }
+    _resizeObserver = new ResizeObserver(function () {
+      if (_waveformChart) { _waveformChart.resize(); }
+      if (_timeOfDayChart) { _timeOfDayChart.resize(); }
+    });
+    if (wf) { _resizeObserver.observe(wf); }
+    if (td) { _resizeObserver.observe(td); }
+
+    window.addEventListener('resize', function () {
+      if (_waveformChart) { _waveformChart.resize(); }
+      if (_timeOfDayChart) { _timeOfDayChart.resize(); }
+    });
+  }
+
+  // ============ timeline filtering ============
+
+  function filterTimeline(timeline) {
+    if (!timeline || !timeline.length) { return []; }
+    var now = Date.now();
+    var cutoffs = {
+      day: now - 86400000,
+      week: now - 604800000,
+      month: now - 2592000000
+    };
+    var cutoff = cutoffs[_filterRange] || cutoffs.week;
+    return timeline.filter(function (item) {
+      return new Date(item.timestamp).getTime() > cutoff;
+    });
+  }
+
+  // ============ chart rendering ============
+
+  function renderWaveformChart(timeline) {
+    if (!_waveformChart || !timeline || !timeline.length) {
+      if (_waveformChart) {
+        _waveformChart.setOption({
+          graphic: [{
+            type: 'text',
+            left: 'center',
+            top: 'center',
+            style: { text: '暂无数据', fill: 'rgba(255,255,255,0.3)', fontSize: 14 }
+          }]
+        }, true);
+      }
+      return;
     }
 
-    init() {
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        this.setupPageSwitchTracking();
-        this.animate(0);
-    }
+    var scores = timeline.map(function (t) { return Math.round(t.score); });
+    var times = timeline.map(function (t) {
+      var d = new Date(t.timestamp);
+      return d.getHours().toString().padStart(2, '0') + ':' +
+        d.getMinutes().toString().padStart(2, '0');
+    });
+    var types = timeline.map(function (t) { return t.type; });
 
-    resize() {
-        const rect = this.canvas.parentElement.getBoundingClientRect();
-        this.canvas.width = rect.width * window.devicePixelRatio;
-        this.canvas.height = rect.height * window.devicePixelRatio;
-        this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        this.width = rect.width;
-        this.height = rect.height;
-    }
-
-    setupPageSwitchTracking() {
-        this.pageSwitches = [];
-        this.currentState = 'focused';
-        this.stateProgress = 0;
-        this.targetState = 'focused';
-        this.transitionDuration = 2000;
-        this.transitionStart = 0;
-        this.lastStateChange = Date.now();
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                this.recordPageSwitch();
+    var option = {
+      grid: { top: 10, right: 12, bottom: 24, left: 40 },
+      xAxis: {
+        type: 'category',
+        data: times,
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 10, interval: 'auto' },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
+        axisLine: { show: false }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(18,18,24,0.92)',
+        borderColor: 'rgba(255,255,255,0.12)',
+        textStyle: { color: '#fff', fontSize: 12 },
+        formatter: function (params) {
+          var p = params[0];
+          var idx = p.dataIndex;
+          var typeLabel = { deep: '深度专注', shallow: '轻度专注', warning: '走神' };
+          return p.axisValue + '<br/>分数: <b>' + p.value + '</b><br/>状态: ' + (typeLabel[types[idx]] || '—');
+        }
+      },
+      series: [{
+        data: scores.map(function (v, i) {
+          return {
+            value: v,
+            itemStyle: {
+              color: types[i] === 'deep' ? '#00C853' :
+                     types[i] === 'warning' ? '#F44336' : '#FF9800'
             }
+          };
+        }),
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 4,
+        lineStyle: { color: '#00C853', width: 2 },
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(0, 200, 83, 0.2)' },
+            { offset: 1, color: 'rgba(0, 200, 83, 0.02)' }
+          ])
+        },
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: 'rgba(255,255,255,0.1)', type: 'dashed' },
+          data: [{ yAxis: 70, label: { formatter: '深度线', fontSize: 10, color: 'rgba(255,255,255,0.35)' } }]
+        }
+      }]
+    };
+
+    _waveformChart.setOption(option, true);
+  }
+
+  function renderTimeOfDayChart(tod) {
+    if (!_timeOfDayChart || !tod) { return; }
+
+    var periods = ['morning', 'afternoon', 'evening', 'night'];
+    var labels = ['上午(6-12)', '下午(12-17)', '傍晚(17-20)', '夜间(20-6)'];
+    var colors = ['#FFB300', '#FF9800', '#7C4DFF', '#3F51B5'];
+    var scores = periods.map(function (p) {
+      return (tod[p] && tod[p].sessions > 0) ? Math.round(tod[p].score) : 0;
+    });
+    var sessions = periods.map(function (p) {
+      return (tod[p] && tod[p].sessions) || 0;
+    });
+
+    var option = {
+      grid: { top: 10, right: 12, bottom: 24, left: 40 },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 10 },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value',
+        min: 0,
+        max: 100,
+        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
+        axisLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
+        axisLine: { show: false }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(18,18,24,0.92)',
+        borderColor: 'rgba(255,255,255,0.12)',
+        textStyle: { color: '#fff', fontSize: 12 },
+        formatter: function (params) {
+          var p = params[0];
+          return p.name + '<br/>专注分: <b>' + p.value + '</b><br/>会话数: ' + sessions[p.dataIndex];
+        }
+      },
+      series: [{
+        type: 'bar',
+        data: scores.map(function (v, i) {
+          return {
+            value: v,
+            itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] }
+          };
+        }),
+        barWidth: '45%',
+        label: {
+          show: true,
+          position: 'top',
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 10,
+          formatter: function (p) { return p.value > 0 ? p.value : ''; }
+        }
+      }]
+    };
+
+    _timeOfDayChart.setOption(option, true);
+  }
+
+  // ============ history bars ============
+
+  function renderHistoryBars(filtered) {
+    var container = document.querySelector('.history-waves');
+    if (!container) { return; }
+
+    if (!filtered || !filtered.length) {
+      container.innerHTML =
+        '<div class="history-item"><div class="history-time" style="color:rgba(255,255,255,0.3);padding:20px;text-align:center;">暂无数据</div></div>';
+      return;
+    }
+
+    // Group by hour blocks
+    var groups = [];
+    var currentGroup = null;
+    for (var i = 0; i < filtered.length; i++) {
+      var item = filtered[i];
+      var d = new Date(item.timestamp);
+      var hour = d.getHours();
+      var key = (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+        String(hour).padStart(2, '0') + ':00';
+      if (!currentGroup || currentGroup.key !== key) {
+        if (currentGroup) { groups.push(currentGroup); }
+        currentGroup = { key: key, bars: [], totalScore: 0 };
+      }
+      var h = Math.max(15, Math.min(95, item.score));
+      currentGroup.bars.push({ height: h, type: item.type });
+      currentGroup.totalScore += item.score;
+    }
+    if (currentGroup) { groups.push(currentGroup); }
+
+    var recent = groups.slice(-3);
+    container.innerHTML = recent.map(function (g) {
+      var barsHtml = g.bars.map(function (b) {
+        var cls = b.type === 'deep' ? 'deep' :
+                   b.type === 'shallow' ? 'shallow' : 'distracted';
+        return '<div class="history-bar ' + cls + '" style="height:' + b.height + '%;"></div>';
+      }).join('');
+      var avg = Math.round(g.totalScore / g.bars.length);
+      return '<div class="history-item">' +
+        '<div class="history-time">' + g.key + '</div>' +
+        barsHtml +
+        '<div class="history-score">' + avg + '分</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ============ panel updates ============
+
+  function updateStatsPanel(data) {
+    var ratio = Math.round(data.deepRatio || 0);
+    var el = document.getElementById('deep-value');
+    if (el) { el.textContent = ratio; }
+
+    var ring = document.getElementById('deep-ring');
+    if (ring) {
+      var circumference = 2 * Math.PI * 42;
+      var offset = circumference - (ratio / 100) * circumference;
+      ring.style.strokeDasharray = circumference;
+      ring.style.strokeDashoffset = offset;
+    }
+
+    var focusMin = (data.today && data.today.focusMinutes) || 0;
+    var ft = document.getElementById('focus-time');
+    if (ft) { ft.textContent = formatMinutes(focusMin); }
+
+    var sc = document.getElementById('switch-count');
+    if (sc) { sc.textContent = (data.today && data.today.pageSwitches) || 0; }
+
+    var fs = document.getElementById('flow-score');
+    if (fs) { fs.textContent = Math.round(data.score || 0); }
+  }
+
+  function updateSessionPanel(data) {
+    if (!data.today) { return; }
+    var today = data.today;
+
+    if (today.firstSessionTime) {
+      var d = new Date(today.firstSessionTime);
+      var ss = document.getElementById('session-start');
+      if (ss) {
+        ss.textContent = d.toLocaleTimeString('zh-CN', {
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
-
-        window.addEventListener('blur', () => {
-            this.recordPageSwitch();
-        });
+      }
     }
 
-    recordPageSwitch() {
-        const now = Date.now();
-        this.pageSwitches.push(now);
-        this.pageSwitches = this.pageSwitches.filter(t => now - t < 60000);
+    var focusRatio = Math.round(today.focusRatio || 0);
+    var sp = document.getElementById('session-progress');
+    if (sp) { sp.style.width = focusRatio + '%'; }
+    var pt = document.querySelector('.progress-text');
+    if (pt) { pt.textContent = focusRatio + '% 完成'; }
 
-        if (this.currentState !== 'distracted') {
-            this.startTransition('distracted');
+    var remainingMin = Math.max(0, (today.studyMinutes || 60) - (today.focusMinutes || 0));
+    var rt = document.getElementById('remaining-time');
+    if (rt) { rt.textContent = formatMinutes(remainingMin); }
+  }
+
+  function updateStateIndicator(rt) {
+    if (!rt) { return; }
+
+    var stateText = document.getElementById('state-text');
+    var stateDesc = document.getElementById('state-desc');
+    var stateOrb = document.querySelector('.orb-inner');
+    var stateFill = document.getElementById('state-fill');
+
+    var label, desc, color, rgb, percent;
+
+    switch (rt.state) {
+      case 'focused':
+        label = '深度专注中';
+        desc = '继续保持，学习效率很高';
+        color = '#00C853';
+        rgb = '0, 200, 83';
+        percent = 85 + Math.round(rt.confidence * 15);
+        break;
+      case 'lightly':
+        label = '轻度专注';
+        desc = '注意力有所分散，建议集中精神';
+        color = '#FF9800';
+        rgb = '255, 152, 0';
+        percent = 40 + Math.round(rt.confidence * 30);
+        break;
+      case 'distracted':
+        label = '注意力分散';
+        desc = '建议休息片刻，恢复精力';
+        color = '#F44336';
+        rgb = '244, 67, 54';
+        percent = 10 + Math.round(rt.confidence * 30);
+        break;
+      default:
+        label = '监测中';
+        desc = '正在分析学习状态';
+        color = '#9E9E9E';
+        rgb = '158, 158, 158';
+        percent = 50;
+    }
+
+    if (stateText) {
+      stateText.textContent = label;
+      stateText.style.color = color;
+    }
+    if (stateDesc) { stateDesc.textContent = desc; }
+    if (stateOrb) {
+      stateOrb.style.background =
+        'radial-gradient(circle, ' + color + ' 0%, rgba(' + rgb + ', 0.6) 100%)';
+      stateOrb.style.boxShadow = '0 0 30px rgba(' + rgb + ', 0.6)';
+    }
+    if (stateFill) { stateFill.style.width = percent + '%'; }
+  }
+
+  function updateTips(tips) {
+    if (!tips || !tips.length) { return; }
+    var container = document.querySelector('.tips-list');
+    if (!container) { return; }
+
+    var iconMap = { good: '✓', info: '◐', warn: '!' };
+    container.innerHTML = tips.map(function (tip) {
+      return '<div class="tip-item">' +
+        '<span class="tip-icon ' + (tip.type || 'info') + '">' +
+        (iconMap[tip.type] || '◐') + '</span>' +
+        '<span class="tip-text">' + escapeHtml(tip.text) + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  // ============ chart refresh ============
+
+  function updateCharts() {
+    var analysis = window.FocusAnalysis.getAnalysis();
+    if (!analysis) { return; }
+
+    var filtered = filterTimeline(analysis.timeline);
+    renderWaveformChart(filtered);
+    renderTimeOfDayChart(analysis.timeOfDay);
+    renderHistoryBars(filtered);
+  }
+
+  function updateAllCards(data) {
+    if (!data) { return; }
+    updateStatsPanel(data);
+    updateSessionPanel(data);
+    updateStateIndicator(window.FocusAnalysis.getRealtimeState());
+    updateCharts();
+    updateTips(data.tips);
+  }
+
+  // ============ event listeners ============
+
+  function initFilterButtons() {
+    var btns = document.querySelectorAll('.filter-btn');
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].addEventListener('click', function () {
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].classList.remove('active');
         }
+        this.classList.add('active');
+        _filterRange = this.dataset.range;
+        updateCharts();
+      });
+    }
+  }
+
+  // ============ init ============
+
+  function init() {
+    if (!window.FocusAnalysis) {
+      console.warn('[FlowMeter] FocusAnalysis module not loaded');
+      return;
     }
 
-    getSwitchFrequency() {
-        const now = Date.now();
-        const recent = this.pageSwitches.filter(t => now - t < 60000);
-        return recent.length;
-    }
+    initCharts();
+    initFilterButtons();
 
-    getDistractedAmplitude() {
-        const frequency = this.getSwitchFrequency();
-        const baseAmplitude = this.height * 0.06;
-        const freqBonus = Math.min(frequency * 0.02, this.height * 0.08);
-        return baseAmplitude + freqBonus + this.height * 0.03;
-    }
+    window.FocusAnalysis.on('analysis-updated', function (data) {
+      updateAllCards(data);
+    });
 
-    startTransition(newState) {
-        if (this.targetState === newState) return;
-        this.targetState = newState;
-        this.transitionStart = Date.now();
-    }
+    window.FocusAnalysis.on('realtime-changed', function (state) {
+      updateStateIndicator(state);
+    });
 
-    lerpColor(color1, color2, t) {
-        const c1 = this.hexToRgb(color1);
-        const c2 = this.hexToRgb(color2);
-        const r = Math.round(c1.r + (c2.r - c1.r) * t);
-        const g = Math.round(c1.g + (c2.g - c1.g) * t);
-        const b = Math.round(c1.b + (c2.b - c1.b) * t);
-        return `rgb(${r},${g},${b})`;
-    }
+    // Poll more frequently on this dedicated page
+    window.FocusAnalysis.startPolling(3000);
 
-    hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16)
-        } : { r: 0, g: 188, b: 129 };
-    }
+    // Fetch immediately, show cached data first, then live
+    window.FocusAnalysis.fetchAnalysis().then(function (data) {
+      if (data) { updateAllCards(data); }
+    });
+  }
 
-    getStateColors() {
-        return {
-            focused: '#00C853',
-            lightly: '#9E9E9E',
-            distracted: '#F44336'
-        };
-    }
-
-    updateState(t) {
-        const now = Date.now();
-        const timeSinceChange = now - this.lastStateChange;
-
-        if (this.currentState !== this.targetState) {
-            const elapsed = now - this.transitionStart;
-            const progress = Math.min(elapsed / this.transitionDuration, 1);
-
-            if (progress >= 1) {
-                this.currentState = this.targetState;
-                this.lastStateChange = now;
-            }
-        }
-
-        if (timeSinceChange > 5000 && this.currentState === 'distracted') {
-            this.targetState = 'lightly';
-        }
-
-        if (timeSinceChange > 30000 && this.currentState === 'lightly') {
-            this.targetState = 'focused';
-        }
-
-        return {
-            state: this.currentState,
-            progress: this.getTransitionProgress()
-        };
-    }
-
-    getTransitionProgress() {
-        if (this.currentState === this.targetState) return 1;
-        const elapsed = Date.now() - this.transitionStart;
-        return Math.min(elapsed / this.transitionDuration, 1);
-    }
-
-    getCurrentColor(state, progress) {
-        const colors = this.getStateColors();
-        let fromColor, toColor;
-
-        if (progress >= 1 || this.currentState === this.targetState) {
-            return colors[this.targetState];
-        }
-
-        if (state === this.targetState) {
-            fromColor = colors[this.currentState];
-            toColor = colors[this.targetState];
-        } else {
-            fromColor = colors[this.targetState];
-            toColor = colors[this.currentState];
-        }
-
-        return this.lerpColor(fromColor, toColor, progress);
-    }
-
-    generateECGWave(t, baseY, amplitude, frequency) {
-        const phase = t * frequency;
-
-        const breathWave = Math.sin(phase * 0.3) * amplitude * 0.4;
-
-        const cardiacWave =
-            Math.sin(phase) * amplitude * 0.3 +
-            Math.sin(phase * 2) * amplitude * 0.15 +
-            Math.sin(phase * 3) * amplitude * 0.08;
-
-        const microNoise = (Math.random() - 0.5) * amplitude * 0.1;
-
-        return baseY + breathWave + cardiacWave + microNoise;
-    }
-
-    drawWave(time) {
-        const t = time / 1000;
-        const stateInfo = this.updateState(t);
-
-        this.ctx.clearRect(0, 0, this.width, this.height);
-
-        let baseY, amplitude, frequency;
-
-        switch (stateInfo.state) {
-            case 'focused':
-                baseY = this.height * 0.35;
-                amplitude = this.height * 0.04;
-                frequency = 1.5;
-                break;
-            case 'lightly':
-                baseY = this.height * 0.5;
-                amplitude = this.height * 0.07;
-                frequency = 2.0;
-                break;
-            case 'distracted':
-                baseY = this.height * 0.6;
-                amplitude = this.getDistractedAmplitude();
-                frequency = 2.5;
-                break;
-            default:
-                baseY = this.height * 0.4;
-                amplitude = this.height * 0.05;
-                frequency = 1.5;
-        }
-
-        const currentColor = this.getCurrentColor(stateInfo.state, stateInfo.progress);
-
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
-        const rgb = this.hexToRgb(currentColor);
-        gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
-        gradient.addColorStop(0.5, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.08)`);
-        gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.02)`);
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, this.height);
-
-        const points = 300;
-        for (let i = 0; i <= points; i++) {
-            const x = (i / points) * this.width;
-            const localT = t + (i / points) * 2;
-            const y = this.generateECGWave(localT, baseY, amplitude, frequency);
-            this.ctx.lineTo(x, y);
-        }
-
-        this.ctx.lineTo(this.width, this.height);
-        this.ctx.closePath();
-        this.ctx.fillStyle = gradient;
-        this.ctx.fill();
-
-        this.ctx.strokeStyle = currentColor;
-        this.ctx.lineWidth = 2.5;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        this.ctx.shadowColor = currentColor;
-        this.ctx.shadowBlur = 12;
-
-        this.ctx.beginPath();
-        for (let i = 0; i <= points; i++) {
-            const x = (i / points) * this.width;
-            const localT = t + (i / points) * 2;
-            const y = this.generateECGWave(localT, baseY, amplitude, frequency);
-
-            if (i === 0) {
-                this.ctx.moveTo(x, y);
-            } else {
-                this.ctx.lineTo(x, y);
-            }
-        }
-        this.ctx.stroke();
-        this.ctx.shadowBlur = 0;
-
-        this.drawGrid();
-        this.drawLabels(stateInfo.state, currentColor);
-    }
-
-    drawGrid() {
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-        this.ctx.lineWidth = 1;
-
-        for (let i = 1; i < 4; i++) {
-            const y = (this.height / 4) * i;
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y);
-            this.ctx.lineTo(this.width, y);
-            this.ctx.stroke();
-        }
-
-        for (let i = 1; i < 6; i++) {
-            const x = (this.width / 6) * i;
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, this.height);
-            this.ctx.stroke();
-        }
-    }
-
-    drawLabels(state, color) {
-        this.ctx.font = '11px Inter, sans-serif';
-
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(10, 10, 8, 8);
-
-        const stateText = {
-            focused: '专注',
-            lightly: '轻度专注',
-            distracted: '走神'
-        };
-
-        this.ctx.fillText(stateText[state] || '专注', 24, 18);
-
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText('-60s', 50, this.height - 10);
-        this.ctx.fillText('现在', this.width - 10, this.height - 10);
-        this.ctx.textAlign = 'left';
-    }
-
-    animate(time) {
-        if (!this.isRunning) return;
-        this.drawWave(time);
-        requestAnimationFrame((t) => this.animate(t));
-    }
-
-    stop() {
-        this.isRunning = false;
-    }
-}
-
-class FlowMeter {
-    constructor() {
-        this.focusTime = 45 * 60;
-        this.switchCount = 0;
-        this.flowScore = 78;
-        this.deepRatio = 82;
-        this.sessionStart = Date.now();
-        this.isRunning = true;
-        this.init();
-    }
-
-    init() {
-        this.waveform = new FlowWaveform(document.getElementById('waveform-canvas'));
-        this.updateStats();
-        this.startTimer();
-        this.initEventListeners();
-    }
-
-    initEventListeners() {
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-            });
-        });
-    }
-
-    updateStats() {
-        document.getElementById('deep-value').textContent = this.deepRatio;
-        document.getElementById('deep-ring').style.setProperty('--percent', this.deepRatio);
-
-        const ring = document.getElementById('deep-ring');
-        const circumference = 2 * Math.PI * 42;
-        const offset = circumference - (this.deepRatio / 100) * circumference;
-        ring.style.strokeDasharray = `${circumference}`;
-        ring.style.strokeDashoffset = offset;
-
-        document.getElementById('focus-time').textContent = this.formatTime(this.focusTime);
-        document.getElementById('switch-count').textContent = this.switchCount;
-        document.getElementById('flow-score').textContent = this.flowScore;
-        document.getElementById('state-fill').style.width = `${this.deepRatio}%`;
-
-        const stateText = document.getElementById('state-text');
-        const stateDesc = document.getElementById('state-desc');
-        const stateOrb = document.querySelector('.orb-inner');
-
-        if (this.deepRatio >= 70) {
-            stateText.textContent = '深度专注中';
-            stateText.style.color = '#00C853';
-            stateDesc.textContent = '继续保持，学习效率很高';
-            stateOrb.style.background = 'radial-gradient(circle, #00C853 0%, #00a844 100%)';
-            stateOrb.style.boxShadow = '0 0 30px rgba(0, 200, 83, 0.6)';
-        } else if (this.deepRatio >= 40) {
-            stateText.textContent = '轻度专注';
-            stateText.style.color = '#9E9E9E';
-            stateDesc.textContent = '注意力有所分散，建议集中精神';
-            stateOrb.style.background = 'radial-gradient(circle, #9E9E9E 0%, #757575 100%)';
-            stateOrb.style.boxShadow = '0 0 30px rgba(158, 158, 158, 0.6)';
-        } else {
-            stateText.textContent = '注意力分散';
-            stateText.style.color = '#F44336';
-            stateDesc.textContent = '建议休息片刻，恢复精力';
-            stateOrb.style.background = 'radial-gradient(circle, #F44336 0%, #c62828 100%)';
-            stateOrb.style.boxShadow = '0 0 30px rgba(244, 67, 54, 0.6)';
-        }
-    }
-
-    startTimer() {
-        setInterval(() => {
-            if (!this.isRunning) return;
-
-            this.focusTime--;
-            if (this.focusTime < 0) this.focusTime = 0;
-
-            const elapsed = Math.floor((Date.now() - this.sessionStart) / 1000);
-            const totalSeconds = 60 * 60;
-            const progress = Math.min(100, (elapsed / totalSeconds) * 100);
-
-            document.getElementById('session-progress').style.width = `${progress}%`;
-            document.querySelector('.progress-text').textContent = `${Math.round(progress)}% 完成`;
-
-            const remaining = this.getRemainingTime();
-            document.getElementById('remaining-time').textContent = remaining;
-
-            if (Math.random() < 0.01) {
-                this.deepRatio = Math.max(20, Math.min(95, this.deepRatio + (Math.random() - 0.5) * 10));
-                this.flowScore = Math.round(this.deepRatio * 0.95);
-                this.updateStats();
-            }
-        }, 1000);
-    }
-
-    formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    getRemainingTime() {
-        const remaining = Math.max(0, this.focusTime);
-        return this.formatTime(remaining);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const flowMeter = new FlowMeter();
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

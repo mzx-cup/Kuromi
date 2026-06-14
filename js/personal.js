@@ -133,11 +133,22 @@ function renderAvatarGrid() {
     const grid = document.getElementById('avatar-grid');
     if (!grid) return;
 
-    grid.innerHTML = avatarStyles.map(style => {
+    let html = `<div class="avatar-option avatar-option--upload" onclick="event.stopPropagation(); triggerAvatarUpload()" title="从相册选取照片">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span class="avatar-option__label">上传</span>
+    </div>`;
+
+    html += avatarStyles.map(style => {
         const url = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(currentUser.name)}&backgroundColor=b6e3f4`;
         const isSelected = currentUser.avatar.includes(style);
         return `<img src="${url}" alt="${style}" class="avatar-option ${isSelected ? 'selected' : ''}" onclick="selectAvatar('${style}', this)">`;
     }).join('');
+
+    grid.innerHTML = html;
+}
+
+function triggerAvatarUpload() {
+    document.getElementById('avatar-upload').click();
 }
 
 function setAvatarStylePanelOpen(open) {

@@ -231,6 +231,18 @@
     transition: height 0.6s var(--ease-out);
 }
 .nav-flow-bar.peak { background: var(--info); box-shadow: 0 0 4px color-mix(in oklch, var(--info), transparent 40%); }
+.nav-flow-bar.bar-deep { background: var(--success, #00C853); }
+.nav-flow-bar.bar-warn { background: var(--danger, #F44336); }
+
+.nav-flow-trend {
+    display: inline-block; font-size: 10px; line-height: 1;
+    margin-left: 2px; vertical-align: middle;
+}
+.nav-flow-trend.trend-up { color: var(--success, #00C853); }
+.nav-flow-trend.trend-down { color: var(--danger, #F44336); }
+.nav-flow-trend.trend-stable { color: var(--cp-text-tertiary); }
+
+.nav-flow-widget { cursor: pointer; }
 
 /* 通知按钮 */
 .notification-btn {

@@ -1895,7 +1895,7 @@ async function loadEvaluationFromServer() {
                 socraticPassRate: d.socraticPassRate ?? evaluation.socraticPassRate,
                 difficultyLevel: d.difficultyLevel || evaluation.difficultyLevel,
                 codePracticeTime: d.codePracticeTime ?? evaluation.codePracticeTime,
-                focusTimeToday: d.focusTimeToday ?? evaluation.focusTimeToday,
+                focusTimeToday: typeof d.focusTimeToday === 'number' ? d.focusTimeToday : (Number(d.focusTimeToday) || evaluation.focusTimeToday),
                 flashcardsStudied: d.flashcardsStudied ?? evaluation.flashcardsStudied,
                 streakDays: d.streakDays ?? evaluation.streakDays,
                 lastStudyDate: d.lastStudyDate || evaluation.lastStudyDate,
@@ -3292,7 +3292,7 @@ function renderRadarChart() {
     try {
         const wrap = canvas.closest('.glass-radar-wrap');
         const wrapW = wrap ? wrap.clientWidth : 240;
-        const size = Math.min(wrapW, 240);
+        const size = Math.max(160, Math.min(wrapW, 280));
         const dpr = window.devicePixelRatio || 1;
         canvas.width = size * dpr;
         canvas.height = size * dpr;
@@ -3388,14 +3388,24 @@ function renderRadarChart() {
             ctx.stroke();
 
             // Label with background pill
-            const labelOffset = R + 22;
+            const labelOffset = R + 24;
             const lx = cx + labelOffset * Math.cos(angle);
             const ly = cy + labelOffset * Math.sin(angle);
-            ctx.fillStyle = labelColor;
+            const labelText = dims[i];
             ctx.font = '600 10px "PingFang SC", "Microsoft YaHei", sans-serif';
+            const textMetrics = ctx.measureText(labelText);
+            const pillW = textMetrics.width + 12;
+            const pillH = 18;
+            const pillX = lx - pillW / 2;
+            const pillY = ly - pillH / 2;
+            ctx.fillStyle = radarColorWithAlpha(radarFillStart, 0.1);
+            ctx.beginPath();
+            ctx.roundRect(pillX, pillY, pillW, pillH, 9);
+            ctx.fill();
+            ctx.fillStyle = labelColor;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(dims[i], lx, ly);
+            ctx.fillText(labelText, lx, ly);
         }
 
         // Data polygon with gradient fill (--radar-fill-start -> --radar-fill-end)
@@ -3460,8 +3470,29 @@ function renderRadarChart() {
             ctx.fillText(values[i], slx, sly);
         }
 
+        // D2: 为 setupRadarTooltips 缓存标签位置
+        _radarLabelRects = [];
+        for (let i = 0; i < n; i++) {
+            const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+            const labelOffset = R + 24;
+            const lx = cx + labelOffset * Math.cos(angle);
+            const ly = cy + labelOffset * Math.sin(angle);
+            const rd = RADAR_DIMENSIONS.find(d => d.label === dims[i]);
+            _radarLabelRects.push({ lx, ly, label: dims[i], value: values[i], desc: rd ? rd.desc : '' });
+        }
+
+        // D3: fade transition when values actually change
+        const hash = values.join(',');
+        if (hash !== _lastRadarValuesHash) {
+            canvas.classList.remove('fade-transition');
+            void canvas.offsetWidth; // reflow
+            canvas.classList.add('fade-transition');
+            _lastRadarValuesHash = hash;
+        }
+
         canvas.style.display = 'block';
         if (loadingEl) loadingEl.style.display = 'none';
+        renderRadarDimensionList();
     } catch (err) {
         console.warn('[RadarChart] Render failed:', err);
         canvas.style.display = 'none';
@@ -3470,6 +3501,110 @@ function renderRadarChart() {
             loadingEl.innerHTML = '<div class="radar-error"><span>雷达图加载失败</span><button class="radar-error-retry" onclick="renderRadarChart()">重试</button></div>';
         }
     }
+}
+
+function renderRadarDimensionList() {
+    const container = document.getElementById('radar-dim-list');
+    if (!container) return;
+
+    let dims, values;
+    if (typeof towerRadarSnapshot !== 'undefined' && towerRadarSnapshot && towerRadarSnapshot.radar) {
+        const geom = computeRadarPoints(towerRadarSnapshot, { cx: 0, cy: 0, R: 0 });
+        dims = geom.labels;
+        values = geom.values;
+    } else {
+        dims = ['方向', '基础', '编程', '认知', '短板', '专注'];
+        values = [
+            mapProfileToScore(profile.learningDirection || '大数据技术'),
+            mapProfileToScore(profile.knowledgeBase),
+            mapProfileToScore(profile.codeSkill),
+            mapProfileToScore(profile.cognitiveStyle),
+            mapProfileToScore(profile.weakness, true),
+            mapProfileToScore(profile.focusLevel)
+        ];
+    }
+
+    const allZero = values.every(v => v === 0);
+    if (allZero) {
+        container.classList.add('is-empty');
+        container.innerHTML = '';
+        return;
+    }
+    container.classList.remove('is-empty');
+
+    const radarDimsDesc = {
+        '方向': { key: 'learning_direction', desc: '学习方向清晰度' },
+        '基础': { key: 'knowledge_base', desc: '基础知识储备水平' },
+        '编程': { key: 'coding_ability', desc: '编程实践能力水平' },
+        '认知': { key: 'cognitive_level', desc: '信息处理与学习偏好' },
+        '短板': { key: 'weakness_severity', desc: '薄弱环节严重度' },
+        '专注': { key: 'focus_ability', desc: '学习注意力维持能力' },
+    };
+
+    let html = '';
+    for (let i = 0; i < dims.length; i++) {
+        const label = dims[i];
+        const val = Math.round(values[i]);
+        const info = radarDimsDesc[label] || { desc: '' };
+        html += `<div class="radar-dim-row">
+            <span class="radar-dim-label">${escapeHtml(label)}</span>
+            <div class="radar-dim-bar-bg"><div class="radar-dim-bar-fill" style="width:${val}%"></div></div>
+            <span class="radar-dim-value">${val}</span>
+            <span class="radar-dim-desc">${escapeHtml(info.desc)}</span>
+        </div>`;
+    }
+    container.innerHTML = html;
+}
+
+function setupRadarTooltips() {
+    const canvas = document.getElementById('radar-chart');
+    if (!canvas) return;
+    const wrap = canvas.closest('.glass-radar-wrap');
+    if (!wrap) return;
+    // 防止重复绑定
+    if (canvas.dataset.tooltipBound) return;
+    canvas.dataset.tooltipBound = '1';
+
+    let tooltip = wrap.querySelector('.radar-tooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'radar-tooltip hidden';
+        wrap.appendChild(tooltip);
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let hit = null;
+        for (const r of _radarLabelRects) {
+            const dx = mx - r.lx;
+            const dy = my - r.ly;
+            if (dx * dx + dy * dy < 400) { // radius 20px hit zone
+                hit = r;
+                break;
+            }
+        }
+
+        if (hit) {
+            tooltip.innerHTML = '<div class="rt-label">' + hit.label + ': <strong>' + hit.value + '/100</strong></div><div class="rt-desc">' + (hit.desc || '') + '</div>';
+            tooltip.className = 'radar-tooltip';
+            const wrapRect = wrap.getBoundingClientRect();
+            let ttLeft = e.clientX - wrapRect.left + 14;
+            let ttTop = e.clientY - wrapRect.top - 8;
+            ttLeft = Math.max(8, Math.min(ttLeft, wrapRect.width - 160));
+            ttTop = Math.max(8, Math.min(ttTop, wrapRect.height - 52));
+            tooltip.style.left = ttLeft + 'px';
+            tooltip.style.top = ttTop + 'px';
+        } else {
+            tooltip.className = 'radar-tooltip hidden';
+        }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        tooltip.className = 'radar-tooltip hidden';
+    });
 }
 
 function mapProfileToScore(val, invert) {
@@ -3523,7 +3658,8 @@ function renderEvaluation() {
     const diffColors = { basic: 'eval-diff-basic', medium: 'eval-diff-medium', advanced: 'eval-diff-advanced' };
     const diffLabels = { basic: '基础', medium: '中等', advanced: '进阶' };
 
-    const focusMin = Math.floor((evaluation.focusTimeToday || 0) / 60);
+    const focusTimeNum = Number(evaluation.focusTimeToday) || 0;
+    const focusMin = Math.floor(focusTimeNum / 60);
     const sparkline = renderSparkline(evaluation.interactionHistory || [], 48, 20);
 
     evalContainer.innerHTML = `
@@ -4638,13 +4774,15 @@ const TOWER_LOG_MAX = 200;               // cap to prevent DOM bloat
 // learning_goal / weakness / focus_level), 由后端 /api/agents/execute 在 profile_updated 事件里 emit。
 // 当 towerRadarSnapshot 为 null 时 (profile_updated 还没到), 回退到 mapProfileToScore。
 let towerRadarSnapshot = null;           // { radar: {knowledge_mastery, code_skill, cognitive_style, learning_goal, weakness, focus_level}, panel?: {...} }
+let _radarLabelRects = [];           // renderRadarChart 填充, setupRadarTooltips 消费
+let _lastRadarValuesHash = '';       // D3: 检测雷达数据变化触发 fade 过渡
 const RADAR_DIMENSIONS = [
-    { key: 'knowledge_mastery', label: '知识掌握' },
-    { key: 'code_skill',        label: '编程能力' },
-    { key: 'cognitive_style',   label: '认知风格' },
-    { key: 'learning_goal',     label: '学习目标' },
-    { key: 'weakness',          label: '知识短板' },
-    { key: 'focus_level',       label: '专注度' },
+    { key: 'knowledge_mastery', label: '知识掌握', desc: '知识体系的掌握程度' },
+    { key: 'code_skill',        label: '编程能力', desc: '编程实践能力水平' },
+    { key: 'cognitive_style',   label: '认知风格', desc: '信息处理与学习偏好' },
+    { key: 'learning_goal',     label: '学习目标', desc: '目标明确性与方向感' },
+    { key: 'weakness',          label: '知识短板', desc: '薄弱环节严重度' },
+    { key: 'focus_level',       label: '专注度',   desc: '学习注意力维持能力' },
 ];
 
 // === Task 22: 雷达图 (LearningPortrait 6 维) 数据源: agentBus 'profile_updated' 事件里 data.radar ===
@@ -4993,20 +5131,43 @@ function _towerFlattenAgents() {
 function renderTowerFlow() {
     const container = document.getElementById('tower-flow');
     if (!container) return;
-    if (!agentCatalog || !Array.isArray(agentCatalog.agents) || agentCatalog.agents.length === 0) {
+    if (!agentCatalog || !Array.isArray(agentCatalog.pipeline) || agentCatalog.pipeline.length === 0) {
         container.innerHTML = '<span class="text-xs" style="color: var(--text-tertiary);">加载智能体目录中...</span>';
         return;
     }
 
-    const agents = _towerFlattenAgents();
-    container.innerHTML = agents.map(a => {
-        const status = towerAgentStatus[a.id] || 'idle';
-        const statusClass = status === 'idle' ? '' : 'is-' + status;
-        const label = a.name || (window.AGENT_LABELS && window.AGENT_LABELS[a.id]) || a.id;
-        const safeLabel = escapeHtml(String(label));
-        const safeId = escapeHtml(String(a.id));
-        return `<div class="flow-node ${statusClass}" data-agent="${safeId}" title="${safeId} (${status})">${safeLabel}</div>`;
-    }).join('');
+    const stageLabels = { pre: '前置准备', main: '核心分析', parallel: '并行生成', post: '后处理' };
+    const stageIcons = { pre: '🔌', main: '🧠', parallel: '⚡', post: '✅' };
+
+    let html = '';
+    for (let si = 0; si < agentCatalog.pipeline.length; si++) {
+        const block = agentCatalog.pipeline[si];
+        const stageName = block.stage;
+        const agentIds = Array.isArray(block.agents) ? block.agents : [];
+
+        html += '<div class="tower-stage-group">';
+        html += '<div class="tower-stage-header">' +
+            '<span>' + (stageIcons[stageName] || '📋') + ' ' + (stageLabels[stageName] || stageName) + '</span>' +
+        '</div>';
+        html += '<div class="tower-stage-agents">';
+        for (const id of agentIds) {
+            const meta = (agentCatalog.agents || []).find(a => a.id === id) || { id, name: id };
+            const status = towerAgentStatus[meta.id] || 'idle';
+            const statusClass = status === 'idle' ? '' : 'is-' + status;
+            const label = meta.name || (window.AGENT_LABELS && window.AGENT_LABELS[meta.id]) || meta.id;
+            const safeLabel = escapeHtml(String(label));
+            const safeId = escapeHtml(String(meta.id));
+            html += '<div class="flow-node ' + statusClass + '" data-agent="' + safeId + '" title="' + safeId + ' (' + status + ')">' + safeLabel + '</div>';
+        }
+        html += '</div></div>';
+
+        if (si < agentCatalog.pipeline.length - 1) {
+            html += '<div class="tower-stage-connector">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<polyline points="6 9 12 15 18 9"></polyline></svg></div>';
+        }
+    }
+    container.innerHTML = html;
 }
 
 /**
@@ -5041,7 +5202,7 @@ function renderTowerLog(envelope) {
     const label = (typeof AGENT_LABELS !== 'undefined' && AGENT_LABELS[agentId]) || agentId;
     const intent = envelope.intent || '';
     const payload = envelope.payload || {};
-    const status = payload.status || '';
+    const status = payload.status || 'idle';
     const content = payload.output_summary || payload.error_message || '';
     const isErr = status === 'failed' || status === 'error' || !!payload.error_message;
     const ts = envelope.timestamp ? new Date(envelope.timestamp) : new Date();
@@ -5054,14 +5215,23 @@ function renderTowerLog(envelope) {
     }
     towerLogs.push(envelope);
 
-    const line = document.createElement('div');
-    line.className = isErr ? 'tower-log-line tower-log-err' : 'tower-log-line';
-    line.dataset.agent = agentId;
-    const labelSpan = `<span class="tower-log-agent">[${escapeHtml(time)}] ${escapeHtml(String(label))}</span>`;
-    const intentSpan = intent ? ` <span>· ${escapeHtml(String(intent))}</span>` : '';
-    const contentSpan = content ? ` <span>— ${escapeHtml(String(content))}</span>` : '';
-    line.innerHTML = labelSpan + intentSpan + contentSpan;
-    container.appendChild(line);
+    const entry = document.createElement('div');
+    entry.className = 'tower-log-entry' + (isErr ? ' is-error' : '') + (status === 'idle' ? ' is-idle' : '');
+    entry.dataset.agent = agentId;
+
+    const dotClass = 'tower-log-status-dot status-' + status;
+    const agentHtml = '<span class="tower-log-entry-agent">' + escapeHtml(String(label)) + '</span>';
+    const intentHtml = intent ? '<span class="tower-log-entry-intent">' + escapeHtml(String(intent)) + '</span>' : '';
+    const timeHtml = '<span class="tower-log-entry-time">' + escapeHtml(time) + '</span>';
+    const msgHtml = '<span class="tower-log-entry-msg' + (isErr ? ' error-text' : '') + '">' + escapeHtml(String(content || (status === 'idle' ? '等待中...' : ''))) + '</span>';
+
+    entry.innerHTML = '<span class="' + dotClass + '"></span>' +
+        '<div class="tower-log-entry-body">' +
+            '<div class="tower-log-entry-header">' + agentHtml + intentHtml + timeHtml + '</div>' +
+            msgHtml +
+        '</div>';
+
+    container.appendChild(entry);
     container.scrollTop = container.scrollHeight;
 }
 
@@ -5114,6 +5284,9 @@ function subscribeToAgentBus() {
             if (towerAgentStatus[a.id] !== 'failed') towerAgentStatus[a.id] = 'success';
         }
         renderTowerFlow();
+        // 流水线跑完自动触发学习路径刷新 (跳过 30s 防抖)
+        _pathLastRefreshedAt = 0;
+        schedulePathRefresh('pipeline');
     });
 
     bus.subscribe('error', (err) => {
@@ -5142,6 +5315,10 @@ function subscribeToAgentBus() {
         if (typeof applyProfileFromSnapshot === 'function') {
             try { applyProfileFromSnapshot(data); } catch (_) { /* 静默兜底 */ }
         }
+        // 学情画像更新后自动刷新学习路径
+        schedulePathRefresh('profile');
+        // 刷新塔内 UI
+        if (typeof refreshTowerUI === 'function') refreshTowerUI();
     });
 }
 
@@ -5398,6 +5575,21 @@ async function startPipeline() {
     // 清空旧 terminal + 状态
     if (typeof clearTowerTerminal === 'function') clearTowerTerminal();
     if (typeof resetTowerStatus === 'function') resetTowerStatus();
+
+    // 显示连接动画
+    const flowEl = document.getElementById('tower-flow');
+    if (flowEl) {
+        flowEl.innerHTML = '<div class="tower-connecting"><span class="connecting-dot"></span><span class="connecting-dot"></span><span class="connecting-dot"></span><span>连接智能体中...</span></div>';
+    }
+
+    // 状态指示灯: running
+    const statusDot = document.getElementById('tower-status-dot');
+    if (statusDot) { statusDot.className = 'tower-status-dot is-running'; }
+
+    // 折叠态运行指示
+    const tci = document.getElementById('tower-collapsed-indicator');
+    if (tci) tci.classList.remove('hidden');
+
     // UI 状态: 启动后 start 禁用, pause/stop 启用
     const startBtn = document.getElementById('tower-start');
     const pauseBtn = document.getElementById('tower-pause');
@@ -5471,6 +5663,19 @@ function finishPipeline() {
     if (startBtn) { startBtn.disabled = false; startBtn.textContent = '▶ 启动协作'; }
     if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸'; }
     if (stopBtn) stopBtn.disabled = true;
+
+    // 折叠态运行指示隐藏
+    const tci = document.getElementById('tower-collapsed-indicator');
+    if (tci) tci.classList.add('hidden');
+
+    // 状态指示灯: 完成 (绿色 2s 后恢复 idle)
+    const statusDot = document.getElementById('tower-status-dot');
+    if (statusDot) {
+        statusDot.className = 'tower-status-dot is-complete';
+        setTimeout(() => {
+            if (statusDot) statusDot.className = 'tower-status-dot';
+        }, 2000);
+    }
 }
 
 /**
@@ -5498,12 +5703,9 @@ function wireTowerControlButtons() {
         toggleBtn.dataset.wired = '1';
         toggleBtn.addEventListener('click', () => {
             const isCollapsed = trackAContainer.classList.toggle('collapsed');
-            // 同步外部展开按钮可见性 — 让用户折叠后能再次展开
             if (sandboxExpandBtn) {
                 sandboxExpandBtn.classList.toggle('visible', isCollapsed);
             }
-            // 同步按钮文案 + aria-label
-            toggleBtn.textContent = isCollapsed ? '⇆ 展开' : '⇆ 折叠';
             toggleBtn.setAttribute('aria-label', isCollapsed ? '展开控制塔' : '折叠控制塔');
             window.dispatchEvent(new Event('resize'));
         });
@@ -5519,6 +5721,18 @@ async function initAgentTower() {
     _towerInitialized = true;
     await loadAgentCatalog();
     renderTowerFlow();
+
+    // Task #XX: 默认折叠 — 检查 collapsed 初始状态, 同步 expand-btn 可见性
+    const trackAContainer = document.getElementById('track-a-container');
+    const sandboxExpandBtn = document.getElementById('sandbox-expand-btn');
+    if (trackAContainer && trackAContainer.classList.contains('collapsed') && sandboxExpandBtn) {
+        sandboxExpandBtn.classList.add('visible');
+        const toggleBtn = document.getElementById('tower-toggle');
+        if (toggleBtn) {
+            toggleBtn.setAttribute('aria-label', '展开控制塔');
+        }
+    }
+
     // 显示 idle 初始信息 — 让 #tower-terminal 不为空
     if (typeof renderTowerLog === 'function') {
         renderTowerLog({
@@ -5529,6 +5743,7 @@ async function initAgentTower() {
         });
     }
     // Task 22: 初始渲染雷达图 (无 snapshot -> 自动回退到 mapProfileToScore / legacy profile)
+    if (typeof setupRadarTooltips === 'function') setupRadarTooltips();
     if (typeof renderRadarChart === 'function') renderRadarChart();
     // 4 卡画像面板已删除: 8 tile 实时更新由 renderProfile() 自身读取全局 profile 全量渲染。
     // 初始: 全局 profile 已有硬编码默认值, renderProfile() 在 8 tile 容器上写入, 不需要 fallback。
@@ -5537,6 +5752,323 @@ async function initAgentTower() {
     if (typeof wireTowerControlButtons === 'function') wireTowerControlButtons();
     // 评估报告抽屉关闭按钮 — 同一个幂等来源
     if (typeof setupDrawerClose === 'function') setupDrawerClose();
+
+    // Tower tab UI init
+    if (typeof initTowerTabs === 'function') initTowerTabs();
+    if (typeof renderTowerStatusCards === 'function') renderTowerStatusCards();
+    if (typeof renderTowerWeaknessList === 'function') renderTowerWeaknessList();
+    if (typeof renderPersonaGrid === 'function') renderPersonaGrid();
+    if (typeof initTeachingControls === 'function') initTeachingControls();
+    if (typeof initTaskPlanning === 'function') initTaskPlanning();
+}
+
+// ─── Tower Tab Functions ────────────────────────────────────────────────
+
+const TEACHER_PERSONAS = [
+    { id: 'chenmo',  name: '陈默', desc: '沉稳系统，注重基础构建', icon: '🧘' },
+    { id: 'linwen',  name: '林文', desc: '苏格拉底式启发引导',    icon: '💡' },
+    { id: 'zhouran', name: '周然', desc: '热情鼓励，激发兴趣',    icon: '🔥' },
+    { id: 'yanzheng',name: '严正', desc: '严谨逻辑，直击要害',    icon: '⚡' },
+];
+
+const TEACHING_STRATEGIES = [
+    { id: 'auto',      label: '自动',     desc: 'AI 自适应选择最佳方式' },
+    { id: 'lecture',   label: '讲解',     desc: '以讲解和示例为主' },
+    { id: 'practice',  label: '练习',     desc: '以练习题驱动学习' },
+    { id: 'socratic',  label: '苏格拉底', desc: '通过提问引导思考' },
+];
+
+let _towerTabWired = false;
+
+function initTowerTabs() {
+    if (_towerTabWired) return;
+    _towerTabWired = true;
+    const tabs = document.querySelectorAll('.tower-tab');
+    const contents = {
+        'status': document.getElementById('tab-status'),
+        'control': document.getElementById('tab-control'),
+        'plan': document.getElementById('tab-plan'),
+    };
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('is-active'));
+            tab.classList.add('is-active');
+            Object.entries(contents).forEach(([key, el]) => {
+                if (el) el.classList.toggle('is-active', key === tab.dataset.tab);
+            });
+        });
+    });
+}
+
+function renderTowerStatusCards() {
+    const container = document.getElementById('tower-status-cards');
+    if (!container) return;
+    const towerData = typeof towerRadarSnapshot !== 'undefined' && towerRadarSnapshot ? towerRadarSnapshot : null;
+    const focusScore = towerData?.radar?.focus_level != null ? Math.round(towerData.radar.focus_level) : (profile.focusLevel || 70);
+    const mastery = towerData?.radar?.knowledge_mastery != null ? Math.round(towerData.radar.knowledge_mastery) : 50;
+    const direction = profile.learningDirection || '大数据技术';
+    const studyMinutes = parseInt(localStorage.getItem('hachiware_study_minutes') || '0', 10);
+    container.innerHTML = [
+        '<div class="tower-status-card"><span class="tsc-label">专注度</span><span class="tsc-value">' + focusScore + '%</span><div class="tsc-bar-bg"><div class="tsc-bar-fill" style="width:' + focusScore + '%"></div></div></div>',
+        '<div class="tower-status-card"><span class="tsc-label">掌握度</span><span class="tsc-value">' + mastery + '%</span><div class="tsc-bar-bg"><div class="tsc-bar-fill" style="width:' + mastery + '%"></div></div></div>',
+        '<div class="tower-status-card"><span class="tsc-label">当前方向</span><span class="tsc-value" style="font-size:12px">' + escapeHtml(direction) + '</span></div>',
+        '<div class="tower-status-card"><span class="tsc-label">今日学习</span><span class="tsc-value">' + studyMinutes + '<span style="font-size:9px;font-weight:400;color:var(--text-tertiary)"> 分钟</span></span></div>',
+    ].join('');
+}
+
+function renderTowerWeaknessList() {
+    const container = document.getElementById('tower-weakness-list');
+    if (!container) return;
+    const weaknesses = profile.weakness || '';
+    if (!weaknesses) {
+        container.innerHTML = '<div class="tower-weakness-item" style="background:transparent;border-color:transparent;color:var(--text-tertiary);font-size:10px">暂无薄弱环节数据</div>';
+        return;
+    }
+    const items = weaknesses.split(/[,，、]/).filter(Boolean).slice(0, 4);
+    container.innerHTML = items.map(function(w) {
+        const safe = escapeHtml(w.trim()).replace(/'/g, "\\'");
+        return '<div class="tower-weakness-item">' +
+            '<span class="twi-label">⚠️ ' + escapeHtml(w.trim()) + '</span>' +
+            '<span class="twi-actions">' +
+            '<button class="twi-btn" onclick="markWeaknessMastered(\'' + safe + '\')">标记掌握</button>' +
+            '<button class="twi-btn" onclick="generateExercise(\'' + safe + '\')">专项练习</button>' +
+            '<button class="twi-btn" onclick="switchExplanation(\'' + safe + '\')">换讲解</button>' +
+            '</span></div>';
+    }).join('');
+}
+
+window.markWeaknessMastered = async function(topic) {
+    try {
+        await fetch('/api/profile/portrait/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weakness: '', knowledgeBase: 'advanced' }),
+        });
+        addChatMessage('system', '已将「' + topic + '」标记为已掌握');
+    } catch (e) { console.warn('markWeaknessMastered failed:', e); }
+};
+
+window.generateExercise = async function(topic) {
+    try {
+        var resp = await fetch('/api/v2/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: '请针对「' + topic + '」生成一套专项练习题，包含选择题和简答题', stream: true }),
+        });
+        if (resp.ok) addChatMessage('assistant', '已生成「' + topic + '」专项练习，请在对话中查看');
+    } catch (e) { console.warn('generateExercise failed:', e); }
+};
+
+window.switchExplanation = async function(topic) {
+    try {
+        await fetch('/api/v2/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: '请换一种方式讲解「' + topic + '」，用更通俗易懂的比喻和例子', stream: true }),
+        });
+        addChatMessage('assistant', '切换讲解方式中，请查看对话回复');
+    } catch (e) { console.warn('switchExplanation failed:', e); }
+};
+
+function renderPersonaGrid() {
+    const container = document.getElementById('tcg-persona-grid');
+    if (!container) return;
+    const activePersona = localStorage.getItem('hachiware_persona') || 'chenmo';
+    container.innerHTML = TEACHER_PERSONAS.map(function(p) {
+        var activeClass = p.id === activePersona ? ' is-active' : '';
+        return '<div class="tcg-persona-card' + activeClass + '" data-persona="' + p.id + '" onclick="selectPersona(\'' + p.id + '\')">' +
+            '<div class="tpc-name">' + p.icon + ' ' + p.name + '</div>' +
+            '<div class="tpc-desc">' + p.desc + '</div></div>';
+    }).join('');
+}
+
+window.selectPersona = async function(id) {
+    localStorage.setItem('hachiware_persona', id);
+    document.querySelectorAll('.tcg-persona-card').forEach(function(c) {
+        c.classList.toggle('is-active', c.dataset.persona === id);
+    });
+    try {
+        await fetch('/api/memories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'preference', content: 'teacher_persona:' + id }),
+        });
+    } catch (e) { /* silent */ }
+};
+
+function initTeachingControls() {
+    var slider = document.getElementById('tcg-difficulty-slider');
+    var valDisplay = document.getElementById('tcg-difficulty-val');
+    if (slider && valDisplay) {
+        var saved = localStorage.getItem('hachiware_difficulty');
+        if (saved) slider.value = saved;
+        var labels = ['极简', '简单', '适中', '困难', '极难'];
+        valDisplay.textContent = labels[parseInt(slider.value) - 1] || '适中';
+        slider.addEventListener('input', async function() {
+            var v = parseInt(slider.value);
+            valDisplay.textContent = labels[v - 1] || '适中';
+            localStorage.setItem('hachiware_difficulty', v.toString());
+            try {
+                await fetch('/api/profile/portrait/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ difficulty_pref: v }),
+                });
+            } catch (e) { /* silent */ }
+        });
+    }
+    var stratContainer = document.getElementById('tcg-strategy-pills');
+    if (stratContainer) {
+        var activeStrat = localStorage.getItem('hachiware_strategy') || 'auto';
+        stratContainer.innerHTML = TEACHING_STRATEGIES.map(function(s) {
+            var activeClass = s.id === activeStrat ? ' is-active' : '';
+            return '<button class="tcg-strategy-pill' + activeClass + '" data-strategy="' + s.id + '" onclick="selectStrategy(\'' + s.id + '\')">' + s.label + '</button>';
+        }).join('');
+    }
+    var injectBtn = document.getElementById('tcg-inject-btn');
+    var injectInput = document.getElementById('tcg-inject-input');
+    if (injectBtn && injectInput) {
+        injectBtn.addEventListener('click', function() { injectKnowledge(); });
+        injectInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') injectKnowledge(); });
+    }
+    renderInjectedTags();
+}
+
+window.selectStrategy = async function(id) {
+    localStorage.setItem('hachiware_strategy', id);
+    document.querySelectorAll('.tcg-strategy-pill').forEach(function(p) {
+        p.classList.toggle('is-active', p.dataset.strategy === id);
+    });
+    try {
+        await fetch('/api/memories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'preference', content: 'strategy:' + id }),
+        });
+    } catch (e) { /* silent */ }
+};
+
+async function injectKnowledge() {
+    var input = document.getElementById('tcg-inject-input');
+    if (!input || !input.value.trim()) return;
+    var tag = input.value.trim();
+    input.value = '';
+    var tags = JSON.parse(localStorage.getItem('hachiware_injected_tags') || '[]');
+    if (tags.indexOf(tag) !== -1) return;
+    tags.push(tag);
+    localStorage.setItem('hachiware_injected_tags', JSON.stringify(tags));
+    renderInjectedTags();
+    try {
+        await fetch('/api/memories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'interest', content: tag }),
+        });
+    } catch (e) { /* silent */ }
+}
+
+function renderInjectedTags() {
+    var container = document.getElementById('tcg-injected-tags');
+    if (!container) return;
+    var tags = JSON.parse(localStorage.getItem('hachiware_injected_tags') || '[]');
+    if (tags.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = tags.map(function(t) {
+        return '<span class="tcg-tag">' + escapeHtml(t) +
+            '<span class="tcg-tag-remove" onclick="removeInjectedTag(\'' + escapeHtml(t).replace(/'/g, "\\'") + '\')">&times;</span></span>';
+    }).join('');
+}
+
+window.removeInjectedTag = function(tag) {
+    var tags = JSON.parse(localStorage.getItem('hachiware_injected_tags') || '[]');
+    tags = tags.filter(function(t) { return t !== tag; });
+    localStorage.setItem('hachiware_injected_tags', JSON.stringify(tags));
+    renderInjectedTags();
+};
+
+function initTaskPlanning() {
+    var goalBtn = document.getElementById('tcg-goal-btn');
+    var goalInput = document.getElementById('tcg-goal-input');
+    if (goalBtn && goalInput) {
+        goalBtn.addEventListener('click', function() { generateGoalPlan(); });
+        goalInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') generateGoalPlan(); });
+    }
+    var replanBtn = document.getElementById('tower-plan-replan');
+    if (replanBtn) replanBtn.addEventListener('click', function() { generateGoalPlan(); });
+}
+
+async function generateGoalPlan() {
+    var input = document.getElementById('tcg-goal-input');
+    if (!input || !input.value.trim()) return;
+    var goal = input.value.trim();
+    var btn = document.getElementById('tcg-goal-btn');
+    if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+    try {
+        var resp = await fetch('/api/learning-path/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ goal: goal }),
+        });
+        if (!resp.ok) throw new Error('API error');
+        var data = await resp.json();
+        if (data.path && Array.isArray(data.path)) {
+            currentPath = data.path;
+            capabilityAnalysis = data.capability_analysis || {};
+            renderTowerPlanTasks();
+            if (typeof refreshLearningPath === 'function') refreshLearningPath();
+        }
+    } catch (e) {
+        console.warn('generateGoalPlan failed:', e);
+        addChatMessage('system', '目标拆解失败，请稍后重试');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'AI 拆解'; }
+    }
+}
+
+function renderTowerPlanTasks() {
+    var container = document.getElementById('tower-plan-tasks');
+    var progressWrap = document.getElementById('tower-plan-progress');
+    var progressFill = document.getElementById('tower-plan-progress-fill');
+    var progressText = document.getElementById('tower-plan-progress-text');
+    var replanBtn = document.getElementById('tower-plan-replan');
+    if (!container || !currentPath || currentPath.length === 0) return;
+    var total = currentPath.length;
+    var completed = currentPath.filter(function(n) { return n.status === 'completed'; }).length;
+    var inProgress = currentPath.filter(function(n) { return n.status === 'in_progress'; }).length;
+    var pct = Math.round(((completed + inProgress * 0.5) / total) * 100);
+    container.innerHTML = currentPath.map(function(n) {
+        var name = n.topic || n.name || n.title || '任务';
+        var status = n.status || 'locked';
+        var statusIcon = status === 'completed' ? '✅' : status === 'in_progress' ? '🟡' : '⚪';
+        var statusClass = status === 'completed' ? ' is-completed' : status === 'in_progress' ? ' is-in-progress' : '';
+        var desc = n.description || n.reason || '';
+        var actionBtn = status === 'in_progress' ? '<button class="tpt-btn" onclick="markPlanTaskDone(this)">完成</button>' : '';
+        return '<div class="tower-plan-task' + statusClass + '">' +
+            '<span class="tpt-status">' + statusIcon + '</span>' +
+            '<div class="tpt-body"><div class="tpt-name">' + escapeHtml(name) + '</div>' +
+            (desc ? '<div class="tpt-desc">' + escapeHtml(desc) + '</div>' : '') + '</div>' +
+            '<span class="tpt-actions">' + actionBtn + '</span></div>';
+    }).join('');
+    if (progressWrap) progressWrap.style.display = 'flex';
+    if (progressFill) progressFill.style.width = pct + '%';
+    if (progressText) progressText.textContent = pct + '%';
+    if (replanBtn) replanBtn.style.display = 'block';
+}
+
+window.markPlanTaskDone = function(btn) {
+    var task = btn.closest('.tower-plan-task');
+    if (!task) return;
+    task.classList.add('is-completed');
+    var statusEl = task.querySelector('.tpt-status');
+    if (statusEl) statusEl.textContent = '✅';
+    btn.remove();
+    if (typeof refreshLearningPath === 'function') refreshLearningPath();
+};
+
+function refreshTowerUI() {
+    if (typeof renderRadarChart === 'function') renderRadarChart();
+    if (typeof renderTowerStatusCards === 'function') renderTowerStatusCards();
+    if (typeof renderTowerWeaknessList === 'function') renderTowerWeaknessList();
+    if (typeof renderTowerPlanTasks === 'function') renderTowerPlanTasks();
 }
 
 /**
@@ -5838,48 +6370,75 @@ function renderPathTree() {
         return;
     }
 
-    // 计算总体进度
     const totalNodes = currentPath.length;
     const completedNodes = currentPath.filter(n => n.status === 'completed').length;
     const inProgressNodes = currentPath.filter(n => n.status === 'in_progress').length;
     const progressPercent = Math.round(((completedNodes + inProgressNodes * 0.5) / totalNodes) * 100);
-
-    // 当前进行中的节点
     const current = currentPath.find(n => n.status === 'in_progress');
-    const next = currentPath.find(n => n.status === 'locked');
-    const displayName = current ? (current.topic || current.name || current.title || '当前任务') : null;
 
-    // 构建 AI 分析文本
     const now = new Date();
-    const timestamp = now.toLocaleString('zh-CN', {
-        month: 'numeric', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-    });
+    const timestamp = now.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-    const analysisParts = [];
-    analysisParts.push(`🧠 星识认知引擎根据你近期的学习行为，生成了包含 <strong>${totalNodes}</strong> 个节点的专属学习路径。`);
-
-    if (displayName) {
-        const currentDesc = current.description || current.reason || '';
-        analysisParts.push(`📌 <strong>当前学习</strong>：<span class="path-analysis-highlight">${escapeHtml(displayName)}</span>`);
-        if (currentDesc) analysisParts.push(`<span class="path-analysis-desc">${escapeHtml(currentDesc)}</span>`);
+    // Banner
+    let html = `<div class="path-analysis-root">`;
+    let bannerParts = [];
+    bannerParts.push(`🧠 星识认知引擎根据你近期的学习行为，生成了包含 <strong>${totalNodes}</strong> 个节点的专属学习路径。`);
+    if (current) {
+        bannerParts.push(`📌 <strong>当前学习</strong>：<span class="path-analysis-highlight">${escapeHtml(current.topic || current.name || current.title || '当前任务')}</span>`);
+        if (current.description) bannerParts.push(`<span class="path-analysis-desc">${escapeHtml(current.description)}</span>`);
     } else if (completedNodes === totalNodes) {
-        analysisParts.push('🎉 恭喜！你已完成了所有学习任务！');
+        bannerParts.push('🎉 恭喜！你已完成了所有学习任务！');
     }
 
-    if (next) {
-        const nextName = next.topic || next.name || next.title || '下一任务';
-        const nextDesc = next.description || next.reason || '';
-        analysisParts.push(`➡️ <strong>推荐下一步</strong>：${escapeHtml(nextName)}`);
-        if (nextDesc) analysisParts.push(`<span class="path-analysis-desc">${escapeHtml(nextDesc)}</span>`);
-    }
+    html += `<div class="path-analysis-banner">
+        <span class="path-analysis-icon">🧙‍♂️</span>
+        <div class="path-analysis-text">${bannerParts.map(p => `<div class="path-analysis-line">${p}</div>`).join('')}</div>
+    </div>`;
 
-    if (inProgressNodes > 0 && current && current.mastery_score != null) {
-        const mastery = Math.round(current.mastery_score * 100);
-        analysisParts.push(`📊 当前掌握度：<strong>${mastery}%</strong>`);
-    }
+    // Node cards
+    html += `<div class="path-analysis-goals-list">`;
+    for (const node of currentPath) {
+        const nodeName = node.topic || node.name || node.title || '学习节点';
+        const status = node.status || 'locked';
+        const mastery = node.mastery_score != null ? Math.round(node.mastery_score * 100) : null;
+        const prereqText = (node.prerequisites && node.prerequisites.length > 0) ? `前置: ${node.prerequisites.join(', ')}` : '';
 
-    // ── 多维能力分析区块 ──
+        let statusIcon, statusClass;
+        if (status === 'completed') { statusIcon = '✅'; statusClass = 'is-completed'; }
+        else if (status === 'in_progress') { statusIcon = '🟡'; statusClass = 'is-in-progress'; }
+        else { statusIcon = '⚪'; statusClass = 'is-locked'; }
+
+        html += `<div class="path-analysis-node-card ${statusClass}">
+            <div class="node-header">
+                <div class="node-title-row">
+                    <span class="node-status-icon">${statusIcon}</span>
+                    <span class="node-name">${escapeHtml(nodeName)}</span>
+                </div>`;
+
+        if (node.learning_goal && node.learning_goal.length > 30) {
+            html += `<span class="node-action-btn" onclick="alert('${escapeHtml(node.learning_goal).replace(/'/g, "\\'")}')">目标</span>`;
+        }
+
+        html += `</div>`;
+
+        if (mastery !== null) {
+            html += `<div class="node-mastery-row">
+                <div class="node-mastery-bar-bg">
+                    <div class="node-mastery-bar-fill" style="width:${mastery}%"></div>
+                </div>
+                <span class="node-mastery-text">${mastery}%</span>
+            </div>`;
+        }
+
+        if (prereqText) {
+            html += `<div class="node-prereq">${prereqText}</div>`;
+        }
+
+        html += `</div>`;
+    }
+    html += `</div>`;
+
+    // Capability grid
     const dimConfig = [
         { key: 'knowledge_base_assessment', icon: '📚', label: '知识适配' },
         { key: 'learning_goal_alignment', icon: '🎯', label: '目标对齐' },
@@ -5887,18 +6446,16 @@ function renderPathTree() {
         { key: 'weakness_reinforcement', icon: '⚡', label: '短板强化' },
         { key: 'learning_pace', icon: '📊', label: '节奏建议' },
     ];
-
     const hasCapability = capabilityAnalysis && Object.keys(capabilityAnalysis).length > 0;
 
-    let dimHtml = '';
     if (hasCapability) {
-        dimHtml = `<div class="path-analysis-dimensions">
+        html += `<div class="path-analysis-dimensions">
             <div class="path-analysis-dim-title">🎯 多维能力规划</div>
             <div class="path-analysis-dim-grid">`;
         for (const cfg of dimConfig) {
             const val = capabilityAnalysis[cfg.key];
             if (val) {
-                dimHtml += `<div class="path-analysis-dim-item">
+                html += `<div class="path-analysis-dim-item">
                     <span class="path-analysis-dim-icon">${cfg.icon}</span>
                     <div class="path-analysis-dim-body">
                         <span class="path-analysis-dim-label">${cfg.label}</span>
@@ -5907,65 +6464,10 @@ function renderPathTree() {
                 </div>`;
             }
         }
-        dimHtml += `</div></div>`;
+        html += `</div></div>`;
     }
 
-    // ── 各节点学习目标列表 ──
-    const goalNodes = currentPath.filter(n => n.learning_goal);
-    let goalHtml = '';
-    if (goalNodes.length > 0) {
-        goalHtml = `<div class="path-analysis-goals">
-            <div class="path-analysis-goals-title">📋 各节点学习目标</div>
-            <div class="path-analysis-goals-list">`;
-        for (const gn of goalNodes) {
-            const gnName = gn.topic || gn.name || gn.title || '节点';
-            const gnGoal = gn.learning_goal || '';
-            const gnStatus = gn.status || 'locked';
-            const gnDim = gn.targeted_dimensions || [];
-            const dimBadges = gnDim.map(d => `<span class="path-analysis-goal-dim">${d}</span>`).join('');
-            const statusIcon = gnStatus === 'completed' ? '✅' : gnStatus === 'in_progress' ? '▶️' : '🔒';
-            goalHtml += `<div class="path-analysis-goal-item">
-                <div class="path-analysis-goal-header">
-                    <span class="path-analysis-goal-status">${statusIcon}</span>
-                    <span class="path-analysis-goal-name">${escapeHtml(gnName)}</span>
-                    ${dimBadges}
-                </div>
-                <div class="path-analysis-goal-desc">${escapeHtml(gnGoal)}</div>
-                ${gn.capability_rationale ? `<div class="path-analysis-goal-rationale">💡 ${escapeHtml(gn.capability_rationale)}</div>` : ''}
-            </div>`;
-        }
-        goalHtml += `</div></div>`;
-    }
-
-    // 生成学习轨迹
-    const pathSummary = currentPath
-        .filter(n => n.status !== 'locked')
-        .map(n => n.topic || n.name || n.title || '')
-        .filter(Boolean)
-        .join(' → ');
-
-    let html = `<div class="path-analysis-root">
-        <div class="path-analysis-banner">
-            <span class="path-analysis-icon">🧙‍♂️</span>
-            <div class="path-analysis-text" id="path-analysis-text">
-                ${analysisParts.map(p => `<div class="path-analysis-line">${p}</div>`).join('')}
-            </div>
-        </div>`;
-
-    // 插入多维能力分析
-    html += dimHtml;
-
-    // 插入节点学习目标列表
-    html += goalHtml;
-
-    if (pathSummary) {
-        html += `<div class="path-analysis-trail">
-            <div class="path-analysis-trail-label">学习轨迹</div>
-            <div class="path-analysis-trail-path">${escapeHtml(pathSummary)}</div>
-        </div>`;
-    }
-
-    // 紧凑进度条
+    // Progress bar
     html += `<div class="path-analysis-progress">
         <div class="path-analysis-progress-bar-bg">
             <div class="path-analysis-progress-bar-fill" style="width: ${progressPercent}%;"></div>
@@ -5977,10 +6479,8 @@ function renderPathTree() {
         </div>
     </div>`;
 
-    html += `<div class="path-analysis-footer">
-        <span class="path-analysis-time">🕐 ${timestamp}</span>
-    </div></div>`;
-
+    html += `<div class="path-analysis-footer"><span class="path-analysis-time">🕐 ${timestamp}</span></div>`;
+    html += `</div>`;
     container.innerHTML = html;
 }
 
@@ -6931,7 +7431,12 @@ async function loadProgress() {
                 profile = { ...profile, ...incoming };
             }
             if (data.evaluation) {
-                evaluation = { ...evaluation, ...data.evaluation };
+                const evData = { ...data.evaluation };
+                // 确保数值字段不会因后端返回非数字类型而崩溃
+                ['focusTimeToday', 'interactionCount', 'codePracticeTime', 'flashcardsStudied', 'streakDays'].forEach(k => {
+                    if (evData[k] != null) evData[k] = Number(evData[k]) || 0;
+                });
+                evaluation = { ...evaluation, ...evData };
             }
             // 从 profile.cognitiveLevel 派生 difficultyLevel
             if (profile && profile.cognitiveLevel) {

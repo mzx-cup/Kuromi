@@ -11,6 +11,29 @@
 }
 
 /* ============================================================
+   Back button
+   ============================================================ */
+.dd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    width: fit-content;
+}
+.dd-back:hover {
+    color: var(--text-heading);
+    background: var(--surface-hover);
+}
+.dd-back i { width: 16px; height: 16px; }
+
+/* ============================================================
    Header — 指挥条
    ============================================================ */
 .dd-header {

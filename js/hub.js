@@ -59,7 +59,6 @@ function calcFlowScore() {
     const tenSecAgo = now - 10000;
     const recent = visits.filter(t => t > tenSecAgo);
     const count = recent.length;
-    // 0-1 次切换 => 94 分；之后每次切换扣 8 分，最低 10 分
     let score;
     if (count <= 1) {
         score = 94;
@@ -70,81 +69,138 @@ function calcFlowScore() {
 }
 
 function updateFocusValue() {
-    const fallback = calcFlowScore();
-    const score = focusTracker.focusSummary ? (Number(focusTracker.focusSummary.score) || 0) : fallback.score;
-    const count = fallback.count;
+    var analysis = window.FocusAnalysis ? window.FocusAnalysis.getAnalysis() : null;
+    var realtime = window.FocusAnalysis ? window.FocusAnalysis.getRealtimeState() : null;
+    var fallback = calcFlowScore();
+
+    // 优先使用后端分析分数，否则使用 calcFlowScore
+    var score = analysis ? (Number(analysis.score) || 0) : fallback.score;
+    var count = fallback.count;
     focusTracker.currentFlow = score;
 
-    const el = document.getElementById('nav-flow-value');
+    // 更新数值显示
+    var el = document.getElementById('nav-flow-value');
     if (el) {
         el.textContent = score + '%';
-        el.style.color = score < 55 || count >= 4 ? 'var(--danger-color)' : '';
+        if (score < 55 || count >= 4) {
+            el.style.color = 'var(--danger-color)';
+        } else {
+            el.style.color = '';
+        }
     }
+
+    // 趋势箭头
+    var trendEl = document.getElementById('nav-flow-trend');
+    if (trendEl && analysis && analysis.trend) {
+        var d = analysis.trend.direction;
+        if (d === 'up') {
+            trendEl.innerHTML = '&#9650;';
+            trendEl.className = 'nav-flow-trend trend-up';
+            trendEl.title = '专注趋势上升 +' + (analysis.trend.change || 0);
+        } else if (d === 'down') {
+            trendEl.innerHTML = '&#9660;';
+            trendEl.className = 'nav-flow-trend trend-down';
+            trendEl.title = '专注趋势下降 ' + (analysis.trend.change || 0);
+        } else {
+            trendEl.innerHTML = '&#9644;';
+            trendEl.className = 'nav-flow-trend trend-stable';
+            trendEl.title = '专注趋势稳定';
+        }
+        trendEl.style.display = 'inline-block';
+    }
+
+    // dot 颜色跟随实时状态
+    var dot = document.querySelector('.nav-flow-dot');
+    if (dot && realtime) {
+        dot.style.setProperty('--flow-dot-color',
+            realtime.state === 'focused' ? 'var(--success-color, #00C853)' :
+            realtime.state === 'lightly' ? 'var(--warning-color, #FFB300)' :
+            'var(--danger-color, #F44336)');
+        dot.style.background = 'var(--flow-dot-color)';
+        dot.style.boxShadow = '0 0 8px var(--flow-dot-color)';
+    }
+
     updateFlowResonanceCard();
 }
 
 function updateFlowResonanceCard() {
-    const summary = focusTracker.focusSummary;
-    const score = focusTracker.currentFlow || 0;
+    var summary = focusTracker.focusSummary;
+    var analysis = window.FocusAnalysis ? window.FocusAnalysis.getAnalysis() : null;
+    var score = focusTracker.currentFlow || 0;
+
+    // 优先使用 FocusAnalysis 的数据（结构更完整）
+    var timeline = (analysis && analysis.timeline) || (summary && summary.timeline) || [];
+    var segments = (analysis && analysis.segments) || (summary && summary.segments) || {};
+    var timeOfDay = analysis && analysis.timeOfDay;
 
     // 更新 section-head 头部统计
-    const headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child, .ecg-header-stats .ecg-stat-value');
-    if (headerStats[0]) headerStats[0].textContent = `${score}%`;
+    var headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child, .ecg-header-stats .ecg-stat-value');
+    if (headerStats[0]) headerStats[0].textContent = score + '%';
     if (headerStats[1]) {
-        const timeline = summary?.timeline || [];
-        const avg = timeline.length
-            ? Math.round(timeline.reduce((sum, item) => sum + (Number(item.score) || 0), 0) / timeline.length)
-            : score;
-        headerStats[1].textContent = `${avg}%`;
+        var avgScore = score;
+        if (timeline.length) {
+            var sum = 0;
+            timeline.forEach(function (item) { sum += Number(item.score) || 0; });
+            avgScore = Math.round(sum / timeline.length);
+        }
+        headerStats[1].textContent = avgScore + '%';
     }
 
     // 更新环形进度条
-    const ringProgress = document.getElementById('flow-ring-progress');
-    const ringValue = document.getElementById('flow-ring-value');
+    var ringProgress = document.getElementById('flow-ring-progress');
+    var ringValue = document.getElementById('flow-ring-value');
     if (ringProgress && ringValue) {
-        const circumference = 264; // 2 * π * 42 ≈ 263.89
-        const offset = circumference - (score / 100) * circumference;
+        var circumference = 264;
+        var offset = circumference - (score / 100) * circumference;
         ringProgress.style.transition = 'stroke-dashoffset 0.8s var(--ease-out)';
         ringProgress.setAttribute('stroke-dashoffset', Math.max(0, Math.min(circumference, offset)));
         ringValue.textContent = score;
     }
 
-    // 更新柱状图高度（按时间段分布精力数据）
-    const bars = document.querySelectorAll('.flow-bar-fill');
-    if (bars.length && summary && Array.isArray(summary.timeline) && summary.timeline.length) {
-        const timeline = summary.timeline;
-        // 尝试将 timeline 数据映射到 4 个时段（上午/下午/傍晚/晚间）
-        const periodScores = [0, 0, 0, 0];
-        const periodCounts = [0, 0, 0, 0];
-        timeline.forEach(item => {
-            const t = Number(item.time) || 0; // hour (0-23)
-            const s = Number(item.score) || 0;
-            if (t >= 6 && t < 12)      { periodScores[0] += s; periodCounts[0]++; }
-            else if (t >= 12 && t < 17) { periodScores[1] += s; periodCounts[1]++; }
-            else if (t >= 17 && t < 20) { periodScores[2] += s; periodCounts[2]++; }
-            else                         { periodScores[3] += s; periodCounts[3]++; }
-        });
-        bars.forEach((bar, i) => {
-            const avgScore = periodCounts[i] ? Math.round(periodScores[i] / periodCounts[i]) : 0;
-            const h = Math.max(8, avgScore || Math.round(score * (0.5 + Math.random() * 0.5)));
+    // 更新时段柱状图（优先使用 timeOfDay API 数据）
+    var bars = document.querySelectorAll('.flow-bar-fill');
+    if (bars.length && timeOfDay) {
+        var periods = ['morning', 'afternoon', 'evening', 'night'];
+        var labels = ['上午', '下午', '傍晚', '晚间'];
+        bars.forEach(function (bar, i) {
+            var pData = timeOfDay[periods[i]] || {};
+            var h = Math.max(8, pData.score || Math.round(score * 0.5));
             bar.style.transition = 'height 0.5s var(--ease-out)';
-            bar.style.height = `${h}%`;
+            bar.style.height = h + '%';
+            bar.setAttribute('data-label', labels[i]);
+        });
+    } else if (bars.length && timeline.length) {
+        // 回退：从 timeline 提取时段数据
+        var periodScores = [0, 0, 0, 0];
+        var periodCounts = [0, 0, 0, 0];
+        timeline.forEach(function (item) {
+            var ts = item.timestamp || item.time || '';
+            var hour = 12;
+            if (ts.length >= 13) hour = parseInt(ts.substring(11, 13), 10) || 12;
+            var s = Number(item.score) || 0;
+            var idx = hour >= 6 && hour < 12 ? 0 : hour >= 12 && hour < 17 ? 1 : hour >= 17 && hour < 20 ? 2 : 3;
+            periodScores[idx] += s;
+            periodCounts[idx]++;
+        });
+        bars.forEach(function (bar, i) {
+            var avg = periodCounts[i] ? Math.round(periodScores[i] / periodCounts[i]) : 0;
+            bar.style.transition = 'height 0.5s var(--ease-out)';
+            bar.style.height = Math.max(8, avg || Math.round(score * 0.5)) + '%';
             bar.setAttribute('data-label', ['上午', '下午', '傍晚', '晚间'][i]);
         });
     } else if (bars.length) {
-        // 无 timeline 数据时使用默认分布
-        const fallback = [78, 94, 52, 65];
-        bars.forEach((bar, i) => {
+        var fallback = [78, 94, 52, 65];
+        bars.forEach(function (bar, i) {
             bar.style.transition = 'height 0.5s var(--ease-out)';
-            bar.style.height = `${fallback[i]}%`;
+            bar.style.height = fallback[i] + '%';
         });
     }
 
     // 更新 footer 统计
-    const footer = document.querySelector('.flow-resonance-footer');
+    var footer = document.querySelector('.flow-resonance-footer');
     if (!footer) return;
 
-    if (!summary || !Array.isArray(summary.timeline) || summary.timeline.length === 0) {
+    if (!timeline.length) {
         footer.innerHTML = `
             <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>暂无心流记录</span></div>
             <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>开始学习后生成波段</span></div>
@@ -153,7 +209,6 @@ function updateFlowResonanceCard() {
         return;
     }
 
-    const segments = summary.segments || {};
     footer.innerHTML = `
         <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>深度专注: ${segments.deep || 0}段</span></div>
         <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>预警波段: ${segments.warning || 0}次</span></div>
@@ -162,44 +217,74 @@ function updateFlowResonanceCard() {
 }
 
 async function loadFocusData() {
-    try {
-        const user = safeGetJSON('starlearn_user', {});
-        if (!user.id) return;
-        const response = await fetch(`/api/focus/load/${user.id}`);
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.detail || 'load focus failed');
-        focusTracker.focusSummary = data.focusSummary || {
-            score: Number(data.score) || 0,
-            timeline: data.timeline || [],
-            segments: data.segments || { deep: 0, shallow: 0, warning: 0 }
-        };
-    } catch (error) {
-        console.error('加载心流数据失败:', error);
-        focusTracker.focusSummary = null;
-    } finally {
-        updateFocusValue();
+    if (window.FocusAnalysis) {
+        try {
+            var data = await window.FocusAnalysis.fetchAnalysis();
+            if (data) {
+                focusTracker.focusSummary = data;
+            }
+        } catch (error) {
+            console.error('加载心流数据失败:', error);
+            focusTracker.focusSummary = null;
+        }
+    } else {
+        // 回退：直接调用旧 API
+        try {
+            var user = safeGetJSON('starlearn_user', {});
+            if (!user.id) return;
+            var response = await fetch('/api/focus/analysis/' + user.id);
+            var data = await response.json();
+            if (response.ok && data.success !== false) {
+                focusTracker.focusSummary = data;
+            }
+        } catch (error) {
+            console.error('加载心流数据失败:', error);
+            focusTracker.focusSummary = null;
+        }
     }
+    updateFocusValue();
 }
 
 function initFocusTracker() {
-    // 页面从隐藏切回前台时检测
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) updateFocusValue();
+    // 使用 FocusAnalysis 模块轮询
+    if (window.FocusAnalysis) {
+        window.FocusAnalysis.on('analysis-updated', function (analysis) {
+            focusTracker.focusSummary = analysis;
+            updateFocusValue();
+            updateFlowBars();
+        });
+        window.FocusAnalysis.on('realtime-changed', function () {
+            updateFocusValue();
+        });
+        window.FocusAnalysis.startPolling(5000);
+    }
+
+    // 页面从隐藏切回前台时检测（回退机制）
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            updateFocusValue();
+            updateFlowBars();
+        }
     });
 
     // popstate 前进/后退
-    window.addEventListener('popstate', updateFocusValue);
+    window.addEventListener('popstate', function () {
+        setTimeout(updateFocusValue, 200);
+    });
 
     // sidebar 导航点击
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', function (e) {
         if (e.target.closest('.sidebar-nav .nav-item')) {
-            // 延迟等待新页面 localStorage 写入
             setTimeout(updateFocusValue, 100);
         }
     });
 
     loadFocusData();
-    focusTracker.updateInterval = setInterval(updateFocusValue, 1000);
+
+    // 回退：如果 FocusAnalysis 不可用，保留原有 1 秒轮询
+    if (!window.FocusAnalysis) {
+        focusTracker.updateInterval = setInterval(updateFocusValue, 1000);
+    }
 }
 
 // ============================================
@@ -3774,21 +3859,49 @@ async function silentRefreshNews() {
 
 // 心流部件频谱柱状图
 function updateFlowBars() {
-    const container = document.getElementById('nav-flow-bars');
+    var container = document.getElementById('nav-flow-bars');
     if (!container) return;
-    const bars = Array.from({ length: 10 }, (_, i) => {
-        const base = 0.2 + (i / 10) * 0.6;
-        const variance = (Math.random() - 0.3) * 0.2;
-        return Math.max(0.1, Math.min(1, base + variance));
-    });
-    const peakIdx = bars.indexOf(Math.max(...bars));
-    container.innerHTML = bars.map((h, i) =>
-        `<div class="nav-flow-bar${i === peakIdx ? ' peak' : ''}" style="height:${Math.round(h * 100)}%"></div>`
-    ).join('');
+
+    var analysis = window.FocusAnalysis ? window.FocusAnalysis.getAnalysis() : null;
+    var timeline = analysis ? analysis.timeline : null;
+
+    // 从 timeline 最后 10 条提取分值映射为柱状高度
+    if (timeline && timeline.length) {
+        var scores = timeline.slice(-10).map(function (t) { return t.score || 0; });
+        var maxScore = Math.max.apply(null, scores.concat([1]));
+        var bars = scores.map(function (s) {
+            return Math.max(10, Math.round((s / maxScore) * 100));
+        });
+        var peakIdx = bars.indexOf(Math.max.apply(null, bars));
+        container.innerHTML = bars.map(function (h, i) {
+            var cls = 'nav-flow-bar';
+            var type = timeline[Math.max(0, timeline.length - 10 + i)] && timeline[Math.max(0, timeline.length - 10 + i)].type;
+            if (i === peakIdx) cls += ' peak';
+            if (type === 'warning') cls += ' bar-warn';
+            else if (type === 'deep') cls += ' bar-deep';
+            return '<div class="' + cls + '" style="height:' + h + '%"></div>';
+        }).join('');
+    } else {
+        // 无数据时使用随机频谱（视觉占位）
+        var randomBars = Array.from({ length: 10 }, function (_, i) {
+            var base = 0.2 + (i / 10) * 0.6;
+            var variance = (Math.random() - 0.3) * 0.2;
+            return Math.max(10, Math.min(100, Math.round((base + variance) * 100)));
+        });
+        var rPeakIdx = randomBars.indexOf(Math.max.apply(null, randomBars));
+        container.innerHTML = randomBars.map(function (h, i) {
+            return '<div class="nav-flow-bar' + (i === rPeakIdx ? ' peak' : '') + '" style="height:' + h + '%"></div>';
+        }).join('');
+    }
 }
 function startFlowBarsPolling() {
     updateFlowBars();
-    setInterval(updateFlowBars, 3000);
+    // 数据驱动：跟随 FocusAnalysis 轮询更新，不再用独立定时器
+    if (window.FocusAnalysis) {
+        window.FocusAnalysis.on('analysis-updated', function () { updateFlowBars(); });
+    } else {
+        setInterval(updateFlowBars, 3000);
+    }
 }
 
 // Hero 双环进度入场动画(外环=今日目标 / 内环=掌握率)
@@ -3940,6 +4053,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Hub polish — 新增初始化
     startFlowBarsPolling();
+    // 心流 widget 点击跳转到心流仪页面
+    var flowWidget = document.getElementById('nav-flow-widget');
+    if (flowWidget) {
+        flowWidget.style.cursor = 'pointer';
+        flowWidget.addEventListener('click', function () {
+            window.location.href = '/flow-meter.html';
+        });
+    }
     animateHeroRings();
     initHeroCtas();
     startMottoRotation();

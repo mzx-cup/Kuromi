@@ -511,11 +511,12 @@
             <!-- 操作区 -->
             <div class="hub-nav-actions">
                 <!-- 心流部件 — 渐变胶囊 -->
-                <div class="nav-flow-widget" aria-label="心流共振波段">
+                <div class="nav-flow-widget" id="nav-flow-widget" aria-label="心流共振波段" title="点击查看心流详情">
                     <span class="nav-flow-dot" aria-hidden="true"></span>
                     <div class="nav-flow-meta">
                         <span class="nav-flow-label">心流</span>
                         <strong class="nav-flow-value" id="nav-flow-value">94%</strong>
+                        <span class="nav-flow-trend" id="nav-flow-trend" style="display:none"></span>
                     </div>
                     <div class="nav-flow-bars" id="nav-flow-bars" aria-hidden="true"></div>
                 </div>
@@ -643,10 +644,6 @@
                         <a href="/code.html" class="nav-item sidebar-sub-item" data-section="practice">
                             <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
                             <span class="nav-item-text">代码工坊</span>
-                        </a>
-                        <a href="/video-player.html" class="nav-item sidebar-sub-item" data-section="video-player">
-                            <svg class="nav-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                            <span class="nav-item-text">全息视界</span>
                         </a>
                     </div>
                 </section>
@@ -944,14 +941,6 @@
                             <h3 class="feature-card-title">AI 问答</h3>
                             <p class="feature-card-desc">智能助手随时解答疑惑</p>
                             <div class="feature-card-footer"><span class="feature-card-tag">AI驱动</span><span class="feature-card-tag">实时</span><span class="feature-card-arrow">→</span></div>
-                        </a>
-                        <a href="/video-player.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="core">
-                            <div class="feature-card-icon" style="--card-accent: var(--brand-400)">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            </div>
-                            <h3 class="feature-card-title">全息视界</h3>
-                            <p class="feature-card-desc">沉浸式视频学习体验</p>
-                            <div class="feature-card-footer"><span class="feature-card-tag">视频</span><span class="feature-card-tag">沉浸</span><span class="feature-card-arrow">→</span></div>
                         </a>
                         <a href="/courses.html" class="feature-card hub-card func-card app-action-card fade-up" data-category="learn">
                             <span class="feature-card-badge new">上新</span>
@@ -1426,11 +1415,6 @@
                     <span class="panel-link__text">AI 问答</span>
                     <svg class="panel-link__arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
-                <a href="/video-player.html" class="panel-link" data-accent="info">
-                    <svg class="panel-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                    <span class="panel-link__text">全息视界</span>
-                    <svg class="panel-link__arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </a>
                 <a href="/courses.html" class="panel-link" data-accent="success">
                     <svg class="panel-link__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                     <span class="panel-link__text">课程中心</span>
@@ -1486,6 +1470,7 @@
     <script src="/js/notifications.js"></script>
     <script src="/js/achievements-data.js"></script>
     <script src="/js/achievement-manager.js"></script>
+    <script src="/js/focus-analysis.js"></script>
     <script src="/js/focus-sync.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/focus-calendar.js"></script>

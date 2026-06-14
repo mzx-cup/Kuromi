@@ -2048,6 +2048,40 @@ html body #track-b {
     overflow: hidden;
 }
 
+/* collapsed-state running indicator */
+.tower-collapsed-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+    pointer-events: none;
+    transition: opacity 300ms;
+}
+.tower-collapsed-indicator.hidden { display: none; }
+.tower-collapsed-indicator .tci-pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    animation: tciPulse 1.5s ease-in-out infinite;
+}
+.tower-collapsed-indicator .tci-text {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    writing-mode: vertical-rl;
+    letter-spacing: 0.05em;
+}
+@keyframes tciPulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
 /* 桌面端展开时的宽度限制 */
 @media (min-width: 768px) {
     #track-a-container:not(.collapsed) {
@@ -2747,19 +2781,19 @@ html body .msg-bubble,
         0 0 0 1px rgba(168,85,247,0.08) inset;
 }
 
-/* ── AI 学习路径分析视图 ── */
+/* ── AI 学习路径分析视图 (Card Layout) ── */
 .path-analysis-root {
     font-size: 12px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .path-analysis-banner {
-    background: var(--accent-bg);
+    background: linear-gradient(135deg, var(--accent-bg) 0%, rgba(59,130,246,0.04) 100%);
     border: 1px solid var(--accent-border);
-    border-radius: 12px;
-    padding: 12px 14px;
+    border-radius: 14px;
+    padding: 14px 16px;
     display: flex;
     gap: 10px;
     align-items: flex-start;
@@ -2799,63 +2833,191 @@ html body .msg-bubble,
     padding-left: 12px;
 }
 
-.path-analysis-trail {
+/* Node cards */
+.path-analysis-node-card {
     background: var(--glass-bg);
     border: 1px solid var(--border-glass);
-    border-radius: 8px;
-    padding: 8px 12px;
+    border-radius: 12px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 8px;
+    transition: all 0.25s ease;
+    position: relative;
+}
+.path-analysis-node-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.path-analysis-node-card.is-completed {
+    opacity: 0.75;
+}
+.path-analysis-node-card.is-completed::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(34,197,94,0.04), transparent);
+    pointer-events: none;
+}
+.path-analysis-node-card.is-in-progress {
+    border-left: 3px solid var(--primary-light);
+    background: linear-gradient(135deg, var(--glass-bg), rgba(59,130,246,0.03));
+}
+.path-analysis-node-card.is-locked {
+    opacity: 0.5;
+}
+.path-analysis-node-card .node-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.path-analysis-node-card .node-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+.path-analysis-node-card .node-status-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.path-analysis-node-card .node-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.path-analysis-node-card .node-action-btn {
+    flex-shrink: 0;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    border: 1px solid var(--accent-border);
+    background: var(--accent-bg);
+    color: var(--primary-light);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.path-analysis-node-card .node-action-btn:hover {
+    background: var(--primary-light);
+    color: #fff;
+}
+.path-analysis-node-card .node-mastery-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.path-analysis-node-card .node-mastery-bar-bg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+}
+.path-analysis-node-card .node-mastery-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary-light), var(--accent));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.path-analysis-node-card .node-mastery-text {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+}
+.path-analysis-node-card .node-prereq {
+    font-size: 9px;
+    color: var(--text-tertiary);
 }
 
-.path-analysis-trail-label {
+/* Capability grid */
+.path-analysis-dim-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+.path-analysis-dim-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    transition: all 0.2s;
+    cursor: default;
+}
+.path-analysis-dim-item:hover {
+    border-left: 2px solid var(--accent);
+    transform: translateX(2px);
+}
+.path-analysis-dim-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.path-analysis-dim-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.path-analysis-dim-label {
     font-size: 9px;
     font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
-
-.path-analysis-trail-path {
+.path-analysis-dim-value {
     font-size: 10.5px;
     color: var(--text-secondary);
-    line-height: 1.5;
-    word-break: break-all;
+    line-height: 1.4;
+    word-break: break-word;
 }
 
-/* 紧凑进度条 */
+/* Node goals list container (reused for cards) */
+.path-analysis-goals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.path-analysis-goal-item {
+    background: var(--glass-bg);
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    padding: 10px 12px;
+    transition: all 0.2s;
+}
+
+/* Progress bar */
 .path-analysis-progress {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
 }
-
 .path-analysis-progress-bar-bg {
-    width: 100%;
-    height: 4px;
-    border-radius: 4px;
-    background: var(--border-glass);
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.06);
     overflow: hidden;
 }
-
 .path-analysis-progress-bar-fill {
     height: 100%;
-    border-radius: 4px;
+    border-radius: 3px;
     background: linear-gradient(90deg, var(--primary-light), var(--accent));
     transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .path-analysis-progress-stats {
     display: flex;
-    gap: 10px;
-    font-size: 9px;
+    gap: 12px;
+    font-size: 10px;
 }
-
-.path-analysis-stat {
-    font-weight: 500;
-}
-
 .path-analysis-stat.completed { color: var(--success); }
 .path-analysis-stat.inprogress { color: var(--primary-light); }
 .path-analysis-stat.locked { color: var(--text-tertiary); }
@@ -2865,7 +3027,6 @@ html body .msg-bubble,
     align-items: center;
     justify-content: flex-end;
 }
-
 .path-analysis-time {
     font-size: 9px;
     color: var(--text-tertiary);
@@ -2904,11 +3065,9 @@ html body .msg-bubble,
     padding: 32px 0;
     gap: 8px;
 }
-
 .path-analysis-loading:not(.hidden) {
     display: flex;
 }
-
 .path-analysis-loading .path-loading-bar {
     width: 120px;
     height: 3px;
@@ -2917,7 +3076,6 @@ html body .msg-bubble,
     overflow: hidden;
     position: relative;
 }
-
 .path-analysis-loading .path-loading-bar::after {
     content: '';
     position: absolute;
@@ -2929,7 +3087,6 @@ html body .msg-bubble,
     background: linear-gradient(90deg, transparent, var(--primary-light), transparent);
     animation: pathAnalysisLoading 1.2s ease-in-out infinite;
 }
-
 @keyframes pathAnalysisLoading {
     0% { left: -40%; }
     100% { left: 100%; }
@@ -2991,51 +3148,43 @@ html body .msg-bubble,
 .path-stat-inprogress { color: var(--accent); font-weight: 500; }
 .path-stat-locked { color: var(--text-tertiary); font-weight: 500; }
 
-/* 学习路径文字颜色 - 支持主题切换动画 */
+/* 学习路径文字颜色 */
 .path-tree-node-text {
     color: var(--text-secondary);
     transition: color 500ms ease-in-out;
 }
-
 .path-tree-child-text {
     color: var(--text-tertiary);
     transition: color 500ms ease-in-out;
 }
 
-/* 评估指标文字颜色 - 支持主题切换动画 */
+/* 评估指标文字颜色 */
 .eval-label-text {
     color: var(--text-tertiary);
     transition: color 500ms ease-in-out;
 }
-
 .eval-value-text {
     color: var(--text-primary);
     transition: color 500ms ease-in-out;
 }
-
 .eval-value-purple {
     color: var(--primary-light);
     transition: color 500ms ease-in-out;
 }
-
 .eval-value-green {
     color: var(--success);
     transition: color 500ms ease-in-out;
 }
-
-/* 评估指标难度标签 */
 .eval-diff-basic {
     background: var(--success-bg);
     color: var(--success);
     transition: background 500ms ease-in-out, color 500ms ease-in-out;
 }
-
 .eval-diff-medium {
     background: var(--warning-bg);
     color: var(--warning);
     transition: background 500ms ease-in-out, color 500ms ease-in-out;
 }
-
 .eval-diff-advanced {
     background: var(--danger-bg);
     color: var(--danger);
@@ -3046,13 +3195,10 @@ html body .msg-bubble,
     color: var(--text-primary);
     transition: color 500ms ease-in-out;
 }
-
-/* 展开/收起按钮文字 */
 .expand-text {
     color: var(--text-secondary);
     transition: color 500ms ease-in-out;
 }
-
 .section-expand-btn {
     background: var(--surface-glass);
     border: 1px solid var(--border-glass);
@@ -3061,13 +3207,11 @@ html body .msg-bubble,
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
-
 .section-expand-btn:hover {
     background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(168,85,247,0.06));
     border-color: rgba(168,85,247,0.15);
     color: var(--text-primary);
 }
-
 .section-expand-btn[aria-expanded="true"] {
     border-color: rgba(168,85,247,0.18);
     box-shadow: 0 0 12px rgba(168,85,247,0.05);
@@ -3077,78 +3221,28 @@ html body .msg-bubble,
     transition: background 500ms ease-in-out;
 }
 
-body.light-theme .path-tree-node {
-    color: var(--text-secondary);
-    text-shadow: none;
-}
-body.light-theme .path-tree-node.active {
-    color: var(--text-primary);
-    text-shadow: none;
-}
-body.light-theme .path-tree-node:hover {
-    background: var(--surface-glass);
-}
-body.light-theme .path-tree-node.active {
-    background: var(--accent-bg);
-}
-body.light-theme .path-tree-node-dot.locked {
-    background: var(--surface-glass-hover);
-}
-body.light-theme .path-tree-children {
-    border-left-color: var(--border-glass);
-}
-body.light-theme .path-tree-badge.important {
-    background: var(--warning-bg);
-    color: var(--warning);
-}
-body.light-theme .path-tree-time {
-    color: var(--text-tertiary);
-}
-body.light-theme .sidebar-title-text {
-    color: var(--text-primary);
-}
-body.light-theme .sidebar-header-bar {
-    background: var(--surface-glass);
-}
-
-/* 浅色主题下评估指标文字适配 */
-body.light-theme .eval-label-text {
-    color: var(--text-tertiary);
-}
-body.light-theme .eval-value-text {
-    color: var(--text-primary);
-}
-body.light-theme .eval-value-purple {
-    color: var(--primary-light);
-}
-body.light-theme .eval-value-green {
-    color: var(--success);
-}
-body.light-theme .expand-text {
-    color: var(--text-secondary);
-}
-body.light-theme .section-expand-btn {
-    background: var(--surface-glass);
-    border-color: var(--border-glass);
-    color: var(--text-secondary);
-}
-
-/* 浅色主题下学习路径文字适配 */
-body.light-theme .path-tree-node-text {
-    color: var(--text-secondary);
-}
-body.light-theme .path-tree-child-text {
-    color: var(--text-tertiary);
-}
-body.light-theme .path-node-current-text {
-    color: var(--accent);
-}
-body.light-theme .path-node-completed-text {
-    color: var(--success);
-}
-body.light-theme .path-node-locked-text {
-    color: var(--text-tertiary);
-}
+/* Light theme compatibility */
+body.light-theme .path-tree-node { color: var(--text-secondary); text-shadow: none; }
+body.light-theme .path-tree-node.active { color: var(--text-primary); text-shadow: none; }
+body.light-theme .path-tree-node:hover { background: var(--surface-glass); }
+body.light-theme .path-tree-node.active { background: var(--accent-bg); }
+body.light-theme .path-tree-node-dot.locked { background: var(--surface-glass-hover); }
+body.light-theme .path-tree-children { border-left-color: var(--border-glass); }
+body.light-theme .path-tree-badge.important { background: var(--warning-bg); color: var(--warning); }
+body.light-theme .path-tree-time { color: var(--text-tertiary); }
+body.light-theme .sidebar-title-text { color: var(--text-primary); }
+body.light-theme .sidebar-header-bar { background: var(--surface-glass); }
+body.light-theme .eval-label-text { color: var(--text-tertiary); }
+body.light-theme .eval-value-text { color: var(--text-primary); }
+body.light-theme .eval-value-purple { color: var(--primary-light); }
+body.light-theme .eval-value-green { color: var(--success); }
+body.light-theme .expand-text { color: var(--text-secondary); }
+body.light-theme .section-expand-btn { background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-secondary); }
+body.light-theme .path-tree-node-text { color: var(--text-secondary); }
+body.light-theme .path-tree-child-text { color: var(--text-tertiary); }
+body.light-theme .path-node-current-text { color: var(--accent); }
+body.light-theme .path-node-completed-text { color: var(--success); }
+body.light-theme .path-node-locked-text { color: var(--text-tertiary); }
 
 .path-tree-node-label {
     color: var(--text-primary);
@@ -3368,7 +3462,7 @@ body.light-theme .path-tree-empty {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     aspect-ratio: 1 / 1;
-    max-width: 240px;
+    max-width: 100%;
     height: fit-content;
     align-self: flex-start;
     position: relative;
@@ -3459,6 +3553,108 @@ body.light-theme .path-tree-empty {
     color: var(--text-heading);
     border-color: rgba(168,85,247,0.4);
     box-shadow: 0 0 12px rgba(168,85,247,0.15);
+}
+
+/* radar tooltip */
+.radar-tooltip {
+    position: absolute;
+    z-index: 10;
+    background: rgba(10,10,20,0.85);
+    backdrop-filter: blur(12px) saturate(120%);
+    -webkit-backdrop-filter: blur(12px) saturate(120%);
+    border: 1px solid rgba(168,85,247,0.25);
+    border-radius: 8px;
+    padding: 6px 10px;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.radar-tooltip.hidden { opacity: 0; pointer-events: none; }
+.radar-tooltip .rt-label {
+    font-size: 11px;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+.radar-tooltip .rt-label strong {
+    color: var(--primary-light);
+}
+.radar-tooltip .rt-desc {
+    font-size: 9.5px;
+    color: var(--text-tertiary);
+    margin-top: 1px;
+    white-space: nowrap;
+}
+
+/* radar fade transition */
+.glass-radar-wrap canvas.fade-transition {
+    animation: radarFadeIn 0.4s ease-out;
+}
+@keyframes radarFadeIn {
+    0%   { opacity: 0; transform: scale(0.92); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* radar dimension list */
+#radar-dim-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+.radar-dim-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    cursor: default;
+}
+.radar-dim-row:hover {
+    background: rgba(168,85,247,0.06);
+    border-color: rgba(168,85,247,0.12);
+}
+.radar-dim-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    min-width: 44px;
+    flex-shrink: 0;
+    font-weight: 500;
+}
+.radar-dim-bar-bg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+}
+.radar-dim-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.radar-dim-value {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 24px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.radar-dim-desc {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-left: auto;
+}
+#radar-dim-list.is-empty {
+    display: none;
 }
 
 .resource-dashboard-title,
@@ -12268,6 +12464,12 @@ body.light-theme .openmaic-btn-ghost:hover,
     border-radius: 6px;
     background: var(--fill-glass, rgba(255,255,255,0.03));
     border: 1px solid var(--border-glass, rgba(255,255,255,0.04));
+    transition: all 0.2s ease;
+}
+.path-analysis-dim-item:hover {
+    background: var(--accent-bg, rgba(168,85,247,0.06));
+    border-color: var(--accent-border, rgba(168,85,247,0.15));
+    transform: translateX(2px);
 }
 
 .path-analysis-dim-icon {
@@ -12324,6 +12526,11 @@ body.light-theme .openmaic-btn-ghost:hover,
     border-radius: 6px;
     background: var(--fill-glass, rgba(255,255,255,0.03));
     border: 1px solid var(--border-glass, rgba(255,255,255,0.04));
+    transition: all 0.2s ease;
+}
+.path-analysis-goal-item:hover {
+    background: var(--accent-bg, rgba(168,85,247,0.06));
+    border-color: var(--accent-border, rgba(168,85,247,0.15));
 }
 
 .path-analysis-goal-header {
@@ -12400,4 +12607,23 @@ body.light-theme .openmaic-btn-ghost:hover,
     color: var(--accent-purple, #a78bfa);
     border: 1px solid var(--border-glass, rgba(255,255,255,0.08));
     font-weight: 500;
+}
+
+/* E1: mobile tower flow — horizontal scroll instead of wrap */
+@media (max-width: 768px) {
+    .tower-stage-agents {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+        scroll-snap-type: x mandatory;
+    }
+    .tower-stage-agents .flow-node {
+        scroll-snap-align: start;
+        flex-shrink: 0;
+    }
+    .tower-stage-connector svg {
+        width: 32px;
+        height: 32px;
+    }
 }

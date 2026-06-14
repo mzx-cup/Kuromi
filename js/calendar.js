@@ -129,7 +129,34 @@
         }
         // 兜底：把 eventsData 扁平化为 days 数据，便于 heatmap
         enrichCalendarFromEvents();
+        // 接入真实学习时长数据
+        await loadStudyHeatmap();
         refreshAll();
+    }
+
+    async function loadStudyHeatmap() {
+        const userId = getCurrentUserId();
+        if (!userId) return;
+        try {
+            const response = await fetch(`/api/stats/heatmap/${userId}?weeks=1`);
+            const data = await response.json();
+            if (!response.ok || !data.success) throw new Error(data.detail || 'heatmap load failed');
+            mergeStudyData(data.heatmap || []);
+        } catch (err) {
+            console.warn('[calendar] 热力图数据加载失败:', err.message);
+        }
+    }
+
+    function mergeStudyData(heatmap) {
+        if (!Array.isArray(heatmap) || heatmap.length === 0) return;
+        heatmap.forEach(entry => {
+            const date = entry.date;
+            if (!date) return;
+            if (!calendarData.days[date]) {
+                calendarData.days[date] = { status: 'empty', study_minutes: 0, tasks: [] };
+            }
+            calendarData.days[date].study_minutes = (Number(calendarData.days[date].study_minutes) || 0) + (Number(entry.minutes) || 0);
+        });
     }
 
     function renderLoginRequired() {
@@ -276,6 +303,7 @@
                 ${showProgress ? `<div class="day-progress"><div class="day-progress-bar" style="width:${progressPct}%"></div></div>` : ''}
             `;
 
+            dayEl.title = `${month + 1}月${day}日 · ${(minutes / 60).toFixed(1)}小时学习`;
             dayEl.addEventListener('click', () => selectDay(dateStr, day, month, year));
             grid.appendChild(dayEl);
         }
@@ -331,22 +359,22 @@
         const btnText = document.getElementById('checkin-btn-text');
 
         if (total === 0) {
-            if (status) { status.textContent = '待规划'; status.style.background = 'var(--cal-surface)'; status.style.color = 'var(--cal-text-muted)'; }
+            if (status) { status.textContent = '待规划'; status.className = 'checkin-status checkin-status--planning'; }
             if (desc) desc.textContent = '今日还没有计划，添加一个吧';
             if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
             if (btnText) btnText.textContent = '暂无任务';
         } else if (percent === 100) {
-            if (status) { status.textContent = '已完成'; status.style.background = 'var(--cal-success-soft)'; status.style.color = 'var(--cal-success)'; }
+            if (status) { status.textContent = '已完成'; status.className = 'checkin-status checkin-status--done'; }
             if (desc) desc.textContent = '🎉 今日任务全部完成，太棒了！';
             if (btn) { btn.classList.add('done'); btn.disabled = true; }
             if (btnText) btnText.textContent = '已完成打卡';
         } else if (percent > 0) {
-            if (status) { status.textContent = '进行中'; status.style.background = 'var(--cal-info-soft)'; status.style.color = 'var(--cal-info)'; }
+            if (status) { status.textContent = '进行中'; status.className = 'checkin-status checkin-status--progress'; }
             if (desc) desc.textContent = `已完成 ${done}/${total}，继续加油`;
             if (btn) { btn.classList.remove('done'); btn.disabled = false; }
             if (btnText) btnText.textContent = '继续打卡';
         } else {
-            if (status) { status.textContent = '未开始'; status.style.background = 'var(--cal-warning-soft)'; status.style.color = 'var(--cal-warning)'; }
+            if (status) { status.textContent = '未开始'; status.className = 'checkin-status checkin-status--idle'; }
             if (desc) desc.textContent = '完成今日计划，开启高效一天';
             if (btn) { btn.classList.remove('done'); btn.disabled = false; }
             if (btnText) btnText.textContent = '立即打卡';
@@ -440,7 +468,7 @@
                 <div class="task-info">
                     <div class="task-name">${escapeHtml(t.name || '学习计划')}</div>
                     <div class="task-meta">
-                        <span class="task-meta-dot" style="background: var(--cal-${t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'text-faint'})"></span>
+                        <span class="task-meta-dot task-meta-dot--${t.priority === 'high' ? 'high' : t.priority === 'medium' ? 'medium' : 'low'}"></span>
                         <span>${escapeHtml(TIME_SLOT_LABELS[t.timeSlot] || '')}</span>
                         <span>·</span>
                         <span>${escapeHtml(t.duration || '1h')}</span>

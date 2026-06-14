@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>心流共振仪 - 星识 Star-Learn</title>
     <script defer src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <link rel="stylesheet" href="/css/theme-bg.css">
@@ -60,25 +61,8 @@
                         </span>
                     </div>
                 </div>
-                <div class="waveform-container" id="waveform-container">
-                    <canvas id="waveform-canvas"></canvas>
-                    <div class="waveform-overlay">
-                        <div class="grid-line vertical" style="left: 20%;"></div>
-                        <div class="grid-line vertical" style="left: 40%;"></div>
-                        <div class="grid-line vertical" style="left: 60%;"></div>
-                        <div class="grid-line vertical" style="left: 80%;"></div>
-                        <div class="grid-line horizontal" style="top: 25%;"></div>
-                        <div class="grid-line horizontal" style="top: 50%;"></div>
-                        <div class="grid-line horizontal" style="top: 75%;"></div>
-                    </div>
-                    <div class="time-markers">
-                        <span>-60s</span>
-                        <span>-45s</span>
-                        <span>-30s</span>
-                        <span>-15s</span>
-                        <span>现在</span>
-                    </div>
-                </div>
+                <div class="echarts-main-chart" id="waveform-chart"></div>
+                <div class="echarts-sub-chart" id="timeofday-chart"></div>
             </div>
 
             <div class="flow-card app-chart-card fade-upstats-panel">
@@ -243,6 +227,7 @@
     </main>
 
     <script src="/js/data-layer.js"></script>
+    <script src="/js/focus-analysis.js"></script>
     <script src="/js/flow-meter.js"></script>
 </body>
 </html>

@@ -2631,9 +2631,9 @@ def load_user_progress(request: LoadProgressRequest):
                     try:
                         lr_profile = json.loads(lr["profile_json"]) if isinstance(lr["profile_json"], str) else lr["profile_json"]
                         if isinstance(lr_profile, dict):
-                            ev["focusTimeToday"] = ev.get("focusTimeToday") or lr_profile.get("focus_time_today", 0)
-                            ev["flashcardsStudied"] = ev.get("flashcardsStudied") or lr_profile.get("flashcards_studied", 0)
-                            ev["streakDays"] = ev.get("streakDays") or lr_profile.get("streak_days", 0)
+                            ev["focusTimeToday"] = int(ev.get("focusTimeToday") or lr_profile.get("focus_time_today", 0))
+                            ev["flashcardsStudied"] = int(ev.get("flashcardsStudied") or lr_profile.get("flashcards_studied", 0))
+                            ev["streakDays"] = int(ev.get("streakDays") or lr_profile.get("streak_days", 0))
                     except Exception:
                         pass
                 result["evaluation"] = ev
@@ -6579,6 +6579,189 @@ class FocusRecordRequest(BaseModel):
     timestamp: str = ""
 
 
+def _compute_focus_analysis(history: list, range_key: str = "7d") -> dict:
+    """从原始专注历史生成多角度心流分析报告，供 hub 和 flow-meter 页面共用。"""
+    from datetime import date, timedelta
+
+    today = date.today()
+    now = datetime.now()
+
+    if not isinstance(history, list):
+        history = []
+
+    # 时间范围过滤
+    days_map = {"1d": 1, "7d": 7, "30d": 30, "90d": 90}
+    range_days = days_map.get(range_key, 7)
+    cutoff = (today - timedelta(days=range_days)).isoformat()
+
+    filtered = [h for h in history if isinstance(h, dict) and str(h.get("timestamp", "") or "")[:10] >= cutoff]
+
+    # 最新 24 条用于 timeline
+    recent = sorted(filtered, key=lambda x: str(x.get("timestamp", "") or ""), reverse=True)[:24]
+
+    # -- 分类与评分 --
+    total_focus = 0
+    total_study = 0
+    deep_count = shallow_count = warning_count = 0
+    scored_records = []
+
+    for h in recent:
+        fm = int(h.get("focusMinutes") or 0)
+        sm = int(h.get("studyMinutes") or 0)
+        ps = int(h.get("pageSwitches") or 0)
+        ratio = fm / max(1, sm)
+
+        total_focus += fm
+        total_study += sm
+
+        if ratio >= 0.7:
+            kind = "deep"
+            deep_count += 1
+        elif ratio < 0.3:
+            kind = "warning"
+            warning_count += 1
+        else:
+            kind = "shallow"
+            shallow_count += 1
+
+        scored_records.append({
+            "score": min(100, int(ratio * 100)),
+            "type": kind,
+            "timestamp": str(h.get("timestamp", "") or ""),
+            "studyMinutes": sm,
+            "focusMinutes": fm,
+            "pageSwitches": ps,
+        })
+
+    n = len(recent)
+    avg_ratio = total_focus / max(1, total_study)
+    score = min(100, int(avg_ratio * 80 + (total_focus / max(1, n)) * 2)) if n > 0 else 0
+    deep_ratio = round(deep_count / max(1, deep_count + shallow_count + warning_count) * 100, 1)
+
+    # -- 时段分析 (按小时分4个时段) --
+    period_map = {"morning": [], "afternoon": [], "evening": [], "night": []}
+    for h in filtered:
+        ts = str(h.get("timestamp", "") or "")
+        try:
+            hour = int(ts[11:13]) if len(ts) >= 13 else 12
+        except (ValueError, IndexError):
+            hour = 12
+        fm = int(h.get("focusMinutes") or 0)
+        sm = int(h.get("studyMinutes") or 0)
+        r = fm / max(1, sm)
+        s = min(100, int(r * 100))
+
+        if 6 <= hour < 12:
+            period_map["morning"].append(s)
+        elif 12 <= hour < 17:
+            period_map["afternoon"].append(s)
+        elif 17 <= hour < 20:
+            period_map["evening"].append(s)
+        else:
+            period_map["night"].append(s)
+
+    time_of_day = {}
+    for key, scores in period_map.items():
+        s_count = len(scores)
+        time_of_day[key] = {
+            "score": int(sum(scores) / max(1, s_count)),
+            "studyMinutes": 0,
+            "sessions": s_count,
+        }
+
+    # -- 今日统计 --
+    today_str = today.isoformat()
+    today_records = [h for h in filtered if str(h.get("timestamp", "") or "")[:10] == today_str]
+    today_sm = sum(int(h.get("studyMinutes") or 0) for h in today_records)
+    today_fm = sum(int(h.get("focusMinutes") or 0) for h in today_records)
+    today_sw = sum(int(h.get("pageSwitches") or 0) for h in today_records)
+    today_ratio = round(today_fm / max(1, today_sm) * 100, 1)
+    today_scores = [min(100, int((int(h.get("focusMinutes") or 0) / max(1, int(h.get("studyMinutes") or 0))) * 100)) for h in today_records]
+    first_ts = min((str(h.get("timestamp", "") or "") for h in today_records), default="")
+
+    today_data = {
+        "studyMinutes": today_sm,
+        "focusMinutes": today_fm,
+        "pageSwitches": today_sw,
+        "focusRatio": today_ratio,
+        "completedSessions": sum(1 for h in today_records if h.get("completedFocus")),
+        "peakScore": max(today_scores) if today_scores else 0,
+        "avgScore": int(sum(today_scores) / max(1, len(today_scores))) if today_scores else 0,
+        "sessions": len(today_records),
+        "firstSessionTime": first_ts,
+    }
+
+    # -- 趋势 (近3天 vs 前3天) --
+    def period_avg(days_back_start, days_back_end):
+        period_scores = []
+        for h in filtered:
+            ts = str(h.get("timestamp", "") or "")[:10]
+            try:
+                d = date.fromisoformat(ts)
+                delta = (today - d).days
+                if days_back_start <= delta <= days_back_end:
+                    fm = int(h.get("focusMinutes") or 0)
+                    sm = int(h.get("studyMinutes") or 0)
+                    period_scores.append(min(100, int((fm / max(1, sm)) * 100)))
+            except (ValueError, TypeError):
+                pass
+        return int(sum(period_scores) / max(1, len(period_scores))) if period_scores else 0
+
+    current_period = period_avg(0, 3)
+    previous_period = period_avg(4, 6)
+    diff = current_period - previous_period
+    if diff >= 5:
+        direction = "up"
+    elif diff <= -5:
+        direction = "down"
+    else:
+        direction = "stable"
+
+    trend = {
+        "direction": direction,
+        "change": diff,
+        "currentPeriodScore": current_period,
+        "previousPeriodScore": previous_period,
+    }
+
+    # -- 智能建议 --
+    tips = []
+    if warning_count >= 3:
+        tips.append({"type": "warn", "icon": "alert-triangle", "text": "近期分心次数较多，建议尝试番茄工作法，每25分钟休息5分钟"})
+    if deep_ratio >= 60:
+        tips.append({"type": "good", "icon": "zap", "text": f"深度专注率达{deep_ratio:.0f}%，学习效率优秀，继续保持！"})
+    if deep_count > 0 and shallow_count > deep_count:
+        tips.append({"type": "info", "icon": "target", "text": "浅度专注占比偏高，尝试减少学习环境中的干扰源"})
+
+    # 找最佳时段
+    best_period = max(time_of_day.items(), key=lambda kv: kv[1]["score"], default=("morning", {"score": 0}))
+    if best_period[1]["score"] >= 50:
+        tips.append({"type": "info", "icon": "sun", "text": f"你的最佳专注时段是{_period_label(best_period[0])}，建议安排重要学习任务"})
+
+    if today_sw >= 5:
+        tips.append({"type": "warn", "icon": "mouse-pointer-click", "text": f"今日已切换页面{today_sw}次，建议关闭无关应用，专注当前学习"})
+
+    if not tips:
+        tips.append({"type": "good", "icon": "thumbs-up", "text": "学习状态良好，保持当前节奏"})
+
+    return {
+        "success": True,
+        "score": score,
+        "deepRatio": deep_ratio,
+        "segments": {"deep": deep_count, "shallow": shallow_count, "warning": warning_count},
+        "timeline": scored_records,
+        "timeOfDay": time_of_day,
+        "today": today_data,
+        "trend": trend,
+        "tips": tips[:4],
+        "recentHistory": filtered[-48:],
+    }
+
+
+def _period_label(key: str) -> str:
+    return {"morning": "上午", "afternoon": "下午", "evening": "傍晚", "night": "夜间"}.get(key, key)
+
+
 @app.post("/api/focus/record")
 def record_focus(request: FocusRecordRequest):
     """前端 focus-sync.js 调用的专注记录接口，将单条记录追加到用户专注历史中。"""
@@ -6596,14 +6779,25 @@ def record_focus(request: FocusRecordRequest):
             "timestamp": request.timestamp or datetime.now().isoformat(),
         })
         database.save_user_focus_history(request.userId, history)
-        summary = {
-            "todayStudyMinutes": sum(h.get("studyMinutes", 0) for h in history[-7:]),
-            "todayFocusMinutes": sum(h.get("focusMinutes", 0) for h in history[-7:]),
-            "totalRecords": len(history),
-        }
-        return {"success": True, "focusSummary": summary}
+        analysis = _compute_focus_analysis(history, "7d")
+        analysis["success"] = True
+        return {"success": True, "focusSummary": analysis}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"记录专注历史失败: {str(e)}")
+
+
+@app.get("/api/focus/analysis/{user_id}")
+def get_focus_analysis(user_id: int, range: str = "7d"):
+    """返回多角度心流分析数据，供 hub 页和 flow-meter 页共用。"""
+    try:
+        history = database.get_user_focus_history(user_id)
+        if not isinstance(history, list):
+            history = []
+        analysis = _compute_focus_analysis(history, range)
+        analysis["userId"] = user_id
+        return analysis
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"心流分析失败: {str(e)}")
 
 
 # ── 生态数据 ──

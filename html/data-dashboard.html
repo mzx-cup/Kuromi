@@ -32,6 +32,10 @@
         <!-- ===== Header — 指挥条 ===== -->
         <div class="dd-header">
             <div class="dd-header-left">
+                <a href="/hub.html" class="dd-back" aria-label="返回中枢">
+                    <i data-lucide="arrow-left"></i>
+                    <span>返回</span>
+                </a>
                 <div class="dd-eyebrow">
                     <span class="dd-eyebrow-dot"></span>
                     Learning Analytics · 实时
@@ -388,7 +392,48 @@
         }
 
         // ============== Real data loader ==============
-        function loadLearningData() {
+        function loadLearningDataFromBackend() {
+            return fetch('/api/datacenter/dashboard/summary?range=' + currentRange)
+                .then(function(r) {
+                    if (!r.ok) throw new Error('API ' + r.status);
+                    return r.json();
+                })
+                .then(function(data) {
+                    if (!data.success) throw new Error('API failed');
+                    // Transform API response to legacy learningData format
+                    var s = data.stats || {};
+                    var dailyMin = data.dailyMinutes || {};
+                    var totalMin = 0;
+                    Object.keys(dailyMin).forEach(function(k) { totalMin += (dailyMin[k] || 0); });
+
+                    var courses = (data.courseProgress || []).map(function(c, i) {
+                        return { title: c.name, progress: c.progress, icon: c.icon };
+                    });
+                    var completedCount = courses.filter(function(c) { return c.progress >= 100; }).length;
+
+                    return {
+                        totalMinutes: totalMin,
+                        totalHours: s.totalHours || 0,
+                        coursesCompleted: s.coursesCompleted || 0,
+                        coursesTotal: s.coursesTotal || courses.length,
+                        courses: courses,
+                        streak: s.streak || 0,
+                        exercises: s.exercises || 0,
+                        dailyMinutes: dailyMin,
+                        hourlyMinutes: {},
+                        evaluation: data.radar || { dimensions: [], thisMonth: [], lastMonth: [] },
+                        focus: data.focus || null,
+                        history: (data.timeline || []).map(function(t) {
+                            return { chapterTitle: t.title, courseId: t.desc, updatedAt: t.time };
+                        }),
+                        radar: data.radar || null,
+                        goalRings: data.goalRings || {},
+                        heatmap: data.heatmap || null,
+                    };
+                });
+        }
+
+        function loadLearningDataFromLocalStorage() {
             var study = null;
             try { study = JSON.parse(localStorage.getItem('starlearn_study') || '{}'); } catch(e) { study = {}; }
             var dailyMin = study.daily_minutes || {};
@@ -433,6 +478,12 @@
                 focus: focus,
                 history: Array.isArray(history) ? history : [],
             };
+        }
+
+        function loadLearningData() {
+            return loadLearningDataFromBackend().catch(function() {
+                return loadLearningDataFromLocalStorage();
+            });
         }
 
         // ============== Date helpers ==============
@@ -828,17 +879,29 @@
 
         // ============== Radar ==============
         function radarDimsFromEvaluation() {
+            // Use API radar data if available
+            var radar = (learningData && learningData.radar);
+            if (radar && radar.dimensions && radar.dimensions.length) {
+                return radar.dimensions.map(function(d) {
+                    return { name: d.name, icon: d.icon || '📊', value: d.value };
+                });
+            }
+            // Fallback: old evaluation-based logic
             var e = (learningData && learningData.evaluation) || {};
-            // Map evaluation fields to 6 dimensions
-            var dims = [
-                { name: '知识掌握', icon: '🧠', value: Math.round(e.masteryScore || 0) },
-                { name: '应用能力', icon: '💡', value: Math.round((e.codeSkill || 0) * 0.9 + (e.studyTime || 0) * 0.1) },
-                { name: '分析思维', icon: '🔍', value: Math.round((e.cognitiveStyle === 'analytical' ? 75 : 55) + ((e.streakDays || 0) * 0.5)) },
-                { name: '创造力',   icon: '🎨', value: Math.round((e.learningPace === 'fast' ? 70 : 50) + ((e.streakDays || 0) * 0.3)) },
-                { name: '表达沟通', icon: '📝', value: Math.round((e.codeSkill || 0) * 0.6 + 30) },
-                { name: '学习效率', icon: '⏱️', value: Math.round((e.focusLevel || 0) * 0.8 + (e.learningPace === 'fast' ? 15 : 0)) }
+            if (e.dimensions && e.dimensions.length) {
+                return e.dimensions.map(function(d) {
+                    return { name: d.name, icon: d.icon || '📊', value: d.value };
+                });
+            }
+            // Hard fallback
+            return [
+                { name: '知识掌握', icon: '🧠', value: 0 },
+                { name: '应用能力', icon: '💡', value: 0 },
+                { name: '分析思维', icon: '🔍', value: 0 },
+                { name: '创造力',   icon: '🎨', value: 0 },
+                { name: '表达沟通', icon: '📝', value: 0 },
+                { name: '学习效率', icon: '⏱️', value: 0 }
             ];
-            return dims;
         }
 
         function initRadarCharts() {
@@ -931,14 +994,14 @@
                 var courses = (learningData && learningData.courses) || [];
                 var nodes = [], links = [];
                 if (courses.length) {
-                    courses.slice(0, 12).forEach(function(c) {
-                        var p = c.progress || 0;
-                        var cat = p >= 80 ? 0 : (p >= 30 ? 1 : 2);
-                        nodes.push({ name: c.title || ('课程' + nodes.length), category: cat,
-                            value: Math.max(1, Math.round(p / 10)),
-                            symbolSize: 18 + Math.round(p / 5) });
+                    courses.slice(0, 12).forEach(function(c, i) {
+                        var prog = c.progress || 0;
+                        var cat = prog >= 80 ? 0 : (prog >= 30 ? 1 : 2);
+                        var title = c.title || c.name || ('课程' + i);
+                        nodes.push({ name: title, category: cat,
+                            value: Math.max(1, Math.round(prog / 10)),
+                            symbolSize: 18 + Math.round(prog / 5) });
                     });
-                    // build links sequentially
                     for (var i = 0; i < nodes.length - 1; i++) {
                         links.push({ source: nodes[i].name, target: nodes[i+1].name });
                     }
@@ -1030,12 +1093,13 @@
             var swEl    = document.getElementById('flow-switches');
             var scoreEl = document.getElementById('flow-score');
             if (f) {
-                if (focusEl) focusEl.textContent = (f.focusMinutes || 0) + ' 分钟';
-                if (studyEl) studyEl.textContent = (f.studyMinutes || 0) + ' 分钟';
-                if (swEl)    swEl.textContent    = (f.pageSwitches || 0) + ' 次';
+                // API format: { score, summary: { focusMinutes, studyMinutes, pageSwitches } }
+                var summary = f.summary || {};
+                if (focusEl) focusEl.textContent = (summary.focusMinutes || f.focusMinutes || 0) + ' 分钟';
+                if (studyEl) studyEl.textContent = (summary.studyMinutes || f.studyMinutes || 0) + ' 分钟';
+                if (swEl)    swEl.textContent    = (summary.pageSwitches || f.pageSwitches || 0) + ' 次';
                 if (scoreEl) {
-                    var score = Math.max(0, 100 - (f.pageSwitches || 0) * 5);
-                    scoreEl.textContent = score;
+                    scoreEl.textContent = f.score || Math.max(0, 100 - (summary.pageSwitches || 0) * 5);
                 }
             } else {
                 if (focusEl) focusEl.textContent = '0 分钟';
@@ -1051,13 +1115,18 @@
             panel.dataset.loaded = 'true';
 
             renderFlowRealtime();
-            // poll focus_pending every 5s while tab is visible
+            // poll API every 30s while tab is visible
             setInterval(function() {
-                try {
-                    learningData.focus = JSON.parse(localStorage.getItem('starlearn_focus_pending') || 'null');
-                } catch(e) { learningData.focus = null; }
-                renderFlowRealtime();
-            }, 5000);
+                fetch('/api/datacenter/dashboard/summary?range=' + currentRange)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        if (data.success && data.focus) {
+                            learningData.focus = data.focus;
+                            renderFlowRealtime();
+                        }
+                    })
+                    .catch(function() {});
+            }, 30000);
 
             // fetch flow-meter.html for the main waveform
             var loading = document.getElementById('flow-loading');
@@ -1139,37 +1208,50 @@
                     document.querySelectorAll('.dd-range-btn').forEach(function(b){b.classList.remove('active');});
                     this.classList.add('active');
                     currentRange = this.getAttribute('data-range') || '30d';
-                    // Re-render overview charts to reflect new range
-                    var ids = ['chart-daily-time', 'chart-subject-pie', 'chart-weekly-bar'];
-                    ids.forEach(function(id) {
-                        var dom = document.getElementById(id);
-                        if (dom && dom._echart_) { dom._echart_.dispose(); delete dom._echart_; }
+                    // Re-fetch data with new range
+                    loadLearningData().then(function(data) {
+                        learningData = data;
+                        populateStats();
+                        animateCounters();
+                        renderSparklines();
+                        renderHeatmap();
+                        renderStreakDots();
+                        animateRings();
+                        renderTimeline();
+                        // Re-init charts
+                        var ids = ['chart-daily-time', 'chart-subject-pie', 'chart-weekly-bar'];
+                        ids.forEach(function(id) {
+                            var dom = document.getElementById(id);
+                            if (dom && dom._echart_) { dom._echart_.dispose(); delete dom._echart_; }
+                        });
+                        initOverviewCharts();
                     });
-                    initOverviewCharts();
                 });
             });
 
             var refreshBtn = document.getElementById('dd-refresh');
             if (refreshBtn) {
                 refreshBtn.addEventListener('click', function() {
-                    learningData = loadLearningData();
-                    populateStats();
-                    animateCounters();
-                    renderSparklines();
-                    renderHeatmap();
-                    renderStreakDots();
-                    animateRings();
-                    renderTimeline();
-                    if (panelsInitialized.radar) { populateStats(); renderDimList(radarDimsFromEvaluation()); }
-                    if (panelsInitialized.graph) renderTimeline();
-                    if (panelsInitialized.flow) renderFlowRealtime();
-                    ['chart-daily-time', 'chart-subject-pie', 'chart-weekly-bar'].forEach(function(id) {
-                        var dom = document.getElementById(id);
-                        if (dom && dom._echart_) {
-                            dom.style.transition = 'opacity .25s';
-                            dom.style.opacity = '.35';
-                            setTimeout(function() { dom._echart_.resize(); dom.style.opacity = '1'; }, 220);
-                        }
+                    loadLearningData().then(function(data) {
+                        learningData = data;
+                        populateStats();
+                        animateCounters();
+                        renderSparklines();
+                        renderHeatmap();
+                        renderStreakDots();
+                        animateRings();
+                        renderTimeline();
+                        if (panelsInitialized.radar) { populateStats(); renderDimList(radarDimsFromEvaluation()); }
+                        if (panelsInitialized.graph) renderTimeline();
+                        if (panelsInitialized.flow) renderFlowRealtime();
+                        ['chart-daily-time', 'chart-subject-pie', 'chart-weekly-bar'].forEach(function(id) {
+                            var dom = document.getElementById(id);
+                            if (dom && dom._echart_) {
+                                dom.style.transition = 'opacity .25s';
+                                dom.style.opacity = '.35';
+                                setTimeout(function() { dom._echart_.resize(); dom.style.opacity = '1'; }, 220);
+                            }
+                        });
                     });
                 });
             }
@@ -1228,26 +1310,30 @@
             // Initialize Lucide icons
             if (window.lucide && lucide.createIcons) lucide.createIcons();
 
-            // Load real data
-            learningData = loadLearningData();
-            populateStats();
-            tickClock();
-            setInterval(tickClock, 30000);
-
-            wireUp();
-
-            // Init default panel
-            panelsInitialized['overview'] = true;
-            initPanel('overview');
-            // Wait one frame so counters see the updated data-counter attrs
-            requestAnimationFrame(function() {
-                animateCounters();
+            // Load real data (async)
+            loadLearningData().then(function(data) {
+                learningData = data;
+                populateStats();
                 renderSparklines();
                 renderHeatmap();
                 renderStreakDots();
                 animateRings();
                 renderTimeline();
+
+                // Init default panel
+                panelsInitialized['overview'] = true;
+                initPanel('overview');
+
+                // Wait one frame so counters see the updated data-counter attrs
+                requestAnimationFrame(function() {
+                    animateCounters();
+                });
             });
+
+            tickClock();
+            setInterval(tickClock, 30000);
+
+            wireUp();
 
             // Hash activation
             activateTabFromHash();

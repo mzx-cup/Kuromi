@@ -27,6 +27,7 @@ router = APIRouter()
 class GenerateLearningPathRequest(BaseModel):
     userId: int
     forceRefresh: bool = False  # 强制刷新，忽略缓存
+    goal: Optional[str] = None  # 用户自定义学习目标（Tab 3 任务编排输入）
 
 
 class LearningPathNode(BaseModel):
@@ -253,8 +254,10 @@ LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体�
 """
 
 
-def _build_user_prompt(analytics: dict) -> str:
-    """将学情报告构建为 LLM user prompt，突出多维能力数据。"""
+def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
+    """将学情报告构建为 LLM user prompt，突出多维能力数据。
+    goal: 用户自定义学习目标，注入 prompt 引导 LLM 生成针对性路径。
+    """
     profile = analytics.get("profile", {})
     cockpit = analytics.get("cockpit", {})
     quizzes = analytics.get("quizzes", {})
@@ -398,6 +401,13 @@ def _build_user_prompt(analytics: dict) -> str:
     lines.append("### 近期对话主题")
     lines.append(f"{conversations.get('recent_topics', [])}")
     lines.append("")
+    if goal:
+        lines.append(f"### 用户自定义学习目标")
+        lines.append(f"学生特别提出了以下学习目标，请以此为核心规划路径：")
+        lines.append(f"「{goal}」")
+        lines.append(f"路径中的所有节点都应围绕这个目标设计，确保每个节点都为目标服务。")
+        lines.append("")
+
     lines.append("请基于以上全部多维能力数据，生成该学生的个性化学习路径。注意：")
     lines.append("1. 每个路径节点的 learning_goal 必须明确写出该节点要培养的能力")
     lines.append("2. capability_rationale 要解释该节点为何适合该生的当前能力水平")
@@ -409,10 +419,11 @@ def _build_user_prompt(analytics: dict) -> str:
 
 # ── 核心生成逻辑（可被外部调用） ──
 
-async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> GenerateLearningPathResponse:
+async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal: Optional[str] = None) -> GenerateLearningPathResponse:
     """
     基于学生完整学情数据，实时生成/更新个性化学习路径。
     可被 main.py 或其他模块直接调用，避免循环导入和 HTTP 开销。
+    goal: 用户自定义学习目标，用于指导 LLM 生成路径。
     """
     # 1. 聚合学情
     try:
@@ -459,7 +470,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
                 pass
 
     # 3. 构建 prompt 并调用 LLM
-    user_prompt = _build_user_prompt(analytics)
+    user_prompt = _build_user_prompt(analytics, goal=goal)
     try:
         llm_response = _call_llm(LEARNING_PATH_SYSTEM_PROMPT, user_prompt, temperature=0.4)
     except HTTPException:
@@ -540,7 +551,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False) -> G
 @router.post("/generate", response_model=GenerateLearningPathResponse)
 async def generate_learning_path(request: GenerateLearningPathRequest):
     """基于学生完整学情数据，实时生成/更新个性化学习路径。"""
-    return await generate_path_for_user(request.userId, force_refresh=request.forceRefresh)
+    return await generate_path_for_user(request.userId, force_refresh=request.forceRefresh, goal=request.goal)
 
 
 @router.get("/current/{user_id}", response_model=GenerateLearningPathResponse)
