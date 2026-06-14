@@ -3602,6 +3602,49 @@ function updateDispatchBadge(strategy) {
     };
 }
 
+// === 苏格拉底徽标解析 (Task 24) ===
+// 单一来源: 优先使用服务器 dispatchStrategy 提示 (msg.socratic),
+// 兜底使用 persona 的 socratic_intensity 派生。
+// 不再有「全局 isSocratic = true」之类的硬编码, 切 persona 即切徽标行为。
+const PERSONA_SOCRATIC_INTENSITY = {
+    patient_tutor: 0.4,           // 陈默
+    socratic_questioner: 1.0,     // 林问
+    energetic_lecturer: 0.1,      // 周燃
+    expert_mentor: 0.7,           // 严铮
+    caring_counselor: 0.0,        // 苏语
+};
+
+// 强度 >= 0.5 视为「会触发苏格拉底徽标」, 与后端 build_socratic_rules 阈值一致
+const PERSONA_SOCRATIC_THRESHOLD = 0.5;
+
+/**
+ * 解析一条消息 (或当前流式消息) 是否应显示「苏格拉底诊断」徽标。
+ *
+ * 优先级:
+ *   1. 服务器运行时提示 (msg.socratic / 实时 dispatchStrategy) — 权威
+ *   2. 消息级 persona 字段 (msg._persona) — 派生
+ *   3. 全局 currentPersona (用于流式期间尚未绑定的占位消息)
+ *   4. 默认 false
+ *
+ * @param {object|null} msg - 消息对象, 形如 { role, socratic, _persona, ... }
+ * @param {string} [fallbackPersona] - 当 msg 不可用时使用 (通常是 currentPersona)
+ * @returns {boolean}
+ */
+function resolveSocraticFlag(msg, fallbackPersona) {
+    // 用户消息永远不显示苏格拉底徽标
+    if (msg && msg.role !== 'assistant') return false;
+    // 服务器显式提示 (dispatchStrategy === 'socratic' 写入 msg.socratic) 是权威
+    if (msg && msg.socratic === true) return true;
+    if (msg && msg.socratic === false) return false;
+    // 派生: msg._persona > fallbackPersona > currentPersona
+    const personaId = (msg && msg._persona) || fallbackPersona || currentPersona;
+    const intensity = PERSONA_SOCRATIC_INTENSITY[personaId];
+    if (typeof intensity === 'number') {
+        return intensity >= PERSONA_SOCRATIC_THRESHOLD;
+    }
+    return false;
+}
+
 function setDispatchActive(isActive) {
     const badge = document.getElementById('dispatch-badge');
     if (!badge) return;
@@ -4099,7 +4142,8 @@ async function renderMessages() {
                 thinkBlockHtml = renderThinkStrip(msg._thinkingLogs, true) + thinkBlockHtml;
             }
         }
-        const isSocratic = msg.role === 'assistant' && msg.socratic;
+        // 苏格拉底徽标: 服务器提示优先, 缺失时回落到 persona 派生
+        const isSocratic = resolveSocraticFlag(msg, currentPersona);
 
         // 主动消息的特殊标识
         const isProactive = msg._isProactive;
@@ -5251,7 +5295,8 @@ function renderStreamingMessage() {
     const thinkBlockHtml = reasoning ? renderThinkBlock(reasoning, true) : '';
     const thinkStripHtml = currentThinkingLogs.length > 0 ? renderThinkStrip(currentThinkingLogs, false) : '';
 
-    const isSocratic = messages[currentAssistantIdx]?.socratic;
+    // 流式期间: 消息可能尚未收到 dispatchStrategy 事件, 用 helper 兜底到 persona
+    const isSocratic = resolveSocraticFlag(messages[currentAssistantIdx], currentPersona);
     const streamingPersonaLabel = PERSONA_NAMES[currentPersona] || '';
     const streamingAgentLabel = currentAgent && currentAgent.id !== 'default' ? currentAgent.name : '';
     const streamingIdentityText = [streamingPersonaLabel, streamingAgentLabel].filter(Boolean).join(' · ');
@@ -6170,8 +6215,12 @@ async function handleSend() {
                 renderSources(data.sources || []);
             }
 
+            // 苏格拉底徽标: 服务器 dispatchStrategy === 'socratic' 即为权威提示
             const isSocratic = data.dispatchStrategy === 'socratic';
-            messages.push({ role: 'assistant', content: data.content, socratic: isSocratic });
+            const newMsg = { role: 'assistant', content: data.content, socratic: isSocratic };
+            // 绑定当前 persona, 以便后续 renderMessages() 通过 helper 派生徽标 (服务器缺失时回落)
+            newMsg._persona = currentPersona;
+            messages.push(newMsg);
             renderMessages();
 
             if (isProgrammingTask(data.content)) {
