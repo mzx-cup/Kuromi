@@ -38,7 +38,8 @@ def _get_tutor_engine():
 class TeacherChatRequest(BaseModel):
     """AI 教师对话请求"""
     message: str
-    persona: str = "expert_mentor"
+    persona: str | None = None
+    persona_id: str | None = None  # 5 身份制 (patient_tutor/socratic_questioner/energetic_lecturer/expert_mentor/caring_counselor)
     student_id: str = ""
     course_id: str = ""
     scene_context: dict | None = None
@@ -57,7 +58,7 @@ class TeacherSpeechRequest(BaseModel):
 # 文本对话端点
 # =============================================================================
 
-async def _teacher_chat_with_engine(req: TeacherChatRequest):
+async def _teacher_chat_with_engine(req: TeacherChatRequest, persona_id: str):
     """TutorDecisionEngine 统一决策路径，适配 TeacherPipeline SSE 协议。"""
     engine = _get_tutor_engine()
     envelope = await engine.answer_question(
@@ -94,7 +95,7 @@ async def _teacher_chat_with_engine(req: TeacherChatRequest):
 
     done_data = {
         "agent": "teacher",
-        "persona": req.persona,
+        "persona": persona_id,
         "full_text": full_text,
         "action_count": 0,
         "function_calls": 0,
@@ -129,10 +130,15 @@ async def teacher_chat(req: TeacherChatRequest):
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
 
+    # 5 身份制解析: persona_id 优先 > persona 兼容 > 默认 expert_mentor
+    persona_id = req.persona_id or req.persona or "expert_mentor"
+    if not get_persona_manager().is_valid(persona_id):
+        persona_id = "expert_mentor"
+
     if _ENABLE_TUTOR_ENGINE:
         try:
             return StreamingResponse(
-                _sse_wrap(_teacher_chat_with_engine(req)),
+                _sse_wrap(_teacher_chat_with_engine(req, persona_id)),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -147,7 +153,7 @@ async def teacher_chat(req: TeacherChatRequest):
     return StreamingResponse(
         _sse_wrap(pipeline.run(
             user_input=req.message,
-            persona=req.persona,
+            persona=persona_id,
             student_id=req.student_id,
             course_id=req.course_id,
             scene_context=req.scene_context,
