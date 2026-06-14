@@ -10639,3 +10639,73 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// === Task 25: 5 身份切换浮窗交互 (Agent 编排控制塔) ===
+// 触发器: #teacher-toggle-btn ("选择AI教师" 按钮) - 控制台没有 #teacher-card 这个 id
+// 行为:
+//   1. 点击触发器 -> 切换 #persona-switcher 显隐
+//   2. 点击 persona-option -> 切换 currentPersona, 更新 localStorage, 同步到后端
+//   3. 初始化时根据 currentPersona 标 active 状态
+(function setupPersonaSwitcher() {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupPersonaSwitcher);
+        return;
+    }
+    const switcher = document.getElementById('persona-switcher');
+    if (!switcher) return;
+
+    // 触发器: 优先 #teacher-toggle-btn, 兜底 #teacher-cards-panel
+    const trigger = document.getElementById('teacher-toggle-btn')
+        || document.getElementById('teacher-cards-panel');
+    if (trigger) {
+        // 阻止默认 toggle 行为 (teacher-cards-panel 自带展开), 我们用 switcher 替代
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            switcher.hidden = !switcher.hidden;
+        });
+    }
+
+    // 点击页面其它地方关闭浮窗
+    document.addEventListener('click', (e) => {
+        if (switcher.hidden) return;
+        if (switcher.contains(e.target) || (trigger && trigger.contains(e.target))) return;
+        switcher.hidden = true;
+    });
+
+    // 初始化 active 状态
+    switcher.querySelectorAll('.persona-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.persona === currentPersona);
+    });
+
+    // 切换 persona
+    switcher.addEventListener('click', (e) => {
+        const opt = e.target.closest('.persona-option');
+        if (!opt) return;
+        const personaId = opt.dataset.persona;
+        if (!personaId) return;
+        currentPersona = personaId;
+        localStorage.setItem('starlearn_persona', currentPersona);
+        // 同步浮窗 active
+        switcher.querySelectorAll('.persona-option').forEach(o => {
+            o.classList.toggle('active', o.dataset.persona === currentPersona);
+        });
+        // 同步旧 chip-bar (如果存在) 的 active 状态
+        const personaBar = document.getElementById('persona-chip-bar');
+        if (personaBar) {
+            personaBar.querySelectorAll('.persona-chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.persona === currentPersona);
+            });
+        }
+        // 关闭浮窗
+        switcher.hidden = true;
+        // 同步到后端 (后端 /api/profile/{user_id} 接受 preferred_persona)
+        // 取当前 user id 兜底 'me'
+        const userId = (window.currentUserId || localStorage.getItem('starlearn_user_id') || 'me');
+        const url = userId === 'me' ? '/api/profile/me' : '/api/profile/' + encodeURIComponent(userId);
+        fetch(url, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferred_persona: personaId }),
+        }).catch(() => { /* 后端缺路由时静默兜底 */ });
+    });
+})();
