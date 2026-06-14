@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="/css/link-renderer.css">
     <link rel="stylesheet" href="/css/notifications.css">
     <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="css/agent-tower.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/data-layer.js"></script>
@@ -84,6 +85,26 @@
             </button>
             <div class="sidebar-section-content space-y-2" id="profile-section">
                 <div class="space-y-2" id="profile-container"></div>
+                <div class="profile-grid" id="profile-grid">
+                  <div class="profile-card">
+                    <div class="profile-card-title">学习风格</div>
+                    <div class="profile-card-value" data-key="learning_style">—</div>
+                  </div>
+                  <div class="profile-card">
+                    <div class="profile-card-title">认知水平</div>
+                    <div class="profile-card-value" data-key="cognitive_level">—</div>
+                  </div>
+                  <div class="profile-card">
+                    <div class="profile-card-title">近期目标</div>
+                    <div class="profile-card-value" data-key="current_goal">—</div>
+                    <div class="profile-progress-bar"><div data-key="current_goal_bar"></div></div>
+                  </div>
+                  <div class="profile-card">
+                    <div class="profile-card-title">情绪状态</div>
+                    <div class="profile-card-value" data-key="emotion_state">—</div>
+                  </div>
+                </div>
+                <div class="profile-last-synced" id="profile-last-synced">Last synced: —</div>
             </div>
         </div>
 
@@ -227,17 +248,19 @@
 
                 <div id="track-a-container" class="relative md:shrink-0 collapsed">
                     <div id="track-a" class="track-sandbox flex flex-col h-[35vh] md:h-full">
-                        <div class="sandbox-header flex items-center justify-between px-4 py-3 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
-                            <div class="flex items-center gap-2">
-                                <i data-lucide="activity" class="w-4 h-4" style="color: var(--accent);"></i>
-                                <span class="text-sm font-bold" style="color: var(--text-primary);">教研沙盘</span>
-                                <span id="sandbox-status" class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background: var(--surface-glass); color: var(--text-tertiary);">待命</span>
+                        <div class="tower-header">
+                            <h2>🛰 Agent 编排控制塔</h2>
+                            <div class="tower-actions">
+                                <button class="tower-btn" id="tower-pause" disabled title="暂停">⏸</button>
+                                <button class="tower-btn" id="tower-stop" disabled title="停止">⏹</button>
+                                <button class="tower-btn" id="tower-start" title="启动协作">▶ 启动协作</button>
                             </div>
-                            <div class="flex items-center gap-1.5">
-                                <button id="sandbox-search-toggle" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="搜索日志"><i data-lucide="search" class="w-3.5 h-3.5"></i></button>
-                                <button id="sandbox-filter-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="过滤智能体"><i data-lucide="filter" class="w-3.5 h-3.5"></i></button>
-                                <button id="sandbox-collapse-btn" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" title="收起沙盘"><i data-lucide="chevron-left" class="w-3.5 h-3.5 transition-transform duration-300" id="sandbox-collapse-icon"></i></button>
-                            </div>
+                        </div>
+                        <div class="tower-flow" id="tower-flow"></div>
+                        <div class="tower-terminal" id="tower-terminal"></div>
+                        <div class="tower-drawer" id="tower-drawer">
+                            <h3>资源抽屉</h3>
+                            <div id="tower-assets"></div>
                         </div>
                         <div id="sandbox-search-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
                             <input type="text" id="sandbox-search-input" placeholder="搜索日志内容..." class="w-full text-xs border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary);">
@@ -245,10 +268,10 @@
                         <div id="sandbox-filter-bar" class="hidden px-3 py-2 border-b shrink-0" style="border-color: var(--border-glass); background: var(--surface-glass);">
                             <div class="flex flex-wrap gap-1" id="sandbox-filter-chips"></div>
                         </div>
-                        <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="border-color: var(--border-glass); background: var(--surface-glass);">
+                        <div id="flow-nodes" class="px-4 py-3 border-b shrink-0 overflow-x-auto" style="display:none; border-color: var(--border-glass); background: var(--surface-glass);">
                             <div class="flex items-center gap-1 min-w-max" id="flow-node-container"></div>
                         </div>
-                        <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll"></div>
+                        <div id="sandbox-logs" class="flex-1 overflow-y-auto px-3 py-3 space-y-2 min-h-0 sandbox-log-scroll" style="display:none;"></div>
                     </div>
                 </div>
 
@@ -1386,6 +1409,20 @@
         window.addEventListener('hashchange', activateTabFromHash);
     })();
     </script>
+
+<div id="persona-switcher" class="persona-switcher" hidden>
+  <div class="persona-option" data-persona="patient_tutor">陈默 · 温和耐心</div>
+  <div class="persona-option" data-persona="socratic_questioner">林问 · 哲学思辨</div>
+  <div class="persona-option" data-persona="energetic_lecturer">周燃 · 激情速讲</div>
+  <div class="persona-option" data-persona="expert_mentor">严铮 · 严谨深入</div>
+  <div class="persona-option" data-persona="caring_counselor">苏语 · 情绪陪伴</div>
+</div>
+
+<script src="js/agent-bus.js"></script>
+<script src="js/agent-sse-client.js"></script>
+<script src="js/agent-mock-fallback.js"></script>
+<script src="js/agent-orchestrator.js"></script>
+<script src="js/agent-telemetry-collector.js"></script>
 
 </body>
 </html>
