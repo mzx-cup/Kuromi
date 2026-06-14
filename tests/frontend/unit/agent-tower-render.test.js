@@ -16,10 +16,7 @@
  *  11. computeRadarPoints 越界值被 clamp 到 [0, 100] (Task 22)
  *  12. radarColorWithAlpha 把 #3b82f6 转为 rgba(59,130,246,0.5) (Task 22)
  *  13. profile_updated 事件触发 renderRadarFromSnapshot + towerRadarSnapshot 更新 (Task 22)
- *  14. formatPanelLabel learning_style 显示 label + 置信度 (Task 23)
- *  15. formatPanelLabel emotion_state 翻译为中文 (Task 23)
- *  16. renderProfilePanel 写入 4 卡 data-key + 进度条宽度 + 情绪 class (Task 23)
- *  17. profile_updated 事件触发 renderProfilePanel (Task 23)
+ *  (4 卡画像面板 Task 23 已删除, 与 8 tile 语义重复, 由 Task #48 8 tile 实时更新承载)
  *
  * 实现说明:
  *   js/index.js 是一个 10000+ 行的顶层脚本, 不导出符号。
@@ -97,10 +94,9 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
       // Task 22: radar snapshot + pure geometry helpers
       computeRadarPoints, radarColorWithAlpha, renderRadarFromSnapshot,
       RADAR_DIMENSIONS,
-      // Task 23: 4 卡画像面板渲染
-      formatPanelLabel, renderProfilePanel,
-      PANEL_KEYS, EMOTION_LABEL_MAP, EMOTION_CLASS_PREFIX,
-      PANEL_EMOTION_CLASSES,
+      // Task #49: 控制塔 start/pause/stop 交互
+      startPipeline, pausePipeline, stopPipeline, finishPipeline,
+      wireTowerControlButtons, runMockPipeline, _parseSseEnvelope,
       __state: {
         get agentCatalog() { return agentCatalog; },
         get towerAgentStatus() { return towerAgentStatus; },
@@ -110,6 +106,10 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
         get _towerBusSubscribed() { return _towerBusSubscribed; },
         get _towerInitialized() { return _towerInitialized; },
         get towerRadarSnapshot() { return towerRadarSnapshot; },
+        get towerPipelineRunning() { return towerPipelineRunning; },
+        get towerPaused() { return towerPaused; },
+        get towerSseAbort() { return towerSseAbort; },
+        get TOWER_MOCK_STEPS() { return TOWER_MOCK_STEPS; },
         set agentCatalog(v) { agentCatalog = v; },
         set towerAgentStatus(v) { towerAgentStatus = v; },
         set towerLogs(v) { towerLogs = v; },
@@ -117,6 +117,8 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
         set _towerBusSubscribed(v) { _towerBusSubscribed = v; },
         set _towerInitialized(v) { _towerInitialized = v; },
         set towerRadarSnapshot(v) { towerRadarSnapshot = v; },
+        set towerPipelineRunning(v) { towerPipelineRunning = v; },
+        set towerPaused(v) { towerPaused = v; },
       },
     };
   `;
@@ -543,161 +545,286 @@ describe('agent-tower — 新数据源渲染', () => {
     expect(geom.hasData).toBe(true);
   });
 
-  // === Task 23: 4 卡画像面板 (#profile-grid) — 单元 + 集成 ===
+  // === Task 23: 4 卡画像面板 (#profile-grid) 已删除 ===
+  // 4 张小卡 (学习风格 / 认知水平 / 近期目标 / 情绪状态) 与 8 tile (#profile-container) 重复。
+  // 学情画像实时更新改由 8 tile 自身承担 — 见 Task #48 (8 tile 实时更新)。
 
-  /**
-   * 构造一个最小可用的 #profile-grid DOM 片段, 供渲染测试复用。
-   * 形状要和 html/index.html 的 4 卡 + 进度条 + last-synced 一致。
-   */
-  function buildProfileGridHtml() {
-    return '<div class="profile-grid" id="profile-grid">'
-      + '<div class="profile-card">'
-      +   '<div class="profile-card-title">学习风格</div>'
-      +   '<div class="profile-card-value" data-key="learning_style">—</div>'
-      + '</div>'
-      + '<div class="profile-card">'
-      +   '<div class="profile-card-title">认知水平</div>'
-      +   '<div class="profile-card-value" data-key="cognitive_level">—</div>'
-      + '</div>'
-      + '<div class="profile-card">'
-      +   '<div class="profile-card-title">近期目标</div>'
-      +   '<div class="profile-card-value" data-key="current_goal">—</div>'
-      +   '<div class="profile-progress-bar"><div data-key="current_goal_bar"></div></div>'
-      + '</div>'
-      + '<div class="profile-card">'
-      +   '<div class="profile-card-title">情绪状态</div>'
-      +   '<div class="profile-card-value" data-key="emotion_state">—</div>'
-      + '</div>'
-      + '</div>'
-      + '<div class="profile-last-synced" id="profile-last-synced">Last synced: —</div>';
-  }
+  // === Task #49: 控制塔 start / pause / stop 交互 ===
 
-  it('formatPanelLabel learning_style 显示 label + 置信度百分比', async () => {
+  it('TOWER_MOCK_STEPS 包含 9 步, 覆盖 echo/profiler/planner/.../evaluator', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
     });
     const sb = loadTowerSandbox({ fetchImpl: fetchMock });
-    expect(sb.formatPanelLabel('learning_style', { label: 'visual', confidence: 0.7 })).toBe('visual · 70%');
-    // confidence=0.34 -> 34% (round), label/textual
-    expect(sb.formatPanelLabel('learning_style', { label: 'textual', confidence: 0.34 })).toBe('textual · 34%');
-    // 缺 confidence -> 只显示 label
-    expect(sb.formatPanelLabel('learning_style', { label: 'pragmatic' })).toBe('pragmatic');
-    // 缺 label -> 显示 "—"
-    expect(sb.formatPanelLabel('learning_style', { confidence: 0.5 })).toBe('—');
-    expect(sb.formatPanelLabel('learning_style', null)).toBe('—');
+    const steps = sb.__state.TOWER_MOCK_STEPS;
+    expect(Array.isArray(steps)).toBe(true);
+    expect(steps.length).toBe(9);
+    const ids = steps.map(s => s.id);
+    expect(ids).toContain('echo');
+    expect(ids).toContain('profiler');
+    expect(ids).toContain('planner');
+    expect(ids).toContain('document_generator');
+    expect(ids).toContain('exercise_generator');
+    expect(ids).toContain('mindmap_generator');
+    expect(ids).toContain('video_content');
+    expect(ids).toContain('resource_push');
+    expect(ids).toContain('evaluator');
+    // 每条都有 label
+    for (const s of steps) {
+      expect(typeof s.label).toBe('string');
+      expect(s.label.length).toBeGreaterThan(0);
+    }
   });
 
-  it('formatPanelLabel emotion_state 翻译为中文 (calm→平静 / anxious→焦虑 / frustrated→受挫 / engaged→专注)', async () => {
+  it('_parseSseEnvelope 解析标准 SSE 格式 (event/data 双行) 返回 {event, data}', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
     });
     const sb = loadTowerSandbox({ fetchImpl: fetchMock });
-    expect(sb.formatPanelLabel('emotion_state', { label: 'frustrated' })).toBe('受挫');
-    expect(sb.formatPanelLabel('emotion_state', { label: 'calm' })).toBe('平静');
-    expect(sb.formatPanelLabel('emotion_state', { label: 'anxious' })).toBe('焦虑');
-    expect(sb.formatPanelLabel('emotion_state', { label: 'engaged' })).toBe('专注');
-    // 未知 label -> 原样
-    expect(sb.formatPanelLabel('emotion_state', { label: 'happy' })).toBe('happy');
-    // 缺 entry -> "—"
-    expect(sb.formatPanelLabel('emotion_state', null)).toBe('—');
+    const raw = 'event: agent_step\ndata: {"from":"profiler","status":"success"}';
+    const env = sb._parseSseEnvelope(raw);
+    expect(env).not.toBeNull();
+    expect(env.event).toBe('agent_step');
+    expect(env.data.from).toBe('profiler');
+    expect(env.data.status).toBe('success');
   });
 
-  it('renderProfilePanel 写入 4 卡 data-key + 进度条宽度 + 情绪 class', async () => {
+  it('_parseSseEnvelope 缺 event: 行时默认 event=message, data 多行用 \\n 拼接后 parse 失败返回 null', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
     });
-    // 装载带 #profile-grid 的 DOM
-    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: buildProfileGridHtml() });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    // 多行 data 用 \n 拼成 "line1\nline2" — 不是合法 JSON, parse 失败 -> 整个 envelope null
+    const raw = 'data: line1\ndata: line2\n';
+    expect(sb._parseSseEnvelope(raw)).toBeNull();
 
-    const panel = {
-      learning_style:  { label: 'visual', confidence: 0.5 },
-      cognitive_level: { label: 'intermediate' },
-      current_goal:    { label: '应对考试', progress_pct: 75 },
-      emotion_state:   { label: 'anxious' },
-    };
-    sb.renderProfilePanel(panel);
-
-    const grid = document.getElementById('profile-grid');
-    // 4 卡 data-key 都被写入
-    expect(grid.querySelector('[data-key="learning_style"]').textContent).toBe('visual · 50%');
-    expect(grid.querySelector('[data-key="cognitive_level"]').textContent).toBe('intermediate');
-    expect(grid.querySelector('[data-key="current_goal"]').textContent).toBe('应对考试');
-    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('焦虑');
-    // 进度条宽度
-    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('75%');
-    // 情绪 class
-    const emotionEl = grid.querySelector('[data-key="emotion_state"]');
-    expect(emotionEl.classList.contains('is-anxious')).toBe(true);
-    expect(emotionEl.classList.contains('is-calm')).toBe(false);
-    expect(emotionEl.classList.contains('is-frustrated')).toBe(false);
-    expect(emotionEl.classList.contains('is-engaged')).toBe(false);
-
-    // 二次调用换成 calm -> is-anxious 移除, is-calm 添加
-    sb.renderProfilePanel({
-      learning_style:  { label: 'visual' },
-      cognitive_level: { label: 'beginner' },
-      current_goal:    { label: '补基础', progress_pct: 30 },
-      emotion_state:   { label: 'calm' },
-    });
-    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('平静');
-    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-calm')).toBe(true);
-    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-anxious')).toBe(false);
-    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('30%');
-
-    // 传 null -> 占位 "—", 进度条归零
-    sb.renderProfilePanel(null);
-    for (const key of sb.PANEL_KEYS) {
-      expect(grid.querySelector('[data-key="' + key + '"]').textContent).toBe('—');
-    }
-    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('0%');
-    // 情绪 class 全部清掉
-    const emotionEl2 = grid.querySelector('[data-key="emotion_state"]');
-    for (const cls of sb.PANEL_EMOTION_CLASSES) {
-      expect(emotionEl2.classList.contains(cls)).toBe(false);
-    }
+    // 单行 data: {合法 json} 但缺 event: 行 -> event 默认 'message'
+    const raw2 = 'data: {"a":1}';
+    const env2 = sb._parseSseEnvelope(raw2);
+    expect(env2.event).toBe('message');
+    expect(env2.data.a).toBe(1);
   });
 
-  it('profile_updated 事件触发 renderProfilePanel 写入 4 卡', async () => {
+  it('_parseSseEnvelope 解析失败 (data 非 JSON) 返回 null, 不抛错', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
     });
-    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: buildProfileGridHtml() });
-    sb.__state._towerBusSubscribed = false;
-    if (window.agentBus && typeof window.agentBus.clear === 'function') {
-      window.agentBus.clear();
-    }
-    sb.subscribeToAgentBus();
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    expect(sb._parseSseEnvelope('data: {not json}')).toBeNull();
+    expect(sb._parseSseEnvelope('')).toBeNull();
+    expect(sb._parseSseEnvelope('not an sse message')).toBeNull();
+  });
 
-    // 起始: 4 卡全是 "—"
-    const grid = document.getElementById('profile-grid');
-    for (const key of sb.PANEL_KEYS) {
-      expect(grid.querySelector('[data-key="' + key + '"]').textContent).toBe('—');
-    }
-
-    // emit profile_updated 带 panel
-    window.agentBus.emit('profile_updated', {
-      trace_id: 't-panel-1',
-      radar: {
-        knowledge_mastery: 60, code_skill: 60, cognitive_style: 60,
-        learning_goal: 60, weakness: 60, focus_level: 60,
-      },
-      panel: {
-        learning_style:  { label: 'textual', confidence: 0.8 },
-        cognitive_level: { label: 'advanced' },
-        current_goal:    { label: '考研冲刺', progress_pct: 42 },
-        emotion_state:   { label: 'engaged' },
-      },
+  it('wireTowerControlButtons 幂等: 多次调用只绑一次 (dataset.wired=1)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
     });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start"></button>'
+      + '<button id="tower-pause"></button>'
+      + '<button id="tower-stop"></button>',
+    });
+    // 第一次: 绑
+    sb.wireTowerControlButtons();
+    expect(document.getElementById('tower-start').dataset.wired).toBe('1');
+    expect(document.getElementById('tower-pause').dataset.wired).toBe('1');
+    expect(document.getElementById('tower-stop').dataset.wired).toBe('1');
 
-    // 4 卡都被更新
-    expect(grid.querySelector('[data-key="learning_style"]').textContent).toBe('textual · 80%');
-    expect(grid.querySelector('[data-key="cognitive_level"]').textContent).toBe('advanced');
-    expect(grid.querySelector('[data-key="current_goal"]').textContent).toBe('考研冲刺');
-    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('专注');
-    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('42%');
-    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-engaged')).toBe(true);
+    // 注入一个会被绑两次就 +1 的标志 — 用 click 计数验证
+    let clickCount = 0;
+    const origStart = document.getElementById('tower-start');
+    origStart.addEventListener('click', () => { clickCount++; });
+    // 第二次: 静默返回
+    sb.wireTowerControlButtons();
+    // 触发一次 click — 只应走我们的 startPipeline 一次
+    origStart.click();
+    // 由于 wireTowerControlButtons 第二次早 return, startPipeline 不会真的跑 (无 currentUser) —
+    // 但额外加的 clickCount handler 仍 +1
+    expect(clickCount).toBe(1);
+  });
 
-    // towerRadarSnapshot.panel 也被设上 (Task 22 已经覆盖, 这里再次确认)
-    expect(sb.__state.towerRadarSnapshot.panel.learning_style.label).toBe('textual');
+  it('wireTowerControlButtons 缺按钮时静默返回 (sandbox 友好)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    // 不放任何按钮
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: '<div></div>' });
+    // 不抛错
+    expect(() => sb.wireTowerControlButtons()).not.toThrow();
+  });
+
+  it('pausePipeline 切换 towerPaused 状态 + 改按钮文案', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start">▶ 启动</button>'
+      + '<button id="tower-pause">⏸</button>'
+      + '<button id="tower-stop"></button>',
+    });
+    // 强制标记为运行中
+    sb.__state.towerPipelineRunning = true;
+    sb.__state.towerPaused = false;
+
+    // 第一次暂停 -> true
+    sb.pausePipeline();
+    expect(sb.__state.towerPaused).toBe(true);
+    expect(document.getElementById('tower-pause').textContent).toBe('▶');
+
+    // 第二次恢复 -> false
+    sb.pausePipeline();
+    expect(sb.__state.towerPaused).toBe(false);
+    expect(document.getElementById('tower-pause').textContent).toBe('⏸');
+  });
+
+  it('finishPipeline 重置 UI: start 可点, pause/stop 禁用, 文案还原', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start" disabled>⏵ 运行中</button>'
+      + '<button id="tower-pause">⏸</button>'
+      + '<button id="tower-stop"></button>',
+    });
+    sb.__state.towerPipelineRunning = true;
+    sb.__state.towerPaused = true;
+    sb.finishPipeline();
+    expect(sb.__state.towerPipelineRunning).toBe(false);
+    expect(sb.__state.towerPaused).toBe(false);
+    expect(document.getElementById('tower-start').disabled).toBe(false);
+    expect(document.getElementById('tower-start').textContent).toBe('▶ 启动协作');
+    expect(document.getElementById('tower-pause').disabled).toBe(true);
+    expect(document.getElementById('tower-stop').disabled).toBe(true);
+  });
+
+  it('startPipeline 5xx 后端走 mock 兜底, emit agent_step + pipeline_complete', async () => {
+    // 后端返回 503, sandbox 抓不到 SSE, 走 mock
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false, status: 503, json: () => Promise.resolve({}),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start">▶ 启动</button>'
+      + '<button id="tower-pause" disabled>⏸</button>'
+      + '<button id="tower-stop" disabled></button>',
+    });
+    // 收集 agent_step 事件
+    const stepEvents = [];
+    window.agentBus.subscribe('agent_step', (e) => stepEvents.push(e));
+    let completeFired = false;
+    window.agentBus.subscribe('pipeline_complete', () => { completeFired = true; });
+
+    // 不等待, 设置超时 (mock 内部 setTimeout, sandbox 里也会跑)
+    const startPromise = sb.startPipeline();
+    // 等待 mock 跑完 (9 步 * 250~600ms ≈ 最多 ~5s; 给 8s)
+    const timeout = new Promise((resolve) => setTimeout(resolve, 8000));
+    await Promise.race([startPromise, timeout]);
+    // 兜底: 如果 startPromise 还卡在 mock, 不影响断言
+    // 此时 pipeline 至少应该已经 reset (startPipeline 走完 finally)
+    // 注意: runMockPipeline 用 setTimeout, vitest fake timers 没用, 所以走真实时钟
+
+    // 断言: towerPipelineRunning 已被 finishPipeline 置 false (startPipeline 的 finally)
+    expect(sb.__state.towerPipelineRunning).toBe(false);
+    // 收集到 agent_step 事件 (busy + success = 18 个)
+    expect(stepEvents.length).toBeGreaterThan(0);
+    // pipeline_complete 触发了
+    expect(completeFired).toBe(true);
+  }, 15000);
+
+  it('stopPipeline 取消 SSE (AbortController) + 重置 UI', async () => {
+    // 模拟一个永远 hang 的 fetch — Abort 后才返回 aborted
+    const ctrlHolder = { ctrl: null };
+    const fetchMock = vi.fn().mockImplementation((url, opts) => {
+      if (url !== '/api/agents/execute') {
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }) });
+      }
+      return new Promise((resolve, reject) => {
+        ctrlHolder.ctrl = opts.signal;
+        opts.signal.addEventListener('abort', () => {
+          const e = new Error('aborted');
+          e.name = 'AbortError';
+          reject(e);
+        });
+      });
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start">▶ 启动</button>'
+      + '<button id="tower-pause">⏸</button>'
+      + '<button id="tower-stop"></button>',
+    });
+    // 关键: 不能预先设 towerPipelineRunning=true, 否则 startPipeline 内部 if(...) return 早退。
+    // startPipeline 内部会把它设成 true。
+
+    // 触发 startPipeline (后台跑) — 但因为 fetch 会 hang, 我们不 await
+    sb.startPipeline().catch(() => {});
+
+    // 给 startPipeline 一点时间创建 AbortController
+    await new Promise(r => setTimeout(r, 50));
+    // 此时 towerPipelineRunning 应被 startPipeline 内部设为 true
+    expect(sb.__state.towerPipelineRunning).toBe(true);
+    // towerSseAbort 应已被 set
+    expect(sb.__state.towerSseAbort).not.toBeNull();
+
+    // 触发 stop — 应当 abort
+    sb.stopPipeline();
+    // towerPipelineRunning 应被置 false
+    expect(sb.__state.towerPipelineRunning).toBe(false);
+    // finishPipeline 已经把 start 按钮可点
+    expect(document.getElementById('tower-start').disabled).toBe(false);
+  }, 10000);
+
+  // === Task #50: 控制塔折叠按钮 (#tower-toggle) ===
+
+  it('#tower-toggle 切换 #track-a-container.collapsed + 改按钮文案', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<div id="track-a-container">'
+      + '  <div class="tower-header">'
+      + '    <div class="tower-actions">'
+      + '      <button class="tower-btn" id="tower-start">▶ 启动协作</button>'
+      + '      <button class="tower-btn" id="tower-pause" disabled>⏸</button>'
+      + '      <button class="tower-btn" id="tower-stop" disabled>⏹</button>'
+      + '      <button class="tower-btn" id="tower-toggle" aria-label="折叠控制塔">⇆ 折叠</button>'
+      + '    </div>'
+      + '  </div>'
+      + '</div>',
+    });
+    // wireTowerControlButtons 绑 start/pause/stop + toggle
+    sb.wireTowerControlButtons();
+    const container = document.getElementById('track-a-container');
+    const toggleBtn = document.getElementById('tower-toggle');
+    expect(toggleBtn.dataset.wired).toBe('1');
+
+    // 起始: 非 collapsed
+    expect(container.classList.contains('collapsed')).toBe(false);
+
+    // 第一次 click -> 折叠
+    toggleBtn.click();
+    expect(container.classList.contains('collapsed')).toBe(true);
+    expect(toggleBtn.textContent).toBe('⇆ 展开');
+    expect(toggleBtn.getAttribute('aria-label')).toBe('展开控制塔');
+
+    // 第二次 click -> 展开
+    toggleBtn.click();
+    expect(container.classList.contains('collapsed')).toBe(false);
+    expect(toggleBtn.textContent).toBe('⇆ 折叠');
+    expect(toggleBtn.getAttribute('aria-label')).toBe('折叠控制塔');
+  });
+
+  it('#tower-toggle 缺 #track-a-container 时静默不绑 (sandbox 友好)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: ''
+      + '<button id="tower-start">▶ 启动协作</button>'
+      + '<button id="tower-pause" disabled>⏸</button>'
+      + '<button id="tower-stop" disabled>⏹</button>'
+      + '<button id="tower-toggle">⇆ 折叠</button>',
+    });
+    // 不抛错; start/pause/stop 仍绑, toggleBtn 数据 wired 不应被设
+    expect(() => sb.wireTowerControlButtons()).not.toThrow();
+    expect(document.getElementById('tower-start').dataset.wired).toBe('1');
+    expect(document.getElementById('tower-toggle').dataset.wired).toBeUndefined();
   });
 });

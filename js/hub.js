@@ -17,6 +17,38 @@ function safeGetJSON(key, fallback = {}) {
     }
 }
 
+function isRealAvatar(v) {
+    if (!v || typeof v !== 'string') return false;
+    return /^(https?:\/\/|data:image\/)/i.test(v);
+}
+
+function buildLetterAvatar(name) {
+    const first = Array.from(name || '同')[0] || '同';
+    const safe = first.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%237098d8'/%3E%3Ctext x='20' y='26' text-anchor='middle' fill='white' font-size='18' font-family='Inter'%3E${encodeURIComponent(safe)}%3C/text%3E%3C/svg%3E`;
+}
+
+function applyUserIdentity() {
+    const user = safeGetJSON('starlearn_user', {});
+    const name = (user.name || user.username || '').trim() || '同学';
+
+    const heroTitle = document.getElementById('hero-title');
+    if (heroTitle) {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? '上午好' : hour < 18 ? '下午好' : '晚上好';
+        heroTitle.textContent = `${greeting}，${name} 👋`;
+    }
+
+    const pillName = document.querySelector('#user-pill .user-pill-name');
+    if (pillName) pillName.textContent = name;
+
+    const pillImg = document.querySelector('.user-pill-avatar img');
+    if (pillImg) {
+        pillImg.alt = name;
+        pillImg.src = isRealAvatar(user.avatar) ? user.avatar : buildLetterAvatar(name);
+    }
+}
+
 function getPageVisits() {
     return safeGetJSON('page_visits', []);
 }
@@ -1150,9 +1182,11 @@ async function loadStudyOverviewData() {
             const xpPct       = Math.min(100, Math.round(xpCurrent / xpTotal * 100));
 
             if (heroTitle) {
+                const user = safeGetJSON('starlearn_user', {});
+                const userName = (user.name || user.username || '').trim() || '同学';
                 const hour = new Date().getHours();
                 const greeting = hour < 12 ? '上午好' : hour < 18 ? '下午好' : '晚上好';
-                heroTitle.textContent = `${greeting}，李同学 👋`;
+                heroTitle.textContent = `${greeting}，${userName} 👋`;
             }
             if (heroMotto) {
                 heroMotto.textContent = todayMin > 0
@@ -3856,6 +3890,30 @@ function startMottoRotation() {
 // Initialize
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
+    applyUserIdentity();
+
+    // 跨标签页同步：标签 A 改完昵称/头像 → 标签 B 自动刷新
+    window.addEventListener('storage', e => {
+        if (e.key === 'starlearn_user' || e.key === 'sp_user') {
+            applyUserIdentity();
+        }
+    });
+
+    // 异步拉后端最新值，写回两个 localStorage key 后再渲染一次
+    if (window.Auth && typeof Auth.fetchMe === 'function') {
+        Auth.fetchMe().then(me => {
+            if (!me) return;
+            const u = safeGetJSON('starlearn_user', {});
+            const nick = me.nickname || me.display_name;
+            if (nick) u.name = nick;
+            if (me.avatar) u.avatar = me.avatar;
+            if (me.username) u.username = me.username;
+            if (me.id) u.id = me.id;
+            localStorage.setItem('starlearn_user', JSON.stringify(u));
+            applyUserIdentity();
+        }).catch(() => { /* 静默：缓存已渲染 */ });
+    }
+
     initThemeToggle();
     initPremiumEffects();
     initDailyRoute();

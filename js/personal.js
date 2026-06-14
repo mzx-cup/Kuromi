@@ -1354,6 +1354,24 @@ function selectAvatar(style, el) {
     saveUser();
     setAvatarStylePanelOpen(false);
     showToast('头像已更新');
+
+    // 反向同步 Auth 模块缓存的 sp_user
+    try {
+        const spUser = JSON.parse(localStorage.getItem('sp_user') || 'null');
+        if (spUser && typeof spUser === 'object') {
+            spUser.avatar = currentUser.avatar;
+            localStorage.setItem('sp_user', JSON.stringify(spUser));
+        }
+    } catch (e) { /* silent */ }
+
+    // 同步后端 user 表 avatar 字段
+    if (currentUser.username) {
+        fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, avatar: currentUser.avatar })
+        }).catch(e => console.warn('[personal] sync avatar error', e));
+    }
 }
 
 function handleAvatarUpload(event) {
@@ -1447,6 +1465,24 @@ function confirmCrop() {
     document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
     setAvatarStylePanelOpen(false);
     showToast('头像已更新');
+
+    // 反向同步 Auth 模块缓存的 sp_user
+    try {
+        const spUser = JSON.parse(localStorage.getItem('sp_user') || 'null');
+        if (spUser && typeof spUser === 'object') {
+            spUser.avatar = currentUser.avatar;
+            localStorage.setItem('sp_user', JSON.stringify(spUser));
+        }
+    } catch (e) { /* silent */ }
+
+    // 同步后端 user 表 avatar 字段
+    if (currentUser.username) {
+        fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, avatar: currentUser.avatar })
+        }).catch(e => console.warn('[personal] sync avatar error', e));
+    }
 }
 
 function saveName() {
@@ -1465,6 +1501,25 @@ function saveName() {
 
     saveUser();
     showToast('昵称已保存');
+
+    // 反向同步 Auth 模块缓存的 sp_user（避免 hub fetchMe 又被旧值覆盖）
+    try {
+        const spUser = JSON.parse(localStorage.getItem('sp_user') || 'null');
+        if (spUser && typeof spUser === 'object') {
+            spUser.nickname = name;
+            spUser.display_name = name;
+            localStorage.setItem('sp_user', JSON.stringify(spUser));
+        }
+    } catch (e) { /* silent */ }
+
+    // 同步后端 user 表 nickname 字段
+    if (currentUser.username) {
+        fetch('/api/user/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser.username, nickname: name })
+        }).catch(e => console.warn('[personal] sync nickname error', e));
+    }
 }
 
 async function switchTask(taskName, taskId) {

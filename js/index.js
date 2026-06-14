@@ -1816,7 +1816,9 @@ let profile = {
     learningGoal: '期末考试',
     cognitiveStyle: '待测试',
     weakness: '暂无',
-    focusLevel: 'medium'
+    focusLevel: 'medium',
+    learningDirection: '大数据技术',
+    languages: ['python']
 };
 
 let evaluation = {
@@ -4639,115 +4641,126 @@ const RADAR_DIMENSIONS = [
     { key: 'focus_level',       label: '专注度' },
 ];
 
-// === Task 23: 4 卡画像面板 (#profile-grid) ===
-// 数据源: agentBus 'profile_updated' 事件里 data.panel, 形状见 app/services/portrait_aggregator.py
-//   panel = {
-//     learning_style:  { label, confidence },
-//     cognitive_level: { label, score },
-//     current_goal:    { label, progress_pct },
-//     emotion_state:   { label, intensity },
-//   }
-// 旧 renderProfile() 仍写 #profile-container (隐藏的 8 卡), 不动。
-// 新 renderProfilePanel() 写 #profile-grid, 4 卡 + 进度条 + last-synced 时间戳。
-const PANEL_KEYS = ['learning_style', 'cognitive_level', 'current_goal', 'emotion_state'];
-const EMOTION_LABEL_MAP = {
-    calm: '平静',
-    anxious: '焦虑',
-    frustrated: '受挫',
-    engaged: '专注',
-};
-const EMOTION_CLASS_PREFIX = 'is-';
-const PANEL_EMOTION_CLASSES = ['is-calm', 'is-anxious', 'is-frustrated', 'is-engaged'];
+// === Task 22: 雷达图 (LearningPortrait 6 维) 数据源: agentBus 'profile_updated' 事件里 data.radar ===
+// 旧 renderProfilePanel() (#profile-grid 4 卡) 已删除: 4 张小卡与 #profile-container 8 卡语义重复 (学习风格 / 认知水平重复出现)。
+// 学情画像实时更新改由 renderProfile() (#profile-container, 8 tile) 承担, 同一份 profile_updated 事件直接喂 8 tile 字段。
 
-/**
- * Task 23: 把 panel 单项 entry 翻译成展示用的字符串.
- * - learning_style:    "visual · 70%"
- * - cognitive_level:   "intermediate" (或中文 "中级" — 但后端给英文, 暂原样)
- * - current_goal:      "应对考试" (后端给中文, 原样)
- * - emotion_state:     "calm" -> "平静" (通过 EMOTION_LABEL_MAP)
- * 缺失/非对象: 返回 '—'.
- */
-function formatPanelLabel(key, entry) {
-    if (!entry || typeof entry !== 'object') return '—';
-    if (key === 'learning_style') {
-        const label = entry.label || '';
-        const conf = typeof entry.confidence === 'number' && !Number.isNaN(entry.confidence)
-            ? Math.round(entry.confidence * 100)
-            : null;
-        if (label && conf != null) return label + ' · ' + conf + '%';
-        if (label) return label;
-        return '—';
-    }
-    if (key === 'cognitive_level') {
-        return entry.label || '—';
-    }
-    if (key === 'current_goal') {
-        return entry.label || '—';
-    }
-    if (key === 'emotion_state') {
-        const raw = entry.label || '';
-        if (raw && Object.prototype.hasOwnProperty.call(EMOTION_LABEL_MAP, raw)) {
-            return EMOTION_LABEL_MAP[raw];
+// === Task #48: 8 tile 学情画像 实时更新 ===
+// SSE 事件 agentBus 'profile_updated' 携 data.radar (6 维 0-100) + data.panel (中英标签) — 后端 /api/agents/execute
+// applyProfileFromSnapshot() 把 data.panel/radar 翻译成全局 `profile` 形状, 改写 8 tile 字段 (学习方向/编程语言/
+// 知识基础/编程能力/学习目标/认知风格/知识短板/专注程度), 然后调 renderProfile() 全量重渲。
+// data.panel 形状: { learning_style, cognitive_level, current_goal, emotion_state } 字段 label 是英文枚举键
+// (visual/intermediate/exam/calm 等), 通过 assessmentToProfileMap 反向映射回中文标签, 与现有 #profile-container 8 tile
+// 显示一致; data.radar 0-100 分数用于派生 learningDirection (按 knowledge_mastery/code_skill 选主方向)。
+const _RADAR_DIR_FROM_RADAR = [
+    { key: 'knowledge_mastery', label: '知识掌握' },
+    { key: 'code_skill',        label: '编程能力' },
+    { key: 'cognitive_style',   label: '认知风格' },
+    { key: 'learning_goal',     label: '学习目标' },
+];
+function _pickLearningDirectionFromRadar(radar) {
+    if (!radar || typeof radar !== 'object') return null;
+    let best = null;
+    for (const dim of _RADAR_DIR_FROM_RADAR) {
+        const v = radar[dim.key];
+        if (typeof v === 'number' && !Number.isNaN(v) && (best == null || v > best.v)) {
+            best = { v, dim: dim.key };
         }
-        return raw || '—';
     }
-    return '—';
+    if (!best) return null;
+    const dirMap = {
+        knowledge_mastery: '数据库技术',
+        code_skill: '后端开发',
+        cognitive_style: '人工智能',
+        learning_goal: '前端开发',
+    };
+    return dirMap[best.dim] || null;
 }
 
 /**
- * Task 23: 把 panel 数据写到 #profile-grid 4 张卡 + 进度条 + #profile-last-synced.
- * 安全版本: 任何字段缺失都用 '—' / 0 兜底, 不会抛错.
- * @param {object|null|undefined} panelData
+ * Task #48: 把 SSE profile_updated 事件 data 翻译成 8 tile 字段并写入全局 profile, 触发 renderProfile() 全量重渲。
+ * 安全: 缺字段/非对象/单元测试 sandbox 缺 profile 时, 全部走 fallback 不抛错, 8 tile 保留当前显示。
+ * @param {object|null|undefined} data  后端 envelope: { trace_id, radar: {6 dims}, panel: {4 entries} }
  */
-function renderProfilePanel(panelData) {
-    const grid = document.getElementById('profile-grid');
-    if (!grid) return;
-    const safePanel = (panelData && typeof panelData === 'object') ? panelData : {};
+function applyProfileFromSnapshot(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (typeof profile === 'undefined' || !profile) return false;
+    const radar = (data.radar && typeof data.radar === 'object') ? data.radar : null;
+    const panel = (data.panel && typeof data.panel === 'object') ? data.panel : null;
+    if (!radar && !panel) return false;
 
-    for (const key of PANEL_KEYS) {
-        const el = grid.querySelector('[data-key="' + key + '"]');
-        if (!el) continue;
-        const entry = safePanel[key];
-        el.textContent = formatPanelLabel(key, entry);
-
-        // 情绪状态: 切换 is-* class
-        if (key === 'emotion_state') {
-            for (let i = 0; i < PANEL_EMOTION_CLASSES.length; i++) {
-                el.classList.remove(PANEL_EMOTION_CLASSES[i]);
-            }
-            const raw = (entry && entry.label) || '';
-            if (raw && Object.prototype.hasOwnProperty.call(EMOTION_LABEL_MAP, raw)) {
-                el.classList.add(EMOTION_CLASS_PREFIX + raw);
-            }
-        }
+    // 编程能力: code_skill 0-100 映射到 assessmentToProfileMap.codeSkill 4 档 (beginner/basic/intermediate/advanced)
+    if (radar && typeof radar.code_skill === 'number') {
+        const v = radar.code_skill;
+        let bucket = 'basic';
+        if (v >= 75) bucket = 'advanced';
+        else if (v >= 50) bucket = 'intermediate';
+        else if (v >= 25) bucket = 'basic';
+        else bucket = 'beginner';
+        profile.codeSkill = assessmentToProfileMap.codeSkill[bucket] || profile.codeSkill;
     }
 
-    // 进度条 (近期目标)
-    const bar = grid.querySelector('[data-key="current_goal_bar"]');
-    if (bar) {
-        const goal = safePanel.current_goal;
-        const pct = (goal && typeof goal.progress_pct === 'number' && !Number.isNaN(goal.progress_pct))
-            ? Math.max(0, Math.min(100, goal.progress_pct))
-            : 0;
-        bar.style.width = pct + '%';
+    // 知识基础: knowledge_mastery 0-100 映射到 4 档
+    if (radar && typeof radar.knowledge_mastery === 'number') {
+        const v = radar.knowledge_mastery;
+        let bucket = 'basic';
+        if (v >= 75) bucket = 'advanced';
+        else if (v >= 50) bucket = 'intermediate';
+        else if (v >= 25) bucket = 'basic';
+        else bucket = 'zero';
+        profile.knowledgeBase = assessmentToProfileMap.knowledgeBase[bucket] || profile.knowledgeBase;
     }
 
-    // Last synced (取 panel._last_synced 或 towerRadarSnapshot.last_synced)
-    const synced = document.getElementById('profile-last-synced');
-    if (synced) {
-        const ts = safePanel._last_synced
-            || (towerRadarSnapshot && typeof towerRadarSnapshot.last_synced !== 'undefined' ? towerRadarSnapshot.last_synced : null);
-        if (ts) {
-            const d = new Date(ts);
-            if (!isNaN(d.getTime())) {
-                synced.textContent = 'Last synced: ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            } else {
-                synced.textContent = 'Last synced: —';
-            }
-        } else {
-            synced.textContent = 'Last synced: —';
-        }
+    // 学习目标: 优先 panel.current_goal.label (后端给中文) -> 直接写入
+    if (panel && panel.current_goal && panel.current_goal.label && panel.current_goal.label !== '—') {
+        profile.learningGoal = panel.current_goal.label;
+    } else if (radar && typeof radar.learning_goal === 'number') {
+        // 0-100 -> 6 个目标之一 (按区间轮转)
+        const labels = ['应对考试', '职业发展', '项目实战', '兴趣探索', '竞赛备战', '科研学术'];
+        const idx = Math.min(labels.length - 1, Math.max(0, Math.floor(radar.learning_goal / (100 / labels.length))));
+        profile.learningGoal = labels[idx];
     }
+
+    // 认知风格: panel.learning_style.label 是英文 enum (visual/textual/pragmatic) -> assessmentToProfileMap 翻译
+    if (panel && panel.learning_style && panel.learning_style.label) {
+        const lbl = panel.learning_style.label;
+        profile.cognitiveStyle = assessmentToProfileMap.cognitiveStyle[lbl] || lbl;
+    }
+
+    // 知识短板: 优先 radar.weakness 派生 (0-100 越低越短板)
+    if (radar && typeof radar.weakness === 'number') {
+        // 短板分: <=30 严重, 31-60 一般, 60+ 良好; 0-100 反向 -> 文案用派生标签
+        profile.weakness = radar.weakness <= 30
+            ? '基础薄弱, 需补强'
+            : radar.weakness <= 60
+                ? '进阶内容待巩固'
+                : '掌握良好';
+    }
+
+    // 专注程度: panel.emotion_state.label 是 calm/anxious/frustrated/engaged -> 翻译
+    if (panel && panel.emotion_state && panel.emotion_state.label) {
+        const e = panel.emotion_state.label;
+        const focusMap = { engaged: '高专注', calm: '中等专注', frustrated: '需要引导', anxious: '需要引导' };
+        profile.focusLevel = focusMap[e] || profile.focusLevel;
+    } else if (radar && typeof radar.focus_level === 'number') {
+        const v = radar.focus_level;
+        if (v >= 70) profile.focusLevel = '高专注';
+        else if (v >= 40) profile.focusLevel = '中等专注';
+        else profile.focusLevel = '需要引导';
+    }
+
+    // 学习方向: 取 radar 6 维最高分维度 -> 派生方向 (避免直接拍)
+    const dirFromRadar = _pickLearningDirectionFromRadar(radar);
+    if (dirFromRadar) profile.learningDirection = dirFromRadar;
+
+    // 编程语言: 沿用本地现有 languages 数组 (后端 panel 不携带); 兜底 'python'
+    if (!profile.languages || !Array.isArray(profile.languages) || profile.languages.length === 0) {
+        profile.languages = ['python'];
+    }
+
+    // 全量重渲 8 tile
+    if (typeof renderProfile === 'function') renderProfile();
+    return true;
 }
 
 /**
@@ -5105,15 +5118,292 @@ function subscribeToAgentBus() {
 
     // Task 22: profile_updated 事件 -> 更新雷达 snapshot 并重渲
     // envelope 形状 (后端 /api/agents/execute): { trace_id, radar: {6 dims}, panel?: {...} }
-    // Task 23: 同一个事件也喂 4 卡画像面板 (#profile-grid)
+    // 4 卡画像面板已删除: renderRadarFromSnapshot 里 panel 仅作为 fallback 给 8 tile 实时更新用。
+    // Task #48: 同时把 data 喂 applyProfileFromSnapshot(), 更新 8 tile (#profile-container) 实时显示。
     bus.subscribe('profile_updated', (data) => {
         if (data && typeof data === 'object' && data.radar) {
             renderRadarFromSnapshot({ radar: data.radar, panel: data.panel });
         }
-        if (data && typeof data === 'object' && data.panel) {
-            if (typeof renderProfilePanel === 'function') renderProfilePanel(data.panel);
+        // 8 tile 实时更新 — panel/radar 任意一项非空就触发; sandbox 缺 profile 时静默跳过。
+        if (typeof applyProfileFromSnapshot === 'function') {
+            try { applyProfileFromSnapshot(data); } catch (_) { /* 静默兜底 */ }
         }
     });
+}
+
+// === Task #49: 控制塔 start / pause / stop 交互接线 ===
+// #tower-start  -> startPipeline() -> POST /api/agents/execute -> 解析 SSE, 喂 agentBus (agent_step/profile_updated/pipeline_complete)
+//                  后端 5xx 或网络错误 -> runMockPipeline() 8 步模拟, 同样走 agentBus
+// #tower-pause  -> 冻结 SSE 消费 (连接保留); 按钮文案变 "继续"; 再点 -> 恢复
+// #tower-stop   -> AbortController.abort() 取消 SSE, 清空 #tower-terminal + 状态, 按钮回到 idle
+let towerSseAbort = null;                  // AbortController | null
+let towerPaused = false;                   // 当前是否暂停
+let towerPipelineRunning = false;          // 流水线是否在跑 (含 mock)
+const TOWER_MOCK_STEPS = [
+    { id: 'echo',          label: '问候' },
+    { id: 'profiler',      label: '画像分析' },
+    { id: 'planner',       label: '路径规划' },
+    { id: 'document_generator', label: '文档生成' },
+    { id: 'exercise_generator', label: '题库生成' },
+    { id: 'mindmap_generator',  label: '导图生成' },
+    { id: 'video_content',      label: '视频内容' },
+    { id: 'resource_push',      label: '资源推送' },
+    { id: 'evaluator',          label: '评估' },
+];
+
+/**
+ * Task #49: 后端失败 / 不可达时跑 8 步 mock 流水线, 让 flow-node / #tower-terminal 有内容展示。
+ * 走 agentBus 与真流水线一致: agent_step (busy -> success) + profile_updated + pipeline_complete。
+ */
+async function runMockPipeline() {
+    const bus = window.agentBus;
+    if (!bus || typeof bus.emit !== 'function') return;
+    const traceId = 'mock-' + Date.now().toString(36);
+    const radarSnap = {
+        knowledge_mastery: 60, code_skill: 55, cognitive_style: 50,
+        learning_goal: 45, weakness: 50, focus_level: 70,
+    };
+    for (let i = 0; i < TOWER_MOCK_STEPS.length; i++) {
+        if (!towerPipelineRunning) break;  // 已被 stop 打断
+        while (towerPaused && towerPipelineRunning) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+        const step = TOWER_MOCK_STEPS[i];
+        // busy
+        bus.emit('agent_step', {
+            from: step.id,
+            intent: 'mock_step',
+            payload: { status: 'busy', output_summary: step.label + ' 进行中' },
+            timestamp: Date.now(),
+            trace_id: traceId,
+        });
+        await new Promise(r => setTimeout(r, 250 + Math.random() * 350));
+        if (!towerPipelineRunning) break;
+        // success
+        bus.emit('agent_step', {
+            from: step.id,
+            intent: 'mock_step',
+            payload: { status: 'success', output_summary: step.label + ' 完成' },
+            timestamp: Date.now(),
+            trace_id: traceId,
+        });
+        // 在画像/评估/规划节点 emit profile_updated, 触发 8 tile 实时更新
+        if (step.id === 'profiler' || step.id === 'evaluator' || step.id === 'planner') {
+            bus.emit('profile_updated', {
+                trace_id: traceId,
+                radar: radarSnap,
+                panel: {
+                    learning_style:  { label: 'visual', confidence: 0.7 },
+                    cognitive_level: { label: 'intermediate' },
+                    current_goal:    { label: '应对考试', progress_pct: 35 },
+                    emotion_state:   { label: 'calm' },
+                },
+            });
+        }
+    }
+    if (towerPipelineRunning) {
+        bus.emit('pipeline_complete', { trace_id: traceId, status: 'complete', assets: [] });
+    }
+}
+
+/**
+ * Task #49: 把后端 /api/agents/execute 返回的 SSE 文本流逐行解析, 转换成 agentBus 事件。
+ * - event: <name>\n
+ * - data: <json>\n\n
+ * 单个事件以空行结尾; 解析失败的事件整段跳过 (不抛错)。
+ */
+function _parseSseEnvelope(text) {
+    const lines = text.split('\n');
+    let event = 'message';
+    let dataLines = [];
+    for (const line of lines) {
+        if (!line) continue;
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length === 0) return null;
+    let data;
+    try { data = JSON.parse(dataLines.join('\n')); }
+    catch (_) { return null; }
+    return { event, data };
+}
+
+/**
+ * Task #49: 启动后端流水线。POST + 流式读 SSE, 喂 agentBus。
+ * 网络/5xx 错误 -> runMockPipeline() 兜底。
+ */
+async function runBackendPipeline() {
+    const bus = window.agentBus;
+    if (!bus) return;
+    const userId = (typeof currentUser !== 'undefined' && currentUser && currentUser.id) ? currentUser.id : 'anonymous';
+    const traceId = 'user-' + Date.now().toString(36);
+    let resp;
+    try {
+        const ctrl = new AbortController();
+        towerSseAbort = ctrl;
+        resp = await fetch('/api/agents/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                student_id: userId,
+                user_input: '启动协作',
+                trace_id: traceId,
+            }),
+            signal: ctrl.signal,
+        });
+        if (!resp.ok || !resp.body) {
+            throw new Error('HTTP ' + resp.status);
+        }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            // SSE 事件以 \n\n 分隔
+            let idx;
+            while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                const raw = buffer.slice(0, idx);
+                buffer = buffer.slice(idx + 2);
+                if (towerPaused) continue;  // 暂停期间不喂 bus, 但保持连接
+                const env = _parseSseEnvelope(raw);
+                if (!env) continue;
+                if (env.event === 'agent_step') {
+                    bus.emit('agent_step', env.data);
+                } else if (env.event === 'profile_updated') {
+                    bus.emit('profile_updated', env.data);
+                } else if (env.event === 'pipeline_complete') {
+                    bus.emit('pipeline_complete', env.data);
+                } else if (env.event === 'error') {
+                    bus.emit('error', env.data);
+                } else if (env.event === 'heartbeat') {
+                    // 忽略心跳
+                }
+            }
+        }
+    } catch (e) {
+        if (e && e.name === 'AbortError') return;  // 用户主动 stop
+        // 兜底: mock 流水线
+        if (towerPipelineRunning) await runMockPipeline();
+    } finally {
+        towerSseAbort = null;
+    }
+}
+
+/**
+ * Task #49: 启动按钮处理: 重置 terminal + 状态 -> 启动真流水线 (失败兜底 mock) -> UI 状态切换。
+ */
+async function startPipeline() {
+    if (towerPipelineRunning) return;
+    towerPipelineRunning = true;
+    towerPaused = false;
+    // 清空旧 terminal + 状态
+    if (typeof clearTowerTerminal === 'function') clearTowerTerminal();
+    if (typeof resetTowerStatus === 'function') resetTowerStatus();
+    // UI 状态: 启动后 start 禁用, pause/stop 启用
+    const startBtn = document.getElementById('tower-start');
+    const pauseBtn = document.getElementById('tower-pause');
+    const stopBtn = document.getElementById('tower-stop');
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = '⏵ 运行中'; }
+    if (pauseBtn) { pauseBtn.disabled = false; pauseBtn.textContent = '⏸'; }
+    if (stopBtn) stopBtn.disabled = false;
+
+    // 走真流水线 (失败自动 mock)
+    try {
+        await runBackendPipeline();
+    } finally {
+        // 兜底: 如果 runBackendPipeline 因为 503 触发 mock 路径, mock 完成后仍要 reset UI
+        // 注意: runMockPipeline 内部已经 emit pipeline_complete
+        if (towerPipelineRunning) {
+            // 走真流水线完成
+            finishPipeline();
+        }
+    }
+}
+
+/**
+ * Task #49: 暂停 / 恢复按钮。towerPaused 在 _parseSseEnvelope 消费 SSE 时会跳过 emit;
+ * mock 流水线 while 循环也会等。pause 期间不取消 fetch 连接, 不清空 UI。
+ */
+function pausePipeline() {
+    if (!towerPipelineRunning) return;
+    towerPaused = !towerPaused;
+    const pauseBtn = document.getElementById('tower-pause');
+    if (pauseBtn) pauseBtn.textContent = towerPaused ? '▶' : '⏸';
+    const bus = window.agentBus;
+    if (bus) {
+        bus.emit('agent_step', {
+            from: 'system',
+            intent: towerPaused ? 'paused' : 'resumed',
+            payload: { status: towerPaused ? 'idle' : 'success', output_summary: towerPaused ? '已暂停' : '已继续' },
+            timestamp: Date.now(),
+        });
+    }
+}
+
+/**
+ * Task #49: 停止按钮 -> 取消 SSE, 清空 UI, 重置按钮。
+ */
+function stopPipeline() {
+    if (!towerPipelineRunning) return;
+    towerPipelineRunning = false;
+    towerPaused = false;
+    if (towerSseAbort) { try { towerSseAbort.abort(); } catch (_) {} }
+    finishPipeline();
+    const bus = window.agentBus;
+    if (bus) {
+        bus.emit('agent_step', {
+            from: 'system',
+            intent: 'stopped',
+            payload: { status: 'failed', output_summary: '已停止' },
+            timestamp: Date.now(),
+        });
+    }
+}
+
+/**
+ * Task #49: 流水线结束 (complete / stop / 异常) -> 重置 UI 状态, 让用户可以再次启动。
+ */
+function finishPipeline() {
+    towerPipelineRunning = false;
+    towerPaused = false;
+    const startBtn = document.getElementById('tower-start');
+    const pauseBtn = document.getElementById('tower-pause');
+    const stopBtn = document.getElementById('tower-stop');
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = '▶ 启动协作'; }
+    if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸'; }
+    if (stopBtn) stopBtn.disabled = true;
+}
+
+/**
+ * Task #49: 幂等绑定 #tower-start / pause / stop 三个按钮的 click handler。
+ * 单元测试 sandbox 里没有这些 DOM, 直接静默返回。
+ */
+function wireTowerControlButtons() {
+    const startBtn = document.getElementById('tower-start');
+    const pauseBtn = document.getElementById('tower-pause');
+    const stopBtn = document.getElementById('tower-stop');
+    if (!startBtn || !pauseBtn || !stopBtn) return;
+    if (startBtn.dataset.wired === '1') return;
+    startBtn.dataset.wired = '1';
+    pauseBtn.dataset.wired = '1';
+    stopBtn.dataset.wired = '1';
+    startBtn.addEventListener('click', () => { startPipeline(); });
+    pauseBtn.addEventListener('click', () => { pausePipeline(); });
+    stopBtn.addEventListener('click', () => { stopPipeline(); });
+    // Task #50: 折叠按钮 — 与外部 sandboxCollapseBtn 行为一致 (切换 #track-a-container.collapsed)
+    const toggleBtn = document.getElementById('tower-toggle');
+    const trackAContainer = document.getElementById('track-a-container');
+    if (toggleBtn && trackAContainer) {
+        toggleBtn.dataset.wired = '1';
+        toggleBtn.addEventListener('click', () => {
+            const isCollapsed = trackAContainer.classList.toggle('collapsed');
+            toggleBtn.textContent = isCollapsed ? '⇆ 展开' : '⇆ 折叠';
+            toggleBtn.setAttribute('aria-label', isCollapsed ? '展开控制塔' : '折叠控制塔');
+            window.dispatchEvent(new Event('resize'));
+        });
+    }
 }
 
 /**
@@ -5136,13 +5426,19 @@ async function initAgentTower() {
     }
     // Task 22: 初始渲染雷达图 (无 snapshot -> 自动回退到 mapProfileToScore / legacy profile)
     if (typeof renderRadarChart === 'function') renderRadarChart();
-    // Task 23: 初始渲染 4 卡画像面板 (无 panel -> 显示 "—" 占位, 不要空白卡)
-    if (typeof renderProfilePanel === 'function') renderProfilePanel(null);
+    // 4 卡画像面板已删除: 8 tile 实时更新由 renderProfile() 自身读取全局 profile 全量渲染。
+    // 初始: 全局 profile 已有硬编码默认值, renderProfile() 在 8 tile 容器上写入, 不需要 fallback。
     subscribeToAgentBus();
+    // Task #49: 绑定 start/pause/stop 三个按钮的 click handler, 让用户能交互启动流水线
+    if (typeof wireTowerControlButtons === 'function') wireTowerControlButtons();
 }
 
-// 页面就绪时启动塔; 旧 init 函数内已有同类调用, 这里独立挂一份以保证
-// 旧调用点 (4 个) 不会成为塔的隐式启动依赖。
+/**
+ * 页面就绪时启动塔; 旧 init 函数内已有同类调用, 这里独立挂一份以保证
+/**
+ * 页面就绪时启动塔; 旧 init 函数内已有同类调用, 这里独立挂一份以保证
+ * 旧调用点 (4 个) 不会成为塔的隐式启动依赖。
+ */
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initAgentTower);
@@ -5424,33 +5720,6 @@ function initTheme() {
     const openmaicOverlay = document.getElementById('openmaic-overlay');
     if (savedOpenmaicMode === 'light' && openmaicOverlay) {
         openmaicOverlay.classList.add('light-theme');
-    }
-}
-
-function updateAgentStatus(agentKey, status) {
-    const item = document.querySelector(`.agent-status-item[data-agent="${agentKey}"]`);
-    if (!item) return;
-    const dot = item.querySelector('.agent-status-dot');
-    const label = item.querySelector('.agent-status-label');
-    if (!dot || !label) return;
-
-    dot.className = 'agent-status-dot';
-    if (status === 'active') {
-        dot.classList.add('agent-dot-active');
-        label.textContent = '运行中';
-        label.className = 'agent-status-label active';
-    } else if (status === 'idle') {
-        dot.classList.add('agent-dot-idle');
-        label.textContent = '待命';
-        label.className = 'agent-status-label';
-    } else if (status === 'warning') {
-        dot.classList.add('agent-dot-warning');
-        label.textContent = '等待';
-        label.className = 'agent-status-label';
-    } else if (status === 'error') {
-        dot.classList.add('agent-dot-error');
-        label.textContent = '异常';
-        label.className = 'agent-status-label';
     }
 }
 
@@ -5901,7 +6170,6 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     };
                     sandboxLogs.push(logEntry);
                     activeAgents.add(logEntry.agent);
-                    updateAgentStatus(logEntry.agent, 'active');
                     renderSandboxLog(logEntry, false);
                     renderFlowNodes();
                     renderFilterChips();
@@ -6044,12 +6312,6 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     }
 
                     updateSandboxStatus('完成', 'bg-green-100 text-green-600');
-                    document.querySelectorAll('.agent-status-item').forEach(item => {
-                        const dot = item.querySelector('.agent-status-dot');
-                        const label = item.querySelector('.agent-status-label');
-                        if (dot) dot.className = 'agent-status-dot agent-dot-idle';
-                        if (label) { label.textContent = '待命'; label.className = 'agent-status-label'; }
-});
                     renderMessages();
 
                     // 更新学生画像
@@ -7061,6 +7323,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             updateSandboxState(!isCurrentlyCollapsed);
+        });
+    }
+
+    // Task #50: 控制塔内部 ⇆ 折叠按钮 — 与外部 sandboxCollapseBtn 行为一致,
+    // 额外同步按钮文案 (折叠/展开), 避免用户失去反馈
+    const towerToggleBtn = document.getElementById('tower-toggle');
+    if (towerToggleBtn && trackAContainer) {
+        towerToggleBtn.addEventListener('click', () => {
+            const isCollapsed = trackAContainer.classList.toggle('collapsed');
+            // 同步外部展开按钮的可见性 + 触发窗口 resize 让聊天框 / 输入框重排
+            updateSandboxState(isCollapsed);
+            // 同步按钮文案, 让用户知道下一次点击是"展开"
+            towerToggleBtn.textContent = isCollapsed ? '⇆ 展开' : '⇆ 折叠';
+            towerToggleBtn.setAttribute('aria-label', isCollapsed ? '展开控制塔' : '折叠控制塔');
         });
     }
 

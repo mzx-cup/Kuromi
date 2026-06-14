@@ -85,76 +85,9 @@
             </button>
             <div class="sidebar-section-content space-y-2" id="profile-section">
                 <div class="space-y-2" id="profile-container"></div>
-                <div class="profile-grid" id="profile-grid">
-                  <div class="profile-card">
-                    <div class="profile-card-title">学习风格</div>
-                    <div class="profile-card-value" data-key="learning_style">—</div>
-                  </div>
-                  <div class="profile-card">
-                    <div class="profile-card-title">认知水平</div>
-                    <div class="profile-card-value" data-key="cognitive_level">—</div>
-                  </div>
-                  <div class="profile-card">
-                    <div class="profile-card-title">近期目标</div>
-                    <div class="profile-card-value" data-key="current_goal">—</div>
-                    <div class="profile-progress-bar"><div data-key="current_goal_bar"></div></div>
-                  </div>
-                  <div class="profile-card">
-                    <div class="profile-card-title">情绪状态</div>
-                    <div class="profile-card-value" data-key="emotion_state">—</div>
-                  </div>
-                </div>
-                <div class="profile-last-synced" id="profile-last-synced">Last synced: —</div>
             </div>
         </div>
 
-        <div class="px-3 pb-3">
-            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
-                <i data-lucide="cpu" class="w-4 h-4" style="color: var(--primary-light);"></i>
-                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">智能体状态监控</h2>
-            </div>
-            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('agent-section', this)" data-section="agent-section" aria-expanded="true" aria-controls="agent-section" title="展开/收起智能体状态">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
-                <span class="expand-text text-xs font-medium">收起</span>
-            </button>
-            <div class="sidebar-section-content space-y-2" id="agent-section">
-                <div class="agent-status-item" data-agent="profiler">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">画像分析</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="planner">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">路径规划</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="master_controller">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">主控中枢</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="rag_retriever">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">RAG检索</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="generator">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">内容生成</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="echo">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">记忆回响</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-                <div class="agent-status-item" data-agent="evaluator">
-                    <div class="agent-status-dot agent-dot-idle"></div>
-                    <span class="agent-status-name">学情评估</span>
-                    <span class="agent-status-label">待命</span>
-                </div>
-            </div>
-        </div>
         </div>
     </div>
 
@@ -246,7 +179,7 @@
         <div id="chat-view" class="tab-view flex-1 flex h-full min-h-0">
             <div class="flex flex-col md:flex-row w-full h-full min-h-0">
 
-                <div id="track-a-container" class="relative md:shrink-0 collapsed">
+                <div id="track-a-container" class="relative md:shrink-0">
                     <div id="track-a" class="track-sandbox flex flex-col h-[35vh] md:h-full">
                         <div class="tower-header">
                             <h2>🛰 Agent 编排控制塔</h2>
@@ -254,6 +187,7 @@
                                 <button class="tower-btn" id="tower-pause" disabled title="暂停">⏸</button>
                                 <button class="tower-btn" id="tower-stop" disabled title="停止">⏹</button>
                                 <button class="tower-btn" id="tower-start" title="启动协作">▶ 启动协作</button>
+                                <button class="tower-btn" id="tower-toggle" title="折叠/展开控制塔" aria-label="折叠控制塔">⇆ 折叠</button>
                             </div>
                         </div>
                         <div class="tower-flow" id="tower-flow"></div>

@@ -1396,6 +1396,84 @@
       "completed": [],
       "generated_at": "2026-06-12T18:42:34.159834",
       "user_id": 1004
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础数学概念学习",
+          "description": "学习一元二次方程基础知识",
+          "type": "study",
+          "duration": 40,
+          "subject": "数学",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "一元二次方程练习",
+          "description": "完成5道一元二次方程练习题",
+          "type": "practice",
+          "duration": 30,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 3,
+          "title": "英语词汇记忆",
+          "description": "记忆20个常用英语词汇",
+          "type": "study",
+          "duration": 30,
+          "subject": "英语",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "英语阅读理解",
+          "description": "阅读一篇短文并回答5个问题",
+          "type": "practice",
+          "duration": 40,
+          "subject": "英语",
+          "difficulty": "medium",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 5,
+          "title": "AI编程入门",
+          "description": "学习基础编程概念并尝试简单代码",
+          "type": "study",
+          "duration": 40,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 6,
+          "title": "放松时间",
+          "description": "喂养虚拟宠物并完成简单任务",
+          "type": "relax",
+          "duration": 20,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        },
+        {
+          "id": 7,
+          "title": "学习进度回顾",
+          "description": "查看今日学习成果并制定明日计划",
+          "type": "review",
+          "duration": 20,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/progress.html"
+        }
+      ],
+      "date": "2026-06-13",
+      "completed": [],
+      "generated_at": "2026-06-13T20:26:42.028994",
+      "user_id": 1
     }
   ],
   "classroom_records": [

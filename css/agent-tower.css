@@ -60,27 +60,4 @@
   color: var(--text-primary); cursor: pointer;
 }
 
-/* === 学情画像 4 卡 === */
-.profile-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-  padding: 12px 18px;
-}
-.profile-card {
-  background: var(--profile-card-bg); border: 1px solid var(--profile-card-border);
-  border-radius: var(--radius-md); padding: 10px 12px;
-}
-.profile-card-title { font-size: 11px; color: var(--profile-title); margin-bottom: 4px; }
-.profile-card-value { font-size: 15px; font-weight: 600; color: var(--profile-label); }
-.profile-card-value.is-calm { color: var(--emotion-calm); }
-.profile-card-value.is-anxious { color: var(--emotion-anxious); }
-.profile-card-value.is-frustrated { color: var(--emotion-frustrated); }
-.profile-card-value.is-engaged { color: var(--emotion-engaged); }
-.profile-progress-bar {
-  margin-top: 6px; height: 4px; background: var(--profile-progress-bg);
-  border-radius: 2px; overflow: hidden;
-}
-.profile-progress-bar > div {
-  height: 100%; background: var(--profile-progress); width: 0;
-  transition: width 200ms ease-in-out;
-}
-.profile-last-synced { padding: 4px 18px 12px; font-size: 11px; color: var(--text-tertiary); }
+/* === 学情画像 4 卡 (已删除, 改由 #profile-container 8 tile 实时更新承载) === */
