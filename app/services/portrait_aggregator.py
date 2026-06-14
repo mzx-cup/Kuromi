@@ -44,6 +44,34 @@ _FOCUS_LABEL_SCORE = {
     "需要引导": 30.0,
 }
 
+# 学习目标评分参数
+_GOAL_CURRENT_BONUS = 30.0          # 有 current 目标 +30
+_GOAL_BONUS_PER_TARGET = 15.0       # 每多一个 target_position +15
+_GOAL_MAX_TARGETS = 5               # 最多考虑 5 个 target_position
+
+# 知识短板评分参数
+_WEAKNESS_BONUS_PER_AREA = 25.0     # 每个薄弱点 +25
+_WEAKNESS_MAX_AREAS = 4             # 最多 4 个短板, 上限 100
+
+# 专注度遥测参数
+_FOCUS_PENALTY_IDLE_MS = 5000       # 鼠标空闲 > 5s 触发扣分
+_FOCUS_PENALTY_AMOUNT = 20.0        # 扣分幅度
+_FOCUS_DEFAULT_SCORE = 60.0         # 未知标签的兜底分
+
+# 情绪推导阈值
+_FRUSTRATED_IDLE_MS = 8000          # 空闲 > 8s → frustrated
+_ANXIOUS_SCROLL_THRESHOLD = 800     # 滚动速度 > 800 → anxious
+_ENGAGED_DWELL_MS = 30000           # 区域停留 > 30s → engaged
+
+# 情绪标签 → 强度 (1-5)
+_EMOTION_INTENSITY = {
+    "frustrated": 4,
+    "anxious": 3,
+    "engaged": 2,
+    "calm": 1,
+}
+_DEFAULT_EMOTION_INTENSITY = 3
+
 
 def _clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
     """限制数值范围到 [lo, hi]."""
@@ -76,23 +104,25 @@ def _calc_goal(portrait: LearningPortrait) -> float:
     """学习目标: 有 current 目标 +30, 每多一个 target_position +15, 上限 100."""
     score = 0.0
     if portrait.learning_goal.current:
-        score += 30.0
-    score += min(len(portrait.learning_goal.target_positions), 5) * 15.0
+        score += _GOAL_CURRENT_BONUS
+    score += min(len(portrait.learning_goal.target_positions), _GOAL_MAX_TARGETS) * _GOAL_BONUS_PER_TARGET
     return _clamp(score)
 
 
 def _calc_weakness(portrait: LearningPortrait) -> float:
     """知识短板: 每识别一个薄弱点 +25, 上限 100 (短板越多越需要关注)."""
-    return _clamp(float(min(len(portrait.weakness.areas), 4) * 25))
+    return _clamp(
+        float(min(len(portrait.weakness.areas), _WEAKNESS_MAX_AREAS) * _WEAKNESS_BONUS_PER_AREA)
+    )
 
 
 def _calc_focus(portrait: LearningPortrait, telemetry: Optional[dict]) -> float:
     """专注度: 基础分来自 current 标签, telemetry 中 mouse_idle > 5s 则扣 20."""
-    base = _FOCUS_LABEL_SCORE.get(portrait.focus_level.current, 60.0)
+    base = _FOCUS_LABEL_SCORE.get(portrait.focus_level.current, _FOCUS_DEFAULT_SCORE)
     if telemetry:
         idle = telemetry.get("mouse_idle_ms", 0) or 0
-        if idle > 5000:
-            base = max(0.0, base - 20.0)
+        if idle > _FOCUS_PENALTY_IDLE_MS:
+            base = max(0.0, base - _FOCUS_PENALTY_AMOUNT)
     return _clamp(round(base, 1))
 
 
@@ -101,11 +131,11 @@ def _derive_emotion(telemetry: Optional[dict]) -> str:
     if not telemetry:
         return "calm"
     idle = telemetry.get("mouse_idle_ms", 0) or 0
-    if idle > 8000:
+    if idle > _FRUSTRATED_IDLE_MS:
         return "frustrated"
-    if (telemetry.get("scroll_speed", 0) or 0) > 800:
+    if (telemetry.get("scroll_speed", 0) or 0) > _ANXIOUS_SCROLL_THRESHOLD:
         return "anxious"
-    if (telemetry.get("zone_dwell_ms", 0) or 0) > 30000:
+    if (telemetry.get("zone_dwell_ms", 0) or 0) > _ENGAGED_DWELL_MS:
         return "engaged"
     return "calm"
 
@@ -151,7 +181,9 @@ def aggregate_portrait_snapshot(
             },
             "emotion_state": {
                 "label": _derive_emotion(telemetry),
-                "intensity": 3,
+                "intensity": _EMOTION_INTENSITY.get(
+                    _derive_emotion(telemetry), _DEFAULT_EMOTION_INTENSITY
+                ),
             },
         },
         "last_synced": datetime.now(timezone.utc).isoformat(),
