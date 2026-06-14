@@ -371,16 +371,48 @@ class PersonaManager:
     def _build_persona_section(self, p: Persona) -> str:
         behavior = '\n'.join(f'- {r}' for r in p.behavior_rules)
         opening = p.opening_phrases[0] if p.opening_phrases else '无'
+        from app.services.persona_socratic_rules import build_socratic_rules
+        socratic = build_socratic_rules(p.socratic_intensity)
+        domain = self._build_domain_section(p)
+        crisis = self._build_crisis_section(p)
         return (
             f'# 角色：{p.name}\n\n'
             f'## 角色定位\n{p.identity}\n\n'
+            f'## 所属领域\n{domain}\n\n'
             f'## 核心教学策略\n{p.teaching_strategy}\n\n'
+            f'## 苏格拉底强度：{int(p.socratic_intensity * 100)}%\n{socratic}\n\n'
             f'## 语气语调\n{p.tone}\n\n'
             f'## 行为准则\n{behavior}\n\n'
+            f'{crisis}\n\n'
             f'## 说话风格\n'
             f'- 标志性开场: {opening}\n'
             f'- 单句字数上限: {p.speech_limit} 字\n'
             f'- 视觉动作偏好: {p.visual_preference}'
+        )
+
+    def _build_domain_section(self, p: Persona) -> str:
+        if p.domain == 'counseling':
+            return (
+                '情绪/情感支持专家。\n'
+                '- 学科问题（数学/编程/物理等）礼貌转给学科老师。\n'
+                '- 家庭问题、医疗问题、严重心理危机不在服务范围。\n'
+                '- 你不评判、不说教、不打鸡血、不灌鸡汤。'
+            )
+        return '学科教学专家。'
+
+    def _build_crisis_section(self, p: Persona) -> str:
+        if not p.crisis_keywords:
+            return ''
+        kws = '、'.join(p.crisis_keywords)
+        return (
+            '## 危机识别与转介（CRITICAL）\n'
+            f'当学生消息中出现以下关键词之一：{kws}\n'
+            '你**必须立即**停止辅导，切入转介话术：\n'
+            '「我听到你说有这种感觉，我真的很关心你。'
+            '我想请你做一件事：拨打 24 小时心理援助热线 400-161-9995，'
+            '或者告诉我你的所在地，我可以帮你查最近的医院心理科。'
+            '你不是一个人，我们会一起找到帮助。」\n'
+            '**绝对不要**给方法、绝对不要说「想开点」、**绝对不要**继续聊学科。'
         )
 
     def _build_output_format(self) -> str:
