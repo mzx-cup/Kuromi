@@ -892,6 +892,9 @@ def _ensure_learning_path_nodes_table(conn):
                     code_task_passed INTEGER DEFAULT 0,
                     classroom_progress_pct REAL DEFAULT 0.0,
                     evidence_json TEXT,
+                    goal_evidence_json TEXT,
+                    goal_evidence_validated INTEGER DEFAULT 0,
+                    goal_generated_at TEXT,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(user_id, node_id)
                 )
@@ -916,16 +919,49 @@ def _ensure_learning_path_nodes_table(conn):
                     code_task_passed TINYINT DEFAULT 0,
                     classroom_progress_pct FLOAT DEFAULT 0.0,
                     evidence_json JSON,
+                    goal_evidence_json JSON,
+                    goal_evidence_validated TINYINT DEFAULT 0,
+                    goal_generated_at DATETIME,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY uk_user_node (user_id, node_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
             _create_index_mysql(cursor, "idx_lpn_user", "learning_path_nodes", "user_id")
             _create_index_mysql(cursor, "idx_lpn_node", "learning_path_nodes", "node_id")
+        # 一次性迁移：旧库补齐 3 列
+        _migrate_learning_path_nodes_add_goal_evidence(conn)
         conn.commit()
         cursor.close()
     except Exception as e:
         print(f"[_ensure_learning_path_nodes_table] 建表失败: {e}")
+
+
+def _migrate_learning_path_nodes_add_goal_evidence(conn):
+    """兼容旧表：补齐 goal_evidence_json / goal_evidence_validated / goal_generated_at 三列。
+    失败仅打日志，不阻塞主流程。
+    """
+    new_cols = [
+        ("goal_evidence_json", "TEXT" if _is_sqlite(conn) else "JSON"),
+        ("goal_evidence_validated", "INTEGER DEFAULT 0" if _is_sqlite(conn) else "TINYINT DEFAULT 0"),
+        ("goal_generated_at", "TEXT" if _is_sqlite(conn) else "DATETIME"),
+    ]
+    for col_name, col_type in new_cols:
+        try:
+            cursor = conn.cursor()
+            if _is_sqlite(conn):
+                # SQLite 3.35+ 支持 IF NOT EXISTS；旧版本会抛错，已被 except 兜住
+                cursor.execute(f"ALTER TABLE learning_path_nodes ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
+            else:
+                # MySQL 8 也支持 IF NOT EXISTS
+                cursor.execute(f"ALTER TABLE learning_path_nodes ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
+            cursor.close()
+        except Exception as e:
+            # 极旧 DB（不支持 IF NOT EXISTS）时，捕获"列已存在"错误并忽略
+            msg = str(e).lower()
+            if 'duplicate column' in msg or 'already exists' in msg or 'no such column' in msg:
+                pass
+            else:
+                print(f"[_migrate_learning_path_nodes_add_goal_evidence] {col_name} 迁移失败: {e}")
 
 
 def get_learning_path_nodes(user_id):
@@ -955,6 +991,11 @@ def get_learning_path_nodes(user_id):
                     if node.get('evidence_json') and isinstance(node['evidence_json'], str):
                         try:
                             node['evidence_json'] = json.loads(node['evidence_json'])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    if node.get('goal_evidence_json') and isinstance(node['goal_evidence_json'], str):
+                        try:
+                            node['goal_evidence'] = json.loads(node['goal_evidence_json'])
                         except (json.JSONDecodeError, TypeError):
                             pass
                     result.append(node)
@@ -992,6 +1033,11 @@ def get_learning_path_node(user_id, node_id):
                             node['evidence_json'] = json.loads(node['evidence_json'])
                         except (json.JSONDecodeError, TypeError):
                             pass
+                    if node.get('goal_evidence_json') and isinstance(node['goal_evidence_json'], str):
+                        try:
+                            node['goal_evidence'] = json.loads(node['goal_evidence_json'])
+                        except (json.JSONDecodeError, TypeError):
+                            pass
                     return node
             except Exception as e:
                 print(f"[get_learning_path_node] 查询失败: {e}")
@@ -1010,17 +1056,24 @@ def save_learning_path_node(user_id, node_data):
     if node_data.get('evidence_json'):
         evidence_json = json.dumps(node_data['evidence_json'], ensure_ascii=False)
 
+    goal_evidence_json = None
+    if node_data.get('goal_evidence'):
+        goal_evidence_json = json.dumps(node_data['goal_evidence'], ensure_ascii=False)
+
     try:
         with get_db() as conn:
             if conn is not None:
                 _ensure_learning_path_nodes_table(conn)
                 cursor = conn.cursor()
                 updated_at = datetime.now().isoformat()
+                goal_generated_at = node_data.get('goal_generated_at') or updated_at
                 fields = [
                     'node_topic', 'status', 'mastery_score', 'rule_verified',
                     'llm_verified', 'completion_source', 'interaction_count',
                     'last_quiz_score', 'last_quiz_at', 'code_task_passed',
-                    'classroom_progress_pct', 'evidence_json', 'updated_at'
+                    'classroom_progress_pct', 'evidence_json',
+                    'goal_evidence_json', 'goal_evidence_validated', 'goal_generated_at',
+                    'updated_at'
                 ]
                 values = [
                     node_data.get('node_topic'),
@@ -1035,6 +1088,9 @@ def save_learning_path_node(user_id, node_data):
                     1 if node_data.get('code_task_passed') else 0,
                     node_data.get('classroom_progress_pct', 0.0),
                     evidence_json,
+                    goal_evidence_json,
+                    1 if node_data.get('goal_evidence_validated') else 0,
+                    goal_generated_at,
                     updated_at,
                 ]
                 if _is_sqlite(conn):
@@ -1102,11 +1158,21 @@ def sync_path_to_nodes(user_id, path_json):
                 'status': node.get('status', 'locked'),
                 'mastery_score': 0.0,
                 'updated_at': datetime.now().isoformat(),
+                'goal_evidence': node.get('goal_evidence'),
+                'goal_evidence_validated': node.get('goal_evidence_validated', False),
             })
             updated += 1
         else:
             # 如果路径中的状态与节点表不一致，以节点表为准（节点表更精确）
-            pass
+            # 但 goal_evidence / goal_evidence_validated 允许被新规划覆盖（实时刷新）
+            if node.get('goal_evidence') is not None or 'goal_evidence_validated' in node:
+                save_learning_path_node(user_id, {
+                    'node_id': node_id,
+                    'node_topic': topic,
+                    'goal_evidence': node.get('goal_evidence'),
+                    'goal_evidence_validated': node.get('goal_evidence_validated', False),
+                    'updated_at': datetime.now().isoformat(),
+                })
 
         # 同步 children
         for child in node.get('children', []):

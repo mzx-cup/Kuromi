@@ -1030,32 +1030,97 @@
                             <div><div class="section-title">心流共振波段</div><div class="section-sub">专注度实时追踪</div></div>
                         </div>
                         <div class="ecg-header-stats">
-                            <span class="ecg-stat"><span class="ecg-stat-dot peak"></span><span>94%</span></span>
-                            <span class="ecg-divider">|</span>
-                            <span class="ecg-stat"><span class="ecg-stat-label">Avg</span><span class="ecg-stat-value">82%</span></span>
+                            <span class="ecg-stat" data-tier="">
+                                <span class="ecg-stat-dot"></span>
+                                <span class="ecg-stat-label">实时</span>
+                                <span class="ecg-stat-value" id="ecg-stat-realtime">—</span>
+                            </span>
+                            <span class="ecg-divider"></span>
+                            <span class="ecg-stat" data-tier="">
+                                <span class="ecg-stat-dot"></span>
+                                <span class="ecg-stat-label">7日均值</span>
+                                <span class="ecg-stat-value" id="ecg-stat-avg">—</span>
+                            </span>
                         </div>
                     </div>
-                    <div class="flow-resonance-card hub-card fade-in">
+                    <div class="flow-resonance-card hub-card fade-in" id="flow-resonance-card">
                         <div class="flow-resonance-header">
-                            <h4 class="flow-resonance-title">心流共振</h4>
-                            <svg class="flow-ring" viewBox="0 0 100 100" width="64" height="64">
-                                <circle class="flow-ring-bg" cx="50" cy="50" r="42"/>
-                                <circle class="flow-ring-progress" id="flow-ring-progress" cx="50" cy="50" r="42"
-                                    stroke="url(#ringGradient)" stroke-width="6" stroke-linecap="round"
-                                    stroke-dasharray="264" stroke-dashoffset="16" transform="rotate(-90 50 50)"/>
-                                <text class="flow-ring-value" id="flow-ring-value" x="50" y="50" text-anchor="middle" dominant-baseline="central">94</text>
-                            </svg>
+                            <div class="flow-resonance-title-block">
+                                <h4 class="flow-resonance-title">心流共振</h4>
+                                <span class="flow-resonance-state" id="flow-resonance-state" data-tier="">—</span>
+                            </div>
+                            <div class="flow-ring-wrap">
+                                <svg class="flow-ring" viewBox="0 0 100 100" width="96" height="96">
+                                    <circle class="flow-ring-bg" cx="50" cy="50" r="42"/>
+                                    <circle class="flow-ring-progress" id="flow-ring-progress" cx="50" cy="50" r="42"
+                                        stroke="url(#ringGradient)" stroke-width="7" stroke-linecap="round"
+                                        stroke-dasharray="264" stroke-dashoffset="264" transform="rotate(-90 50 50)"/>
+                                    <text class="flow-ring-value" id="flow-ring-value" x="50" y="50" text-anchor="middle" dominant-baseline="central">—</text>
+                                </svg>
+                                <span class="flow-ring-unit">%</span>
+                            </div>
                         </div>
-                        <div class="flow-bars">
-                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 78%;" data-label="上午"></div></div>
-                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 94%;" data-label="下午"></div></div>
-                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 52%;" data-label="傍晚"></div></div>
-                            <div class="flow-bar"><div class="flow-bar-fill" style="height: 65%;" data-label="晚间"></div></div>
+                        <div class="flow-periods" id="flow-periods">
+                            <div class="flow-period" data-period="morning" data-tier="">
+                                <div class="flow-period-label">上午</div>
+                                <div class="flow-period-value">—<span class="flow-period-unit">%</span></div>
+                                <div class="flow-period-track">
+                                    <div class="flow-period-fill" style="height: 0%;"></div>
+                                </div>
+                                <div class="flow-period-meta">6-12时</div>
+                            </div>
+                            <div class="flow-period" data-period="afternoon" data-tier="">
+                                <div class="flow-period-label">下午</div>
+                                <div class="flow-period-value">—<span class="flow-period-unit">%</span></div>
+                                <div class="flow-period-track">
+                                    <div class="flow-period-fill" style="height: 0%;"></div>
+                                </div>
+                                <div class="flow-period-meta">12-17时</div>
+                            </div>
+                            <div class="flow-period" data-period="evening" data-tier="">
+                                <div class="flow-period-label">傍晚</div>
+                                <div class="flow-period-value">—<span class="flow-period-unit">%</span></div>
+                                <div class="flow-period-track">
+                                    <div class="flow-period-fill" style="height: 0%;"></div>
+                                </div>
+                                <div class="flow-period-meta">17-20时</div>
+                            </div>
+                            <div class="flow-period" data-period="night" data-tier="">
+                                <div class="flow-period-label">晚间</div>
+                                <div class="flow-period-value">—<span class="flow-period-unit">%</span></div>
+                                <div class="flow-period-track">
+                                    <div class="flow-period-fill" style="height: 0%;"></div>
+                                </div>
+                                <div class="flow-period-meta">20时后</div>
+                            </div>
                         </div>
                         <div class="flow-resonance-footer">
-                            <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>峰值专注: 94%</span></div>
-                            <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>注意力分散: 3次</span></div>
-                            <div class="flow-stat"><span class="flow-stat-dot low"></span><span>平均深度: 68%</span></div>
+                            <div class="flow-stat-chip" data-tier="">
+                                <span class="flow-stat-dot"></span>
+                                <span class="flow-stat-text">
+                                    <span class="flow-stat-num" id="flow-stat-peak">—</span>
+                                    <span class="flow-stat-name">峰值专注</span>
+                                </span>
+                            </div>
+                            <div class="flow-stat-chip" data-tier="">
+                                <span class="flow-stat-dot"></span>
+                                <span class="flow-stat-text">
+                                    <span class="flow-stat-num" id="flow-stat-warning">—</span>
+                                    <span class="flow-stat-name">注意力分散</span>
+                                </span>
+                            </div>
+                            <div class="flow-stat-chip" data-tier="">
+                                <span class="flow-stat-dot"></span>
+                                <span class="flow-stat-text">
+                                    <span class="flow-stat-num" id="flow-stat-avg">—</span>
+                                    <span class="flow-stat-name">平均深度</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flow-empty" id="flow-resonance-empty" hidden>
+                            <div class="flow-empty-icon">∿</div>
+                            <div class="flow-empty-text">暂无专注记录</div>
+                            <div class="flow-empty-hint">开始一次专注以生成数据</div>
                         </div>
                     </div>
                 </section>

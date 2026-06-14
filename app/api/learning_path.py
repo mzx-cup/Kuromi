@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 import requests
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import db as database
 from app.services.analytics_builder import build_student_analytics
@@ -28,6 +28,18 @@ class GenerateLearningPathRequest(BaseModel):
     userId: int
     forceRefresh: bool = False  # 强制刷新，忽略缓存
     goal: Optional[str] = None  # 用户自定义学习目标（Tab 3 任务编排输入）
+    difficulty_pref: int = Field(default=3, ge=1, le=5, description="Agent 控制塔难度偏好 1-5")
+    strategy: str = Field(default="auto", description="Agent 控制塔教学策略")
+    injected_knowledge: list[str] = Field(default_factory=list, description="Agent 控制塔注入知识标签")
+
+
+class GoalEvidence(BaseModel):
+    """节点学习目标的证据追溯（real-time 真实 ID 引用）。"""
+    quiz_ids: Optional[list[str]] = []
+    classroom_ids: Optional[list[str]] = []
+    profile_signals: Optional[list[str]] = []
+    interaction_stats_refs: Optional[dict] = {}
+    rationale_excerpt: Optional[str] = ""
 
 
 class LearningPathNode(BaseModel):
@@ -37,6 +49,11 @@ class LearningPathNode(BaseModel):
     estimated_time: Optional[int] = None  # 分钟
     prerequisites: Optional[list[str]] = []
     description: Optional[str] = ""
+    learning_goal: Optional[str] = ""
+    capability_rationale: Optional[str] = ""
+    targeted_dimensions: Optional[list[str]] = []
+    goal_evidence: Optional[GoalEvidence] = None
+    goal_evidence_validated: Optional[bool] = False
     children: Optional[list[dict]] = []
 
 
@@ -145,6 +162,152 @@ def _normalize_path(value: Any) -> list[dict]:
     return []
 
 
+def _downgrade_completed_to_inprogress(path: list[dict]) -> None:
+    """递归把路径中所有 `completed` 节点降级为 `in_progress`。
+
+    适用场景：用户尚未完成学情评估，路径中不应出现"已掌握"的节点。
+    LLM 即使收到强指令仍可能误标，本函数作为最后一道防线，强制纠正。
+    """
+    for node in path:
+        if isinstance(node, dict):
+            if node.get('status') == 'completed':
+                node['status'] = 'in_progress'
+                # 清空可能误生成的"已掌握"描述
+                desc = node.get('description', '')
+                if desc:
+                    node['description'] = desc.replace('已掌握', '待学习').replace('已学完', '待学习').replace('已学毕', '待学习')
+            children = node.get('children')
+            if isinstance(children, list):
+                _downgrade_completed_to_inprogress(children)
+
+
+# 学习目标 6 维白名单（与 system prompt 规则 16 保持一致）
+_TARGETED_DIMENSIONS_WHITELIST = {
+    "knowledge_base", "code_skill", "cognitive_style",
+    "focus_level", "learning_goals", "weakness",
+}
+# 描述学习目标时禁止使用的模糊词（与 LLM 规则 14 保持一致）
+_FUZZY_GOAL_WORDS = ("了解", "理解", "认识", "知道")
+# 节点 description / learning_goal 中"已掌握"类违禁词（与 _downgrade_completed_to_inprogress 一致）
+_FORBIDDEN_COMPLETION_WORDS = ("已掌握", "已学完", "已学毕", "掌握完毕", "熟练掌握")
+
+
+def _validate_and_ground_learning_goals(path: list[dict], analytics: dict) -> dict:
+    """校验路径节点的 learning_goal / goal_evidence 真实性、实时性、贴合性。
+
+    校验项：
+    1. targeted_dimensions ∈ 6 维白名单
+    2. 违规词扫描（描述/目标中含"已掌握"等"虚假完成"表述）
+    3. goal_evidence.quiz_ids / classroom_ids 必须在 evidence_signals 中真实存在
+    4. capability_rationale 与 profile 一致性（避免"零基础→已掌握基础"自相矛盾）
+
+    失败策略：标记但不剔除（在节点上写 `goal_evidence_validated=false`）。
+    整路径不通过时仍返回完整 path，由前端按节点级红色角标提示。
+
+    返回: {valid_count, invalid_count, invalid_node_ids, reason_map}
+    """
+    evidence = analytics.get("evidence_signals", {}) or {}
+    valid_quiz_ids = set(evidence.get("quiz_ids", []) or [])
+    valid_classroom_ids = set(evidence.get("classroom_ids", []) or [])
+    valid_profile_signals = set(evidence.get("profile_signals", []) or [])
+    profile = analytics.get("profile", {}) or {}
+    cockpit = analytics.get("cockpit", {}) or {}
+
+    kb = profile.get("knowledge_base", "")
+    cs = profile.get("code_skill", "")
+
+    valid_count = 0
+    invalid_count = 0
+    invalid_node_ids: list[str] = []
+    reason_map: dict[str, list[str]] = {}
+
+    def _check_node(node: dict) -> None:
+        nonlocal valid_count, invalid_count
+        if not isinstance(node, dict):
+            return
+
+        topic = node.get("topic", "") or node.get("name", "") or node.get("title", "")
+        node_id = node.get("id") or node.get("node_id") or topic
+        reasons: list[str] = []
+
+        # 1) targeted_dimensions 白名单
+        dims = node.get("targeted_dimensions") or []
+        if dims and isinstance(dims, list):
+            bad_dims = [d for d in dims if isinstance(d, str) and d not in _TARGETED_DIMENSIONS_WHITELIST]
+            if bad_dims:
+                reasons.append(f"targeted_dimensions 含非白名单维度: {bad_dims}")
+
+        # 2) 违规词扫描（description / learning_goal / capability_rationale）
+        text_fields = [str(node.get("description", "")), str(node.get("learning_goal", "")),
+                       str(node.get("capability_rationale", ""))]
+        for txt in text_fields:
+            for bad in _FORBIDDEN_COMPLETION_WORDS:
+                if bad in txt:
+                    reasons.append(f"含违禁词「{bad}」")
+                    break
+        # 模糊词（仅在 learning_goal 里检查）
+        lg = str(node.get("learning_goal", "") or "")
+        for fuzzy in _FUZZY_GOAL_WORDS:
+            # 模糊词必须出现且后面不是"要"或"，"才算 — 简单实现：含模糊词且目标 < 25 字
+            if fuzzy in lg and len(lg) < 25 and not any(s in lg for s in ["能", "会", "达到", "通过"]):
+                reasons.append(f"learning_goal 含模糊词「{fuzzy}」且无可验证标准")
+                break
+
+        # 3) goal_evidence 真实性
+        ge = node.get("goal_evidence")
+        if ge and isinstance(ge, dict):
+            fake_quiz = [q for q in (ge.get("quiz_ids") or []) if q not in valid_quiz_ids]
+            if fake_quiz:
+                reasons.append(f"goal_evidence.quiz_ids 含不存在的 ID: {fake_quiz}")
+            fake_cls = [c for c in (ge.get("classroom_ids") or []) if c not in valid_classroom_ids]
+            if fake_cls:
+                reasons.append(f"goal_evidence.classroom_ids 含不存在的 ID: {fake_cls}")
+            fake_prof = [p for p in (ge.get("profile_signals") or []) if p not in valid_profile_signals]
+            if fake_prof:
+                reasons.append(f"goal_evidence.profile_signals 含不存在的画像字段: {fake_prof}")
+            # rationale_excerpt 必填
+            if not ge.get("rationale_excerpt"):
+                reasons.append("goal_evidence.rationale_excerpt 缺失")
+        else:
+            # 没填 goal_evidence 也算未通过（system prompt 规则 15 强制要求）
+            reasons.append("缺少 goal_evidence 字段")
+
+        # 4) capability_rationale 一致性（避免零基础自夸"已掌握基础"）
+        rationale = str(node.get("capability_rationale", "") or "")
+        if kb in ("零基础入门", "基础入门") and any(w in rationale for w in ("已掌握基础", "基础扎实", "基础很好", "基础强")):
+            reasons.append(f"capability_rationale 与 profile.knowledge_base={kb} 矛盾")
+        if cs in ("编程新手",) and any(w in rationale for w in ("熟练编程", "编程高手", "代码能力强")):
+            reasons.append(f"capability_rationale 与 profile.code_skill={cs} 矛盾")
+
+        # 写入校验结果
+        if reasons:
+            node["goal_evidence_validated"] = False
+            node["_validation_reasons"] = reasons[:5]  # 限制条数
+            invalid_count += 1
+            invalid_node_ids.append(node_id)
+            reason_map[node_id] = reasons[:5]
+        else:
+            node["goal_evidence_validated"] = True
+            valid_count += 1
+
+        # 递归处理子节点
+        children = node.get("children")
+        if isinstance(children, list):
+            for child in children:
+                _check_node(child)
+
+    if isinstance(path, list):
+        for n in path:
+            _check_node(n)
+
+    return {
+        "valid_count": valid_count,
+        "invalid_count": invalid_count,
+        "invalid_node_ids": invalid_node_ids,
+        "reason_map": reason_map,
+    }
+
+
 def _merge_node_states_into_path(user_id: int, path: list[dict]) -> list[dict]:
     """将节点追踪表中的状态融合到路径中（节点表优先）。"""
     nodes_map = {}
@@ -216,9 +379,19 @@ LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体�
       "estimated_time": 30,
       "prerequisites": ["前置知识1", "前置知识2"],
       "description": "该节点学习内容的一句话描述",
-      "learning_goal": "本节点的学习目标，明确说明要培养什么能力/掌握什么知识",
+      "learning_goal": "本节点的学习目标（结构化）",
       "capability_rationale": "该节点为何适合该学生当前能力水平的简短说明（如：因学生基础为进阶，跳过基础概念直接讲原理）",
       "targeted_dimensions": ["knowledge_base", "code_skill"],
+      "goal_evidence": {
+        "quiz_ids": ["python_basics_q1", "loop_q3"],
+        "classroom_ids": ["intro_lesson_2"],
+        "profile_signals": ["knowledge_base=零基础入门", "code_skill=编程新手", "learning_goals=exam"],
+        "interaction_stats_refs": {
+          "concept_mastery": 67,
+          "weak_areas": ["递归"]
+        },
+        "rationale_excerpt": "因最近 5 次测验中 3 次未通过递归相关题目"
+      },
       "children": [
         {
           "topic": "子节点标题",
@@ -251,12 +424,49 @@ LEARNING_PATH_SYSTEM_PROMPT = """你是一位资深大学教研规划智能体�
 10. **认知风格适配**：cognitive_style 影响节点描述中的学习方式建议（视觉型→图示视频，文字型→文档笔记，实践型→编码实验），在 capability_rationale 里给出适配说明。
 11. **知识短板强化**：weakness 中列出的薄弱领域应在路径中有对应强化节点，标注为 core 优先级。
 12. **专注度调整**：focus_level 影响路径密度和 estimated_time（高专注→每天 2-3 节点，中等→每天 1-2 节点，低→每天 1 节点并增加复习节点），在 capability_analysis.learning_pace 中给出具体建议。
+
+13. **completed 状态的硬约束**：仅当该学生有**真实的学习证据**（测验通过、课堂完成、对话中明确表达掌握）时，才能把节点标为 completed。**禁止把"看起来很基础"的节点默认为 completed**。如果学情数据中没有"已掌握该节点"的证据，则该节点必须标为 `in_progress` 或 `locked`，不能标为 `completed`。
+
+14. **结构化 learning_goal（强制）**：每个节点的 `learning_goal` 必须是以下结构（一句话）：
+
+    `要培养 {维度} 维度的 {能力}，达到 {可验证标准}，基于证据 {evidence_id} 的 {指标} 数值 {value}`
+
+    示例：
+    - `要培养 code_skill 维度的 Python 循环控制能力，达到能独立编写嵌套 for 循环且无语法错误，基于证据 quiz_id=loop_q3 的 pass_rate 0.4`
+    - `要培养 knowledge_base 维度的递归基础概念，达到能口述递归三要素并写简单递归函数，基于证据 profile.knowledge_base=零基础入门`
+
+    - `{维度}` ∈ {knowledge_base, code_skill, cognitive_style, focus_level, learning_goals, weakness}（6 维白名单）
+    - `{evidence_id}` 必须是下述"可引用证据池"中真实存在的 ID；找不到证据时写 `profile.knowledge_base=<等级>` 或 `cockpit.concept_mastery=<数值>`
+    - `{可验证标准}` 必须是可量化或可观察的行为（"能写...","会解释...","通过某测验..."），禁止写"了解""理解"等模糊词
+
+15. **goal_evidence（强制输出）**：每个 path 节点（包含 children）必须输出 `goal_evidence` 对象，引用下方"可引用证据池"中真实存在的 ID：
+
+    {
+      "quiz_ids": ["<来自 evidence_signals.quiz_ids 的真实 ID>"],
+      "classroom_ids": ["<来自 evidence_signals.classroom_ids 的真实 ID>"],
+      "profile_signals": ["<来自 evidence_signals.profile_signals 的真实条目>"],
+      "interaction_stats_refs": { "<key>": <value> },  // 可选：引用 interaction_stats 中的字段
+      "rationale_excerpt": "用一句话说明为什么这些证据支撑这个 learning_goal"
+    }
+
+    - 找不到对应证据时，**必须**留空数组，但 `rationale_excerpt` 不能省略
+    - **禁止编造** evidence_signals 中不存在的 ID
+
+16. **targeted_dimensions 白名单**：仅可从 {knowledge_base, code_skill, cognitive_style, focus_level, learning_goals, weakness} 中选择，**禁止**出现"逻辑思维""数学"等未在白名单内的维度。
+
+17. **capability_rationale 一致性**：必须与 `profile.knowledge_base` / `profile.code_skill` / `profile.weakness` 等画像字段一致。例如：profile.knowledge_base=零基础入门，但 capability_rationale 写"因学生已掌握基础"——这种**自相矛盾**会被后端校验标记为"待复核"。
 """
 
 
-def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
+def _build_user_prompt(analytics: dict, goal: Optional[str] = None,
+                       difficulty_pref: int = 3, strategy: str = "auto",
+                       injected_knowledge: Optional[list[str]] = None) -> tuple[str, bool]:
     """将学情报告构建为 LLM user prompt，突出多维能力数据。
+    返回: (prompt, has_assessment_data)
     goal: 用户自定义学习目标，注入 prompt 引导 LLM 生成针对性路径。
+    difficulty_pref: 教学难度偏好 1-5
+    strategy: 教学策略
+    injected_knowledge: 注入知识标签
     """
     profile = analytics.get("profile", {})
     cockpit = analytics.get("cockpit", {})
@@ -272,10 +482,17 @@ def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
     lines.append("")
 
     # ── 多维能力总览（结构化，便于 LLM 逐维度决策） ──
+    # 注意：空值场景必须明确归类为"零基础"，避免 LLM 推断"未知=已有基础"而误标 completed。
+    kb_raw = profile.get('knowledge_base') or ''
+    cs_raw = profile.get('code_skill') or ''
+    kb_for_display = kb_raw if kb_raw else '零基础入门'
+    cs_for_display = cs_raw if cs_raw else '编程新手'
+    has_assessment_data = bool(kb_raw and cs_raw)
+
     lines.append("### 📊 多维能力总览")
     lines.append("")
-    lines.append("【知识基础】" + (" " + profile.get('knowledge_base', '未知') if profile.get('knowledge_base') else "未知"))
-    lines.append("【代码能力】" + (" " + profile.get('code_skill', '未知') if profile.get('code_skill') else "未知"))
+    lines.append("【知识基础】" + kb_for_display + ("（用户已评估）" if kb_raw else "（⚠️ 尚未评估，按零基础处理）"))
+    lines.append("【代码能力】" + cs_for_display + ("（用户已评估）" if cs_raw else "（⚠️ 尚未评估，按编程新手处理）"))
     lines.append("【学习目标】" + (" " + str(profile.get('learning_goals', [])) if profile.get('learning_goals') else "未知"))
     lines.append("【认知风格】" + (" " + profile.get('cognitive_style', '未知') if profile.get('cognitive_style') else "未知"))
     lines.append("【专注程度】" + (" " + profile.get('focus_level', '未知') if profile.get('focus_level') else "未知"))
@@ -389,6 +606,30 @@ def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
     lines.append(f"- 闪卡复习: {stats.get('flashcards_studied', 0)}")
     lines.append(f"- 近期主题: {stats.get('recent_topics', [])}")
     lines.append("")
+
+    # ── 可引用证据池：LLM 在 goal_evidence 中只能引用以下 ID ──
+    evidence = analytics.get("evidence_signals", {}) or {}
+    quiz_ids = evidence.get("quiz_ids", [])
+    classroom_ids = evidence.get("classroom_ids", [])
+    interaction_stats = evidence.get("interaction_stats", {}) or {}
+    profile_signals = evidence.get("profile_signals", [])
+    recent_topics_ev = evidence.get("recent_message_topics", [])
+    lines.append("### 🧾 可引用证据池（goal_evidence 必须从下列 ID 中引用，禁止编造）")
+    lines.append(f"- 真实测验 ID（quiz_ids）: {quiz_ids if quiz_ids else '（暂无）'}")
+    lines.append(f"- 真实课堂 ID（classroom_ids）: {classroom_ids if classroom_ids else '（暂无）'}")
+    lines.append(f"- 已评估画像字段（profile_signals）: {profile_signals if profile_signals else '（暂无）'}")
+    lines.append("- 互动统计快照（interaction_stats）:")
+    lines.append(f"  - interaction_count = {interaction_stats.get('interaction_count', 0)}")
+    lines.append(f"  - learning_minutes = {interaction_stats.get('learning_minutes', 0)}")
+    lines.append(f"  - completed_tasks = {interaction_stats.get('completed_tasks', 0)}")
+    lines.append(f"  - concept_mastery = {interaction_stats.get('concept_mastery', 0)}")
+    lines.append(f"  - thinking_depth = {interaction_stats.get('thinking_depth', 0)}")
+    lines.append(f"  - learning_momentum = {interaction_stats.get('learning_momentum', 0)}")
+    lines.append(f"  - weak_areas = {interaction_stats.get('weak_areas', [])}")
+    lines.append(f"  - strong_areas = {interaction_stats.get('strong_areas', [])}")
+    if recent_topics_ev:
+        lines.append(f"- 近期对话主题: {recent_topics_ev}")
+    lines.append("")
     lines.append("### 今日航线")
     lines.append(f"- 今日任务数: {daily_route.get('tasks_count', 0)}")
     lines.append(f"- 已完成: {daily_route.get('completed_count', 0)}")
@@ -398,6 +639,15 @@ def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
     for p in preview[:5]:
         lines.append(f"- [{p.get('status', 'locked')}] {p.get('topic', '')}")
     lines.append("")
+    # ── ⚠️ 关键防误判规则：避免 LLM 把"无评估=已有基础"导致错标 completed ──
+    if not has_assessment_data:
+        lines.append("### ⚠️ 起点强制规则（学生尚未完成评估）")
+        lines.append("由于该学生尚未完成学情评估，**所有节点必须按以下规则生成，禁止凭空把基础节点标记为 completed**：")
+        lines.append("- 任何编程/语法基础类节点（如「Python基础语法」「数据结构」「Linux入门」等）必须标记为 `in_progress`（表示「刚要开始」）或 `locked`，**绝不能标记为 `completed`**；")
+        lines.append("- 节点 description 中**禁止**使用「已掌握」「已学完」「已学毕」等表述；")
+        lines.append("- 路径中第一个节点的 `learning_goal` 应明确为：从零开始学习 xxx 基础；")
+        lines.append("- 节点 `status` 字段以本次新规划为准，**不要继承**上方「当前路径预览」中可能存在的旧状态（旧的 completed 状态不代表真实掌握）。")
+        lines.append("")
     lines.append("### 近期对话主题")
     lines.append(f"{conversations.get('recent_topics', [])}")
     lines.append("")
@@ -408,18 +658,32 @@ def _build_user_prompt(analytics: dict, goal: Optional[str] = None) -> str:
         lines.append(f"路径中的所有节点都应围绕这个目标设计，确保每个节点都为目标服务。")
         lines.append("")
 
+    # ── Agent 控制塔教学调控注入 ──
+    _dl = {1:"极简",2:"简单",3:"适中",4:"困难",5:"极难"}
+    _dt = _dl.get(difficulty_pref, "适中")
+    _sl = {"auto":"自动","lecture":"讲解","practice":"练习","socratic":"苏格拉底"}
+    _st = _sl.get(strategy, "自动")
+    _ik = "、".join(injected_knowledge) if injected_knowledge else "暂无"
+    lines.append("### Agent 控制塔教学调控")
+    lines.append(f"- 难度偏好：{_dt}（{difficulty_pref}/5）")
+    lines.append(f"- 教学策略：{_st}")
+    lines.append(f"- 注入知识/兴趣标签：{_ik}")
+    lines.append("路径节点的话题难度和教学方式应遵循以上设置。")
+    lines.append("")
     lines.append("请基于以上全部多维能力数据，生成该学生的个性化学习路径。注意：")
     lines.append("1. 每个路径节点的 learning_goal 必须明确写出该节点要培养的能力")
     lines.append("2. capability_rationale 要解释该节点为何适合该生的当前能力水平")
     lines.append("3. targeted_dimensions 至少要标注该节点针对哪些能力维度")
     lines.append("4. capability_analysis 要综合所有维度给出整体学习策略")
 
-    return "\n".join(lines)
+    return "\n".join(lines), has_assessment_data
 
 
 # ── 核心生成逻辑（可被外部调用） ──
 
-async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal: Optional[str] = None) -> GenerateLearningPathResponse:
+async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal: Optional[str] = None,
+                                  difficulty_pref: int = 3, strategy: str = "auto",
+                                  injected_knowledge: Optional[list[str]] = None) -> GenerateLearningPathResponse:
     """
     基于学生完整学情数据，实时生成/更新个性化学习路径。
     可被 main.py 或其他模块直接调用，避免循环导入和 HTTP 开销。
@@ -470,7 +734,8 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
                 pass
 
     # 3. 构建 prompt 并调用 LLM
-    user_prompt = _build_user_prompt(analytics, goal=goal)
+    user_prompt, has_assessment_data = _build_user_prompt(analytics, goal=goal, difficulty_pref=difficulty_pref,
+                                                          strategy=strategy, injected_knowledge=injected_knowledge)
     try:
         llm_response = _call_llm(LEARNING_PATH_SYSTEM_PROMPT, user_prompt, temperature=0.4)
     except HTTPException:
@@ -512,6 +777,22 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
             confidence=0.0,
         )
 
+    # 4.5 ⚠️ 防御性后处理：未评估用户禁止任何节点为 completed（兜底，防止 LLM 违反规则）
+    if not has_assessment_data:
+        _downgrade_completed_to_inprogress(path)
+
+    # 4.6 结构化校验：学习目标真实性、证据 ID 真实性、profile 一致性
+    try:
+        cfg = getattr(settings, "learning_goal_validation", {}) or {}
+        if cfg.get("enabled", True):
+            validation_result = _validate_and_ground_learning_goals(path, analytics)
+            print(f"[LearningPath] goal_evidence 校验: valid={validation_result['valid_count']}, "
+                  f"invalid={validation_result['invalid_count']}")
+            if validation_result["invalid_count"] > 0:
+                print(f"[LearningPath] 校验失败节点: {validation_result['invalid_node_ids'][:5]}")
+    except Exception as e:
+        print(f"[LearningPath] _validate_and_ground_learning_goals 异常（不阻断生成）: {e}")
+
     # 5. 融合节点状态（节点表的状态更精确，覆盖 LLM 生成的状态）
     path = _merge_node_states_into_path(user_id, path)
 
@@ -551,7 +832,9 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
 @router.post("/generate", response_model=GenerateLearningPathResponse)
 async def generate_learning_path(request: GenerateLearningPathRequest):
     """基于学生完整学情数据，实时生成/更新个性化学习路径。"""
-    return await generate_path_for_user(request.userId, force_refresh=request.forceRefresh, goal=request.goal)
+    return await generate_path_for_user(request.userId, force_refresh=request.forceRefresh, goal=request.goal,
+                                        difficulty_pref=request.difficulty_pref, strategy=request.strategy,
+                                        injected_knowledge=request.injected_knowledge)
 
 
 @router.get("/current/{user_id}", response_model=GenerateLearningPathResponse)
@@ -582,6 +865,22 @@ async def get_current_learning_path(user_id: int):
         path = _normalize_path(stored)
     # 融合节点状态
     path = _merge_node_states_into_path(user_id, path)
+    # ⚠️ 防御性后处理：未评估用户不应有 completed 节点（即使 LLM 历史生成过错误数据）
+    try:
+        profile_raw = database.get_user_profile(user_id)
+        profile_json_raw = profile_raw.get("profile_json") if profile_raw else {}
+        if isinstance(profile_json_raw, str):
+            import json
+            try:
+                profile_json_raw = json.loads(profile_json_raw)
+            except Exception:
+                profile_json_raw = {}
+        kb_val = (profile_json_raw or {}).get("knowledgeBase", "")
+        cs_val = (profile_json_raw or {}).get("codeSkill", "")
+        if not (kb_val and cs_val):
+            _downgrade_completed_to_inprogress(path)
+    except Exception:
+        pass
     return GenerateLearningPathResponse(
         success=True,
         path=path,

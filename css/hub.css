@@ -848,45 +848,320 @@
 /* ============================================================
    12. 心流共振卡片
    ============================================================ */
-.flow-resonance-card { padding: var(--space-lg); }
-.flow-resonance-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-md); }
-.flow-resonance-title { font-size: var(--text-base); font-weight: var(--font-bold); color: var(--cp-text-primary); }
+/* ── 心流共振波段 (refined) ── */
+.flow-resonance-card {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+.flow-resonance-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+.flow-resonance-title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+.flow-resonance-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-bold);
+    color: var(--cp-text-primary);
+    letter-spacing: 0.01em;
+}
+.flow-resonance-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: var(--font-semibold);
+    letter-spacing: 0.02em;
+    border: 1px solid;
+}
+.flow-resonance-state::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+}
+.flow-resonance-state[data-tier="peak"]    { color: var(--success); background: var(--success-bg); border-color: var(--success-border); }
+.flow-resonance-state[data-tier="shallow"] { color: var(--info);    background: var(--info-bg);    border-color: var(--info-border); }
+.flow-resonance-state[data-tier="warning"] { color: var(--warning); background: var(--warning-bg); border-color: var(--warning-border); }
+.flow-resonance-state[data-tier="danger"]  { color: var(--danger);  background: var(--danger-bg);  border-color: var(--danger-border); }
 
-.flow-ring { flex-shrink: 0; }
-.flow-ring-bg { fill: none; stroke: var(--cp-card-border); stroke-width: 6; }
+/* ── Ring ── */
+.flow-ring-wrap {
+    position: relative;
+    width: 96px; height: 96px;
+    flex-shrink: 0;
+}
+.flow-ring { display: block; }
+.flow-ring-bg {
+    fill: none;
+    stroke: color-mix(in oklch, var(--cp-card-border), transparent 30%);
+    stroke-width: 7;
+}
 .flow-ring-progress {
-    fill: none; stroke: url(#ringGradient); stroke-width: 6; stroke-linecap: round;
+    fill: none;
+    stroke: url(#ringGradient);
+    stroke-width: 7;
+    stroke-linecap: round;
     transition: stroke-dashoffset 0.8s var(--ease-out);
+    filter: drop-shadow(0 0 6px color-mix(in oklch, var(--brand-500), transparent 50%));
 }
-.flow-ring-value { fill: var(--cp-text-primary); font-size: 16px; font-weight: var(--font-bold); }
+.flow-ring-value {
+    fill: var(--cp-text-primary);
+    font-size: 22px;
+    font-weight: var(--font-bold);
+    font-family: var(--font-display, "Inter", sans-serif);
+}
+.flow-ring-unit {
+    position: absolute;
+    right: 14px;
+    bottom: 18px;
+    font-size: 12px;
+    font-weight: var(--font-semibold);
+    color: var(--cp-text-tertiary);
+}
 
-.flow-bars { display: flex; gap: var(--space-sm); justify-content: center; height: 100px; align-items: flex-end; margin-bottom: 20px; padding-bottom: 4px; }
-.flow-bar {
-    flex: 1; max-width: 40px; display: flex; flex-direction: column; align-items: center; gap: 4px;
-    position: relative; padding-bottom: 16px;
+/* ── Period cards ── */
+.flow-periods {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
 }
-.flow-bar-fill {
-    width: 100%; border-radius: 3px 3px 0 0;
-    background: linear-gradient(to top, var(--info), color-mix(in oklch, var(--brand-300), var(--info) 50%));
-    transition: height 0.8s var(--ease-out); position: relative;
+.flow-period {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 12px 10px;
+    border-radius: 12px;
+    background: color-mix(in oklch, var(--surface-card), transparent 60%);
+    border: 1px solid color-mix(in oklch, var(--cp-card-border), transparent 30%);
+    transition: transform 0.2s var(--ease-out), border-color 0.2s ease;
+    overflow: hidden;
 }
-.flow-bar-fill::after {
-    content: attr(data-label); position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
-    font-size: 9px; color: var(--cp-text-tertiary); white-space: nowrap;
+.flow-period::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: currentColor;
+    opacity: 0.7;
+}
+.flow-period[data-tier="peak"]    { color: var(--success); }
+.flow-period[data-tier="shallow"] { color: var(--info); }
+.flow-period[data-tier="warning"] { color: var(--warning); }
+.flow-period[data-tier="danger"]  { color: var(--danger); }
+.flow-period[data-tier="peak"]:hover    { border-color: var(--success-border); transform: translateY(-1px); }
+.flow-period[data-tier="shallow"]:hover { border-color: var(--info-border);    transform: translateY(-1px); }
+.flow-period[data-tier="warning"]:hover { border-color: var(--warning-border); transform: translateY(-1px); }
+.flow-period[data-tier="danger"]:hover  { border-color: var(--danger-border);  transform: translateY(-1px); }
+
+.flow-period-label {
+    font-size: 11px;
+    font-weight: var(--font-semibold);
+    color: var(--cp-text-secondary);
+    letter-spacing: 0.04em;
+}
+.flow-period-value {
+    font-size: 22px;
+    font-weight: var(--font-bold);
+    color: var(--cp-text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.flow-period-unit {
+    font-size: 11px;
+    font-weight: var(--font-semibold);
+    color: var(--cp-text-tertiary);
+    margin-left: 1px;
+}
+.flow-period-track {
+    position: relative;
+    height: 56px;
+    border-radius: 6px;
+    background: color-mix(in oklch, var(--cp-card-border), transparent 50%);
+    overflow: hidden;
+    display: flex;
+    align-items: flex-end;
+}
+.flow-period-fill {
+    width: 100%;
+    border-radius: 6px 6px 4px 4px;
+    background: linear-gradient(
+        to top,
+        color-mix(in oklch, currentColor, transparent 55%),
+        currentColor
+    );
+    box-shadow: 0 0 12px color-mix(in oklch, currentColor, transparent 60%);
+    transition: height 0.8s var(--ease-out);
+}
+.flow-period-meta {
+    font-size: 10px;
+    color: var(--cp-text-tertiary);
+    font-weight: var(--font-medium);
+    letter-spacing: 0.02em;
 }
 
-.flow-resonance-footer { display: flex; gap: var(--space-md); flex-wrap: wrap; }
-.flow-stat { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--cp-text-secondary); }
-.flow-stat-dot { width: 6px; height: 6px; border-radius: 50%; }
-.flow-stat-dot.peak { background: var(--info); box-shadow: 0 0 6px color-mix(in oklch, var(--info), transparent 50%); }
-.flow-stat-dot.warning { background: var(--warning); }
-.flow-stat-dot.low { background: color-mix(in oklch, var(--info), transparent 70%); }
+/* ── 空状态浮层 ── */
+.flow-resonance-card { position: relative; }
 
-.ecg-header-stats { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-sm); }
-.ecg-stat { display: flex; align-items: center; gap: 4px; color: var(--cp-text-primary); font-weight: var(--font-semibold); }
-.ecg-divider { color: var(--cp-card-border); }
-.ecg-stat-label { color: var(--cp-text-secondary); text-transform: uppercase; font-size: 10px; font-weight: var(--font-medium); }
-.ecg-stat-value { color: var(--cp-text-primary); }
+.flow-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: color-mix(in oklch, var(--surface-page), transparent 25%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: inherit;
+    z-index: 5;
+    color: var(--cp-text-tertiary);
+    text-align: center;
+    pointer-events: none;
+    animation: flowEmptyFade 0.3s var(--ease-out);
+}
+.flow-empty-icon {
+    font-size: 28px;
+    opacity: 0.55;
+    line-height: 1;
+}
+.flow-empty-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cp-text-secondary);
+}
+.flow-empty-hint {
+    font-size: 12px;
+    opacity: 0.7;
+}
+.flow-empty[hidden] { display: none; }
+
+.flow-resonance-card[data-empty="1"] .flow-resonance-header,
+.flow-resonance-card[data-empty="1"] .flow-periods,
+.flow-resonance-card[data-empty="1"] .flow-resonance-footer {
+    opacity: 0.25;
+    transition: opacity 0.3s;
+}
+
+@keyframes flowEmptyFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Footer stats ── */
+.flow-resonance-footer {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding-top: 4px;
+}
+.flow-stat-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--surface-card), transparent 70%);
+    border: 1px solid color-mix(in oklch, var(--cp-card-border), transparent 50%);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.flow-stat-chip[data-tier="peak"]:hover    { border-color: var(--success-border); background: var(--success-bg); }
+.flow-stat-chip[data-tier="warning"]:hover { border-color: var(--warning-border); background: var(--warning-bg); }
+.flow-stat-chip[data-tier="shallow"]:hover { border-color: var(--info-border);    background: var(--info-bg); }
+.flow-stat-chip[data-tier="danger"]:hover  { border-color: var(--danger-border);  background: var(--danger-bg); }
+
+.flow-stat-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.flow-stat-chip[data-tier="peak"]    .flow-stat-dot { background: var(--success); box-shadow: 0 0 8px color-mix(in oklch, var(--success), transparent 40%); }
+.flow-stat-chip[data-tier="warning"] .flow-stat-dot { background: var(--warning); box-shadow: 0 0 8px color-mix(in oklch, var(--warning), transparent 40%); }
+.flow-stat-chip[data-tier="shallow"] .flow-stat-dot { background: var(--info);    box-shadow: 0 0 8px color-mix(in oklch, var(--info),    transparent 40%); }
+.flow-stat-chip[data-tier="danger"]  .flow-stat-dot { background: var(--danger);  box-shadow: 0 0 8px color-mix(in oklch, var(--danger),  transparent 40%); }
+
+.flow-stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+.flow-stat-num {
+    font-size: 14px;
+    font-weight: var(--font-bold);
+    color: var(--cp-text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.flow-stat-name {
+    font-size: 10px;
+    color: var(--cp-text-tertiary);
+    font-weight: var(--font-medium);
+    letter-spacing: 0.02em;
+}
+
+/* ── Section header stats (top-right) ── */
+.ecg-header-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-sm);
+}
+.ecg-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--surface-card), transparent 60%);
+    border: 1px solid color-mix(in oklch, var(--cp-card-border), transparent 40%);
+    font-weight: var(--font-semibold);
+}
+.ecg-stat-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+}
+.ecg-stat[data-tier="peak"] .ecg-stat-dot   { background: var(--success); box-shadow: 0 0 6px color-mix(in oklch, var(--success), transparent 50%); }
+.ecg-stat[data-tier="info"] .ecg-stat-dot   { background: var(--info);    box-shadow: 0 0 6px color-mix(in oklch, var(--info),    transparent 50%); }
+.ecg-stat[data-tier="warning"] .ecg-stat-dot{ background: var(--warning); box-shadow: 0 0 6px color-mix(in oklch, var(--warning), transparent 50%); }
+.ecg-stat[data-tier="danger"]  .ecg-stat-dot{ background: var(--danger);  box-shadow: 0 0 6px color-mix(in oklch, var(--danger),  transparent 50%); }
+.ecg-stat-label {
+    color: var(--cp-text-secondary);
+    font-size: 10px;
+    font-weight: var(--font-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.ecg-stat-value {
+    color: var(--cp-text-primary);
+    font-variant-numeric: tabular-nums;
+}
+.ecg-divider {
+    width: 1px; height: 14px;
+    background: var(--cp-card-border);
+    opacity: 0.6;
+}
+
+@media (max-width: 720px) {
+    .flow-periods { grid-template-columns: repeat(2, 1fr); }
+    .flow-resonance-footer { grid-template-columns: 1fr; }
+    .flow-resonance-header { flex-direction: column; align-items: flex-start; }
+    .flow-ring-wrap { align-self: flex-end; }
+}
 
 /* ============================================================
    13. 内容卡片（课程等）

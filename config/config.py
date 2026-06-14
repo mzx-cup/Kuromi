@@ -47,6 +47,16 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("KUROMI_DEBUG", "APP_DEBUG"),
     )
 
+    # ── 学习路径目标真实性校验（real-time 校验开关） ──
+    learning_goal_validation: dict = Field(
+        default_factory=lambda: {
+            "enabled": True,    # 总开关：关闭后 _validate_and_ground_learning_goals 不执行
+            "strict": False,    # 严格模式：校验失败的节点直接剔除（默认仅标红不剔除）
+            "max_invalid_pct": 50.0,  # 严格模式阈值：超过此比例的节点失败才视为 LLM 输出异常
+        },
+        description="学习路径 learning_goal / goal_evidence 真实性校验配置",
+    )
+
     model_config = {
         "env_file": str(_dotenv_path),
         "env_file_encoding": "utf-8",

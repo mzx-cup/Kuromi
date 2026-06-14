@@ -1,16 +1,39 @@
 /**
  * FlowMeter — 心流共振仪
- * 使用 FocusAnalysis 共享模块 + ECharts 驱动所有面板数据
+ * 使用 FocusAnalysis 共享模块 + ECharts 驱动所有面板
  */
 (function () {
   'use strict';
 
   var _waveformChart = null;
   var _timeOfDayChart = null;
+  var _historyChart = null;
   var _filterRange = 'week';
   var _resizeObserver = null;
 
   // ============ helpers ============
+
+  // 从 CSS 自定义属性读取颜色，与 tokens.css 主题保持一致
+  var _tokenColors = null;
+  function tok(name) {
+    if (!_tokenColors) {
+      var s = getComputedStyle(document.documentElement);
+      _tokenColors = {
+        success: s.getPropertyValue('--success').trim() || '#10b981',
+        warning: s.getPropertyValue('--warning').trim() || '#f59e0b',
+        danger:  s.getPropertyValue('--danger').trim()  || '#ef4444',
+        info:    s.getPropertyValue('--info').trim()    || '#06b6d4',
+        brand:   s.getPropertyValue('--brand-500').trim() || '#6366f1',
+        text:    s.getPropertyValue('--text-heading').trim() || '#fff',
+        muted:   s.getPropertyValue('--text-muted').trim() || 'rgba(255,255,255,0.4)',
+        border:  s.getPropertyValue('--border-glass').trim() || 'rgba(255,255,255,0.06)'
+      };
+    }
+    return _tokenColors[name];
+  }
+
+  // 主题切换时需要重新读取
+  function refreshTokens() { _tokenColors = null; }
 
   function formatMinutes(mins) {
     var h = Math.floor(mins / 60);
@@ -26,26 +49,37 @@
     return div.innerHTML;
   }
 
+  function timeLabel(ts) {
+    var d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' +
+      String(d.getMinutes()).padStart(2, '0');
+  }
+
   // ============ chart init ============
 
   function initCharts() {
     var wf = document.getElementById('waveform-chart');
     var td = document.getElementById('timeofday-chart');
+    var hs = document.getElementById('history-chart');
+
     if (wf) { _waveformChart = echarts.init(wf); }
     if (td) { _timeOfDayChart = echarts.init(td); }
+    if (hs) { _historyChart = echarts.init(hs); }
 
-    // ResizeObserver for responsive charts
     if (_resizeObserver) { _resizeObserver.disconnect(); }
     _resizeObserver = new ResizeObserver(function () {
       if (_waveformChart) { _waveformChart.resize(); }
       if (_timeOfDayChart) { _timeOfDayChart.resize(); }
+      if (_historyChart) { _historyChart.resize(); }
     });
     if (wf) { _resizeObserver.observe(wf); }
     if (td) { _resizeObserver.observe(td); }
+    if (hs) { _resizeObserver.observe(hs); }
 
     window.addEventListener('resize', function () {
       if (_waveformChart) { _waveformChart.resize(); }
       if (_timeOfDayChart) { _timeOfDayChart.resize(); }
+      if (_historyChart) { _historyChart.resize(); }
     });
   }
 
@@ -68,50 +102,48 @@
   // ============ chart rendering ============
 
   function renderWaveformChart(timeline) {
-    if (!_waveformChart || !timeline || !timeline.length) {
-      if (_waveformChart) {
-        _waveformChart.setOption({
-          graphic: [{
-            type: 'text',
-            left: 'center',
-            top: 'center',
-            style: { text: '暂无数据', fill: 'rgba(255,255,255,0.3)', fontSize: 14 }
-          }]
-        }, true);
-      }
+    if (!_waveformChart) return;
+
+    if (!timeline || !timeline.length) {
+      _waveformChart.setOption({
+        graphic: [{
+          type: 'text', left: 'center', top: 'center',
+          style: { text: '暂无数据', fill: tok('muted'), fontSize: 13 }
+        }]
+      }, true);
       return;
     }
 
-    var scores = timeline.map(function (t) { return Math.round(t.score); });
-    var times = timeline.map(function (t) {
-      var d = new Date(t.timestamp);
-      return d.getHours().toString().padStart(2, '0') + ':' +
-        d.getMinutes().toString().padStart(2, '0');
-    });
-    var types = timeline.map(function (t) { return t.type; });
+    // Show newest first, but x-axis left→right = earliest→latest
+    var sorted = timeline.slice().reverse();
+    var scores = sorted.map(function (t) { return Math.round(t.score); });
+    var times = sorted.map(function (t) { return timeLabel(t.timestamp); });
+    var types = sorted.map(function (t) { return t.type; });
+
+    var succColor = tok('success');
+    var warnColor = tok('warning');
+    var dangColor = tok('danger');
 
     var option = {
-      grid: { top: 10, right: 12, bottom: 24, left: 40 },
+      grid: { top: 10, right: 20, bottom: 28, left: 44 },
       xAxis: {
         type: 'category',
         data: times,
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 10, interval: 'auto' },
+        axisLine: { lineStyle: { color: tok('border') } },
+        axisLabel: { color: tok('muted'), fontSize: 10, interval: 'auto' },
         axisTick: { show: false }
       },
       yAxis: {
-        type: 'value',
-        min: 0,
-        max: 100,
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
+        type: 'value', min: 0, max: 100,
+        splitLine: { lineStyle: { color: tok('border') } },
+        axisLabel: { color: tok('muted'), fontSize: 10 },
         axisLine: { show: false }
       },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(18,18,24,0.92)',
-        borderColor: 'rgba(255,255,255,0.12)',
-        textStyle: { color: '#fff', fontSize: 12 },
+        backgroundColor: 'rgba(15,23,42,0.94)',
+        borderColor: tok('border'),
+        textStyle: { color: tok('text'), fontSize: 12 },
         formatter: function (params) {
           var p = params[0];
           var idx = p.dataIndex;
@@ -124,8 +156,8 @@
           return {
             value: v,
             itemStyle: {
-              color: types[i] === 'deep' ? '#00C853' :
-                     types[i] === 'warning' ? '#F44336' : '#FF9800'
+              color: types[i] === 'deep' ? succColor :
+                     types[i] === 'warning' ? dangColor : warnColor
             }
           };
         }),
@@ -133,18 +165,17 @@
         smooth: true,
         symbol: 'circle',
         symbolSize: 4,
-        lineStyle: { color: '#00C853', width: 2 },
+        lineStyle: { color: succColor, width: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(0, 200, 83, 0.2)' },
-            { offset: 1, color: 'rgba(0, 200, 83, 0.02)' }
+            { offset: 0, color: succColor + '30' },
+            { offset: 1, color: succColor + '05' }
           ])
         },
         markLine: {
-          silent: true,
-          symbol: 'none',
-          lineStyle: { color: 'rgba(255,255,255,0.1)', type: 'dashed' },
-          data: [{ yAxis: 70, label: { formatter: '深度线', fontSize: 10, color: 'rgba(255,255,255,0.35)' } }]
+          silent: true, symbol: 'none',
+          lineStyle: { color: tok('border'), type: 'dashed' },
+          data: [{ yAxis: 70, label: { formatter: '深度线', fontSize: 10, color: tok('muted') } }]
         }
       }]
     };
@@ -157,7 +188,7 @@
 
     var periods = ['morning', 'afternoon', 'evening', 'night'];
     var labels = ['上午(6-12)', '下午(12-17)', '傍晚(17-20)', '夜间(20-6)'];
-    var colors = ['#FFB300', '#FF9800', '#7C4DFF', '#3F51B5'];
+    var colors = [tok('warning'), tok('warning'), tok('brand'), tok('info')];
     var scores = periods.map(function (p) {
       return (tod[p] && tod[p].sessions > 0) ? Math.round(tod[p].score) : 0;
     });
@@ -166,27 +197,25 @@
     });
 
     var option = {
-      grid: { top: 10, right: 12, bottom: 24, left: 40 },
+      grid: { top: 10, right: 20, bottom: 28, left: 44 },
       xAxis: {
         type: 'category',
         data: labels,
-        axisLine: { lineStyle: { color: 'rgba(255,255,255,0.12)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.45)', fontSize: 10 },
+        axisLine: { lineStyle: { color: tok('border') } },
+        axisLabel: { color: tok('muted'), fontSize: 10 },
         axisTick: { show: false }
       },
       yAxis: {
-        type: 'value',
-        min: 0,
-        max: 100,
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.06)' } },
-        axisLabel: { color: 'rgba(255,255,255,0.35)', fontSize: 10 },
+        type: 'value', min: 0, max: 100,
+        splitLine: { lineStyle: { color: tok('border') } },
+        axisLabel: { color: tok('muted'), fontSize: 10 },
         axisLine: { show: false }
       },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(18,18,24,0.92)',
-        borderColor: 'rgba(255,255,255,0.12)',
-        textStyle: { color: '#fff', fontSize: 12 },
+        backgroundColor: 'rgba(15,23,42,0.94)',
+        borderColor: tok('border'),
+        textStyle: { color: tok('text'), fontSize: 12 },
         formatter: function (params) {
           var p = params[0];
           return p.name + '<br/>专注分: <b>' + p.value + '</b><br/>会话数: ' + sessions[p.dataIndex];
@@ -197,15 +226,19 @@
         data: scores.map(function (v, i) {
           return {
             value: v,
-            itemStyle: { color: colors[i], borderRadius: [4, 4, 0, 0] }
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: colors[i] },
+                { offset: 1, color: colors[i] + '44' }
+              ]),
+              borderRadius: [6, 6, 0, 0]
+            }
           };
         }),
-        barWidth: '45%',
+        barWidth: '40%',
         label: {
-          show: true,
-          position: 'top',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: 10,
+          show: true, position: 'top',
+          color: tok('muted'), fontSize: 10,
           formatter: function (p) { return p.value > 0 ? p.value : ''; }
         }
       }]
@@ -214,51 +247,119 @@
     _timeOfDayChart.setOption(option, true);
   }
 
-  // ============ history bars ============
+  // ============ history chart (ECharts, replaces old div bars) ============
 
-  function renderHistoryBars(filtered) {
-    var container = document.querySelector('.history-waves');
-    if (!container) { return; }
+  function renderHistoryChart(filtered) {
+    if (!_historyChart) return;
 
     if (!filtered || !filtered.length) {
-      container.innerHTML =
-        '<div class="history-item"><div class="history-time" style="color:rgba(255,255,255,0.3);padding:20px;text-align:center;">暂无数据</div></div>';
+      _historyChart.setOption({
+        graphic: [{
+          type: 'text', left: 'center', top: 'center',
+          style: { text: '暂无数据', fill: tok('muted'), fontSize: 13 }
+        }]
+      }, true);
       return;
     }
 
-    // Group by hour blocks
+    // Group by hour
     var groups = [];
-    var currentGroup = null;
+    var cur = null;
     for (var i = 0; i < filtered.length; i++) {
       var item = filtered[i];
       var d = new Date(item.timestamp);
-      var hour = d.getHours();
       var key = (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
-        String(hour).padStart(2, '0') + ':00';
-      if (!currentGroup || currentGroup.key !== key) {
-        if (currentGroup) { groups.push(currentGroup); }
-        currentGroup = { key: key, bars: [], totalScore: 0 };
+        String(d.getHours()).padStart(2, '0') + ':00';
+      if (!cur || cur.key !== key) {
+        if (cur) groups.push(cur);
+        cur = { key: key, items: [], deepCount: 0, totalScore: 0 };
       }
-      var h = Math.max(15, Math.min(95, item.score));
-      currentGroup.bars.push({ height: h, type: item.type });
-      currentGroup.totalScore += item.score;
+      cur.items.push(item);
+      cur.totalScore += item.score;
+      if (item.type === 'deep') cur.deepCount++;
     }
-    if (currentGroup) { groups.push(currentGroup); }
+    if (cur) groups.push(cur);
 
-    var recent = groups.slice(-3);
-    container.innerHTML = recent.map(function (g) {
-      var barsHtml = g.bars.map(function (b) {
-        var cls = b.type === 'deep' ? 'deep' :
-                   b.type === 'shallow' ? 'shallow' : 'distracted';
-        return '<div class="history-bar ' + cls + '" style="height:' + b.height + '%;"></div>';
-      }).join('');
-      var avg = Math.round(g.totalScore / g.bars.length);
-      return '<div class="history-item">' +
-        '<div class="history-time">' + g.key + '</div>' +
-        barsHtml +
-        '<div class="history-score">' + avg + '分</div>' +
-        '</div>';
-    }).join('');
+    if (groups.length > 20) groups = groups.slice(-20);
+
+    var labels = groups.map(function (g) { return g.key; });
+    var avgScores = groups.map(function (g) {
+      return Math.round(g.totalScore / g.items.length);
+    });
+    var deepRatios = groups.map(function (g) {
+      return Math.round((g.deepCount / g.items.length) * 100);
+    });
+
+    var succColor = tok('success');
+    var brandColor = tok('brand');
+
+    var option = {
+      grid: { top: 10, right: 52, bottom: 28, left: 44 },
+      xAxis: {
+        type: 'category',
+        data: labels,
+        axisLine: { lineStyle: { color: tok('border') } },
+        axisLabel: { color: tok('muted'), fontSize: 10, interval: 'auto' },
+        axisTick: { show: false }
+      },
+      yAxis: [
+        {
+          type: 'value', min: 0, max: 100,
+          splitLine: { lineStyle: { color: tok('border') } },
+          axisLabel: { color: tok('muted'), fontSize: 10 },
+          axisLine: { show: false }
+        },
+        {
+          type: 'value', min: 0, max: 100,
+          axisLabel: { show: false },
+          splitLine: { show: false },
+          axisLine: { show: false }
+        }
+      ],
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(15,23,42,0.94)',
+        borderColor: tok('border'),
+        textStyle: { color: tok('text'), fontSize: 12 },
+        formatter: function (params) {
+          return params[0].name +
+            '<br/>平均分: <b>' + params[0].value + '</b>' +
+            '<br/>深度占比: <b>' + params[1].value + '%</b>';
+        }
+      },
+      series: [
+        {
+          name: '平均分',
+          type: 'bar',
+          data: avgScores.map(function (v) {
+            return {
+              value: v,
+              itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: succColor + 'B3' },
+                  { offset: 1, color: succColor + '20' }
+                ]),
+                borderRadius: [4, 4, 0, 0]
+              }
+            };
+          }),
+          barWidth: '50%'
+        },
+        {
+          name: '深度占比',
+          type: 'line',
+          yAxisIndex: 1,
+          data: deepRatios,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 5,
+          lineStyle: { color: brandColor, width: 2 },
+          itemStyle: { color: brandColor }
+        }
+      ]
+    };
+
+    _historyChart.setOption(option, true);
   }
 
   // ============ panel updates ============
@@ -270,10 +371,11 @@
 
     var ring = document.getElementById('deep-ring');
     if (ring) {
-      var circumference = 2 * Math.PI * 42;
+      var circumference = 2 * Math.PI * 40;
       var offset = circumference - (ratio / 100) * circumference;
       ring.style.strokeDasharray = circumference;
       ring.style.strokeDashoffset = offset;
+      ring.style.stroke = tok('success');
     }
 
     var focusMin = (data.today && data.today.focusMinutes) || 0;
@@ -285,6 +387,21 @@
 
     var fs = document.getElementById('flow-score');
     if (fs) { fs.textContent = Math.round(data.score || 0); }
+
+    // Trend indicator
+    var trend = document.getElementById('flow-trend');
+    if (trend && data.trend) {
+      if (data.trend.direction === 'up') {
+        trend.textContent = '↗ +' + data.trend.change;
+        trend.style.color = tok('success');
+      } else if (data.trend.direction === 'down') {
+        trend.textContent = '↘ ' + data.trend.change;
+        trend.style.color = tok('danger');
+      } else {
+        trend.textContent = '—';
+        trend.style.color = '';
+      }
+    }
   }
 
   function updateSessionPanel(data) {
@@ -304,7 +421,7 @@
     var focusRatio = Math.round(today.focusRatio || 0);
     var sp = document.getElementById('session-progress');
     if (sp) { sp.style.width = focusRatio + '%'; }
-    var pt = document.querySelector('.progress-text');
+    var pt = document.getElementById('progress-label');
     if (pt) { pt.textContent = focusRatio + '% 完成'; }
 
     var remainingMin = Math.max(0, (today.studyMinutes || 60) - (today.focusMinutes || 0));
@@ -317,38 +434,34 @@
 
     var stateText = document.getElementById('state-text');
     var stateDesc = document.getElementById('state-desc');
-    var stateOrb = document.querySelector('.orb-inner');
+    var orbInner = document.querySelector('.hero-orb-inner');
     var stateFill = document.getElementById('state-fill');
 
-    var label, desc, color, rgb, percent;
+    var label, desc, color, percent;
 
     switch (rt.state) {
       case 'focused':
         label = '深度专注中';
         desc = '继续保持，学习效率很高';
-        color = '#00C853';
-        rgb = '0, 200, 83';
+        color = tok('success');
         percent = 85 + Math.round(rt.confidence * 15);
         break;
       case 'lightly':
         label = '轻度专注';
         desc = '注意力有所分散，建议集中精神';
-        color = '#FF9800';
-        rgb = '255, 152, 0';
+        color = tok('warning');
         percent = 40 + Math.round(rt.confidence * 30);
         break;
       case 'distracted':
         label = '注意力分散';
         desc = '建议休息片刻，恢复精力';
-        color = '#F44336';
-        rgb = '244, 67, 54';
+        color = tok('danger');
         percent = 10 + Math.round(rt.confidence * 30);
         break;
       default:
         label = '监测中';
         desc = '正在分析学习状态';
-        color = '#9E9E9E';
-        rgb = '158, 158, 158';
+        color = tok('muted');
         percent = 50;
     }
 
@@ -357,10 +470,10 @@
       stateText.style.color = color;
     }
     if (stateDesc) { stateDesc.textContent = desc; }
-    if (stateOrb) {
-      stateOrb.style.background =
-        'radial-gradient(circle, ' + color + ' 0%, rgba(' + rgb + ', 0.6) 100%)';
-      stateOrb.style.boxShadow = '0 0 30px rgba(' + rgb + ', 0.6)';
+    if (orbInner) {
+      orbInner.classList.remove('warn', 'light');
+      if (rt.state === 'distracted') orbInner.classList.add('warn');
+      else if (rt.state === 'lightly') orbInner.classList.add('light');
     }
     if (stateFill) { stateFill.style.width = percent + '%'; }
   }
@@ -389,7 +502,7 @@
     var filtered = filterTimeline(analysis.timeline);
     renderWaveformChart(filtered);
     renderTimeOfDayChart(analysis.timeOfDay);
-    renderHistoryBars(filtered);
+    renderHistoryChart(filtered);
   }
 
   function updateAllCards(data) {
@@ -436,12 +549,26 @@
       updateStateIndicator(state);
     });
 
-    // Poll more frequently on this dedicated page
     window.FocusAnalysis.startPolling(3000);
 
-    // Fetch immediately, show cached data first, then live
     window.FocusAnalysis.fetchAnalysis().then(function (data) {
       if (data) { updateAllCards(data); }
+    });
+
+    // 主题切换时重读 tokens 并刷新所有图表
+    var themeObserver = new MutationObserver(function () {
+      refreshTokens();
+      var analysis = window.FocusAnalysis.getAnalysis();
+      if (analysis) {
+        var filtered = filterTimeline(analysis.timeline);
+        renderWaveformChart(filtered);
+        renderTimeOfDayChart(analysis.timeOfDay);
+        renderHistoryChart(filtered);
+      }
+      updateStateIndicator(window.FocusAnalysis.getRealtimeState());
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true, attributeFilter: ['data-theme']
     });
   }
 

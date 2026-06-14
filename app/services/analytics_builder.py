@@ -131,7 +131,111 @@ def build_student_analytics(user_id: str | int) -> dict[str, Any]:
         },
     }
 
+    # ── 证据池（供学习路径 LLM 引用 + 后端校验真伪） ──
+    report["evidence_signals"] = _extract_evidence_signals(
+        profile=report["profile"],
+        quizzes=quizzes,
+        classrooms=classrooms,
+        stats=stats,
+        cockpit=cockpit,
+    )
+    report["evidence_signals"]["recent_message_topics"] = report["conversations"]["recent_topics"]
+
     return report
+
+
+def _extract_evidence_signals(profile: dict, quizzes: list, classrooms: list, stats: dict, cockpit: dict) -> dict:
+    """从学情数据中提取可供学习路径 LLM 引用的"真实证据池"。
+
+    返回:
+        {
+          "quiz_ids": [...],         # 最近 20 次测验的 quiz_id
+          "classroom_ids": [...],    # 最近 10 个课堂的 course_id
+          "interaction_stats": {     # 互动/掌握度统计快照
+            "interaction_count", "learning_minutes", "completed_tasks",
+            "concept_mastery", "thinking_depth", "learning_momentum",
+            "weak_areas": [...], "strong_areas": [...]
+          },
+          "profile_signals": [...],  # 已评估画像字段
+          "recent_message_topics": [...]
+        }
+    """
+    quiz_ids = []
+    for q in quizzes or []:
+        qid = q.get("quiz_id") or q.get("id")
+        if qid:
+            quiz_ids.append(str(qid))
+    quiz_ids = list(dict.fromkeys(quiz_ids))[:20]  # 去重保序，限 20
+
+    classroom_ids = []
+    for c in classrooms or []:
+        cid = c.get("course_id") or c.get("id")
+        if cid:
+            classroom_ids.append(str(cid))
+    classroom_ids = list(dict.fromkeys(classroom_ids))[:10]
+
+    interaction_stats = {
+        "interaction_count": (stats or {}).get("interactionCount", 0) or 0,
+        "learning_minutes": (stats or {}).get("codePracticeTime", 0) or 0,
+        "completed_tasks": (stats or {}).get("completedTasks", 0) or 0,
+        "focus_sessions": (stats or {}).get("focusSessions", 0) or 0,
+        "flashcards_studied": (stats or {}).get("flashcardsStudied", 0) or 0,
+        "streak_days": (stats or {}).get("streakDays", 0) or 0,
+        "concept_mastery": (cockpit or {}).get("concept_mastery", 0) or 0,
+        "thinking_depth": (cockpit or {}).get("thinking_depth", 0) or 0,
+        "learning_momentum": (cockpit or {}).get("learning_momentum", 0) or 0,
+        "cognitive_level": (cockpit or {}).get("cognitive_level", "未知"),
+    }
+
+    # 测验表现摘要（从 quizzes 实时计算，与 cockpit 内的弱/强领域对齐）
+    weak_areas = []
+    strong_areas = []
+    for q in (quizzes or [])[:10]:
+        qid = q.get("quiz_id", "")
+        try:
+            score = float(q.get("score", 0))
+            total = int(q.get("total", 1)) or 1
+        except (TypeError, ValueError):
+            continue
+        if q.get("passed"):
+            if score / total >= 0.85:
+                strong_areas.append(qid)
+        else:
+            weak_areas.append(qid)
+    interaction_stats["weak_areas"] = list(dict.fromkeys(weak_areas))[:5]
+    interaction_stats["strong_areas"] = list(dict.fromkeys(strong_areas))[:5]
+
+    # profile_signals：把"已评估"画像字段以可读形式列出，供 LLM 引用
+    profile_signals = []
+    if profile.get("knowledge_base"):
+        profile_signals.append(f"knowledge_base={profile['knowledge_base']}")
+    if profile.get("code_skill"):
+        profile_signals.append(f"code_skill={profile['code_skill']}")
+    if profile.get("cognitive_style"):
+        profile_signals.append(f"cognitive_style={profile['cognitive_style']}")
+    if profile.get("focus_level"):
+        profile_signals.append(f"focus_level={profile['focus_level']}")
+    if profile.get("learning_goals"):
+        goals = profile["learning_goals"]
+        if isinstance(goals, list):
+            profile_signals.append(f"learning_goals={','.join(map(str, goals))}")
+        else:
+            profile_signals.append(f"learning_goals={goals}")
+    if profile.get("weakness"):
+        profile_signals.append(f"weakness={profile['weakness']}")
+    if profile.get("learning_style"):
+        profile_signals.append(f"learning_style={profile['learning_style']}")
+    if profile.get("cognitive_level"):
+        profile_signals.append(f"cognitive_level={profile['cognitive_level']}")
+
+    # recent_message_topics 由 conversations.recent_topics 填入
+    return {
+        "quiz_ids": quiz_ids,
+        "classroom_ids": classroom_ids,
+        "interaction_stats": interaction_stats,
+        "profile_signals": profile_signals,
+        "recent_message_topics": [],
+    }
 
 
 def _build_cockpit_metrics(user_id: str | int, evaluation_json: dict) -> dict:

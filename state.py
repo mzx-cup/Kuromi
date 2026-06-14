@@ -244,6 +244,9 @@ class StreamChatRequest(BaseModel):
     agent: str = Field(default="geek-senior", description="AI 学科领域身份 ID")
     agent_system_prompt: str = Field(default="", description="AI 学科领域身份的系统提示词")
     session_id: str = Field(default="", description="会话ID，用于关联对话历史")
+    difficulty_pref: int = Field(default=3, ge=1, le=5, description="Agent 控制塔难度偏好 1-5")
+    strategy: str = Field(default="auto", description="Agent 控制塔教学策略")
+    injected_knowledge: list[str] = Field(default_factory=list, description="Agent 控制塔注入知识标签")
 
     @field_validator("user_input", mode="after")
     @classmethod

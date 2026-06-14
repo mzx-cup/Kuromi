@@ -3594,68 +3594,7 @@ body.light-theme .path-tree-empty {
     100% { opacity: 1; transform: scale(1); }
 }
 
-/* radar dimension list */
-#radar-dim-list {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-top: 8px;
-}
-.radar-dim-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    border-radius: 6px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    cursor: default;
-}
-.radar-dim-row:hover {
-    background: rgba(168,85,247,0.06);
-    border-color: rgba(168,85,247,0.12);
-}
-.radar-dim-label {
-    font-size: 10px;
-    color: var(--text-secondary);
-    min-width: 44px;
-    flex-shrink: 0;
-    font-weight: 500;
-}
-.radar-dim-bar-bg {
-    flex: 1;
-    height: 4px;
-    border-radius: 2px;
-    background: rgba(255,255,255,0.06);
-    overflow: hidden;
-}
-.radar-dim-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.radar-dim-value {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text-primary);
-    min-width: 24px;
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-}
-.radar-dim-desc {
-    font-size: 9px;
-    color: var(--text-tertiary);
-    max-width: 80px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-left: auto;
-}
-#radar-dim-list.is-empty {
-    display: none;
-}
+/* radar dimension CSS removed, only canvas radar remains */
 
 .resource-dashboard-title,
 .sandbox-header span,
@@ -8511,7 +8450,7 @@ body.course-mode #course-input-section {
     flex-direction: column;
     min-height: 100vh;
     width: 100%;
-    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    background: linear-gradient(to bottom, var(--surface-page), var(--surface-card));
     overflow-y: auto;
     overflow-x: hidden;
     opacity: 1;
@@ -8526,18 +8465,18 @@ body.course-mode #course-input-section {
 /* 课程生成页面永久深色主题 */
 .openmaic-overlay {
     background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245, 158, 11, 0.18), transparent),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(6, 182, 212, 0.12), transparent),
-        radial-gradient(ellipse 50% 50% at 20% 60%, rgba(59, 130, 246, 0.1), transparent),
-        linear-gradient(to bottom, #0f172a, #0a0f1c);
+        radial-gradient(ellipse 80% 50% at 50% -10%, color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%, color-mix(in oklch, var(--openmaic-bg-orb-2) 12%, transparent), transparent),
+        radial-gradient(ellipse 50% 50% at 20% 60%, color-mix(in oklch, var(--openmaic-bg-orb-3) 10%, transparent), transparent),
+        linear-gradient(to bottom, var(--openmaic-bg-base), var(--openmaic-bg-deep));
 }
 
 .openmaic-overlay .openmaic-bg-decor .openmaic-orb-blue {
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent) 0%, transparent 70%);
 }
 
 .openmaic-overlay .openmaic-bg-decor .openmaic-orb-purple {
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-bg-orb-2) 20%, transparent) 0%, transparent 70%);
 }
 
 /* 背景装饰 */
@@ -8561,7 +8500,7 @@ body.course-mode #course-input-section {
     left: 10%;
     width: 50rem;
     height: 50rem;
-    background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent) 0%, transparent 70%);
     animation-delay: 0s;
 }
 
@@ -8570,7 +8509,7 @@ body.course-mode #course-input-section {
     right: 10%;
     width: 50rem;
     height: 50rem;
-    background: radial-gradient(circle, rgba(6, 182, 212, 0.18) 0%, transparent 70%);
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-bg-orb-2) 18%, transparent) 0%, transparent 70%);
     animation-delay: 4s;
 }
 
@@ -8600,7 +8539,7 @@ body.course-mode #course-input-section {
     background: var(--surface-card);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-radius: 9999px;
     color: var(--text-muted);
     cursor: pointer;
@@ -8611,9 +8550,9 @@ body.course-mode #course-input-section {
 
 .openmaic-toolbar-btn:hover {
     background: rgba(30, 41, 59, 0.85);
-    color: #f8fafc;
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25), 0 0 0 1px rgba(245, 158, 11, 0.15);
+    color: var(--text-on-brand);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    box-shadow: 0 4px 20px color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent), 0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     transform: translateY(-2px);
 }
 
@@ -8652,27 +8591,27 @@ body.course-mode #course-input-section {
     gap: 0.75rem;
     font-size: 2.25rem;
     font-weight: 800;
-    color: #fef3c7;
-    background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 60%, #f59e0b 100%);
+    color: var(--openmaic-amber-100);
+    background: linear-gradient(135deg, var(--openmaic-amber-100) 0%, var(--openmaic-amber-400) 60%, var(--openmaic-amber-500) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 0.75rem;
-    text-shadow: 0 0 50px rgba(245, 158, 11, 0.6), 0 2px 8px rgba(0,0,0,0.4);
+    text-shadow: 0 0 50px color-mix(in oklch, var(--openmaic-amber-500) 60%, transparent), 0 2px 8px rgba(0,0,0,0.4);
     letter-spacing: -0.02em;
-    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.35));
+    filter: drop-shadow(0 0 24px color-mix(in oklch, var(--openmaic-amber-500) 35%, transparent));
 }
 
 .openmaic-hero .openmaic-logo i {
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
     animation: sparkle 3s ease-in-out infinite;
-    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6));
+    filter: drop-shadow(0 0 12px color-mix(in oklch, var(--openmaic-amber-500) 60%, transparent));
 }
 
 @keyframes sparkle {
-    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.6)); }
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 12px color-mix(in oklch, var(--openmaic-amber-500) 60%, transparent)); }
     25% { transform: scale(1.12) rotate(-3deg); opacity: 0.9; }
-    50% { transform: scale(1.05) rotate(5deg); opacity: 1; filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.9)); }
+    50% { transform: scale(1.05) rotate(5deg); opacity: 1; filter: drop-shadow(0 0 20px color-mix(in oklch, var(--openmaic-amber-500) 90%, transparent)); }
     75% { transform: scale(1.1) rotate(-2deg); opacity: 0.95; }
 }
 
@@ -8688,7 +8627,7 @@ body.course-mode #course-input-section {
     display: block;
     width: 60px;
     height: 2px;
-    background: linear-gradient(to right, transparent, #f59e0b, transparent);
+    background: linear-gradient(to right, transparent, var(--openmaic-amber-500), transparent);
     margin: 1rem auto 0;
     border-radius: 2px;
 }
@@ -8706,11 +8645,11 @@ body.course-mode #course-input-section {
     background: var(--surface-card);
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-radius: 1.75rem;
     box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(245, 158, 11, 0.08),
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 8%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 1.75rem;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -8724,16 +8663,16 @@ body.course-mode #course-input-section {
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.4), transparent);
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--openmaic-amber-500) 40%, transparent), transparent);
 }
 
 .openmaic-input-card:focus-within {
     box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(245, 158, 11, 0.3),
-        0 0 0 4px rgba(245, 158, 11, 0.1),
-        0 0 40px rgba(245, 158, 11, 0.15);
-    border-color: rgba(245, 158, 11, 0.4);
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent),
+        0 0 0 4px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent),
+        0 0 40px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 40%, transparent);
     transform: translateY(-2px);
 }
 
@@ -8744,7 +8683,7 @@ body.course-mode #course-input-section {
     justify-content: space-between;
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+    border-bottom: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
 }
 
 .openmaic-user-greeting {
@@ -8753,7 +8692,7 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -8764,8 +8703,8 @@ body.course-mode #course-input-section {
 
 .openmaic-user-greeting:hover {
     background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    box-shadow: 0 4px 16px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     transform: scale(1.02);
 }
 
@@ -8774,8 +8713,8 @@ body.course-mode #course-input-section {
     height: 2rem;
     border-radius: 50%;
     overflow: hidden;
-    background: linear-gradient(135deg, #fde68a, #67e8f9);
-    border: 2px solid rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, var(--openmaic-amber-200), var(--info));
+    border: 2px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-avatar img {
@@ -8787,7 +8726,7 @@ body.course-mode #course-input-section {
 .openmaic-username {
     font-size: 0.875rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-heading);
 }
 
 /* 文本输入框 */
@@ -8795,7 +8734,7 @@ body.course-mode #course-input-section {
     width: 100%;
     padding: 0.75rem;
     background: var(--surface-card);
-    border: 1px solid rgba(245, 158, 11, 0.1);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
     border-radius: 1rem;
     font-size: 0.9375rem;
     line-height: 1.7;
@@ -8810,12 +8749,12 @@ body.course-mode #course-input-section {
 
 .openmaic-textarea:focus {
     background: var(--surface-card);
-    border-color: rgba(245, 158, 11, 0.3);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
 }
 
 .openmaic-textarea::placeholder {
-    color: #64748b;
+    color: var(--text-muted);
     font-style: italic;
 }
 
@@ -8842,11 +8781,11 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
@@ -8856,10 +8795,10 @@ body.course-mode #course-input-section {
 
 .openmaic-media-btn:hover {
     background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(245, 158, 11, 0.5);
-    color: #b45309;
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    color: var(--openmaic-amber-700);
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 4px 16px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
 }
 
 /* 工具按钮 */
@@ -8870,9 +8809,9 @@ body.course-mode #course-input-section {
     width: 2.5rem;
     height: 2.5rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 9999px;
-    color: #475569;
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
@@ -8882,17 +8821,17 @@ body.course-mode #course-input-section {
 
 .openmaic-tool-btn:hover {
     background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(245, 158, 11, 0.5);
-    color: #d97706;
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    color: var(--openmaic-amber-600);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
 }
 
 /* 分隔线 */
 .openmaic-toolbar-divider {
     width: 1px;
     height: 1.5rem;
-    background: rgba(245, 158, 11, 0.3);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     margin: 0 0.25rem;
 }
 
@@ -8903,11 +8842,11 @@ body.course-mode #course-input-section {
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
@@ -8917,17 +8856,17 @@ body.course-mode #course-input-section {
 
 .openmaic-pill-toggle:hover {
     background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(245, 158, 11, 0.5);
-    color: #d97706;
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    color: var(--openmaic-amber-600);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
 
 .openmaic-pill-toggle.active {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(251, 191, 36, 0.12) 100%);
-    border: 2px solid #f59e0b;
-    color: #b45309;
-    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15), 0 4px 20px rgba(245, 158, 11, 0.25);
+    background: linear-gradient(135deg, color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent) 0%, color-mix(in oklch, var(--openmaic-amber-400) 12%, transparent) 100%);
+    border: 2px solid var(--openmaic-amber-500);
+    color: var(--openmaic-amber-700);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent), 0 4px 20px color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     transform: scale(1.05);
 }
 
@@ -8940,26 +8879,26 @@ body.course-mode #course-input-section {
 .openmaic-pill-toggle[data-feature="websearch"].active i,
 .openmaic-pill-toggle[data-feature="websearch"].active svg {
     animation: websearch-pulse 1.2s ease-in-out infinite;
-    stroke: #4ade80 !important;
+    stroke: var(--success) !important;
 }
 
 /* PDF解析图标 - 左右摇摆动画 */
 .openmaic-pill-toggle[data-feature="pdf"].active i,
 .openmaic-pill-toggle[data-feature="pdf"].active svg {
     animation: pdf-shake 0.8s ease-in-out infinite;
-    stroke: #fbbf24 !important;
+    stroke: var(--openmaic-amber-400) !important;
 }
 
 /* 深度交互图标 - 旋转缩放动画 */
 .openmaic-pill-toggle[data-feature="interactive"].active i,
 .openmaic-pill-toggle[data-feature="interactive"].active svg {
     animation: interactive-spin 1.5s linear infinite;
-    stroke: #22d3ee !important;
+    stroke: var(--info) !important;
 }
 
 /* 深度交互按钮选中时的呼吸边框 */
 .openmaic-pill-toggle[data-feature="interactive"].active {
-    border-color: #22d3ee;
+    border-color: var(--info);
     animation: breathing-glow 2s ease-in-out infinite;
 }
 
@@ -9017,7 +8956,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
-    background: linear-gradient(135deg, #d97706 0%, #fbbf24 50%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--openmaic-amber-600) 0%, var(--openmaic-amber-400) 50%, var(--openmaic-amber-500) 100%);
     background-size: 200% 200%;
     border: none;
     border-radius: 1rem;
@@ -9027,8 +8966,8 @@ body.course-mode #course-input-section {
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow:
-        0 4px 16px rgba(217, 119, 6, 0.4),
-        0 0 0 1px rgba(245, 158, 11, 0.3),
+        0 4px 16px color-mix(in oklch, var(--openmaic-amber-600) 40%, transparent),
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.2);
     white-space: nowrap;
     position: relative;
@@ -9049,8 +8988,8 @@ body.course-mode #course-input-section {
 .openmaic-enter-btn:hover {
     transform: translateY(-3px);
     box-shadow:
-        0 8px 30px rgba(217, 119, 6, 0.5),
-        0 0 0 1px rgba(245, 158, 11, 0.4),
+        0 8px 30px color-mix(in oklch, var(--openmaic-amber-600) 50%, transparent),
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 40%, transparent),
         inset 0 1px 0 rgba(255, 255, 255, 0.25);
     background-position: 100% 0;
 }
@@ -9061,7 +9000,7 @@ body.course-mode #course-input-section {
 
 .openmaic-enter-btn:active {
     transform: translateY(-1px) scale(0.97);
-    box-shadow: 0 2px 12px rgba(217, 119, 6, 0.4);
+    box-shadow: 0 2px 12px color-mix(in oklch, var(--openmaic-amber-600) 40%, transparent);
 }
 
 /* 语音输入按钮 */
@@ -9072,9 +9011,9 @@ body.course-mode #course-input-section {
     width: 2.5rem;
     height: 2.5rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
-    color: #475569;
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -9085,16 +9024,16 @@ body.course-mode #course-input-section {
 
 .openmaic-voice-btn:hover {
     background: rgba(255, 255, 255, 0.98);
-    border-color: rgba(245, 158, 11, 0.5);
-    color: #d97706;
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    color: var(--openmaic-amber-600);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
 }
 
 .openmaic-voice-btn.recording {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(251, 191, 36, 0.16) 100%);
-    border-color: #f59e0b;
-    color: #b45309;
+    background: linear-gradient(135deg, color-mix(in oklch, var(--openmaic-amber-500) 22%, transparent) 0%, color-mix(in oklch, var(--openmaic-amber-400) 16%, transparent) 100%);
+    border-color: var(--openmaic-amber-500);
+    color: var(--openmaic-amber-700);
     animation: voice-pulse 2s ease-in-out infinite;
 }
 
@@ -9102,7 +9041,7 @@ body.course-mode #course-input-section {
     content: '';
     position: absolute;
     inset: -4px;
-    border: 2px solid #f59e0b;
+    border: 2px solid var(--openmaic-amber-500);
     border-radius: 9999px;
     opacity: 0.4;
     animation: voice-ring 2s ease-in-out infinite;
@@ -9128,7 +9067,7 @@ body.course-mode #course-input-section {
 
 .voice-bars span {
     width: 2.5px;
-    background: var(--primary);
+    background: var(--openmaic-amber-500);
     border-radius: 2px;
     animation: voice-bar 0.4s ease-in-out infinite alternate;
 }
@@ -9148,9 +9087,9 @@ body.course-mode #course-input-section {
     background: var(--surface-card);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-radius: 1rem;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
@@ -9253,7 +9192,7 @@ body.course-mode #course-input-section {
 }
 
 .media-option .toggle-switch input:checked + .toggle-slider {
-    background: #f59e0b;
+    background: var(--openmaic-amber-500);
 }
 
 .media-option .toggle-switch input:checked + .toggle-slider::before {
@@ -9274,14 +9213,14 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.25rem;
     height: 2.25rem;
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 0.5rem;
     flex-shrink: 0;
 }
 
 .media-option-icon i,
 .media-option-icon svg {
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
 }
 
 .media-option-icon.video {
@@ -9319,8 +9258,8 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     margin-top: 0.75rem;
     padding: 0.625rem 0.75rem;
-    background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.12);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
     border-radius: 0.5rem;
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -9328,12 +9267,12 @@ body.course-mode #course-input-section {
 
 .media-provider-info i,
 .media-provider-info svg {
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
     flex-shrink: 0;
 }
 
 .media-provider-info strong {
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
     font-weight: 600;
 }
 
@@ -9394,11 +9333,11 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.625rem 0.875rem;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-radius: 0.875rem;
     font-size: 0.75rem;
-    color: #fde68a;
+    color: var(--openmaic-amber-200);
     animation: attachment-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     backdrop-filter: blur(8px);
 }
@@ -9416,7 +9355,7 @@ body.course-mode #course-input-section {
 
 .attachment-item i {
     font-size: 0.875rem;
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
 }
 
 .attachment-remove {
@@ -9428,15 +9367,15 @@ body.course-mode #course-input-section {
     background: transparent;
     border: none;
     border-radius: 50%;
-    color: #fbbf24;
+    color: var(--openmaic-amber-400);
     cursor: pointer;
     transition: all 0.2s ease;
     margin-left: 0.375rem;
 }
 
 .attachment-remove:hover {
-    background: rgba(245, 158, 11, 0.2);
-    color: #c7d2fe;
+    background: color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
+    color: var(--openmaic-amber-700);
     transform: scale(1.1);
 }
 
@@ -9447,14 +9386,14 @@ body.course-mode #course-input-section {
     left: 0;
     right: 0;
     height: 3px;
-    background: rgba(245, 158, 11, 0.15);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 0 0 0.75rem 0.75rem;
     overflow: hidden;
 }
 
 .attachment-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #d97706, #f59e0b);
+    background: linear-gradient(90deg, var(--openmaic-amber-600), var(--openmaic-amber-500));
     width: 0%;
     transition: width 0.3s ease;
 }
@@ -9472,12 +9411,12 @@ body.course-mode #course-input-section {
     min-width: 1.125rem;
     height: 1.125rem;
     padding: 0 0.375rem;
-    background: linear-gradient(135deg, #d97706, #f59e0b);
+    background: linear-gradient(135deg, var(--openmaic-amber-600), var(--openmaic-amber-500));
     color: white;
     border-radius: 9999px;
     font-size: 0.625rem;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+    box-shadow: 0 2px 8px color-mix(in oklch, var(--openmaic-amber-600) 30%, transparent);
 }
 
 /* 最近课堂区域 - 紧凑样式 */
@@ -9497,7 +9436,7 @@ body.course-mode #course-input-section {
 .openmaic-recent-line {
     flex: 1;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.2), transparent);
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent), transparent);
 }
 
 .openmaic-recent-btn {
@@ -9506,7 +9445,7 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     background: rgba(30, 41, 59, 0.4);
-    border: 1px solid rgba(245, 158, 11, 0.15);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 9999px;
     font-size: 0.8125rem;
     font-weight: 600;
@@ -9516,14 +9455,14 @@ body.course-mode #course-input-section {
 }
 
 .openmaic-recent-btn:hover {
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
-    color: #fef3c7;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.1);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
+    color: var(--openmaic-amber-100);
+    box-shadow: 0 0 20px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
 }
 
 .openmaic-recent-btn i {
-    color: #f59e0b;
+    color: var(--openmaic-amber-500);
 }
 
 .openmaic-chevron {
@@ -9537,11 +9476,11 @@ body.course-mode #course-input-section {
 .openmaic-recent-count {
     font-size: 0.6875rem;
     padding: 0.125rem 0.5rem;
-    background: linear-gradient(135deg, #d97706, #f59e0b);
+    background: linear-gradient(135deg, var(--openmaic-amber-600), var(--openmaic-amber-500));
     color: white;
     border-radius: 9999px;
     font-weight: 700;
-    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+    box-shadow: 0 2px 8px color-mix(in oklch, var(--openmaic-amber-600) 30%, transparent);
 }
 
 .openmaic-import-btn {
@@ -9550,20 +9489,20 @@ body.course-mode #course-input-section {
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
     background: rgba(30, 41, 59, 0.4);
-    border: 1px solid rgba(245, 158, 11, 0.15);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #64748b;
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .openmaic-import-btn:hover {
-    color: #fef3c7;
-    background: rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
-    box-shadow: 0 0 16px rgba(245, 158, 11, 0.1);
+    color: var(--openmaic-amber-100);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
+    box-shadow: 0 0 16px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
 }
 
 /* 最近课堂内容区域 */
@@ -9590,7 +9529,7 @@ body.course-mode #course-input-section {
 /* 课程卡片 - 紧凑 */
 .openmaic-course-card {
     background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(245, 158, 11, 0.15);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 1rem;
     overflow: hidden;
     cursor: pointer;
@@ -9603,14 +9542,14 @@ body.course-mode #course-input-section {
     transform: translateY(-5px) scale(1.02);
     box-shadow:
         0 16px 40px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(245, 158, 11, 0.2),
-        0 0 30px rgba(245, 158, 11, 0.1);
-    border-color: rgba(245, 158, 11, 0.3);
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent),
+        0 0 30px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-card-thumbnail {
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, #d97706 0%, #fbbf24 50%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--openmaic-amber-600) 0%, var(--openmaic-amber-400) 50%, var(--openmaic-amber-500) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9622,7 +9561,7 @@ body.course-mode #course-input-section {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), transparent);
+    background: linear-gradient(135deg, color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent), transparent);
 }
 
 .openmaic-card-thumbnail i {
@@ -9664,25 +9603,25 @@ body.course-mode #course-input-section {
     justify-content: center;
     background: var(--surface-card);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-radius: 50%;
-    color: #fef3c7;
+    color: var(--openmaic-amber-100);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .openmaic-card-action-btn:hover {
-    background: rgba(239, 68, 68, 0.9);
-    border-color: rgba(239, 68, 68, 0.5);
+    background: color-mix(in oklch, var(--danger) 90%, transparent);
+    border-color: color-mix(in oklch, var(--danger) 50%, transparent);
     color: white;
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--danger) 30%, transparent);
 }
 
 .openmaic-card-action-btn.edit:hover {
-    background: rgba(59, 130, 246, 0.9);
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 90%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-card-info {
@@ -9694,17 +9633,17 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     font-size: 0.6875rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin-bottom: 0.375rem;
 }
 
 .openmaic-card-meta span {
     padding: 0.125rem 0.5rem;
-    background: rgba(245, 158, 11, 0.15);
-    color: #fde68a;
+    background: color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
+    color: var(--openmaic-amber-200);
     border-radius: 9999px;
     font-weight: 600;
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
 }
 
 .openmaic-card-title {
@@ -9722,7 +9661,7 @@ body.course-mode #course-input-section {
     z-index: 10;
     text-align: center;
     font-size: 0.75rem;
-    color: #475569;
+    color: var(--text-body);
     padding: 2.5rem 0 1.5rem;
     letter-spacing: 0.05em;
 }
@@ -9732,7 +9671,7 @@ body.course-mode #course-input-section {
     display: block;
     width: 120px;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.3), transparent);
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent), transparent);
     margin: 0 auto 1rem;
 }
 
@@ -9764,7 +9703,7 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     font-size: 0.8125rem;
     font-weight: 600;
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     margin-bottom: 0;
 }
 
@@ -9775,11 +9714,11 @@ body.course-mode #course-input-section {
     width: 100%;
     padding: 0.625rem 0.875rem;
     background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 0.875rem;
     cursor: pointer;
     transition: all 0.3s ease;
-    color: #475569;
+    color: var(--text-body);
     font: inherit;
     text-align: left;
     backdrop-filter: blur(12px);
@@ -9789,12 +9728,12 @@ body.course-mode #course-input-section {
 
 .teacher-toggle:hover {
     background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
 
 .teacher-toggle .teacher-toggle-label-text {
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     font-weight: 700;
 }
 
@@ -9802,7 +9741,7 @@ body.course-mode #course-input-section {
     margin-left: auto;
     margin-right: 0.5rem;
     font-size: 0.75rem;
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     font-weight: 500;
     opacity: 0.85;
     max-width: 8rem;
@@ -9812,15 +9751,15 @@ body.course-mode #course-input-section {
 }
 
 .teacher-toggle-chevron {
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     transition: transform 0.3s ease;
     flex-shrink: 0;
 }
 
 .teacher-toggle[aria-expanded="true"] {
     background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(245, 158, 11, 0.5);
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
 }
 
 .teacher-toggle[aria-expanded="true"] .teacher-toggle-chevron {
@@ -9855,7 +9794,7 @@ body.course-mode #course-input-section {
     gap: 0.25rem;
     padding: 0.75rem 0.5rem;
     background: rgba(255, 255, 255, 0.78);
-    border: 1.5px solid rgba(245, 158, 11, 0.18);
+    border: 1.5px solid color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
     border-radius: 0.875rem;
     cursor: pointer;
     transition: all 0.25s ease;
@@ -9867,15 +9806,15 @@ body.course-mode #course-input-section {
 
 .teacher-card:hover {
     background: rgba(255, 255, 255, 0.95);
-    border-color: rgba(245, 158, 11, 0.5);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.18);
+    box-shadow: 0 6px 16px color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
 }
 
 .teacher-card.selected {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(251, 191, 36, 0.12) 100%);
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18), 0 4px 12px rgba(245, 158, 11, 0.25);
+    background: linear-gradient(135deg, color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent) 0%, color-mix(in oklch, var(--openmaic-amber-400) 12%, transparent) 100%);
+    border-color: var(--openmaic-amber-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent), 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
 }
 
 .teacher-card-icon {
@@ -9886,12 +9825,12 @@ body.course-mode #course-input-section {
 .teacher-card-name {
     font-size: 0.8125rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-heading);
 }
 
 .teacher-card-profession {
     font-size: 0.6875rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-weight: 500;
 }
 
@@ -10027,7 +9966,7 @@ body.openmaic-mode .main-glass-surface {
     position: absolute;
     width: 4px;
     height: 4px;
-    background: rgba(245, 158, 11, 0.3);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 50%;
     animation: particle-float linear infinite;
 }
@@ -10061,7 +10000,7 @@ body.openmaic-mode .main-glass-surface {
     left: 20%;
     right: 20%;
     height: 1px;
-    background: linear-gradient(to right, transparent, rgba(245, 158, 11, 0.5), transparent);
+    background: linear-gradient(to right, transparent, color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent), transparent);
     opacity: 0.5;
     transition: opacity 0.3s ease;
 }
@@ -10087,7 +10026,7 @@ body.openmaic-mode .main-glass-surface {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent, rgba(6, 182, 212, 0.1));
+    background: linear-gradient(135deg, color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent), transparent, color-mix(in oklch, var(--openmaic-bg-orb-2) 10%, transparent));
     z-index: 1;
     opacity: 0;
     transition: opacity 0.3s ease;
@@ -10125,12 +10064,12 @@ body.openmaic-mode .main-glass-surface {
     justify-content: space-between;
     gap: 0.5rem;
     background: rgba(255, 255, 255, 0.88);
-    border: 1px solid rgba(245, 158, 11, 0.28);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 28%, transparent);
     border-radius: 1.5rem;
     padding: 0.45rem 0.875rem;
     font-size: 0.75rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
@@ -10139,14 +10078,14 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .custom-select-trigger:hover {
-    border-color: rgba(245, 158, 11, 0.5);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
 
 .custom-select.open .custom-select-trigger {
-    border-color: #f59e0b;
-    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    border-color: var(--openmaic-amber-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
     background: rgba(255, 255, 255, 0.98);
@@ -10155,7 +10094,7 @@ body.openmaic-mode .main-glass-surface {
 .custom-select-arrow {
     display: flex;
     align-items: center;
-    color: #d97706;
+    color: var(--openmaic-amber-600);
     transition: transform 0.3s ease;
 }
 
@@ -10169,7 +10108,7 @@ body.openmaic-mode .main-glass-surface {
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-top: none;
     border-bottom-left-radius: 1rem;
     border-bottom-right-radius: 1rem;
@@ -10179,7 +10118,7 @@ body.openmaic-mode .main-glass-surface {
     visibility: hidden;
     transform: translateY(-8px);
     transition: all 0.25s ease;
-    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(245, 158, 11, 0.12);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18), 0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
 }
@@ -10193,19 +10132,19 @@ body.openmaic-mode .main-glass-surface {
 .custom-select-option {
     padding: 0.625rem 0.875rem;
     font-size: 0.75rem;
-    color: #475569;
+    color: var(--text-body);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .custom-select-option:hover {
-    background: rgba(245, 158, 11, 0.12);
-    color: #1e293b;
+    background: color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
+    color: var(--text-heading);
 }
 
 .custom-select-option.active {
-    background: rgba(245, 158, 11, 0.18);
-    color: #d97706;
+    background: color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
+    color: var(--openmaic-amber-600);
     font-weight: 700;
 }
 
@@ -10265,8 +10204,8 @@ body.openmaic-mode .main-glass-surface {
 }
 
 @keyframes voice-pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-    50% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in oklch, var(--danger) 40%, transparent); }
+    50% { transform: scale(1.08); box-shadow: 0 0 0 6px color-mix(in oklch, var(--danger) 0%, transparent); }
 }
 
 .dispatch-indicator {
@@ -10287,13 +10226,13 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .dispatch-indicator.dispatch-idle {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: color-mix(in oklch, var(--danger) 15%, transparent);
+    border: 1px solid color-mix(in oklch, var(--danger) 30%, transparent);
 }
 
 .dispatch-indicator.dispatch-idle .dispatch-light {
-    background: #ef4444;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+    background: var(--danger);
+    box-shadow: 0 0 6px color-mix(in oklch, var(--danger) 60%, transparent);
 }
 
 .dispatch-indicator.dispatch-active {
@@ -10302,7 +10241,7 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .dispatch-indicator.dispatch-active .dispatch-light {
-    background: #10b981;
+    background: var(--success);
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
     animation: dispatchBreathe 2s ease-in-out infinite;
 }
@@ -10453,12 +10392,12 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .custom-modal .modal-btn-danger {
-    background: #ef4444;
+    background: var(--danger);
     color: white;
 }
 
 .custom-modal .modal-btn-danger:hover {
-    background: #dc2626;
+    background: var(--danger);
 }
 
 /* 删除确认弹窗特殊样式 */
@@ -10466,7 +10405,7 @@ body.openmaic-mode .main-glass-surface {
     display: flex;
     justify-content: center;
     margin-bottom: 1rem;
-    color: #f59e0b;
+    color: var(--openmaic-amber-500);
 }
 
 #delete-course-modal .delete-warning-text {
@@ -10550,13 +10489,13 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-modal-icon.edit-icon {
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
+    background: color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
+    color: var(--openmaic-amber-600);
 }
 
 .openmaic-modal-icon.danger-icon {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: color-mix(in oklch, var(--danger) 12%, transparent);
+    color: var(--danger);
 }
 
 .openmaic-modal-icon i {
@@ -10632,8 +10571,8 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-modal-input:focus {
-    border-color: var(--primary, #3b82f6);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    border-color: var(--openmaic-amber-500);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
 
 .openmaic-modal-input::placeholder {
@@ -10645,7 +10584,7 @@ body.openmaic-mode .main-glass-surface {
     display: flex;
     justify-content: center;
     margin: 0.5rem 0 1.25rem;
-    color: #f59e0b;
+    color: var(--openmaic-amber-500);
 }
 
 .openmaic-delete-warning i {
@@ -10709,15 +10648,15 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-btn-primary {
-    background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--openmaic-amber-600) 0%, var(--openmaic-amber-500) 100%);
     color: var(--text-heading);
     border-color: transparent;
-    box-shadow: 0 2px 12px rgba(217, 119, 6, 0.3);
+    box-shadow: 0 2px 12px color-mix(in oklch, var(--openmaic-amber-600) 30%, transparent);
     font-weight: 600;
 }
 
 .openmaic-btn-primary:hover {
-    box-shadow: 0 4px 20px rgba(217, 119, 6, 0.4);
+    box-shadow: 0 4px 20px color-mix(in oklch, var(--openmaic-amber-600) 40%, transparent);
     transform: translateY(-2px);
     filter: brightness(1.1);
 }
@@ -10727,15 +10666,15 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: linear-gradient(135deg, var(--danger) 0%, color-mix(in oklch, var(--danger) 70%, oklch(20% 0.15 30)) 100%);
     color: var(--text-heading);
     border-color: transparent;
-    box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 2px 12px color-mix(in oklch, var(--danger) 30%, transparent);
     font-weight: 600;
 }
 
 .openmaic-btn-danger:hover {
-    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 20px color-mix(in oklch, var(--danger) 40%, transparent);
     transform: translateY(-2px);
     filter: brightness(1.1);
 }
@@ -10875,7 +10814,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay.light-theme .media-popup-close:hover {
     background: var(--surface-glass);
-    color: #334155;
+    color: var(--text-body);
 }
 
 .openmaic-overlay.light-theme .media-option:hover {
@@ -10891,16 +10830,16 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-option-desc {
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .openmaic-overlay.light-theme .media-option-icon {
-    background: rgba(217, 119, 6, 0.1);
+    background: color-mix(in oklch, var(--openmaic-amber-600) 10%, transparent);
 }
 
 .openmaic-overlay.light-theme .media-option-icon i,
 .openmaic-overlay.light-theme .media-option-icon svg {
-    color: var(--primary);
+    color: var(--openmaic-amber-600);
 }
 
 .openmaic-overlay.light-theme .media-option-icon.video {
@@ -10913,23 +10852,23 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-option .toggle-slider {
-    background: #cbd5e1;
+    background: var(--border-glass);
 }
 
 .openmaic-overlay.light-theme .media-option .toggle-switch input:checked + .toggle-slider {
-    background: var(--primary);
+    background: var(--openmaic-amber-500);
 }
 
 .openmaic-overlay.light-theme .media-provider-info {
-    background: rgba(217, 119, 6, 0.06);
-    border-color: rgba(217, 119, 6, 0.12);
-    color: #64748b;
+    background: color-mix(in oklch, var(--openmaic-amber-600) 6%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-600) 12%, transparent);
+    color: var(--text-muted);
 }
 
 .openmaic-overlay.light-theme .media-provider-info i,
 .openmaic-overlay.light-theme .media-provider-info svg,
 .openmaic-overlay.light-theme .media-provider-info strong {
-    color: var(--primary);
+    color: var(--openmaic-amber-600);
 }
 
 .openmaic-overlay.light-theme .openmaic-voice-btn {
@@ -10938,8 +10877,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .attachment-item {
-    background: rgba(217, 119, 6, 0.1);
-    border-color: rgba(217, 119, 6, 0.2);
+    background: color-mix(in oklch, var(--openmaic-amber-600) 10%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-600) 20%, transparent);
 }
 
 .openmaic-overlay.light-theme .openmaic-course-card {
@@ -10965,7 +10904,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay:not(.light-theme) .openmaic-user-greeting {
     background: rgba(255, 255, 255, 0.88);
-    border-color: rgba(245, 158, 11, 0.3);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-textarea {
@@ -10975,12 +10914,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 .openmaic-overlay:not(.light-theme) .openmaic-tool-btn,
 .openmaic-overlay:not(.light-theme) .openmaic-pill-toggle {
     background: rgba(255, 255, 255, 0.88);
-    color: #475569;
-    border-color: rgba(245, 158, 11, 0.25);
+    color: var(--text-body);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-toolbar-divider {
-    background: rgba(245, 158, 11, 0.3);
+    background: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-toolbar-btn {
@@ -10990,13 +10929,13 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay:not(.light-theme) .openmaic-voice-btn {
     background: rgba(255, 255, 255, 0.88);
-    color: #475569;
-    border-color: rgba(245, 158, 11, 0.3);
+    color: var(--text-body);
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
 .openmaic-overlay:not(.light-theme) .attachment-item {
-    background: rgba(217, 119, 6, 0.2);
-    border-color: rgba(217, 119, 6, 0.3);
+    background: color-mix(in oklch, var(--openmaic-amber-600) 20%, transparent);
+    border-color: color-mix(in oklch, var(--openmaic-amber-600) 30%, transparent);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-course-card {
@@ -11076,18 +11015,18 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .persona-chip:hover {
     background: var(--surface-hover);
-    border-color: rgba(168,85,247,0.25);
+    border-color: color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 25%, transparent);
     color: var(--text-primary);
-    box-shadow: 0 0 12px rgba(168,85,247,0.08);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 8%, transparent);
     transform: translateY(-1px);
 }
 
 .persona-chip.active {
-    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(168,85,247,0.15));
-    border-color: rgba(168,85,247,0.35);
-    color: #c4b5fd;
+    background: linear-gradient(135deg, color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 20%, transparent), color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 15%, transparent));
+    border-color: color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 35%, transparent);
+    color: var(--agent-theme-color, var(--openmaic-amber-300));
     box-shadow:
-        0 0 16px rgba(168,85,247,0.15),
+        0 0 16px color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 15%, transparent),
         inset 0 1px 0 rgba(255,255,255,0.04);
     font-weight: 500;
 }
@@ -11140,8 +11079,8 @@ body.light-theme .openmaic-btn-ghost:hover,
     padding: 5px 14px 5px 10px;
     border-radius: 9999px;
     border: 1.5px solid var(--border-glass);
-    background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(99,102,241,0.05));
-    color: #a5b4fc;
+    background: linear-gradient(135deg, color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 15%, transparent), color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 5%, transparent));
+    color: var(--agent-theme-color, var(--openmaic-amber-300));
     font-size: 12px;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -11168,22 +11107,22 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .subject-dropdown-btn:hover {
     border-color: var(--agent-theme-color, #6366f1);
-    color: #c7d2fe;
+    color: var(--agent-theme-color, var(--openmaic-amber-200));
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px var(--agent-theme-glow, rgba(99,102,241,0.2));
+    box-shadow: 0 4px 16px var(--agent-theme-glow, color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 20%, transparent));
 }
 
 .subject-dropdown-btn.open {
     background: linear-gradient(135deg, var(--agent-theme-color, #6366f1)30, var(--agent-theme-color, #6366f1)15);
     border-color: var(--agent-theme-color, #6366f1);
-    color: #e0e7ff;
-    box-shadow: 0 0 20px var(--agent-theme-glow, rgba(99,102,241,0.3)), inset 0 1px 0 rgba(255,255,255,0.1);
+    color: var(--agent-theme-color, var(--openmaic-amber-100));
+    box-shadow: 0 0 20px var(--agent-theme-glow, color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 30%, transparent)), inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
 .subject-dropdown-icon {
     font-size: 14px;
     line-height: 1;
-    filter: drop-shadow(0 0 4px var(--agent-theme-glow, rgba(99,102,241,0.3)));
+    filter: drop-shadow(0 0 4px var(--agent-theme-glow, color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 30%, transparent)));
     transition: transform 0.3s ease;
 }
 
@@ -11217,8 +11156,8 @@ body.light-theme .openmaic-btn-ghost:hover,
     background: linear-gradient(180deg, rgba(30,41,59,0.98) 0%, rgba(15,23,42,0.95) 100%);
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border: 1px solid rgba(99,102,241,0.2);
-    box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px rgba(99,102,241,0.1);
+    border: 1px solid color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 20%, transparent);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px color-mix(in oklch, var(--agent-theme-color, var(--openmaic-amber-500)) 10%, transparent);
     z-index: 100000;
     display: flex;
     flex-direction: column;
@@ -12607,6 +12546,101 @@ body.light-theme .openmaic-btn-ghost:hover,
     color: var(--accent-purple, #a78bfa);
     border: 1px solid var(--border-glass, rgba(255,255,255,0.08));
     font-weight: 500;
+}
+
+/* 「📎 目标依据」面板 */
+.path-evidence-section {
+    border-left: 3px solid transparent;
+    transition: border-color 0.2s;
+}
+.path-evidence-warn-border {
+    border-left-color: rgba(239, 68, 68, 0.6);
+}
+.path-evidence-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.path-evidence-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+.path-evidence-ok {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+.path-evidence-warn {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.path-evidence-details {
+    margin-top: 8px;
+}
+.path-evidence-summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary, rgba(255,255,255,0.65));
+    padding: 4px 0;
+    user-select: none;
+    list-style: none;
+}
+.path-evidence-summary::-webkit-details-marker { display: none; }
+.path-evidence-summary::before {
+    content: '▸ ';
+    font-size: 10px;
+    margin-right: 4px;
+    transition: transform 0.2s;
+    display: inline-block;
+}
+.path-evidence-details[open] .path-evidence-summary::before {
+    transform: rotate(90deg);
+}
+.path-evidence-body {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: var(--fill-glass, rgba(255,255,255,0.04));
+    border-radius: 6px;
+    border: 1px solid var(--border-glass, rgba(255,255,255,0.06));
+}
+.path-evidence-rationale {
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-secondary, rgba(255,255,255,0.7));
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    background: rgba(167, 139, 250, 0.08);
+    border-radius: 4px;
+    border-left: 2px solid rgba(167, 139, 250, 0.4);
+}
+.path-evidence-group {
+    margin-top: 6px;
+}
+.path-evidence-group-label {
+    font-size: 10px;
+    color: var(--text-tertiary, rgba(255,255,255,0.45));
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.path-evidence-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.path-evidence-chip {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(96, 165, 250, 0.10);
+    color: #93c5fd;
+    border: 1px solid rgba(96, 165, 250, 0.25);
+    font-family: 'SF Mono', 'Monaco', monospace;
 }
 
 /* E1: mobile tower flow — horizontal scroll instead of wrap */

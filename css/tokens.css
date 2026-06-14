@@ -397,6 +397,69 @@
     --emotion-anxious: var(--warning);
     --emotion-frustrated: var(--danger);
     --emotion-engaged: var(--primary);
+
+    /* === 课程生成面板 (OpenMAIC) === 固定琥珀色品牌，不随 6 主题变化 */
+    --openmaic-amber-50:  #fffbeb;
+    --openmaic-amber-100: #fef3c7;
+    --openmaic-amber-200: #fde68a;
+    --openmaic-amber-300: #fcd34d;
+    --openmaic-amber-400: #fbbf24;
+    --openmaic-amber-500: #f59e0b;   /* 主品牌色 */
+    --openmaic-amber-600: #d97706;   /* hover/active */
+    --openmaic-amber-700: #b45309;
+    --openmaic-amber-800: #92400e;
+    --openmaic-amber-900: #78350f;
+
+    /* 课程页画布（仅 dark 模式使用，light 模式由 .light-theme 块覆盖） */
+    --openmaic-bg-deep:  #0a0f1c;
+    --openmaic-bg-base:  #0f172a;
+    --openmaic-bg-orb-1: #f59e0b;
+    --openmaic-bg-orb-2: #06b6d4;
+    --openmaic-bg-orb-3: #3b82f6;
+
+    /* 课程页 light 块专用：浅色面上的琥珀变体 */
+    --openmaic-on-light-bg:     #fffbeb;
+    --openmaic-on-light-border: #fde68a;
+    --openmaic-on-light-text:   #92400e;
+    --openmaic-on-light-muted:  #b45309;
+
+    /* === 课堂页面 (Classroom) === 玻璃面 + 学术配色，不随 6 主题变化 */
+    --classroom-bg-from:    #f5f3ff;   /* 画布渐变起点（淡紫） */
+    --classroom-bg-to:      #ede9fe;   /* 画布渐变终点 */
+    --classroom-bg-orb-1:   #c4b5fd;   /* 紫色光晕（淡） */
+    --classroom-bg-orb-2:   #fbcfe8;   /* 樱粉光晕（淡） */
+    --classroom-bg-orb-3:   #a5f3fc;   /* 青色光晕（淡） */
+
+    /* 玻璃面板（PPT 卡片、侧栏、聊天面板共用） */
+    --classroom-glass-bg:        color-mix(in oklch, white, transparent 35%);
+    --classroom-glass-bg-hover:  color-mix(in oklch, white, transparent 25%);
+    --classroom-glass-border:    color-mix(in oklch, var(--neutral-900), transparent 88%);
+    --classroom-glass-shadow:    0 8px 32px rgba(15, 23, 42, 0.08),
+                                0 1px 0 rgba(255, 255, 255, 0.6) inset;
+
+    /* PPT 卡片（PPT 内容是浅底白卡以保证文字可读） */
+    --slide-bg-from:         #ffffff;
+    --slide-bg-to:           #f1f5f9;
+    --slide-title-color:     #1e293b;   /* slate-800 */
+    --slide-accent-color:    var(--openmaic-amber-500);   /* 顶部彩色 accent stripe：固定琥珀 */
+    --slide-shadow:          0 25px 50px -12px rgba(15, 23, 42, 0.18),
+                             0 0 0 1px color-mix(in oklch, var(--neutral-900), transparent 92%);
+
+    /* 课堂品牌主色（不参与 6 主题切换） */
+    --classroom-accent:        var(--openmaic-amber-500);
+    --classroom-accent-hover:  var(--openmaic-amber-600);
+    --classroom-accent-soft:   color-mix(in oklch, var(--openmaic-amber-500), transparent 80%);
+
+    /* 樱花粉（quiz 高亮/装饰） */
+    --classroom-sakura-300:   #ff9ec4;
+    --classroom-sakura-400:   #ffb6d9;
+
+    /* 5 角色头像渐变（角色身份不参与主题） */
+    --classroom-avatar-teacher:    linear-gradient(135deg, #6366f1, #8b5cf6);
+    --classroom-avatar-student:    linear-gradient(135deg, #10b981, #34d399);
+    --classroom-avatar-agent:      linear-gradient(135deg, #f59e0b, #fbbf24);
+    --classroom-avatar-moderator:  linear-gradient(135deg, #ec4899, #f472b6);
+    --classroom-avatar-user:       linear-gradient(135deg, #06b6d4, #3b82f6);
 }
 
 /* ---- 暗色模式文字色 ---- */
@@ -436,6 +499,63 @@
     --emotion-anxious: var(--warning);
     --emotion-frustrated: var(--danger);
     --emotion-engaged: var(--primary);
+
+    /* OpenMAIC 品牌色（不随 6 主题变化，但 dark 块也需声明以保证所有主题下可用） */
+    --openmaic-amber-50:  #fffbeb;
+    --openmaic-amber-100: #fef3c7;
+    --openmaic-amber-200: #fde68a;
+    --openmaic-amber-300: #fcd34d;
+    --openmaic-amber-400: #fbbf24;
+    --openmaic-amber-500: #f59e0b;
+    --openmaic-amber-600: #d97706;
+    --openmaic-amber-700: #b45309;
+    --openmaic-amber-800: #92400e;
+    --openmaic-amber-900: #78350f;
+    --openmaic-bg-deep:  #0a0f1c;
+    --openmaic-bg-base:  #0f172a;
+    --openmaic-bg-orb-1: #f59e0b;
+    --openmaic-bg-orb-2: #06b6d4;
+    --openmaic-bg-orb-3: #3b82f6;
+    --openmaic-on-light-bg:     #fffbeb;
+    --openmaic-on-light-border: #fde68a;
+    --openmaic-on-light-text:   #92400e;
+    --openmaic-on-light-muted:  #b45309;
+
+    /* === 课堂页面 (Classroom) — dark 主题覆盖 === */
+    --classroom-bg-from:    #0a0f1c;   /* 画布渐变起点（深空蓝） */
+    --classroom-bg-to:      #1a1f2e;   /* 画布渐变终点 */
+    --classroom-bg-orb-1:   #6366f1;   /* 紫色光晕 */
+    --classroom-bg-orb-2:   #8b5cf6;   /* 紫罗兰光晕 */
+    --classroom-bg-orb-3:   #06b6d4;   /* 青色光晕 */
+
+    /* 玻璃面板（dark 模式用更深一点的玻璃） */
+    --classroom-glass-bg:        color-mix(in oklch, white, transparent 94%);
+    --classroom-glass-bg-hover:  color-mix(in oklch, white, transparent 90%);
+    --classroom-glass-border:    color-mix(in oklch, white, transparent 85%);
+    --classroom-glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.4),
+                                0 1px 0 color-mix(in oklch, white, transparent 90%) inset;
+
+    /* PPT 卡片在 dark 模式下保持浅底（PPT 内容是白底） */
+    --slide-bg-from:         #f8fafc;
+    --slide-bg-to:           #e2e8f0;
+    --slide-title-color:     #0f172a;
+    --slide-accent-color:    var(--openmaic-amber-500);
+    --slide-shadow:          0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                             0 0 0 1px color-mix(in oklch, white, transparent 90%);
+
+    /* 课堂品牌主色（不参与 6 主题切换，dark 模式也是固定琥珀） */
+    --classroom-accent:        var(--openmaic-amber-500);
+    --classroom-accent-hover:  var(--openmaic-amber-600);
+    --classroom-accent-soft:   color-mix(in oklch, var(--openmaic-amber-500), transparent 80%);
+
+    --classroom-sakura-300:   #ff9ec4;
+    --classroom-sakura-400:   #ffb6d9;
+
+    --classroom-avatar-teacher:    linear-gradient(135deg, #6366f1, #8b5cf6);
+    --classroom-avatar-student:    linear-gradient(135deg, #10b981, #34d399);
+    --classroom-avatar-agent:      linear-gradient(135deg, #f59e0b, #fbbf24);
+    --classroom-avatar-moderator:  linear-gradient(135deg, #ec4899, #f472b6);
+    --classroom-avatar-user:       linear-gradient(135deg, #06b6d4, #3b82f6);
 }
 
 /* ---- color-scheme: 控制浏览器原生 UI（滚动条/表单） ---- */

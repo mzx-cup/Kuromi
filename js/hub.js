@@ -73,8 +73,11 @@ function updateFocusValue() {
     var realtime = window.FocusAnalysis ? window.FocusAnalysis.getRealtimeState() : null;
     var fallback = calcFlowScore();
 
-    // 优先使用后端分析分数，否则使用 calcFlowScore
-    var score = analysis ? (Number(analysis.score) || 0) : fallback.score;
+    // 优先使用后端分析分数（仅当 score>0）；若服务端无数据或返回 0，
+    // 使用 calcFlowScore 启发式（基于 page_visits 切屏频率）作为兜底，
+    // 避免出现一直显示 0% 的问题。
+    var serverScore = analysis ? Number(analysis.score) : NaN;
+    var score = (isFinite(serverScore) && serverScore > 0) ? serverScore : fallback.score;
     var count = fallback.count;
     focusTracker.currentFlow = score;
 
@@ -124,96 +127,192 @@ function updateFocusValue() {
 }
 
 function updateFlowResonanceCard() {
-    var summary = focusTracker.focusSummary;
     var analysis = window.FocusAnalysis ? window.FocusAnalysis.getAnalysis() : null;
-    var score = focusTracker.currentFlow || 0;
+    var card = document.getElementById('flow-resonance-card');
+    if (!card) return;
 
-    // 优先使用 FocusAnalysis 的数据（结构更完整）
-    var timeline = (analysis && analysis.timeline) || (summary && summary.timeline) || [];
-    var segments = (analysis && analysis.segments) || (summary && summary.segments) || {};
-    var timeOfDay = analysis && analysis.timeOfDay;
-
-    // 更新 section-head 头部统计
-    var headerStats = document.querySelectorAll('.ecg-header-stats .ecg-stat span:last-child, .ecg-header-stats .ecg-stat-value');
-    if (headerStats[0]) headerStats[0].textContent = score + '%';
-    if (headerStats[1]) {
-        var avgScore = score;
-        if (timeline.length) {
-            var sum = 0;
-            timeline.forEach(function (item) { sum += Number(item.score) || 0; });
-            avgScore = Math.round(sum / timeline.length);
+    // ── helpers ──
+    function tierOf(v) {
+        if (v >= 70) return 'peak';
+        if (v >= 50) return 'shallow';
+        if (v >= 30) return 'warning';
+        return 'danger';
+    }
+    function stateLabelOf(v) {
+        if (v >= 80) return '深度心流';
+        if (v >= 65) return '高度专注';
+        if (v >= 50) return '轻度专注';
+        if (v >= 30) return '注意力分散';
+        return '深度疲劳';
+    }
+    function hasAnyData(a) {
+        if (!a) return false;
+        if (a.score && a.score > 0) return true;
+        if (a.timeline && a.timeline.length) return true;
+        if (a.timeOfDay) {
+            return ['morning', 'afternoon', 'evening', 'night'].some(function (p) {
+                return a.timeOfDay[p] && a.timeOfDay[p].sessions > 0;
+            });
         }
-        headerStats[1].textContent = avgScore + '%';
+        if (a.today && (a.today.studyMinutes || a.today.sessions || a.today.pageSwitches)) return true;
+        return false;
+    }
+    function setTier(el, tier) {
+        if (el) el.setAttribute('data-tier', tier || '');
+    }
+    function showEmpty() {
+        card.setAttribute('data-empty', '1');
+        var emptyEl = document.getElementById('flow-resonance-empty');
+        if (emptyEl) emptyEl.hidden = false;
+    }
+    function hideEmpty() {
+        card.removeAttribute('data-empty');
+        var emptyEl = document.getElementById('flow-resonance-empty');
+        if (emptyEl) emptyEl.hidden = true;
     }
 
-    // 更新环形进度条
+    // ── 空状态门控：没有任何数据时不显示半真半假的"0%" ──
+    if (!hasAnyData(analysis)) { showEmpty(); return; }
+    hideEmpty();
+
+    // ── 全部使用服务端真实值，不做任何伪造兜底 ──
+    var serverScore = (analysis && Number(analysis.score)) || 0;
+    var timeline = (analysis && analysis.timeline) || [];
+    var segments = (analysis && analysis.segments) || {};
+    var timeOfDay = analysis && analysis.timeOfDay;
+    var today = (analysis && analysis.today) || {};
+
+    // ── 实时 pill ──
+    var realtimePill = document.getElementById('ecg-stat-realtime');
+    if (realtimePill) {
+        var valEl = realtimePill.querySelector('.ecg-stat-value');
+        if (valEl) {
+            valEl.textContent = serverScore > 0 ? (serverScore + '%') : '—';
+        }
+        setTier(realtimePill, serverScore > 0 ? tierOf(serverScore) : '');
+    }
+
+    // ── 7日均值 pill（timeline 算术平均，timeline 为空则 "—"） ──
+    var avgEl = document.getElementById('ecg-stat-avg');
+    var avgScore = 0, hasAvg = false;
+    if (timeline.length) {
+        var sum = 0;
+        timeline.forEach(function (it) { sum += Number(it.score) || 0; });
+        avgScore = Math.round(sum / timeline.length);
+        hasAvg = true;
+    }
+    if (avgEl) {
+        avgEl.textContent = hasAvg ? (avgScore + '%') : '—';
+        var avgPill = avgEl.closest('.ecg-stat');
+        setTier(avgPill, hasAvg ? tierOf(avgScore) : '');
+    }
+
+    // ── 环形进度条 ──
     var ringProgress = document.getElementById('flow-ring-progress');
     var ringValue = document.getElementById('flow-ring-value');
     if (ringProgress && ringValue) {
         var circumference = 264;
-        var offset = circumference - (score / 100) * circumference;
+        var offset = serverScore > 0
+            ? circumference - (serverScore / 100) * circumference
+            : circumference;
         ringProgress.style.transition = 'stroke-dashoffset 0.8s var(--ease-out)';
         ringProgress.setAttribute('stroke-dashoffset', Math.max(0, Math.min(circumference, offset)));
-        ringValue.textContent = score;
+        ringValue.textContent = serverScore > 0 ? String(serverScore) : '—';
     }
 
-    // 更新时段柱状图（优先使用 timeOfDay API 数据）
-    var bars = document.querySelectorAll('.flow-bar-fill');
-    if (bars.length && timeOfDay) {
-        var periods = ['morning', 'afternoon', 'evening', 'night'];
-        var labels = ['上午', '下午', '傍晚', '晚间'];
-        bars.forEach(function (bar, i) {
-            var pData = timeOfDay[periods[i]] || {};
-            var h = Math.max(8, pData.score || Math.round(score * 0.5));
-            bar.style.transition = 'height 0.5s var(--ease-out)';
-            bar.style.height = h + '%';
-            bar.setAttribute('data-label', labels[i]);
-        });
-    } else if (bars.length && timeline.length) {
-        // 回退：从 timeline 提取时段数据
-        var periodScores = [0, 0, 0, 0];
-        var periodCounts = [0, 0, 0, 0];
-        timeline.forEach(function (item) {
-            var ts = item.timestamp || item.time || '';
-            var hour = 12;
-            if (ts.length >= 13) hour = parseInt(ts.substring(11, 13), 10) || 12;
-            var s = Number(item.score) || 0;
-            var idx = hour >= 6 && hour < 12 ? 0 : hour >= 12 && hour < 17 ? 1 : hour >= 17 && hour < 20 ? 2 : 3;
-            periodScores[idx] += s;
-            periodCounts[idx]++;
-        });
-        bars.forEach(function (bar, i) {
-            var avg = periodCounts[i] ? Math.round(periodScores[i] / periodCounts[i]) : 0;
-            bar.style.transition = 'height 0.5s var(--ease-out)';
-            bar.style.height = Math.max(8, avg || Math.round(score * 0.5)) + '%';
-            bar.setAttribute('data-label', ['上午', '下午', '傍晚', '晚间'][i]);
-        });
-    } else if (bars.length) {
-        var fallback = [78, 94, 52, 65];
-        bars.forEach(function (bar, i) {
-            bar.style.transition = 'height 0.5s var(--ease-out)';
-            bar.style.height = fallback[i] + '%';
-        });
+    // ── 状态 pill ──
+    var stateEl = document.getElementById('flow-resonance-state');
+    if (stateEl) {
+        if (serverScore > 0) {
+            setTier(stateEl, tierOf(serverScore));
+            stateEl.textContent = stateLabelOf(serverScore);
+        } else {
+            setTier(stateEl, '');
+            stateEl.textContent = '—';
+        }
     }
 
-    // 更新 footer 统计
-    var footer = document.querySelector('.flow-resonance-footer');
-    if (!footer) return;
+    // ── 4 时段卡：仿 flow-meter renderTimeOfDayChart 的 sessions>0 守卫 ──
+    var periodEls = document.querySelectorAll('.flow-period');
+    var periods = ['morning', 'afternoon', 'evening', 'night'];
 
-    if (!timeline.length) {
-        footer.innerHTML = `
-            <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>暂无心流记录</span></div>
-            <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>开始学习后生成波段</span></div>
-            <div class="flow-stat"><span class="flow-stat-dot low"></span><span>当前分数: ${score}%</span></div>
-        `;
-        return;
+    function setPeriod(el, period, s) {
+        var valueEl = el.querySelector('.flow-period-value');
+        var fillEl = el.querySelector('.flow-period-fill');
+        if (valueEl) {
+            var unit = valueEl.querySelector('.flow-period-unit');
+            if (!unit) {
+                unit = document.createElement('span');
+                unit.className = 'flow-period-unit';
+                unit.textContent = '%';
+                valueEl.appendChild(unit);
+            }
+            var firstNode = valueEl.firstChild;
+            var display = s > 0 ? String(s) : '—';
+            if (firstNode && firstNode.nodeType === 3) {
+                firstNode.nodeValue = display;
+            } else {
+                valueEl.insertBefore(document.createTextNode(display), unit);
+            }
+        }
+        if (fillEl) {
+            fillEl.style.transition = 'height 0.8s var(--ease-out)';
+            // 不设下限，sessions=0 或 score=0 时进度条高度为 0
+            fillEl.style.height = (s > 0 ? s : 0) + '%';
+        }
+        el.setAttribute('data-period', period);
+        setTier(el, s > 0 ? tierOf(s) : '');
     }
 
-    footer.innerHTML = `
-        <div class="flow-stat"><span class="flow-stat-dot peak"></span><span>深度专注: ${segments.deep || 0}段</span></div>
-        <div class="flow-stat"><span class="flow-stat-dot warning"></span><span>预警波段: ${segments.warning || 0}次</span></div>
-        <div class="flow-stat"><span class="flow-stat-dot low"></span><span>浅层专注: ${segments.shallow || 0}段</span></div>
-    `;
+    if (periodEls.length) {
+        if (timeOfDay) {
+            periodEls.forEach(function (el, i) {
+                var pData = timeOfDay[periods[i]] || {};
+                var sessions = (pData && pData.sessions) || 0;
+                // sessions>0 时显示真实 score；否则 0（不伪造）
+                var s = sessions > 0 ? Math.round(Number(pData.score) || 0) : 0;
+                setPeriod(el, periods[i], s);
+            });
+        } else {
+            // 服务端未返回 timeOfDay：所有时段都显示空
+            periodEls.forEach(function (el, i) {
+                setPeriod(el, periods[i], 0);
+            });
+        }
+    }
+
+    // ── 底部 3 chip ──
+    var peakEl = document.getElementById('flow-stat-peak');
+    var warningEl = document.getElementById('flow-stat-warning');
+    var avgChipEl = document.getElementById('flow-stat-avg');
+
+    var peakScore = Number(today.peakScore) || 0;
+    var hasPeak = peakScore > 0;
+    if (peakEl) {
+        peakEl.textContent = hasPeak ? (peakScore + '%') : '—';
+        var peakChip = peakEl.closest('.flow-stat-chip');
+        setTier(peakChip, hasPeak ? tierOf(peakScore) : '');
+    }
+
+    var warningCount = 0;
+    if (today.pageSwitches != null && Number(today.pageSwitches) > 0) {
+        warningCount = Number(today.pageSwitches);
+    } else if (segments.warning && Number(segments.warning) > 0) {
+        warningCount = Number(segments.warning);
+    }
+    var hasWarning = warningCount > 0;
+    if (warningEl) {
+        warningEl.textContent = hasWarning ? String(warningCount) : '—';
+        var warnChip = warningEl.closest('.flow-stat-chip');
+        setTier(warnChip, !hasWarning ? '' :
+            (warningCount >= 5 ? 'danger' : warningCount >= 3 ? 'warning' : 'shallow'));
+    }
+
+    if (avgChipEl) {
+        avgChipEl.textContent = hasAvg ? (avgScore + '%') : '—';
+        var avgChip = avgChipEl.closest('.flow-stat-chip');
+        setTier(avgChip, hasAvg ? tierOf(avgScore) : '');
+    }
 }
 
 async function loadFocusData() {
@@ -1146,7 +1245,7 @@ function animateRadialProgress() {
 // Bar Chart Animation
 // ============================================
 function animateBarCharts() {
-    const bars = document.querySelectorAll('.bar, .focus-bar, .flow-bar-fill');
+    const bars = document.querySelectorAll('.bar, .focus-bar, .flow-period-fill, .flow-bar-fill');
     bars.forEach((bar, index) => {
         const height = bar.style.height || bar.getAttribute('style')?.match(/height:\s*([^;]+)/)?.[1];
         if (!height) return;

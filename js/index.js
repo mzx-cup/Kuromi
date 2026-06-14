@@ -29,10 +29,23 @@ async function loadChatHistory() {
         const res = await fetch(`${CHAT_HISTORY_URL}?sessionId=${encodeURIComponent(sessionId)}&userId=${userId}`);
         const data = await res.json();
         if (data.success && data.messages && data.messages.length > 0) {
-            messages = data.messages.map(m => ({
-                role: m.role,
-                content: m.content,
-            }));
+            messages = data.messages.map(m => {
+                const msg = {
+                    role: m.role,
+                    content: m.content,
+                };
+                // Parse <links> tag from saved content
+                const linksMatch = msg.content.match(/<links>([\s\S]*?)<\/links>/);
+                if (linksMatch) {
+                    try {
+                        const parsed = JSON.parse(linksMatch[1].trim());
+                        const linksArr = Array.isArray(parsed) ? parsed : [parsed];
+                        if (linksArr.length > 0) msg._links = linksArr;
+                    } catch (e) { /* ignore parse errors */ }
+                    msg.content = msg.content.replace(/<links>[\s\S]*?<\/links>/g, '');
+                }
+                return msg;
+            });
             await renderMessages();
             const container = document.getElementById('chat-container');
             if (container) container.scrollTop = container.scrollHeight;
@@ -1815,8 +1828,8 @@ function generateWelcomeMessage(assessment, profile) {
 
 let profile = {
     knowledgeBase: '普通学生',
-    codeSkill: 'Python基础',
-    learningGoal: '期末考试',
+    codeSkill: '未测试',
+    learningGoal: '待规划',
     cognitiveStyle: '待测试',
     weakness: '暂无',
     focusLevel: 'medium',
@@ -3387,22 +3400,31 @@ function renderRadarChart() {
             ctx.lineWidth = 0.6;
             ctx.stroke();
 
-            // Label with background pill
+            // Label with background pill (improved readability)
             const labelOffset = R + 24;
             const lx = cx + labelOffset * Math.cos(angle);
             const ly = cy + labelOffset * Math.sin(angle);
-            const labelText = dims[i];
-            ctx.font = '600 10px "PingFang SC", "Microsoft YaHei", sans-serif';
+            const labelText = dims[i] + ' ' + Math.round(values[i]);
+            ctx.font = '700 12px "PingFang SC", "Microsoft YaHei", sans-serif';
             const textMetrics = ctx.measureText(labelText);
-            const pillW = textMetrics.width + 12;
-            const pillH = 18;
+            const pillW = textMetrics.width + 14;
+            const pillH = 22;
             const pillX = lx - pillW / 2;
             const pillY = ly - pillH / 2;
-            ctx.fillStyle = radarColorWithAlpha(radarFillStart, 0.1);
+            // Shadow pill for contrast
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = radarColorWithAlpha('#0f0f1a', 0.55);
             ctx.beginPath();
-            ctx.roundRect(pillX, pillY, pillW, pillH, 9);
+            ctx.roundRect(pillX, pillY, pillW, pillH, 11);
             ctx.fill();
-            ctx.fillStyle = labelColor;
+            // Secondary lighter pill border
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = radarColorWithAlpha(radarFillStart, 0.2);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            // Text with high contrast
+            ctx.fillStyle = '#f0f0ff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(labelText, lx, ly);
@@ -3492,7 +3514,6 @@ function renderRadarChart() {
 
         canvas.style.display = 'block';
         if (loadingEl) loadingEl.style.display = 'none';
-        renderRadarDimensionList();
     } catch (err) {
         console.warn('[RadarChart] Render failed:', err);
         canvas.style.display = 'none';
@@ -3503,58 +3524,6 @@ function renderRadarChart() {
     }
 }
 
-function renderRadarDimensionList() {
-    const container = document.getElementById('radar-dim-list');
-    if (!container) return;
-
-    let dims, values;
-    if (typeof towerRadarSnapshot !== 'undefined' && towerRadarSnapshot && towerRadarSnapshot.radar) {
-        const geom = computeRadarPoints(towerRadarSnapshot, { cx: 0, cy: 0, R: 0 });
-        dims = geom.labels;
-        values = geom.values;
-    } else {
-        dims = ['方向', '基础', '编程', '认知', '短板', '专注'];
-        values = [
-            mapProfileToScore(profile.learningDirection || '大数据技术'),
-            mapProfileToScore(profile.knowledgeBase),
-            mapProfileToScore(profile.codeSkill),
-            mapProfileToScore(profile.cognitiveStyle),
-            mapProfileToScore(profile.weakness, true),
-            mapProfileToScore(profile.focusLevel)
-        ];
-    }
-
-    const allZero = values.every(v => v === 0);
-    if (allZero) {
-        container.classList.add('is-empty');
-        container.innerHTML = '';
-        return;
-    }
-    container.classList.remove('is-empty');
-
-    const radarDimsDesc = {
-        '方向': { key: 'learning_direction', desc: '学习方向清晰度' },
-        '基础': { key: 'knowledge_base', desc: '基础知识储备水平' },
-        '编程': { key: 'coding_ability', desc: '编程实践能力水平' },
-        '认知': { key: 'cognitive_level', desc: '信息处理与学习偏好' },
-        '短板': { key: 'weakness_severity', desc: '薄弱环节严重度' },
-        '专注': { key: 'focus_ability', desc: '学习注意力维持能力' },
-    };
-
-    let html = '';
-    for (let i = 0; i < dims.length; i++) {
-        const label = dims[i];
-        const val = Math.round(values[i]);
-        const info = radarDimsDesc[label] || { desc: '' };
-        html += `<div class="radar-dim-row">
-            <span class="radar-dim-label">${escapeHtml(label)}</span>
-            <div class="radar-dim-bar-bg"><div class="radar-dim-bar-fill" style="width:${val}%"></div></div>
-            <span class="radar-dim-value">${val}</span>
-            <span class="radar-dim-desc">${escapeHtml(info.desc)}</span>
-        </div>`;
-    }
-    container.innerHTML = html;
-}
 
 function setupRadarTooltips() {
     const canvas = document.getElementById('radar-chart');
@@ -4279,6 +4248,8 @@ async function renderMessages() {
                 /\[MemRef\](.*?)\[\/MemRef\]/g,
                 '<span class="mem-ref-mark"><span class="mem-ref-content">$1</span><span class="mem-ref-badge">🧠 引用记忆</span></span>'
             );
+            // Safety: remove any remaining raw <links> tags that survived parsing
+            htmlContent = htmlContent.replace(/<links>[\s\S]*?<\/links>/g, '');
             if (reasoning) {
                 thinkBlockHtml = renderThinkBlock(reasoning, false);
             }
@@ -6006,7 +5977,11 @@ async function generateGoalPlan() {
         var resp = await fetch('/api/learning-path/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ goal: goal }),
+            body: JSON.stringify({ goal: goal, userId: currentUser?.id || 1,
+                difficulty_pref: parseInt(localStorage.getItem('hachiware_difficulty') || '3'),
+                strategy: localStorage.getItem('hachiware_strategy') || 'auto',
+                injected_knowledge: JSON.parse(localStorage.getItem('hachiware_injected_tags') || '[]'),
+            }),
         });
         if (!resp.ok) throw new Error('API error');
         var data = await resp.json();
@@ -6501,6 +6476,63 @@ function onPathNodeClick(idx) {
     showPathNodeDetail(idx);
 }
 
+function renderGoalEvidencePanel(node) {
+    // 节点没有 goal_evidence 时，整个面板隐藏
+    const ge = node.goal_evidence;
+    const hasAny = ge && (
+        (ge.quiz_ids && ge.quiz_ids.length) ||
+        (ge.classroom_ids && ge.classroom_ids.length) ||
+        (ge.profile_signals && ge.profile_signals.length) ||
+        (ge.interaction_stats_refs && Object.keys(ge.interaction_stats_refs).length) ||
+        (ge.rationale_excerpt)
+    );
+    if (!hasAny) return '';
+
+    const validated = node.goal_evidence_validated === true;
+    const badge = validated
+        ? '<span class="path-evidence-badge path-evidence-ok">✓ 已校核</span>'
+        : '<span class="path-evidence-badge path-evidence-warn">⚠ 待复核</span>';
+
+    const quizIds = (ge.quiz_ids || []).map(id => `<span class="path-evidence-chip">📝 ${escapeHtml(id)}</span>`).join('');
+    const classroomIds = (ge.classroom_ids || []).map(id => `<span class="path-evidence-chip">🎓 ${escapeHtml(id)}</span>`).join('');
+    const profileSignals = (ge.profile_signals || []).map(p => `<span class="path-evidence-chip">👤 ${escapeHtml(p)}</span>`).join('');
+
+    let statChips = '';
+    if (ge.interaction_stats_refs && typeof ge.interaction_stats_refs === 'object') {
+        statChips = Object.entries(ge.interaction_stats_refs)
+            .map(([k, v]) => `<span class="path-evidence-chip">📊 ${escapeHtml(k)}=${escapeHtml(String(v))}</span>`)
+            .join('');
+    }
+
+    const detailId = `path-evidence-detail-${Math.random().toString(36).slice(2, 9)}`;
+    return `
+        <div class="path-detail-section path-evidence-section ${validated ? '' : 'path-evidence-warn-border'}">
+            <div class="path-detail-section-title path-evidence-title">
+                <span>📎 目标依据</span>
+                ${badge}
+            </div>
+            <details class="path-evidence-details">
+                <summary class="path-evidence-summary">查看证据（${(ge.quiz_ids||[]).length + (ge.classroom_ids||[]).length + (ge.profile_signals||[]).length + Object.keys(ge.interaction_stats_refs||{}).length} 条）</summary>
+                <div class="path-evidence-body" id="${detailId}">
+                    ${ge.rationale_excerpt ? `<div class="path-evidence-rationale">💬 ${escapeHtml(ge.rationale_excerpt)}</div>` : ''}
+                    <div class="path-evidence-group">
+                        ${quizIds ? `<div class="path-evidence-group-label">测验 ID</div><div class="path-evidence-chips">${quizIds}</div>` : ''}
+                    </div>
+                    <div class="path-evidence-group">
+                        ${classroomIds ? `<div class="path-evidence-group-label">课堂 ID</div><div class="path-evidence-chips">${classroomIds}</div>` : ''}
+                    </div>
+                    <div class="path-evidence-group">
+                        ${profileSignals ? `<div class="path-evidence-group-label">画像字段</div><div class="path-evidence-chips">${profileSignals}</div>` : ''}
+                    </div>
+                    <div class="path-evidence-group">
+                        ${statChips ? `<div class="path-evidence-group-label">互动统计</div><div class="path-evidence-chips">${statChips}</div>` : ''}
+                    </div>
+                </div>
+            </details>
+        </div>
+    `;
+}
+
 function showPathNodeDetail(idx) {
     const node = currentPath[idx];
     if (!node) return;
@@ -6577,6 +6609,8 @@ function showPathNodeDetail(idx) {
                 <div class="path-detail-section-title">🧠 能力适配说明</div>
                 <div class="path-detail-rationale-text">${escapeHtml(node.capability_rationale)}</div>
             </div>` : ''}
+
+            ${renderGoalEvidencePanel(node)}
 
             ${node.targeted_dimensions && node.targeted_dimensions.length > 0 ? `
             <div class="path-detail-section">
@@ -6802,7 +6836,10 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                 persona: currentPersona,
                 agent: currentAgent.id,
                 agent_system_prompt: currentAgent.systemPrompt,
-                session_id: getChatSessionId()
+                session_id: getChatSessionId(),
+                difficulty_pref: parseInt(localStorage.getItem('hachiware_difficulty') || '3'),
+                strategy: localStorage.getItem('hachiware_strategy') || 'auto',
+                injected_knowledge: JSON.parse(localStorage.getItem('hachiware_injected_tags') || '[]'),
             }),
             signal: streamAbortController.signal
         });
@@ -6902,6 +6939,8 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     typewriterQueue = [];
                     isTypewriting = false;
                     currentAssistantContent = event.full_text || currentAssistantContent;
+                    // Strip <links> tag from display content (parsed separately into msg._links)
+                    currentAssistantContent = currentAssistantContent.replace(/<links>[\s\S]*?<\/links>/g, '');
                     if (typewriterTimer) {
                         clearTimeout(typewriterTimer);
                         typewriterTimer = null;
@@ -7763,6 +7802,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         await loadProgress();
         await initLearningPath();  // 初始化学习路径（基于学情实时生成）
         window.proactiveTutor.connect(currentUser.id || currentUser.name || 'anonymous', currentUser.currentTask || 'bigdata');
+        if (window.FocusQuizIntervention) {
+            window.FocusQuizIntervention.start();
+        }
         // 每 30 秒自动保存 evaluation
         setInterval(() => {
             saveProgress();

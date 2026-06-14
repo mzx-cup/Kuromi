@@ -89,32 +89,43 @@ app = FastAPI(lifespan=lifespan)
 # ── 学习路径实时刷新防抖 ──
 _path_refresh_debounce: dict[int, float] = {}
 
-async def trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown"):
-    """异步触发学习路径刷新（带5分钟防抖）。"""
+async def trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown",
+                                        force_goal_recompute: bool = False):
+    """异步触发学习路径刷新（带5分钟防抖）。
+
+    force_goal_recompute=True 时绕过 5 分钟防抖并走 force_refresh=True，
+    触发完整 LLM 路径重算（用于 quiz/classroom 完成后立即刷新 goal_evidence 的场景）。
+    """
     import time
     now = time.time()
     last = _path_refresh_debounce.get(user_id, 0)
-    if now - last < 300:  # 5分钟内不重复触发
+    if not force_goal_recompute and now - last < 300:  # 5分钟内不重复触发
         print(f"[LearningPathRefresh] 跳过刷新 (user_id={user_id}, source={trigger_source}, 冷却中)")
         return
     _path_refresh_debounce[user_id] = now
-    print(f"[LearningPathRefresh] 触发刷新 (user_id={user_id}, source={trigger_source})")
+    print(f"[LearningPathRefresh] 触发刷新 (user_id={user_id}, source={trigger_source}, "
+          f"force_goal_recompute={force_goal_recompute})")
     try:
-        await generate_path_for_user(user_id, force_refresh=False)
+        await generate_path_for_user(user_id, force_refresh=force_goal_recompute)
         print(f"[LearningPathRefresh] 刷新完成 (user_id={user_id})")
     except Exception as e:
         print(f"[LearningPathRefresh] 刷新失败 (user_id={user_id}): {e}")
 
-def _safe_trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown"):
+def _safe_trigger_learning_path_refresh(user_id: int, trigger_source: str = "unknown",
+                                        force_goal_recompute: bool = False):
     """在同步上下文中安全地异步触发学习路径刷新（无事件循环时自动创建）。"""
     import asyncio, threading
     try:
         loop = asyncio.get_running_loop()
-        asyncio.create_task(trigger_learning_path_refresh(user_id, trigger_source))
+        asyncio.create_task(
+            trigger_learning_path_refresh(user_id, trigger_source, force_goal_recompute)
+        )
     except RuntimeError:
         def _trigger():
             try:
-                asyncio.run(trigger_learning_path_refresh(user_id, trigger_source))
+                asyncio.run(
+                    trigger_learning_path_refresh(user_id, trigger_source, force_goal_recompute)
+                )
             except Exception:
                 pass
         threading.Thread(target=_trigger, daemon=True).start()
@@ -3339,6 +3350,7 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         await push_content_chunk(socratic_response[i : i + chunk_size])
                     # 从苏格拉底响应中提取链接
                     recommended_links = _extract_links_from_text(socratic_response)
+                    socratic_response = _strip_links_tag(socratic_response)
             else:
                 visual_instruction = """【高视觉权重模式】：
 1. 必须插入至少2个Mermaid图表（架构图/流程图/时序图），用 ```mermaid 包裹
@@ -3411,7 +3423,19 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                         trait_lines.append(f"  [{label}] {trait.get('content', '')}")
                     detected_traits_text = "\n【本轮对话中检测到的用户新特征（请在本轮回答中引用）】:\n" + "\n".join(trait_lines) + "\n"
 
-                sys_prompt = f"""{identity_prompt}
+                # ── Agent 控制塔教学调控指令注入 ──
+                _dl = {1:'极简',2:'简单',3:'适中',4:'困难',5:'极难'}
+                _dt = _dl.get(body.difficulty_pref, '适中')
+                _sl = {'auto':'自动','lecture':'讲解','practice':'练习','socratic':'苏格拉底'}
+                _st = _sl.get(body.strategy, '自动')
+                _ik = '、'.join(body.injected_knowledge) if body.injected_knowledge else '暂无'
+                tower_ctl_block = f"""【Agent 控制塔教学调控】
+- 难度偏好：{_dt}（{body.difficulty_pref}/5）
+- 教学策略：{_st}
+- 注入知识/兴趣标签：{_ik}
+请严格遵循以上设置调整教学方式和内容深度。"""
+
+                sys_prompt = f"""{identity_prompt}{tower_ctl_block}
 
 【必须遵守规则】：
 1. 基于[教材参考]回答并标注引用。
@@ -3481,6 +3505,8 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
                 # 从 LLM 完整输出中提取学习链接
                 full_response_text = event.get("full_text", "")
                 recommended_links = _extract_links_from_text(full_response_text)
+                # Strip <links> tag from saved content (already parsed into recommended_links)
+                full_response_text = _strip_links_tag(full_response_text)
                 if recommended_links:
                     await push_agent_log("resource_dispatcher", f"检测到 {len(recommended_links)} 个推荐学习链接")
 
@@ -3694,6 +3720,28 @@ def extract_labeled_line(markdown: str, label: str) -> str:
     return match.group(1).strip() if match else ""
 
 
+
+def _clean_link_url(url: str) -> str:
+    """Clean URL from markdown link syntax or trailing junk."""
+    if not url:
+        return url
+    # Extract URL from markdown link: [text](url)
+    m = re.match(r'\[.*?\]\((.*?)\)', url)
+    if m:
+        return m.group(1).strip()
+    # Remove trailing punctuation that isn't part of URL
+    url = url.strip().rstrip('.,;:!?)')
+    return url
+
+
+
+def _strip_links_tag(text: str) -> str:
+    """Remove <links>...</links> tag from response text."""
+    if not text:
+        return text
+    return re.sub(r'<links>[\s\S]*?</links>', '', text).strip()
+
+
 def _extract_links_from_text(text: str) -> list[dict]:
     """从 LLM 输出中提取 <links> 标记中的学习链接数组"""
     if not text:
@@ -3721,7 +3769,7 @@ def _extract_links_from_text(text: str) -> list[dict]:
                     "id": link.get("id") or f"link_{len(normalized)}",
                     "type": link.get("type", "internal"),
                     "title": link["title"],
-                    "url": link["url"],
+                    "url": _clean_link_url(link["url"]),
                     "description": link.get("description", ""),
                     "icon": link.get("icon", "📚" if link.get("type") == "internal" else "🔗"),
                     "style": link.get("style", "card"),
@@ -6579,6 +6627,13 @@ class FocusRecordRequest(BaseModel):
     timestamp: str = ""
 
 
+class FocusQuizRequest(BaseModel):
+    user_id: int
+    topics: list[str] = []
+    context: str = ""
+    course_id: str = "bigdata"
+
+
 def _compute_focus_analysis(history: list, range_key: str = "7d") -> dict:
     """从原始专注历史生成多角度心流分析报告，供 hub 和 flow-meter 页面共用。"""
     from datetime import date, timedelta
@@ -6798,6 +6853,74 @@ def get_focus_analysis(user_id: int, range: str = "7d"):
         return analysis
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"心流分析失败: {str(e)}")
+
+
+# ── 专注干预测验 ──
+
+@app.post("/api/focus/quiz")
+async def generate_focus_quiz(request: FocusQuizRequest):
+    """生成2-3道心流干预测验题（注意力分散时主动推送）。
+    使用LLM根据当前学习主题生成相关选择题，失败时fallback到通用复习题。
+    """
+    try:
+        from llm_stream import call_llm_async
+        from prompts import build_prompt
+
+        topics_str = ", ".join(request.topics) if request.topics else "当前学习内容"
+        context_str = request.context or "学生在学习过程中"
+
+        system_prompt = build_prompt("focus_quiz", topics=topics_str, context=context_str)
+        user_prompt = "请生成干预测验题目。"
+
+        raw = await call_llm_async(system_prompt, user_prompt, temperature=0.7)
+        raw = raw.strip()
+
+        # 清理可能的markdown代码块标记
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            raw = "\n".join(lines[1:]) if len(lines) > 1 else raw
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0].strip()
+
+        quiz_data = json.loads(raw)
+        return {"success": True, **quiz_data}
+
+    except Exception as e:
+        logger.warning(f"Focus quiz LLM generation failed: {e}, using fallback")
+
+        topic = request.topics[0] if request.topics else "当前课程"
+        fallback = {
+            "success": True,
+            "reminder": "检测到你可能有些分心，来做几道小题目提提神吧！",
+            "questions": [
+                {
+                    "id": 1,
+                    "question": f"关于「{topic}」，以下哪个描述是正确的？",
+                    "options": [
+                        f"{topic}的核心概念之一",
+                        "无关的描述A",
+                        "无关的描述B",
+                        "以上都不对"
+                    ],
+                    "correct": 0,
+                    "explanation": f"这涉及{topic}的基础知识，掌握核心概念很重要"
+                },
+                {
+                    "id": 2,
+                    "question": f"在「{topic}」的学习中，最重要的学习方法是？",
+                    "options": [
+                        "死记硬背所有概念",
+                        "理解原理并通过实践巩固",
+                        "只需要看视频就行",
+                        "跳过基础直接学高级内容"
+                    ],
+                    "correct": 1,
+                    "explanation": "理解加实践是最有效的学习方法"
+                },
+            ],
+            "_fallback": True
+        }
+        return fallback
 
 
 # ── 生态数据 ──
