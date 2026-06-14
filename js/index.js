@@ -4555,6 +4555,12 @@ let towerAgentStatus = {};               // { agent_id: 'busy' | 'success' | 'fa
 let towerCatalogLoaded = false;
 let _towerBusSubscribed = false;
 let _towerInitialized = false;
+
+// === Task 21: tower-terminal 日志 (双数据源之新管线) ===
+// 旧 renderSandboxLog() 仍写 #sandbox-logs (隐藏) 并接收老 chat SSE 流里的 agent_log;
+// 新 renderTowerLog() 写 #tower-terminal, 数据源为 window.agentBus 的 agent_step / error 事件。
+let towerLogs = [];                      // in-memory mirror of all rendered log envelopes (for cap & replay)
+const TOWER_LOG_MAX = 200;               // cap to prevent DOM bloat
 let typewriterTimer = null;
 let typewriterQueue = [];
 let isTypewriting = false;
@@ -4728,6 +4734,63 @@ function resetTowerStatus() {
 }
 
 /**
+ * 把一条 agent_step / 合成 error envelope 渲染进 #tower-terminal.
+ * 数据源: window.agentBus (新 orchestrator 管线).
+ * 旧 renderSandboxLog 走的是另一条流 (legacy chat SSE 'agent_log' 事件), 不受影响。
+ *
+ * envelope 形状 (来自 js/agent-mock-fallback.js / js/agent-orchestrator.js):
+ *   {
+ *     from: 'profiler',                                    // agent id
+ *     intent: '画像分析',                                  // 中文角色
+ *     payload: { status: 'success'|'failed'|'error'|'idle', output_summary, error_message },
+ *     timestamp: Date.now(),
+ *     // 任意其他字段都会被忽略
+ *   }
+ */
+function renderTowerLog(envelope) {
+    const container = document.getElementById('tower-terminal');
+    if (!container) return;
+    if (!envelope || typeof envelope !== 'object') return;
+
+    const agentId = String(envelope.from || envelope.agent || 'unknown');
+    const label = (typeof AGENT_LABELS !== 'undefined' && AGENT_LABELS[agentId]) || agentId;
+    const intent = envelope.intent || '';
+    const payload = envelope.payload || {};
+    const status = payload.status || '';
+    const content = payload.output_summary || payload.error_message || '';
+    const isErr = status === 'failed' || status === 'error' || !!payload.error_message;
+    const ts = envelope.timestamp ? new Date(envelope.timestamp) : new Date();
+    const time = ts.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // Cap: remove oldest line if we exceed TOWER_LOG_MAX
+    while (towerLogs.length >= TOWER_LOG_MAX) {
+        towerLogs.shift();
+        if (container.firstChild) container.removeChild(container.firstChild);
+    }
+    towerLogs.push(envelope);
+
+    const line = document.createElement('div');
+    line.className = isErr ? 'tower-log-line tower-log-err' : 'tower-log-line';
+    line.dataset.agent = agentId;
+    const labelSpan = `<span class="tower-log-agent">[${escapeHtml(time)}] ${escapeHtml(String(label))}</span>`;
+    const intentSpan = intent ? ` <span>· ${escapeHtml(String(intent))}</span>` : '';
+    const contentSpan = content ? ` <span>— ${escapeHtml(String(content))}</span>` : '';
+    line.innerHTML = labelSpan + intentSpan + contentSpan;
+    container.appendChild(line);
+    container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 清空 #tower-terminal 容器和内存中的 towerLogs 数组.
+ * 在新一轮流水线启动前调用, 避免旧日志残留。
+ */
+function clearTowerTerminal() {
+    const container = document.getElementById('tower-terminal');
+    if (container) container.innerHTML = '';
+    towerLogs = [];
+}
+
+/**
  * 订阅 agentBus 的 agent_step / pipeline_complete / error 事件.
  * 幂等: 多次调用只挂一次。
  */
@@ -4748,6 +4811,8 @@ function subscribeToAgentBus() {
         else if (status === 'failed' || status === 'error') towerAgentStatus[agentId] = 'failed';
         else towerAgentStatus[agentId] = 'busy';
         renderTowerFlow();
+        // 同步把这一步推到 #tower-terminal 日志流
+        if (typeof renderTowerLog === 'function') renderTowerLog(envelope);
     });
 
     bus.subscribe('pipeline_complete', () => {
@@ -4761,6 +4826,15 @@ function subscribeToAgentBus() {
     bus.subscribe('error', (err) => {
         if (err && err.agent) towerAgentStatus[err.agent] = 'failed';
         renderTowerFlow();
+        // fatal error 额外推一条合成日志进 terminal
+        if (err && err.fatal && typeof renderTowerLog === 'function') {
+            renderTowerLog({
+                from: err.agent || 'system',
+                intent: 'fatal',
+                payload: { status: 'failed', output_summary: '', error_message: err.message || 'unknown error' },
+                timestamp: Date.now(),
+            });
+        }
     });
 }
 
@@ -4773,6 +4847,15 @@ async function initAgentTower() {
     _towerInitialized = true;
     await loadAgentCatalog();
     renderTowerFlow();
+    // 显示 idle 初始信息 — 让 #tower-terminal 不为空
+    if (typeof renderTowerLog === 'function') {
+        renderTowerLog({
+            from: 'system',
+            intent: 'idle',
+            payload: { status: 'idle', output_summary: '等待启动协作' },
+            timestamp: Date.now(),
+        });
+    }
     subscribeToAgentBus();
 }
 
@@ -5417,6 +5500,7 @@ async function handleSendStream(forcedMessage = null, options = {}) {
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     renderFlowNodes();
     if (typeof resetTowerStatus === 'function') resetTowerStatus();
+    if (typeof clearTowerTerminal === 'function') clearTowerTerminal();
     renderFilterChips();
     updateSandboxStatus('调度中', 'bg-amber-100 text-amber-600');
 
@@ -5777,6 +5861,7 @@ async function handleSend() {
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     updateSandboxStatus('处理中', 'bg-amber-100 text-amber-600');
     if (typeof resetTowerStatus === 'function') resetTowerStatus();
+    if (typeof clearTowerTerminal === 'function') clearTowerTerminal();
     setDispatchActive(true);
 
     try {
@@ -9651,6 +9736,7 @@ async function handleDebateStream(userMsg) {
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     renderFlowNodes();
     if (typeof resetTowerStatus === 'function') resetTowerStatus();
+    if (typeof clearTowerTerminal === 'function') clearTowerTerminal();
     renderFilterChips();
     updateSandboxStatus('辩论中', 'bg-purple-100 text-purple-600');
 

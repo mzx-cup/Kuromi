@@ -7,6 +7,10 @@
  *   2. loadAgentCatalog fetch 失败 -> 回落最小目录
  *   3. renderTowerFlow 把 agents 写到 #tower-flow, 每个节点带 data-agent 属性
  *   4. agentBus.subscribe('agent_step') 触发后, towerAgentStatus 跟着更新并重渲
+ *   5. renderTowerLog 写入 #tower-terminal, 自动转义 XSS (Task 21)
+ *   6. renderTowerLog 累计超过 TOWER_LOG_MAX 时丢掉最旧行 (Task 21)
+ *   7. clearTowerTerminal 清空 #tower-terminal 和 towerLogs 数组 (Task 21)
+ *   8. agent_step 事件 -> renderTowerLog 写入 + 状态类切换 (Task 21)
  *
  * 实现说明:
  *   js/index.js 是一个 10000+ 行的顶层脚本, 不导出符号。
@@ -79,15 +83,19 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
     ${towerBlock}
     return {
       loadAgentCatalog, renderTowerFlow, resetTowerStatus,
+      renderTowerLog, clearTowerTerminal,
       initAgentTower, subscribeToAgentBus,
       __state: {
         get agentCatalog() { return agentCatalog; },
         get towerAgentStatus() { return towerAgentStatus; },
+        get towerLogs() { return towerLogs; },
+        get TOWER_LOG_MAX() { return TOWER_LOG_MAX; },
         get _towerCatalogLoaded() { return towerCatalogLoaded; },
         get _towerBusSubscribed() { return _towerBusSubscribed; },
         get _towerInitialized() { return _towerInitialized; },
         set agentCatalog(v) { agentCatalog = v; },
         set towerAgentStatus(v) { towerAgentStatus = v; },
+        set towerLogs(v) { towerLogs = v; },
         set _towerCatalogLoaded(v) { towerCatalogLoaded = v; },
         set _towerBusSubscribed(v) { _towerBusSubscribed = v; },
         set _towerInitialized(v) { _towerInitialized = v; },
@@ -102,7 +110,8 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
 
 describe('agent-tower — 新数据源渲染', () => {
   beforeEach(async () => {
-    document.body.innerHTML = '<div class="tower-flow" id="tower-flow"></div>';
+    document.body.innerHTML = '<div class="tower-flow" id="tower-flow"></div>'
+      + '<div class="tower-terminal" id="tower-terminal"></div>';
     // 加载 agent-bus 干净实例
     delete window.agentBus;
     vi.resetModules();
@@ -111,6 +120,10 @@ describe('agent-tower — 新数据源渲染', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // 清空 agentBus 上累积的订阅, 避免测试间互相污染
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
   });
 
   it('loadAgentCatalog fetch 成功 -> 缓存到 agentCatalog', async () => {
@@ -243,5 +256,139 @@ describe('agent-tower — 新数据源渲染', () => {
     expect(sb.__state.towerAgentStatus.planner).toBe('busy');
     const plannerNode2 = container.querySelector('[data-agent="planner"]');
     expect(plannerNode2.classList.contains('is-busy')).toBe(true);
+  });
+
+  // === Task 21: renderTowerLog / clearTowerTerminal / 双数据源之新管线 ===
+  it('renderTowerLog 写入 #tower-terminal, 自动转义 XSS', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    // 故意注入一段恶意 payload
+    sb.renderTowerLog({
+      from: '<script>',
+      intent: 'evil<>',
+      payload: { status: 'success', output_summary: 'evil<>&"\'' },
+      timestamp: Date.now(),
+    });
+
+    const container = document.getElementById('tower-terminal');
+    const lines = container.querySelectorAll('.tower-log-line');
+    expect(lines.length).toBe(1);
+    const html = lines[0].innerHTML;
+    // agent id / intent / content 都应被转义, 不会有可执行 <script>
+    expect(html).toContain('&lt;script&gt;');
+    expect(html).toContain('evil&lt;&gt;');
+    expect(html).toContain('&amp;');
+    // 容器内确实没有 script 节点 (浏览器在 innerHTML 时会丢弃)
+    expect(container.querySelector('script')).toBeNull();
+    // data-agent 也应是 raw, 方便后续 selector
+    expect(lines[0].getAttribute('data-agent')).toBe('<script>');
+  });
+
+  it('renderTowerLog 累计超过 TOWER_LOG_MAX 时丢掉最旧行', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    const max = sb.__state.TOWER_LOG_MAX;
+    expect(max).toBe(200);
+    // 推 max+1 条
+    const total = max + 1;
+    for (let i = 0; i < total; i++) {
+      sb.renderTowerLog({
+        from: 'profiler',
+        intent: 'step-' + i,
+        payload: { status: 'success', output_summary: 'msg-' + i },
+        timestamp: Date.now() + i,
+      });
+    }
+    const container = document.getElementById('tower-terminal');
+    const lines = container.querySelectorAll('.tower-log-line');
+    // DOM 中只剩 max 行
+    expect(lines.length).toBe(max);
+    // 内存中也只剩 max 行
+    expect(sb.__state.towerLogs.length).toBe(max);
+    // 最旧的 (msg-0) 应被丢掉, 最新的 (msg-max) 仍在
+    expect(container.innerHTML).not.toContain('msg-0');
+    expect(container.innerHTML).toContain('msg-' + max);
+  });
+
+  it('clearTowerTerminal 清空 #tower-terminal 和 towerLogs 数组', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    for (let i = 0; i < 3; i++) {
+      sb.renderTowerLog({
+        from: 'profiler',
+        intent: 'step',
+        payload: { status: 'success', output_summary: 'line ' + i },
+        timestamp: Date.now(),
+      });
+    }
+    expect(sb.__state.towerLogs.length).toBe(3);
+    sb.clearTowerTerminal();
+    expect(sb.__state.towerLogs.length).toBe(0);
+    const container = document.getElementById('tower-terminal');
+    expect(container.querySelectorAll('.tower-log-line').length).toBe(0);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('agent_step 事件 -> renderTowerLog 写入 + 状态类切换', async () => {
+    const fakeCatalog = {
+      agents: [{ id: 'profiler', name: '画像分析', stage: 'main' }],
+      pipeline: [{ stage: 'main', agents: ['profiler'] }],
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve(fakeCatalog),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    await sb.loadAgentCatalog();
+    sb.renderTowerFlow();
+    sb.__state._towerBusSubscribed = false;
+    // 先清空可能从前面测试残留的订阅
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
+    sb.subscribeToAgentBus();
+    const container = document.getElementById('tower-terminal');
+    // 启动前清空 (排除 idle 初始行)
+    container.innerHTML = '';
+    sb.__state.towerLogs.length = 0;
+
+    // success -> 普通行, 不带 tower-log-err
+    window.agentBus.emit('agent_step', {
+      from: 'profiler',
+      intent: '画像分析',
+      payload: { status: 'success', output_summary: '画像完成' },
+      timestamp: Date.now(),
+      trace_id: 't1',
+    });
+    let lines = container.querySelectorAll('.tower-log-line');
+    expect(lines.length).toBe(1);
+    expect(lines[0].classList.contains('tower-log-err')).toBe(false);
+    expect(lines[0].dataset.agent).toBe('profiler');
+    expect(lines[0].innerHTML).toContain('画像完成');
+
+    // failed -> 带 tower-log-err
+    window.agentBus.emit('agent_step', {
+      from: 'profiler',
+      intent: '画像分析',
+      payload: { status: 'failed', error_message: 'boom' },
+      timestamp: Date.now(),
+      trace_id: 't1',
+    });
+    lines = container.querySelectorAll('.tower-log-line');
+    expect(lines.length).toBe(2);
+    expect(lines[1].classList.contains('tower-log-err')).toBe(true);
+    expect(lines[1].innerHTML).toContain('boom');
+
+    // fatal error 走 error 事件 -> 合成一条 error 行
+    window.agentBus.emit('error', { agent: 'profiler', fatal: true, message: 'pipeline crashed' });
+    lines = container.querySelectorAll('.tower-log-line');
+    expect(lines.length).toBe(3);
+    expect(lines[2].classList.contains('tower-log-err')).toBe(true);
+    expect(lines[2].innerHTML).toContain('pipeline crashed');
   });
 });
