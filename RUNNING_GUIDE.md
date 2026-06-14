@@ -290,3 +290,31 @@ alembic upgrade head
 2. 依赖是否完整安装
 3. 配置文件是否正确
 4. 数据库服务是否正常运行
+
+---
+
+## 启动 Agent 编排控制塔
+
+Agent 控制塔把 7+1 个后端 agent 的协作实时呈现到前端 `index.html#track-a`。
+
+### 启动步骤
+
+1. 启动 FastAPI: `uvicorn main:app --reload`
+2. 打开浏览器: http://localhost:8000/html/index.html
+3. 左侧 `🛰 Agent 编排控制塔` 应有 3 个按钮：`⏸` `⏹` `▶ 启动协作`
+4. 点击 `▶ 启动协作` → 后端 `MasterController.execute()` 走 SSE
+5. 观察 6 维雷达 + 4 张画像小卡应实时变化（800ms 缓动）
+
+### 5 身份差异化苏格拉底
+
+`app/services/teacher/personas.py` 中 5 个 persona 的 `socratic_intensity`：
+
+| persona | name | socratic_intensity | 行为 |
+|---------|------|--------------------|------|
+| patient_tutor | 陈默 | 0.4 | 基础直讲，进阶给跳板 |
+| socratic_questioner | 林问 | 1.0 | 纯反问 |
+| energetic_lecturer | 周燃 | 0.1 | 几乎不反问 |
+| expert_mentor | 严铮 | 0.7 | 基础直讲，进阶反问 |
+| caring_counselor | 苏语 | 0.0 | 0 苏格拉底（情绪场景） |
+
+切换身份：点击教师卡 → 5 头像浮窗 → 选一个。`build_system_prompt` 会按强度注入对应规则。
