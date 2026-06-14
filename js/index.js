@@ -4546,6 +4546,15 @@ const FLOW_PIPELINE = ['system', 'profiler', 'planner', 'master_controller', 'ra
 let sandboxLogs = [];
 let activeAgents = new Set();
 let sandboxFilterSet = new Set();
+
+// === Agent 编排控制塔 — 新数据源 (Task 20) ===
+// 旧 renderFlowNodes() 仍然写 #flow-node-container (Task 19 已隐藏);
+// 新 renderTowerFlow() 写 #tower-flow, 数据来自 /api/agents/catalog + agentBus。
+let agentCatalog = null;                 // {agents: [...], pipeline: [...]} from /api/agents/catalog
+let towerAgentStatus = {};               // { agent_id: 'busy' | 'success' | 'failed' | 'idle' }
+let towerCatalogLoaded = false;
+let _towerBusSubscribed = false;
+let _towerInitialized = false;
 let typewriterTimer = null;
 let typewriterQueue = [];
 let isTypewriting = false;
@@ -4612,6 +4621,170 @@ function renderFlowNodes() {
     }).join('');
 
     if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================================
+// Agent 编排控制塔 — 新渲染管线 (Task 20)
+// 数据源: /api/agents/catalog (静态) + window.agentBus (实时)
+// 容器:  #tower-flow (.tower-flow in css/agent-tower.css)
+// 旧 renderFlowNodes() 仍保留并指向隐藏的 #flow-node-container, 4 个旧调用点不变。
+// ============================================================================
+
+/**
+ * 加载 agent 目录 (一次性, 缓存到 agentCatalog).
+ * 失败时回落到最小目录, 保证 renderTowerFlow 仍能跑。
+ */
+async function loadAgentCatalog() {
+    if (towerCatalogLoaded) return agentCatalog;
+    try {
+        const r = await fetch('/api/agents/catalog');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        if (!data || !Array.isArray(data.agents) || !Array.isArray(data.pipeline)) {
+            throw new Error('catalog shape invalid');
+        }
+        agentCatalog = data;
+        towerCatalogLoaded = true;
+        return agentCatalog;
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[agent-tower] loadAgentCatalog failed, using fallback', e);
+        agentCatalog = {
+            agents: [
+                { id: 'echo', name: '问候', stage: 'pre' },
+                { id: 'profiler', name: '画像构建', stage: 'main' },
+                { id: 'planner', name: '路径规划', stage: 'main' },
+                { id: 'document_generator', name: '文档生成', stage: 'parallel' },
+                { id: 'exercise_generator', name: '题库生成', stage: 'parallel' },
+                { id: 'mindmap_generator', name: '导图生成', stage: 'parallel' },
+                { id: 'video_content', name: '视频内容', stage: 'parallel' },
+                { id: 'resource_push', name: '资源推送', stage: 'post' },
+                { id: 'evaluator', name: '评估', stage: 'post' },
+            ],
+            pipeline: [
+                { stage: 'pre', agents: ['echo'], max_concurrent: null },
+                { stage: 'main', agents: ['profiler', 'planner'], max_concurrent: null },
+                { stage: 'parallel', agents: ['document_generator', 'exercise_generator', 'mindmap_generator', 'video_content'], max_concurrent: 4 },
+                { stage: 'post', agents: ['resource_push', 'evaluator'], max_concurrent: null },
+            ],
+        };
+        towerCatalogLoaded = true;
+        return agentCatalog;
+    }
+}
+
+/**
+ * 把 catalog.pipeline 摊平成去重的 agent 列表 (按流水线出现顺序),
+ * 并合并 stage 字段用于将来扩展。
+ */
+function _towerFlattenAgents() {
+    const seen = new Set();
+    const out = [];
+    if (!agentCatalog || !Array.isArray(agentCatalog.pipeline)) return out;
+    for (const block of agentCatalog.pipeline) {
+        const stage = block.stage;
+        const ids = Array.isArray(block.agents) ? block.agents : [];
+        for (const id of ids) {
+            if (seen.has(id)) continue;
+            seen.add(id);
+            const meta = (agentCatalog.agents || []).find(a => a && a.id === id)
+                || { id, name: id, stage };
+            out.push({ ...meta, stage: meta.stage || stage });
+        }
+    }
+    return out;
+}
+
+/**
+ * 渲染 #tower-flow. 使用 .flow-node / .is-busy / .is-success / .is-failed 类。
+ * data-agent 属性是关键 hook, 下游 (Task 26 E2E / Task 21 logs) 会用。
+ */
+function renderTowerFlow() {
+    const container = document.getElementById('tower-flow');
+    if (!container) return;
+    if (!agentCatalog || !Array.isArray(agentCatalog.agents) || agentCatalog.agents.length === 0) {
+        container.innerHTML = '<span class="text-xs" style="color: var(--text-tertiary);">加载智能体目录中...</span>';
+        return;
+    }
+
+    const agents = _towerFlattenAgents();
+    container.innerHTML = agents.map(a => {
+        const status = towerAgentStatus[a.id] || 'idle';
+        const statusClass = status === 'idle' ? '' : 'is-' + status;
+        const label = a.name || (window.AGENT_LABELS && window.AGENT_LABELS[a.id]) || a.id;
+        const safeLabel = escapeHtml(String(label));
+        const safeId = escapeHtml(String(a.id));
+        return `<div class="flow-node ${statusClass}" data-agent="${safeId}" title="${safeId} (${status})">${safeLabel}</div>`;
+    }).join('');
+}
+
+/**
+ * 重置塔上所有 agent 状态到 idle, 然后重渲。
+ * 暴露给旧 reset 路径使用, 避免 activeAgents = new Set() 同步遗漏新管线。
+ */
+function resetTowerStatus() {
+    towerAgentStatus = {};
+    renderTowerFlow();
+}
+
+/**
+ * 订阅 agentBus 的 agent_step / pipeline_complete / error 事件.
+ * 幂等: 多次调用只挂一次。
+ */
+function subscribeToAgentBus() {
+    if (_towerBusSubscribed) return;
+    const bus = window.agentBus;
+    if (!bus || typeof bus.subscribe !== 'function') {
+        // agentBus 还没加载 (脚本顺序), 留待下次 init 重试
+        return;
+    }
+    _towerBusSubscribed = true;
+
+    bus.subscribe('agent_step', (envelope) => {
+        if (!envelope || !envelope.from) return;
+        const agentId = envelope.from;
+        const status = envelope.payload && envelope.payload.status;
+        if (status === 'success') towerAgentStatus[agentId] = 'success';
+        else if (status === 'failed' || status === 'error') towerAgentStatus[agentId] = 'failed';
+        else towerAgentStatus[agentId] = 'busy';
+        renderTowerFlow();
+    });
+
+    bus.subscribe('pipeline_complete', () => {
+        if (!agentCatalog || !Array.isArray(agentCatalog.agents)) return;
+        for (const a of agentCatalog.agents) {
+            if (towerAgentStatus[a.id] !== 'failed') towerAgentStatus[a.id] = 'success';
+        }
+        renderTowerFlow();
+    });
+
+    bus.subscribe('error', (err) => {
+        if (err && err.agent) towerAgentStatus[err.agent] = 'failed';
+        renderTowerFlow();
+    });
+}
+
+/**
+ * 入口: 加载目录 + 初次渲染 + 订阅 agentBus.
+ * 幂等: DOMContentLoaded 多次触发也只跑一次。
+ */
+async function initAgentTower() {
+    if (_towerInitialized) return;
+    _towerInitialized = true;
+    await loadAgentCatalog();
+    renderTowerFlow();
+    subscribeToAgentBus();
+}
+
+// 页面就绪时启动塔; 旧 init 函数内已有同类调用, 这里独立挂一份以保证
+// 旧调用点 (4 个) 不会成为塔的隐式启动依赖。
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAgentTower);
+    } else {
+        // DOM 已就绪 (脚本在 body 末尾), 立即执行
+        initAgentTower();
+    }
 }
 
 function renderSandboxLog(log, prepend) {
@@ -5243,6 +5416,7 @@ async function handleSendStream(forcedMessage = null, options = {}) {
     const sandboxLogsEl = document.getElementById('sandbox-logs');
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     renderFlowNodes();
+    if (typeof resetTowerStatus === 'function') resetTowerStatus();
     renderFilterChips();
     updateSandboxStatus('调度中', 'bg-amber-100 text-amber-600');
 
@@ -5602,6 +5776,7 @@ async function handleSend() {
     const sandboxLogsEl = document.getElementById('sandbox-logs');
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     updateSandboxStatus('处理中', 'bg-amber-100 text-amber-600');
+    if (typeof resetTowerStatus === 'function') resetTowerStatus();
     setDispatchActive(true);
 
     try {
@@ -9475,6 +9650,7 @@ async function handleDebateStream(userMsg) {
     const sandboxLogsEl = document.getElementById('sandbox-logs');
     if (sandboxLogsEl) sandboxLogsEl.innerHTML = '';
     renderFlowNodes();
+    if (typeof resetTowerStatus === 'function') resetTowerStatus();
     renderFilterChips();
     updateSandboxStatus('辩论中', 'bg-purple-100 text-purple-600');
 
