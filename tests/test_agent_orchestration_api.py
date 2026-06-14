@@ -22,11 +22,24 @@ class TestCatalogApi:
         data = resp.json()
         assert "agents" in data
         assert "pipeline" in data
-        ids = {a["id"] for a in data["agents"]}
-        assert "profiler" in ids
-        assert "planner" in ids
+        agents = data["agents"]
+        assert len(agents) == 9
+        ids = {a["id"] for a in agents}
+        assert ids == {
+            "echo", "profiler", "planner",
+            "document_generator", "exercise_generator",
+            "mindmap_generator", "video_content",
+            "resource_push", "evaluator",
+        }
 
     def test_catalog_pipeline_has_stages(self, client):
         resp = client.get("/api/agents/catalog")
-        stages = {p["stage"] for p in resp.json()["pipeline"]}
-        assert {"pre", "main", "parallel", "post"}.issubset(stages)
+        pipeline = resp.json()["pipeline"]
+        stages = {p["stage"] for p in pipeline}
+        assert stages == {"pre", "main", "parallel", "post"}
+        parallel = next(p for p in pipeline if p["stage"] == "parallel")
+        assert parallel["max_concurrent"] == 4
+        assert parallel["agents"] == [
+            "document_generator", "exercise_generator",
+            "mindmap_generator", "video_content",
+        ]
