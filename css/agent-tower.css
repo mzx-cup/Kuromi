@@ -1,0 +1,86 @@
+/* css/agent-tower.css — Agent 编排控制塔 + 学情画像面板 */
+
+/* === 控制塔 === */
+.tower-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border-glass);
+}
+.tower-header h2 { font-size: 15px; color: var(--text-primary); margin: 0; }
+.tower-actions { display: flex; gap: 8px; }
+.tower-btn {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md); padding: 4px 10px;
+  color: var(--text-primary); cursor: pointer; font-size: 12px;
+  transition: background 200ms;
+}
+.tower-btn:hover { background: var(--surface-glass-2); }
+.tower-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* flow nodes */
+.tower-flow {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px;
+  border-bottom: 1px solid var(--border-glass);
+}
+.flow-node {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: 10px; padding: 6px 10px; font-size: 12px;
+  color: var(--text-secondary); display: inline-flex; align-items: center; gap: 6px;
+  transition: all 200ms;
+}
+.flow-node.is-busy { color: var(--agent-busy); border-color: var(--agent-busy); box-shadow: 0 0 8px var(--agent-busy); }
+.flow-node.is-success { color: var(--agent-success); border-color: var(--agent-success); }
+.flow-node.is-failed { color: var(--agent-failed); border-color: var(--agent-failed); animation: pulse-failed 1.2s infinite; }
+
+@keyframes pulse-failed {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* terminal logs */
+.tower-terminal {
+  background: var(--code-bg); color: var(--success);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  padding: 12px 18px; max-height: 220px; overflow-y: auto;
+  border-top: 1px solid var(--border-glass);
+}
+.tower-log-line { margin: 2px 0; }
+.tower-log-agent { color: var(--primary-light); }
+.tower-log-err { color: var(--danger); }
+
+/* assets drawer */
+.tower-drawer {
+  border-top: 1px solid var(--border-glass); padding: 12px 18px;
+  display: none;
+}
+.tower-drawer.is-open { display: block; }
+.tower-drawer h3 { font-size: 13px; margin: 0 0 8px; color: var(--text-secondary); }
+.tower-asset-chip {
+  display: inline-block; margin: 4px 6px 0 0; padding: 4px 10px;
+  background: var(--surface-glass); border-radius: 999px; font-size: 12px;
+  color: var(--text-primary); cursor: pointer;
+}
+
+/* === 学情画像 4 卡 === */
+.profile-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  padding: 12px 18px;
+}
+.profile-card {
+  background: var(--profile-card-bg); border: 1px solid var(--profile-card-border);
+  border-radius: var(--radius-md); padding: 10px 12px;
+}
+.profile-card-title { font-size: 11px; color: var(--profile-title); margin-bottom: 4px; }
+.profile-card-value { font-size: 15px; font-weight: 600; color: var(--profile-label); }
+.profile-card-value.is-calm { color: var(--emotion-calm); }
+.profile-card-value.is-anxious { color: var(--emotion-anxious); }
+.profile-card-value.is-frustrated { color: var(--emotion-frustrated); }
+.profile-card-value.is-engaged { color: var(--emotion-engaged); }
+.profile-progress-bar {
+  margin-top: 6px; height: 4px; background: var(--profile-progress-bg);
+  border-radius: 2px; overflow: hidden;
+}
+.profile-progress-bar > div {
+  height: 100%; background: var(--profile-progress); width: 0;
+  transition: width 200ms ease-in-out;
+}
+.profile-last-synced { padding: 4px 18px 12px; font-size: 11px; color: var(--text-tertiary); }
