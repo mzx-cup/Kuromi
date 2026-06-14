@@ -19,6 +19,14 @@ def client():
     return TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def _clear_pipeline_status():
+    """避免 _PIPELINE_STATUS 模块级状态污染跨测试."""
+    ao_module._PIPELINE_STATUS.clear()
+    yield
+    ao_module._PIPELINE_STATUS.clear()
+
+
 class TestCatalogApi:
     def test_catalog_returns_agents(self, client):
         resp = client.get("/api/agents/catalog")
@@ -125,3 +133,5 @@ class TestStatusApi:
         assert body["status"] == "complete"
         assert "started_at" in body
         assert "completed_at" in body
+        assert body["assets"] == []
+        assert body["agents"] == []

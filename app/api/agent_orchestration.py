@@ -111,41 +111,45 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
             "trace_id": trace_id, "ts": int(time.time() * 1000),
         })
         controller = create_default_controller()
+        cancel_state = {"cancelled": False}
 
         async def run_controller():
             # 注: StudentState 字段是 student_id (不是 user_id), profile 是 LearningProfile.
             from state import StudentState
             state = StudentState(student_id=req.student_id)
             started_at = int(time.time() * 1000)
-            agents_run: list[str] = []
+            agents_run: list[str] = []  # TODO: append from on_step callback when populating per-agent timing
             try:
                 await controller.execute(state, on_step_complete=on_step)
                 # Note: agent_role / agent_name is recorded via on_step callback, but for
                 # simplicity we just track that pipeline completed. Future tasks can extend
                 # to capture per-agent timing.
             except Exception as e:
-                await queue.put(("error", {
-                    "message": str(e), "agent": "controller",
-                }))
+                if not cancel_state["cancelled"]:
+                    await queue.put(("error", {
+                        "message": str(e), "agent": "controller",
+                    }))
             finally:
-                completed_at = int(time.time() * 1000)
-                _PIPELINE_STATUS[trace_id] = {
-                    "trace_id": trace_id,
-                    "status": "complete",
-                    "started_at": started_at,
-                    "completed_at": completed_at,
-                    "agents": agents_run,
-                    "assets": [],
-                }
-                await queue.put(("pipeline_complete", {
-                    "trace_id": trace_id, "status": "complete", "assets": [],
-                }))
-                await queue.put(None)  # sentinel
+                if not cancel_state["cancelled"]:
+                    completed_at = int(time.time() * 1000)
+                    _PIPELINE_STATUS[trace_id] = {
+                        "trace_id": trace_id,
+                        "status": "complete",
+                        "started_at": started_at,
+                        "completed_at": completed_at,
+                        "agents": agents_run,
+                        "assets": [],
+                    }
+                    await queue.put(("pipeline_complete", {
+                        "trace_id": trace_id, "status": "complete", "assets": [],
+                    }))
+                await queue.put(None)  # sentinel always emitted so stream terminates
 
         runner = asyncio.create_task(run_controller())
         try:
             while True:
                 if await request.is_disconnected():
+                    cancel_state["cancelled"] = True
                     runner.cancel()
                     break
                 item = await queue.get()
@@ -155,6 +159,7 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
                 yield _sse_format(event, data)
         finally:
             if not runner.done():
+                cancel_state["cancelled"] = True
                 runner.cancel()
 
     return StreamingResponse(event_gen(), media_type="text/event-stream", headers={
