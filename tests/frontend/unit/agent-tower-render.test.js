@@ -1,6 +1,6 @@
 /**
  * agent-tower — 新 renderTowerFlow / loadAgentCatalog / agentBus 订阅
- * 单元测试 (Task 20)
+ * 单元测试 (Task 20 / 21 / 22)
  *
  * 测试范围:
  *   1. loadAgentCatalog fetch 成功 -> 缓存到 agentCatalog
@@ -11,6 +11,11 @@
  *   6. renderTowerLog 累计超过 TOWER_LOG_MAX 时丢掉最旧行 (Task 21)
  *   7. clearTowerTerminal 清空 #tower-terminal 和 towerLogs 数组 (Task 21)
  *   8. agent_step 事件 -> renderTowerLog 写入 + 状态类切换 (Task 21)
+ *   9. computeRadarPoints 从 snapshot 提取 6 维分数并限制到 0-100 (Task 22)
+ *  10. computeRadarPoints snapshot 为 null 时回退到零值 + hasData=false (Task 22)
+ *  11. computeRadarPoints 越界值被 clamp 到 [0, 100] (Task 22)
+ *  12. radarColorWithAlpha 把 #3b82f6 转为 rgba(59,130,246,0.5) (Task 22)
+ *  13. profile_updated 事件触发 renderRadarFromSnapshot + towerRadarSnapshot 更新 (Task 22)
  *
  * 实现说明:
  *   js/index.js 是一个 10000+ 行的顶层脚本, 不导出符号。
@@ -85,6 +90,9 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
       loadAgentCatalog, renderTowerFlow, resetTowerStatus,
       renderTowerLog, clearTowerTerminal,
       initAgentTower, subscribeToAgentBus,
+      // Task 22: radar snapshot + pure geometry helpers
+      computeRadarPoints, radarColorWithAlpha, renderRadarFromSnapshot,
+      RADAR_DIMENSIONS,
       __state: {
         get agentCatalog() { return agentCatalog; },
         get towerAgentStatus() { return towerAgentStatus; },
@@ -93,12 +101,14 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
         get _towerCatalogLoaded() { return towerCatalogLoaded; },
         get _towerBusSubscribed() { return _towerBusSubscribed; },
         get _towerInitialized() { return _towerInitialized; },
+        get towerRadarSnapshot() { return towerRadarSnapshot; },
         set agentCatalog(v) { agentCatalog = v; },
         set towerAgentStatus(v) { towerAgentStatus = v; },
         set towerLogs(v) { towerLogs = v; },
         set _towerCatalogLoaded(v) { towerCatalogLoaded = v; },
         set _towerBusSubscribed(v) { _towerBusSubscribed = v; },
         set _towerInitialized(v) { _towerInitialized = v; },
+        set towerRadarSnapshot(v) { towerRadarSnapshot = v; },
       },
     };
   `;
@@ -390,5 +400,138 @@ describe('agent-tower — 新数据源渲染', () => {
     expect(lines.length).toBe(3);
     expect(lines[2].classList.contains('tower-log-err')).toBe(true);
     expect(lines[2].innerHTML).toContain('pipeline crashed');
+  });
+
+  // === Task 22: 雷达图 LearningPortrait 6 维 + 新 CSS 渐变 ===
+  it('computeRadarPoints 从 snapshot 提取 6 维分数并限制到 0-100', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    const snapshot = {
+      radar: {
+        knowledge_mastery: 75,
+        code_skill: 60,
+        cognitive_style: 80,
+        learning_goal: 50,
+        weakness: 30,
+        focus_level: 90,
+      },
+    };
+    const geom = sb.computeRadarPoints(snapshot, { cx: 120, cy: 120, R: 60 });
+    expect(geom.values).toEqual([75, 60, 80, 50, 30, 90]);
+    expect(geom.labels).toEqual([
+      '知识掌握', '编程能力', '认知风格', '学习目标', '知识短板', '专注度',
+    ]);
+    expect(geom.hasData).toBe(true);
+    // 6 个数据点 + 4 层 grid (各 6 个顶点)
+    expect(geom.points.length).toBe(6);
+    expect(geom.levels.length).toBe(4);
+    // 第一点 (i=0, angle=-PI/2): cx + 0 = 120, cy - r = (cy - R*75/100)
+    expect(geom.points[0].x).toBeCloseTo(120, 5);
+    expect(geom.points[0].y).toBeCloseTo(120 - 60 * 0.75, 5);
+    expect(geom.points[0].v).toBe(75);
+  });
+
+  it('computeRadarPoints snapshot 为 null 时回退到零值 + hasData=false', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    const geom = sb.computeRadarPoints(null, { cx: 100, cy: 100, R: 50 });
+    expect(geom.values).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(geom.labels.length).toBe(6);
+    expect(geom.hasData).toBe(false);
+    // 所有点都被 clamp 到最小 r=2, 全部聚在圆心附近
+    for (const p of geom.points) {
+      expect(p.r).toBe(2);
+    }
+    // 空 snapshot 同样视为 hasData=false
+    const geom2 = sb.computeRadarPoints({}, { cx: 100, cy: 100, R: 50 });
+    expect(geom2.hasData).toBe(false);
+    expect(geom2.values).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it('computeRadarPoints 越界值被 clamp 到 [0, 100]', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    const snapshot = {
+      radar: {
+        knowledge_mastery: 150,    // 超出 100
+        code_skill: -25,           // 低于 0
+        cognitive_style: 100,
+        learning_goal: 0,
+        weakness: NaN,             // 非数字 -> 回退 0
+        focus_level: 'foo',        // 非数字 -> 回退 0
+      },
+    };
+    const geom = sb.computeRadarPoints(snapshot, { cx: 0, cy: 0, R: 100 });
+    expect(geom.values[0]).toBe(100);   // 150 -> 100
+    expect(geom.values[1]).toBe(0);     // -25 -> 0
+    expect(geom.values[2]).toBe(100);
+    expect(geom.values[3]).toBe(0);
+    expect(geom.values[4]).toBe(0);     // NaN -> 0
+    expect(geom.values[5]).toBe(0);     // 'foo' -> 0
+  });
+
+  it('radarColorWithAlpha 把 #3b82f6 转为 rgba(59,130,246,0.5)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    expect(sb.radarColorWithAlpha('#3b82f6', 0.5)).toBe('rgba(59,130,246,0.5)');
+    expect(sb.radarColorWithAlpha('#abc', 0.25)).toBe('rgba(170,187,204,0.25)');
+    expect(sb.radarColorWithAlpha('rgb(255, 0, 128)', 0.8)).toBe('rgba(255,0,128,0.8)');
+    // 解析失败 -> 原样返回
+    expect(sb.radarColorWithAlpha('oklch(0.5 0.1 30)', 0.3)).toBe('oklch(0.5 0.1 30)');
+    expect(sb.radarColorWithAlpha('rgba(0,0,0,0.5)', 0.3)).toBe('rgba(0,0,0,0.5)');
+    // 非字符串 -> 原样返回
+    expect(sb.radarColorWithAlpha(null, 0.3)).toBe(null);
+  });
+
+  it('profile_updated 事件触发 renderRadarFromSnapshot + towerRadarSnapshot 更新', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    // 重置幂等旗, 重新挂订阅 (避免和前面 case 的 agent_step 订阅重叠)
+    sb.__state._towerBusSubscribed = false;
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
+    sb.subscribeToAgentBus();
+    expect(sb.__state._towerBusSubscribed).toBe(true);
+
+    // 起始 snapshot 应为 null
+    expect(sb.__state.towerRadarSnapshot).toBe(null);
+
+    // emit profile_updated, 携带 6 维 0-100 分数
+    window.agentBus.emit('profile_updated', {
+      trace_id: 't-radar-1',
+      radar: {
+        knowledge_mastery: 50,
+        code_skill: 55,
+        cognitive_style: 60,
+        learning_goal: 45,
+        weakness: 70,
+        focus_level: 80,
+      },
+      panel: {
+        card1: { label: '学习进度', value: '60%' },
+      },
+    });
+
+    // towerRadarSnapshot 应被 set, 且只保留 radar + panel
+    const snap = sb.__state.towerRadarSnapshot;
+    expect(snap).not.toBeNull();
+    expect(snap.radar.knowledge_mastery).toBe(50);
+    expect(snap.panel.card1.label).toBe('学习进度');
+
+    // 用 computeRadarPoints 验证 snapshot 是 6 维 LearningPortrait 形状
+    const geom = sb.computeRadarPoints(snap, { cx: 0, cy: 0, R: 100 });
+    expect(geom.values).toEqual([50, 55, 60, 45, 70, 80]);
+    expect(geom.hasData).toBe(true);
   });
 });

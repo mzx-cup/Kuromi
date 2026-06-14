@@ -3300,27 +3300,45 @@ function renderRadarChart() {
         const R = Math.min(W, H) * 0.3;
         ctx.clearRect(0, 0, W, H);
 
+        // Task 22: 切换到 css/tokens.css 中定义的 6 维 LearningPortrait 渐变色:
+        //   --radar-fill-start: var(--primary)
+        //   --radar-fill-end:   var(--accent)
+        //   --radar-glow:       var(--primary-light)
+        // 旧 --radar-stroke / --radar-fill 已在 tokens.css 移除, 这里直接 fallback 到 hex。
         const style = getComputedStyle(document.documentElement);
-        const radarStroke = style.getPropertyValue('--radar-stroke').trim() || '#3b82f6';
-        const radarFill = style.getPropertyValue('--radar-fill').trim() || 'rgba(59,130,246,0.2)';
+        const radarFillStart = style.getPropertyValue('--radar-fill-start').trim() || '#3b82f6';
+        const radarFillEnd = style.getPropertyValue('--radar-fill-end').trim() || '#a855f7';
+        const radarGlow = style.getPropertyValue('--radar-glow').trim() || 'rgba(168,85,247,0.3)';
         const gridColor = style.getPropertyValue('--border-glass').trim() || 'rgba(255,255,255,0.12)';
         const labelColor = style.getPropertyValue('--text-secondary').trim() || 'rgba(255,255,255,0.55)';
+        // stroke / shadowColor 与 gradient 起色保持一致, 视觉上统一
+        const radarStroke = radarFillStart;
 
-        const dims = ['方向', '基础', '编程', '认知', '短板', '专注'];
-        const values = [
-            mapProfileToScore(profile.learningDirection || '大数据技术'),
-            mapProfileToScore(profile.knowledgeBase),
-            mapProfileToScore(profile.codeSkill),
-            mapProfileToScore(profile.cognitiveStyle),
-            mapProfileToScore(profile.weakness, true),
-            mapProfileToScore(profile.focusLevel)
-        ];
-        const n = dims.length;
+        // 数据源: 优先用 towerRadarSnapshot (来自 agentBus 'profile_updated'),
+        // 没有 snapshot 时回退到 legacy profile + mapProfileToScore
+        let dims, values;
+        if (typeof towerRadarSnapshot !== 'undefined' && towerRadarSnapshot && towerRadarSnapshot.radar) {
+            const geom = computeRadarPoints(towerRadarSnapshot, { cx, cy, R });
+            dims = geom.labels;
+            values = geom.values;
+        } else {
+            // 旧路径: 中文标签 + mapProfileToScore 0-100 分
+            dims = ['方向', '基础', '编程', '认知', '短板', '专注'];
+            values = [
+                mapProfileToScore(profile.learningDirection || '大数据技术'),
+                mapProfileToScore(profile.knowledgeBase),
+                mapProfileToScore(profile.codeSkill),
+                mapProfileToScore(profile.cognitiveStyle),
+                mapProfileToScore(profile.weakness, true),
+                mapProfileToScore(profile.focusLevel)
+            ];
+        }
+        const n = values.length;
 
-        // Central radial glow
+        // Central radial glow (使用 --radar-glow + --radar-fill-start, Task 22)
         const centerGlow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
-        centerGlow.addColorStop(0, 'rgba(168,85,247,0.06)');
-        centerGlow.addColorStop(0.5, 'rgba(59,130,246,0.03)');
+        centerGlow.addColorStop(0, radarColorWithAlpha(radarGlow, 0.06));
+        centerGlow.addColorStop(0.5, radarColorWithAlpha(radarFillStart, 0.03));
         centerGlow.addColorStop(1, 'transparent');
         ctx.fillStyle = centerGlow;
         ctx.fillRect(0, 0, W, H);
@@ -3340,9 +3358,9 @@ function renderRadarChart() {
             ctx.strokeStyle = gridColor;
             ctx.lineWidth = level === 4 ? 1.2 : 0.6;
             ctx.stroke();
-            // Subtle glow pass
+            // Subtle glow pass on outermost ring (--radar-glow)
             if (level === 4) {
-                ctx.strokeStyle = 'rgba(168,85,247,0.08)';
+                ctx.strokeStyle = radarColorWithAlpha(radarGlow, 0.08);
                 ctx.lineWidth = 2.5;
                 ctx.stroke();
             }
@@ -3372,14 +3390,14 @@ function renderRadarChart() {
             ctx.fillText(dims[i], lx, ly);
         }
 
-        // Data polygon with gradient fill
+        // Data polygon with gradient fill (--radar-fill-start -> --radar-fill-end)
         const dataGradient = ctx.createLinearGradient(
             cx - R, cy - R * 0.5,
             cx + R, cy + R * 0.5
         );
-        dataGradient.addColorStop(0, 'rgba(59,130,246,0.25)');
-        dataGradient.addColorStop(0.5, 'rgba(168,85,247,0.2)');
-        dataGradient.addColorStop(1, 'rgba(139,92,246,0.18)');
+        dataGradient.addColorStop(0, radarColorWithAlpha(radarFillStart, 0.25));
+        dataGradient.addColorStop(0.5, radarColorWithAlpha(radarFillEnd, 0.2));
+        dataGradient.addColorStop(1, radarColorWithAlpha(radarFillEnd, 0.18));
 
         ctx.beginPath();
         for (let i = 0; i < n; i++) {
@@ -3407,10 +3425,10 @@ function renderRadarChart() {
             const px = cx + r * Math.cos(angle);
             const py = cy + r * Math.sin(angle);
 
-            // Outer glow ring
+            // Outer glow ring (--radar-glow)
             ctx.beginPath();
             ctx.arc(px, py, 5, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(168,85,247,0.15)';
+            ctx.fillStyle = radarColorWithAlpha(radarGlow, 0.15);
             ctx.fill();
 
             // Main dot
@@ -4561,6 +4579,99 @@ let _towerInitialized = false;
 // 新 renderTowerLog() 写 #tower-terminal, 数据源为 window.agentBus 的 agent_step / error 事件。
 let towerLogs = [];                      // in-memory mirror of all rendered log envelopes (for cap & replay)
 const TOWER_LOG_MAX = 200;               // cap to prevent DOM bloat
+
+// === Task 22: 雷达图 (LearningPortrait 6 维) — 数据源切换 ===
+// 旧 renderRadarChart() 仍写 #radar-chart, 但数据源从 mapProfileToScore() (legacy Chinese-label 映射)
+// 切换到 LearningPortrait 的 6 维 0-100 分数 (knowledge_mastery / code_skill / cognitive_style /
+// learning_goal / weakness / focus_level), 由后端 /api/agents/execute 在 profile_updated 事件里 emit。
+// 当 towerRadarSnapshot 为 null 时 (profile_updated 还没到), 回退到 mapProfileToScore。
+let towerRadarSnapshot = null;           // { radar: {knowledge_mastery, code_skill, cognitive_style, learning_goal, weakness, focus_level}, panel?: {...} }
+const RADAR_DIMENSIONS = [
+    { key: 'knowledge_mastery', label: '知识掌握' },
+    { key: 'code_skill',        label: '编程能力' },
+    { key: 'cognitive_style',   label: '认知风格' },
+    { key: 'learning_goal',     label: '学习目标' },
+    { key: 'weakness',          label: '知识短板' },
+    { key: 'focus_level',       label: '专注度' },
+];
+
+/**
+ * Task 22: 安全版的 hex/rgb -> rgba 转换, 给 canvas gradient 用.
+ * - '#3b82f6' -> 'rgba(59,130,246,alpha)'
+ * - '#abc'    -> 'rgba(170,187,204,alpha)'
+ * - 'rgb(r,g,b)' -> 'rgba(r,g,b,alpha)'
+ * - 其他 (如 'oklch(...)', 'rgba(...)'): 返回原字符串 (CSS 浏览器 / canvas 会自己解析).
+ *
+ * 与 js/index.js 660 行已有的 hexToRgba 不同, 这一版更稳健:
+ *   - 接受 '#rgb' / '#rrggbb' / 'rgb(r,g,b)' / 已解析的 oklch/颜色函数
+ *   - 解析失败时不会抛错, 而是返回原 color (alpha 不强制), 至少保留视觉表现.
+ *
+ * @param {string} color
+ * @param {number} alpha 0-1
+ * @returns {string}
+ */
+function radarColorWithAlpha(color, alpha) {
+    if (typeof color !== 'string') return color;
+    const a = (typeof alpha === 'number' && !Number.isNaN(alpha)) ? alpha : 1;
+    const m = color.match(/^#([0-9a-f]{3,8})$/i);
+    if (m) {
+        let hex = m[1];
+        if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+        const r = parseInt(hex.slice(0, 2), 16);
+        const g = parseInt(hex.slice(2, 4), 16);
+        const b = parseInt(hex.slice(4, 6), 16);
+        return `rgba(${r},${g},${b},${a})`;
+    }
+    const m2 = color.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/);
+    if (m2) return `rgba(${m2[1]},${m2[2]},${m2[3]},${a})`;
+    // 其他 (oklch / rgba / 颜色函数 / 已 fallback 的 hex) — 原样返回, 让 canvas 处理
+    return color;
+}
+
+/**
+ * 计算雷达图的几何 (测试用, 不画 canvas).
+ * 纯函数: 给定 snapshot + 圆心 / 半径, 返回 6 个数据点坐标 + 4 层 grid 顶点 + 标签 / 数值数组.
+ * snapshot.radar 中每维会被 clamp 到 [0, 100]; 缺失或非 number 时回退到 0 (hasData=false).
+ *
+ * @param {object|null} snapshot { radar: {knowledge_mastery, code_skill, cognitive_style, learning_goal, weakness, focus_level}, ... }
+ * @param {{cx:number, cy:number, R:number}} opts
+ * @returns {{ labels: string[], values: number[], points: Array<{x:number,y:number,v:number,angle:number,r:number}>, levels: Array<Array<{x:number,y:number}>>, hasData: boolean }}
+ */
+function computeRadarPoints(snapshot, opts) {
+    const { cx, cy, R } = opts;
+    const labels = RADAR_DIMENSIONS.map(d => d.label);
+    const values = RADAR_DIMENSIONS.map(d => {
+        const raw = snapshot && snapshot.radar && snapshot.radar[d.key];
+        if (typeof raw === 'number' && !Number.isNaN(raw)) {
+            return Math.max(0, Math.min(100, raw));
+        }
+        return 0;
+    });
+    const n = labels.length;
+    const points = values.map((v, i) => {
+        const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+        const r = Math.max(R * v / 100, 2);
+        return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle), v, angle, r };
+    });
+    const levels = [1, 2, 3, 4].map(level => {
+        const factor = level / 4;
+        return RADAR_DIMENSIONS.map((d, i) => {
+            const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+            const r = R * factor;
+            return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+        });
+    });
+    return { labels, values, points, levels, hasData: !!(snapshot && snapshot.radar) };
+}
+
+/**
+ * 由 agentBus 'profile_updated' 事件回调: 更新 snapshot 并触发画布重渲。
+ * @param {object|null} snapshot
+ */
+function renderRadarFromSnapshot(snapshot) {
+    towerRadarSnapshot = snapshot;
+    if (typeof renderRadarChart === 'function') renderRadarChart();
+}
 let typewriterTimer = null;
 let typewriterQueue = [];
 let isTypewriting = false;
@@ -4836,6 +4947,14 @@ function subscribeToAgentBus() {
             });
         }
     });
+
+    // Task 22: profile_updated 事件 -> 更新雷达 snapshot 并重渲
+    // envelope 形状 (后端 /api/agents/execute): { trace_id, radar: {6 dims}, panel?: {...} }
+    bus.subscribe('profile_updated', (data) => {
+        if (data && typeof data === 'object' && data.radar) {
+            renderRadarFromSnapshot({ radar: data.radar, panel: data.panel });
+        }
+    });
 }
 
 /**
@@ -4856,6 +4975,8 @@ async function initAgentTower() {
             timestamp: Date.now(),
         });
     }
+    // Task 22: 初始渲染雷达图 (无 snapshot -> 自动回退到 mapProfileToScore / legacy profile)
+    if (typeof renderRadarChart === 'function') renderRadarChart();
     subscribeToAgentBus();
 }
 
