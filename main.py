@@ -182,6 +182,10 @@ app.include_router(teacher_router)
 from app.api.datacenter import router as datacenter_router
 app.include_router(datacenter_router)
 
+# ---- Agent Orchestration API (Agent 编排控制塔) ----
+from app.api.agent_orchestration import router as agent_orchestration_router
+app.include_router(agent_orchestration_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
