@@ -371,6 +371,32 @@
     --leleo-brightness: var(--theme-brightness);
     --leleo-blur: var(--theme-blur);
     --leleo-text-contrast: var(--theme-text-contrast);
+
+    /* === Agent 编排控制塔 (Phase 5) === */
+    --agent-idle: var(--text-tertiary);
+    --agent-busy: var(--primary);
+    --agent-success: var(--success);
+    --agent-failed: var(--danger);
+
+    /* Radar / terminal */
+    --code-bg: #0a0e1a;
+    --radar-fill-start: var(--primary);
+    --radar-fill-end: var(--accent);
+    --radar-glow: var(--primary-light);
+
+    /* 学情画像面板 4 卡 */
+    --profile-card-bg: var(--surface-glass);
+    --profile-card-border: var(--border-glass);
+    --profile-label: var(--text-primary);
+    --profile-title: var(--text-tertiary);
+    --profile-progress: var(--primary);
+    --profile-progress-bg: var(--surface-glass-2);
+
+    /* 情绪状态色 (4 档) */
+    --emotion-calm: var(--success);
+    --emotion-anxious: var(--warning);
+    --emotion-frustrated: var(--danger);
+    --emotion-engaged: var(--primary);
 }
 
 /* ---- 暗色模式文字色 ---- */
@@ -390,6 +416,26 @@
     --text-placeholder: var(--neutral-500);
     --text-link:        var(--brand-300);
     --text-on-brand:    oklch(14% var(--_neutral-c) var(--_neutral-h));
+
+    /* Agent 编排控制塔 (Phase 5) - dark theme override */
+    --agent-idle: var(--text-tertiary);
+    --agent-busy: var(--primary);
+    --agent-success: var(--success);
+    --agent-failed: var(--danger);
+    --code-bg: #050810;
+    --radar-fill-start: var(--primary);
+    --radar-fill-end: var(--accent);
+    --radar-glow: var(--primary-light);
+    --profile-card-bg: var(--surface-glass);
+    --profile-card-border: var(--border-glass);
+    --profile-label: var(--text-primary);
+    --profile-title: var(--text-tertiary);
+    --profile-progress: var(--primary);
+    --profile-progress-bg: var(--surface-glass-2);
+    --emotion-calm: var(--success);
+    --emotion-anxious: var(--warning);
+    --emotion-frustrated: var(--danger);
+    --emotion-engaged: var(--primary);
 }
 
 /* ---- color-scheme: 控制浏览器原生 UI（滚动条/表单） ---- */
