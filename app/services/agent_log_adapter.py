@@ -24,6 +24,7 @@ def agent_log_to_envelope(log: AgentStepLog, trace_id: str) -> dict[str, Any]:
             "error_message": log.error_message,
         },
         "cost_ms": log.processing_time_ms,
+        # Envelope.timestamp 是 int(epoch ms);AgentStepLog.timestamp 是 datetime
         "timestamp": int(log.timestamp.timestamp() * 1000),
         "schema_version": "1.0",
         "priority": 5,

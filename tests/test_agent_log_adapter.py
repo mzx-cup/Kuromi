@@ -1,16 +1,14 @@
-import time
-import uuid
 from datetime import datetime
 from agents import AgentStepLog
 from app.services.agent_log_adapter import agent_log_to_envelope
 
 
-def _make_log(status="success", role="画像分析"):
+def _make_log(status="success", role="画像分析", error_message=""):
     return AgentStepLog(
         agent_name="profiler", agent_role=role,
         input_summary="input x", output_summary="output y",
         processing_time_ms=320, status=status,
-        error_message="", timestamp=datetime.now(),
+        error_message=error_message, timestamp=datetime.now(),
     )
 
 
@@ -25,6 +23,9 @@ def test_success_log_to_envelope():
 
 
 def test_failed_log_emits_error_type():
-    env = agent_log_to_envelope(_make_log(status="error"), trace_id="t1")
+    env = agent_log_to_envelope(
+        _make_log(status="error", error_message="boom"), trace_id="t1",
+    )
     assert env["type"] == "error"
-    assert env["payload"]["error_message"] == ""
+    assert env["payload"]["status"] == "error"
+    assert env["payload"]["error_message"] == "boom"
