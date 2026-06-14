@@ -16,6 +16,10 @@
  *  11. computeRadarPoints 越界值被 clamp 到 [0, 100] (Task 22)
  *  12. radarColorWithAlpha 把 #3b82f6 转为 rgba(59,130,246,0.5) (Task 22)
  *  13. profile_updated 事件触发 renderRadarFromSnapshot + towerRadarSnapshot 更新 (Task 22)
+ *  14. formatPanelLabel learning_style 显示 label + 置信度 (Task 23)
+ *  15. formatPanelLabel emotion_state 翻译为中文 (Task 23)
+ *  16. renderProfilePanel 写入 4 卡 data-key + 进度条宽度 + 情绪 class (Task 23)
+ *  17. profile_updated 事件触发 renderProfilePanel (Task 23)
  *
  * 实现说明:
  *   js/index.js 是一个 10000+ 行的顶层脚本, 不导出符号。
@@ -93,6 +97,10 @@ function loadTowerSandbox({ fetchImpl, documentHtml } = {}) {
       // Task 22: radar snapshot + pure geometry helpers
       computeRadarPoints, radarColorWithAlpha, renderRadarFromSnapshot,
       RADAR_DIMENSIONS,
+      // Task 23: 4 卡画像面板渲染
+      formatPanelLabel, renderProfilePanel,
+      PANEL_KEYS, EMOTION_LABEL_MAP, EMOTION_CLASS_PREFIX,
+      PANEL_EMOTION_CLASSES,
       __state: {
         get agentCatalog() { return agentCatalog; },
         get towerAgentStatus() { return towerAgentStatus; },
@@ -533,5 +541,163 @@ describe('agent-tower — 新数据源渲染', () => {
     const geom = sb.computeRadarPoints(snap, { cx: 0, cy: 0, R: 100 });
     expect(geom.values).toEqual([50, 55, 60, 45, 70, 80]);
     expect(geom.hasData).toBe(true);
+  });
+
+  // === Task 23: 4 卡画像面板 (#profile-grid) — 单元 + 集成 ===
+
+  /**
+   * 构造一个最小可用的 #profile-grid DOM 片段, 供渲染测试复用。
+   * 形状要和 html/index.html 的 4 卡 + 进度条 + last-synced 一致。
+   */
+  function buildProfileGridHtml() {
+    return '<div class="profile-grid" id="profile-grid">'
+      + '<div class="profile-card">'
+      +   '<div class="profile-card-title">学习风格</div>'
+      +   '<div class="profile-card-value" data-key="learning_style">—</div>'
+      + '</div>'
+      + '<div class="profile-card">'
+      +   '<div class="profile-card-title">认知水平</div>'
+      +   '<div class="profile-card-value" data-key="cognitive_level">—</div>'
+      + '</div>'
+      + '<div class="profile-card">'
+      +   '<div class="profile-card-title">近期目标</div>'
+      +   '<div class="profile-card-value" data-key="current_goal">—</div>'
+      +   '<div class="profile-progress-bar"><div data-key="current_goal_bar"></div></div>'
+      + '</div>'
+      + '<div class="profile-card">'
+      +   '<div class="profile-card-title">情绪状态</div>'
+      +   '<div class="profile-card-value" data-key="emotion_state">—</div>'
+      + '</div>'
+      + '</div>'
+      + '<div class="profile-last-synced" id="profile-last-synced">Last synced: —</div>';
+  }
+
+  it('formatPanelLabel learning_style 显示 label + 置信度百分比', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    expect(sb.formatPanelLabel('learning_style', { label: 'visual', confidence: 0.7 })).toBe('visual · 70%');
+    // confidence=0.34 -> 34% (round), label/textual
+    expect(sb.formatPanelLabel('learning_style', { label: 'textual', confidence: 0.34 })).toBe('textual · 34%');
+    // 缺 confidence -> 只显示 label
+    expect(sb.formatPanelLabel('learning_style', { label: 'pragmatic' })).toBe('pragmatic');
+    // 缺 label -> 显示 "—"
+    expect(sb.formatPanelLabel('learning_style', { confidence: 0.5 })).toBe('—');
+    expect(sb.formatPanelLabel('learning_style', null)).toBe('—');
+  });
+
+  it('formatPanelLabel emotion_state 翻译为中文 (calm→平静 / anxious→焦虑 / frustrated→受挫 / engaged→专注)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock });
+    expect(sb.formatPanelLabel('emotion_state', { label: 'frustrated' })).toBe('受挫');
+    expect(sb.formatPanelLabel('emotion_state', { label: 'calm' })).toBe('平静');
+    expect(sb.formatPanelLabel('emotion_state', { label: 'anxious' })).toBe('焦虑');
+    expect(sb.formatPanelLabel('emotion_state', { label: 'engaged' })).toBe('专注');
+    // 未知 label -> 原样
+    expect(sb.formatPanelLabel('emotion_state', { label: 'happy' })).toBe('happy');
+    // 缺 entry -> "—"
+    expect(sb.formatPanelLabel('emotion_state', null)).toBe('—');
+  });
+
+  it('renderProfilePanel 写入 4 卡 data-key + 进度条宽度 + 情绪 class', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    // 装载带 #profile-grid 的 DOM
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: buildProfileGridHtml() });
+
+    const panel = {
+      learning_style:  { label: 'visual', confidence: 0.5 },
+      cognitive_level: { label: 'intermediate' },
+      current_goal:    { label: '应对考试', progress_pct: 75 },
+      emotion_state:   { label: 'anxious' },
+    };
+    sb.renderProfilePanel(panel);
+
+    const grid = document.getElementById('profile-grid');
+    // 4 卡 data-key 都被写入
+    expect(grid.querySelector('[data-key="learning_style"]').textContent).toBe('visual · 50%');
+    expect(grid.querySelector('[data-key="cognitive_level"]').textContent).toBe('intermediate');
+    expect(grid.querySelector('[data-key="current_goal"]').textContent).toBe('应对考试');
+    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('焦虑');
+    // 进度条宽度
+    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('75%');
+    // 情绪 class
+    const emotionEl = grid.querySelector('[data-key="emotion_state"]');
+    expect(emotionEl.classList.contains('is-anxious')).toBe(true);
+    expect(emotionEl.classList.contains('is-calm')).toBe(false);
+    expect(emotionEl.classList.contains('is-frustrated')).toBe(false);
+    expect(emotionEl.classList.contains('is-engaged')).toBe(false);
+
+    // 二次调用换成 calm -> is-anxious 移除, is-calm 添加
+    sb.renderProfilePanel({
+      learning_style:  { label: 'visual' },
+      cognitive_level: { label: 'beginner' },
+      current_goal:    { label: '补基础', progress_pct: 30 },
+      emotion_state:   { label: 'calm' },
+    });
+    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('平静');
+    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-calm')).toBe(true);
+    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-anxious')).toBe(false);
+    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('30%');
+
+    // 传 null -> 占位 "—", 进度条归零
+    sb.renderProfilePanel(null);
+    for (const key of sb.PANEL_KEYS) {
+      expect(grid.querySelector('[data-key="' + key + '"]').textContent).toBe('—');
+    }
+    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('0%');
+    // 情绪 class 全部清掉
+    const emotionEl2 = grid.querySelector('[data-key="emotion_state"]');
+    for (const cls of sb.PANEL_EMOTION_CLASSES) {
+      expect(emotionEl2.classList.contains(cls)).toBe(false);
+    }
+  });
+
+  it('profile_updated 事件触发 renderProfilePanel 写入 4 卡', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, status: 200, json: () => Promise.resolve({ agents: [], pipeline: [] }),
+    });
+    const sb = loadTowerSandbox({ fetchImpl: fetchMock, documentHtml: buildProfileGridHtml() });
+    sb.__state._towerBusSubscribed = false;
+    if (window.agentBus && typeof window.agentBus.clear === 'function') {
+      window.agentBus.clear();
+    }
+    sb.subscribeToAgentBus();
+
+    // 起始: 4 卡全是 "—"
+    const grid = document.getElementById('profile-grid');
+    for (const key of sb.PANEL_KEYS) {
+      expect(grid.querySelector('[data-key="' + key + '"]').textContent).toBe('—');
+    }
+
+    // emit profile_updated 带 panel
+    window.agentBus.emit('profile_updated', {
+      trace_id: 't-panel-1',
+      radar: {
+        knowledge_mastery: 60, code_skill: 60, cognitive_style: 60,
+        learning_goal: 60, weakness: 60, focus_level: 60,
+      },
+      panel: {
+        learning_style:  { label: 'textual', confidence: 0.8 },
+        cognitive_level: { label: 'advanced' },
+        current_goal:    { label: '考研冲刺', progress_pct: 42 },
+        emotion_state:   { label: 'engaged' },
+      },
+    });
+
+    // 4 卡都被更新
+    expect(grid.querySelector('[data-key="learning_style"]').textContent).toBe('textual · 80%');
+    expect(grid.querySelector('[data-key="cognitive_level"]').textContent).toBe('advanced');
+    expect(grid.querySelector('[data-key="current_goal"]').textContent).toBe('考研冲刺');
+    expect(grid.querySelector('[data-key="emotion_state"]').textContent).toBe('专注');
+    expect(grid.querySelector('[data-key="current_goal_bar"]').style.width).toBe('42%');
+    expect(grid.querySelector('[data-key="emotion_state"]').classList.contains('is-engaged')).toBe(true);
+
+    // towerRadarSnapshot.panel 也被设上 (Task 22 已经覆盖, 这里再次确认)
+    expect(sb.__state.towerRadarSnapshot.panel.learning_style.label).toBe('textual');
   });
 });

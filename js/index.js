@@ -4595,6 +4595,117 @@ const RADAR_DIMENSIONS = [
     { key: 'focus_level',       label: '专注度' },
 ];
 
+// === Task 23: 4 卡画像面板 (#profile-grid) ===
+// 数据源: agentBus 'profile_updated' 事件里 data.panel, 形状见 app/services/portrait_aggregator.py
+//   panel = {
+//     learning_style:  { label, confidence },
+//     cognitive_level: { label, score },
+//     current_goal:    { label, progress_pct },
+//     emotion_state:   { label, intensity },
+//   }
+// 旧 renderProfile() 仍写 #profile-container (隐藏的 8 卡), 不动。
+// 新 renderProfilePanel() 写 #profile-grid, 4 卡 + 进度条 + last-synced 时间戳。
+const PANEL_KEYS = ['learning_style', 'cognitive_level', 'current_goal', 'emotion_state'];
+const EMOTION_LABEL_MAP = {
+    calm: '平静',
+    anxious: '焦虑',
+    frustrated: '受挫',
+    engaged: '专注',
+};
+const EMOTION_CLASS_PREFIX = 'is-';
+const PANEL_EMOTION_CLASSES = ['is-calm', 'is-anxious', 'is-frustrated', 'is-engaged'];
+
+/**
+ * Task 23: 把 panel 单项 entry 翻译成展示用的字符串.
+ * - learning_style:    "visual · 70%"
+ * - cognitive_level:   "intermediate" (或中文 "中级" — 但后端给英文, 暂原样)
+ * - current_goal:      "应对考试" (后端给中文, 原样)
+ * - emotion_state:     "calm" -> "平静" (通过 EMOTION_LABEL_MAP)
+ * 缺失/非对象: 返回 '—'.
+ */
+function formatPanelLabel(key, entry) {
+    if (!entry || typeof entry !== 'object') return '—';
+    if (key === 'learning_style') {
+        const label = entry.label || '';
+        const conf = typeof entry.confidence === 'number' && !Number.isNaN(entry.confidence)
+            ? Math.round(entry.confidence * 100)
+            : null;
+        if (label && conf != null) return label + ' · ' + conf + '%';
+        if (label) return label;
+        return '—';
+    }
+    if (key === 'cognitive_level') {
+        return entry.label || '—';
+    }
+    if (key === 'current_goal') {
+        return entry.label || '—';
+    }
+    if (key === 'emotion_state') {
+        const raw = entry.label || '';
+        if (raw && Object.prototype.hasOwnProperty.call(EMOTION_LABEL_MAP, raw)) {
+            return EMOTION_LABEL_MAP[raw];
+        }
+        return raw || '—';
+    }
+    return '—';
+}
+
+/**
+ * Task 23: 把 panel 数据写到 #profile-grid 4 张卡 + 进度条 + #profile-last-synced.
+ * 安全版本: 任何字段缺失都用 '—' / 0 兜底, 不会抛错.
+ * @param {object|null|undefined} panelData
+ */
+function renderProfilePanel(panelData) {
+    const grid = document.getElementById('profile-grid');
+    if (!grid) return;
+    const safePanel = (panelData && typeof panelData === 'object') ? panelData : {};
+
+    for (const key of PANEL_KEYS) {
+        const el = grid.querySelector('[data-key="' + key + '"]');
+        if (!el) continue;
+        const entry = safePanel[key];
+        el.textContent = formatPanelLabel(key, entry);
+
+        // 情绪状态: 切换 is-* class
+        if (key === 'emotion_state') {
+            for (let i = 0; i < PANEL_EMOTION_CLASSES.length; i++) {
+                el.classList.remove(PANEL_EMOTION_CLASSES[i]);
+            }
+            const raw = (entry && entry.label) || '';
+            if (raw && Object.prototype.hasOwnProperty.call(EMOTION_LABEL_MAP, raw)) {
+                el.classList.add(EMOTION_CLASS_PREFIX + raw);
+            }
+        }
+    }
+
+    // 进度条 (近期目标)
+    const bar = grid.querySelector('[data-key="current_goal_bar"]');
+    if (bar) {
+        const goal = safePanel.current_goal;
+        const pct = (goal && typeof goal.progress_pct === 'number' && !Number.isNaN(goal.progress_pct))
+            ? Math.max(0, Math.min(100, goal.progress_pct))
+            : 0;
+        bar.style.width = pct + '%';
+    }
+
+    // Last synced (取 panel._last_synced 或 towerRadarSnapshot.last_synced)
+    const synced = document.getElementById('profile-last-synced');
+    if (synced) {
+        const ts = safePanel._last_synced
+            || (towerRadarSnapshot && typeof towerRadarSnapshot.last_synced !== 'undefined' ? towerRadarSnapshot.last_synced : null);
+        if (ts) {
+            const d = new Date(ts);
+            if (!isNaN(d.getTime())) {
+                synced.textContent = 'Last synced: ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } else {
+                synced.textContent = 'Last synced: —';
+            }
+        } else {
+            synced.textContent = 'Last synced: —';
+        }
+    }
+}
+
 /**
  * Task 22: 安全版的 hex/rgb -> rgba 转换, 给 canvas gradient 用.
  * - '#3b82f6' -> 'rgba(59,130,246,alpha)'
@@ -4950,9 +5061,13 @@ function subscribeToAgentBus() {
 
     // Task 22: profile_updated 事件 -> 更新雷达 snapshot 并重渲
     // envelope 形状 (后端 /api/agents/execute): { trace_id, radar: {6 dims}, panel?: {...} }
+    // Task 23: 同一个事件也喂 4 卡画像面板 (#profile-grid)
     bus.subscribe('profile_updated', (data) => {
         if (data && typeof data === 'object' && data.radar) {
             renderRadarFromSnapshot({ radar: data.radar, panel: data.panel });
+        }
+        if (data && typeof data === 'object' && data.panel) {
+            if (typeof renderProfilePanel === 'function') renderProfilePanel(data.panel);
         }
     });
 }
@@ -4977,6 +5092,8 @@ async function initAgentTower() {
     }
     // Task 22: 初始渲染雷达图 (无 snapshot -> 自动回退到 mapProfileToScore / legacy profile)
     if (typeof renderRadarChart === 'function') renderRadarChart();
+    // Task 23: 初始渲染 4 卡画像面板 (无 panel -> 显示 "—" 占位, 不要空白卡)
+    if (typeof renderProfilePanel === 'function') renderProfilePanel(null);
     subscribeToAgentBus();
 }
 
