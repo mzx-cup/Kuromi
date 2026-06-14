@@ -85,3 +85,43 @@ class TestExecuteApi:
 
         assert "agent_step" in seen_events
         assert "heartbeat" in seen_events
+
+
+class TestStatusApi:
+    def test_status_404_for_unknown_trace(self):
+        """GET /api/agents/status/{unknown} 应返回 404."""
+        client = TestClient(app)
+        r = client.get("/api/agents/status/this-trace-does-not-exist-xyz")
+        assert r.status_code == 404
+        assert r.json()["detail"] == "trace not found"
+
+    def test_status_200_for_known_trace_after_execute(self, monkeypatch):
+        """执行 execute 后,status 端点应能查到 trace."""
+        class FakeController:
+            async def execute(self, state, on_step_complete=None):
+                # 立即返回 → run_controller 的 finally 会写入 _PIPELINE_STATUS
+                return
+
+        monkeypatch.setattr(ao_module, "create_default_controller", FakeController)
+        client = TestClient(app)
+        # 先跑一次 execute,获取 trace_id
+        with client.stream("POST", "/api/agents/execute",
+                           json={"student_id": "u1", "user_input": "hi"}) as r:
+            assert r.status_code == 200
+            seen_trace = None
+            for line in r.iter_lines():
+                if line.startswith("data:"):
+                    import json as _json
+                    payload = _json.loads(line.split(":", 1)[1].strip())
+                    if "trace_id" in payload:
+                        seen_trace = payload["trace_id"]
+                        break
+        assert seen_trace is not None
+        # 现在查 status
+        r2 = client.get(f"/api/agents/status/{seen_trace}")
+        assert r2.status_code == 200
+        body = r2.json()
+        assert body["trace_id"] == seen_trace
+        assert body["status"] == "complete"
+        assert "started_at" in body
+        assert "completed_at" in body

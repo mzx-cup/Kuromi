@@ -72,6 +72,11 @@ async def get_catalog():
     return {"agents": agents, "pipeline": pipeline}
 
 
+# ---- Status (in-memory trace state) ----
+
+_PIPELINE_STATUS: dict[str, dict] = {}
+
+
 # ---- Execute (SSE) ----
 
 def _sse_format(event: str, data: dict[str, Any]) -> str:
@@ -111,13 +116,27 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
             # 注: StudentState 字段是 student_id (不是 user_id), profile 是 LearningProfile.
             from state import StudentState
             state = StudentState(student_id=req.student_id)
+            started_at = int(time.time() * 1000)
+            agents_run: list[str] = []
             try:
                 await controller.execute(state, on_step_complete=on_step)
+                # Note: agent_role / agent_name is recorded via on_step callback, but for
+                # simplicity we just track that pipeline completed. Future tasks can extend
+                # to capture per-agent timing.
             except Exception as e:
                 await queue.put(("error", {
                     "message": str(e), "agent": "controller",
                 }))
             finally:
+                completed_at = int(time.time() * 1000)
+                _PIPELINE_STATUS[trace_id] = {
+                    "trace_id": trace_id,
+                    "status": "complete",
+                    "started_at": started_at,
+                    "completed_at": completed_at,
+                    "agents": agents_run,
+                    "assets": [],
+                }
                 await queue.put(("pipeline_complete", {
                     "trace_id": trace_id, "status": "complete", "assets": [],
                 }))
@@ -143,3 +162,14 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
         "Connection": "keep-alive",
         "X-Accel-Buffering": "no",
     })
+
+
+# ---- Status (read-only lookup) ----
+
+@router.get("/api/agents/status/{trace_id}")
+async def get_status(trace_id: str):
+    """查询某次流水线的执行状态（前端轮询或断线后回查）."""
+    info = _PIPELINE_STATUS.get(trace_id)
+    if not info:
+        raise HTTPException(status_code=404, detail="trace not found")
+    return info
