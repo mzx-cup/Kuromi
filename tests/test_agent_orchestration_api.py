@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.api.agent_orchestration as ao_module
+import app.api.telemetry as tel_module
 from agents import AgentStepLog
 from main import app
 
@@ -20,11 +21,13 @@ def client():
 
 
 @pytest.fixture(autouse=True)
-def _clear_pipeline_status():
-    """避免 _PIPELINE_STATUS 模块级状态污染跨测试."""
+def _clear_module_state():
+    """避免模块级状态污染跨测试."""
     ao_module._PIPELINE_STATUS.clear()
+    tel_module._TELEMETRY_BUFFER.clear()
     yield
     ao_module._PIPELINE_STATUS.clear()
+    tel_module._TELEMETRY_BUFFER.clear()
 
 
 class TestCatalogApi:
@@ -135,3 +138,33 @@ class TestStatusApi:
         assert "completed_at" in body
         assert body["assets"] == []
         assert body["agents"] == []
+
+
+class TestTelemetryApi:
+    def test_telemetry_batch_accepted(self):
+        client = TestClient(app)
+        r = client.post("/api/telemetry", json={
+            "student_id": "u_telemetry_test_001",  # unique to avoid pollution
+            "batch": [{"type": "scroll", "metrics": {"speed": 100}, "ts": 0}],
+        })
+        assert r.status_code == 200
+        data = r.json()
+        assert data["accepted"] == 1
+        assert data["buffer_size"] == 1
+
+    def test_telemetry_batch_appends(self):
+        client = TestClient(app)
+        sid = "u_telemetry_test_002"
+        # 第一次
+        r1 = client.post("/api/telemetry", json={
+            "student_id": sid,
+            "batch": [{"type": "scroll", "ts": 0}],
+        })
+        assert r1.json()["buffer_size"] == 1
+        # 第二次(同一 student_id)应追加而非覆盖
+        r2 = client.post("/api/telemetry", json={
+            "student_id": sid,
+            "batch": [{"type": "click", "ts": 1}, {"type": "hover", "ts": 2}],
+        })
+        assert r2.json()["accepted"] == 2
+        assert r2.json()["buffer_size"] == 3

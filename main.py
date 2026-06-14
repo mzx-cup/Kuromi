@@ -186,6 +186,10 @@ app.include_router(datacenter_router)
 from app.api.agent_orchestration import router as agent_orchestration_router
 app.include_router(agent_orchestration_router)
 
+# ---- Telemetry API (前端批量埋点接收) ----
+from app.api.telemetry import router as telemetry_router
+app.include_router(telemetry_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
