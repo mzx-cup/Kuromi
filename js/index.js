@@ -3980,11 +3980,11 @@ function renderThinkStrip(logs, isDone) {
     if (!logs || logs.length === 0) return '';
     if (isDone) {
         const thinkId = 'think-done-' + Date.now();
-        return `<div class="think-collapsed-badge" onclick="document.getElementById('${thinkId}').classList.toggle('hidden');this.classList.toggle('hidden')">
+        return `<div class="think-collapsed-badge" data-think-id="${thinkId}" onclick="const tl=document.getElementById('${thinkId}');if(tl)tl.classList.toggle('hidden');this.classList.toggle('hidden')">
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"></path><path d="M9 21h6"></path></svg>
             ✨ 已深度思考
         </div>
-        <div id="${thinkId}" class="hidden">${renderThinkTimeline(logs)}</div>`;
+        <div id="${thinkId}" class="think-done-timeline hidden" data-think-badge="${thinkId}" onclick="const badge=document.querySelector('[data-think-id=&quot;${thinkId}&quot;]');if(badge)badge.classList.toggle('hidden');this.classList.toggle('hidden')">${renderThinkTimeline(logs)}</div>`;
     }
     const latest = logs[logs.length - 1];
     const agentLabel = getAgentLabel(latest.agent);
