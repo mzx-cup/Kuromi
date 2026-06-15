@@ -129,4 +129,29 @@ describe('CodeCoach', () => {
     document.dispatchEvent(new CustomEvent('run:passed'));
     expect(handler).not.toHaveBeenCalled();
   });
+
+  it('60s 窗口外的旧错误不参与 repeat-error 判断', async () => {
+    const { CodeCoach } = await import('../../../js/code-coach.js');
+    const coach = new CodeCoach({ repeatErrorCount: 2, repeatErrorWindowMs: 60000 });
+    coach.start();
+    document.dispatchEvent(new CustomEvent('run:failed', { detail: { stderr: 'NameError: x not defined' } }));
+    vi.advanceTimersByTime(61000);  // 推进 61s — 旧错误超出 60s 窗口
+    document.dispatchEvent(new CustomEvent('run:failed', { detail: { stderr: 'NameError: y not defined' } }));
+    // 窗口外错误已被过滤,只有 1 条记录,不满足 length >= 1
+    const calls = handler.mock.calls.filter(c => c[0].detail.reason === 'repeat-error');
+    expect(calls.length).toBe(0);
+    coach.stop();
+  });
+
+  it('_normalizeError 把数字与引号字符串归一化,digit-only 差异不触发 repeat-error', async () => {
+    const { CodeCoach } = await import('../../../js/code-coach.js');
+    const coach = new CodeCoach({ repeatErrorCount: 2 });
+    coach.start();
+    // 两条错误数字部分不同 → 归一化后 pattern 相同 → 应触发 repeat-error
+    document.dispatchEvent(new CustomEvent('run:failed', { detail: { stderr: "line 5: error at col 10" } }));
+    document.dispatchEvent(new CustomEvent('run:failed', { detail: { stderr: "line 9: error at col 20" } }));
+    const calls = handler.mock.calls.filter(c => c[0].detail.reason === 'repeat-error');
+    expect(calls.length).toBe(1);
+    coach.stop();
+  });
 });
