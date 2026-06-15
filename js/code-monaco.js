@@ -98,6 +98,7 @@ export function create(textareaEl, opts = {}) {
   // 通过 textarea 'input' 事件回灌到 code.js 的状态同步逻辑。
   let disposed = false;
   let _suppressInput = false;
+  let _shortcutsDisposable = null;  // tracked for bindShortcuts double-attach safety
 
   // 兜底：opts.value 显式传入时也调用一次 setValue，
   // 让测试和外部代码可通过 editor.setValue 调用记录看到初始值被设置。
@@ -136,15 +137,33 @@ export function create(textareaEl, opts = {}) {
       return { dispose: () => sub.dispose() };
     },
     bindShortcuts: (handlers) => {
+      // Dispose prior binding if bindShortcuts is called twice (e.g. on re-mount).
+      // Task 14's html rewrite will own this lifecycle.
+      if (_shortcutsDisposable) {
+        try { _shortcutsDisposable.dispose(); } catch {}
+        _shortcutsDisposable = null;
+      }
       const fire = () => { if (handlers && typeof handlers.run === 'function') handlers.run(); };
+      const rejected = [];
       const disposables = [
         editor.addCommand(monaco.KeyCode.F5, fire),
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyR, fire),
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, fire),
-      ].filter(Boolean);
-      return {
-        dispose: () => { disposables.forEach(d => { try { d?.dispose?.(); } catch {} }); },
+      ];
+      disposables.forEach((d, i) => {
+        if (!d) rejected.push(i);  // Monaco returns null on conflict
+      });
+      if (rejected.length && typeof console !== 'undefined') {
+        console.warn('[CodeMonaco] bindShortcuts: keybinding(s) rejected by Monaco (may collide with built-in commands):', rejected);
+      }
+      const handle = {
+        dispose: () => {
+          disposables.forEach(d => { try { d?.dispose?.(); } catch {} });
+          if (_shortcutsDisposable === handle) _shortcutsDisposable = null;
+        },
       };
+      _shortcutsDisposable = handle;
+      return handle;
     },
     dispose: () => {
       if (disposed) return;

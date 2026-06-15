@@ -485,4 +485,78 @@ describe('CodeMonaco.create bindShortcuts', () => {
     expect(result.dispose).toBeDefined();
     handle.dispose();
   });
+
+  it('双调用 bindShortcuts 时旧的注册被清理（不会重复触发）', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t5"></textarea>`);
+    const registeredDisposables = [];
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      addCommand: vi.fn(() => {
+        const d = { dispose: vi.fn() };
+        registeredDisposables.push(d);
+        return d;
+      }),
+      dispose: vi.fn(),
+    };
+    window.monaco = {
+      editor: { create: vi.fn(() => fakeEditor) },
+      KeyMod: { CtrlCmd: 2048 },
+      KeyCode: { F5: 116, Enter: 3, KeyR: 13 },
+    };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t5'));
+    const run = vi.fn();
+
+    // 第一次绑定：3 个 disposable
+    const first = handle.bindShortcuts({ run });
+    expect(registeredDisposables.length).toBe(3);
+
+    // 第二次绑定：旧的 3 个应被 dispose，新的 3 个注册
+    const second = handle.bindShortcuts({ run });
+    expect(registeredDisposables.length).toBe(6);
+    expect(registeredDisposables[0].dispose).toHaveBeenCalledTimes(1);  // 旧注册被清理
+    expect(registeredDisposables[3].dispose).not.toHaveBeenCalled();     // 新注册未被清理
+
+    // 调用 second.dispose() 只清理第二次的注册
+    second.dispose();
+    expect(registeredDisposables[3].dispose).toHaveBeenCalledTimes(1);
+
+    handle.dispose();
+  });
+
+  it('dispose() 清理所有已注册的快捷键', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t6"></textarea>`);
+    const disposables = [];
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      addCommand: vi.fn(() => {
+        const d = { dispose: vi.fn() };
+        disposables.push(d);
+        return d;
+      }),
+      dispose: vi.fn(),
+    };
+    window.monaco = {
+      editor: { create: vi.fn(() => fakeEditor) },
+      KeyMod: { CtrlCmd: 2048 },
+      KeyCode: { F5: 116, Enter: 3, KeyR: 13 },
+    };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t6'));
+    const run = vi.fn();
+    const shortcuts = handle.bindShortcuts({ run });
+
+    shortcuts.dispose();
+    disposables.forEach(d => {
+      expect(d.dispose).toHaveBeenCalledTimes(1);
+    });
+    // 双调用 dispose 安全
+    expect(() => shortcuts.dispose()).not.toThrow();
+
+    handle.dispose();
+  });
 });
