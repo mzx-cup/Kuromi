@@ -73,7 +73,10 @@ export async function load() {
 export function create(textareaEl, opts = {}) {
   const monaco = window.monaco;
   if (!monaco) {
-    throw new Error('CodeMonaco.create: window.monaco 不存在，请先调用 CodeMonaco.load()');
+    throw new Error('CodeMonaco.create: window.monaco not loaded — call CodeMonaco.load() first');
+  }
+  if (!textareaEl.parentNode) {
+    throw new Error('CodeMonaco.create: textareaEl must be attached to the DOM');
   }
   const container = document.createElement('div');
   container.style.height = opts.height || '100%';
@@ -91,14 +94,25 @@ export function create(textareaEl, opts = {}) {
     lineNumbers: 'on',
   });
 
+  // dispose / 抑制 flag：disposed 防止双 dispose；_suppressInput 防止 setValue 引发的内容变更
+  // 通过 textarea 'input' 事件回灌到 code.js 的状态同步逻辑。
+  let disposed = false;
+  let _suppressInput = false;
+
   // 兜底：opts.value 显式传入时也调用一次 setValue，
   // 让测试和外部代码可通过 editor.setValue 调用记录看到初始值被设置。
   if (opts.value !== undefined) {
-    editor.setValue(opts.value);
+    _suppressInput = true;
+    try {
+      editor.setValue(opts.value);
+    } finally {
+      _suppressInput = false;
+    }
   }
 
   // 双向同步：编辑器 → textarea（保持现有依赖 textarea 'input' 事件的代码兼容）
-  editor.onDidChangeModelContent(() => {
+  const subscription = editor.onDidChangeModelContent(() => {
+    if (disposed || _suppressInput) return;
     textareaEl.value = editor.getValue();
     textareaEl.dispatchEvent(new Event('input', { bubbles: true }));
   });
@@ -106,9 +120,19 @@ export function create(textareaEl, opts = {}) {
   return {
     editor,
     getValue: () => editor.getValue(),
-    setValue: (v) => editor.setValue(v),
+    setValue: (v) => {
+      _suppressInput = true;
+      try {
+        editor.setValue(v);
+      } finally {
+        _suppressInput = false;
+      }
+    },
     onChange: (cb) => editor.onDidChangeModelContent(() => cb(editor.getValue())),
     dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      subscription.dispose();
       editor.dispose();
       container.remove();
       textareaEl.style.display = '';

@@ -119,4 +119,39 @@ describe('CodeMonaco.create', () => {
     handle.dispose();
     expect(fakeEditor.dispose).toHaveBeenCalled();
   });
+
+  it('dispose 双调用安全（不抛错）', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t"></textarea>`);
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      dispose: vi.fn(),
+    };
+    window.monaco = { editor: { create: vi.fn(() => fakeEditor) } };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t'));
+    handle.dispose();
+    expect(() => handle.dispose()).not.toThrow();
+    expect(fakeEditor.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('window.monaco 缺失时抛错', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t"></textarea>`);
+    window.monaco = undefined;
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    expect(() => CodeMonaco.create(document.getElementById('t')))
+      .toThrow(/monaco not loaded/);
+  });
+
+  it('textarea 未挂载到 DOM 时抛错', async () => {
+    window.monaco = { editor: { create: vi.fn(() => ({
+      setValue: vi.fn(), getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      dispose: vi.fn(),
+    })) } };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const detached = document.createElement('textarea');
+    expect(() => CodeMonaco.create(detached)).toThrow(/must be attached/);
+  });
 });
