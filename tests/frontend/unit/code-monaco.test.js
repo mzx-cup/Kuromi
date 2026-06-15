@@ -437,6 +437,7 @@ describe('CodeMonaco.create bindShortcuts', () => {
       onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
       addCommand: vi.fn((keybinding, cb) => {
         commands.push({ keybinding, cb });
+        return { dispose: vi.fn() };
       }),
       dispose: vi.fn(),
     };
@@ -470,7 +471,7 @@ describe('CodeMonaco.create bindShortcuts', () => {
       setValue: vi.fn(),
       getValue: vi.fn(() => ''),
       onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
-      addCommand: vi.fn((keybinding, cb) => { commands.push({ keybinding, cb }); }),
+      addCommand: vi.fn((keybinding, cb) => { commands.push({ keybinding, cb }); return { dispose: vi.fn() }; }),
       dispose: vi.fn(),
     };
     window.monaco = {
