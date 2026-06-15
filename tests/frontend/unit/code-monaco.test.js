@@ -390,13 +390,15 @@ describe('CodeMonaco.create onChange bridge', () => {
     handle.dispose();
   });
 
-  it('onChange 在 setValue 期间被抑制（不触发回调）', async () => {
+  it('setValue 期间不触发 onChange 回调（cascade suppression）', async () => {
     document.body.insertAdjacentHTML('beforeend', `<textarea id="t3"></textarea>`);
-    let changeListener = null;
+    const listeners = [];
+    let current = '';
     const fakeEditor = {
-      setValue: vi.fn(),
-      getValue: () => '',
-      onDidChangeModelContent: (cb) => { changeListener = cb; return { dispose: () => {} }; },
+      // 模拟真实 Monaco：setValue 内部同步触发 onDidChangeModelContent
+      setValue: vi.fn((v) => { current = v; listeners.forEach((cb) => cb()); }),
+      getValue: () => current,
+      onDidChangeModelContent: (cb) => { listeners.push(cb); return { dispose: vi.fn() }; },
       dispose: vi.fn(),
     };
     window.monaco = { editor: { create: () => fakeEditor } };
@@ -404,11 +406,17 @@ describe('CodeMonaco.create onChange bridge', () => {
     const handle = CodeMonaco.create(document.getElementById('t3'));
     const onChange = vi.fn();
     handle.onChange(onChange);
-    // 模拟外部代码（如 typewriter）调用 setValue
-    handle.setValue('new');
-    // setValue 内部 Monaco 会触发 onDidChangeModelContent，但 _suppressInput 阻止回灌
-    // 此处我们验证 setValue 调用了 editor.setValue（间接验证桥接）
-    expect(fakeEditor.setValue).toHaveBeenCalledWith('new');
+
+    // 通过 handle.setValue 写入 — fakeEditor.setValue 内部同步触发所有 listeners，
+    // 此时 _suppressInput === true，应阻止 onChange 回调。
+    handle.setValue('ignored');
+    expect(onChange).not.toHaveBeenCalled();
+
+    // 绕过 handle：直接调 editor.setValue（_suppressInput 为 false）— onChange 必须触发
+    handle.editor.setValue('user typed');
+    expect(onChange).toHaveBeenCalledWith('user typed');
+    expect(onChange).toHaveBeenCalledTimes(1);
+
     handle.dispose();
   });
 });

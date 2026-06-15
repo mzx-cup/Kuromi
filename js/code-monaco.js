@@ -128,7 +128,13 @@ export function create(textareaEl, opts = {}) {
         _suppressInput = false;
       }
     },
-    onChange: (cb) => editor.onDidChangeModelContent(() => cb(editor.getValue())),
+    onChange: (cb) => {
+      const sub = editor.onDidChangeModelContent(() => {
+        if (disposed || _suppressInput) return;
+        cb(editor.getValue());
+      });
+      return { dispose: () => sub.dispose() };
+    },
     dispose: () => {
       if (disposed) return;
       disposed = true;
