@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CodeIDE } from '../../../js/code-ide.js';
@@ -29,7 +29,19 @@ describe('code-ide.css', () => {
 });
 
 describe('CodeIDE', () => {
-  it('activate 切换活动栏图标激活态', () => {
+  beforeEach(() => {
+    // 隔离：清空 DOM 与 localStorage，避免用例间相互污染
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    // 收尾：再次清理，防止监听器/节点残留
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  function buildShell() {
     document.body.insertAdjacentHTML('beforeend', `
       <div class="ide-shell">
         <aside class="ide-activity-bar">
@@ -38,11 +50,53 @@ describe('CodeIDE', () => {
         </aside>
       </div>
     `);
-    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    return document.querySelector('.ide-shell');
+  }
+
+  it('activate 切换活动栏图标激活态', () => {
+    const ide = new CodeIDE(buildShell());
     ide.activate('task');
     expect(document.querySelector('[data-panel="task"]').dataset.active).toBe('true');
     expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('false');
     ide.activate('notes');
     expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('true');
   });
+
+  it('click 活动栏图标触发激活', () => {
+    const ide = new CodeIDE(buildShell());
+    const taskBtn = document.querySelector('[data-panel="task"]');
+    taskBtn.click();
+    expect(taskBtn.dataset.active).toBe('true');
+    expect(ide.activePanel).toBe('task');
+    expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('false');
+  });
+
+  it('activate 派发 codeide:panel-change CustomEvent', () => {
+    const shell = buildShell();
+    const ide = new CodeIDE(shell);
+    const handler = makeSpy();
+    document.addEventListener('codeide:panel-change', handler);
+    ide.activate('task');
+    expect(handler.calls.length).toBe(1);
+    expect(handler.calls[0].detail).toEqual({ panel: 'task' });
+    document.removeEventListener('codeide:panel-change', handler);
+  });
+
+  it('persistLayout 写入 localStorage', () => {
+    const ide = new CodeIDE(buildShell());
+    ide.activate('task');
+    const raw = localStorage.getItem('code_ide_layout');
+    expect(raw, 'localStorage entry must exist').toBeTruthy();
+    const parsed = JSON.parse(raw);
+    expect(parsed.activePanel).toBe('task');
+  });
 });
+
+// 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
+function makeSpy() {
+  const fn = (event) => {
+    fn.calls.push(event);
+  };
+  fn.calls = [];
+  return fn;
+}
