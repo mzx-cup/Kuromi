@@ -64,6 +64,13 @@ from task_manager import get_task_manager, dispatch_resource_tasks, TaskStatus
 from config import settings
 from app.services.teacher.personas import get_persona_manager
 from app.api.learning_path import generate_path_for_user
+from app.services.tutor_engine.pipeline_gate import (
+    InputGateway,
+    IntentRouter,
+    SocraticEngine as PipelineSocraticEngine,
+    OutputGateway,
+)
+from app.services import audit_log
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HTML_DIR = os.path.join(BASE_DIR, "html")
@@ -3211,6 +3218,20 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
 async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
     logger.info(f"Stream connected: student={body.student_id}, input={body.user_input[:50]}")
 
+    # ===== L0 — 输入安全网关 =====
+    l0_ok, l0_code = InputGateway.check(body.user_input or "", str(body.student_id or ""))
+    if not l0_ok:
+        async def _blocked_gen():
+            payload = {
+                "type": "input_blocked",
+                "code": l0_code,
+                "hint": InputGateway.hint(l0_code),
+            }
+            yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'complete', 'data': {'blocked': True, 'code': l0_code}}, ensure_ascii=False)}\n\n"
+        logger.info(f"[L0] input blocked: student={body.student_id}, code={l0_code}")
+        return StreamingResponse(_blocked_gen(), media_type="text/event-stream")
+
     event_queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=1024)
     disconnected = asyncio.Event()
 
@@ -3237,6 +3258,12 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         code_practice_time=body.code_practice_time,
         socratic_pass_rate=body.socratic_pass_rate,
     )
+
+    # ===== L1 — 意图路由(本期关键词规则) =====
+    route_intent = IntentRouter.route(body.user_input or "")
+    state.metadata["route_intent"] = route_intent
+    audit_log.audit_intent_route(str(body.student_id or ""), route_intent)
+    # 本期:course_generate / navigate 仍走苏格拉底,仅打日志,Phase 2 才真跳转
 
     async def push_agent_log(agent_name: str, content: str):
         if not disconnected.is_set():
@@ -3267,6 +3294,15 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         try:
             controller = get_controller()
             last_log_idx = 0
+
+            # ===== L2 — 苏格拉底引擎:主动追问 =====
+            async def _push_proactive(event_type: str, data: dict) -> None:
+                if not disconnected.is_set():
+                    await event_queue.put({"type": event_type, "data": data})
+            try:
+                await PipelineSocraticEngine.emit_pre_questions(state, _push_proactive)
+            except Exception as socr_e:
+                logger.warning(f"[L2] 主动追问失败(非阻塞): {socr_e}")
 
             await push_agent_log("system", "正在初始化多智能体工作流...")
 
@@ -3343,6 +3379,14 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 
                 socratic_response = state.metadata.get("socratic_response", "")
                 if socratic_response:
+                    # ===== L3 — 输出安全网关(苏格拉底路径) =====
+                    try:
+                        _l3 = OutputGateway.filter(socratic_response, student_id=str(body.student_id or ""))
+                        if _l3.replaced_codes:
+                            await push_agent_log("l3_gateway", f"输出已过滤: {','.join(_l3.replaced_codes)}")
+                            socratic_response = _l3.answer_text
+                    except Exception as l3_e:
+                        logger.warning(f"[L3] 苏格拉底输出过滤失败(非阻塞): {l3_e}")
                     chunk_size = 80
                     for i in range(0, len(socratic_response), chunk_size):
                         if disconnected.is_set():
@@ -3504,6 +3548,14 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
 
                 # 从 LLM 完整输出中提取学习链接
                 full_response_text = event.get("full_text", "")
+                # ===== L3 — 输出安全网关:长度截断 + PII 替换 =====
+                try:
+                    _l3 = OutputGateway.filter(full_response_text, student_id=str(body.student_id or ""))
+                    if _l3.replaced_codes:
+                        await push_agent_log("l3_gateway", f"输出已过滤: {','.join(_l3.replaced_codes)}")
+                        full_response_text = _l3.answer_text
+                except Exception as l3_e:
+                    logger.warning(f"[L3] 输出过滤失败(非阻塞): {l3_e}")
                 recommended_links = _extract_links_from_text(full_response_text)
                 # Strip <links> tag from saved content (already parsed into recommended_links)
                 full_response_text = _strip_links_tag(full_response_text)
@@ -3650,6 +3702,222 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ============================================================
+# Phase 1 — AI 问答重塑:首访引导 + 画像写入端点
+# ============================================================
+
+class OnboardRequest(BaseModel):
+    """首访引导提交:4 问原始答案。"""
+    student_id: str
+    answers: dict[str, Any] = Field(default_factory=dict)
+
+
+def _map_answers_to_radar(answers: dict) -> dict[str, int]:
+    """把 4 问答案映射成 6 维雷达分数(0-100)。
+
+    简化的启发式映射,后续可由 LLM 重做。
+    """
+    radar = {
+        "knowledge_mastery": 30,
+        "code_skill": 30,
+        "cognitive_style": 50,
+        "learning_goal": 30,
+        "weakness": 50,
+        "focus_level": 50,
+    }
+    base = (answers.get("base") or "").strip()
+    base_score = {
+        "零基础": 15, "写过简单脚本": 45, "做过项目": 70, "可以独立开发": 90,
+    }.get(base, 30)
+    radar["code_skill"] = base_score
+    radar["knowledge_mastery"] = min(100, base_score + 10)
+
+    pref = answers.get("pref") or []
+    if isinstance(pref, str):
+        pref = [pref]
+    if "例子驱动" in pref:
+        radar["cognitive_style"] = 70
+    if "先讲原理再代码" in pref:
+        radar["cognitive_style"] = max(radar["cognitive_style"], 75)
+    if "图文并茂" in pref:
+        radar["cognitive_style"] = max(radar["cognitive_style"], 65)
+    if "多给练习" in pref:
+        radar["focus_level"] = 70
+
+    direction = answers.get("direction") or []
+    if isinstance(direction, str):
+        direction = [direction]
+    if direction:
+        radar["learning_goal"] = 65
+    return radar
+
+
+def _build_onboard_payload(answers: dict) -> dict:
+    """组装落库 portrait 数据。"""
+    from datetime import datetime as _dt
+    return {
+        "answers": answers,
+        "grade": answers.get("grade"),
+        "base": answers.get("base"),
+        "directions": answers.get("direction") or [],
+        "style_pref": answers.get("pref") or [],
+        "radar": _map_answers_to_radar(answers),
+        "completed_at": _dt.now().isoformat(timespec="seconds"),
+        "version": 1,
+    }
+
+
+@app.post("/api/v2/chat/onboard")
+async def chat_onboard(req: OnboardRequest):
+    """首访引导提交:把 4 问答案映射为画像,落库 + 立即返回。"""
+    try:
+        student_id = str(req.student_id or "").strip()
+        if not student_id:
+            raise HTTPException(status_code=400, detail="student_id 必填")
+        payload = _build_onboard_payload(req.answers)
+        # 落库到 user_profile.profile_json.onboard
+        try:
+            uid = int(student_id)
+        except (TypeError, ValueError):
+            uid = None
+
+        if uid is not None:
+            from db import get_user_profile, get_db
+            import json
+            # 直接读写 user_profile.profile_json,兼容历史"双层 JSON 字符串"脏数据
+            profile = get_user_profile(uid) or {}
+            raw_pj = profile.get("profile_json", {})
+            # 解析 1~2 层(老 DB 里存了两次 json.dumps)
+            if isinstance(raw_pj, str):
+                try:
+                    parsed = json.loads(raw_pj)
+                    if isinstance(parsed, str):
+                        try:
+                            parsed = json.loads(parsed)
+                        except (json.JSONDecodeError, TypeError):
+                            parsed = {}
+                except (json.JSONDecodeError, TypeError):
+                    parsed = {}
+            else:
+                parsed = raw_pj if isinstance(raw_pj, dict) else {}
+            # 写入 onboard 子树
+            if not isinstance(parsed, dict):
+                parsed = {}
+            parsed["onboard"] = payload
+            parsed["radar"] = payload["radar"]
+            parsed["panel"] = {
+                "learning_style": {"label": ", ".join(payload["style_pref"]) or "—"},
+                "cognitive_level": {"label": payload["base"] or "—"},
+                "current_goal": {"label": ", ".join(payload["directions"]) or "—"},
+                "emotion_state": {"label": "calm"},
+            }
+            # 绕过 save_user_profile 的 INSERT-bug(PK 是 id 不是 user_id),
+            # 直接 UPDATE 最新的那一行 user_id=uid 的 profile_json
+            new_str = json.dumps(parsed, ensure_ascii=False)
+            try:
+                with get_db() as conn:
+                    if conn is not None:
+                        cur = conn.cursor()
+                        # MySQL 路径
+                        try:
+                            import pymysql
+                            dcur = conn.cursor(pymysql.cursors.DictCursor)
+                            dcur.execute(
+                                "SELECT id FROM user_profile WHERE user_id = %s ORDER BY id DESC LIMIT 1",
+                                (uid,))
+                            row = dcur.fetchone()
+                            dcur.close()
+                        except Exception:
+                            row = None
+                        if row:
+                            cur.execute(
+                                "UPDATE user_profile SET profile_json = %s WHERE id = %s",
+                                (new_str, row["id"]))
+                            conn.commit()
+                            cur.close()
+                            logger.info(f"[onboard] UPDATE user_profile.id={row['id']} for user_id={uid}")
+                        else:
+                            logger.warning(f"[onboard] 找不到 user_id={uid} 的行,跳过 DB 写入")
+            except Exception as e:
+                logger.warning(f"[onboard] UPDATE 失败 uid={uid}: {e}(非阻塞)")
+        else:
+            logger.info(f"[onboard] student_id 非数字({student_id}),跳过 DB 写入")
+
+        logger.info(f"[onboard] student={student_id} 完成首访,version=1")
+        return {
+            "success": True,
+            "onboard_completed_at": payload["completed_at"],
+            "version": 1,
+            "portrait": {
+                "radar": payload["radar"],
+                "panel": {
+                    "learning_style": {"label": ", ".join(payload["style_pref"]) or "—"},
+                    "cognitive_level": {"label": payload["base"] or "—"},
+                    "current_goal": {"label": ", ".join(payload["directions"]) or "—"},
+                },
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[onboard] 失败: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"onboard 失败: {str(e)}")
+
+
+@app.get("/api/v2/chat/onboard/status")
+async def chat_onboard_status(student_id: str):
+    """首访状态查询(幂等判定用)。"""
+    try:
+        sid = (student_id or "").strip()
+        if not sid:
+            return {"completed": False, "version": 0}
+        try:
+            uid = int(sid)
+        except (TypeError, ValueError):
+            return {"completed": False, "version": 0}
+        # 直接读最新的那一行 user_profile,兼容双层 JSON 脏数据
+        from db import get_db
+        import json
+        with get_db() as conn:
+            if conn is None:
+                return {"completed": False, "version": 0}
+            try:
+                import pymysql
+                cur = conn.cursor(pymysql.cursors.DictCursor)
+                cur.execute(
+                    "SELECT profile_json FROM user_profile WHERE user_id = %s ORDER BY id DESC LIMIT 1",
+                    (uid,))
+                row = cur.fetchone()
+                cur.close()
+            except Exception as e:
+                logger.warning(f"[onboard/status] 查询失败: {e}")
+                return {"completed": False, "version": 0}
+        if not row:
+            return {"completed": False, "version": 0}
+        raw = row.get("profile_json") or ""
+        if isinstance(raw, str):
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, str):
+                    try:
+                        parsed = json.loads(parsed)
+                    except (json.JSONDecodeError, TypeError):
+                        parsed = {}
+            except (json.JSONDecodeError, TypeError):
+                parsed = {}
+        else:
+            parsed = raw if isinstance(raw, dict) else {}
+        onboard = parsed.get("onboard") or {}
+        return {
+            "completed": bool(onboard.get("completed_at")),
+            "version": int(onboard.get("version") or 0),
+            "completed_at": onboard.get("completed_at", ""),
+        }
+    except Exception as e:
+        logger.warning(f"[onboard/status] 查询失败(非阻塞): {e}")
+        return {"completed": False, "version": 0}
 
 
 @app.get("/api/chat/history")

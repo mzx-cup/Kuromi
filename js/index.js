@@ -6785,6 +6785,16 @@ async function handleSendStream(forcedMessage = null, options = {}) {
     messages.push({ role: 'user', content: userMsg });
     renderMessages();
 
+    // Phase 1 — L1 前端轻量意图路由(主路由在后端,此处仅作 UI 提前打点)
+    if (typeof window.fetchIntent === 'function') {
+        try {
+            const intent = await window.fetchIntent(userMsg);
+            if (intent && intent !== 'socratic_qa') {
+                console.log('[L1] intent =', intent, '(后端会重判,此处仅供前端 UI 提前打点)');
+            }
+        } catch (e) { /* 非阻塞 */ }
+    }
+
     sandboxLogs = [];
     activeAgents = new Set();
     sandboxFilterSet = new Set();
@@ -6929,6 +6939,20 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                 } else if (event.type === 'content_chunk') {
                     console.log('[SSE] content_chunk received:', event.content?.substring(0, 50), '...');
                     startTypewriter(event.content || '');
+                } else if (event.type === 'proactive_question') {
+                    // Phase 1 — L2 主动追问气泡(渲染到 chat 容器顶部)
+                    if (typeof window.xsRenderProactive === 'function') {
+                        try { window.xsRenderProactive(event.data || {}); } catch (e) { console.warn('[L2] proactive 渲染失败:', e); }
+                    }
+                } else if (event.type === 'input_blocked') {
+                    // Phase 1 — L0 拦截横幅(显示在 chat 容器底部,提示用户)
+                    if (typeof window.xsRenderBlocked === 'function') {
+                        try { window.xsRenderBlocked(event.data || {}); } catch (e) { console.warn('[L0] blocked 渲染失败:', e); }
+                    }
+                    // 拦截后立即停掉打字机/流式渲染,避免空泡
+                    if (typewriterTimer) { clearTimeout(typewriterTimer); typewriterTimer = null; }
+                    typewriterQueue = [];
+                    isTypewriting = false;
                 } else if (event.type === 'done') {
                     console.log('[SSE] done event, full_text length:', event.full_text?.length, 'currentAssistantContent length:', currentAssistantContent.length);
                     // 合并队列中剩余的内容，避免打字机队列被清空导致内容丢失

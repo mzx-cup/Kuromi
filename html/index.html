@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/css/mascot.css">
     <link rel="stylesheet" href="css/agent-tower.css">
     <link rel="stylesheet" href="/css/focus-quiz.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/data-layer.js"></script>
@@ -1423,6 +1424,27 @@
 <script src="js/agent-mock-fallback.js"></script>
 <script src="js/agent-orchestrator.js"></script>
 <script src="js/agent-telemetry-collector.js"></script>
+
+<!-- Phase 1 — AI 问答重塑:首访引导覆盖层 -->
+<div id="xs-onboard-mask" class="xs-onboard-mask" aria-hidden="true">
+  <div class="xs-onboard-card" role="dialog" aria-labelledby="xs-onboard-title" aria-modal="true">
+    <button class="xs-onboard-close" id="xs-onboard-close" aria-label="关闭" title="关闭">×</button>
+    <div class="xs-onboard-progress">
+      <span id="xs-onboard-step">1 / 4</span>
+      <div class="xs-onboard-progress-bar"><div class="xs-onboard-progress-fill" id="xs-onboard-fill" style="width:25%"></div></div>
+    </div>
+    <h2 class="xs-onboard-title" id="xs-onboard-title">欢迎来到星识 🌟</h2>
+    <p class="xs-onboard-hint" id="xs-onboard-hint">让我们先了解你,我会更好地帮你学习。</p>
+    <div class="xs-onboard-options" id="xs-onboard-options"></div>
+    <input class="xs-onboard-custom" id="xs-onboard-custom" type="text" placeholder="其他(可选)" maxlength="60" />
+    <div class="xs-onboard-actions">
+      <button class="xs-onboard-skip" id="xs-onboard-skip">跳过</button>
+      <button class="xs-onboard-next" id="xs-onboard-next" disabled>下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/onboarding.js" defer></script>
 
 </body>
 </html>

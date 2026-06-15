@@ -197,3 +197,345 @@
   // ===== 自动启动 =====
   init();
 })();
+
+/* ============================================================
+   Phase 1 — AI 问答重塑:首访引导卡片 (4 问)
+   与上面的 spotlight tour 完全隔离,使用 xs- 前缀的 DOM/class
+   ============================================================ */
+(function () {
+  'use strict';
+
+  const QA_VERSION = 1;
+  const QA_LS_KEY = 'xs_onboard_v';
+
+  // 4 问定义(id, title, hint, options, multiple)
+  const QUESTIONS = [
+    {
+      id: 'grade',
+      title: '你目前的学段?',
+      hint: '不同学段我会调整讲解深度和举例风格。',
+      multiple: false,
+      options: ['小学', '初中', '高中', '大专/本科', '研究生/在职', '其他'],
+    },
+    {
+      id: 'direction',
+      title: '想学哪些方向?(可多选)',
+      hint: '我好匹配对应的项目案例。',
+      multiple: true,
+      options: ['大数据', 'AI/算法', '前端', '后端', '数据库', 'DevOps', '其他'],
+    },
+    {
+      id: 'base',
+      title: '当前的编程基础?',
+      hint: '我会按你的基础选起点。',
+      multiple: false,
+      options: ['零基础', '写过简单脚本', '做过项目', '可以独立开发'],
+    },
+    {
+      id: 'pref',
+      title: '偏好哪种讲解?(可多选)',
+      hint: '我可以按你的偏好调整教学风格。',
+      multiple: true,
+      options: ['图文并茂', '例子驱动', '先讲原理再代码', '多给练习'],
+    },
+  ];
+
+  // ---- 状态 ----
+  let stepIndex = 0;
+  let answers = {};          // {grade, direction:[], base, pref:[]}
+  let selected = new Set();  // 当前题已选 options
+  let busy = false;
+
+  // ---- DOM 引用 ----
+  const $ = (id) => document.getElementById(id);
+  const maskEl = () => $('xs-onboard-mask');
+  const titleEl = () => $('xs-onboard-title');
+  const hintEl = () => $('xs-onboard-hint');
+  const optsEl = () => $('xs-onboard-options');
+  const customEl = () => $('xs-onboard-custom');
+  const nextBtn = () => $('xs-onboard-next');
+  const skipBtn = () => $('xs-onboard-skip');
+  const closeBtn = () => $('xs-onboard-close');
+  const stepEl = () => $('xs-onboard-step');
+  const fillEl = () => $('xs-onboard-fill');
+
+  function showMask() {
+    const m = maskEl();
+    if (!m) return;
+    m.classList.add('visible');
+    m.setAttribute('aria-hidden', 'false');
+  }
+  function hideMask() {
+    const m = maskEl();
+    if (!m) return;
+    m.classList.remove('visible');
+    m.setAttribute('aria-hidden', 'true');
+  }
+
+  function getCurrentUserId() {
+    try {
+      const u = JSON.parse(localStorage.getItem('starlearn_user') || 'null');
+      return u && u.id ? String(u.id) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function normalizeAnswer(qid, vals) {
+    if (!vals || vals.length === 0) return null;
+    const q = QUESTIONS.find((x) => x.id === qid);
+    return q && q.multiple ? vals : vals[0];
+  }
+
+  // ---- 渲染当前题 ----
+  function renderStep() {
+    const q = QUESTIONS[stepIndex];
+    if (!q) return;
+    titleEl().textContent = q.title;
+    hintEl().textContent = q.hint;
+    stepEl().textContent = `${stepIndex + 1} / ${QUESTIONS.length}`;
+    fillEl().style.width = `${((stepIndex + 1) / QUESTIONS.length) * 100}%`;
+
+    selected = new Set();
+    const prev = answers[q.id];
+    if (Array.isArray(prev)) selected = new Set(prev);
+    else if (prev) selected = new Set([prev]);
+
+    optsEl().innerHTML = '';
+    q.options.forEach((opt) => {
+      const chip = document.createElement('div');
+      chip.className = 'xs-onboard-option';
+      chip.textContent = opt;
+      if (selected.has(opt)) chip.classList.add('selected');
+      chip.addEventListener('click', () => {
+        if (q.multiple) {
+          if (selected.has(opt)) selected.delete(opt);
+          else selected.add(opt);
+          chip.classList.toggle('selected');
+        } else {
+          selected.clear();
+          selected.add(opt);
+          optsEl().querySelectorAll('.xs-onboard-option').forEach((c) => c.classList.remove('selected'));
+          chip.classList.add('selected');
+        }
+        updateNextEnabled();
+      });
+      optsEl().appendChild(chip);
+    });
+
+    // 自定义输入(只在 direction / pref 提示)
+    if (q.id === 'direction' || q.id === 'pref') {
+      customEl().classList.remove('hidden');
+      customEl().placeholder = q.multiple ? '其他(可逗号分隔)' : '其他';
+    } else {
+      customEl().classList.add('hidden');
+    }
+    customEl().value = '';
+    updateNextEnabled();
+  }
+
+  function updateNextEnabled() {
+    const has = selected.size > 0 || (customEl().value || '').trim().length > 0;
+    nextBtn().disabled = !has;
+  }
+
+  // ---- 跳到下一题 ----
+  function goNext() {
+    if (busy) return;
+    const q = QUESTIONS[stepIndex];
+    const custom = (customEl().value || '').trim();
+    if (custom && q.multiple) {
+      custom.split(/[,，;；\s]+/).filter(Boolean).forEach((s) => selected.add(s));
+    } else if (custom) {
+      selected.add(custom);
+    }
+    const normalized = normalizeAnswer(q.id, Array.from(selected));
+    answers[q.id] = normalized;
+
+    if (stepIndex < QUESTIONS.length - 1) {
+      stepIndex += 1;
+      renderStep();
+    } else {
+      submit();
+    }
+  }
+
+  function goSkip() {
+    if (busy) return;
+    const q = QUESTIONS[stepIndex];
+    answers[q.id] = null;
+    if (stepIndex < QUESTIONS.length - 1) {
+      stepIndex += 1;
+      renderStep();
+    } else {
+      submit();
+    }
+  }
+
+  // ---- 提交 ----
+  async function submit() {
+    busy = true;
+    nextBtn().disabled = true;
+    skipBtn().disabled = true;
+    nextBtn().textContent = '提交中...';
+
+    const userId = getCurrentUserId();
+    try {
+      if (userId) {
+        const resp = await fetch(`${window.location.origin}/api/v2/chat/onboard`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student_id: userId, answers }),
+        });
+        const data = await resp.json().catch(() => ({}));
+        // 落库成功后刷新画像雷达
+        if (data && (data.success || data.portrait) && typeof window.fetchPortrait === 'function') {
+          try { await window.fetchPortrait(true); } catch (e) { console.warn('[xs-onboard] fetchPortrait 失败:', e); }
+        }
+      } else {
+        console.warn('[xs-onboard] 未登录,只标记看过,不落库');
+      }
+    } catch (e) {
+      console.error('[xs-onboard] 提交失败(非阻塞):', e);
+    } finally {
+      try { localStorage.setItem(QA_LS_KEY, String(QA_VERSION)); } catch (e) {}
+      hideMask();
+      nextBtn().textContent = '下一题 →';
+      nextBtn().disabled = false;
+      skipBtn().disabled = false;
+      busy = false;
+    }
+  }
+
+  // ---- 暴露 API:fetchPortrait / fetchIntent / xsRenderProactive / xsRenderBlocked ----
+  window.fetchPortrait = async function (force) {
+    const userId = getCurrentUserId();
+    if (!userId) return null;
+    try {
+      const url = `${window.location.origin}/api/profile/portrait/${encodeURIComponent(userId)}` + (force ? '?_t=' + Date.now() : '');
+      const resp = await fetch(url);
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      if (typeof window.drawRadarChart === 'function' && data && data.radar) {
+        try { window.drawRadarChart(data.radar); } catch (e) { console.warn('[xs-onboard] drawRadarChart 失败:', e); }
+      }
+      if (typeof window.renderEvaluation === 'function' && data) {
+        try { window.renderEvaluation(data); } catch (e) { console.warn('[xs-onboard] renderEvaluation 失败:', e); }
+      }
+      return data;
+    } catch (e) {
+      console.warn('[xs-onboard] fetchPortrait 失败:', e);
+      return null;
+    }
+  };
+
+  window.fetchIntent = async function (userInput) {
+    // 本期:前端不真做意图路由(主路由在后端 L1);保留入口以备 Phase 2 调用
+    const s = (userInput || '').toLowerCase();
+    if (/生成课程|出一门课|设计一门|create a course|learning path|teach me/.test(s)) {
+      return 'course_generate';
+    }
+    if (/去|跳到|打开|go to|navigate|switch to/.test(s)) {
+      return 'navigate';
+    }
+    return 'socratic_qa';
+  };
+
+  window.xsRenderProactive = function (data) {
+    const msg = (data && data.message) || '我们聊聊你的学习画像?';
+    const deeplink = data && data.deeplink;
+    const wrap = document.createElement('div');
+    wrap.className = 'proactive-chip';
+    const spanMsg = document.createElement('span');
+    spanMsg.textContent = msg;
+    wrap.innerHTML = '<span>💡</span>';
+    wrap.appendChild(spanMsg);
+    if (deeplink) {
+      const a = document.createElement('a');
+      a.href = deeplink;
+      a.textContent = '去完善 →';
+      wrap.appendChild(a);
+    }
+    const chat = document.getElementById('chat-container') || document.getElementById('chat-messages') || document.querySelector('.chat-messages') || document.querySelector('[data-chat-container]');
+    if (!chat) {
+      console.warn('[xs-onboard] 找不到 chat 容器,proactive 暂不入 DOM');
+      return;
+    }
+    if (chat.firstChild) chat.insertBefore(wrap, chat.firstChild);
+    else chat.appendChild(wrap);
+  };
+
+  window.xsRenderBlocked = function (data) {
+    const hint = (data && data.hint) || '输入未通过安全检查。';
+    const banner = document.createElement('div');
+    banner.className = 'xs-blocked-banner';
+    const icon = document.createElement('span');
+    icon.className = 'xs-blocked-icon';
+    icon.textContent = '⚠️';
+    const txt = document.createElement('span');
+    txt.textContent = hint;
+    banner.appendChild(icon);
+    banner.appendChild(txt);
+    const chat = document.getElementById('chat-container') || document.getElementById('chat-messages') || document.querySelector('.chat-messages') || document.querySelector('[data-chat-container]');
+    if (chat) chat.appendChild(banner);
+  };
+
+  // ---- 入口:首访判定 ----
+  window.xsOnboardInit = async function () {
+    if (parseInt(localStorage.getItem(QA_LS_KEY) || '0', 10) >= QA_VERSION) return;
+    const userId = getCurrentUserId();
+    if (userId) {
+      try {
+        const resp = await fetch(`${window.location.origin}/api/v2/chat/onboard/status?student_id=${encodeURIComponent(userId)}`);
+        const data = await resp.json();
+        if (data && data.completed) {
+          localStorage.setItem(QA_LS_KEY, String(data.version || QA_VERSION));
+          return;
+        }
+      } catch (e) {
+        console.warn('[xs-onboard] status 查询失败(非阻塞):', e);
+      }
+    }
+    // 等一帧再弹,避免页面渲染抖动
+    setTimeout(() => {
+      stepIndex = 0;
+      answers = {};
+      renderStep();
+      showMask();
+    }, 300);
+  };
+
+  // ---- 事件绑定 ----
+  function bind() {
+    if (nextBtn()) nextBtn().addEventListener('click', goNext);
+    if (skipBtn()) skipBtn().addEventListener('click', goSkip);
+    if (closeBtn()) closeBtn().addEventListener('click', () => {
+      // 关闭等价于:把剩下的题全标 null,提交(只标"看过")
+      while (stepIndex < QUESTIONS.length) {
+        const q = QUESTIONS[stepIndex];
+        if (!(q.id in answers)) answers[q.id] = null;
+        stepIndex += 1;
+      }
+      submit();
+    });
+    if (customEl()) {
+      customEl().addEventListener('input', updateNextEnabled);
+      customEl().addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !nextBtn().disabled) {
+          e.preventDefault();
+          goNext();
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      bind();
+      window.xsOnboardInit();
+    });
+  } else {
+    bind();
+    window.xsOnboardInit();
+  }
+})();

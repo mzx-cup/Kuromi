@@ -175,7 +175,6 @@ class Deadline:
 
 @dataclass
 class RichContext:
-    """聚合后的完整上下文 —— 决策引擎的"输入原料""""
     event: TutorEvent
 
     # 知识层
