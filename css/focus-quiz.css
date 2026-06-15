@@ -17,8 +17,8 @@
 }
 
 .focus-quiz-card:hover {
-  border-color: var(--primary-light);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.12);
+  border-color: var(--brand-400);
+  box-shadow: var(--shadow-glow);
 }
 
 .focus-quiz-question-text {
@@ -50,10 +50,10 @@
 }
 
 .focus-quiz-option:hover {
-  background: var(--bg-hover);
-  border-color: var(--primary-light);
+  background: var(--surface-hover);
+  border-color: var(--brand-400);
   transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .focus-quiz-option:active {
@@ -67,8 +67,8 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: var(--primary-surface, rgba(99, 102, 241, 0.15));
-  color: var(--primary-light);
+  background: var(--accent-bg);
+  color: var(--brand-400);
   font-size: 0.75rem;
   font-weight: 700;
   flex-shrink: 0;
@@ -82,22 +82,22 @@
 
 /* ── Answer States ── */
 .focus-quiz-option.focus-quiz-correct {
-  border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--success-500);
+  background: var(--success-bg);
 }
 
 .focus-quiz-option.focus-quiz-correct .focus-quiz-option-key {
-  background: #22c55e;
+  background: var(--success-500);
   color: #fff;
 }
 
 .focus-quiz-option.focus-quiz-wrong {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  border-color: var(--danger-500);
+  background: var(--danger-bg);
 }
 
 .focus-quiz-option.focus-quiz-wrong .focus-quiz-option-key {
-  background: #ef4444;
+  background: var(--danger-500);
   color: #fff;
 }
 
@@ -112,15 +112,15 @@
 }
 
 .focus-quiz-feedback-correct {
-  border-left: 3px solid #22c55e;
-  background: rgba(34, 197, 94, 0.06);
-  color: #16a34a;
+  border-left: 3px solid var(--success-500);
+  background: var(--success-bg);
+  color: var(--success-500);
 }
 
 .focus-quiz-feedback-wrong {
-  border-left: 3px solid #ef4444;
-  background: rgba(239, 68, 68, 0.06);
-  color: #dc2626;
+  border-left: 3px solid var(--danger-500);
+  background: var(--danger-bg);
+  color: var(--danger-500);
 }
 
 @keyframes quizFadeIn {

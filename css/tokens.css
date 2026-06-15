@@ -335,6 +335,14 @@
     --glass-shadow:    var(--shadow-md);
     --shadow-glass:    var(--shadow-md);
 
+    --surface-glass-2: color-mix(in oklch, var(--surface-glass), transparent 50%);
+
+    /* 便捷品牌别名 (页面可覆写) */
+    --primary: var(--brand-500);
+    --primary-light: var(--brand-400);
+    --primary-dark: var(--brand-600);
+    --accent: var(--brand-400);
+
     --success-500: var(--success);
     --warning-500: var(--warning);
     --danger-500:  var(--danger);
@@ -422,6 +430,36 @@
     --openmaic-on-light-border: #fde68a;
     --openmaic-on-light-text:   #92400e;
     --openmaic-on-light-muted:  #b45309;
+
+    /* 课程生成页玻璃按钮（深色页面上浮起的白色半透明按钮，不随 6 主题变化） */
+    --openmaic-glass-btn-bg:       rgba(255, 255, 255, 0.88);
+    --openmaic-glass-btn-hover:    rgba(255, 255, 255, 0.98);
+    --openmaic-glass-btn-active:   rgba(255, 255, 255, 0.96);
+    --openmaic-glass-btn-expanded: rgba(255, 255, 255, 0.95);
+    --openmaic-glass-card-bg:      rgba(255, 255, 255, 0.78);
+
+    /* 课程生成页深色半透明表面 */
+    --openmaic-dark-surface-dim:    rgba(30, 41, 59, 0.4);
+    --openmaic-dark-surface:        rgba(30, 41, 59, 0.5);
+    --openmaic-dark-surface-solid:  rgba(30, 41, 59, 0.8);
+    --openmaic-dark-surface-hover:  rgba(30, 41, 59, 0.85);
+    --openmaic-dark-surface-card:   rgba(30, 41, 59, 0.9);
+    --openmaic-dark-surface-modal:  rgba(30, 41, 59, 0.95);
+
+    /* 课程生成页细边框 & 微阴影 */
+    --openmaic-glass-border-dim:    rgba(255, 255, 255, 0.06);
+    --openmaic-glass-border:        rgba(255, 255, 255, 0.08);
+    --openmaic-glass-border-strong: rgba(255, 255, 255, 0.1);
+    --openmaic-glass-highlight:     rgba(255, 255, 255, 0.05);
+    --openmaic-glass-inset-btn:     rgba(255, 255, 255, 0.2);
+    --openmaic-glass-inset-btn-hover: rgba(255, 255, 255, 0.25);
+    --openmaic-shadow-tint:         rgba(15, 23, 42, 0.06);
+
+    /* 课程生成页视频图标色（固定 cyan，不随品牌色变化） */
+    --openmaic-video-icon:       #38bdf8;
+    --openmaic-video-icon-light: #0ea5e9;
+    --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
+    --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
 
     /* === 课堂页面 (Classroom) === 玻璃面 + 学术配色，不随 6 主题变化 */
     --classroom-bg-from:    #f5f3ff;   /* 画布渐变起点（淡紫） */
@@ -520,6 +558,30 @@
     --openmaic-on-light-border: #fde68a;
     --openmaic-on-light-text:   #92400e;
     --openmaic-on-light-muted:  #b45309;
+
+    /* 课程生成页玻璃按钮（深色主题下保持一致，不变化） */
+    --openmaic-glass-btn-bg:       rgba(255, 255, 255, 0.88);
+    --openmaic-glass-btn-hover:    rgba(255, 255, 255, 0.98);
+    --openmaic-glass-btn-active:   rgba(255, 255, 255, 0.96);
+    --openmaic-glass-btn-expanded: rgba(255, 255, 255, 0.95);
+    --openmaic-glass-card-bg:      rgba(255, 255, 255, 0.78);
+    --openmaic-dark-surface-dim:    rgba(30, 41, 59, 0.4);
+    --openmaic-dark-surface:        rgba(30, 41, 59, 0.5);
+    --openmaic-dark-surface-solid:  rgba(30, 41, 59, 0.8);
+    --openmaic-dark-surface-hover:  rgba(30, 41, 59, 0.85);
+    --openmaic-dark-surface-card:   rgba(30, 41, 59, 0.9);
+    --openmaic-dark-surface-modal:  rgba(30, 41, 59, 0.95);
+    --openmaic-glass-border-dim:    rgba(255, 255, 255, 0.06);
+    --openmaic-glass-border:        rgba(255, 255, 255, 0.08);
+    --openmaic-glass-border-strong: rgba(255, 255, 255, 0.1);
+    --openmaic-glass-highlight:     rgba(255, 255, 255, 0.05);
+    --openmaic-glass-inset-btn:     rgba(255, 255, 255, 0.2);
+    --openmaic-glass-inset-btn-hover: rgba(255, 255, 255, 0.25);
+    --openmaic-shadow-tint:         rgba(15, 23, 42, 0.06);
+    --openmaic-video-icon:       #38bdf8;
+    --openmaic-video-icon-light: #0ea5e9;
+    --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
+    --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
 
     /* === 课堂页面 (Classroom) — dark 主题覆盖 === */
     --classroom-bg-from:    #0a0f1c;   /* 画布渐变起点（深空蓝） */

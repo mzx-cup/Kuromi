@@ -428,7 +428,7 @@
                             seen.add(name);
                         }
                     } else if (ev.event === 'bundle_complete') {
-                        finalBundle = ev.data;
+                        finalBundle = (ev.data && ev.data.bundle) || ev.data;
                     } else if (ev.event === 'error' || (ev.data && ev.data.error)) {
                         console.warn('[xsStartBundle] SSE error event:', ev.data);
                     }
@@ -441,15 +441,155 @@
             }
 
             if (finalBundle) {
-                try { sessionStorage.setItem('xs_course_bundle', JSON.stringify(finalBundle)); } catch (e) { /* ignore quota */ }
-            }
-            if (typeof window.xsOnBundleComplete === 'function') {
-                try { window.xsOnBundleComplete({ bundle: finalBundle, seen: Array.from(seen) }); } catch (e) { console.warn('[xsOnBundleComplete]', e); }
+                // 反馈给 UI: 全部 9 件已就绪
+                const titleEl = _$('xs-bundle-title');
+                if (titleEl) titleEl.textContent = '9 件套生成完成, 正在保存到课程库…';
+                try {
+                    await _saveAndRedirect(finalBundle, studentId);
+                } catch (e) {
+                    console.error('[xsStartBundle] save+redirect failed', e);
+                    const titleEl2 = _$('xs-bundle-title');
+                    if (titleEl2) {
+                        titleEl2.textContent = '保存失败: ' + e.message;
+                        titleEl2.style.color = '#fca5a5';
+                    }
+                    // 兜底: 仍然把 bundle 写到 sessionStorage, 允许用户手动重试
+                    try { sessionStorage.setItem('xs_course_bundle', JSON.stringify(finalBundle)); } catch (e2) { /* ignore quota */ }
+                    if (typeof window.xsOnBundleComplete === 'function') {
+                        try { window.xsOnBundleComplete({ bundle: finalBundle, seen: Array.from(seen), saved: false, error: e.message }); } catch (e2) { console.warn('[xsOnBundleComplete]', e2); }
+                    }
+                    alert('保存课程失败: ' + e.message + '\n请检查网络后刷新重试');
+                }
+            } else {
+                console.warn('[xsStartBundle] bundle_complete 未收到, 9 件套生成可能不完整');
+                const titleEl = _$('xs-bundle-title');
+                if (titleEl) {
+                    titleEl.textContent = '生成未完成, 缺少 bundle_complete 事件';
+                    titleEl.style.color = '#fca5a5';
+                }
+                alert('9 件套未生成完整, 请重试');
             }
         } catch (e) {
             console.error('[xsStartBundle]', e);
             alert('9 件套生成失败: ' + e.message);
         }
+    }
+
+    // ============================================================
+    // bundle_complete → 落盘到服务端 + 跳到 classroom
+    // ============================================================
+
+    function _outlineToSceneOutlines(outline) {
+        // 把脑暴的 outline.scenes (id="s1", key_points=[...]) 翻译成
+        // CourseData.outlines (id:int, key_points, type)
+        const scenes = (outline && outline.scenes) || [];
+        return scenes.map((s, i) => {
+            const rawId = s && (s.id ?? s.scene_id);
+            let intId = i + 1;
+            if (typeof rawId === 'number' && Number.isFinite(rawId)) {
+                intId = rawId;
+            } else if (typeof rawId === 'string' && /^\d+$/.test(rawId)) {
+                intId = parseInt(rawId, 10);
+            } else if (typeof rawId === 'string' && /^s\d+$/.test(rawId)) {
+                intId = parseInt(rawId.slice(1), 10) || (i + 1);
+            }
+            const keyPoints = (s && s.key_points) || [];
+            return {
+                id: intId,
+                title: (s && s.title) || `场景 ${i + 1}`,
+                type: (s && s.type) || 'slide',
+                points: Array.isArray(keyPoints) ? keyPoints.length : 0,
+                key_points: Array.isArray(keyPoints) ? keyPoints : [],
+                description: (s && s.description) || '',
+            };
+        });
+    }
+
+    function _buildCourseData(bundle, studentId) {
+        const outline = _state.outline || {};
+        const components = (bundle && bundle.components) || {};
+        const pptMeta = components.ppt || {};
+        // 从 bundle PPT 组件提取 slides_v2, 让 classroom 直接可渲染
+        var slidesV2 = (pptMeta.slides && Array.isArray(pptMeta.slides)) ? pptMeta.slides.slice() : [];
+        // 如果 PPT 组件没带 slides 但 bundle 顶层有(兼容旧格式)
+        if (!slidesV2.length && bundle && Array.isArray(bundle.slides_v2)) {
+            slidesV2 = bundle.slides_v2.slice();
+        }
+        return {
+            courseId: '',
+            title: outline.title || _state.requirement || '未命名课程',
+            outlines: _outlineToSceneOutlines(outline),
+            slides: [],
+            slides_v2: slidesV2,
+            agent_team: [],
+            quiz_data: [],
+            exercise_data: [],
+            interactive_data: [],
+            code_data: [],
+            tts_audio_urls: {},
+            scene_actions: [],
+            metadata: {
+                student_id: String(studentId || ''),
+                requirement: _state.requirement || '',
+                brainstorm_id: _state.id || '',
+                obg_pbl_mode: _state.obg_pbl_mode || 'obg',
+                generated_at: new Date().toISOString(),
+            },
+            bundle: bundle || null,
+        };
+    }
+
+    async function _saveAndRedirect(bundle, studentId) {
+        if (!bundle) {
+            throw new Error('9 件套未生成完整, 缺少 bundle_complete 事件');
+        }
+        const courseData = _buildCourseData(bundle, studentId);
+        const pptPages = (bundle.components && bundle.components.ppt
+            && (bundle.components.ppt.slide_count || bundle.components.ppt.slide_titles.length)) || 0;
+
+        const resp = await fetch('/api/v2/course/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                course_data: courseData,
+                student_id: String(studentId || ''),
+                ppt_pages: pptPages,
+            }),
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ detail: `HTTP ${resp.status}` }));
+            throw new Error('保存失败: ' + (err.detail || err.message || `HTTP ${resp.status}`));
+        }
+        const result = await resp.json();
+        if (!result || !result.success || !result.course_id) {
+            throw new Error('保存返回异常: ' + JSON.stringify(result || {}));
+        }
+        courseData.courseId = result.course_id;
+
+        // 1) 写 sessionStorage 让 classroom.js loadData() 立即可见
+        try { sessionStorage.setItem('classroomData', JSON.stringify(courseData)); } catch (e) { /* ignore quota */ }
+        // 2) 写 localStorage.courseHistory (与 openCourse 一致)
+        try {
+            const history = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+            const existingIdx = history.findIndex(c => c && c.courseId === courseData.courseId);
+            const summary = {
+                courseId: courseData.courseId,
+                title: courseData.title,
+                outlines: (courseData.outlines || []).length,
+                slides: 0,
+                slides_v2: 0,
+                created_at: courseData.metadata.generated_at,
+                requirement: _state.requirement,
+            };
+            if (existingIdx >= 0) history[existingIdx] = summary;
+            else history.unshift(summary);
+            localStorage.setItem('courseHistory', JSON.stringify(history.slice(0, 20)));
+        } catch (e) { /* ignore */ }
+        // 3) 也保留 xs_course_bundle 给潜在外部 hook
+        try { sessionStorage.setItem('xs_course_bundle', JSON.stringify(bundle)); } catch (e) { /* ignore quota */ }
+
+        // 4) 跳到 classroom, 携带 courseId 参数
+        window.location.href = 'classroom.html?course_id=' + encodeURIComponent(result.course_id);
     }
 
     function _parseSseEvent(raw) {

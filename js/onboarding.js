@@ -416,8 +416,9 @@
       const resp = await fetch(url);
       if (!resp.ok) return null;
       const data = await resp.json();
-      if (typeof window.drawRadarChart === 'function' && data && data.radar) {
-        try { window.drawRadarChart(data.radar); } catch (e) { console.warn('[xs-onboard] drawRadarChart 失败:', e); }
+      const radarData = (data && data.portrait && data.portrait.radar) ? data.portrait.radar : (data && data.radar) ? data.radar : null;
+      if (typeof window.drawRadarChart === 'function' && radarData) {
+        try { window.drawRadarChart(radarData); } catch (e) { console.warn('[xs-onboard] drawRadarChart 失败:', e); }
       }
       if (typeof window.renderEvaluation === 'function' && data) {
         try { window.renderEvaluation(data); } catch (e) { console.warn('[xs-onboard] renderEvaluation 失败:', e); }

@@ -66,10 +66,14 @@ class LessonPlanArtifact(ArtifactBase):
 # ============================================================
 
 class PPTArtifact(ArtifactBase):
-    """PPT 复用 CourseData.slides_v2 字段,本类作为占位方便 bundle 统一管理."""
+    """PPT 组件 — 本轮由 _gen_ppt 每场景调用 LLM 生成 slide_v2 数据.
+
+    slides 字段暂存每场景产出的 slides_v2 列表,
+    前端 _buildCourseData 合并进 CourseData.slides_v2.
+    """
     slide_count: int = 0
     slide_titles: list[str] = Field(default_factory=list)
-    # 完整 slides 由 CourseData.slides_v2 承载;这里只存索引
+    slides: list[dict[str, Any]] = Field(default_factory=list)
 
 
 # ============================================================

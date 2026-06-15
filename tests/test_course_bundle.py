@@ -170,6 +170,21 @@ def _mock_artifact_for(prompt_id: str, scene_index: int = 0) -> dict:
             }],
             "estimated_minutes": 5,
         }
+    if prompt_id == "slide_content_v2":
+        return {
+            "slides": [{
+                "layoutType": "edu-keypoints",
+                "title": f"场景 {scene_index} 幻灯片",
+                "content": [{
+                    "subTitle": "要点",
+                    "bullets": ["知识点 1", "知识点 2"],
+                    "narration": "今天我们学习...",
+                    "icon": "book",
+                    "colorTheme": "blue",
+                }],
+                "teacherActions": [],
+            }],
+        }
     raise RuntimeError(f"unknown prompt_id: {prompt_id}")
 
 
@@ -201,9 +216,10 @@ class TestGenerateBundleSync:
     @pytest.mark.asyncio
     async def test_ppt_reuses_upstream(self, mock_llm_json):
         bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
-        # ppt 是占位 PPTArtifact(slide_count=0, slide_titles=[]), 不调 LLM
-        assert bundle.components["ppt"]["slide_count"] == 0
-        assert bundle.components["ppt"]["slide_titles"] == []
+        # ppt 每场景生成 1 页幻灯片 (3 scenes * 1 slide each = 3)
+        assert bundle.components["ppt"]["slide_count"] == 3
+        assert len(bundle.components["ppt"]["slides"]) == 3
+        assert len(bundle.components["ppt"]["slide_titles"]) == 3
 
     @pytest.mark.asyncio
     async def test_enabled_components_subset(self, mock_llm_json):

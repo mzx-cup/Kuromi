@@ -3530,6 +3530,11 @@ function renderRadarChart() {
 }
 
 
+// Phase 1: 暴露 drawRadarChart 给 onboarding.js fetchPortrait 调用
+// 接收 radar 数据 ({knowledge_mastery, code_skill, cognitive_style, learning_goal, weakness, focus_level})
+window.drawRadarChart = function (radarData) { if (radarData && typeof radarData === 'object') { towerRadarSnapshot = { radar: radarData }; renderRadarChart(); } };
+
+
 function setupRadarTooltips() {
     const canvas = document.getElementById('radar-chart');
     if (!canvas) return;

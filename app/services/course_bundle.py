@@ -116,8 +116,115 @@ async def _gen_outline(ctx: dict, _outline: dict[str, Any]) -> dict:
 
 
 async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
-    """ppt 复用 libs/course.py 既有的 slides_v2 路径,本组件只存索引(占位)."""
-    return PPTArtifact(slide_count=0, slide_titles=[]).model_dump()
+    """对每个 scene 调用 LLM 生成 2-3 页 slide_v2 幻灯片, 合并进 PPTArtifact.slides."""
+    scenes = _outline.get("scenes", []) or []
+    if not scenes:
+        logger.warning("[course_bundle] ppt 无场景, 返回空 slides")
+        return PPTArtifact(slide_count=0, slide_titles=[], slides=[]).model_dump()
+
+    all_slides: list[dict] = []
+    slide_titles: list[str] = []
+    sem = asyncio.Semaphore(BUNDLE_CONCURRENCY)
+
+    from pydantic import BaseModel, Field as PydField
+
+    class _SlideContent(BaseModel):
+        subTitle: str = ""
+        bullets: list[str] = PydField(default_factory=list)
+        narration: str = ""
+        icon: str = "book"
+        colorTheme: str = "blue"
+        codeSnippet: str = ""
+        image_prompt: str = ""
+
+    class _Slide(BaseModel):
+        layoutType: str = "edu-keypoints"
+        title: str = ""
+        content: list[_SlideContent] = PydField(default_factory=list)
+        teacherActions: list[dict] = PydField(default_factory=list)
+
+    class _SceneSlides(BaseModel):
+        slides: list[_Slide] = PydField(default_factory=list)
+
+    async def _one_scene(scene: dict, idx: int) -> tuple[int, list[dict]]:
+        async with sem:
+            scene_title = scene.get("title", "")
+            scene_desc = scene.get("description", "")
+            key_points = scene.get("key_points", [])
+            scene_type = scene.get("type", "slide")
+            prev_title = scenes[idx - 1].get("title", "") if idx > 0 else ""
+            next_title = scenes[idx + 1].get("title", "") if idx + 1 < len(scenes) else ""
+
+            variables: dict[str, Any] = {
+                "course_title": _outline.get("title", ctx["course_title"]),
+                "scene_type": scene_type,
+                "outline_title": scene_title,
+                "outline_description": scene_desc,
+                "key_points": ", ".join(key_points) if key_points else "(无)",
+                "prev_outline_title": prev_title or "(无, 本场景为首节)",
+                "next_outline_title": next_title or "(无, 本场景为末节)",
+                "pdf_text": "",
+                "web_search_context": "",
+                "available_layouts": "edu-welcome, edu-definition, edu-keypoints, edu-example, edu-summary, edu-programming-concept, title-only, hero-center, header-content, two-column, grid-cards, numbered-list, chapter-divider",
+            }
+            try:
+                instance = await llm_json("slide_content_v2", variables, _SceneSlides, temperature=0.55, max_retries=2)
+                slides = instance.model_dump().get("slides", []) or []
+            except LLMJsonError as e:
+                logger.warning(f"[course_bundle] ppt scene '{scene_title}' LLM 失败, 走兜底: {e}")
+                slides = _fallback_slides_for_scene(scene_title, scene_desc, key_points)
+
+            for s in slides:
+                s.setdefault("_scene_title", scene_title)
+            return idx, slides
+
+    tasks = [_one_scene(s, i) for i, s in enumerate(scenes) if isinstance(s, dict)]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for raw in results:
+        if isinstance(raw, Exception):
+            logger.warning(f"[course_bundle] ppt task exception: {raw}")
+            continue
+        _idx, slides = raw
+        all_slides.extend(slides)
+        for s in slides:
+            title = s.get("title", "")
+            if title:
+                slide_titles.append(title)
+
+    if not all_slides:
+        # 最后兜底: 给每个 scene 至少 1 页
+        for scene in scenes:
+            if isinstance(scene, dict):
+                fallback = _fallback_slides_for_scene(
+                    scene.get("title", ""), scene.get("description", ""), scene.get("key_points", [])
+                )
+                all_slides.extend(fallback)
+
+    return PPTArtifact(
+        slide_count=len(all_slides),
+        slide_titles=slide_titles,
+        slides=all_slides,
+    ).model_dump()
+
+
+def _fallback_slides_for_scene(title: str, description: str, key_points: list) -> list[dict]:
+    """LLM 全挂时的 PPT 兜底页."""
+    key_items = [f"<li>{p}</li>" for p in (key_points or [])[:4]]
+    html = f"<h2>{title or '章节'}</h2><p>{description or '本节内容'}</p><ul>{''.join(key_items)}</ul>"
+    return [{
+        "layoutType": "edu-keypoints",
+        "title": title or "章节",
+        "content": [{
+            "subTitle": title or "章节",
+            "bullets": (key_points or ["核心概念"])[:4],
+            "narration": f"本节我们来学习{title or '新内容'}。{description or ''}",
+            "icon": "book",
+            "colorTheme": "blue",
+        }],
+        "teacherActions": [],
+        "_scene_title": title,
+    }]
 
 
 async def _gen_plan(ctx: dict, _outline: dict[str, Any]) -> dict:

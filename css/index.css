@@ -8549,7 +8549,7 @@ body.course-mode #course-input-section {
 }
 
 .openmaic-toolbar-btn:hover {
-    background: rgba(30, 41, 59, 0.85);
+    background: var(--openmaic-dark-surface-hover);
     color: var(--text-on-brand);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     box-shadow: 0 4px 20px color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent), 0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
@@ -8650,7 +8650,7 @@ body.course-mode #course-input-section {
     box-shadow:
         0 32px 64px -12px rgba(0, 0, 0, 0.4),
         0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 8%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        inset 0 1px 0 var(--openmaic-glass-highlight);
     padding: 1.75rem;
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     overflow: hidden;
@@ -8691,18 +8691,18 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .openmaic-user-greeting:hover {
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     box-shadow: 0 4px 16px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     transform: scale(1.02);
@@ -8780,7 +8780,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     font-size: 0.8125rem;
@@ -8790,11 +8790,11 @@ body.course-mode #course-input-section {
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .openmaic-media-btn:hover {
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     color: var(--openmaic-amber-700);
     transform: translateY(-1px);
@@ -8808,7 +8808,7 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 9999px;
     color: var(--text-body);
@@ -8816,11 +8816,11 @@ body.course-mode #course-input-section {
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .openmaic-tool-btn:hover {
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     color: var(--openmaic-amber-600);
     transform: translateY(-2px);
@@ -8841,7 +8841,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 9999px;
     font-size: 0.75rem;
@@ -8851,11 +8851,11 @@ body.course-mode #course-input-section {
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .openmaic-pill-toggle:hover {
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     color: var(--openmaic-amber-600);
     transform: translateY(-1px);
@@ -8943,10 +8943,10 @@ body.course-mode #course-input-section {
 
 @keyframes breathing-glow {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4), 0 4px 16px rgba(34, 211, 238, 0.2);
+        box-shadow: 0 0 0 0 color-mix(in oklch, var(--info) 40%, transparent), 0 4px 16px color-mix(in oklch, var(--info) 20%, transparent);
     }
     50% {
-        box-shadow: 0 0 0 6px rgba(34, 211, 238, 0), 0 4px 20px rgba(34, 211, 238, 0.3);
+        box-shadow: 0 0 0 6px color-mix(in oklch, var(--info) 0%, transparent), 0 4px 20px color-mix(in oklch, var(--info) 30%, transparent);
     }
 }
 
@@ -8968,7 +8968,7 @@ body.course-mode #course-input-section {
     box-shadow:
         0 4px 16px color-mix(in oklch, var(--openmaic-amber-600) 40%, transparent),
         0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        inset 0 1px 0 var(--openmaic-glass-inset-btn);
     white-space: nowrap;
     position: relative;
     overflow: hidden;
@@ -8990,7 +8990,7 @@ body.course-mode #course-input-section {
     box-shadow:
         0 8px 30px color-mix(in oklch, var(--openmaic-amber-600) 50%, transparent),
         0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500) 40%, transparent),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        inset 0 1px 0 var(--openmaic-glass-inset-btn-hover);
     background-position: 100% 0;
 }
 
@@ -9010,7 +9010,7 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     color: var(--text-body);
@@ -9019,11 +9019,11 @@ body.course-mode #course-input-section {
     position: relative;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .openmaic-voice-btn:hover {
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     color: var(--openmaic-amber-600);
     transform: translateY(-2px);
@@ -9111,7 +9111,7 @@ body.course-mode #course-input-section {
     align-items: center;
     justify-content: space-between;
     padding: 0.875rem 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--openmaic-glass-border);
 }
 
 .media-popup-title {
@@ -9161,7 +9161,7 @@ body.course-mode #course-input-section {
 }
 
 .media-option + .media-option {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    border-top: 1px solid var(--openmaic-glass-border-dim);
 }
 
 .media-option .toggle-switch {
@@ -9224,12 +9224,12 @@ body.course-mode #course-input-section {
 }
 
 .media-option-icon.video {
-    background: rgba(56, 189, 248, 0.15);
+    background: var(--openmaic-video-icon-bg);
 }
 
 .media-option-icon.video i,
 .media-option-icon.video svg {
-    color: #38bdf8;
+    color: var(--openmaic-video-icon);
 }
 
 .media-option-text {
@@ -9444,7 +9444,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: rgba(30, 41, 59, 0.4);
+    background: var(--openmaic-dark-surface-dim);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 9999px;
     font-size: 0.8125rem;
@@ -9488,7 +9488,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.375rem;
     padding: 0.5rem 0.875rem;
-    background: rgba(30, 41, 59, 0.4);
+    background: var(--openmaic-dark-surface-dim);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 9999px;
     font-size: 0.75rem;
@@ -9528,7 +9528,7 @@ body.course-mode #course-input-section {
 
 /* 课程卡片 - 紧凑 */
 .openmaic-course-card {
-    background: rgba(30, 41, 59, 0.5);
+    background: var(--openmaic-dark-surface);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
     border-radius: 1rem;
     overflow: hidden;
@@ -9574,7 +9574,7 @@ body.course-mode #course-input-section {
 .openmaic-card-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(15, 23, 42, 0.6) 0%, transparent 60%);
+    background: linear-gradient(to top, var(--openmaic-bg-deep) 0%, transparent 60%);
     z-index: 1;
 }
 
@@ -9723,11 +9723,11 @@ body.course-mode #course-input-section {
     text-align: left;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .teacher-toggle:hover {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--openmaic-glass-btn-expanded);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
@@ -9757,7 +9757,7 @@ body.course-mode #course-input-section {
 }
 
 .teacher-toggle[aria-expanded="true"] {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--openmaic-glass-btn-expanded);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
 }
@@ -9793,7 +9793,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.25rem;
     padding: 0.75rem 0.5rem;
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--openmaic-glass-card-bg);
     border: 1.5px solid color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
     border-radius: 0.875rem;
     cursor: pointer;
@@ -9805,7 +9805,7 @@ body.course-mode #course-input-section {
 }
 
 .teacher-card:hover {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--openmaic-glass-btn-expanded);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
     transform: translateY(-2px);
     box-shadow: 0 6px 16px color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
@@ -10063,7 +10063,7 @@ body.openmaic-mode .main-glass-surface {
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 28%, transparent);
     border-radius: 1.5rem;
     padding: 0.45rem 0.875rem;
@@ -10074,12 +10074,12 @@ body.openmaic-mode .main-glass-surface {
     transition: all 0.3s ease;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px var(--openmaic-shadow-tint);
 }
 
 .custom-select-trigger:hover {
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 50%, transparent);
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--openmaic-glass-btn-active);
     box-shadow: 0 4px 12px color-mix(in oklch, var(--openmaic-amber-500) 15%, transparent);
 }
 
@@ -10088,7 +10088,7 @@ body.openmaic-mode .main-glass-surface {
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    background: rgba(255, 255, 255, 0.98);
+    background: var(--openmaic-glass-btn-hover);
 }
 
 .custom-select-arrow {
@@ -10107,7 +10107,7 @@ body.openmaic-mode .main-glass-surface {
     top: 100%;
     left: 0;
     right: 0;
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--openmaic-glass-btn-active);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-top: none;
     border-bottom-left-radius: 1rem;
@@ -10513,7 +10513,7 @@ body.openmaic-mode .main-glass-surface {
 
 .openmaic-modal-subtitle {
     font-size: 0.8125rem;
-    color: var(--text-tertiary, #64748b);
+    color: var(--text-tertiary);
     margin: 0;
     line-height: 1.4;
 }
@@ -10528,7 +10528,7 @@ body.openmaic-mode .main-glass-surface {
     border-radius: 8px;
     border: none;
     background: transparent;
-    color: var(--text-tertiary, #64748b);
+    color: var(--text-tertiary);
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
@@ -10576,7 +10576,7 @@ body.openmaic-mode .main-glass-surface {
 }
 
 .openmaic-modal-input::placeholder {
-    color: var(--text-tertiary, #64748b);
+    color: var(--text-tertiary);
 }
 
 /* Delete Warning */
@@ -10603,7 +10603,7 @@ body.openmaic-mode .main-glass-surface {
 .openmaic-delete-desc {
     text-align: center;
     font-size: 0.8125rem;
-    color: var(--text-tertiary, #64748b);
+    color: var(--text-tertiary);
     margin: 0 0 0.5rem;
     line-height: 1.5;
 }
@@ -10688,8 +10688,8 @@ body.light-theme .openmaic-modal-content,
 [data-theme="ocean-light"] .openmaic-modal-content,
 [data-theme="sakura-falling"] .openmaic-modal-content {
     background: var(--surface-card);
-    border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
+    border-color: var(--border-glass);
+    box-shadow: var(--shadow-modal);
 }
 
 body.light-theme .openmaic-modal-backdrop,
@@ -10702,13 +10702,13 @@ body.light-theme .openmaic-modal-input,
 [data-theme="ocean-light"] .openmaic-modal-input,
 [data-theme="sakura-falling"] .openmaic-modal-input {
     background: var(--surface-glass);
-    border-color: rgba(0, 0, 0, 0.1);
+    border-color: var(--border-glass);
 }
 
 body.light-theme .openmaic-btn-ghost,
 [data-theme="ocean-light"] .openmaic-btn-ghost,
 [data-theme="sakura-falling"] .openmaic-btn-ghost {
-    border-color: rgba(0, 0, 0, 0.1);
+    border-color: var(--border-glass);
     color: var(--text-secondary);
 }
 
@@ -10739,7 +10739,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 .theme-toggle-btn:hover {
     background: var(--surface-card);
     color: var(--foreground);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     transform: translateY(-1px);
 }
 
@@ -10770,8 +10770,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-user-greeting {
-    background: rgba(248, 250, 252, 0.8);
-    border-color: rgba(0, 0, 0, 0.06);
+    background: var(--surface-card);
+    border-color: var(--border-glass);
 }
 
 .openmaic-overlay.light-theme .openmaic-textarea {
@@ -10780,7 +10780,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay.light-theme .openmaic-tool-btn,
 .openmaic-overlay.light-theme .openmaic-pill-toggle {
-    background: rgba(248, 250, 252, 0.8);
+    background: var(--surface-card);
     color: var(--text-secondary);
 }
 
@@ -10796,12 +10796,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay.light-theme .openmaic-media-popup {
     background: var(--surface-card);
-    border-color: rgba(0, 0, 0, 0.08);
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
+    border-color: var(--border-glass);
+    box-shadow: var(--shadow-modal);
 }
 
 .openmaic-overlay.light-theme .media-popup-header {
-    border-bottom-color: rgba(0, 0, 0, 0.06);
+    border-bottom-color: var(--border-glass);
 }
 
 .openmaic-overlay.light-theme .media-popup-title {
@@ -10822,7 +10822,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-option + .media-option {
-    border-top-color: rgba(0, 0, 0, 0.06);
+    border-top-color: var(--border-glass);
 }
 
 .openmaic-overlay.light-theme .media-option-label {
@@ -10843,12 +10843,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .media-option-icon.video {
-    background: rgba(14, 165, 233, 0.1);
+    background: var(--openmaic-video-icon-bg-light);
 }
 
 .openmaic-overlay.light-theme .media-option-icon.video i,
 .openmaic-overlay.light-theme .media-option-icon.video svg {
-    color: #0ea5e9;
+    color: var(--openmaic-video-icon-light);
 }
 
 .openmaic-overlay.light-theme .media-option .toggle-slider {
@@ -10872,7 +10872,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-voice-btn {
-    background: rgba(248, 250, 252, 0.8);
+    background: var(--surface-card);
     color: var(--text-tertiary);
 }
 
@@ -10903,7 +10903,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-user-greeting {
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
 
@@ -10913,7 +10913,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay:not(.light-theme) .openmaic-tool-btn,
 .openmaic-overlay:not(.light-theme) .openmaic-pill-toggle {
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     color: var(--text-body);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
 }
@@ -10923,12 +10923,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-toolbar-btn {
-    background: rgba(30, 41, 59, 0.8);
+    background: var(--openmaic-dark-surface-solid);
     border-color: var(--text-muted);
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-voice-btn {
-    background: rgba(255, 255, 255, 0.88);
+    background: var(--openmaic-glass-btn-bg);
     color: var(--text-body);
     border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
 }
@@ -10939,12 +10939,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay:not(.light-theme) .openmaic-course-card {
-    background: rgba(30, 41, 59, 0.9);
+    background: var(--openmaic-dark-surface-card);
     border-color: var(--text-muted);
 }
 
 .openmaic-overlay:not(.light-theme) .theme-toggle-btn {
-    background: rgba(30, 41, 59, 0.8);
+    background: var(--openmaic-dark-surface-solid);
     border-color: var(--text-muted);
 }
 
@@ -10967,12 +10967,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 @keyframes dispatchBreathe {
     0%, 100% {
         opacity: 0.5;
-        box-shadow: 0 0 4px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 0 4px color-mix(in oklch, var(--success) 30%, transparent);
         transform: scale(0.9);
     }
     50% {
         opacity: 1;
-        box-shadow: 0 0 12px rgba(16, 185, 129, 0.8), 0 0 20px rgba(16, 185, 129, 0.3);
+        box-shadow: 0 0 12px color-mix(in oklch, var(--success) 80%, transparent), 0 0 20px color-mix(in oklch, var(--success) 30%, transparent);
         transform: scale(1.1);
     }
 }

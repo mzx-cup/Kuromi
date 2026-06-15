@@ -1,22 +1,24 @@
 /* ============================================================
  * Phase 2 — 脑暴对话 / 大纲确认 / 9 件套进度 面板样式
  * 覆盖在 OpenMAIC 卡片之上, glassmorphism 风格延续
+ * v4: TokenCSS 统一管理，不再硬编码 hex/rgba
  * ============================================================ */
 
+/* ---- 面板基础壳 (暗底玻璃，不随 theme 变化) ---- */
 .xs-bs-panel,
 .xs-confirm-panel,
 .xs-bundle-panel {
     position: relative;
     margin: 24px auto;
     max-width: 720px;
-    padding: 24px;
-    background: rgba(20, 20, 35, 0.72);
+    padding: var(--space-lg, 24px);
+    background: color-mix(in oklch, var(--neutral-900), transparent 28%);
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 20px;
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
-    color: #f1f5f9;
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg, 20px);
+    box-shadow: var(--shadow-lg);
+    color: var(--text-body);
     z-index: 10;
 }
 
@@ -38,12 +40,12 @@
     align-items: baseline;
     gap: 2px;
     padding: 4px 12px;
-    background: rgba(99, 102, 241, 0.15);
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--brand-300);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-full);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: var(--font-semibold, 600);
 }
 .xs-bs-divider {
     opacity: 0.5;
@@ -52,62 +54,62 @@
 .xs-bs-slot-badge {
     flex: 1;
     padding: 4px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 999px;
+    background: var(--surface-glass);
+    border-radius: var(--radius-full);
     font-size: 12px;
-    color: #cbd5e1;
+    color: var(--text-muted);
     text-align: center;
 }
 .xs-bs-close {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-glass);
     border: none;
-    color: #94a3b8;
+    color: var(--text-placeholder);
     font-size: 20px;
     line-height: 1;
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--transition-fast);
 }
 .xs-bs-close:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
+    background: var(--danger-bg);
+    color: var(--danger-500);
 }
 
 /* ---- 脑暴问题 + 选项 ---- */
 .xs-bs-question {
     font-size: 17px;
-    font-weight: 500;
+    font-weight: var(--font-medium, 500);
     line-height: 1.55;
     margin: 0 0 16px;
-    color: #f8fafc;
+    color: var(--text-heading);
 }
 .xs-bs-options {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--gap-sm, 8px);
     margin-bottom: 14px;
 }
 .xs-bs-option {
     padding: 10px 16px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    color: #e2e8f0;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md, 12px);
+    color: var(--text-body);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
 }
 .xs-bs-option:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.4);
-    color: #c7d2fe;
+    background: var(--accent-bg);
+    border-color: var(--border-glass-hover);
+    color: var(--brand-200);
 }
 .xs-bs-option.selected {
-    background: rgba(99, 102, 241, 0.3);
-    border-color: rgba(99, 102, 241, 0.6);
-    color: #fff;
+    background: color-mix(in oklch, var(--brand-500), transparent 70%);
+    border-color: color-mix(in oklch, var(--brand-500), transparent 40%);
+    color: var(--text-on-brand);
 }
 .xs-bs-custom-row {
     margin-bottom: 16px;
@@ -115,46 +117,46 @@
 .xs-bs-custom-input {
     width: 100%;
     padding: 10px 14px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 10px;
-    color: #f1f5f9;
+    background: color-mix(in oklch, var(--neutral-900), transparent 80%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm, 10px);
+    color: var(--text-body);
     font-size: 14px;
     outline: none;
-    transition: border 0.15s;
+    transition: border var(--transition-fast);
 }
 .xs-bs-custom-input:focus {
-    border-color: rgba(99, 102, 241, 0.5);
+    border-color: var(--input-focus-border);
 }
 .xs-bs-actions {
     display: flex;
-    gap: 8px;
+    gap: var(--gap-sm, 8px);
     justify-content: flex-end;
 }
 .xs-bs-btn {
     padding: 8px 18px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    color: #e2e8f0;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm, 10px);
+    color: var(--text-body);
     font-size: 14px;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
 }
 .xs-bs-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--surface-glass-hover);
 }
 .xs-bs-next,
 .xs-confirm-go {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
     border: none;
-    color: #fff;
-    font-weight: 500;
+    color: var(--text-on-brand);
+    font-weight: var(--font-medium, 500);
 }
 .xs-bs-next:hover,
 .xs-confirm-go:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    box-shadow: 0 4px 16px color-mix(in oklch, var(--brand-500), transparent 65%);
 }
 .xs-bs-skip:disabled,
 .xs-bs-next:disabled {
@@ -172,35 +174,35 @@
 .xs-confirm-header h3 {
     margin: 0;
     font-size: 18px;
-    color: #f8fafc;
+    color: var(--text-heading);
 }
 .xs-confirm-mode {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--gap-sm, 8px);
     font-size: 13px;
-    color: #cbd5e1;
+    color: var(--text-muted);
 }
 .xs-confirm-toggle {
     padding: 4px 12px;
-    background: rgba(99, 102, 241, 0.2);
-    border: 1px solid rgba(99, 102, 241, 0.4);
-    border-radius: 999px;
-    color: #c7d2fe;
+    background: var(--accent-bg);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-full);
+    color: var(--brand-200);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: var(--font-semibold, 600);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
 }
 .xs-confirm-toggle[data-mode="pbl"] {
-    background: rgba(245, 158, 11, 0.2);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fde68a;
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning-500);
 }
 .xs-confirm-rationale {
     margin: 0 0 14px;
     font-size: 13px;
-    color: #94a3b8;
+    color: var(--text-placeholder);
     font-style: italic;
 }
 .xs-confirm-scenes {
@@ -212,21 +214,21 @@
 }
 .xs-confirm-scenes li {
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm, 10px);
     margin-bottom: 6px;
     font-size: 13px;
-    color: #e2e8f0;
+    color: var(--text-body);
 }
 .xs-confirm-scenes li strong {
-    color: #a5b4fc;
+    color: var(--brand-300);
     margin-right: 8px;
 }
 .xs-confirm-actions {
     display: flex;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--gap-sm, 8px);
 }
 
 /* ---- 9 件套进度面板 ---- */
@@ -234,7 +236,7 @@
     text-align: center;
     margin: 0 0 18px;
     font-size: 16px;
-    color: #cbd5e1;
+    color: var(--text-muted);
 }
 .xs-bundle-grid {
     display: grid;
@@ -248,22 +250,22 @@
     align-items: center;
     gap: 4px;
     padding: 14px 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
-    color: #cbd5e1;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md, 12px);
+    color: var(--text-muted);
     font-size: 12px;
     transition: all 0.3s;
 }
 .xs-comp[data-state="ready"] {
-    background: rgba(34, 197, 94, 0.12);
-    border-color: rgba(34, 197, 94, 0.4);
-    color: #bbf7d0;
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-500);
 }
 .xs-comp[data-state="fallback"] {
-    background: rgba(245, 158, 11, 0.12);
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #fde68a;
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning-500);
 }
 .xs-comp[data-state="pending"] {
     opacity: 0.5;
@@ -272,7 +274,7 @@
     font-size: 24px;
 }
 .xs-comp-name {
-    font-weight: 500;
+    font-weight: var(--font-medium, 500);
     font-size: 13px;
 }
 .xs-comp-state {
@@ -291,12 +293,12 @@
     justify-content: center;
 }
 .xs-bundle-cancel {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
+    background: var(--danger-bg);
+    border-color: var(--danger-border);
+    color: var(--danger-500);
 }
 .xs-bundle-cancel:hover {
-    background: rgba(239, 68, 68, 0.2);
+    background: color-mix(in oklch, var(--danger), transparent 80%);
 }
 
 /* ---- 脑暴进行中: 隐藏原 OpenMAIC 主区 ---- */
