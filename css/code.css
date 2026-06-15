@@ -820,46 +820,7 @@ body.code-body {
 .code-editor {
     height: 100%;
     display: grid;
-    grid-template-columns: 54px minmax(0, 1fr);
-    background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 100%),
-        var(--bg-soft);
     font-family: 'JetBrains Mono', monospace;
-}
-
-.line-number-gutter {
-    padding: 24px 8px 24px 0;
-    background: var(--surface-glass);
-    overflow: hidden;
-}
-
-.line-numbers {
-    display: grid;
-    justify-items: end;
-    color: #526075;
-    font-size: 13px;
-    line-height: 1.86;
-    transform: translateY(0);
-}
-
-.code-textarea {
-    width: 100%;
-    height: 100%;
-    border: none;
-    outline: none;
-    resize: none;
-    background: transparent;
-    color: #edf2ff;
-    padding: 24px 26px 24px 22px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13.5px;
-    line-height: 1.86;
-    white-space: pre;
-    tab-size: 4;
-}
-
-.code-textarea::selection {
-    background: rgba(119, 104, 243, 0.26);
 }
 
 .editor-status-bar {
@@ -1524,10 +1485,6 @@ input, textarea, select {
         border-radius: 18px;
     }
 
-    .code-textarea {
-        padding: 24px 22px;
-        font-size: 15px;
-    }
 }
 
 /* Large Desktop - 1600px-1919px */
@@ -1648,10 +1605,6 @@ input, textarea, select {
         font-size: 12px;
     }
 
-    .code-textarea {
-        padding: 18px 16px;
-        font-size: 14px;
-    }
 }
 
 /* Tablet - 768px-899px */
@@ -1722,10 +1675,6 @@ input, textarea, select {
         font-size: 11px;
     }
 
-    .code-textarea {
-        padding: 16px 14px;
-        font-size: 13px;
-    }
 }
 
 /* Mobile Landscape - 640px-767px */
@@ -1806,14 +1755,6 @@ input, textarea, select {
         min-height: 280px;
     }
 
-    .code-editor {
-        grid-template-columns: 40px minmax(0, 1fr);
-    }
-
-    .code-textarea {
-        padding: 14px 12px;
-        font-size: 13px;
-    }
 }
 
 /* Mobile Portrait - 480px-639px */
@@ -1917,15 +1858,6 @@ input, textarea, select {
 
     .assistant-panel {
         min-height: 240px;
-    }
-
-    .code-editor {
-        grid-template-columns: 36px minmax(0, 1fr);
-    }
-
-    .code-textarea {
-        padding: 12px 10px;
-        font-size: 12px;
     }
 
     .editor-toolbar {
@@ -2067,15 +1999,6 @@ input, textarea, select {
         min-height: 200px;
     }
 
-    .code-editor {
-        grid-template-columns: 32px minmax(0, 1fr);
-    }
-
-    .code-textarea {
-        padding: 10px 8px;
-        font-size: 11px;
-    }
-
     .terminal-left,
     .terminal-right {
         width: 100%;
@@ -2116,15 +2039,6 @@ input, textarea, select {
     .send-btn {
         font-size: 9px;
         height: 26px;
-    }
-
-    .code-textarea {
-        padding: 8px 6px;
-        font-size: 10px;
-    }
-
-    .code-editor {
-        grid-template-columns: 28px minmax(0, 1fr);
     }
 
     .brief-panel {
@@ -2240,14 +2154,6 @@ input, textarea, select {
     .topbar-statusbar,
     .mode-copy-top {
         flex-wrap: wrap;
-    }
-
-    .code-editor {
-        grid-template-columns: 46px minmax(0, 1fr);
-    }
-
-    .code-textarea {
-        padding: 20px 18px;
     }
 
     .terminal-left,
