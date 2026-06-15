@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="/css/tokens.css">
     <link rel="stylesheet" href="/css/app-base.css">
     <link rel="stylesheet" href="/css/theme-bg.css">
@@ -15,6 +16,7 @@
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/animations.css">
     <link rel="stylesheet" href="/css/code.css?v=20260509-ui">
+    <link rel="stylesheet" href="/css/code-ide.css?v=20260615-ide-1">
     <link rel="stylesheet" href="/css/mascot.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
     <script src="/js/auth.js"></script>
@@ -70,8 +72,29 @@
             </div>
         </header>
 
-        <main class="workspace fade-in">
-            <section class="main-stage">
+        <main class="workspace ide-shell fade-in">
+            <!-- 活动栏 -->
+            <aside class="ide-activity-bar" aria-label="活动栏">
+                <button class="ide-activity-icon" data-panel="task" data-active="true" title="题目" aria-label="题目面板">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h6"/></svg>
+                </button>
+                <button class="ide-activity-icon" data-panel="notes" title="笔记" aria-label="笔记面板">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4"/></svg>
+                </button>
+                <button class="ide-activity-icon" data-panel="mistakes" title="错题本" aria-label="错题本面板">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l9-3 9 3v6c0 5-4 9-9 10-5-1-9-5-9-10z"/></svg>
+                </button>
+                <button class="ide-activity-icon" data-panel="coach" title="AI 教练" aria-label="AI 教练侧栏">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                </button>
+                <div class="ide-activity-spacer"></div>
+                <button class="ide-activity-icon" data-panel="settings" title="设置" aria-label="设置面板">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.5-2.4.9a7 7 0 0 0-2-1.2l-.4-2.5h-4l-.4 2.5a7 7 0 0 0-2 1.2l-2.4-.9-2 3.5 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.5 2.4-.9c.6.5 1.3.9 2 1.2l.4 2.5h4l.4-2.5c.7-.3 1.4-.7 2-1.2l2.4.9 2-3.5-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>
+                </button>
+            </aside>
+
+            <!-- 题目面板 -->
+            <section class="ide-task-panel ide-side-panel">
                 <div class="stage-head">
                     <div class="mode-section">
                         <div class="mode-switch" id="mode-switch">
@@ -89,177 +112,182 @@
                     </div>
                 </div>
 
-                <div class="stage-body">
-                    <aside class="brief-panel">
-                        <div class="brief-hero">
-                            <div class="hero-top">
-                                <span class="hero-chip" id="hero-mode-label">补全代码</span>
-                                <span class="hero-chip success" id="hero-status">学习反馈开启</span>
-                            </div>
-                            <h1 id="problem-name">#C04 区间合并</h1>
-                            <p id="problem-subtitle">先补全排序与合并逻辑，再运行验证，最后查看学习评估，整个过程保持在一个屏幕内完成。</p>
-                            <div class="problem-tags" id="problem-tags"></div>
+                <aside class="brief-panel">
+                    <div class="brief-hero">
+                        <div class="hero-top">
+                            <span class="hero-chip" id="hero-mode-label">补全代码</span>
+                            <span class="hero-chip success" id="hero-status">学习反馈开启</span>
                         </div>
+                        <h1 id="problem-name">#C04 区间合并</h1>
+                        <p id="problem-subtitle">先补全排序与合并逻辑，再运行验证，最后查看学习评估，整个过程保持在一个屏幕内完成。</p>
+                        <div class="problem-tags" id="problem-tags"></div>
+                    </div>
 
-                        <div class="brief-card app-action-card">
-                            <div class="section-head">
-                                <h2>任务说明</h2>
-                                <span id="description-mode-tag">Complete Mode</span>
-                            </div>
-                            <div class="problem-copy" id="problem-description-text"></div>
+                    <div class="brief-card app-action-card">
+                        <div class="section-head">
+                            <h2>任务说明</h2>
+                            <span id="description-mode-tag">Complete Mode</span>
                         </div>
+                        <div class="problem-copy" id="problem-description-text"></div>
+                    </div>
 
-                        <div class="brief-card app-action-card">
-                            <div class="section-head">
-                                <h2>示例与诊断点</h2>
-                                <span id="guide-label">补全建议</span>
-                            </div>
-                            <div class="problem-examples" id="problem-examples"></div>
+                    <div class="brief-card app-action-card">
+                        <div class="section-head">
+                            <h2>示例与诊断点</h2>
+                            <span id="guide-label">补全建议</span>
                         </div>
+                        <div class="problem-examples" id="problem-examples"></div>
+                    </div>
 
-                        <div class="brief-card app-action-card">
-                            <div class="section-head">
-                                <h2>操作建议</h2>
-                                <span>Checklist</span>
-                            </div>
-                            <ul class="problem-hints" id="problem-hints"></ul>
+                    <div class="brief-card app-action-card">
+                        <div class="section-head">
+                            <h2>操作建议</h2>
+                            <span>Checklist</span>
                         </div>
-                    </aside>
+                        <ul class="problem-hints" id="problem-hints"></ul>
+                    </div>
+                </aside>
+            </section>
 
-                    <section class="editor-panel">
-                        <div class="editor-toolbar">
-                            <div class="editor-title-group">
-                                <span class="editor-file-pill" id="editor-title">当前练习脚本</span>
-                                <span class="editor-context" id="editor-context">学情模板推送 · 第 7 章 · 排序算法</span>
-                                <span class="issue-badge" id="issue-badge">2 处 TODO 待补全</span>
-                            </div>
+            <!-- 中央舞台：编辑器 + 输出 -->
+            <section class="ide-stage">
+                <div class="editor-toolbar">
+                    <div class="editor-title-group">
+                        <span class="editor-file-pill" id="editor-title">当前练习脚本</span>
+                        <span class="editor-context" id="editor-context">学情模板推送 · 第 7 章 · 排序算法</span>
+                        <span class="issue-badge" id="issue-badge">2 处 TODO 待补全</span>
+                    </div>
 
-                            <div class="editor-actions">
-                                <button class="toolbar-btn" id="copy-code-btn" type="button" title="复制代码 (Ctrl+Shift+C)">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                </button>
-                                <button class="toolbar-btn" id="font-decrease-btn" type="button" title="减小字体">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                                </button>
-                                <button class="toolbar-btn" id="font-increase-btn" type="button" title="增大字体">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                                </button>
-                                <div class="editor-action-divider"></div>
-                                <button class="ghost-btn" id="quick-hint-btn" type="button">补全提示</button>
-                                <button class="ghost-btn" id="reset-btn" type="button">重置代码</button>
-                                <button class="action-btn success" id="run-btn" type="button">运行代码</button>
-                                <button class="action-btn primary" id="submit-btn" type="button">学习评估</button>
-                            </div>
+                    <div class="editor-actions">
+                        <button class="toolbar-btn" id="copy-code-btn" type="button" title="复制代码 (Ctrl+Shift+C)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                        <button class="toolbar-btn" id="font-decrease-btn" type="button" title="减小字体">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                        <button class="toolbar-btn" id="font-increase-btn" type="button" title="增大字体">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                        </button>
+                        <div class="editor-action-divider"></div>
+                        <button class="ghost-btn" id="quick-hint-btn" type="button">补全提示</button>
+                        <button class="ghost-btn" id="reset-btn" type="button">重置代码</button>
+                        <button class="action-btn success" id="run-btn" type="button">运行代码</button>
+                        <button class="action-btn primary" id="submit-btn" type="button">学习评估</button>
+                    </div>
+                </div>
+
+                <div class="editor-stage">
+                    <div class="generation-panel" id="generation-panel" hidden>
+                        <div class="generation-icon">AI</div>
+                        <div class="generation-title" id="generation-title">正在生成个性化代码任务</div>
+                        <div class="generation-copy" id="generation-copy">系统会结合学生近期表现推送新的训练内容，并以打字机效果写入编辑器。</div>
+                        <div class="generation-progress-track">
+                            <div class="generation-progress-bar" id="generation-progress"></div>
                         </div>
+                    </div>
 
-                        <div class="editor-stage">
-                            <div class="generation-panel" id="generation-panel" hidden>
-                                <div class="generation-icon">AI</div>
-                                <div class="generation-title" id="generation-title">正在生成个性化代码任务</div>
-                                <div class="generation-copy" id="generation-copy">系统会结合学生近期表现推送新的训练内容，并以打字机效果写入编辑器。</div>
-                                <div class="generation-progress-track">
-                                    <div class="generation-progress-bar" id="generation-progress"></div>
-                                </div>
-                            </div>
+                    <div class="code-editor" id="monaco-host">
+                        <textarea
+                            class="code-textarea"
+                            id="code-input"
+                            spellcheck="false"
+                            aria-label="代码编辑器"
+                        ></textarea>
+                    </div>
+                </div>
 
-                            <div class="code-editor">
-                                <div class="line-number-gutter" aria-hidden="true">
-                                    <div class="line-numbers" id="line-numbers"></div>
-                                </div>
-                                <textarea
-                                    class="code-textarea"
-                                    id="code-input"
-                                    spellcheck="false"
-                                    aria-label="代码编辑器"
-                                ></textarea>
-                            </div>
+                <div class="editor-status-bar" id="editor-status-bar">
+                    <div class="status-bar-left">
+                        <span class="status-item" id="status-lines">0 行</span>
+                        <span class="status-item" id="status-chars">0 字符</span>
+                        <span class="status-item" id="status-todos">0 处 TODO</span>
+                        <span class="status-item" id="status-cursor">Ln 1, Col 1</span>
+                    </div>
+                    <div class="status-bar-right">
+                        <span class="status-item save-indicator" id="save-indicator">已自动保存</span>
+                        <span class="status-item" id="status-font">13.5px</span>
+                    </div>
+                </div>
+                <div class="output-panel" id="output-panel">
+                    <div class="output-header">
+                        <div class="output-header-left">
+                            <span>运行结果</span>
+                            <span class="output-meta" id="output-meta"></span>
                         </div>
-
-                        <div class="editor-status-bar" id="editor-status-bar">
-                            <div class="status-bar-left">
-                                <span class="status-item" id="status-lines">0 行</span>
-                                <span class="status-item" id="status-chars">0 字符</span>
-                                <span class="status-item" id="status-todos">0 处 TODO</span>
-                                <span class="status-item" id="status-cursor">Ln 1, Col 1</span>
-                            </div>
-                            <div class="status-bar-right">
-                                <span class="status-item save-indicator" id="save-indicator">已自动保存</span>
-                                <span class="status-item" id="status-font">13.5px</span>
-                            </div>
-                        </div>
-                        <div class="output-panel">
-                            <div class="output-header">
-                                <div class="output-header-left">
-                                    <span>运行结果</span>
-                                    <span class="output-meta" id="output-meta"></span>
-                                </div>
-                                <button class="clear-btn" id="clear-output" type="button">清空</button>
-                            </div>
-                            <div
-                                class="output-content terminal-output"
-                                id="output-content"
-                                data-state="idle"
-                                role="log"
-                                aria-live="polite"
-                                aria-label="代码运行终端"
-                            ></div>
-                        </div>
-                    </section>
+                        <button class="clear-btn" id="clear-output" type="button">清空</button>
+                    </div>
+                    <div
+                        class="output-content terminal-output"
+                        id="output-content"
+                        data-state="idle"
+                        role="log"
+                        aria-live="polite"
+                        aria-label="代码运行终端"
+                    ></div>
                 </div>
             </section>
 
-            <aside class="assistant-panel">
-                <div class="assistant-header">
-                    <div class="assistant-title-wrap">
-                        <div class="assistant-icon">AI</div>
-                        <div>
-                            <div class="assistant-title">AI 诊断助手</div>
-                            <div class="assistant-subtitle" id="assistant-subtitle">思路引导 + TODO 补全</div>
+            <!-- AI 教练侧栏 -->
+            <aside class="ide-coach ide-side-panel ide-side-right">
+                <div class="ide-resizer" data-target=".ide-coach" data-panel="coach" aria-label="拖拽调整宽度"></div>
+                <div class="assistant-panel">
+                    <div class="assistant-header">
+                        <div class="assistant-title-wrap">
+                            <div class="assistant-icon">AI</div>
+                            <div>
+                                <div class="assistant-title">AI 诊断助手</div>
+                                <div class="assistant-subtitle" id="assistant-subtitle">思路引导 + TODO 补全</div>
+                            </div>
+                        </div>
+
+                        <div class="assistant-status" id="status-badge">
+                            <span class="status-dot"></span>
+                            <span id="status-text">就绪</span>
                         </div>
                     </div>
 
-                    <div class="assistant-status" id="status-badge">
-                        <span class="status-dot"></span>
-                        <span id="status-text">就绪</span>
-                    </div>
-                </div>
+                    <div class="assistant-quick-actions" id="assistant-quick-actions"></div>
+                    <div class="message-container" id="message-container"></div>
 
-                <div class="assistant-quick-actions" id="assistant-quick-actions"></div>
-                <div class="message-container" id="message-container"></div>
-
-                <div class="assistant-input-panel">
-                    <textarea
-                        id="assistant-input"
-                        class="assistant-input"
-                        placeholder="输入你的问题，按 Ctrl+Enter 发送..."
-                    ></textarea>
-                    <div class="assistant-input-footer">
-                        <div class="assistant-hotkeys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发送</div>
-                        <button id="send-btn" class="send-btn" type="button">发送</button>
+                    <div class="assistant-input-panel">
+                        <textarea
+                            id="assistant-input"
+                            class="assistant-input"
+                            placeholder="输入你的问题，按 Ctrl+Enter 发送..."
+                        ></textarea>
+                        <div class="assistant-input-footer">
+                            <div class="assistant-hotkeys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发送</div>
+                            <button id="send-btn" class="send-btn" type="button">发送</button>
+                        </div>
                     </div>
                 </div>
             </aside>
-        </main>
 
-        <footer class="terminal-bar">
-            <div class="terminal-left">
-                <div class="terminal-item" id="terminal-state">
-                    <span class="terminal-dot"></span>
-                    <span>等待推题</span>
+            <!-- 状态栏 -->
+            <footer class="ide-status-bar terminal-bar">
+                <div class="terminal-left">
+                    <div class="terminal-item" id="terminal-state">
+                        <span class="terminal-dot"></span>
+                        <span>等待推题</span>
+                    </div>
+                    <div class="terminal-item" id="terminal-runtime">Python 3.11</div>
                 </div>
-                <div class="terminal-item" id="terminal-runtime">Python 3.11</div>
-            </div>
 
-            <div class="terminal-right">
-                <div class="terminal-item" id="terminal-mode">模式: 补全代码</div>
-                <div class="terminal-item" id="terminal-token">AI: 0</div>
-                <div class="terminal-item" id="terminal-cpu">CPU: 12%</div>
-            </div>
-        </footer>
+                <div class="terminal-right">
+                    <div class="terminal-item" id="terminal-mode">模式: 补全代码</div>
+                    <div class="terminal-item" id="terminal-token">AI: 0</div>
+                    <div class="terminal-item" id="terminal-cpu">CPU: 12%</div>
+                </div>
+            </footer>
+        </main>
     
 
     <script src="/js/data-layer.js"></script>
     <script src="/js/code.js?v=20260509-1"></script>
+    <script src="/js/code-ide.js?v=20260615-ide-1"></script>
+    <script src="/js/code-monaco.js?v=20260615-ide-1"></script>
+    <script src="/js/code-output-tabs.js?v=20260615-ide-1"></script>
+    <script src="/js/code-coach.js?v=20260615-ide-1"></script>
 
     <!-- 小星 AI 助手 -->
     <div class="app-kanban" id="app-kanban"></div>
