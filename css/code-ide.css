@@ -55,6 +55,37 @@
   flex: 1;
 }
 
+/* ---- Output tabs ---- */
+.output-tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-hover);
+}
+
+.output-tab {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.output-tab[data-active="true"] {
+  color: var(--brand-500);
+  background: var(--accent-bg);
+  border-color: var(--brand-500);
+}
+
+.output-tab-bodies {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 /* ---- Narrator bubble ---- */
 .narrator-bubble {
   position: fixed;
