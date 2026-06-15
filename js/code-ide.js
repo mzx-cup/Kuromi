@@ -40,10 +40,28 @@ export class CodeIDE {
 
   persistLayout() {
     try {
-      localStorage.setItem(this.options.storageKey, JSON.stringify({
-        activePanel: this.activePanel,
-      }));
+      const raw = localStorage.getItem(this.options.storageKey);
+      const data = raw ? JSON.parse(raw) : {};
+      data.activePanel = this.activePanel;
+      data.panelWidths = this.panelWidths || data.panelWidths || {};
+      data.panelCollapsed = this.panelCollapsed || data.panelCollapsed || {};
+      localStorage.setItem(this.options.storageKey, JSON.stringify(data));
     } catch {}
+  }
+
+  setPanelWidth(panelKey, width) {
+    this.panelWidths = this.panelWidths || {};
+    this.panelWidths[panelKey] = width;
+    this.persistLayout();
+  }
+
+  setPanelCollapsed(panelKey, collapsed) {
+    this.panelCollapsed = this.panelCollapsed || {};
+    this.panelCollapsed[panelKey] = collapsed;
+    this.persistLayout();
+    document.dispatchEvent(new CustomEvent('codeide:panel-collapse', {
+      detail: { panel: panelKey, collapsed }
+    }));
   }
 
   restoreLayout() {
@@ -84,6 +102,9 @@ export class CodeIDE {
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
+      // 持久化：找到该 resizer 关联的 panel key
+      const panelKey = handleEl.dataset.panel || 'coach';
+      this.setPanelWidth(panelKey, parseFloat(targetEl.style.width));
     };
     handleEl.addEventListener('mousedown', (e) => {
       e.preventDefault();

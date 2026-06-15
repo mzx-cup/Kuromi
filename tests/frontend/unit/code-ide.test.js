@@ -154,6 +154,29 @@ describe('CodeIDE resizer', () => {
   });
 });
 
+describe('CodeIDE layout persistence', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  it('setPanelWidth / setPanelCollapsed 写入 localStorage', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    ide.setPanelWidth('coach', 420);
+    ide.setPanelCollapsed('coach', true);
+
+    const raw = JSON.parse(localStorage.getItem('code_ide_layout'));
+    expect(raw.panelWidths.coach).toBe(420);
+    expect(raw.panelCollapsed.coach).toBe(true);
+  });
+});
+
 // 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
 function makeSpy() {
   const fn = (event) => {
