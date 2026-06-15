@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/css/loading.css">
     <link rel="stylesheet" href="/css/hub.css">
     <link rel="stylesheet" href="/css/index.css?v=2">
+    <link rel="stylesheet" href="/css/phase2-bundle.css">
     <link rel="stylesheet" href="/css/link-renderer.css">
     <link rel="stylesheet" href="/css/notifications.css">
     <link rel="stylesheet" href="/css/mascot.css">
@@ -38,6 +39,7 @@
     <script src="/js/focus-analysis.js"></script>
     <script src="/js/focus-quiz-intervention.js"></script>
     <script src="/js/index.js?v=3"></script>
+    <script src="/js/brainstorm.js?v=1"></script>
 </head>
 <body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
     <!-- Global Wallpaper Background Layer -->
@@ -978,7 +980,7 @@
         </div>
 
         <!-- 主内容区域 - OpenMAIC风格 -->
-        <div class="openmaic-main">
+        <div class="openmaic-main" id="openmaic-main">
             <!-- Logo区域 -->
             <div class="openmaic-hero">
                 <div class="openmaic-logo">
@@ -1200,6 +1202,68 @@
         <!-- 底部 -->
         <div class="openmaic-footer">
             星识 Star-Learn 智能课程生成系统
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Phase 2: 脑暴对话 / 大纲确认 / 9 件套进度  -->
+        <!-- ============================================ -->
+
+        <!-- 1. 脑暴面板 (默认 hidden) -->
+        <div id="xs-bs-panel" class="xs-bs-panel hidden">
+            <div class="xs-bs-header">
+                <div class="xs-bs-progress">
+                    <span id="xs-bs-turn-label">1</span>
+                    <span class="xs-bs-divider">/</span>
+                    <span id="xs-bs-turn-total">3</span>
+                </div>
+                <div class="xs-bs-slot-badge" id="xs-bs-slot-badge">学习目标</div>
+                <button class="xs-bs-close" id="xs-bs-close" title="关闭">&times;</button>
+            </div>
+            <h3 class="xs-bs-question" id="xs-bs-question">问题加载中…</h3>
+            <div class="xs-bs-options" id="xs-bs-options"></div>
+            <div class="xs-bs-custom-row">
+                <input type="text" id="xs-bs-custom" class="xs-bs-custom-input" placeholder="其他想法(可选)…">
+            </div>
+            <div class="xs-bs-actions">
+                <button class="xs-bs-btn xs-bs-skip" id="xs-bs-skip">跳过本题</button>
+                <button class="xs-bs-btn xs-bs-next" id="xs-bs-next">下一题 →</button>
+            </div>
+        </div>
+
+        <!-- 2. 大纲确认面板 -->
+        <div id="xs-confirm-panel" class="xs-confirm-panel hidden">
+            <div class="xs-confirm-header">
+                <h3>确认课程大纲</h3>
+                <div class="xs-confirm-mode">
+                    <span class="xs-confirm-mode-label">模式:</span>
+                    <button class="xs-confirm-toggle" id="xs-confirm-toggle" data-mode="obg">OBG</button>
+                </div>
+            </div>
+            <p class="xs-confirm-rationale" id="xs-confirm-rationale">—</p>
+            <ul class="xs-confirm-scenes" id="xs-confirm-scenes"></ul>
+            <div class="xs-confirm-actions">
+                <button class="xs-bs-btn xs-confirm-back" id="xs-confirm-back">← 重新澄清</button>
+                <button class="xs-bs-btn xs-confirm-go" id="xs-confirm-go">开始生成 9 件套 →</button>
+            </div>
+        </div>
+
+        <!-- 3. 9 件套进度面板 -->
+        <div id="xs-bundle-panel" class="xs-bundle-panel hidden">
+            <h3 class="xs-bundle-title">9 件套课程包生成中…</h3>
+            <div class="xs-bundle-grid" id="xs-bundle-grid">
+                <div class="xs-comp" data-name="outline"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">大纲</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="plan"><span class="xs-comp-icon">📝</span><span class="xs-comp-name">教案</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="ppt"><span class="xs-comp-icon">🎬</span><span class="xs-comp-name">PPT</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="graph"><span class="xs-comp-icon">🕸</span><span class="xs-comp-name">图谱</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="radar"><span class="xs-comp-icon">📊</span><span class="xs-comp-name">雷达</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="project"><span class="xs-comp-icon">🛠</span><span class="xs-comp-name">项目</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="case"><span class="xs-comp-icon">📖</span><span class="xs-comp-name">案例</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="exercises"><span class="xs-comp-icon">✏️</span><span class="xs-comp-name">习题</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="survey"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">问卷</span><span class="xs-comp-state">待生成</span></div>
+            </div>
+            <div class="xs-bundle-actions">
+                <button class="xs-bs-btn xs-bundle-cancel" id="xs-bundle-cancel">取消</button>
+            </div>
         </div>
     </div>
 

@@ -1,0 +1,305 @@
+/* ============================================================
+ * Phase 2 — 脑暴对话 / 大纲确认 / 9 件套进度 面板样式
+ * 覆盖在 OpenMAIC 卡片之上, glassmorphism 风格延续
+ * ============================================================ */
+
+.xs-bs-panel,
+.xs-confirm-panel,
+.xs-bundle-panel {
+    position: relative;
+    margin: 24px auto;
+    max-width: 720px;
+    padding: 24px;
+    background: rgba(20, 20, 35, 0.72);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+    color: #f1f5f9;
+    z-index: 10;
+}
+
+.xs-bs-panel.hidden,
+.xs-confirm-panel.hidden,
+.xs-bundle-panel.hidden {
+    display: none;
+}
+
+/* ---- 脑暴头部 ---- */
+.xs-bs-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.xs-bs-progress {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    padding: 4px 12px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.xs-bs-divider {
+    opacity: 0.5;
+    margin: 0 2px;
+}
+.xs-bs-slot-badge {
+    flex: 1;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 999px;
+    font-size: 12px;
+    color: #cbd5e1;
+    text-align: center;
+}
+.xs-bs-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #94a3b8;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.xs-bs-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+/* ---- 脑暴问题 + 选项 ---- */
+.xs-bs-question {
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.55;
+    margin: 0 0 16px;
+    color: #f8fafc;
+}
+.xs-bs-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.xs-bs-option {
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    color: #e2e8f0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.xs-bs-option:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #c7d2fe;
+}
+.xs-bs-option.selected {
+    background: rgba(99, 102, 241, 0.3);
+    border-color: rgba(99, 102, 241, 0.6);
+    color: #fff;
+}
+.xs-bs-custom-row {
+    margin-bottom: 16px;
+}
+.xs-bs-custom-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: #f1f5f9;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.15s;
+}
+.xs-bs-custom-input:focus {
+    border-color: rgba(99, 102, 241, 0.5);
+}
+.xs-bs-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.xs-bs-btn {
+    padding: 8px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.xs-bs-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.xs-bs-next,
+.xs-confirm-go {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border: none;
+    color: #fff;
+    font-weight: 500;
+}
+.xs-bs-next:hover,
+.xs-confirm-go:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+}
+.xs-bs-skip:disabled,
+.xs-bs-next:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ---- 大纲确认面板 ---- */
+.xs-confirm-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.xs-confirm-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #f8fafc;
+}
+.xs-confirm-mode {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #cbd5e1;
+}
+.xs-confirm-toggle {
+    padding: 4px 12px;
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    border-radius: 999px;
+    color: #c7d2fe;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.xs-confirm-toggle[data-mode="pbl"] {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fde68a;
+}
+.xs-confirm-rationale {
+    margin: 0 0 14px;
+    font-size: 13px;
+    color: #94a3b8;
+    font-style: italic;
+}
+.xs-confirm-scenes {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    max-height: 280px;
+    overflow-y: auto;
+}
+.xs-confirm-scenes li {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #e2e8f0;
+}
+.xs-confirm-scenes li strong {
+    color: #a5b4fc;
+    margin-right: 8px;
+}
+.xs-confirm-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* ---- 9 件套进度面板 ---- */
+.xs-bundle-title {
+    text-align: center;
+    margin: 0 0 18px;
+    font-size: 16px;
+    color: #cbd5e1;
+}
+.xs-bundle-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.xs-comp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    color: #cbd5e1;
+    font-size: 12px;
+    transition: all 0.3s;
+}
+.xs-comp[data-state="ready"] {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.4);
+    color: #bbf7d0;
+}
+.xs-comp[data-state="fallback"] {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #fde68a;
+}
+.xs-comp[data-state="pending"] {
+    opacity: 0.5;
+}
+.xs-comp-icon {
+    font-size: 24px;
+}
+.xs-comp-name {
+    font-weight: 500;
+    font-size: 13px;
+}
+.xs-comp-state {
+    font-size: 11px;
+    opacity: 0.7;
+}
+.xs-comp[data-state="running"] .xs-comp-state {
+    animation: xs-pulse 1.4s ease-in-out infinite;
+}
+@keyframes xs-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+.xs-bundle-actions {
+    display: flex;
+    justify-content: center;
+}
+.xs-bundle-cancel {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+}
+.xs-bundle-cancel:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* ---- 脑暴进行中: 隐藏原 OpenMAIC 主区 ---- */
+#openmaic-main.xs-bs-active {
+    display: none;
+}

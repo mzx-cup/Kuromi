@@ -598,6 +598,17 @@ class CourseData(BaseModel):
     tts_audio_urls: dict[str, str] = Field(default_factory=dict)  # scene_id -> audio_url
     scene_actions: list[SceneActions] = Field(default_factory=list)  # 每场景的动作列表
     metadata: dict[str, Any] = Field(default_factory=dict)
+    # Phase 2 — 9 件套课程包(向后兼容: 旧课程无 bundle 字段)
+    bundle: Optional[dict[str, Any]] = None
+    """    bundle = {
+              "components": { "outline": {...}, "plan": {...}, ... 9 件 },
+              "obg_pbl_mode": "obg" | "pbl",
+              "obg_pbl_rationale": "...",
+              "outline_summary": { "title": ..., "total_scenes": ..., ... },
+              "brainstorm": { "slots": {...}, "turns": [...], "mode": ... },
+              "generated_at": ISO 8601
+            }
+    """
 
 
 class CourseGenerationRequest(BaseModel):
@@ -625,6 +636,16 @@ class CourseGenerationRequest(BaseModel):
     teacher_icon: str = ""
     teacher_system_prompt: str = ""
     teacher_greeting: str = ""
+    # Phase 2 — 脑暴 + 9 件套
+    brainstorm_id: str = ""               # 完成脑暴后才有
+    enabled_components: list[str] = Field(default_factory=lambda: [
+        "outline", "plan", "ppt", "graph", "radar",
+        "project", "case", "exercises", "survey",
+    ])
+    obg_pbl_mode: str = "auto"           # auto / obg / pbl (auto = 沿用脑暴判定)
+    outline_override: dict[str, Any] = Field(default_factory=dict)
+    """    用户在大纲确认面板编辑后覆盖的 outline {title, description, scenes[]}
+    """
 
 
 class CourseGenerationSession(BaseModel):

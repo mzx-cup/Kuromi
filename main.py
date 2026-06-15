@@ -3263,7 +3263,19 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
     route_intent = IntentRouter.route(body.user_input or "")
     state.metadata["route_intent"] = route_intent
     audit_log.audit_intent_route(str(body.student_id or ""), route_intent)
-    # 本期:course_generate / navigate 仍走苏格拉底,仅打日志,Phase 2 才真跳转
+    # Phase 2: course_generate / navigate 命中后, 在主 SSE 流推送 1 个 course_intent 事件,
+    # 前端 js/index.js 收到后切到 OpenMAIC 并预填主题.
+    if IntentRouter.is_terminal(route_intent):
+        try:
+            if not disconnected.is_set():
+                await event_queue.put({
+                    "type": "course_intent",
+                    "intent": route_intent,
+                    "prefill_requirement": (body.user_input or "").strip(),
+                    "deeplink": "#openmaic-overlay" if route_intent == "course_generate" else "#",
+                })
+        except Exception as e:
+            logger.warning(f"[chat/stream] course_intent 推送失败: {e}")
 
     async def push_agent_log(agent_name: str, content: str):
         if not disconnected.is_set():
@@ -7688,6 +7700,191 @@ async def generate_course_stream(request: CourseGenerationRequest):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# ============================================================
+# Phase 2 — 脑暴对话 + 9 件套课程包
+# ============================================================
+
+from app.services.course_brainstorm import (
+    start_brainstorm as _bs_start,
+    turn_brainstorm as _bs_turn,
+    confirm_brainstorm as _bs_confirm,
+)
+from app.services.course_bundle import (
+    generate_bundle as _bundle_stream,
+    generate_bundle_sync as _bundle_sync,
+)
+from app.services.course_schemas import (
+    BrainstormStartRequest,
+    BrainstormStartResponse,
+    BrainstormTurnRequest,
+    BrainstormTurnResponse,
+    BrainstormConfirmRequest,
+    BrainstormConfirmResponse,
+)
+
+
+@app.post("/api/v2/course/brainstorm/start", response_model=BrainstormStartResponse)
+async def api_brainstorm_start(req: BrainstormStartRequest):
+    """启动 3 轮脑暴, 返回 brainstorm_id + 第 1 轮 question."""
+    try:
+        result = await _bs_start(req.requirement, req.student_id)
+        return BrainstormStartResponse(**result)
+    except Exception as e:
+        logger.exception(f"brainstorm/start 失败: {e}")
+        raise HTTPException(status_code=500, detail=f"脑暴启动失败: {e}")
+
+
+@app.post("/api/v2/course/brainstorm/{brainstorm_id}/turn", response_model=BrainstormTurnResponse)
+async def api_brainstorm_turn(brainstorm_id: str, req: BrainstormTurnRequest):
+    """推进 1 轮; 3 轮收齐后 LLM 判定 OBG/PBL + 出 CourseOutline."""
+    if req.brainstorm_id and req.brainstorm_id != brainstorm_id:
+        raise HTTPException(status_code=400, detail="brainstorm_id 不匹配")
+    try:
+        result = await _bs_turn(
+            brainstorm_id,
+            user_choice=req.user_choice,
+            user_text=req.user_text,
+            skip=req.skip,
+        )
+        return BrainstormTurnResponse(**result)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception(f"brainstorm/turn 失败: {e}")
+        raise HTTPException(status_code=500, detail=f"脑暴轮次失败: {e}")
+
+
+@app.post("/api/v2/course/brainstorm/{brainstorm_id}/confirm", response_model=BrainstormConfirmResponse)
+async def api_brainstorm_confirm(brainstorm_id: str, req: BrainstormConfirmRequest):
+    """锁定大纲; 用户可编辑 / OBG⇄PBL 切换."""
+    try:
+        result = await _bs_confirm(
+            brainstorm_id,
+            outline_edit=req.outline_edit,
+            obg_pbl_override=req.obg_pbl_override,
+        )
+        return BrainstormConfirmResponse(**result)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception(f"brainstorm/confirm 失败: {e}")
+        raise HTTPException(status_code=500, detail=f"大纲确认失败: {e}")
+
+
+@app.post("/api/v2/course/bundle/generate/stream")
+async def api_bundle_generate_stream(req: CourseGenerationRequest):
+    """9 件套 SSE 流式生成. 脑暴完成后调用.
+
+    SSE 事件类型:
+      - component_start{name}
+      - component_ready{name, payload}
+      - bundle_complete{bundle}
+      - error{message}
+    """
+    if not req.brainstorm_id:
+        raise HTTPException(
+            status_code=400,
+            detail="缺少 brainstorm_id; 请先完成 3 轮脑暴再生成课程包",
+        )
+    if not req.requirement:
+        raise HTTPException(status_code=400, detail="requirement 不能为空")
+
+    try:
+        from app.services.course_brainstorm import get_brainstorm_for_bundle
+        outline, slots, portrait = await get_brainstorm_for_bundle(req.brainstorm_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    if req.outline_override:
+        if isinstance(req.outline_override.get("scenes"), list):
+            outline["scenes"] = req.outline_override["scenes"]
+        for k in ("title", "description"):
+            if k in req.outline_override:
+                outline[k] = req.outline_override[k]
+    if req.obg_pbl_mode in ("obg", "pbl"):
+        outline["mode"] = req.obg_pbl_mode
+
+    enabled = req.enabled_components or [
+        "outline", "plan", "ppt", "graph", "radar",
+        "project", "case", "exercises", "survey",
+    ]
+
+    async def event_generator():
+        try:
+            async for ev in _bundle_stream(
+                outline=outline,
+                slots=slots,
+                portrait=portrait,
+                enabled_components=enabled,
+            ):
+                event_type = ev.pop("type", "message")
+                yield sse_event(event_type, ev)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.exception(f"bundle/generate/stream 失败: {e}")
+            yield sse_event("error", {"message": str(e)})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.patch("/api/v2/course/{course_id}/component/{component_name}")
+async def api_regenerate_component(
+    course_id: str,
+    component_name: str,
+    req: dict[str, Any] = {},
+):
+    """单件再生成(供前端 9 件 tab 的"重试"按钮调用).
+
+    body: { outline: {...}, slots: {...}, portrait: {...} } (可选, 默认走 db)
+    """
+    from app.services.course_schemas import COMPONENT_NAMES
+    if component_name not in COMPONENT_NAMES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"未知组件 {component_name}; 允许: {list(COMPONENT_NAMES)}",
+        )
+
+    outline = req.get("outline") or {}
+    slots = req.get("slots") or {}
+    enabled = [component_name]
+    if not outline:
+        raise HTTPException(
+            status_code=400,
+            detail="缺少 outline; 单件再生成需要先传 outline / slots",
+        )
+
+    try:
+        bundle = await _bundle_sync(
+            outline=outline,
+            slots=slots,
+            portrait=None,
+            enabled_components=enabled,
+        )
+        payload = bundle.components.get(component_name, {})
+        return {
+            "course_id": course_id,
+            "component": component_name,
+            "payload": payload,
+            "regenerated_at": bundle.generated_at,
+        }
+    except Exception as e:
+        logger.exception(f"regenerate_component 失败: {e}")
+        raise HTTPException(status_code=500, detail=f"单件再生成失败: {e}")
 
 
 @app.post("/api/v2/course/export/pptx")

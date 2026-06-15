@@ -70,9 +70,13 @@ _COURSE_KW = [
     "生成课程", "生成一门", "生成一个", "出一门课", "出一门", "帮我做课",
     "课程大纲", "帮我设计", "设计一门", "设计一个", "学习路径", "学习计划",
     "教我", "我想学", "我要学",
+    # Phase 2 — PBL/案例/教案/项目触发词
+    "项目式", "项目制", "案例教学", "教案", "做个项目", "做项目",
+    "pbl", "obg", "九件套", "9件套", "做一个案例",
     "create a course", "build a course", "design a course",
     "learning path", "study plan", "course outline",
     "teach me", "i want to learn", "i'd like to learn",
+    "project-based", "case study", "lesson plan",
 ]
 _NAV_KW = [
     "去课程页", "去个人中心", "跳到代码", "跳到个人", "打开个人中心",
@@ -97,8 +101,8 @@ class IntentRouter:
 
     @staticmethod
     def is_terminal(intent: str) -> bool:
-        """Phase 1: 所有意图都仍走苏格拉底,本期不真跳转/不真触发课程生成。"""
-        return False
+        """Phase 2: course_generate 真正跳转到 OpenMAIC 脑暴面板;navigate 跳转到对应 tab."""
+        return intent in ("course_generate", "navigate")
 
 
 # ============================================================
