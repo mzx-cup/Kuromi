@@ -1405,6 +1405,7 @@ async function typeCodeToEditor(code, options = {}) {
         }
     }
 
+    // event is suppressed on cancellation (see early return at line 1386); awaiters must check the boolean return
     document.dispatchEvent(new CustomEvent('code-typing-done', { detail: { code } }));
     return ticket === state.typingTicket;
 }

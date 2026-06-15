@@ -252,4 +252,109 @@ describe('typeCodeToEditor Monaco integration', () => {
 
     handle.dispose();
   });
+
+  it('被取消时（typingTicket 不一致）不触发 code-typing-done', async () => {
+    // 锁定契约：js/code.js:1386-1388 的早返回会抑制事件。
+    // 任何把 dispatch 移到循环守卫上方的重构都会让本测试失败。
+    //
+    // 实现要点：
+    // - 复用上一个测试的 DOM + vm.runInContext 装载方式。
+    // - chunkSize = 8（live=false, 长度 < 900），'a\n' × 20 = 40 字符，
+    //   至少需要 4-5 个 chunk，每个之间 await sleep(4)，给取消留出窗口。
+    // - state 是 vm context 中的模块私有变量；在 vm context 内修改它
+    //   会被 typeCodeToEditor 通过闭包看到。
+    // - 不可在 host window 上直接取消（cancelTypingAnimation 未挂到 window），
+    //   所以走 vm.runInContext('state.typingTicket += 1', ctx) 后门。
+    document.body.insertAdjacentHTML('beforeend', `
+      <div id="overlay" style="display:none"></div>
+      <textarea id="code-input"></textarea>
+      <div id="line-numbers"></div>
+      <div id="output-content"></div>
+      <div id="status-lines"></div>
+      <div id="status-chars"></div>
+      <div id="status-todos"></div>
+      <div id="status-cursor"></div>
+      <div id="status-font"></div>
+      <div id="save-indicator"></div>
+      <div id="editor-status-bar"></div>
+      <div id="output-meta"></div>
+      <div id="assistant-subtitle"></div>
+      <div id="status-badge"></div>
+      <div id="status-text"></div>
+      <div id="assistant-quick-actions"></div>
+      <div id="message-container"></div>
+      <div id="assistant-input"></div>
+      <div id="send-btn"></div>
+      <div id="terminal-state"><span></span><span></span></div>
+      <div id="terminal-runtime"></div>
+      <div id="terminal-mode"></div>
+      <div id="terminal-token"></div>
+      <div id="terminal-cpu"></div>
+    `);
+    const setValueCalls = [];
+    const fakeEditor = {
+      setValue: (v) => setValueCalls.push(v),
+      getValue: () => '',
+      onDidChangeModelContent: () => ({ dispose: () => {} }),
+      dispose: () => {},
+    };
+    window.monaco = { editor: { create: () => fakeEditor } };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('code-input'));
+
+    const codeSrc = fs.readFileSync(
+      path.resolve(__dirname, '../../../js/code.js'),
+      'utf8',
+    );
+    const ctx = {
+      window,
+      document,
+      console,
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      CustomEvent,
+      Event,
+      requestAnimationFrame: window.requestAnimationFrame || ((cb) => setTimeout(cb, 0)),
+    };
+    ctx.window.document = document;
+    ctx.window.console = console;
+    vm.createContext(ctx);
+    vm.runInContext(codeSrc, ctx);
+    vm.runInContext('cacheElements()', ctx);
+
+    expect(typeof window.typeCodeToEditor).toBe('function');
+
+    let done = false;
+    let doneDetail = null;
+    document.addEventListener('code-typing-done', (e) => {
+      done = true;
+      doneDetail = e.detail;
+    });
+
+    const code = 'a\n'.repeat(20); // 40 chars, ~5 chunks of 8
+    // 不 await —— fire and forget；我们要中途取消。
+    const typingPromise = window.typeCodeToEditor(code, { handle });
+
+    // 等几毫秒让至少 1-2 个 chunk 完成（每次 await sleep(4)）。
+    await new Promise((resolve) => setTimeout(resolve, 8));
+
+    // 通过 vm context 后门使 typingTicket 失配，模拟 cancelTypingAnimation() 行为。
+    vm.runInContext('state.typingTicket += 1', ctx);
+
+    // 现在 typeCodeToEditor 应在下一次循环守卫检查时早返回 false。
+    const result = await typingPromise;
+
+    expect(result).toBe(false);
+    expect(done).toBe(false);
+    expect(doneDetail).toBe(null);
+    // 部分写入：setValue 被调用过，但少于完整 5 个 chunk。
+    expect(setValueCalls.length).toBeGreaterThan(0);
+    expect(setValueCalls.length).toBeLessThan(5);
+    // 最后一次 setValue 不应等于完整 code —— 证明事件触发前被打断。
+    expect(setValueCalls[setValueCalls.length - 1]).not.toBe(code);
+
+    handle.dispose();
+  });
 });
