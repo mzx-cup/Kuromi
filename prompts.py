@@ -1058,7 +1058,317 @@ voice_id: 0=晓雅(甜美女声), 1=云起(青年男声), 2=雨辰(精英男声)
   ]
 }}
 
-只输出JSON，不要任何额外文字。"""
+只输出JSON，不要任何额外文字。""",
+
+    # ============================================================
+    # Phase 2 — 脑暴对话 (2 个)
+    # ============================================================
+
+    "brainstorm_question": """你是星识平台的需求澄清助手。当前用户在准备学习「{requirement}」,你需要按顺序问 3 轮澄清,每轮只问 1 个槽位。
+
+本轮目标槽位:{slot}
+槽位含义:
+  - goal: 学习目标(求职 / 学业考试 / 项目实现 / 兴趣探索 / 技能进阶)
+  - base: 现有基础(零基础 / 写过简单脚本 / 做过完整项目 / 有生产经验)
+  - path: 期望路径(系统学习 / 速成上手 / 案例驱动 / 理论先行)
+  - case: 偏好案例类型(可与 path 同轮,问 1~2 个真实场景例子,可空)
+
+已经收集到的槽位(可空):
+  goal={slot_goal}
+  base={slot_base}
+  path={slot_path}
+  case={slot_case}
+
+要求:
+  - question 字段: 用 1~2 句话自然提问,不要列小标题
+  - options 字段: 给 4~6 个常见选项,每个不超过 12 个字
+  - slot 字段: 本轮对应的槽位名(goal/base/path/case 之一)
+
+输出严格按以下 JSON 格式,不要加任何额外文字:
+
+{{
+  "slot": "{slot}",
+  "question": "...",
+  "options": ["...", "...", "..."]
+}}""",
+
+    "brainstorm_decide_obg_pbl": """你是星识平台的课程架构师。基于已收集到的用户画像和 3 轮澄清,做两件事:
+  1. 判定本课程适合走 OBG(Outcome-Based Generation,目标导向) 还是 PBL(Project-Based Learning,项目制)
+  2. 给出 4~6 个 scene 的 CourseOutline 候选
+
+用户需求:{requirement}
+学习画像(可能不完整):
+  - 学习目标 learning_goals: {learning_goals}
+  - 知识基础 knowledge_base: {knowledge_base}
+  - 已有项目经验 code_skill: {code_skill}
+
+3 轮脑暴收集的槽位(可能含 null):
+  - goal: {slot_goal}
+  - base: {slot_base}
+  - path: {slot_path}
+  - case: {slot_case}
+
+判定规则:
+  - 求职/学业考试/技能进阶 → OBG(以"知识掌握"为骨架,先讲后练)
+  - 项目实现/案例驱动 → PBL(以"完整项目"为骨架,边做边学)
+  - 兴趣探索/速成上手 → OBG(降低门槛)
+  - 模糊时默认 OBG
+
+输出严格按以下 JSON,不要任何额外文字:
+
+{{
+  "mode": "obg" | "pbl",
+  "rationale": "1 句话说明判定理由",
+  "outline": {{
+    "title": "课程标题(12字以内)",
+    "description": "1~2 句课程简介",
+    "scenes": [
+      {{
+        "id": "s1",
+        "title": "场景标题(8字以内)",
+        "description": "1 句话说明本场景要解决的问题",
+        "key_points": ["关键点1", "关键点2", "关键点3"],
+        "type": "slide" | "interactive" | "code" | "quiz",
+        "duration_min": 10
+      }}
+    ]
+  }}
+}}""",
+
+    # ============================================================
+    # Phase 2 — 9 件套 (8 个 — outline/ppt 复用既有,不新增)
+    # ============================================================
+
+    "lesson_plan": """你是经验丰富的教研员。基于以下课程大纲,给每个 scene 写 1 份教案。
+
+课程标题:{course_title}
+OBG/PBL 模式:{obg_pbl_mode}
+大纲:
+{scenes_json}
+
+每份教案包含 5 字段:
+  - objectives: 2~4 个教学目标(动词开头,如"理解 X 的定义")
+  - key_points: 2~4 个核心知识点
+  - duration_min: 课时分钟(参考大纲,微调 ±2)
+  - methods: 2~3 个教学方法(如["案例导入","对比演示","动手练习"])
+  - blackboard: 板书要点(1 段,不超过 60 字)
+
+输出严格按以下 JSON:
+
+{{
+  "plans": {{
+    "s1": {{
+      "objectives": ["...", "..."],
+      "key_points": ["...", "..."],
+      "duration_min": 10,
+      "methods": ["...", "..."],
+      "blackboard": "..."
+    }},
+    "s2": {{ ... }}
+  }}
+}}""",
+
+    "knowledge_graph": """你是知识图谱设计师。基于以下课程大纲,输出 1 张知识图谱(节点 + 边)。
+
+课程标题:{course_title}
+大纲:
+{scenes_json}
+
+节点要求:
+  - id 用 scene_id 或概念名
+  - label 中文短名(≤6 字)
+  - layer 0=核心 1=依赖 2=延伸
+  - 总节点数控制在 8~18 个
+
+边要求:
+  - from / to 引用节点 id
+  - label 可选(如"前置依赖")
+
+输出严格按以下 JSON:
+
+{{
+  "nodes": [
+    {{"id": "s1", "label": "...", "layer": 0}}
+  ],
+  "edges": [
+    {{"from": "s1", "to": "s2", "label": "前置依赖"}}
+  ]
+}}""",
+
+    "radar_init": """你是学习评估师。基于以下课程,给学员一份"完成本课程后预期雷达",6 维,每维 0~100。
+
+课程标题:{course_title}
+OBG/PBL 模式:{obg_pbl_mode}
+学习目标:{learning_goals}
+知识基础:{knowledge_base}
+
+6 维:
+  - knowledge_mastery  知识掌握(0~100,反映对该领域的熟悉度)
+  - code_skill         编程能力
+  - cognitive_level    认知水平
+  - learning_goal      目标达成度
+  - weakness           薄弱点暴露(数值越高说明越能看到自己的薄弱)
+  - focus_level        专注度
+
+输出严格按以下 JSON:
+
+{{
+  "knowledge_mastery": 60,
+  "code_skill": 50,
+  "cognitive_level": 55,
+  "learning_goal": 65,
+  "weakness": 30,
+  "focus_level": 70,
+  "post_course_estimate": {{
+    "knowledge_mastery": 80,
+    "code_skill": 70,
+    "cognitive_level": 75,
+    "learning_goal": 85,
+    "weakness": 40,
+    "focus_level": 80
+  }}
+}}""",
+
+    "project_brief": """你是项目教练。基于以下课程,出 1 个真实可做的项目简报。
+
+课程标题:{course_title}
+OBG/PBL 模式:{obg_pbl_mode}
+大纲:
+{scenes_json}
+
+项目要求:
+  - title: 项目名(10 字以内)
+  - scenario: 真实问题场景(2~3 句话)
+  - background: 项目背景(1 段,100 字以内)
+  - requirements: 4~6 条具体要求
+  - acceptance: 3~5 条验收标准
+  - milestones: 3~4 个里程碑,每个含 title/description/deliverable
+  - estimated_hours: 预估工时(整数,8~80)
+  - difficulty: easy / medium / hard
+
+如果 OBG 模式,项目作为"综合应用"放在课程末;PBL 模式,项目作为"主线"贯穿全程。
+
+输出严格按以下 JSON:
+
+{{
+  "title": "...",
+  "scenario": "...",
+  "background": "...",
+  "requirements": ["...", "..."],
+  "acceptance": ["...", "..."],
+  "milestones": [
+    {{"title": "...", "description": "...", "deliverable": "..."}}
+  ],
+  "estimated_hours": 24,
+  "difficulty": "medium"
+}}""",
+
+    "case_study": """你是案例教学设计师。基于以下课程,出 1 个故事化案例。
+
+课程标题:{course_title}
+大纲:
+{scenes_json}
+
+案例要素:
+  - title: 案例标题(10 字以内)
+  - story: 故事正文(2~3 段,150~250 字,要有人物/冲突/决策)
+  - decision_points: 2~3 个关键决策点(简短问句)
+  - reflection: 2~3 个反思题(引导学生提炼方法论)
+  - takeaway: 案例启示(1 句话,30 字以内)
+
+输出严格按以下 JSON:
+
+{{
+  "title": "...",
+  "story": "...",
+  "decision_points": ["...", "..."],
+  "reflection": ["...", "..."],
+  "takeaway": "..."
+}}""",
+
+    "exercises": """你是命题人。基于以下场景,出 1 套习题(选择/填空/编程混合)。
+
+课程标题:{course_title}
+本场景:{scene_title}
+本场景描述:{scene_description}
+关键知识点:{key_points}
+难度等级:{difficulty}     (easy / medium / hard)
+
+出题要求:
+  - 共 3~5 题
+  - 至少 1 道 single 选择,1 道 fill 填空,可加 1 道 code 编程
+  - code 题 answer 字段是参考解(Python 优先),rubric 字段写评分要点
+  - 难度按 difficulty 字段递进
+
+输出严格按以下 JSON:
+
+{{
+  "questions": [
+    {{
+      "id": 1,
+      "type": "single",
+      "stem": "题目文本",
+      "options": ["A", "B", "C", "D"],
+      "answer": 0,
+      "rubric": "",
+      "difficulty": "easy",
+      "related_scene_id": "{scene_id}"
+    }},
+    {{
+      "id": 2,
+      "type": "fill",
+      "stem": "...",
+      "options": [],
+      "answer": "标准答案",
+      "rubric": "...",
+      "difficulty": "medium",
+      "related_scene_id": "{scene_id}"
+    }},
+    {{
+      "id": 3,
+      "type": "code",
+      "stem": "...",
+      "options": [],
+      "answer": "参考解代码",
+      "rubric": "1. 通过样例 2. 时间复杂度 < O(n²) 3. 边界处理",
+      "difficulty": "hard",
+      "related_scene_id": "{scene_id}"
+    }}
+  ]
+}}""",
+
+    "survey": """你是教学设计师。基于以下课程,出 1 份课前问卷(3~5 题)。
+
+课程标题:{course_title}
+学习目标:{learning_goals}
+预计时长:{estimated_min} 分钟
+
+问卷 3 个 section:
+  1. 学习风格(1~2 题,scale 类型 1~5)
+  2. 前测知识掌握(1~2 题,single 选择)
+  3. 学习目标确认(1 题,multi 多选)
+
+输出严格按以下 JSON:
+
+{{
+  "sections": [
+    {{
+      "title": "学习风格",
+      "description": "请评估你目前的学习偏好",
+      "questions": [
+        {{"id": 1, "type": "scale", "stem": "我更喜欢通过例子来理解新概念", "options": ["1", "2", "3", "4", "5"], "required": true}}
+      ]
+    }},
+    {{
+      "title": "前测知识",
+      "description": "请选择最符合你现状的答案",
+      "questions": [
+        {{"id": 2, "type": "single", "stem": "...", "options": ["A", "B", "C", "D"], "required": true}}
+      ]
+    }}
+  ],
+  "estimated_minutes": 5
+}}""",
 }
 
 
