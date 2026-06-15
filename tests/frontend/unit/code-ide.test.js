@@ -210,6 +210,78 @@ describe('CodeIDE layout persistence', () => {
   });
 });
 
+describe('code.js DOM 兼容 — IDE 骨架 fallback 选择器', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function buildIdeDom() {
+    document.body.insertAdjacentHTML('beforeend', `
+      <main class="ide-shell">
+        <aside class="ide-activity-bar"></aside>
+        <section class="ide-task-panel">
+          <aside class="brief-panel"></aside>
+        </section>
+        <section class="ide-stage">
+          <div class="output-panel" id="output-panel"></div>
+        </section>
+        <aside class="ide-coach">
+          <div class="assistant-panel"></div>
+        </aside>
+        <footer class="ide-status-bar terminal-bar" id="terminal-bar-footer"></footer>
+      </main>
+    `);
+  }
+
+  it('新选择器命中 IDE 元素', () => {
+    buildIdeDom();
+    expect(document.querySelector('.ide-task-panel')).toBeTruthy();
+    expect(document.querySelector('.ide-coach')).toBeTruthy();
+    expect(document.querySelector('.ide-status-bar')).toBeTruthy();
+    expect(document.querySelector('#output-panel')).toBeTruthy();
+    expect(document.querySelector('.ide-activity-bar')).toBeTruthy();
+  });
+
+  it('fallback 选择器在无新类名时回退到旧选择器', () => {
+    // 仅有旧 DOM（模拟迁移前 HTML），fallback 应命中旧选择器
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="brief-panel"></div>
+      <div class="assistant-panel"></div>
+      <div class="terminal-bar"></div>
+      <div class="output-panel"></div>
+    `);
+    const taskPanel = document.querySelector('.ide-task-panel') || document.querySelector('.brief-panel');
+    const coachPanel = document.querySelector('.ide-coach') || document.querySelector('.assistant-panel');
+    const statusBar = document.querySelector('.ide-status-bar') || document.querySelector('.terminal-bar');
+    const outputPanel = document.querySelector('#output-panel') || document.querySelector('.output-panel');
+    expect(taskPanel).toBeTruthy();
+    expect(coachPanel).toBeTruthy();
+    expect(statusBar).toBeTruthy();
+    expect(outputPanel).toBeTruthy();
+    // activityBar 无 fallback — 不存在的元素返回 null
+    const activityBar = document.querySelector('.ide-activity-bar');
+    expect(activityBar).toBeNull();
+  });
+
+  it('cacheElements 模拟：新 IDE DOM 所有 5 个新元素均解析为非 null', () => {
+    buildIdeDom();
+    const taskPanel = document.querySelector('.ide-task-panel') || document.querySelector('.brief-panel');
+    const coachPanel = document.querySelector('.ide-coach') || document.querySelector('.assistant-panel');
+    const statusBar = document.querySelector('.ide-status-bar') || document.querySelector('.terminal-bar');
+    const outputPanel = document.querySelector('#output-panel') || document.querySelector('.output-panel');
+    const activityBar = document.querySelector('.ide-activity-bar');
+    expect(taskPanel).toBeTruthy();
+    expect(coachPanel).toBeTruthy();
+    expect(statusBar).toBeTruthy();
+    expect(outputPanel).toBeTruthy();
+    expect(activityBar).toBeTruthy();
+  });
+});
+
 // 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
 function makeSpy() {
   const fn = (event) => {

@@ -475,7 +475,11 @@ const state = {
 const elements = {};
 
 document.addEventListener('DOMContentLoaded', () => {
-    cacheElements();
+    try {
+        cacheElements();
+    } catch (err) {
+        console.warn('cacheElements 部分元素未找到，继续初始化', err);
+    }
     if (!elements.codeInput) {
         return;
     }
@@ -548,6 +552,13 @@ function cacheElements() {
     elements.saveIndicator = document.getElementById('save-indicator');
     elements.editorStatusBar = document.getElementById('editor-status-bar');
     elements.outputMeta = document.getElementById('output-meta');
+
+    // IDE 骨架兼容：新选择器 → 旧选择器 fallback
+    elements.taskPanel = document.querySelector('.ide-task-panel') || document.querySelector('.brief-panel');
+    elements.coachPanel = document.querySelector('.ide-coach') || document.querySelector('.assistant-panel');
+    elements.statusBar = document.querySelector('.ide-status-bar') || document.querySelector('.terminal-bar');
+    elements.outputPanel = document.querySelector('#output-panel') || document.querySelector('.output-panel');
+    elements.activityBar = document.querySelector('.ide-activity-bar');
 }
 
 function bindEvents() {
