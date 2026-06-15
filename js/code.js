@@ -1391,6 +1391,7 @@ async function typeCodeToEditor(code, options = {}) {
         const size = currentChar === '\n' ? 1 : chunkSize + Math.floor(Math.random() * 3);
         const nextIndex = Math.min(code.length, index + size);
         editor.value += code.slice(index, nextIndex);
+        if (options.handle) options.handle.setValue(editor.value);
         index = nextIndex;
         updateLineNumbers();
         editor.scrollTop = editor.scrollHeight;
@@ -1404,6 +1405,7 @@ async function typeCodeToEditor(code, options = {}) {
         }
     }
 
+    document.dispatchEvent(new CustomEvent('code-typing-done', { detail: { code } }));
     return ticket === state.typingTicket;
 }
 
@@ -2918,3 +2920,6 @@ window.switchPracticeMode = switchMode;
 window.requestNewCodingTask = function requestNewCodingTask() {
     return requestPersonalizedTask({ manual: true });
 };
+if (typeof window !== 'undefined') {
+    window.typeCodeToEditor = typeCodeToEditor;
+}

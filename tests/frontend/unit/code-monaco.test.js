@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 describe('CodeMonaco.load', () => {
   beforeEach(() => {
@@ -153,5 +154,102 @@ describe('CodeMonaco.create', () => {
     const { CodeMonaco } = await import('../../../js/code-monaco.js');
     const detached = document.createElement('textarea');
     expect(() => CodeMonaco.create(detached)).toThrow(/must be attached/);
+  });
+});
+
+describe('typeCodeToEditor Monaco integration', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it('传入 handle 时,完成打字后触发 code-typing-done 事件 + 同步 setValue', async () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div id="overlay" style="display:none"></div>
+      <textarea id="code-input"></textarea>
+      <div id="line-numbers"></div>
+      <div id="output-content"></div>
+      <div id="status-lines"></div>
+      <div id="status-chars"></div>
+      <div id="status-todos"></div>
+      <div id="status-cursor"></div>
+      <div id="status-font"></div>
+      <div id="save-indicator"></div>
+      <div id="editor-status-bar"></div>
+      <div id="output-meta"></div>
+      <div id="assistant-subtitle"></div>
+      <div id="status-badge"></div>
+      <div id="status-text"></div>
+      <div id="assistant-quick-actions"></div>
+      <div id="message-container"></div>
+      <div id="assistant-input"></div>
+      <div id="send-btn"></div>
+      <div id="terminal-state"><span></span><span></span></div>
+      <div id="terminal-runtime"></div>
+      <div id="terminal-mode"></div>
+      <div id="terminal-token"></div>
+      <div id="terminal-cpu"></div>
+    `);
+    const setValueCalls = [];
+    const fakeEditor = {
+      setValue: (v) => setValueCalls.push(v),
+      getValue: () => '',
+      onDidChangeModelContent: () => ({ dispose: () => {} }),
+      dispose: () => {},
+    };
+    window.monaco = { editor: { create: () => fakeEditor } };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('code-input'));
+
+    // 加载 js/code.js 到当前 jsdom 中，使 window.typeCodeToEditor 可用。
+    // code.js 是纯脚本（非 ESM），jsdom 默认不执行 appendChild 注入的 <script>，
+    // 且 code.js 依赖 DOMContentLoaded 才执行 cacheElements()。
+    // 这里用 vm.runInContext 模拟脚本执行，并手动调用 cacheElements()。
+    // vm context 需要补齐 code.js 引用的全局（CustomEvent / Event 等），
+    // 这些在真实浏览器中由 window 提供。
+    const codeSrc = fs.readFileSync(
+      path.resolve(__dirname, '../../../js/code.js'),
+      'utf8',
+    );
+    const ctx = {
+      window,
+      document,
+      console,
+      setTimeout,
+      clearTimeout,
+      setInterval,
+      clearInterval,
+      CustomEvent,
+      Event,
+      requestAnimationFrame: window.requestAnimationFrame || ((cb) => setTimeout(cb, 0)),
+    };
+    ctx.window.document = document;
+    ctx.window.console = console;
+    vm.createContext(ctx);
+    vm.runInContext(codeSrc, ctx);
+    // 真实页面在 DOMContentLoaded 时调用 cacheElements()，
+    // jsdom 不会自动 fire DOMContentLoaded，所以手动调用。
+    vm.runInContext('cacheElements()', ctx);
+
+    expect(typeof window.typeCodeToEditor).toBe('function');
+
+    let done = false;
+    let doneDetail = null;
+    document.addEventListener('code-typing-done', (e) => {
+      done = true;
+      doneDetail = e.detail;
+    });
+
+    await window.typeCodeToEditor('print(1)\n', { handle });
+
+    expect(done).toBe(true);
+    expect(doneDetail).toBeTruthy();
+    expect(doneDetail.code).toBe('print(1)\n');
+    expect(setValueCalls.length).toBeGreaterThan(0);
+    // 最后一次 setValue 应包含完整代码（打字结束时的状态）
+    expect(setValueCalls[setValueCalls.length - 1]).toBe('print(1)\n');
+
+    handle.dispose();
   });
 });
