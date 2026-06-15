@@ -92,6 +92,36 @@ describe('CodeIDE', () => {
   });
 });
 
+describe('CodeIDE resizer', () => {
+  it('attachResizer 拖拽时回调传入新宽度', () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="ide-shell">
+        <aside class="ide-activity-bar">x</aside>
+        <div class="ide-stage" style="position:relative">
+          <aside class="ide-coach" style="width:360px"></aside>
+          <div class="ide-resizer" data-target=".ide-coach" style="cursor:ew-resize;position:absolute;right:0;top:0;bottom:0;width:4px"></div>
+        </div>
+      </div>
+    `);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    const resizer = document.querySelector('.ide-resizer');
+    const coach = document.querySelector('.ide-coach');
+    // jsdom 不计算布局，getBoundingClientRect() 始终返回 width:0。
+    // 桩一个渲染宽度，让 attachResizer 的 startWidth 能读到 360。
+    coach.getBoundingClientRect = () => ({ width: 360, height: 0, top: 0, left: 0, right: 360, bottom: 0, x: 0, y: 0 });
+    let captured = null;
+    ide.attachResizer(resizer, 240, 560, (w) => { captured = w; });
+
+    // simulate drag: mousedown -> mousemove -> mouseup
+    resizer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 200 }));
+
+    expect(captured).toBe(460); // 360 + (200-100)
+    expect(coach.style.width).toBe('460px');
+  });
+});
+
 // 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
 function makeSpy() {
   const fn = (event) => {

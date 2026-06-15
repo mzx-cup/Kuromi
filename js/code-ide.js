@@ -61,6 +61,35 @@ export class CodeIDE {
       }
     } catch {}
   }
+
+  attachResizer(handleEl, minWidth, maxWidth, onResize) {
+    let startX = 0;
+    let startWidth = 0;
+    let targetEl = null;
+    const targetSelector = handleEl.dataset.target;
+    if (targetSelector) {
+      targetEl = handleEl.closest('.ide-shell')?.querySelector(targetSelector)
+              || document.querySelector(targetSelector);
+    }
+
+    const onMove = (e) => {
+      const dx = e.clientX - startX;
+      const next = Math.max(minWidth, Math.min(maxWidth, startWidth + dx));
+      if (targetEl) targetEl.style.width = `${next}px`;
+      onResize(next);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    handleEl.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      startX = e.clientX;
+      startWidth = targetEl ? targetEl.getBoundingClientRect().width : 0;
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
 }
 
 if (typeof window !== 'undefined') {
