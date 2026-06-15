@@ -135,6 +135,17 @@ export function create(textareaEl, opts = {}) {
       });
       return { dispose: () => sub.dispose() };
     },
+    bindShortcuts: (handlers) => {
+      const fire = () => { if (handlers && typeof handlers.run === 'function') handlers.run(); };
+      const disposables = [
+        editor.addCommand(monaco.KeyCode.F5, fire),
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyR, fire),
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, fire),
+      ].filter(Boolean);
+      return {
+        dispose: () => { disposables.forEach(d => { try { d?.dispose?.(); } catch {} }); },
+      };
+    },
     dispose: () => {
       if (disposed) return;
       disposed = true;

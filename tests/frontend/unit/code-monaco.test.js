@@ -420,3 +420,69 @@ describe('CodeMonaco.create onChange bridge', () => {
     handle.dispose();
   });
 });
+
+describe('CodeMonaco.create bindShortcuts', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it('bindShortcuts 注册 F5 / Ctrl+R / Ctrl+Enter 三条快捷键', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t3"></textarea>`);
+    const commands = [];
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      addCommand: vi.fn((keybinding, cb) => {
+        commands.push({ keybinding, cb });
+      }),
+      dispose: vi.fn(),
+    };
+    window.monaco = {
+      editor: { create: vi.fn(() => fakeEditor) },
+      KeyMod: { CtrlCmd: 2048 },
+      KeyCode: { F5: 116, Enter: 3, KeyR: 13 },
+    };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t3'));
+    const run = vi.fn();
+    const result = handle.bindShortcuts({ run });
+
+    // 三条快捷键都注册了
+    expect(commands.length).toBeGreaterThanOrEqual(3);
+    // 各注册回调都能触发 run
+    commands.forEach(({ cb }) => cb());
+    expect(run).toHaveBeenCalledTimes(commands.length);
+
+    // bindShortcuts 返回 { dispose } 句柄
+    expect(result).toBeTruthy();
+    expect(typeof result.dispose).toBe('function');
+
+    handle.dispose();
+  });
+
+  it('handlers.run 缺失时不抛错（safe no-op）', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t4"></textarea>`);
+    const commands = [];
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => ''),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      addCommand: vi.fn((keybinding, cb) => { commands.push({ keybinding, cb }); }),
+      dispose: vi.fn(),
+    };
+    window.monaco = {
+      editor: { create: vi.fn(() => fakeEditor) },
+      KeyMod: { CtrlCmd: 2048 },
+      KeyCode: { F5: 116, Enter: 3, KeyR: 13 },
+    };
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t4'));
+    const result = handle.bindShortcuts({});  // 故意不传 run
+    expect(() => commands.forEach(({ cb }) => cb())).not.toThrow();
+    expect(result.dispose).toBeDefined();
+    handle.dispose();
+  });
+});
