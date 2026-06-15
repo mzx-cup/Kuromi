@@ -175,6 +175,39 @@ describe('CodeIDE layout persistence', () => {
     expect(raw.panelWidths.coach).toBe(420);
     expect(raw.panelCollapsed.coach).toBe(true);
   });
+
+  it('setPanelWidth 忽略 NaN / 负数 / 0', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    ide.setPanelWidth('coach', NaN);
+    ide.setPanelWidth('coach', -10);
+    ide.setPanelWidth('coach', 0);
+    // All three calls are rejected before any persistLayout, so localStorage stays untouched.
+    expect(localStorage.getItem('code_ide_layout')).toBeNull();
+    expect(ide.panelWidths).toBeUndefined();
+  });
+
+  it('setPanelCollapsed 强制转布尔并派发 codeide:panel-collapse 事件', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    let received = null;
+    document.addEventListener('codeide:panel-collapse', (e) => { received = e.detail; });
+    ide.setPanelCollapsed('notes', 1);  // truthy
+    expect(received).toEqual({ panel: 'notes', collapsed: true });
+    ide.setPanelCollapsed('notes', 0);  // falsy
+    expect(received).toEqual({ panel: 'notes', collapsed: false });
+  });
+
+  it('restoreLayout 同时还原 panelWidths 和 panelCollapsed', () => {
+    localStorage.setItem('code_ide_layout', JSON.stringify({
+      panelWidths: { coach: 380 },
+      panelCollapsed: { notes: true },
+    }));
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    expect(ide.panelWidths).toEqual({ coach: 380 });
+    expect(ide.panelCollapsed).toEqual({ notes: true });
+  });
 });
 
 // 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
