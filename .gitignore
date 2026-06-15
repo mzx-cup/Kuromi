@@ -71,3 +71,6 @@ test-results/
 
 # 审计脚本产物 (audit scripts output)
 output/
+
+# E2E screenshots directory (keep folder, ignore PNGs)
+tests/frontend/e2e/__screenshots__/*.png

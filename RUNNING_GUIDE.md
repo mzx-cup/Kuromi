@@ -318,3 +318,35 @@ Agent 控制塔把 7+1 个后端 agent 的协作实时呈现到前端 `index.htm
 | caring_counselor | 苏语 | 0.0 | 0 苏格拉底（情绪场景） |
 
 切换身份：点击教师卡 → 5 头像浮窗 → 选一个。`build_system_prompt` 会按强度注入对应规则。
+
+---
+
+## 代码控制台 IDE 工作台（Sprint 1+）
+
+`html/code.html` 已升级为 IDE 四区骨架：
+
+- **活动栏**：题目 / 笔记 / 错题本 / AI 教练 / 设置
+- **中央舞台**：Monaco 编辑器 + Tab 化输出（运行/执行流/测试/回放）
+- **AI 教练侧栏**：可拖拽、可折叠、布局持久化
+- **状态栏**：Ln/Col / 语言 / 模式 / Token / 掌握度
+- **教练主动旁白**：5 事件触发（静默 / 重复错 / 接近完成 / 通过 / 连续挫败）
+
+### 前端模块
+
+| 文件 | 职责 |
+|------|------|
+| `css/code-ide.css` | IDE 专用样式（活动栏 / 侧栏 / Tab / 拖拽） |
+| `js/code-ide.js` | IDE 控制器（面板状态 / 拖拽 / 布局持久化） |
+| `js/code-monaco.js` | Monaco 封装（AMD 加载 / 实例 / 打字机 / 快捷键） |
+| `js/code-coach.js` | 教练旁白（5 事件检测 + UI 气泡） |
+| `js/code-output-tabs.js` | 输出面板 Tab 化 |
+
+### 开发
+
+- Monaco 通过 CDN 延迟加载（首屏不阻塞）
+- 单元测试：`npx vitest run tests/frontend/unit/`
+- E2E：`npx playwright test tests/frontend/e2e/code-ide-*.spec.js`
+
+### 主题
+
+100% 走 `css/tokens.css` 变量，6 套主题（dawn/forest/sakura/midnight/nebula/cyber）全部继承。
