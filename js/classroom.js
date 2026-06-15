@@ -242,66 +242,129 @@
                       .replace(/'/g, '&#039;');
         }
 
-        // ---- Init ----
+        // ---- Init (Phase 2: 4 阶段 banner) ----
 
         async init() {
-            this._renderInitBanner('正在加载课堂数据...', false);
-            this.loadData();
-            // 同步立即把标题/标题文案替换掉"课程加载中..."
-            this._updateCourseTitle();
+            // 阶段 0: 初始化 banner 系统
+            this._initBannerSys();
+
+            // 阶段 1: 拿 courseId
+            this._showInitBanner('正在加载课堂...', 'loading');
+            try { this.loadData(); } catch (e) { console.error('[classroom] loadData', e); }
+
             // Fallback: sessionStorage 被清时, 拿 URL ?course_id= 调 GET 兜底
             if (!this.courseData) {
-                const cid = (new URLSearchParams(location.search)).get('course_id');
+                const cid = (new URLSearchParams(location.search)).get('course_id') || this.courseId;
                 if (cid) {
                     try {
-                        this._renderInitBanner('正在从服务器拉取课程数据...', false);
+                        this._showInitBanner('正在从服务器拉取课程数据...', 'loading');
                         const r = await fetch('/api/v2/classroom/' + encodeURIComponent(cid), { headers: { 'Accept': 'application/json' } });
                         if (r.ok) {
                             const resp = await r.json();
-                            // 后端响应: { success, record: { ..., course_data: { ... }, courseId } }
                             const cd = (resp && resp.record && resp.record.course_data) || (resp && resp.course_data) || (resp && resp.record) || null;
                             if (cd && (cd.outlines || cd.slides_v2 || cd.bundle || cd.title)) {
                                 this.courseData = cd;
                                 if (!this.courseData.courseId) this.courseData.courseId = cid;
-                                // 同步同步 this.courseId 让后台轮询拿到
                                 this.courseId = this.courseData.courseId;
                                 try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
+                                this._showInitBanner('从服务器加载完成', 'ok');
+                            } else {
+                                this._showInitBanner('服务器返回的课程数据为空', 'error');
                             }
                         } else {
-                            console.warn('[classroom] fallback fetch HTTP', r.status);
+                            this._showInitBanner('服务器返回 HTTP ' + r.status, 'error');
                         }
                     } catch (e) {
-                        console.warn('[classroom] fallback fetch failed', e);
+                        this._showInitBanner('网络错误: ' + e.message, 'error');
                     }
                 }
+            } else {
+                this._showInitBanner('从缓存加载完成', 'ok');
+                if (!this.courseId && this.courseData.courseId) {
+                    this.courseId = this.courseData.courseId;
+                }
             }
+
+            // 阶段 2: 数据检测 — 没数据时显示显式 UI, 不再静默跳首页
             if (!this.courseData) {
-                this._renderInitBanner('未找到课堂数据，正在返回首页...', true);
-                alert('未找到课堂数据，正在返回首页...');
-                window.location.href = '/index.html';
+                this._showNoDataUI();
                 return;
             }
-            this._renderInitBanner('正在构建场景与渲染界面...', false);
+
+            // 阶段 3: 正常渲染 (每步 try/catch)
+            this._showInitBanner('正在构建场景...', 'loading');
             this._updateCourseTitle();
-            try { this.loadVoicePreference(); } catch (e) { console.error('[classroom] loadVoicePreference', e); }
-            try { this.buildScenes(); } catch (e) { console.error('[classroom] buildScenes', e); }
-            try { this.setupUI(); } catch (e) { console.error('[classroom] setupUI', e); }
-            try { this.bindEvents(); } catch (e) { console.error('[classroom] bindEvents', e); }
-            try { this.initVoiceSelector(); } catch (e) { console.error('[classroom] initVoiceSelector', e); }
-            try { this.initTTS(); } catch (e) { console.error('[classroom] initTTS', e); }
-            try { this.renderSceneSidebar(); } catch (e) { console.error('[classroom] renderSceneSidebar', e); }
-            try { this.renderScene(0); } catch (e) { console.error('[classroom] renderScene', e); }
-            try { this.updateNav(); } catch (e) { console.error('[classroom] updateNav', e); }
-            try { this.initTeacherAreaInteraction(); } catch (e) { console.error('[classroom] initTeacherAreaInteraction', e); }
-            try { this.loadSettings(); } catch (e) { console.error('[classroom] loadSettings', e); }
-            try { this.startEyeBlinkScheduler(); } catch (e) { console.error('[classroom] startEyeBlinkScheduler', e); }
-            try { this.startBackgroundPolling(); } catch (e) { console.error('[classroom] startBackgroundPolling', e); }
-            // 9 件套顶层 tab 渲染
-            try { this._renderNineTabs(); } catch (e) { console.error('[classroom] _renderNineTabs', e); }
-            try { this._bindNineTabs(); } catch (e) { console.error('[classroom] _bindNineTabs', e); }
-            // 清除 init banner
-            const banner = document.getElementById('xs-init-banner');
-            if (banner) banner.remove();
+            const stages = [
+                ['loadVoicePreference',   () => this.loadVoicePreference()],
+                ['buildScenes',           () => this.buildScenes()],
+                ['setupUI',               () => this.setupUI()],
+                ['bindEvents',            () => this.bindEvents()],
+                ['initVoiceSelector',     () => this.initVoiceSelector()],
+                ['initTTS',               () => this.initTTS()],
+                ['renderSceneSidebar',    () => this.renderSceneSidebar()],
+                ['renderScene(0)',        () => this.renderScene(0)],
+                ['updateNav',             () => this.updateNav()],
+                ['initTeacherArea',       () => this.initTeacherAreaInteraction()],
+                ['loadSettings',          () => this.loadSettings()],
+                ['startEyeBlinkScheduler', () => this.startEyeBlinkScheduler()],
+                ['startBackgroundPolling', () => this.startBackgroundPolling()],
+                ['_renderNineTabs',       () => this._renderNineTabs()],
+                ['_bindNineTabs',         () => this._bindNineTabs()],
+            ];
+            for (const [name, fn] of stages) {
+                try { await fn(); }
+                catch (e) { console.error('[classroom] stage ' + name, e); }
+            }
+            this._showInitBanner('课堂准备就绪', 'ok');
+        }
+
+        // ---- Banner 系统 ----
+
+        _initBannerSys() {
+            let el = document.getElementById('xs-init-banner');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'xs-init-banner';
+                el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 18px;font:600 14px/1.4 -apple-system,sans-serif;color:#fff;text-align:center;backdrop-filter:blur(8px);transition:opacity 0.3s ease;';
+                const header = document.querySelector('.classroom-header');
+                if (header) header.parentNode.insertBefore(el, header);
+                else document.body.prepend(el);
+            }
+            this._bannerEl = el;
+            if (this._bannerTimer) { clearTimeout(this._bannerTimer); this._bannerTimer = null; }
+        }
+
+        _showInitBanner(msg, level) {
+            const el = this._bannerEl;
+            if (!el) return;
+            if (this._bannerTimer) { clearTimeout(this._bannerTimer); this._bannerTimer = null; }
+            const colors = { loading: 'rgba(37,99,235,0.92)', ok: 'rgba(16,185,129,0.92)', error: 'rgba(220,38,38,0.92)' };
+            el.style.background = colors[level] || colors.loading;
+            el.style.opacity = '1';
+            el.textContent = msg;
+            if (level === 'ok') {
+                this._bannerTimer = setTimeout(() => {
+                    el.style.opacity = '0';
+                    this._bannerTimer = setTimeout(() => { if (el.parentNode) el.remove(); }, 350);
+                }, 1200);
+            }
+        }
+
+        _showNoDataUI() {
+            // 清除 banner
+            if (this._bannerEl && this._bannerEl.parentNode) this._bannerEl.remove();
+            // 注入占位 UI
+            const main = document.querySelector('.main-content');
+            if (!main) return;
+            const html = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:#e2e8f0;font:14px/1.5 -apple-system,sans-serif;padding:40px;">'
+                + '<div style="font-size:64px;">📭</div>'
+                + '<div style="font-size:18px;font-weight:600;">未找到课程数据</div>'
+                + '<div style="color:#94a3b8;">该课程可能尚未生成或已被清理</div>'
+                + '<div style="display:flex;gap:12px;margin-top:8px;">'
+                + '<a href="/index.html" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius-full,9999px);color:#fff;text-decoration:none;font-weight:500;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.14)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.08)\'"><i class="fas fa-home"></i> 回首页</a>'
+                + '<a href="/generation-preview.html" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,var(--openmaic-amber-500,#f59e0b),var(--openmaic-amber-400,#fbbf24));border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius-full,9999px);color:#fff;text-decoration:none;font-weight:600;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 8px 24px rgba(245,158,11,0.5)\'" onmouseout="this.style.boxShadow=\'none\'"><i class="fas fa-play"></i> 开始生成 9 件套</a>'
+                + '</div></div>';
+            main.innerHTML = html;
         }
 
         _updateCourseTitle() {
@@ -319,21 +382,7 @@
             return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
 
-        _renderInitBanner(msg, isError) {
-            try {
-                let el = document.getElementById('xs-init-banner');
-                if (!el) {
-                    el = document.createElement('div');
-                    el.id = 'xs-init-banner';
-                    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 18px;font:600 14px/1.4 -apple-system,sans-serif;color:#fff;text-align:center;backdrop-filter:blur(8px);';
-                    const header = document.querySelector('.classroom-header');
-                    if (header) header.parentNode.insertBefore(el, header);
-                    else document.body.prepend(el);
-                }
-                el.style.background = isError ? 'rgba(220,38,38,0.92)' : 'rgba(37,99,235,0.92)';
-                el.textContent = msg;
-            } catch (e) { /* ignore */ }
-        }
+        // _renderInitBanner 已废弃 (Phase 2), 由 _showInitBanner 替代
 
         // ============================================================
         // 9 件套顶层 tab 渲染 + 切换
@@ -360,6 +409,9 @@
                 this._renderExercisesPanel(get('exercises'));
                 // survey
                 this._renderSurveyPanel(get('survey'));
+
+                // Inject config gears into all panels
+                this._injectAllConfigGears();
 
                 // 默认激活 PPT tab (但抽屉默认关闭, 等用户点 FAB)
                 this._switchNineTab('ppt');
@@ -477,9 +529,203 @@
 
         _panelEl(name) { return document.querySelector('.xs-ct-panel[data-panel="' + name + '"]'); }
         _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-        _empty(name) {
+        _escAttr(s) { return String(s == null ? '' : s).replace(/[&"']/g, c => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c])); }
+        _bundleComponent(name) {
+            const b = (this.courseData && this.courseData.bundle) || {};
+            const c = b.components || {};
+            return c[name] || null;
+        }
+        _getAvailableComponents() {
+            const b = (this.courseData && this.courseData.bundle) || {};
+            const components = b.components || {};
+            const available = [];
+            for (const [key, val] of Object.entries(components)) {
+                if (val && (typeof val !== 'object' || Object.keys(val).length > 0)) {
+                    // Map internal names to display names
+                    const displayMap = {
+                        outline: '大纲', ppt: 'PPT', exercises: '习题', project: '项目',
+                        case_study: '案例', survey: '问卷', plan: '教案', graph: '图谱', radar: '雷达'
+                    };
+                    available.push({ key, label: displayMap[key] || key });
+                }
+            }
+            return available;
+        }
+        _renderRefPills(escapedText) {
+            // Replace [ref:xxx] with clickable pills
+            const refMap = {
+                outline: '📋', ppt: '📽', exercises: '✏️', project: '🛠',
+                case_study: '📖', survey: '📋', plan: '📝', graph: '🕸', radar: '📊',
+                case: '📖'
+            };
+            return escapedText.replace(/\[ref:(\w+)\]/g, (match, name) => {
+                const icon = refMap[name] || '📌';
+                const label = name === 'case_study' ? '案例' : name;
+                return '<span class="xs-ref-pill" data-ref="' + name + '" style="display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);border-radius:12px;padding:1px 8px;margin:0 2px;cursor:pointer;font-size:0.9em;white-space:nowrap;transition:background 0.2s" onmouseenter="this.style.background=\'rgba(59,130,246,0.4)\'" onmouseleave="this.style.background=\'rgba(59,130,246,0.2)\'">' + icon + ' ' + this._esc(label) + '</span>';
+            });
+        }
+        _md2html(text) {
+            if (!text) return '';
+            let html = String(text);
+            // Bold + italic
+            html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            // Inline code
+            html = html.replace(/`(.+?)`/g, '<code style="background:#1e293b;color:#e2e8f0;padding:1px 4px;border-radius:3px;font-family:Consolas,monospace;font-size:0.9em">$1</code>');
+            // Headings
+            html = html.replace(/^### (.+)$/gm, '<h5 style="margin:0.5em 0 0.2em">$1</h5>');
+            html = html.replace(/^## (.+)$/gm, '<h4 style="margin:0.5em 0 0.2em">$1</h4>');
+            html = html.replace(/^# (.+)$/gm, '<h3 style="margin:0.5em 0 0.2em">$1</h3>');
+            // Horizontal rule
+            html = html.replace(/^---$/gm, '<hr style="border-color:#334155;margin:0.5em 0">');
+            // Unordered lists
+            html = html.replace(/^[*-] (.+)$/gm, '<li style="margin-left:1.2em">$1</li>');
+            // Ordered lists
+            html = html.replace(/^\d+\. (.+)$/gm, '<li style="margin-left:1.2em">$1</li>');
+            // Line breaks
+            html = html.replace(/\n\n/g, '<br><br>');
+            html = html.replace(/\n/g, '<br>');
+            return html;
+        }
+        // ---- Per-component LLM config (localStorage) ----
+        _getComponentConfig(name) {
+            try {
+                const raw = localStorage.getItem('xs-component-config');
+                const cfg = raw ? JSON.parse(raw) : {};
+                return cfg[name] || {};
+            } catch (e) { return {}; }
+        }
+        _saveComponentConfig(name, config) {
+            try {
+                const raw = localStorage.getItem('xs-component-config');
+                const cfg = raw ? JSON.parse(raw) : {};
+                cfg[name] = config;
+                localStorage.setItem('xs-component-config', JSON.stringify(cfg));
+            } catch (e) {}
+        }
+        _injectAllConfigGears() {
+            const panels = ['outline', 'plan', 'graph', 'radar', 'project', 'case', 'exercises', 'survey'];
+            panels.forEach(name => this._injectConfigGear(name));
+        }
+        _injectConfigGear(name) {
+            const panel = this._panelEl(name);
+            if (!panel) return;
+            const header = panel.querySelector('.xs-ct-header');
+            if (!header || header.querySelector('.xs-ct-config-gear')) return;
+            const gearBtn = document.createElement('button');
+            gearBtn.className = 'xs-ct-config-gear';
+            gearBtn.innerHTML = '<i class="fas fa-cog"></i>';
+            gearBtn.title = '配置生成参数';
+            gearBtn.style.cssText = 'margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#94a3b8;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
+            const self = this;
+            gearBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                // Remove any existing dropdown
+                const existing = document.querySelector('.xs-ct-config-drop');
+                if (existing && existing.parentNode === header) {
+                    existing.remove(); return;
+                }
+                if (existing) existing.remove();
+                const cfg = self._getComponentConfig(name);
+                const AVAILABLE_MODELS = [
+                    { id: '', label: '默认 (全局)' },
+                    { id: 'deepseek-v3', label: 'DeepSeek V3' },
+                    { id: 'deepseek-r1', label: 'DeepSeek R1' },
+                    { id: 'gpt-4o', label: 'GPT-4o' },
+                    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
+                ];
+                const modelOpts = AVAILABLE_MODELS.map(m =>
+                    '<option value="' + m.id + '"' + (cfg.model === m.id ? ' selected' : '') + '>' + m.label + '</option>'
+                ).join('');
+                const drop = document.createElement('div');
+                drop.className = 'xs-ct-config-drop';
+                drop.style.cssText = 'position:absolute;top:100%;right:0;margin-top:4px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;z-index:100;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+                drop.innerHTML = ''
+                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">模型</div>'
+                    + '<select class="xs-ct-config-model" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:13px;margin-bottom:8px">' + modelOpts + '</select>'
+                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Prompt 模板 (留空=默认)</div>'
+                    + '<textarea class="xs-ct-config-prompt" rows="2" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:12px;resize:vertical" placeholder="自定义 prompt 模板...">' + self._esc(cfg.prompt_template || '') + '</textarea>'
+                    + '<div style="display:flex;gap:6px;margin-top:8px">'
+                    + '<button class="xs-ct-config-save" style="flex:1;background:#3b82f6;border:none;color:#fff;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px">保存</button>'
+                    + '<button class="xs-ct-config-close" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px">关闭</button>'
+                    + '</div>';
+                // Save button
+                drop.querySelector('.xs-ct-config-save').addEventListener('click', function () {
+                    const model = drop.querySelector('.xs-ct-config-model').value;
+                    const promptTemplate = drop.querySelector('.xs-ct-config-prompt').value.trim();
+                    const newCfg = {};
+                    if (model) newCfg.model = model;
+                    if (promptTemplate) newCfg.prompt_template = promptTemplate;
+                    self._saveComponentConfig(name, newCfg);
+                    drop.remove();
+                });
+                // Close button
+                drop.querySelector('.xs-ct-config-close').addEventListener('click', () => drop.remove());
+                // Click outside to close
+                setTimeout(() => {
+                    const closer = (ev) => {
+                        if (!drop.contains(ev.target) && ev.target !== gearBtn) {
+                            drop.remove();
+                            document.removeEventListener('click', closer);
+                        }
+                    };
+                    document.addEventListener('click', closer);
+                }, 10);
+                header.appendChild(drop);
+            });
+            header.appendChild(gearBtn);
+        }
+
+        _empty(name, opts) {
+            opts = opts || {};
             const p = this._panelEl(name);
-            if (p) p.innerHTML = '<div class="xs-ct-empty"><div class="xs-ct-empty-icon">📭</div><div class="xs-ct-empty-text">该模块尚未生成</div></div>';
+            if (!p) return;
+            const retryBtn = opts.canRetry
+                ? '<button class="xs-ct-retry-btn" data-retry="' + this._esc(name) + '"><i class="fas fa-redo"></i> 重新生成</button>'
+                : '';
+            p.innerHTML = '<div class="xs-ct-empty">'
+                + '<div class="xs-ct-empty-icon">📭</div>'
+                + '<div class="xs-ct-empty-text">' + this._esc(opts.reason || '该模块尚未生成') + '</div>'
+                + retryBtn
+                + '</div>';
+            if (opts.canRetry) {
+                const btn = p.querySelector('.xs-ct-retry-btn');
+                if (btn) btn.addEventListener('click', () => this._retryComponent(name));
+            }
+        }
+
+        async _retryComponent(name) {
+            if (!this.courseId) return;
+            const panel = this._panelEl(name);
+            if (panel) panel.innerHTML = '<div class="xs-ct-empty"><div class="xs-ct-empty-icon">⏳</div><div class="xs-ct-empty-text">正在重新生成...</div></div>';
+            try {
+                const outline = (this.courseData && this.courseData.bundle && this.courseData.bundle.components && this.courseData.bundle.components.outline) || {};
+                const slots = (this.courseData && this.courseData.slots) || {};
+                const compConfig = this._getComponentConfig(name);
+                const body = { outline, slots };
+                if (compConfig.model) body.model = compConfig.model;
+                if (compConfig.prompt_template) body.prompt_template = compConfig.prompt_template;
+                const r = await fetch('/api/v2/course/' + encodeURIComponent(this.courseId) + '/component/' + encodeURIComponent(name), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                const resp = await r.json();
+                const newComp = resp.payload || (resp.bundle && resp.bundle.components && resp.bundle.components[name]);
+                if (newComp) {
+                    this.courseData.bundle = this.courseData.bundle || { components: {} };
+                    this.courseData.bundle.components[name] = newComp;
+                    const rendererName = '_render' + name.charAt(0).toUpperCase() + name.slice(1) + 'Panel';
+                    if (typeof this[rendererName] === 'function') this[rendererName](newComp);
+                    try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
+                } else {
+                    throw new Error('服务器未返回组件数据');
+                }
+            } catch (e) {
+                this._empty(name, { canRetry: true, reason: '重试失败: ' + e.message });
+            }
         }
 
         _renderOutlinePanel(data) {
@@ -515,17 +761,31 @@
         _renderPlanPanel(data) {
             const p = this._panelEl('plan');
             if (!p) return;
-            if (!data) { this._empty('plan'); return; }
-            const kp = Array.isArray(data.key_points) ? data.key_points : [];
-            const obj = Array.isArray(data.objectives) ? data.objectives : [];
-            const methods = Array.isArray(data.methods) ? data.methods : [];
+            if (!data) { this._empty('plan', { canRetry: true, reason: '教案数据为空' }); return; }
+            // 兼容嵌套: data.plans[scene_id].objectives
+            let flat = data;
+            if (data.plans && typeof data.plans === 'object' && !Array.isArray(data.plans)) {
+                const sceneIds = Object.keys(data.plans);
+                const first = sceneIds.length ? data.plans[sceneIds[0]] : {};
+                flat = {
+                    objectives: first.objectives || [],
+                    key_points: first.key_points || [],
+                    methods: first.methods || [],
+                    duration_min: first.duration_min,
+                    blackboard: first.blackboard,
+                    _allPlans: data.plans,
+                };
+            }
+            const kp = Array.isArray(flat.key_points) ? flat.key_points : [];
+            const obj = Array.isArray(flat.objectives) ? flat.objectives : [];
+            const methods = Array.isArray(flat.methods) ? flat.methods : [];
             const html = [
                 '<div class="xs-ct-header"><div class="xs-ct-title">📝 教案</div></div>',
-                '<div class="xs-ct-section"><h4>🎯 教学目标</h4><ul>' + obj.map(o => '<li>' + this._esc(o) + '</li>').join('') + '</ul></div>',
-                '<div class="xs-ct-section"><h4>🔑 重点 / 难点</h4><ul>' + kp.map(k => '<li>' + this._esc(k) + '</li>').join('') + '</ul></div>',
-                '<div class="xs-ct-section"><h4>🧰 教学方法</h4><ul>' + methods.map(m => '<li>' + this._esc(m) + '</li>').join('') + '</ul></div>',
-                data.duration_min ? '<div class="xs-ct-section"><h4>⏱ 时长</h4><div>' + this._esc(String(data.duration_min)) + ' 分钟</div></div>' : '',
-                data.blackboard ? '<div class="xs-ct-section"><h4>📐 板书</h4><pre class="xs-ct-pre">' + this._esc(data.blackboard) + '</pre></div>' : '',
+                '<div class="xs-ct-section"><h4>🎯 教学目标</h4><ul>' + obj.map(o => '<li>' + this._md2html(o) + '</li>').join('') + '</ul></div>',
+                '<div class="xs-ct-section"><h4>🔑 重点 / 难点</h4><ul>' + kp.map(k => '<li>' + this._md2html(k) + '</li>').join('') + '</ul></div>',
+                '<div class="xs-ct-section"><h4>🧰 教学方法</h4><ul>' + methods.map(m => '<li>' + this._md2html(m) + '</li>').join('') + '</ul></div>',
+                flat.duration_min ? '<div class="xs-ct-section"><h4>⏱ 时长</h4><div>' + this._esc(String(flat.duration_min)) + ' 分钟</div></div>' : '',
+                flat.blackboard ? '<div class="xs-ct-section"><h4>📐 板书</h4><div class="xs-ct-md">' + this._md2html(flat.blackboard) + '</div></div>' : '',
             ].join('');
             p.innerHTML = html;
         }
@@ -534,47 +794,159 @@
             const p = this._panelEl('graph');
             if (!p) return;
             if (!data || !(data.nodes && data.nodes.length)) { this._empty('graph'); return; }
-            // 简单 SVG 渲染: 圆圈节点 + 直线
+            const self = this;
             const nodes = data.nodes || [];
             const edges = data.edges || [];
             const W = 720, H = 360;
+            // Build adjacency for highlighting
+            const adj = {};
+            nodes.forEach(n => { adj[n.id] = []; });
+            edges.forEach(e => {
+                const a = e.from || e.from_id; const b = e.to || e.to_id;
+                if (adj[a] !== undefined) adj[a].push(b);
+                if (adj[b] !== undefined) adj[b].push(a);
+            });
             const layers = {};
             nodes.forEach(n => { const L = n.layer || 0; (layers[L] = layers[L] || []).push(n); });
             const pos = {};
-            Object.keys(layers).sort().forEach((L, li) => {
+            const allLayers = Object.keys(layers).sort((a, b) => Number(a) - Number(b));
+            allLayers.forEach((L, li) => {
                 const arr = layers[L];
                 arr.forEach((n, ni) => {
                     const x = ((ni + 1) / (arr.length + 1)) * (W - 80) + 40;
-                    const y = ((li + 1) / (Object.keys(layers).length + 1)) * (H - 60) + 30;
+                    const y = ((li + 1) / (allLayers.length + 1)) * (H - 60) + 30;
                     pos[n.id] = { x: x, y: y };
                 });
             });
             const nodeR = 22;
             const svg = [
-                '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg">',
+                '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg" id="graph-svg">',
                 '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker></defs>',
+                '<g class="xs-ct-graph-edges">',
                 edges.map(e => {
                     const a = pos[e.from || e.from_id]; const b = pos[e.to || e.to_id];
                     if (!a || !b) return '';
-                    return '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>';
+                    const eid = 'ge-' + (e.from || e.from_id) + '-' + (e.to || e.to_id);
+                    return '<line id="' + eid + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>';
                 }).join(''),
+                '</g>',
+                '<g class="xs-ct-graph-nodes">',
                 nodes.map(n => {
                     const xy = pos[n.id] || { x: 40, y: 40 };
-                    const fill = n.layer === 0 ? '#fbbf24' : (n.layer === 1 ? '#22d3ee' : '#a78bfa');
-                    return '<g class="xs-ct-node">'
+                    const fill = Number(n.layer) === 0 ? '#fbbf24' : (Number(n.layer) === 1 ? '#22d3ee' : '#a78bfa');
+                    return '<g class="xs-ct-node" data-node-id="' + n.id + '" data-layer="' + (n.layer || 0) + '" style="cursor:pointer">'
                         + '<circle cx="' + xy.x + '" cy="' + xy.y + '" r="' + nodeR + '" fill="' + fill + '" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>'
-                        + '<text x="' + xy.x + '" y="' + (xy.y + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">' + this._esc(n.label || n.id) + '</text>'
+                        + '<text x="' + xy.x + '" y="' + (xy.y + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">' + self._esc(n.label || n.id) + '</text>'
                         + '</g>';
                 }).join(''),
+                '</g>',
                 '</svg>',
             ].join('');
-            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">🕸 知识图谱</div></div>' + svg;
+            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">🕸 知识图谱</div>'
+                + '<button class="xs-ct-graph-reset" style="margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12px">↺ 重置</button>'
+                + '</div>'
+                + '<div class="xs-ct-graph-viewport" style="overflow:hidden;position:relative;border-radius:8px;background:#0f172a;min-height:320px">'
+                + '<div class="xs-ct-graph-inner" style="transform-origin:0 0;transition:transform 0.1s ease-out">'
+                + svg
+                + '</div>'
+                + '<div class="xs-ct-graph-tooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:12px;pointer-events:none;z-index:10"></div>'
+                + '</div>';
+
+            // Zoom & pan
+            const viewport = p.querySelector('.xs-ct-graph-viewport');
+            const inner = p.querySelector('.xs-ct-graph-inner');
+            const tooltip = p.querySelector('.xs-ct-graph-tooltip');
+            let scale = 1, tx = 0, ty = 0;
+            let isPanning = false, panStart = { x: 0, y: 0 };
+
+            function applyTransform() {
+                inner.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+            }
+
+            viewport.addEventListener('wheel', function (e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                scale = Math.max(0.5, Math.min(3, scale + delta));
+                applyTransform();
+            });
+
+            viewport.addEventListener('mousedown', function (e) {
+                if (e.target.closest('.xs-ct-node')) return; // Don't pan on node click
+                isPanning = true;
+                panStart = { x: e.clientX - tx, y: e.clientY - ty };
+                viewport.style.cursor = 'grabbing';
+            });
+            window.addEventListener('mouseup', function () {
+                isPanning = false;
+                if (viewport) viewport.style.cursor = 'grab';
+            });
+            window.addEventListener('mousemove', function (e) {
+                if (!isPanning) return;
+                tx = e.clientX - panStart.x;
+                ty = e.clientY - panStart.y;
+                applyTransform();
+            });
+            viewport.style.cursor = 'grab';
+
+            // Node click → highlight neighbors
+            const svgEl = p.querySelector('#graph-svg');
+            p.querySelectorAll('.xs-ct-node').forEach(g => {
+                g.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const nid = this.dataset.nodeId;
+                    const neighbors = adj[nid] || [];
+                    // Reset all
+                    svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
+                    svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
+                    // Highlight selected
+                    const myCircle = this.querySelector('circle');
+                    if (myCircle) { myCircle.setAttribute('stroke', '#fbbf24'); myCircle.setAttribute('stroke-width', '3'); }
+                    neighbors.forEach(nb => {
+                        const nbG = svgEl.querySelector('.xs-ct-node[data-node-id="' + nb + '"] circle');
+                        if (nbG) { nbG.setAttribute('stroke', '#22d3ee'); nbG.setAttribute('stroke-width', '2.5'); }
+                    });
+                    edges.forEach(e => {
+                        const a = e.from || e.from_id; const b = e.to || e.to_id;
+                        if (a === nid || b === nid) {
+                            const line = svgEl.querySelector('#ge-' + a + '-' + b);
+                            if (line) { line.setAttribute('stroke', '#f59e0b'); line.setAttribute('stroke-width', '2.5'); }
+                        }
+                    });
+                    // Tooltip
+                    const rect = this.getBoundingClientRect();
+                    const vpRect = viewport.getBoundingClientRect();
+                    const node = nodes.find(n => n.id === nid);
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (rect.left - vpRect.left + 40) + 'px';
+                    tooltip.style.top = (rect.top - vpRect.top - 10) + 'px';
+                    tooltip.innerHTML = '<b>' + self._esc(node ? (node.label || node.id) : nid) + '</b><br>关联: ' + neighbors.length + ' 个节点';
+                });
+            });
+
+            // Reset button
+            p.querySelector('.xs-ct-graph-reset').addEventListener('click', function () {
+                scale = 1; tx = 0; ty = 0;
+                applyTransform();
+                svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
+                svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
+                tooltip.style.display = 'none';
+            });
+
+            // Click outside nodes hides tooltip
+            svgEl.addEventListener('click', function (e) {
+                if (!e.target.closest('.xs-ct-node')) {
+                    tooltip.style.display = 'none';
+                    svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
+                    svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
+                }
+            });
         }
 
         _renderRadarPanel(data) {
             const p = this._panelEl('radar');
             if (!p) return;
             if (!data) { this._empty('radar'); return; }
+            const self = this;
             const dims = [
                 { key: 'knowledge_mastery', label: '知识掌握' },
                 { key: 'code_skill', label: '代码能力' },
@@ -588,19 +960,109 @@
             const cx = 180, cy = 180, R = 130;
             const ang = (i) => (i / N) * Math.PI * 2 - Math.PI / 2;
             const pt = (i, v) => ({ x: cx + Math.cos(ang(i)) * (R * (v / max)), y: cy + Math.sin(ang(i)) * (R * (v / max)) });
-            const points = dims.map((d, i) => { const v = Number(data[d.key] || 0); return { ...d, v: v, p: pt(i, v) }; });
-            const polygon = points.map(p => p.p.x + ',' + p.p.y).join(' ');
-            const grid = [0.25, 0.5, 0.75, 1].map(scale => dims.map((_, i) => { const x = cx + Math.cos(ang(i)) * (R * scale); const y = cy + Math.sin(ang(i)) * (R * scale); return x + ',' + y; }).join(' ')).map(poly => '<polygon points="' + poly + '" fill="none" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>').join('');
-            const axes = dims.map((d, i) => { const x = cx + Math.cos(ang(i)) * R; const y = cy + Math.sin(ang(i)) * R; const lx = cx + Math.cos(ang(i)) * (R + 22); const ly = cy + Math.sin(ang(i)) * (R + 22); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x + '" y2="' + y + '" stroke="rgba(148,163,184,0.3)"/><text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">' + this._esc(d.label) + ' (' + Math.round(points[i].v) + ')</text>'; }).join('');
-            const cards = points.map(d => '<div class="xs-ct-radar-card"><div class="xs-ct-radar-label">' + this._esc(d.label) + '</div><div class="xs-ct-radar-value">' + Math.round(d.v) + '<span>/100</span></div></div>').join('');
-            const svg = '<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg">'
-                + grid
-                + axes
-                + '<polygon points="' + polygon + '" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="2"/>'
-                + points.map(p => '<circle cx="' + p.p.x + '" cy="' + p.p.y + '" r="4" fill="#fbbf24" stroke="#fff" stroke-width="1.5"/>').join('')
-                + '</svg>';
-            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">📊 课前雷达</div></div>'
-                + '<div class="xs-ct-radar-wrap">' + svg + '<div class="xs-ct-radar-cards">' + cards + '</div></div>';
+
+            // Store initial values
+            const initValues = {};
+            dims.forEach(d => { initValues[d.key] = Number(data[d.key] || 0); });
+            let values = { ...initValues };
+
+            function buildSvg() {
+                const points = dims.map((d, i) => {
+                    const v = values[d.key] || 0;
+                    return { ...d, v: v, p: pt(i, v) };
+                });
+                const polygon = points.map(p => p.p.x + ',' + p.p.y).join(' ');
+                const grid = [0.25, 0.5, 0.75, 1].map(scale => dims.map((_, i) => { const x = cx + Math.cos(ang(i)) * (R * scale); const y = cy + Math.sin(ang(i)) * (R * scale); return x + ',' + y; }).join(' ')).map(poly => '<polygon points="' + poly + '" fill="none" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>').join('');
+                const axes = dims.map((d, i) => { const x = cx + Math.cos(ang(i)) * R; const y = cy + Math.sin(ang(i)) * R; const lx = cx + Math.cos(ang(i)) * (R + 22); const ly = cy + Math.sin(ang(i)) * (R + 22); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x + '" y2="' + y + '" stroke="rgba(148,163,184,0.3)"/><text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">' + self._esc(d.label) + ' (' + Math.round(points[i].v) + ')</text>'; }).join('');
+                return grid + axes
+                    + '<polygon points="' + polygon + '" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="2"/>'
+                    + points.map((p, i) => '<circle class="xs-ct-radar-dot" data-dim-idx="' + i + '" cx="' + p.p.x + '" cy="' + p.p.y + '" r="6" fill="#fbbf24" stroke="#fff" stroke-width="2" style="cursor:grab"/>').join('');
+            }
+
+            function buildCards() {
+                return dims.map(d => '<div class="xs-ct-radar-card">'
+                    + '<div class="xs-ct-radar-label">' + self._esc(d.label) + '</div>'
+                    + '<div class="xs-ct-radar-value"><input class="xs-ct-radar-input" data-dim="' + d.key + '" type="number" min="0" max="100" value="' + Math.round(values[d.key] || 0) + '" style="width:50px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:4px;text-align:center;font-size:18px"><span>/100</span></div>'
+                    + '</div>').join('');
+            }
+
+            function refreshUI() {
+                const svgEl = p.querySelector('.xs-ct-radar-svg');
+                if (svgEl) svgEl.innerHTML = buildSvg();
+                const cardsEl = p.querySelector('.xs-ct-radar-cards');
+                if (cardsEl) cardsEl.innerHTML = buildCards();
+                bindEvents();
+            }
+
+            function updateDot(i, value) {
+                values[dims[i].key] = Math.max(0, Math.min(max, value));
+                refreshUI();
+                // Persist to courseData
+                if (self.courseData && self.courseData.bundle && self.courseData.bundle.components && self.courseData.bundle.components.radar) {
+                    self.courseData.bundle.components.radar[dims[i].key] = values[dims[i].key];
+                }
+            }
+
+            function bindEvents() {
+                // Drag dots
+                p.querySelectorAll('.xs-ct-radar-dot').forEach(dot => {
+                    let dragging = false;
+                    dot.addEventListener('mousedown', function (e) {
+                        e.preventDefault();
+                        dragging = true;
+                        dot.style.cursor = 'grabbing';
+                    });
+                    window.addEventListener('mousemove', function (e) {
+                        if (!dragging) return;
+                        const svgRect = p.querySelector('.xs-ct-radar-svg').getBoundingClientRect();
+                        const mx = e.clientX - svgRect.left;
+                        const my = e.clientY - svgRect.top;
+                        const svgW = svgRect.width;
+                        const svgH = svgRect.height;
+                        const viewX = (mx / svgW) * 360;
+                        const viewY = (my / svgH) * 360;
+                        const i = parseInt(dot.dataset.dimIdx);
+                        const a = ang(i);
+                        // Project mouse to the radial axis
+                        const dx = viewX - cx;
+                        const dy = viewY - cy;
+                        const proj = dx * Math.cos(a) + dy * Math.sin(a);
+                        const dist = Math.max(0, Math.min(R, proj));
+                        const newVal = (dist / R) * max;
+                        updateDot(i, newVal);
+                    });
+                    window.addEventListener('mouseup', function () {
+                        if (dragging) {
+                            dragging = false;
+                            dot.style.cursor = 'grab';
+                        }
+                    });
+                });
+                // Card input changes
+                p.querySelectorAll('.xs-ct-radar-input').forEach(inp => {
+                    inp.addEventListener('change', function () {
+                        const key = this.dataset.dim;
+                        const idx = dims.findIndex(d => d.key === key);
+                        if (idx >= 0) updateDot(idx, parseInt(this.value) || 0);
+                    });
+                });
+                // Reset button
+                const resetBtn = p.querySelector('.xs-ct-radar-reset');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function () {
+                        values = { ...initValues };
+                        refreshUI();
+                    });
+                }
+            }
+
+            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">📊 课前雷达</div>'
+                + '<button class="xs-ct-radar-reset" style="margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12px">↺ 重置</button>'
+                + '</div>'
+                + '<div class="xs-ct-radar-wrap">'
+                + '<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg xs-ct-radar-svg">' + buildSvg() + '</svg>'
+                + '<div class="xs-ct-radar-cards">' + buildCards() + '</div>'
+                + '</div>';
         }
 
         _renderProjectPanel(data) {
@@ -644,22 +1106,99 @@
             if (!data) { this._empty('exercises'); return; }
             const qs = Array.isArray(data.questions) ? data.questions : [];
             if (!qs.length) { this._empty('exercises'); return; }
+            const self = this;
             p.innerHTML = [
                 '<div class="xs-ct-header"><div class="xs-ct-title">✏️ 习题 (共 ' + qs.length + ' 题)</div></div>',
-                '<ol class="xs-ct-exercises">',
+                '<div class="xs-ct-exercises">',
                 qs.map((q, i) => {
                     const typeLabel = ({ single: '单选', multi: '多选', fill: '填空', code: '编程', short: '简答' }[q.type] || q.type || '题');
-                    const opts = Array.isArray(q.options) ? q.options : [];
-                    const optsHtml = opts.length ? '<ul class="xs-ct-ex-opts">' + opts.map((o, oi) => '<li><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span>' + this._esc(o) + '</li>').join('') + '</ul>' : '';
-                    return '<li class="xs-ct-ex-item">'
-                        + '<div class="xs-ct-ex-head"><span class="xs-ct-ex-num">' + (i + 1) + '</span><span class="xs-ct-ex-type">' + this._esc(typeLabel) + '</span></div>'
-                        + '<div class="xs-ct-ex-stem">' + this._esc(q.stem || '') + '</div>'
-                        + optsHtml
-                        + (q.answer ? '<details class="xs-ct-ex-answer"><summary>查看答案</summary><div>' + this._esc(String(q.answer)) + '</div></details>' : '')
-                        + '</li>';
+                    const qid = 'ex-q-' + i;
+                    let inputHtml = '';
+                    if (q.type === 'single') {
+                        const opts = Array.isArray(q.options) ? q.options : [];
+                        inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
+                            '<label class="xs-ct-ex-opt"><input type="radio" name="' + qid + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
+                        ).join('') + '</div>';
+                    } else if (q.type === 'multi') {
+                        const opts = Array.isArray(q.options) ? q.options : [];
+                        inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
+                            '<label class="xs-ct-ex-opt"><input type="checkbox" name="' + qid + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
+                        ).join('') + '</div>';
+                    } else if (q.type === 'fill') {
+                        inputHtml = '<input class="xs-ct-ex-fill" data-qid="' + qid + '" placeholder="输入答案...">';
+                    } else {
+                        inputHtml = '<textarea class="xs-ct-ex-textarea" data-qid="' + qid + '" rows="3" placeholder="输入答案..."></textarea>';
+                    }
+                    return '<div class="xs-ct-ex-item" data-qidx="' + i + '">'
+                        + '<div class="xs-ct-ex-head"><span class="xs-ct-ex-num">' + (i + 1) + '</span><span class="xs-ct-ex-type">' + self._esc(typeLabel) + '</span></div>'
+                        + '<div class="xs-ct-ex-stem">' + self._esc(q.stem || '') + '</div>'
+                        + inputHtml
+                        + '<button class="xs-ct-ex-submit" data-qidx="' + i + '" data-qid="' + qid + '" data-type="' + (q.type || 'single') + '" data-answer="' + self._escAttr(String(q.answer || '')) + '">提交</button>'
+                        + '<div class="xs-ct-ex-feedback" id="fb-' + qid + '" style="display:none"></div>'
+                        + '</div>';
                 }).join(''),
-                '</ol>',
+                '</div>',
             ].join('');
+            // Bind submit buttons
+            p.querySelectorAll('.xs-ct-ex-submit').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const qidx = parseInt(this.dataset.qidx);
+                    const type = this.dataset.type;
+                    const correctAnswer = this.dataset.answer;
+                    const fb = p.querySelector('#fb-' + this.dataset.qid);
+                    let userAnswer = '';
+                    if (type === 'single') {
+                        const checked = p.querySelector('input[name="' + this.dataset.qid + '"]:checked');
+                        userAnswer = checked ? checked.value : '';
+                    } else if (type === 'multi') {
+                        const checked = p.querySelectorAll('input[name="' + this.dataset.qid + '"]:checked');
+                        userAnswer = Array.from(checked).map(c => c.value).sort().join('');
+                    } else if (type === 'fill') {
+                        userAnswer = (p.querySelector('input[data-qid="' + this.dataset.qid + '"]') || {}).value || '';
+                    } else {
+                        userAnswer = (p.querySelector('textarea[data-qid="' + this.dataset.qid + '"]') || {}).value || '';
+                    }
+                    if (!userAnswer) { fb.style.display = 'block'; fb.innerHTML = '<span style="color:#f59e0b">请先作答</span>'; return; }
+                    // Local grading for single/multi/fill
+                    const normUser = String(userAnswer).trim().toLowerCase();
+                    const normCorrect = String(correctAnswer).trim().toLowerCase();
+                    const isCorrect = normUser === normCorrect;
+                    fb.style.display = 'block';
+                    if (isCorrect) {
+                        fb.innerHTML = '<span style="color:#10b981">✅ 回答正确!</span>';
+                    } else if (type === 'code' || type === 'short') {
+                        // Open-ended: send to chat for AI grading
+                        fb.innerHTML = '<span style="color:#f59e0b">⏳ 提交AI评判中...</span>';
+                        self._gradeOpenEnded(qidx, userAnswer, fb);
+                        return;
+                    } else {
+                        fb.innerHTML = '<span style="color:#ef4444">❌ 不正确，正确答案: ' + self._esc(correctAnswer) + '</span>';
+                    }
+                    // Disable after submission
+                    this.disabled = true;
+                    const inputs = p.querySelectorAll('[data-qidx="' + qidx + '"] input, [data-qidx="' + qidx + '"] textarea');
+                    inputs.forEach(inp => { inp.disabled = true; });
+                });
+            });
+        }
+
+        async _gradeOpenEnded(qidx, userAnswer, fbEl) {
+            try {
+                const resp = await fetch('/api/v2/course/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: this.courseId,
+                        message: '请评判这道题的回答:\n题目: ' + (this._bundleComponent('exercises')?.questions?.[qidx]?.stem || '') + '\n学生答案: ' + userAnswer + '\n请给出评分(1-10)和简要反馈。',
+                        role: 'exercise_grader',
+                    }),
+                });
+                const data = await resp.json();
+                const reply = data.reply || '评判结果不可用';
+                fbEl.innerHTML = '<div class="xs-ct-grade-result">' + self._md2html(reply) + '</div>';
+            } catch (e) {
+                fbEl.innerHTML = '<span style="color:#ef4444">评判请求失败，请重试</span>';
+            }
         }
 
         _renderSurveyPanel(data) {
@@ -668,17 +1207,60 @@
             if (!data) { this._empty('survey'); return; }
             const sections = Array.isArray(data.sections) ? data.sections : [];
             if (!sections.length) { this._empty('survey'); return; }
+            const self = this;
+            const surveyId = 'survey-form-' + Date.now();
             p.innerHTML = [
                 '<div class="xs-ct-header"><div class="xs-ct-title">📋 课前问卷</div></div>',
-                sections.map((s, i) => {
+                '<form class="xs-ct-survey-form" id="' + surveyId + '">',
+                sections.map((s, si) => {
                     const qs = Array.isArray(s.questions) ? s.questions : [];
-                    return '<div class="xs-ct-section"><h4>' + (i + 1) + '. ' + this._esc(s.title || '问卷') + '</h4><ol>'
-                        + qs.map(q => '<li><div class="xs-ct-ex-stem">' + this._esc(q.stem || q.question || '') + '</div>'
-                            + (Array.isArray(q.options) ? '<ul class="xs-ct-ex-opts">' + q.options.map((o, oi) => '<li><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span>' + this._esc(o) + '</li>').join('') + '</ul>' : '')
-                            + '</li>').join('')
-                        + '</ol></div>';
+                    return '<div class="xs-ct-section"><h4>' + (si + 1) + '. ' + self._esc(s.title || '问卷') + '</h4>'
+                        + qs.map((q, qi) => {
+                            const name = 'survey-' + si + '-' + qi;
+                            const qType = q.type || 'single';
+                            let inputHtml = '';
+                            const opts = Array.isArray(q.options) ? q.options : [];
+                            if (qType === 'single') {
+                                inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
+                                    '<label class="xs-ct-ex-opt"><input type="radio" name="' + name + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
+                                ).join('') + '</div>';
+                            } else if (qType === 'multi') {
+                                inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
+                                    '<label class="xs-ct-ex-opt"><input type="checkbox" name="' + name + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
+                                ).join('') + '</div>';
+                            } else {
+                                inputHtml = '<textarea class="xs-ct-ex-textarea" name="' + name + '" rows="2" placeholder="请输入..."></textarea>';
+                            }
+                            return '<div class="xs-ct-ex-item"><div class="xs-ct-ex-stem">' + self._esc(q.stem || q.question || '') + '</div>' + inputHtml + '</div>';
+                        }).join('')
+                        + '</div>';
                 }).join(''),
+                '<button type="submit" class="xs-ct-survey-submit">提交问卷</button>',
+                '<div class="xs-ct-survey-done" style="display:none;text-align:center;padding:16px;color:#10b981;font-weight:600">✅ 问卷已提交，感谢你的反馈!</div>',
+                '</form>',
             ].join('');
+            // Handle submission
+            const form = p.querySelector('#' + surveyId);
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const results = {};
+                    const formData = new FormData(form);
+                    for (const [key, value] of formData.entries()) {
+                        if (!results[key]) results[key] = [];
+                        results[key].push(value);
+                    }
+                    // Flatten single-value arrays
+                    for (const k in results) {
+                        if (results[k].length === 1) results[k] = results[k][0];
+                    }
+                    sessionStorage.setItem('xs-survey-' + (self.courseId || ''), JSON.stringify({ results, submittedAt: Date.now() }));
+                    // Show done message, disable form
+                    form.querySelectorAll('input,textarea,button').forEach(el => { el.disabled = true; });
+                    form.querySelector('.xs-ct-survey-submit').style.display = 'none';
+                    form.querySelector('.xs-ct-survey-done').style.display = 'block';
+                });
+            }
         }
 
         loadData() {
@@ -743,67 +1325,9 @@
             }
         }
 
-        // ---- 后台轮询：增量加载新幻灯片 ----
+        // ---- 后台轮询：已弃用 (Phase 2 — 9 件套一次性交付所有 slides) ----
         startBackgroundPolling() {
-            if (!this.courseId) {
-                console.warn('[classroom] No courseId, skipping background polling');
-                return;
-            }
-            console.log('[classroom] Starting background polling for courseId:', this.courseId);
-            const self = this;
-            this.pollingInterval = setInterval(async function() {
-                try {
-                    const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
-                    if (!resp.ok) {
-                        console.warn('[classroom] Poll response not OK:', resp.status);
-                        return;
-                    }
-                    const data = await resp.json();
-                    console.log('[classroom] Poll result:', {
-                        pendingV2: (data.pending_slides_v2 || []).length,
-                        pendingQuiz: (data.pending_quiz_data || []).length,
-                        pendingExercise: (data.pending_exercise_data || []).length,
-                        isComplete: data.is_complete,
-                        generatedCount: data.generated_count,
-                        totalOutlines: data.total_outlines
-                    });
-                    // 处理 pending slides / quiz / exercise
-                    const hasPending = (data.pending_slides_v2 && data.pending_slides_v2.length > 0) ||
-                                       (data.pending_quiz_data && data.pending_quiz_data.length > 0) ||
-                                       (data.pending_exercise_data && data.pending_exercise_data.length > 0);
-                    if (hasPending) {
-                        const addedCount = self.addNewScenes(data);
-                        // 消费成功后通知后端清空已消费的 slides，避免重复轮询
-                        if (addedCount > 0 && data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
-                            try {
-                                const consumedTitles = data.pending_slides_v2.map(function(s) { return s.title; });
-                                await fetch(`/api/v2/course/${self.courseId}/slides/consume`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ consumed_slide_titles: consumedTitles })
-                                });
-                                console.log('[classroom] Consumed pending slides, titles:', consumedTitles);
-                            } catch (consumeErr) {
-                                console.warn('[classroom] Failed to consume pending slides:', consumeErr);
-                            }
-                        }
-                    }
-                    // 只有确认 total_outlines > 0 且 generated_count >= total_outlines 时才认为真正完成
-                    // 避免数据库无记录时错误返回 is_complete=True 导致停止轮询
-                    const trulyComplete = data.is_complete && data.total_outlines > 0 && data.generated_count >= data.total_outlines;
-                    if (trulyComplete) {
-                        console.log('[classroom] Generation truly complete (generated_count >= total_outlines), stopping poll');
-                        clearInterval(self.pollingInterval);
-                        // 生成完成后保存到本地历史，确保最近课堂能显示
-                        self._saveToRecentHistory();
-                        // 同步完整课程数据到服务器
-                        self._persistCourseData();
-                        return;
-                    }
-                } catch (e) {
-                    console.warn('[classroom] Polling error:', e);
-                }
-            }, 5000);
+            // No-op: 9-bundle delivers all slides upfront, no incremental polling needed
         }
 
         addNewScenes(data) {
@@ -1813,9 +2337,14 @@
                 }
                 // Single card with valid theme: keep it, no cycling needed
                 if (cards.length === 1) return cards;
-                // Two or more cards: always cycle themes for visual variety
+                // 后端已强制注入 colorTheme: 尊重后端, 跳过轮换
+                const allFromBackend = cards.every(c => c.colorTheme && this.COLOR_THEMES.indexOf(c.colorTheme) !== -1);
+                if (allFromBackend) return cards;
+                // 兜底: 老数据/未注入, 才走 i % 8 轮换
                 for (let i = 0; i < cards.length; i++) {
-                    cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
+                    if (!cards[i].colorTheme) {
+                        cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
+                    }
                 }
                 return cards;
             },
@@ -8034,6 +8563,7 @@
                         user_input: text,
                         history: this.chatHistory.slice(-10),
                         agent_role: agentId ? (this.agentTeam.find(a => a.id === agentId)?.role || 'AI助教') : 'AI助教',
+                        available_components: this._getAvailableComponents(),
                     })
                 });
                 const data = await resp.json();
@@ -8090,7 +8620,16 @@
                 }
             }
 
-            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${this.escapeHtml(text)}</p>${linksHtml}</div>`;
+            const textWithRefs = this._renderRefPills(this.escapeHtml(text));
+            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${textWithRefs}</p>${linksHtml}</div>`;
+            // Bind ref pill click events
+            div.querySelectorAll('.xs-ref-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    const refName = pill.dataset.ref;
+                    this._switchNineTab(refName);
+                    this._openFloatingBundle();
+                });
+            });
             this.chatMessages.appendChild(div);
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
@@ -8334,6 +8873,27 @@
             // Markdown无序列表 - 行首的 - 或 * 列表项
             html = html.replace(/<br>\s*[-*]\s+(.*?)(?=<br>|$)/g, '<br><span class="list-bullet">•</span> $1');
 
+            // [ref:xxx] → 可点击标签
+            const self = this;
+            html = html.replace(/\[ref:(\w+)\]/g, function (match, name) {
+                const icon = ({ outline: '📋', ppt: '📽', exercises: '✏️', project: '🛠', case_study: '📖', survey: '📋', plan: '📝', graph: '🕸', radar: '📊' })[name] || '📌';
+                return '<span class="xs-ref-pill" data-ref="' + name + '" style="display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);border-radius:12px;padding:1px 8px;margin:0 2px;cursor:pointer;font-size:0.9em;white-space:nowrap;transition:background 0.2s" onmouseenter="this.style.background=\'rgba(59,130,246,0.4)\'" onmouseleave="this.style.background=\'rgba(59,130,246,0.2)\'">' + icon + ' ' + name + '</span>';
+            });
+            // Bind events to ref pills after insertion
+            setTimeout(() => {
+                if (this.discussionMessages) {
+                    this.discussionMessages.querySelectorAll('.xs-ref-pill').forEach(pill => {
+                        if (!pill._refBound) {
+                            pill._refBound = true;
+                            pill.addEventListener('click', () => {
+                                this._switchNineTab(pill.dataset.ref);
+                                this._openFloatingBundle();
+                            });
+                        }
+                    });
+                }
+            }, 50);
+
             // 清理多余br
             html = html.replace(/(<br>)+/g, '<br>');
             html = html.replace(/^<br>/, '');
@@ -8360,9 +8920,10 @@
             div.className = `discussion-message ${roleClass}`;
 
             if (type === 'system') {
+                const formattedSys = this._formatDiscussionText(cleanText);
                 div.innerHTML = `
                     <div class="message-content" style="margin-left: 0;">
-                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${this.escapeHtml(cleanText)}</div>
+                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${formattedSys}</div>
                     </div>
                 `;
             } else if (type === 'user') {

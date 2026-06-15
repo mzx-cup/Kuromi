@@ -637,8 +637,16 @@
             }),
         });
         if (!resp.ok) {
-            const err = await resp.json().catch(() => ({ detail: `HTTP ${resp.status}` }));
-            throw new Error('保存失败: ' + (err.detail || err.message || `HTTP ${resp.status}`));
+            let err = {};
+            try { err = await resp.json(); } catch (_) { err = { detail: `HTTP ${resp.status}` }; }
+            // 后端可能返回 Pydantic ValidationError 数组形式的 detail, 把 object 序列化为可读文本
+            let detail = err.detail;
+            if (Array.isArray(detail)) {
+                detail = detail.map(d => `${(d.loc || []).join('.')}: ${d.msg}`).join('; ');
+            } else if (detail && typeof detail === 'object') {
+                detail = JSON.stringify(detail);
+            }
+            throw new Error('保存失败: ' + (detail || err.message || `HTTP ${resp.status}`));
         }
         const result = await resp.json();
         if (!result || !result.success || !result.course_id) {

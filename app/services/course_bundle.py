@@ -116,7 +116,12 @@ async def _gen_outline(ctx: dict, _outline: dict[str, Any]) -> dict:
 
 
 async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
-    """对每个 scene 调用 LLM 生成 2-3 页 slide_v2 幻灯片, 合并进 PPTArtifact.slides."""
+    """对每个 scene 并行生成 slides — 混合策略:
+    - 60% 走 MiniMax PPT provider → OpenMAIC 格式 (elements/background/theme)
+    - 40% 走 LLM slide_content_v2 → 卡片格式
+    **后端硬约束**: 每张幻灯片强制指定 layout + style, 覆盖 LLM/Provider 的随机选择, 保证多样性.
+    """
+    import random as _random
     scenes = _outline.get("scenes", []) or []
     if not scenes:
         logger.warning("[course_bundle] ppt 无场景, 返回空 slides")
@@ -125,7 +130,87 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
     all_slides: list[dict] = []
     slide_titles: list[str] = []
     sem = asyncio.Semaphore(BUNDLE_CONCURRENCY)
+    minimax_ratio = 0.6  # 60% MiniMax, 40% LLM
 
+    # 强制轮换池 — 与 minimax.STYLE_THEMES 保持同步
+    DESIGN_STYLES = [
+        "dark-tech", "modern", "minimal", "professional",
+        "ocean-glass", "sunset-warm", "forest-green", "midnight-violet",
+    ]
+    LAYOUT_POOL = [
+        "title-only", "header-content", "two-column", "code-showcase",
+        "terminal-style", "concept-code", "api-doc", "step-by-step",
+        "grid-cards", "comparison", "spotlight-focus", "kinetic-type",
+        "isometric-cards", "orbit-ring", "gradient-split", "dark-header",
+        "circle-radial", "stair-step", "quote-wall", "info-graphic",
+        "edu-welcome", "edu-definition", "edu-example", "edu-summary",
+    ]
+    STYLE_TO_COLOR = {
+        "dark-tech": "blue", "modern": "yellow", "minimal": "green",
+        "professional": "purple", "ocean-glass": "cyan", "sunset-warm": "orange",
+        "forest-green": "emerald", "midnight-violet": "violet",
+    }
+
+    def _pick_style_for_index(idx: int, total: int) -> str:
+        """均匀分布风格, 用质数步长避免连续相同"""
+        n = len(DESIGN_STYLES)
+        return DESIGN_STYLES[(idx * 7) % n]
+
+    def _pick_layout_for_index(idx: int, total: int) -> str:
+        """均匀分布布局, 用质数步长"""
+        n = len(LAYOUT_POOL)
+        return LAYOUT_POOL[(idx * 11) % n]
+
+    # ---- MiniMax 路径 ----
+    async def _minimax_slide(scene: dict, idx: int) -> tuple[int, list[dict]]:
+        async with sem:
+            scene_title = scene.get("title", "")
+            scene_desc = scene.get("description", "")
+            key_points = scene.get("key_points", [])
+            forced_style = _pick_style_for_index(idx, len(scenes))
+            forced_layout = _pick_layout_for_index(idx, len(scenes))
+            forced_color = STYLE_TO_COLOR.get(forced_style, "blue")
+            try:
+                from app.services.ppt.minimax import get_ppt_provider
+                from app.services.ppt.types import PPTGenerationRequest
+                provider = get_ppt_provider()
+                # 从 key_points 构造 content items
+                content_items = []
+                if scene_desc:
+                    content_items.append({"sub_title": "", "text": scene_desc})
+                for kp in key_points[:5]:
+                    content_items.append({"sub_title": "", "text": kp})
+                req = PPTGenerationRequest(
+                    course_title=_outline.get("title", ctx["course_title"]),
+                    scene_title=scene_title,
+                    scene_id=str(idx),
+                    scene_type="slide",
+                    content=content_items,
+                    design_style=forced_style,
+                    layout_hint=forced_layout,
+                )
+                result = await provider.generate(req)
+                if result.success and result.slide:
+                    slide = result.slide
+                    # **硬约束覆盖**: 即便 provider 返回不同 layout, 也强制替换
+                    slide["layoutType"] = forced_layout
+                    slide["layout_type"] = forced_layout
+                    # theme 必须是 dict (SlideV2.theme: Optional[dict]), 不能是字符串
+                    # 同时保留 _theme 字符串供前端快速读取
+                    slide["theme"] = {"name": forced_style, "primary": "#1E40AF"}
+                    slide["_theme"] = forced_style
+                    slide["_color_hint"] = forced_color
+                    slide["_scene_title"] = scene_title
+                    slide["_via"] = "minimax"
+                    return idx, [slide]
+                else:
+                    logger.warning(f"[course_bundle] MiniMax ppt scene '{scene_title}' 失败: {result.error}, 回退 LLM")
+                    return await _llm_slide(scene, idx, forced_style, forced_layout, forced_color)
+            except Exception as e:
+                logger.warning(f"[course_bundle] MiniMax ppt scene '{scene_title}' 异常: {e}, 回退 LLM")
+                return await _llm_slide(scene, idx, forced_style, forced_layout, forced_color)
+
+    # ---- LLM 路径 ----
     from pydantic import BaseModel, Field as PydField
 
     class _SlideContent(BaseModel):
@@ -138,7 +223,7 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
         image_prompt: str = ""
 
     class _Slide(BaseModel):
-        layoutType: str = "edu-keypoints"
+        layoutType: str = "two-column"
         title: str = ""
         content: list[_SlideContent] = PydField(default_factory=list)
         teacherActions: list[dict] = PydField(default_factory=list)
@@ -146,7 +231,12 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
     class _SceneSlides(BaseModel):
         slides: list[_Slide] = PydField(default_factory=list)
 
-    async def _one_scene(scene: dict, idx: int) -> tuple[int, list[dict]]:
+    async def _llm_slide(
+        scene: dict, idx: int,
+        forced_style: str | None = None,
+        forced_layout: str | None = None,
+        forced_color: str | None = None,
+    ) -> tuple[int, list[dict]]:
         async with sem:
             scene_title = scene.get("title", "")
             scene_desc = scene.get("description", "")
@@ -154,6 +244,14 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
             scene_type = scene.get("type", "slide")
             prev_title = scenes[idx - 1].get("title", "") if idx > 0 else ""
             next_title = scenes[idx + 1].get("title", "") if idx + 1 < len(scenes) else ""
+
+            # 若上层没传 (直接 LLM 路径), 自行强制
+            if forced_style is None:
+                forced_style = _pick_style_for_index(idx, len(scenes))
+            if forced_layout is None:
+                forced_layout = _pick_layout_for_index(idx, len(scenes))
+            if forced_color is None:
+                forced_color = STYLE_TO_COLOR.get(forced_style, "blue")
 
             variables: dict[str, Any] = {
                 "course_title": _outline.get("title", ctx["course_title"]),
@@ -165,20 +263,40 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
                 "next_outline_title": next_title or "(无, 本场景为末节)",
                 "pdf_text": "",
                 "web_search_context": "",
-                "available_layouts": "edu-welcome, edu-definition, edu-keypoints, edu-example, edu-summary, edu-programming-concept, title-only, hero-center, header-content, two-column, grid-cards, numbered-list, chapter-divider",
+                "available_layouts": ", ".join(LAYOUT_POOL),
+                "_hint_color": forced_color,
+                "_hint_layout": forced_layout,
+                "_hint_style": forced_style,
             }
             try:
                 instance = await llm_json("slide_content_v2", variables, _SceneSlides, temperature=0.55, max_retries=2)
                 slides = instance.model_dump().get("slides", []) or []
             except LLMJsonError as e:
-                logger.warning(f"[course_bundle] ppt scene '{scene_title}' LLM 失败, 走兜底: {e}")
-                slides = _fallback_slides_for_scene(scene_title, scene_desc, key_points)
+                logger.warning(f"[course_bundle] ppt LLM scene '{scene_title}' 失败, 走兜底: {e}")
+                slides = _fallback_slides_for_scene(scene_title, scene_desc, key_points, forced_layout, forced_color)
 
+            # **硬约束覆盖**: 不论 LLM 选什么, 后端强制 layout + color
             for s in slides:
+                s["layoutType"] = forced_layout
+                s["layout_type"] = forced_layout
+                # 覆盖所有 content[].colorTheme
+                for c in s.get("content", []) or []:
+                    if isinstance(c, dict):
+                        c["colorTheme"] = forced_color
                 s.setdefault("_scene_title", scene_title)
+                s["_via"] = "llm"
+                s["_theme"] = forced_style
+                s["_color_hint"] = forced_color
             return idx, slides
 
-    tasks = [_one_scene(s, i) for i, s in enumerate(scenes) if isinstance(s, dict)]
+    # ---- 调度: 60% MiniMax, 40% LLM ----
+    tasks = []
+    for i, s in enumerate(scenes):
+        if not isinstance(s, dict):
+            continue
+        use_minimax = _random.random() < minimax_ratio
+        tasks.append(_minimax_slide(s, i) if use_minimax else _llm_slide(s, i))
+
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     for raw in results:
@@ -193,11 +311,14 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
                 slide_titles.append(title)
 
     if not all_slides:
-        # 最后兜底: 给每个 scene 至少 1 页
-        for scene in scenes:
+        for idx_fb, scene in enumerate(scenes):
             if isinstance(scene, dict):
+                fb_style = _pick_style_for_index(idx_fb, len(scenes))
+                fb_layout = _pick_layout_for_index(idx_fb, len(scenes))
+                fb_color = STYLE_TO_COLOR.get(fb_style, "blue")
                 fallback = _fallback_slides_for_scene(
-                    scene.get("title", ""), scene.get("description", ""), scene.get("key_points", [])
+                    scene.get("title", ""), scene.get("description", ""), scene.get("key_points", []),
+                    fb_layout, fb_color,
                 )
                 all_slides.extend(fallback)
 
@@ -208,22 +329,27 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
     ).model_dump()
 
 
-def _fallback_slides_for_scene(title: str, description: str, key_points: list) -> list[dict]:
-    """LLM 全挂时的 PPT 兜底页."""
+def _fallback_slides_for_scene(
+    title: str, description: str, key_points: list,
+    forced_layout: str = "edu-keypoints", forced_color: str = "blue",
+) -> list[dict]:
+    """LLM 全挂时的 PPT 兜底页. 接受强制 layout/color 以保持多样性."""
     key_items = [f"<li>{p}</li>" for p in (key_points or [])[:4]]
     html = f"<h2>{title or '章节'}</h2><p>{description or '本节内容'}</p><ul>{''.join(key_items)}</ul>"
     return [{
-        "layoutType": "edu-keypoints",
+        "layoutType": forced_layout,
+        "layout_type": forced_layout,
         "title": title or "章节",
         "content": [{
             "subTitle": title or "章节",
             "bullets": (key_points or ["核心概念"])[:4],
             "narration": f"本节我们来学习{title or '新内容'}。{description or ''}",
             "icon": "book",
-            "colorTheme": "blue",
+            "colorTheme": forced_color,
         }],
         "teacherActions": [],
         "_scene_title": title,
+        "_color_hint": forced_color,
     }]
 
 

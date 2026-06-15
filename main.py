@@ -7607,99 +7607,7 @@ def login_v2(body: LoginRequestV2, http_request: Request):
 # 课程生成API (OpenMAIC风格)
 # ============================================================
 
-@app.post("/api/v2/course/generate/stream")
-async def generate_course_stream(request: CourseGenerationRequest):
-    """
-    流式生成课程（LLM驱动版）
-    使用 CourseGenerator 进行真实的大模型调用，通过SSE返回进度
-    """
-    from course_generator import get_course_generator
-    generator = get_course_generator()
-
-    queue = asyncio.Queue(maxsize=500)
-
-    async def background_generate():
-        try:
-            async for event in generator.generate_course(
-                requirement=request.requirement,
-                student_id=request.student_id or "",
-                enable_image=request.enable_image,
-                enable_tts=request.enable_tts,
-                enable_video=request.enable_video,
-                voice_id=request.voice_id,
-                agent_mode=request.agent_mode,
-                interactive_mode=request.interactive_mode,
-                enable_pdf_upload=request.enable_pdf_upload,
-                pdf_text=request.pdf_text,
-                enable_web_search=request.enable_web_search,
-                enable_minimax_ppt=request.enable_minimax_ppt,
-                minimax_ppt_ratio=request.minimax_ppt_ratio,
-                teacher_name=request.teacher_name,
-                teacher_avatar=request.teacher_avatar,
-                teacher_profession=request.teacher_profession,
-                teacher_personality=request.teacher_personality,
-                teacher_teaching_style=request.teacher_teaching_style,
-                teacher_icon=request.teacher_icon,
-                teacher_system_prompt=request.teacher_system_prompt,
-                teacher_greeting=request.teacher_greeting,
-            ):
-                try:
-                    queue.put_nowait(event)
-                except asyncio.QueueFull:
-                    # 丢弃最旧的事件，保留最新的
-                    try:
-                        queue.get_nowait()
-                        queue.put_nowait(event)
-                    except (asyncio.QueueEmpty, asyncio.QueueFull):
-                        pass
-        except Exception as e:
-            logger.exception("Background generation error")
-            try:
-                queue.put_nowait({
-                    "type": "error",
-                    "error": str(e),
-                    "progress": 0,
-                })
-            except asyncio.QueueFull:
-                pass
-        finally:
-            # 发送结束标记
-            try:
-                queue.put_nowait({"type": "__done__"})
-            except asyncio.QueueFull:
-                pass
-
-    # 启动后台生成任务（不跟随SSE连接生命周期）
-    asyncio.create_task(background_generate())
-
-    async def event_generator():
-        try:
-            while True:
-                try:
-                    event = await asyncio.wait_for(queue.get(), timeout=30.0)
-                except asyncio.TimeoutError:
-                    # 发送心跳防止超时断开
-                    yield sse_event("status", {"progress": 0, "data": {"msg": "生成中..."}})
-                    continue
-
-                if event.get("type") == "__done__":
-                    break
-
-                event_type = event.pop("type", "message")
-                yield sse_event(event_type, event)
-        except asyncio.CancelledError:
-            # 客户端断开连接，不要取消后台任务
-            raise
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        }
-    )
+# [Phase 2] 旧 /api/v2/course/generate/stream SSE 端点已废弃 — 统一走 /api/v2/course/bundle/generate/stream (9 件套)
 
 
 # ============================================================
@@ -7896,8 +7804,25 @@ async def export_course_pptx(data: dict[str, Any] = {}):
     try:
         from pptx_export import PPTXExporter
         course_data = CourseData(**data)
+
+        # 如果 slides_v2 为空但 bundle 里有 ppt slides, 注入到 slides_v2
+        if not course_data.slides_v2:
+            bundle = data.get("bundle", {})
+            components = bundle.get("components", {}) if isinstance(bundle, dict) else {}
+            ppt_component = components.get("ppt", {}) if isinstance(components, dict) else {}
+            bundle_slides = ppt_component.get("slides", []) if isinstance(ppt_component, dict) else []
+            if bundle_slides:
+                from state import SlideV2
+                hydrated = []
+                for s in bundle_slides:
+                    try:
+                        hydrated.append(SlideV2(**s))
+                    except Exception:
+                        pass
+                course_data.slides_v2 = hydrated
+
         exporter = PPTXExporter()
-        pptx_bytes = exporter.export(course_data)
+        pptx_bytes = exporter.export_v2(course_data)
         filename = f"{course_data.title or '课程'}.pptx"
         encoded_filename = requests.utils.quote(filename)
 
@@ -7987,6 +7912,20 @@ async def _sse_event_chat(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+def _build_component_hint(request) -> str:
+    """构建组件引用提示, 引导 LLM 在回答中用 [ref:xxx] 标记关联组件."""
+    comps = getattr(request, 'available_components', None) or []
+    if not comps:
+        return ""
+    lines = ["", "【可用课程模块 — 回答中若涉及以下模块请用 [ref:模块名] 标记】"]
+    for c in comps:
+        key = c.get('key', '') if isinstance(c, dict) else str(c)
+        label = c.get('label', key) if isinstance(c, dict) else key
+        lines.append(f"  - {key} ({label})")
+    lines.append("例如: '请参考课程大纲 [ref:outline] 中的知识点来理解这道题 [ref:exercises]'")
+    return "\n".join(lines)
+
+
 @app.post("/api/v2/course/chat")
 async def course_chat(request: CourseChatRequest):
     """课堂内AI问答（基于当前课程上下文，支持多教师角色）"""
@@ -8064,7 +8003,9 @@ async def course_chat(request: CourseChatRequest):
 课程大纲: {course_context[:500]}
 {web_context}
 
-请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
+请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。
+
+{_build_component_hint(request)}"""
 
             history_str = "\n".join(
                 f"{'学生' if m.get('role') == 'user' else '教师'}: {m.get('content', '')}"
@@ -8077,6 +8018,11 @@ async def course_chat(request: CourseChatRequest):
 {web_context}
 请回答学生问题，简洁有教育意义。"""
         user_prompt = request.user_input
+
+    # 注入组件引用提示 (所有路径)
+    component_hint = _build_component_hint(request)
+    if component_hint:
+        system_prompt += "\n" + component_hint
 
     try:
         result = await call_llm_async(
@@ -8456,76 +8402,13 @@ async def save_course(request: CourseSaveRequest):
     return {"success": True, "course_id": course_id}
 
 
-@app.get("/api/v2/course/{course_id}")
-async def get_course(course_id: str):
-    """获取指定课程"""
-    filepath = _get_course_path(course_id)
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Course not found")
-    with open(filepath, "r", encoding="utf-8") as f:
-        return json.load(f)
+# [Phase 2] 旧 GET /api/v2/course/{course_id} 已废弃 — 统一走 GET /api/v2/classroom/{course_id}
+
+# [Phase 2] 旧 GET /slides/pending 已废弃 — 9 件套一次性交付所有 slides
+
+# [Phase 2] 旧 POST /slides/consume 已废弃 — 9 件套一次性交付所有 slides
 
 
-@app.get("/api/v2/course/{course_id}/slides/pending")
-async def get_pending_slides(course_id: str):
-    """获取课程待生成的幻灯片（用于后台增量生成）"""
-    status = get_course_generation_status(course_id)
-    if not status:
-        # 如果数据库中没有记录，说明生成状态尚未保存或已清理，返回 is_complete=False 让前端继续轮询
-        # 同时检查本地存储中是否有该课程的文件作为后备判断
-        courses_dir = os.path.join(STORAGE_DIR, "courses")
-        course_file = os.path.join(courses_dir, f"{course_id}.json")
-        has_local_file = os.path.exists(course_file)
-        return {
-            "pending_slides": [],
-            "pending_slides_v2": [],
-            "pending_quiz_data": [],
-            "pending_exercise_data": [],
-            "generated_count": 0,
-            "total_outlines": 0,
-            "is_complete": has_local_file  # 只有本地文件存在时才认为已完成
-        }
-    return {
-        "pending_slides": [],
-        "pending_slides_v2": status.get("pending_slides_v2", []),
-        "pending_quiz_data": status.get("pending_quiz_data", []),
-        "pending_exercise_data": status.get("pending_exercise_data", []),
-        "generated_count": status.get("generated_count", 0),
-        "total_outlines": status.get("total_outlines", 0),
-        "is_complete": status.get("is_complete", False)
-    }
-
-
-@app.post("/api/v2/course/{course_id}/slides/consume")
-async def consume_pending_slides(course_id: str, request: Request):
-    """前端消费 pending slides 后调用，清空已消费的 slides"""
-    try:
-        body = await request.json()
-        consumed_slide_titles = body.get("consumed_slide_titles", [])
-    except Exception:
-        consumed_slide_titles = []
-
-    status = get_course_generation_status(course_id)
-    if not status:
-        return {"success": True, "message": "No status found"}
-
-    pending_v2 = status.get("pending_slides_v2", [])
-    if consumed_slide_titles:
-        # 根据 title 移除已消费的 slides
-        new_pending_v2 = [s for s in pending_v2 if s.get("title") not in consumed_slide_titles]
-    else:
-        # 如果没有提供具体消费的 titles，清空全部 pending（前端已自行合并）
-        new_pending_v2 = []
-
-    try:
-        update_course_generation_status(
-            course_id=course_id,
-            pending_slides_v2=new_pending_v2
-        )
-        return {"success": True, "removed_count": len(pending_v2) - len(new_pending_v2)}
-    except Exception as e:
-        logger.error(f"Failed to consume pending slides for {course_id}: {e}")
-        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/v2/course/list/{student_id}")
@@ -8809,6 +8692,13 @@ async def get_classroom(course_id: str):
             course_data = json.loads(raw) if isinstance(raw, str) else (raw or {})
         except Exception as e:
             print(f"[classroom GET] 解析 full_data 失败: {e}")
+    # Phase 2: 旧 course 没 bundle 时, 现场从旧字段合成
+    if course_data and not course_data.get("bundle"):
+        try:
+            from app.services.bundle_compat import synthesize_bundle_from_legacy
+            course_data["bundle"] = synthesize_bundle_from_legacy(course_data)
+        except Exception as e:
+            print(f"[classroom GET] bundle 合成失败: {e}")
     enriched = dict(record)
     enriched["course_data"] = course_data
     enriched.setdefault("courseId", record.get("course_id") or course_data.get("courseId"))

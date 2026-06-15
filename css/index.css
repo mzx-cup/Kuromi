@@ -2730,12 +2730,12 @@ html body .msg-bubble,
     max-height: 180px;
     overflow-y: auto;
     padding: 12px 16px;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.18));
     border-radius: 16px;
     font-size: 14px;
     line-height: 1.5;
-    color: var(--text-primary);
-    background: var(--surface-glass);
+    color: var(--text-body);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
     outline: none;
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     word-wrap: break-word;
@@ -2746,7 +2746,7 @@ html body .msg-bubble,
     scrollbar-color: var(--accent-bg) transparent;
     flex: none !important;
     box-shadow:
-        inset 0 1px 2px rgba(0,0,0,0.08),
+        inset 0 1px 2px color-mix(in oklch, var(--neutral-900, #0f172a) 8%, transparent),
         0 0 0 transparent;
     letter-spacing: 0.01em;
 }
@@ -2767,18 +2767,18 @@ html body .msg-bubble,
 }
 .notion-input:empty::before {
     content: attr(data-placeholder);
-    color: var(--text-tertiary);
+    color: var(--text-muted);
     font-size: 13px;
     letter-spacing: 0.01em;
     pointer-events: none;
 }
 .notion-input:focus {
-    background: var(--surface-glass);
-    border-color: rgba(168,85,247,0.4);
+    background: var(--surface-glass-hover, rgba(255, 255, 255, 0.7));
+    border-color: var(--border-glass-hover, color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 40%, transparent));
     box-shadow:
-        0 0 0 3px rgba(168,85,247,0.06),
-        0 0 25px rgba(168,85,247,0.06),
-        0 0 0 1px rgba(168,85,247,0.08) inset;
+        0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 8%, transparent),
+        0 0 25px color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 8%, transparent),
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 12%, transparent) inset;
 }
 
 /* ── AI 学习路径分析视图 (Card Layout) ── */
@@ -8292,12 +8292,12 @@ input, textarea, select {
 .course-textarea {
     width: 100%;
     padding: 0.875rem 1rem;
-    background: var(--surface-glass);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.18));
     border-radius: var(--radius-lg);
     font-size: 0.9375rem;
     font-family: inherit;
-    color: var(--text-primary);
+    color: var(--text-body);
     resize: none;
     outline: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -8306,21 +8306,15 @@ input, textarea, select {
 }
 
 .course-textarea:focus {
-    border-color: rgba(168,85,247,0.4);
+    border-color: var(--border-glass-hover, color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 40%, transparent));
+    background: var(--surface-glass-hover, rgba(255, 255, 255, 0.7));
     box-shadow:
-        0 0 0 3px rgba(168,85,247,0.06),
-        0 0 20px rgba(168,85,247,0.06);
+        0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 8%, transparent),
+        0 0 20px color-mix(in oklch, var(--openmaic-amber-500, #f59e0b) 8%, transparent);
 }
 
 .course-textarea::placeholder {
-    color: var(--text-tertiary);
-}
-
-@media (prefers-color-scheme: dark) {
-    .course-textarea {
-        background: rgba(30, 41, 59, 0.6);
-        color: var(--text-primary);
-    }
+    color: var(--text-muted);
 }
 
 .course-toolbar {
@@ -8536,7 +8530,7 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     height: 2.5rem;
     padding: 0 1rem;
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
@@ -8642,7 +8636,7 @@ body.course-mode #course-input-section {
 .openmaic-input-card {
     position: relative;
     width: 100%;
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
     backdrop-filter: blur(32px);
     -webkit-backdrop-filter: blur(32px);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
@@ -8691,7 +8685,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--openmaic-glass-btn-bg);
+    background: var(--surface-glass, var(--openmaic-glass-btn-bg));
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     cursor: pointer;
@@ -8733,8 +8727,8 @@ body.course-mode #course-input-section {
 .openmaic-textarea {
     width: 100%;
     padding: 0.75rem;
-    background: var(--surface-card);
-    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.45));
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 18%, transparent);
     border-radius: 1rem;
     font-size: 0.9375rem;
     line-height: 1.7;
@@ -8748,9 +8742,9 @@ body.course-mode #course-input-section {
 }
 
 .openmaic-textarea:focus {
-    background: var(--surface-card);
-    border-color: color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 10%, transparent);
+    background: var(--surface-glass-hover, rgba(255, 255, 255, 0.65));
+    border-color: color-mix(in oklch, var(--openmaic-amber-500) 45%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--openmaic-amber-500) 12%, transparent);
 }
 
 .openmaic-textarea::placeholder {
@@ -8780,7 +8774,7 @@ body.course-mode #course-input-section {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    background: var(--openmaic-glass-btn-bg);
+    background: var(--surface-glass, var(--openmaic-glass-btn-bg));
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     font-size: 0.8125rem;
@@ -8808,7 +8802,7 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: var(--openmaic-glass-btn-bg);
+    background: var(--surface-glass, var(--openmaic-glass-btn-bg));
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 9999px;
     color: var(--text-body);
@@ -9010,7 +9004,7 @@ body.course-mode #course-input-section {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    background: var(--openmaic-glass-btn-bg);
+    background: var(--surface-glass, var(--openmaic-glass-btn-bg));
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 30%, transparent);
     border-radius: 9999px;
     color: var(--text-body);
@@ -9084,7 +9078,7 @@ body.course-mode #course-input-section {
 /* 媒体设置弹窗 - 通过Portal渲染到body，深色毛玻璃风格 */
 .openmaic-media-popup {
     width: 320px;
-    background: var(--surface-card);
+    background: var(--surface-glass-strong, rgba(255, 255, 255, 0.78));
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 20%, transparent);
@@ -9713,7 +9707,7 @@ body.course-mode #course-input-section {
     gap: 0.5rem;
     width: 100%;
     padding: 0.625rem 0.875rem;
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
     border: 1px solid color-mix(in oklch, var(--openmaic-amber-500) 25%, transparent);
     border-radius: 0.875rem;
     cursor: pointer;
@@ -10726,10 +10720,10 @@ body.light-theme .openmaic-btn-ghost:hover,
     width: 2.5rem;
     height: 2.5rem;
     padding: 0;
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.18));
     border-radius: 9999px;
     cursor: pointer;
     color: var(--text-secondary);
@@ -10737,7 +10731,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .theme-toggle-btn:hover {
-    background: var(--surface-card);
+    background: var(--surface-glass-hover, rgba(255, 255, 255, 0.78));
     color: var(--foreground);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
@@ -10765,12 +10759,12 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 /* 课程生成页面浅色主题 */
 .openmaic-overlay.light-theme .openmaic-input-card {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.55));
     border-color: var(--text-body);
 }
 
 .openmaic-overlay.light-theme .openmaic-user-greeting {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
     border-color: var(--border-glass);
 }
 
@@ -10780,7 +10774,7 @@ body.light-theme .openmaic-btn-ghost:hover,
 
 .openmaic-overlay.light-theme .openmaic-tool-btn,
 .openmaic-overlay.light-theme .openmaic-pill-toggle {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
     color: var(--text-secondary);
 }
 
@@ -10789,13 +10783,13 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-toolbar-btn {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.7));
     border-color: var(--text-body);
     color: var(--text-secondary);
 }
 
 .openmaic-overlay.light-theme .openmaic-media-popup {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.7));
     border-color: var(--border-glass);
     box-shadow: var(--shadow-modal);
 }
@@ -10872,8 +10866,8 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-voice-btn {
-    background: var(--surface-card);
-    color: var(--text-tertiary);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
+    color: var(--text-muted);
 }
 
 .openmaic-overlay.light-theme .attachment-item {
@@ -10882,16 +10876,16 @@ body.light-theme .openmaic-btn-ghost:hover,
 }
 
 .openmaic-overlay.light-theme .openmaic-course-card {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
     border-color: var(--text-body);
 }
 
 .openmaic-overlay.light-theme .openmaic-course-card:hover {
-    background: var(--surface-card);
+    background: var(--surface-glass-hover, rgba(255, 255, 255, 0.78));
 }
 
 .openmaic-overlay.light-theme .theme-toggle-btn {
-    background: var(--surface-card);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.65));
     border-color: var(--text-body);
     color: var(--text-secondary);
 }

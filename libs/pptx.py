@@ -101,47 +101,522 @@ class PPTXExporter:
         return output_path
 
     def _add_slide_v2(self, slide_v2: SlideV2):
-        """添加 V2 结构化布局幻灯片"""
+        """添加 V2 结构化布局幻灯片 — 支持 OpenMAIC 和卡片两种格式, 20+ 种 layout"""
+        # OpenMAIC 格式 (MiniMax PPT provider 生成): 有 elements 字段
+        elements = getattr(slide_v2, 'elements', None) or []
+        if elements:
+            self._render_openmaic_slide(slide_v2)
+            return
+
         slide_layout = self.prs.slide_layouts[6]
         pptx_slide = self.prs.slides.add_slide(slide_layout)
 
-        # 设置白色背景
+        # 使用 theme 颜色或默认配色
+        theme = getattr(slide_v2, 'theme', None) or {}
+        bg_info = getattr(slide_v2, 'background', None) or {}
+        bg_color = self._hex_to_rgb(bg_info.get('color', '#FFFFFF')) if bg_info.get('type') == 'solid' else RGBColor(255, 255, 255)
+        header_color = self._hex_to_rgb(theme.get('primary', '#1E40AF'))
+        accent_color = self._hex_to_rgb(theme.get('accent', '#3B82F6'))
+        text_on_header = RGBColor(255, 255, 255)
+
+        # 背景
         pptx_slide.background.fill.solid()
-        pptx_slide.background.fill.fore_color.rgb = RGBColor(255, 255, 255)
-
-        # 添加顶部深蓝色标题条
-        header_shape = pptx_slide.shapes.add_shape(
-            MSO_SHAPE.RECTANGLE,
-            Inches(0), Inches(0),
-            self.prs.slide_width, Inches(0.8)
-        )
-        header_shape.fill.solid()
-        header_shape.fill.fore_color.rgb = RGBColor(30, 64, 175)  # #1E40AF
-        header_shape.line.fill.background()
-
-        # 添加标题文字
-        title_box = pptx_slide.shapes.add_textbox(
-            Inches(0.5), Inches(0.15),
-            Inches(10), Inches(0.5)
-        )
-        tf = title_box.text_frame
-        tf.paragraphs[0].text = slide_v2.title
-        tf.paragraphs[0].font.size = Pt(28)
-        tf.paragraphs[0].font.bold = True
-        tf.paragraphs[0].font.color.rgb = RGBColor(255, 255, 255)
+        pptx_slide.background.fill.fore_color.rgb = bg_color
 
         # 根据 layoutType 计算卡片布局
         layout_type = slide_v2.layout_type or 'two-column'
         cards = slide_v2.content or []
 
-        if layout_type == 'title-only':
-            pass  # 只显示标题，无内容卡片
-        elif layout_type == 'two-column':
-            self._add_v2_cards_two_column(pptx_slide, cards)
-        elif layout_type == 'grid-cards':
-            self._add_v2_cards_grid(pptx_slide, cards)
-        elif layout_type in ('header-content', 'quote-highlight'):
-            self._add_v2_cards_vertical(pptx_slide, cards)
+        # title-only / hero-center / edu-welcome: 不画 header, 大标题居中
+        if layout_type in ('title-only', 'hero-center', 'edu-welcome', 'spotlight-focus'):
+            self._add_v2_layout_title_centered(pptx_slide, slide_v2.title, cards, accent_color, theme)
+        elif layout_type in ('kinetic-type',):
+            self._add_v2_layout_kinetic(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('orbit-ring', 'circle-radial'):
+            self._add_v2_layout_radial(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('stair-step',):
+            self._add_v2_layout_stair(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('quote-wall', 'quote-highlight'):
+            self._add_v2_layout_quote(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('info-graphic',):
+            self._add_v2_layout_infographic(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('isometric-cards', 'floating-overlap'):
+            self._add_v2_layout_iso_cards(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('gradient-split',):
+            self._add_v2_layout_gradient_split(pptx_slide, slide_v2.title, cards, accent_color, header_color)
+        elif layout_type in ('dark-header',):
+            self._add_v2_layout_dark_header(pptx_slide, slide_v2.title, cards, accent_color, text_on_header)
+        elif layout_type in ('edu-definition',):
+            self._add_v2_layout_edu_definition(pptx_slide, slide_v2.title, cards, accent_color)
+        elif layout_type in ('edu-example',):
+            self._add_v2_layout_edu_example(pptx_slide, slide_v2.title, cards, accent_color)
+        else:
+            # 通用 header 模式: 含 header bar + 卡片区
+            self._add_v2_layout_with_header(pptx_slide, slide_v2.title, cards, layout_type, header_color, accent_color, text_on_header, theme)
+
+    # ------------------------------------------------------------------
+    # Layout-specific renderers — 每个 layout 一个差异化实现
+    # ------------------------------------------------------------------
+
+    def _add_v2_layout_title_centered(self, slide, title, cards, accent, theme):
+        """title-only / hero-center / edu-welcome / spotlight-focus: 大标题居中"""
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.8), Inches(12.33), Inches(1.5))
+        tf = title_box.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.alignment = PP_ALIGN.CENTER
+        run = p.add_run()
+        run.text = title or ""
+        run.font.size = Pt(48)
+        run.font.bold = True
+        run.font.color.rgb = self._hex_to_rgb(theme.get('text', '#1E293B'))
+
+        if cards:
+            sub_box = slide.shapes.add_textbox(Inches(0.5), Inches(3.6), Inches(12.33), Inches(2.5))
+            stf = sub_box.text_frame
+            stf.word_wrap = True
+            for i, card in enumerate(cards[:3]):
+                p = stf.paragraphs[0] if i == 0 else stf.add_paragraph()
+                p.alignment = PP_ALIGN.CENTER
+                run = p.add_run()
+                run.text = card.sub_title or card.text or ""
+                run.font.size = Pt(20)
+                run.font.color.rgb = self._hex_to_rgb(theme.get('text_secondary', '#64748B'))
+
+    def _add_v2_layout_kinetic(self, slide, title, cards, accent):
+        """kinetic-type: 倾斜大标题 + 装饰条"""
+        # 装饰斜条
+        deco = slide.shapes.add_shape(MSO_SHAPE.PARALLELOGRAM, Inches(0.5), Inches(1.2), Inches(2), Inches(0.3))
+        deco.fill.solid()
+        deco.fill.fore_color.rgb = accent
+        deco.line.fill.background()
+        # 大标题
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.7), Inches(12.33), Inches(1.2))
+        tf = title_box.text_frame
+        p = tf.paragraphs[0]
+        run = p.add_run()
+        run.text = title or ""
+        run.font.size = Pt(44)
+        run.font.bold = True
+        run.font.italic = True
+        run.font.color.rgb = RGBColor(15, 23, 42)
+        # 卡片水平排列
+        for i, card in enumerate(cards[:4]):
+            left = Inches(0.5 + i * 3.1)
+            self._add_v2_card(slide, card, left, Inches(3.5), Inches(2.9), Inches(2.5))
+
+    def _add_v2_layout_radial(self, slide, title, cards, accent):
+        """orbit-ring / circle-radial: 中央大圆 + 6 个小圆环绕"""
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.7))
+        p = title_box.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(15, 23, 42)
+        # 中心圆
+        center = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(5.5), Inches(2.5), Inches(3.33), Inches(2.0))
+        center.fill.solid()
+        center.fill.fore_color.rgb = accent
+        center.line.fill.background()
+        ctitle = slide.shapes.add_textbox(Inches(5.5), Inches(3.1), Inches(3.33), Inches(0.8))
+        ctf = ctitle.text_frame
+        cp = ctf.paragraphs[0]
+        cp.alignment = PP_ALIGN.CENTER
+        cp.text = title or "中心"
+        cp.font.size = Pt(20)
+        cp.font.bold = True
+        cp.font.color.rgb = RGBColor(255, 255, 255)
+        # 6 个环绕小圆 (12, 2, 4, 6, 8, 10 点钟方向)
+        import math
+        for i, card in enumerate(cards[:6]):
+            angle = (i * 60 - 90) * math.pi / 180
+            cx = 7.16 + 4.5 * math.cos(angle)
+            cy = 3.5 + 1.8 * math.sin(angle)
+            sz = 1.4
+            sat = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(cx - sz/2), Inches(cy - sz/2), Inches(sz), Inches(sz))
+            sat.fill.solid()
+            sat.fill.fore_color.rgb = RGBColor(255, 255, 255)
+            sat.line.color.rgb = accent
+            sat.line.width = Pt(2)
+            tbox = slide.shapes.add_textbox(Inches(cx - sz/2), Inches(cy - 0.3), Inches(sz), Inches(0.6))
+            tp = tbox.text_frame.paragraphs[0]
+            tp.alignment = PP_ALIGN.CENTER
+            tp.text = (card.sub_title or card.text or "")[:8]
+            tp.font.size = Pt(10)
+            tp.font.color.rgb = RGBColor(15, 23, 42)
+
+    def _add_v2_layout_stair(self, slide, title, cards, accent):
+        """stair-step: 阶梯式排列 (4 级台阶)"""
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.7))
+        p = title_box.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(15, 23, 42)
+        for i, card in enumerate(cards[:4]):
+            level = i
+            top = 1.2 + level * 0.9
+            left = 0.5 + level * 1.5
+            w = 12.33 - level * 1.5
+            self._add_v2_card(slide, card, Inches(left), Inches(top), Inches(w), Inches(0.85))
+
+    def _add_v2_layout_quote(self, slide, title, cards, accent):
+        """quote-wall / quote-highlight: 大引号 + 引用文本"""
+        # 大引号
+        quote_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.2), Inches(2), Inches(2))
+        qp = quote_box.text_frame.paragraphs[0]
+        qp.text = "“"
+        qp.font.size = Pt(120)
+        qp.font.color.rgb = accent
+        # 引用文本
+        if cards:
+            ref_box = slide.shapes.add_textbox(Inches(2.5), Inches(1.8), Inches(10), Inches(2.5))
+            rtf = ref_box.text_frame
+            rtf.word_wrap = True
+            rp = rtf.paragraphs[0]
+            rp.text = cards[0].sub_title or cards[0].text or title or ""
+            rp.font.size = Pt(28)
+            rp.font.italic = True
+            rp.font.color.rgb = RGBColor(15, 23, 42)
+        # 标题
+        if title and len(cards) > 1:
+            tbox = slide.shapes.add_textbox(Inches(0.5), Inches(5.0), Inches(12.33), Inches(0.5))
+            tp = tbox.text_frame.paragraphs[0]
+            tp.alignment = PP_ALIGN.RIGHT
+            tp.text = f"— {title}"
+            tp.font.size = Pt(14)
+            tp.font.color.rgb = RGBColor(100, 116, 139)
+
+    def _add_v2_layout_infographic(self, slide, title, cards, accent):
+        """info-graphic: 大数字 + 描述"""
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.6))
+        p = title_box.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(20)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(71, 85, 105)
+        # 3 大数字块
+        for i, card in enumerate(cards[:3]):
+            left = 0.5 + i * 4.2
+            block = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(1.5), Inches(3.9), Inches(3.5))
+            block.fill.solid()
+            block.fill.fore_color.rgb = RGBColor(248, 250, 252)
+            block.line.color.rgb = accent
+            block.line.width = Pt(2)
+            # 大数字
+            num_box = slide.shapes.add_textbox(Inches(left), Inches(1.8), Inches(3.9), Inches(1.5))
+            np_ = num_box.text_frame.paragraphs[0]
+            np_.alignment = PP_ALIGN.CENTER
+            run = np_.add_run()
+            run.text = f"0{i+1}" if i < 9 else f"{i+1}"
+            run.font.size = Pt(72)
+            run.font.bold = True
+            run.font.color.rgb = accent
+            # 描述
+            desc_box = slide.shapes.add_textbox(Inches(left + 0.2), Inches(3.5), Inches(3.5), Inches(1.3))
+            dp = desc_box.text_frame.paragraphs[0]
+            dp.alignment = PP_ALIGN.CENTER
+            dp.word_wrap = True
+            dp.text = (card.sub_title or card.text or "")[:50]
+            dp.font.size = Pt(13)
+            dp.font.color.rgb = RGBColor(71, 85, 105)
+
+    def _add_v2_layout_iso_cards(self, slide, title, cards, accent):
+        """isometric-cards / floating-overlap: 卡片层叠"""
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.7))
+        p = title_box.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(15, 23, 42)
+        # 重叠卡片 (向右上偏移)
+        for i, card in enumerate(cards[:4]):
+            offset = i * 0.3
+            self._add_v2_card(slide, card, Inches(0.7 + offset), Inches(1.5 + offset), Inches(8), Inches(1.2))
+
+    def _add_v2_layout_gradient_split(self, slide, title, cards, accent, header):
+        """gradient-split: 左右渐变分割"""
+        # 左半深色块
+        left_block = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(6.16), Inches(7.5))
+        left_block.fill.solid()
+        left_block.fill.fore_color.rgb = header
+        left_block.line.fill.background()
+        # 标题 (白字)
+        tbox = slide.shapes.add_textbox(Inches(0.5), Inches(2.5), Inches(5.16), Inches(2.5))
+        tf = tbox.text_frame
+        tf.word_wrap = True
+        p = tf.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(40)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(255, 255, 255)
+        # 右侧卡片
+        for i, card in enumerate(cards[:3]):
+            self._add_v2_card(slide, card, Inches(6.5), Inches(1.2 + i * 1.8), Inches(6.3), Inches(1.5))
+
+    def _add_v2_layout_dark_header(self, slide, title, cards, accent, text_on_header):
+        """dark-header: 黑色 header bar 占 1/3, 下方内容"""
+        header_shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), self.prs.slide_width, Inches(2.5))
+        header_shape.fill.solid()
+        header_shape.fill.fore_color.rgb = RGBColor(15, 23, 42)
+        header_shape.line.fill.background()
+        tbox = slide.shapes.add_textbox(Inches(0.5), Inches(0.8), Inches(12.33), Inches(1))
+        p = tbox.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(36)
+        p.font.bold = True
+        p.font.color.rgb = text_on_header
+        # 下方卡片
+        for i, card in enumerate(cards[:3]):
+            self._add_v2_card(slide, card, Inches(0.5), Inches(2.9 + i * 1.5), Inches(12.33), Inches(1.3))
+
+    def _add_v2_layout_edu_definition(self, slide, title, cards, accent):
+        """edu-definition: 左侧定义框 + 右侧属性标签"""
+        tbox = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.7))
+        p = tbox.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(15, 23, 42)
+        if not cards:
+            return
+        # 左定义框
+        left_def = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(1.2), Inches(6), Inches(5.5))
+        left_def.fill.solid()
+        left_def.fill.fore_color.rgb = RGBColor(219, 234, 254)
+        left_def.line.fill.background()
+        ltxt = slide.shapes.add_textbox(Inches(0.7), Inches(1.4), Inches(5.6), Inches(5.1))
+        ltf = ltxt.text_frame
+        ltf.word_wrap = True
+        lp = ltf.paragraphs[0]
+        lp.text = cards[0].sub_title or cards[0].text or ""
+        lp.font.size = Pt(18)
+        lp.font.color.rgb = RGBColor(30, 64, 175)
+        # 右侧属性标签
+        for i, card in enumerate(cards[1:4]):
+            tag = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7), Inches(1.4 + i * 1.7), Inches(5.83), Inches(1.4))
+            tag.fill.solid()
+            tag.fill.fore_color.rgb = RGBColor(254, 243, 199)
+            tag.line.color.rgb = RGBColor(245, 158, 11)
+            tag.line.width = Pt(1.5)
+            tbox2 = slide.shapes.add_textbox(Inches(7.2), Inches(1.5 + i * 1.7), Inches(5.43), Inches(1.2))
+            ttf = tbox2.text_frame
+            ttf.word_wrap = True
+            tp = ttf.paragraphs[0]
+            tp.text = (card.sub_title or card.text or "")[:80]
+            tp.font.size = Pt(13)
+            tp.font.color.rgb = RGBColor(120, 53, 15)
+
+    def _add_v2_layout_edu_example(self, slide, title, cards, accent):
+        """edu-example: 左侧概念 + 右侧示例区"""
+        tbox = slide.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12.33), Inches(0.7))
+        p = tbox.text_frame.paragraphs[0]
+        p.text = title or ""
+        p.font.size = Pt(24)
+        p.font.bold = True
+        p.font.color.rgb = RGBColor(15, 23, 42)
+        if not cards:
+            return
+        # 左概念
+        lt = slide.shapes.add_textbox(Inches(0.5), Inches(1.2), Inches(5.8), Inches(5.5))
+        ltf = lt.text_frame
+        ltf.word_wrap = True
+        lp = ltf.paragraphs[0]
+        lp.text = cards[0].sub_title or cards[0].text or ""
+        lp.font.size = Pt(16)
+        lp.font.color.rgb = RGBColor(30, 41, 59)
+        # 右示例
+        for i, card in enumerate(cards[1:3]):
+            ex = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.8), Inches(1.2 + i * 2.6), Inches(6), Inches(2.3))
+            ex.fill.solid()
+            ex.fill.fore_color.rgb = RGBColor(13, 17, 23)
+            ex.line.fill.background()
+            et = slide.shapes.add_textbox(Inches(7.0), Inches(1.4 + i * 2.6), Inches(5.6), Inches(2.0))
+            etf = et.text_frame
+            etf.word_wrap = True
+            ep = etf.paragraphs[0]
+            ep.text = (card.text or card.sub_title or "")[:200]
+            ep.font.size = Pt(12)
+            ep.font.name = 'Consolas'
+            ep.font.color.rgb = RGBColor(201, 209, 217)
+
+    def _add_v2_layout_with_header(self, slide, title, cards, layout_type, header_color, accent_color, text_on_header, theme):
+        """通用 layout: header bar + 卡片区, 按 layout_type 选择内部排布"""
+        # 标题栏
+        header_shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), self.prs.slide_width, Inches(0.8))
+        header_shape.fill.solid()
+        header_shape.fill.fore_color.rgb = header_color
+        header_shape.line.fill.background()
+        title_box = slide.shapes.add_textbox(Inches(0.5), Inches(0.15), Inches(10), Inches(0.5))
+        tf = title_box.text_frame
+        tf.paragraphs[0].text = title
+        tf.paragraphs[0].font.size = Pt(28)
+        tf.paragraphs[0].font.bold = True
+        tf.paragraphs[0].font.color.rgb = text_on_header
+
+        # 内容区按 layout 分支
+        if layout_type in ('two-column', 'comparison', 'edu-keypoints'):
+            self._add_v2_cards_two_column(slide, cards)
+        elif layout_type in ('grid-cards',):
+            self._add_v2_cards_grid(slide, cards)
+        elif layout_type in ('code-showcase', 'terminal-style', 'concept-code', 'api-doc',
+                             'edu-summary', 'edu-programming-concept'):
+            # 代码/总结类: 第一卡片做代码块, 后续做要点
+            self._add_v2_cards_vertical(slide, cards)
+        else:
+            # header-content / numbered-list / chapter-divider / step-by-step / etc.
+            self._add_v2_cards_vertical(slide, cards)
+
+    def _render_openmaic_slide(self, slide_v2: SlideV2):
+        """渲染 OpenMAIC 格式的幻灯片 (MiniMax PPT provider 产出)"""
+        slide_layout = self.prs.slide_layouts[6]
+        pptx_slide = self.prs.slides.add_slide(slide_layout)
+
+        # 背景
+        bg_info = getattr(slide_v2, 'background', None) or {}
+        if bg_info.get('type') == 'solid':
+            bg_color = self._hex_to_rgb(bg_info.get('color', '#0F172A'))
+        else:
+            bg_color = RGBColor(15, 23, 42)
+        pptx_slide.background.fill.solid()
+        pptx_slide.background.fill.fore_color.rgb = bg_color
+
+        # 主题: 用后端传入的 theme 决定标题色, 不再 hardcoded 浅灰
+        theme = getattr(slide_v2, 'theme', None) or {}
+        theme_name = theme.get('name', '') if isinstance(theme, dict) else ''
+        if not theme_name and isinstance(theme, str):
+            theme_name = theme
+        # 探测是否是深色背景: 亮度 < 128 视为深色, 标题用浅色
+        bg_luminance = (bg_color[0] * 299 + bg_color[1] * 587 + bg_color[2] * 114) / 1000
+        if bg_luminance < 128:
+            title_color = RGBColor(248, 250, 252)  # near-white for dark bg
+            body_color = RGBColor(226, 232, 240)
+        else:
+            title_color = RGBColor(15, 23, 42)  # near-black for light bg
+            body_color = RGBColor(30, 41, 59)
+
+        # 标题
+        title = getattr(slide_v2, 'title', '') or ''
+        if title:
+            title_box = pptx_slide.shapes.add_textbox(
+                Inches(0.5), Inches(0.2),
+                Inches(12), Inches(0.6)
+            )
+            tf = title_box.text_frame
+            p = tf.paragraphs[0]
+            p.text = title
+            p.font.size = Pt(28)
+            p.font.bold = True
+            p.font.color.rgb = title_color
+
+        # 遍历 elements 数组按序渲染
+        elements = getattr(slide_v2, 'elements', None) or []
+        # MiniMax 视口: 960 x 540 (16:9)
+        VP_W, VP_H = 960.0, 540.0
+        sw = self.prs.slide_width  # in EMU
+        sh = self.prs.slide_height
+        scale_x = sw / VP_W
+        scale_y = sh / VP_H
+
+        for el in elements:
+            el_type = el.get('type', '')
+            left = int(el.get('left', 0) * scale_x)
+            top = int(el.get('top', 0) * scale_y)
+            w = int(el.get('width', 100) * scale_x)
+            h = int(el.get('height', 40) * scale_y)
+            fill_color = el.get('fill', 'transparent')
+
+            if el_type == 'shape':
+                shape_name = el.get('shape_name', 'rectangle')
+                shape = pptx_slide.shapes.add_shape(
+                    MSO_SHAPE.ROUNDED_RECTANGLE if shape_name == 'round-rectangle' else MSO_SHAPE.RECTANGLE,
+                    left, top, w, h
+                )
+                if fill_color and fill_color != 'transparent':
+                    shape.fill.solid()
+                    shape.fill.fore_color.rgb = self._hex_to_rgb(fill_color)
+                else:
+                    shape.fill.background()
+                shape.line.fill.background()
+                opacity = el.get('opacity', 1.0)
+                if opacity < 1.0:
+                    try:
+                        shape.fill.fore_color.brightness = opacity
+                    except Exception:
+                        pass
+
+            elif el_type == 'text':
+                content = el.get('content', '')
+                # Strip HTML tags for PPTX
+                plain = self._strip_html(content)
+                dfont = el.get('defaultFontName', 'Microsoft YaHei')
+                # 优先用 element 显式 color, 否则用 theme 推导的 body_color, 再 fallback
+                dcolor = el.get('defaultColor') or ('#' + ''.join(f'{c:02X}' for c in body_color))
+                text_box = pptx_slide.shapes.add_textbox(left, top, w, h)
+                tf = text_box.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                p.text = plain[:500]
+                p.font.size = Pt(12)
+                p.font.name = dfont
+                p.font.color.rgb = self._hex_to_rgb(dcolor)
+
+            elif el_type == 'code':
+                code_text = el.get('content', '')
+                # 代码块背景
+                code_bg = pptx_slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, w, h)
+                code_bg.fill.solid()
+                code_bg.fill.fore_color.rgb = RGBColor(13, 17, 23)
+                code_bg.line.fill.background()
+                # 代码文本
+                code_box = pptx_slide.shapes.add_textbox(
+                    left + Inches(0.1), top + Inches(0.05),
+                    w - Inches(0.2), h - Inches(0.1)
+                )
+                tf = code_box.text_frame
+                tf.word_wrap = True
+                lines = code_text.split('\n')[:30]
+                for i, line in enumerate(lines):
+                    if i == 0:
+                        p = tf.paragraphs[0]
+                    else:
+                        p = tf.add_paragraph()
+                    p.text = line[:120]
+                    p.font.name = 'Consolas'
+                    p.font.size = Pt(9)
+                    p.font.color.rgb = RGBColor(201, 209, 217)
+
+            elif el_type == 'image':
+                src_url = el.get('src', '')
+                if src_url:
+                    img_data = self._fetch_image_data(src_url)
+                    if img_data:
+                        try:
+                            pptx_slide.shapes.add_picture(io.BytesIO(img_data), left, top, w, h)
+                        except Exception:
+                            pass
+
+    def _hex_to_rgb(self, hex_color: str) -> RGBColor:
+        """将 #RRGGBB 或 #RGB 转换为 RGBColor, 默认返回白色"""
+        h = hex_color.lstrip('#')
+        if len(h) == 3:
+            h = ''.join(c * 2 for c in h)
+        try:
+            return RGBColor(int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+        except (ValueError, IndexError):
+            return RGBColor(255, 255, 255)
+
+    def _strip_html(self, html: str) -> str:
+        """剥离 HTML 标签, 保留纯文本"""
+        import re
+        # 替换 <br> 为换行
+        text = re.sub(r'<br\s*/?>', '\n', html, flags=re.IGNORECASE)
+        # 移除所有标签
+        text = re.sub(r'<[^>]+>', '', text)
+        # 解码常见实体
+        text = text.replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+        text = text.replace('&quot;', '"').replace('&#39;', "'").replace('&nbsp;', ' ')
+        return text
 
     def _add_v2_cards_two_column(self, slide, cards):
         """添加两栏布局的卡片"""

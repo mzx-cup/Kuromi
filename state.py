@@ -483,16 +483,23 @@ class SlideV2(BaseModel):
     @classmethod
     def validate_layout_type(cls, v):
         allowed = {
-            # 11种文字布局
+            # 创意类 (11+2+2 种原有布局)
             'spotlight-focus', 'kinetic-type', 'isometric-cards', 'orbit-ring',
             'gradient-split', 'dark-header', 'circle-radial', 'stair-step',
             'quote-wall', 'info-graphic', 'floating-overlap',
-            # 2种图片布局
             'magazine-cover', 'photo-story',
-            # 2种视频布局
             'media-showcase', 'video-lecture',
+            # 教育类 bundle 布局
+            'edu-welcome', 'edu-definition', 'edu-keypoints', 'edu-example',
+            'edu-summary', 'edu-programming-concept',
+            # 编程/技术类 MiniMax 布局
+            'code-showcase', 'terminal-style', 'concept-code', 'api-doc',
+            'step-by-step', 'comparison',
+            # 通用布局
+            'title-only', 'hero-center', 'header-content', 'two-column',
+            'grid-cards', 'numbered-list', 'chapter-divider',
         }
-        return v if v in allowed else 'spotlight-focus'
+        return v if v in allowed else 'edu-keypoints'
 
 
 class SceneOutline(BaseModel):
@@ -580,6 +587,9 @@ class CourseChatRequest(BaseModel):
     user_input: str = Field(..., min_length=1)
     history: list[dict[str, str]] = Field(default_factory=list)
     enable_web_search: bool = False  # 启用 Tavily 网络搜索
+    agent_role: str = "AI助教"
+    persona: str = ""
+    available_components: list[dict] = Field(default_factory=list)  # [{key, label}]
 
 
 class CourseData(BaseModel):

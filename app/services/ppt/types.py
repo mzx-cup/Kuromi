@@ -95,7 +95,8 @@ class PPTGenerationRequest:
     scene_id: str = ""
     scene_type: str = "slide"  # slide, quiz, exercise, interactive
     content: list = field(default_factory=list)  # content items with sub_title, text, etc.
-    design_style: str = "modern"  # modern, classic, playful, professional
+    design_style: str = "modern"  # 8 种之一，由后端强制轮换
+    layout_hint: str = ""  # 强制布局名（在 LAYOUT_TYPES 中）；空则让 provider 选
     has_media_images: bool = False  # 是否有 AI 生成的图片需要嵌入
     media_image_aspect_ratio: str = "16:9"  # AI 图片的宽高比
 

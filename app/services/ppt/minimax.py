@@ -226,85 +226,142 @@ class MiniMaxPPTProvider:
 
 请生成一个精美的编程教学幻灯片JSON。"""
 
-    # 编程教学专用布局（10种，精简实用）
+    # 编程教学专用布局（20种：含 10 编程 + 5 创意 + 5 教育）
     LAYOUT_TYPES = [
-        "title-only",       # 标题页
-        "header-content",   # 标题+内容卡片
-        "two-column",       # 两栏对比
-        "code-showcase",    # 代码展示（左文右码）
-        "terminal-style",   # 终端风格
-        "concept-code",     # 概念+代码对照
-        "api-doc",          # API文档
-        "step-by-step",     # 步骤教学
-        "grid-cards",       # 卡片网格
-        "comparison",       # 正反对比
+        "title-only",         # 标题页
+        "header-content",     # 标题+内容卡片
+        "two-column",         # 两栏对比
+        "code-showcase",      # 代码展示（左文右码）
+        "terminal-style",     # 终端风格
+        "concept-code",       # 概念+代码对照
+        "api-doc",            # API文档
+        "step-by-step",       # 步骤教学
+        "grid-cards",         # 卡片网格
+        "comparison",         # 正反对比
+        # —— 新增 10 种创意/教育布局 ——
+        "spotlight-focus",    # 大标题居中 + 副标题
+        "kinetic-type",       # 倾斜大标题 + 装饰
+        "isometric-cards",    # 卡片 3D 阴影
+        "orbit-ring",         # 中央圆环 + 文字围绕
+        "gradient-split",     # 左右渐变分割
+        "dark-header",        # 黑色 header bar
+        "circle-radial",      # 中心大圆 + 6 个小圆
+        "stair-step",         # 阶梯式排列
+        "quote-wall",         # 大引号 + 引用文本
+        "info-graphic",       # 大数字 + 描述
+        "edu-welcome",        # 大标题 + 课程名
+        "edu-definition",     # 术语 + 解释
+        "edu-example",        # 例题 + 解答
+        "edu-summary",        # 章节小结
     ]
 
-    # 编程场景布局选择映射
+    # 编程场景布局选择映射（保留向后兼容）
     LAYOUT_BY_CONTENT = {
-        "code": ["code-showcase", "concept-code", "terminal-style"],
-        "command": ["terminal-style", "code-showcase"],
-        "function": ["api-doc", "code-showcase", "concept-code"],
-        "class": ["api-doc", "concept-code"],
-        "step": ["step-by-step", "grid-cards"],
-        "compare": ["comparison", "two-column"],
-        "overview": ["header-content", "grid-cards"],
-        "intro": ["title-only", "header-content"],
+        "code": ["code-showcase", "concept-code", "terminal-style", "kinetic-type"],
+        "command": ["terminal-style", "code-showcase", "dark-header"],
+        "function": ["api-doc", "code-showcase", "concept-code", "info-graphic"],
+        "class": ["api-doc", "concept-code", "isometric-cards"],
+        "step": ["step-by-step", "grid-cards", "stair-step", "circle-radial"],
+        "compare": ["comparison", "two-column", "gradient-split"],
+        "overview": ["header-content", "grid-cards", "orbit-ring"],
+        "intro": ["title-only", "header-content", "spotlight-focus", "edu-welcome"],
+        "definition": ["concept-code", "info-graphic", "edu-definition"],
+        "summary": ["quote-wall", "edu-summary", "info-graphic"],
     }
 
-    # 编程风格定义
+    # 编程风格定义（8 种：4 旧 + 4 新，结构化不同）
     DESIGN_STYLES = [
-        "dark-tech",      # 深色科技（默认，适合代码）
-        "modern",         # 现代简约
-        "minimal",        # 极简留白
-        "professional",   # 专业商务
+        "dark-tech",        # 深色科技（适合代码）
+        "modern",           # 现代简约
+        "minimal",          # 极简留白
+        "professional",     # 专业商务
+        "ocean-glass",      # 玻璃态 + 青蓝（新）
+        "sunset-warm",      # 暖橙渐变（新）
+        "forest-green",     # 自然绿 + 衬线（新）
+        "midnight-violet",  # 深夜紫 + 大圆角（新）
     ]
 
-    # 风格配色
+    # 风格配色（每种带 gradient/font_family/card_radius/pattern 结构化差异）
     STYLE_THEMES = {
         "dark-tech": {
-            "bg": "#0F172A",
-            "card": "#1E293B",
-            "code_bg": "#0D1117",
-            "text": "#E2E8F0",
-            "text_secondary": "#94A3B8",
-            "accent": "#3B82F6",
-            "success": "#10B981",
-            "warning": "#F59E0B",
-            "error": "#EF4444",
+            "bg": "#0F172A", "card": "#1E293B", "code_bg": "#0D1117",
+            "text": "#E2E8F0", "text_secondary": "#94A3B8",
+            "accent": "#3B82F6", "success": "#10B981",
+            "warning": "#F59E0B", "error": "#EF4444",
+            "gradient": "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+            "font_family": "mono",
+            "card_radius": "md",
+            "pattern": "grid",
         },
         "modern": {
-            "bg": "#F8FAFC",
-            "card": "#FFFFFF",
-            "code_bg": "#1E293B",
-            "text": "#1E293B",
-            "text_secondary": "#64748B",
-            "accent": "#3B82F6",
-            "success": "#10B981",
-            "warning": "#F59E0B",
-            "error": "#EF4444",
+            "bg": "#F8FAFC", "card": "#FFFFFF", "code_bg": "#1E293B",
+            "text": "#1E293B", "text_secondary": "#64748B",
+            "accent": "#3B82F6", "success": "#10B981",
+            "warning": "#F59E0B", "error": "#EF4444",
+            "gradient": "linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)",
+            "font_family": "sans",
+            "card_radius": "lg",
+            "pattern": "none",
         },
         "minimal": {
-            "bg": "#FFFFFF",
-            "card": "#F8FAFC",
-            "code_bg": "#0F172A",
-            "text": "#0F172A",
-            "text_secondary": "#64748B",
-            "accent": "#0EA5E9",
-            "success": "#22C55E",
-            "warning": "#EAB308",
-            "error": "#DC2626",
+            "bg": "#FFFFFF", "card": "#F8FAFC", "code_bg": "#0F172A",
+            "text": "#0F172A", "text_secondary": "#64748B",
+            "accent": "#0EA5E9", "success": "#22C55E",
+            "warning": "#EAB308", "error": "#DC2626",
+            "gradient": "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)",
+            "font_family": "sans",
+            "card_radius": "sm",
+            "pattern": "none",
         },
         "professional": {
-            "bg": "#F1F5F9",
-            "card": "#FFFFFF",
-            "code_bg": "#1E293B",
-            "text": "#334155",
-            "text_secondary": "#64748B",
-            "accent": "#6366F1",
-            "success": "#10B981",
-            "warning": "#F59E0B",
-            "error": "#EF4444",
+            "bg": "#F1F5F9", "card": "#FFFFFF", "code_bg": "#1E293B",
+            "text": "#334155", "text_secondary": "#64748B",
+            "accent": "#6366F1", "success": "#10B981",
+            "warning": "#F59E0B", "error": "#EF4444",
+            "gradient": "linear-gradient(135deg, #F1F5F9 0%, #E0E7FF 100%)",
+            "font_family": "sans",
+            "card_radius": "md",
+            "pattern": "dots",
+        },
+        "ocean-glass": {
+            "bg": "#E0F2FE", "card": "#FFFFFF", "code_bg": "#0C4A6E",
+            "text": "#0C4A6E", "text_secondary": "#0369A1",
+            "accent": "#06B6D4", "success": "#14B8A6",
+            "warning": "#F59E0B", "error": "#F43F5E",
+            "gradient": "linear-gradient(135deg, #E0F2FE 0%, #CFFAFE 50%, #A5F3FC 100%)",
+            "font_family": "sans",
+            "card_radius": "xl",
+            "pattern": "waves",
+        },
+        "sunset-warm": {
+            "bg": "#FFF7ED", "card": "#FFFFFF", "code_bg": "#7C2D12",
+            "text": "#7C2D12", "text_secondary": "#9A3412",
+            "accent": "#F97316", "success": "#84CC16",
+            "warning": "#F59E0B", "error": "#DC2626",
+            "gradient": "linear-gradient(135deg, #FED7AA 0%, #FDBA74 50%, #FB923C 100%)",
+            "font_family": "rounded",
+            "card_radius": "lg",
+            "pattern": "none",
+        },
+        "forest-green": {
+            "bg": "#F0FDF4", "card": "#FFFFFF", "code_bg": "#14532D",
+            "text": "#14532D", "text_secondary": "#166534",
+            "accent": "#16A34A", "success": "#22C55E",
+            "warning": "#EAB308", "error": "#DC2626",
+            "gradient": "linear-gradient(135deg, #DCFCE7 0%, #BBF7D0 100%)",
+            "font_family": "serif",
+            "card_radius": "md",
+            "pattern": "none",
+        },
+        "midnight-violet": {
+            "bg": "#1E1B4B", "card": "#312E81", "code_bg": "#0F0E2E",
+            "text": "#E0E7FF", "text_secondary": "#A5B4FC",
+            "accent": "#A78BFA", "success": "#34D399",
+            "warning": "#FBBF24", "error": "#F87171",
+            "gradient": "linear-gradient(135deg, #1E1B4B 0%, #4C1D95 50%, #312E81 100%)",
+            "font_family": "rounded",
+            "card_radius": "xl",
+            "pattern": "dots",
         },
     }
 
@@ -322,8 +379,12 @@ class MiniMaxPPTProvider:
         try:
             # 构造提示词
             content_items = self._format_content_items(request.content)
-            layout_type = self._select_layout(request.content, request.scene_type)
-            design_style = self._select_design_style(request.content)
+            layout_type = self._select_layout(
+                request.content, request.scene_type, forced_layout=request.layout_hint
+            )
+            design_style = self._select_design_style(
+                request.content, forced_style=request.design_style
+            )
 
             # 构建图片提示
             media_image_hint = ""
@@ -379,23 +440,50 @@ class MiniMaxPPTProvider:
     # 内部方法
     # ------------------------------------------------------------------
 
-    def _select_design_style(self, content: list) -> str:
-        """根据内容选择设计风格"""
-        # 默认 dark-tech，如果有大量代码则保持 dark-tech
-        has_code = any(
-            item.get("code_snippet") or "代码" in item.get("text", "")
-            for item in content
-        )
-        if has_code:
-            return "dark-tech"
-        return random.choice(["dark-tech", "modern", "minimal"])
+    def _select_design_style(
+        self,
+        content: list,
+        forced_style: str | None = None,
+    ) -> str:
+        """根据内容/外部指定选择设计风格
 
-    def _select_layout(self, content: list, scene_type: str) -> str:
-        """智能选择布局：根据内容特征匹配最合适的编程教学布局"""
+        Args:
+            content: 内容列表
+            forced_style: 外部强制指定的风格名（在 STYLE_THEMES 中）。若指定则直接采用。
+        """
+        # 优先级 1: 外部强制风格（后端硬约束）
+        if forced_style and forced_style in self.STYLE_THEMES:
+            self._style_history.append(forced_style)
+            return forced_style
+
+        # 优先级 2: 真正随机选择（不再有 has_code 降级）
+        all_styles = list(self.STYLE_THEMES.keys())
+        chosen = random.choice(all_styles)
+        self._style_history.append(chosen)
+        return chosen
+
+    def _select_layout(
+        self,
+        content: list,
+        scene_type: str,
+        forced_layout: str | None = None,
+    ) -> str:
+        """智能选择布局：优先采用外部 hint，否则按内容特征匹配
+
+        Args:
+            content: 内容列表
+            scene_type: 场景类型
+            forced_layout: 外部强制指定的布局名（在 LAYOUT_TYPES 中）
+        """
         if scene_type == "quiz":
             return "grid-cards"
 
-        # 分析内容特征
+        # 优先级 1: 外部强制布局
+        if forced_layout and forced_layout in self.LAYOUT_TYPES:
+            self._layout_history.append(forced_layout)
+            return forced_layout
+
+        # 优先级 2: 内容特征匹配
         text_combined = " ".join(
             f"{item.get('sub_title', '')} {item.get('text', '')}"
             for item in content
@@ -431,13 +519,15 @@ class MiniMaxPPTProvider:
         elif candidates:
             choice = random.choice(candidates)
         else:
-            # 默认池
-            default_pool = ["header-content", "grid-cards", "two-column", "title-only"]
+            # 默认池（更丰富）
+            default_pool = [
+                "header-content", "grid-cards", "two-column", "title-only",
+                "spotlight-focus", "kinetic-type", "stair-step", "circle-radial",
+            ]
             unused_default = [c for c in default_pool if c not in self._layout_history]
             choice = random.choice(unused_default) if unused_default else random.choice(default_pool)
 
         self._layout_history.append(choice)
-        # 只保留最近 5 个历史，避免过度限制
         self._layout_history = self._layout_history[-5:]
         return choice
 
@@ -593,12 +683,9 @@ class MiniMaxPPTProvider:
         return slide
 
     def _inject_theme(self, slide: dict, design_style: str) -> dict:
-        """注入统一的暗色主题配色，确保高对比度可读性。
-
-        平台为暗色主题，强制所有幻灯片使用 dark-tech 配色，
-        避免浅色背景 + 浅色文字导致的可读性问题。
-        """
-        theme = self.STYLE_THEMES["dark-tech"]  # 始终强制暗色主题
+        """注入主题配色，确保高对比度可读性。"""
+        style = design_style if design_style in self.STYLE_THEMES else "dark-tech"
+        theme = self.STYLE_THEMES[style]
 
         # 注入 theme 字段
         slide["theme"] = {
