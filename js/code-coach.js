@@ -103,4 +103,38 @@ export class CodeCoach {
   }
 }
 
-if (typeof window !== 'undefined') window.CodeCoach = CodeCoach;
+const NARRATION_TEXT = {
+  idle: '卡住了？试试把当前函数的输入输出写在注释里',
+  'repeat-error': '你又遇到这个错误了，要不要我讲一下根因？',
+  'near-complete': '加油！只剩最后一处 TODO 了',
+  'all-passed': '全部通过！要不要看下我的参考解对比？',
+  'consecutive-failures': '换个思路试试？',
+};
+
+const lastFiredAt = new Map();
+
+export function mountNarrator(hostEl, _coach) {
+  document.addEventListener('coach:narrate', (e) => {
+    const { reason } = e.detail;
+    const text = NARRATION_TEXT[reason];
+    if (!text) return;
+    const now = Date.now();
+    const last = lastFiredAt.get(reason) || 0;
+    if (now - last < 60000) return;
+    lastFiredAt.set(reason, now);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'narrator-bubble';
+    bubble.textContent = text;
+    hostEl.appendChild(bubble);
+    setTimeout(() => {
+      bubble.style.opacity = '0';
+      setTimeout(() => bubble.remove(), 600);
+    }, 3000);
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.CodeCoach = CodeCoach;
+  window.mountNarrator = mountNarrator;
+}

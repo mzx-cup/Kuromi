@@ -6,6 +6,7 @@ describe('CodeCoach', () => {
   // (jsdom doesn't provide a way to enumerate listeners, so we maintain our own list).
   const allHandlers = [];
   beforeEach(() => {
+    vi.resetModules();
     vi.useFakeTimers();
     // Clear all previously-registered handlers to prevent cross-test contamination.
     while (allHandlers.length) {
@@ -141,6 +142,30 @@ describe('CodeCoach', () => {
     const calls = handler.mock.calls.filter(c => c[0].detail.reason === 'repeat-error');
     expect(calls.length).toBe(0);
     coach.stop();
+  });
+
+  it('mountNarrator 在 coach:narrate 时插入气泡', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="narrator-host"></div>`);
+    const { CodeCoach, mountNarrator } = await import('../../../js/code-coach.js');
+    const coach = new CodeCoach();
+    mountNarrator(document.getElementById('narrator-host'), coach);
+    coach.narrate('idle');
+    const bubble = document.querySelector('#narrator-host .narrator-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble.textContent).toContain('卡住');
+    document.getElementById('narrator-host').remove();
+  });
+
+  it('同 reason 60s 内不重复创建气泡', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<div id="nh"></div>`);
+    const { CodeCoach, mountNarrator } = await import('../../../js/code-coach.js');
+    const coach = new CodeCoach();
+    mountNarrator(document.getElementById('nh'), coach);
+    coach.narrate('idle');
+    coach.narrate('idle');
+    const bubbles = document.querySelectorAll('.narrator-bubble');
+    expect(bubbles.length).toBe(1);
+    document.getElementById('nh').remove();
   });
 
   it('_normalizeError 把数字与引号字符串归一化,digit-only 差异不触发 repeat-error', async () => {
