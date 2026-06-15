@@ -56,5 +56,65 @@ export async function load() {
   return loadPromise;
 }
 
-export const CodeMonaco = { load };
+/**
+ * 在 textarea 位置挂载 Monaco 编辑器实例。
+ * 隐藏 textarea，插入一个 <div> 容器承载 Monaco，并保持 textarea.value 与编辑器同步。
+ *
+ * @param {HTMLTextAreaElement} textareaEl - 被替换的 textarea
+ * @param {object} [opts] - 编辑器选项
+ * @param {string} [opts.value] - 初始值（默认读取 textarea.value）
+ * @param {string} [opts.language='python'] - 语言
+ * @param {string} [opts.theme='vs-dark'] - 主题
+ * @param {string} [opts.height='100%'] - 容器高度
+ * @param {number} [opts.fontSize=13.5] - 字号
+ * @returns {{editor, getValue, setValue, onChange, dispose}}
+ *   handle 句柄。create 假定 window.monaco 已经存在（如尚未加载，请先 await CodeMonaco.load()）
+ */
+export function create(textareaEl, opts = {}) {
+  const monaco = window.monaco;
+  if (!monaco) {
+    throw new Error('CodeMonaco.create: window.monaco 不存在，请先调用 CodeMonaco.load()');
+  }
+  const container = document.createElement('div');
+  container.style.height = opts.height || '100%';
+  textareaEl.parentNode.insertBefore(container, textareaEl);
+  textareaEl.style.display = 'none';
+
+  const editor = monaco.editor.create(container, {
+    value: opts.value || textareaEl.value || '',
+    language: opts.language || 'python',
+    theme: opts.theme || 'vs-dark',
+    automaticLayout: true,
+    fontSize: opts.fontSize || 13.5,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    lineNumbers: 'on',
+  });
+
+  // 兜底：opts.value 显式传入时也调用一次 setValue，
+  // 让测试和外部代码可通过 editor.setValue 调用记录看到初始值被设置。
+  if (opts.value !== undefined) {
+    editor.setValue(opts.value);
+  }
+
+  // 双向同步：编辑器 → textarea（保持现有依赖 textarea 'input' 事件的代码兼容）
+  editor.onDidChangeModelContent(() => {
+    textareaEl.value = editor.getValue();
+    textareaEl.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  return {
+    editor,
+    getValue: () => editor.getValue(),
+    setValue: (v) => editor.setValue(v),
+    onChange: (cb) => editor.onDidChangeModelContent(() => cb(editor.getValue())),
+    dispose: () => {
+      editor.dispose();
+      container.remove();
+      textareaEl.style.display = '';
+    },
+  };
+}
+
+export const CodeMonaco = { load, create };
 if (typeof window !== 'undefined') window.CodeMonaco = CodeMonaco;

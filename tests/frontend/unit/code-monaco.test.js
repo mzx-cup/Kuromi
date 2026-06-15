@@ -93,3 +93,30 @@ describe('CodeMonaco.load', () => {
     expect(window.require).toBe(preExistingRequire);  // 还原成功
   });
 });
+
+describe('CodeMonaco.create', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    vi.resetModules();
+    vi.restoreAllMocks();
+  });
+
+  it('create 接收 textarea 返回 editor handle', async () => {
+    document.body.insertAdjacentHTML('beforeend', `<textarea id="t"></textarea>`);
+    // stub monaco
+    const fakeEditor = {
+      setValue: vi.fn(),
+      getValue: vi.fn(() => 'hi'),
+      onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
+      dispose: vi.fn(),
+    };
+    window.monaco = { editor: { create: vi.fn(() => fakeEditor) } };
+
+    const { CodeMonaco } = await import('../../../js/code-monaco.js');
+    const handle = CodeMonaco.create(document.getElementById('t'), { value: 'hello' });
+    expect(handle.getValue()).toBe('hi');
+    expect(handle.editor.setValue).toHaveBeenCalledWith('hello');
+    handle.dispose();
+    expect(fakeEditor.dispose).toHaveBeenCalled();
+  });
+});
