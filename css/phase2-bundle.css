@@ -1,307 +1,1214 @@
 /* ============================================================
- * Phase 2 — 脑暴对话 / 大纲确认 / 9 件套进度 面板样式
- * 覆盖在 OpenMAIC 卡片之上, glassmorphism 风格延续
- * v4: TokenCSS 统一管理，不再硬编码 hex/rgba
+ * Phase 2 — 脑暴 / 大纲确认 / 9 件套进度 面板样式
+ * 全部走 --openmaic-* 语义 token, 不写硬编码 hex/rgba
+ * 在 generation-preview 页面 (独立 Phase 2 流程页) 使用
+ *
+ * 配色叙事:
+ *   - 脑暴阶段 → cyan (信息 / 启发)
+ *   - 大纲确认 → violet (PBL/项目紫)
+ *   - 9 件套进度 → emerald + amber (成功 + 品牌)
  * ============================================================ */
 
-/* ---- 面板基础壳 (暗底玻璃，不随 theme 变化) ---- */
+/* ===================== 1. 页面级骨架 ===================== */
+
+.gen-preview-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+    background:
+        radial-gradient(ellipse at 8% 0%, color-mix(in oklch, var(--openmaic-amber-500), transparent 88%) 0%, transparent 38%),
+        radial-gradient(ellipse at 92% 18%, color-mix(in oklch, var(--openmaic-cyan-500), transparent 92%) 0%, transparent 42%),
+        radial-gradient(ellipse at 50% 100%, color-mix(in oklch, var(--openmaic-violet-500), transparent 92%) 0%, transparent 50%),
+        var(--openmaic-bg-deep, #0a0f1c);
+    background-attachment: fixed;
+}
+
+/* 顶部 3 颗浮动光球 (慢速漂移) */
+.gen-preview-page::before,
+.gen-preview-page::after,
+.gen-preview-page > .bg-decor {
+    pointer-events: none;
+}
+.gen-preview-page::before {
+    content: "";
+    position: fixed;
+    top: -120px; left: -80px;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-amber-500), transparent 50%), transparent 70%);
+    filter: blur(40px);
+    animation: gp-orb-drift-a 18s ease-in-out infinite;
+    z-index: 0;
+}
+.gen-preview-page::after {
+    content: "";
+    position: fixed;
+    bottom: -160px; right: -120px;
+    width: 460px; height: 460px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in oklch, var(--openmaic-violet-500), transparent 55%), transparent 70%);
+    filter: blur(50px);
+    animation: gp-orb-drift-b 22s ease-in-out infinite;
+    z-index: 0;
+}
+
+/* 把现有的 .bg-decor/.particle-bg 强制放到最底层 */
+.gen-preview-page .bg-decor,
+.gen-preview-page .particle-bg { z-index: 0; }
+.gen-preview-page .gp-content-wrapper { z-index: 2; }
+.gen-preview-page .gp-back-btn { z-index: 100; }
+
+.gp-content-wrapper {
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 80px 24px 96px;
+    position: relative;
+}
+
+/* ===================== 2. 返回按钮 ===================== */
+
+.gp-back-btn {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px 10px 14px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-full);
+    color: var(--openmaic-text-heading);
+    font-size: 13.5px;
+    font-weight: var(--font-semibold, 600);
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 6px 22px rgba(15, 23, 42, 0.5), 0 0 0 1px var(--openmaic-glass-highlight) inset;
+    transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.gp-back-btn:hover {
+    background: var(--openmaic-dark-surface-hover);
+    transform: translateX(-3px);
+    color: #ffffff;
+    border-color: var(--openmaic-amber-500);
+    box-shadow: 0 8px 28px color-mix(in oklch, var(--openmaic-amber-500), transparent 60%), 0 0 0 1px var(--openmaic-amber-500) inset;
+}
+.gp-back-btn:active { transform: translateX(-1px) scale(0.98); }
+.gp-back-btn i {
+    font-size: 12px;
+    transition: transform var(--transition-fast);
+}
+.gp-back-btn:hover i { transform: translateX(-2px); }
+
+/* ===================== 3. Hero 标题区 ===================== */
+
+.gp-hero {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: gp-fade-up 0.6s var(--transition-base) both;
+    position: relative;
+}
+.gp-hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    margin-bottom: 16px;
+    background: color-mix(in oklch, var(--openmaic-amber-500), transparent 88%);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500), transparent 65%);
+    border-radius: var(--radius-full);
+    color: var(--openmaic-amber-300);
+    font-size: 11.5px;
+    font-weight: var(--font-semibold);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+}
+.gp-hero-eyebrow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--openmaic-amber-300), transparent 80%), transparent);
+    transform: translateX(-100%);
+    animation: gp-shimmer-slow 3.5s linear infinite;
+}
+.gp-hero-eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--openmaic-amber-400);
+    box-shadow: 0 0 10px var(--openmaic-amber-400);
+    animation: gp-pulse-dot 1.6s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+.gp-hero-eyebrow span:last-child { position: relative; z-index: 1; }
+
+.gp-hero h1 {
+    margin: 0 0 10px;
+    font-size: 36px;
+    font-weight: var(--font-semibold, 600);
+    line-height: 1.2;
+    letter-spacing: -0.8px;
+    background:
+        linear-gradient(135deg,
+            var(--openmaic-amber-200) 0%,
+            var(--openmaic-amber-500) 35%,
+            var(--openmaic-violet-400) 70%,
+            var(--openmaic-cyan-400) 100%);
+    background-size: 220% 220%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: gp-gradient-pan 9s ease-in-out infinite;
+}
+
+.gp-requirement-readout {
+    margin: 14px auto 0;
+    max-width: 560px;
+    padding: 11px 20px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: border var(--transition-fast), background var(--transition-fast);
+}
+.gp-requirement-readout:hover {
+    border-color: color-mix(in oklch, var(--openmaic-amber-500), transparent 60%);
+    background: var(--openmaic-dark-surface);
+}
+.gp-requirement-readout::before {
+    content: "✦";
+    color: var(--openmaic-amber-400);
+    font-size: 14px;
+    animation: gp-spin-slow 8s linear infinite;
+    display: inline-block;
+}
+.gp-requirement-readout b {
+    color: #ffffff;
+    font-weight: var(--font-semibold, 600);
+}
+
+/* ===================== 4. 步骤条 ===================== */
+
+.gp-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 0 auto 32px;
+    max-width: 480px;
+    padding: 14px 20px;
+    background: var(--openmaic-dark-surface);
+    border: 1px solid var(--openmaic-glass-border);
+    border-radius: var(--radius-full);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+.gp-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ffffff;
+    opacity: 0.7;
+    font-size: 12.5px;
+    font-weight: var(--font-medium);
+    transition: color var(--transition-base), opacity var(--transition-base);
+    position: relative;
+}
+.gp-step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: var(--font-semibold);
+    transition: all 0.45s var(--transition-base);
+    position: relative;
+}
+.gp-step.active { color: var(--openmaic-amber-200); opacity: 1; }
+.gp-step.active .gp-step-num {
+    background: linear-gradient(135deg, var(--openmaic-amber-500), var(--openmaic-amber-400));
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow:
+        0 0 0 4px color-mix(in oklch, var(--openmaic-amber-500), transparent 80%),
+        0 0 16px color-mix(in oklch, var(--openmaic-amber-500), transparent 60%);
+    animation: gp-step-pulse 2.2s ease-in-out infinite;
+}
+.gp-step.done { color: var(--openmaic-emerald-500); opacity: 1; }
+.gp-step.done .gp-step-num {
+    background: var(--openmaic-emerald-bg);
+    border-color: var(--openmaic-emerald-border);
+    color: var(--openmaic-emerald-500);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--openmaic-emerald-500), transparent 70%);
+}
+.gp-step-line {
+    flex: 1;
+    height: 2px;
+    background: var(--openmaic-glass-control-border);
+    margin: 0 12px;
+    min-width: 32px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+}
+.gp-step-line::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, var(--openmaic-emerald-500), var(--openmaic-emerald-400));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.5s var(--transition-base);
+    border-radius: 2px;
+}
+.gp-step-line.done::after { transform: scaleX(1); }
+
+/* ===================== 5. 通用面板 (暗底玻璃) ===================== */
+
 .xs-bs-panel,
 .xs-confirm-panel,
-.xs-bundle-panel {
+.xs-bundle-panel,
+.gp-requirement-card {
     position: relative;
-    margin: 24px auto;
-    max-width: 720px;
-    padding: var(--space-lg, 24px);
-    background: color-mix(in oklch, var(--neutral-900), transparent 28%);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-lg, 20px);
-    box-shadow: var(--shadow-lg);
-    color: var(--text-body);
-    z-index: 10;
+    margin: 0 0 24px;
+    padding: 32px;
+    background: var(--openmaic-dark-surface-modal);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--openmaic-glass-border);
+    border-radius: var(--radius-xl, 24px);
+    box-shadow:
+        0 1px 0 var(--openmaic-glass-highlight) inset,
+        0 24px 60px -20px var(--openmaic-shadow-tint),
+        0 8px 30px var(--openmaic-shadow-tint);
+    color: var(--openmaic-text-body);
+    animation: gp-fade-up 0.5s var(--transition-base) both;
+    overflow: hidden;
 }
+.xs-bs-panel::before,
+.xs-confirm-panel::before,
+.xs-bundle-panel::before,
+.gp-requirement-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 32px; right: 32px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--openmaic-glass-border-strong), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+.xs-bs-panel::after,
+.xs-confirm-panel::after,
+.xs-bundle-panel::after,
+.gp-requirement-card::after {
+    content: "";
+    position: absolute;
+    top: -40%; right: -20%;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, var(--gp-panel-glow, var(--openmaic-amber-bg)) 0%, transparent 60%);
+    filter: blur(50px);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+    animation: gp-glow-drift 16s ease-in-out infinite;
+}
+.xs-bs-panel > *,
+.xs-confirm-panel > *,
+.xs-bundle-panel > *,
+.gp-requirement-card > * { position: relative; z-index: 2; }
 
 .xs-bs-panel.hidden,
 .xs-confirm-panel.hidden,
-.xs-bundle-panel.hidden {
-    display: none;
-}
+.xs-bundle-panel.hidden,
+.gp-requirement-card.hidden { display: none; }
 
-/* ---- 脑暴头部 ---- */
+/* 阶段色调联动 — 面板右侧光晕随阶段变色 */
+.xs-bs-panel     { --gp-panel-glow: var(--openmaic-cyan-bg); }
+.xs-confirm-panel{ --gp-panel-glow: var(--openmaic-violet-bg); }
+.xs-bundle-panel { --gp-panel-glow: var(--openmaic-emerald-bg); }
+
+/* ===================== 6. 入参卡 ===================== */
+
+.gp-requirement-card {
+    text-align: left;
+    padding: 40px 36px;
+}
+.gp-requirement-card .gp-card-icon {
+    width: 56px; height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md, 14px);
+    background: linear-gradient(135deg, var(--openmaic-amber-500), var(--openmaic-amber-400) 60%, var(--openmaic-amber-300));
+    color: #ffffff;
+    font-size: 24px;
+    margin-bottom: 20px;
+    box-shadow:
+        0 8px 24px color-mix(in oklch, var(--openmaic-amber-500), transparent 60%),
+        0 0 0 1px color-mix(in oklch, var(--openmaic-amber-300), transparent 70%) inset;
+    position: relative;
+    overflow: hidden;
+}
+.gp-requirement-card .gp-card-icon::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: gp-shimmer-fast 2.6s ease-in-out infinite;
+}
+.gp-requirement-card h3 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: var(--font-semibold, 600);
+    color: #ffffff;
+    letter-spacing: -0.3px;
+}
+.gp-requirement-hint {
+    margin: 0 0 22px;
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.75;
+    font-weight: var(--font-medium, 500);
+}
+.gp-requirement-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-md, 14px);
+    color: #ffffff;
+    font-size: 14.5px;
+    line-height: 1.6;
+    font-weight: var(--font-medium, 500);
+    font-family: inherit;
+    resize: vertical;
+    min-height: 96px;
+    outline: none;
+    transition: border var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.gp-requirement-input::placeholder { color: var(--openmaic-text-placeholder); }
+.gp-requirement-input:hover { border-color: var(--openmaic-glass-border-strong); }
+.gp-requirement-input:focus {
+    border-color: var(--openmaic-amber-500);
+    background: var(--openmaic-dark-surface-solid);
+    color: #ffffff;
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--openmaic-amber-500), transparent 85%);
+}
+.gp-requirement-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 18px;
+    gap: 12px;
+}
+.gp-requirement-tip {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: var(--font-medium, 500);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.gp-requirement-tip i { color: var(--openmaic-amber-400); }
+
+/* ===================== 7. 脑暴头部 (cyan 主题) ===================== */
+
 .xs-bs-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 18px;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--openmaic-glass-border);
 }
 .xs-bs-progress {
     display: inline-flex;
     align-items: baseline;
     gap: 2px;
-    padding: 4px 12px;
-    background: var(--accent-bg);
-    color: var(--brand-300);
-    border: 1px solid var(--accent-border);
+    padding: 6px 14px;
+    background: var(--openmaic-cyan-bg);
+    color: var(--openmaic-cyan-300);
+    border: 1px solid var(--openmaic-cyan-border);
     border-radius: var(--radius-full);
     font-size: 14px;
     font-weight: var(--font-semibold, 600);
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 14px color-mix(in oklch, var(--openmaic-cyan-500), transparent 80%);
 }
-.xs-bs-divider {
-    opacity: 0.5;
-    margin: 0 2px;
+.xs-bs-progress #xs-bs-turn-label {
+    font-size: 16px;
+    color: var(--openmaic-cyan-300);
+    text-shadow: 0 0 8px color-mix(in oklch, var(--openmaic-cyan-400), transparent 50%);
 }
+.xs-bs-divider { opacity: 0.4; margin: 0 3px; }
+.xs-bs-progress #xs-bs-turn-total { color: var(--openmaic-text-muted); font-size: 12px; }
+
 .xs-bs-slot-badge {
     flex: 1;
-    padding: 4px 12px;
-    background: var(--surface-glass);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border);
     border-radius: var(--radius-full);
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: center;
+    font-size: 12.5px;
+    color: var(--openmaic-text-body);
+    justify-content: center;
+    transition: background var(--transition-fast), color var(--transition-fast);
 }
-.xs-bs-close {
-    width: 28px;
-    height: 28px;
+.xs-bs-slot-badge::before {
+    content: "";
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--surface-glass);
-    border: none;
-    color: var(--text-placeholder);
-    font-size: 20px;
+    background: var(--openmaic-cyan-400);
+    box-shadow: 0 0 6px var(--openmaic-cyan-400);
+    animation: gp-pulse-dot 1.6s ease-in-out infinite;
+}
+
+.xs-bs-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    color: var(--openmaic-text-body);
+    font-size: 18px;
     line-height: 1;
     cursor: pointer;
-    transition: background var(--transition-fast);
+    transition: all 0.3s var(--transition-base);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .xs-bs-close:hover {
-    background: var(--danger-bg);
-    color: var(--danger-500);
+    background: var(--openmaic-danger-bg);
+    border-color: var(--openmaic-danger-border);
+    color: var(--openmaic-danger-500);
+    transform: rotate(90deg) scale(1.05);
 }
 
-/* ---- 脑暴问题 + 选项 ---- */
+/* ===================== 8. 脑暴问题 + 选项 ===================== */
+
 .xs-bs-question {
-    font-size: 17px;
-    font-weight: var(--font-medium, 500);
+    font-size: 21px;
+    font-weight: var(--font-semibold, 600);
     line-height: 1.55;
-    margin: 0 0 16px;
-    color: var(--text-heading);
+    margin: 0 0 20px;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    animation: gp-question-in 0.5s var(--transition-base) both;
 }
+.xs-bs-question::before {
+    content: "“";
+    color: var(--openmaic-cyan-400);
+    margin-right: 4px;
+    font-size: 24px;
+    vertical-align: -2px;
+}
+
 .xs-bs-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--gap-sm, 8px);
-    margin-bottom: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
 }
+@media (max-width: 600px) {
+    .xs-bs-options { grid-template-columns: 1fr; }
+}
+
 .xs-bs-option {
-    padding: 10px 16px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-md, 12px);
-    color: var(--text-body);
-    font-size: 14px;
+    padding: 15px 18px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-md, 14px);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: var(--font-medium, 500);
+    line-height: 1.5;
+    text-align: left;
     cursor: pointer;
+    position: relative;
     transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    overflow: hidden;
+    animation: gp-option-in 0.4s var(--transition-base) both;
+}
+.xs-bs-option:nth-child(1) { animation-delay: 0.04s; }
+.xs-bs-option:nth-child(2) { animation-delay: 0.08s; }
+.xs-bs-option:nth-child(3) { animation-delay: 0.12s; }
+.xs-bs-option:nth-child(4) { animation-delay: 0.16s; }
+.xs-bs-option:nth-child(5) { animation-delay: 0.20s; }
+.xs-bs-option:nth-child(6) { animation-delay: 0.24s; }
+
+.xs-bs-option::before {
+    content: "";
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid var(--openmaic-text-muted);
+    flex-shrink: 0;
+    transition: all 0.3s var(--transition-base);
+    position: relative;
+    z-index: 1;
+}
+/* hover 涟漪光斑 */
+.xs-bs-option::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, color-mix(in oklch, var(--openmaic-cyan-400), transparent 75%), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
 }
 .xs-bs-option:hover {
-    background: var(--accent-bg);
-    border-color: var(--border-glass-hover);
-    color: var(--brand-200);
+    background: color-mix(in oklch, var(--openmaic-cyan-500), transparent 85%);
+    border-color: var(--openmaic-cyan-400);
+    color: var(--openmaic-cyan-200);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--openmaic-cyan-500), transparent 70%);
 }
+.xs-bs-option:hover::after { opacity: 1; }
+.xs-bs-option:hover::before { border-color: var(--openmaic-cyan-300); }
 .xs-bs-option.selected {
-    background: color-mix(in oklch, var(--brand-500), transparent 70%);
-    border-color: color-mix(in oklch, var(--brand-500), transparent 40%);
-    color: var(--text-on-brand);
+    background: color-mix(in oklch, var(--openmaic-cyan-500), transparent 78%);
+    border-color: var(--openmaic-cyan-400);
+    color: #ffffff;
+    font-weight: var(--font-semibold, 600);
+    transform: translateY(-1px) scale(1.01);
+    box-shadow:
+        0 8px 26px color-mix(in oklch, var(--openmaic-cyan-500), transparent 65%),
+        0 0 0 1px var(--openmaic-cyan-400) inset;
 }
-.xs-bs-custom-row {
-    margin-bottom: 16px;
+.xs-bs-option.selected::before {
+    background: var(--openmaic-cyan-400);
+    border-color: var(--openmaic-cyan-400);
+    box-shadow:
+        inset 0 0 0 3px var(--openmaic-dark-surface-modal),
+        0 0 8px var(--openmaic-cyan-400);
 }
+.xs-bs-option.selected::after { opacity: 1; }
+
+.xs-bs-custom-row { margin-bottom: 18px; }
 .xs-bs-custom-input {
     width: 100%;
-    padding: 10px 14px;
-    background: color-mix(in oklch, var(--neutral-900), transparent 80%);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-sm, 10px);
-    color: var(--text-body);
-    font-size: 14px;
+    padding: 12px 16px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-md, 14px);
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: var(--font-medium, 500);
     outline: none;
-    transition: border var(--transition-fast);
-}
-.xs-bs-custom-input:focus {
-    border-color: var(--input-focus-border);
-}
-.xs-bs-actions {
-    display: flex;
-    gap: var(--gap-sm, 8px);
-    justify-content: flex-end;
-}
-.xs-bs-btn {
-    padding: 8px 18px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-sm, 10px);
-    color: var(--text-body);
-    font-size: 14px;
-    cursor: pointer;
     transition: all var(--transition-fast);
 }
-.xs-bs-btn:hover {
-    background: var(--surface-glass-hover);
-}
-.xs-bs-next,
-.xs-confirm-go {
-    background: linear-gradient(135deg, var(--brand-500), var(--brand-400));
-    border: none;
-    color: var(--text-on-brand);
-    font-weight: var(--font-medium, 500);
-}
-.xs-bs-next:hover,
-.xs-confirm-go:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px color-mix(in oklch, var(--brand-500), transparent 65%);
-}
-.xs-bs-skip:disabled,
-.xs-bs-next:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.xs-bs-custom-input::placeholder { color: var(--openmaic-text-placeholder); }
+.xs-bs-custom-input:focus {
+    border-color: var(--openmaic-cyan-500);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--openmaic-cyan-500), transparent 85%);
 }
 
-/* ---- 大纲确认面板 ---- */
+.xs-bs-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 18px;
+    border-top: 1px solid var(--openmaic-glass-border);
+}
+
+/* ===================== 9. 按钮体系 ===================== */
+
+.xs-bs-btn {
+    padding: 11px 22px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-md, 14px);
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: var(--font-semibold, 600);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    overflow: hidden;
+}
+.xs-bs-btn:hover {
+    background: var(--openmaic-dark-surface-hover);
+    border-color: var(--openmaic-amber-400);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+.xs-bs-btn:active { transform: translateY(0); }
+.xs-bs-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.xs-bs-next,
+.xs-confirm-go,
+#gp-requirement-start {
+    background: linear-gradient(135deg, var(--openmaic-amber-500) 0%, var(--openmaic-amber-400) 50%, #fb923c 100%);
+    background-size: 200% 200%;
+    background-position: 0% 0%;
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-300), transparent 50%);
+    color: #ffffff;
+    font-weight: var(--font-semibold, 600);
+    padding: 11px 22px;
+    box-shadow:
+        0 4px 14px color-mix(in oklch, var(--openmaic-amber-500), transparent 65%),
+        0 1px 0 rgba(255, 255, 255, 0.18) inset;
+    transition: all 0.35s var(--transition-base);
+}
+.xs-bs-next::before,
+.xs-confirm-go::before,
+#gp-requirement-start::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%);
+    transform: translateX(-100%);
+    pointer-events: none;
+}
+.xs-bs-next:hover,
+.xs-confirm-go:hover,
+#gp-requirement-start:hover {
+    background-position: 100% 100%;
+    transform: translateY(-2px);
+    box-shadow:
+        0 12px 28px color-mix(in oklch, var(--openmaic-amber-500), transparent 55%),
+        0 1px 0 rgba(255, 255, 255, 0.2) inset;
+    filter: brightness(1.08);
+}
+.xs-bs-next:hover::before,
+.xs-confirm-go:hover::before,
+#gp-requirement-start:hover::before {
+    animation: gp-shimmer-fast 1.2s ease-out;
+}
+.xs-bs-next:disabled,
+.xs-confirm-go:disabled,
+#gp-requirement-start:disabled {
+    background: var(--openmaic-dark-surface);
+    color: var(--openmaic-text-placeholder);
+    border-color: var(--openmaic-glass-control-border);
+    box-shadow: none;
+    filter: none;
+}
+
+.xs-confirm-back {
+    background: var(--openmaic-dark-surface-solid);
+    border-color: var(--openmaic-glass-border-strong);
+    color: #ffffff;
+}
+.xs-confirm-back:hover {
+    color: #ffffff;
+    background: color-mix(in oklch, var(--openmaic-violet-500), transparent 80%);
+    border-color: var(--openmaic-violet-400);
+}
+
+/* 脑暴阶段的"下一题"用 cyan 强调 */
+.xs-bs-next {
+    background: linear-gradient(135deg, var(--openmaic-cyan-500) 0%, var(--openmaic-cyan-400) 50%, var(--openmaic-cyan-300) 100%);
+    border-color: color-mix(in oklch, var(--openmaic-cyan-300), transparent 50%);
+    box-shadow: 0 4px 14px color-mix(in oklch, var(--openmaic-cyan-500), transparent 65%), 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+.xs-bs-next:hover {
+    box-shadow: 0 12px 28px color-mix(in oklch, var(--openmaic-cyan-500), transparent 55%), 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+
+/* 大纲确认的"开始生成"用 violet 强调 */
+.xs-confirm-go {
+    background: linear-gradient(135deg, var(--openmaic-violet-500) 0%, var(--openmaic-violet-400) 50%, var(--openmaic-violet-300) 100%);
+    border-color: color-mix(in oklch, var(--openmaic-violet-300), transparent 50%);
+    box-shadow: 0 4px 14px color-mix(in oklch, var(--openmaic-violet-500), transparent 65%), 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+.xs-confirm-go:hover {
+    box-shadow: 0 12px 28px color-mix(in oklch, var(--openmaic-violet-500), transparent 55%), 0 1px 0 rgba(255,255,255,0.2) inset;
+}
+
+/* ===================== 10. 大纲确认面板 (violet 主题) ===================== */
+
 .xs-confirm-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 .xs-confirm-header h3 {
     margin: 0;
-    font-size: 18px;
-    color: var(--text-heading);
+    font-size: 22px;
+    font-weight: var(--font-semibold, 600);
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+.xs-confirm-header h3::before {
+    content: "📋";
+    font-size: 22px;
 }
 .xs-confirm-mode {
     display: flex;
     align-items: center;
-    gap: var(--gap-sm, 8px);
-    font-size: 13px;
-    color: var(--text-muted);
+    gap: 8px;
+    font-size: 12px;
+    color: var(--openmaic-text-muted);
 }
 .xs-confirm-toggle {
-    padding: 4px 12px;
-    background: var(--accent-bg);
-    border: 1px solid var(--accent-border);
+    padding: 6px 14px;
+    background: var(--openmaic-violet-bg);
+    border: 1px solid var(--openmaic-violet-border);
     border-radius: var(--radius-full);
-    color: var(--brand-200);
+    color: var(--openmaic-violet-300);
     font-size: 12px;
     font-weight: var(--font-semibold, 600);
     cursor: pointer;
     transition: all var(--transition-fast);
+    letter-spacing: 0.3px;
+    box-shadow: 0 0 12px color-mix(in oklch, var(--openmaic-violet-500), transparent 80%);
+}
+.xs-confirm-toggle:hover {
+    background: color-mix(in oklch, var(--openmaic-violet-500), transparent 78%);
+    transform: scale(1.05);
 }
 .xs-confirm-toggle[data-mode="pbl"] {
-    background: var(--warning-bg);
-    border-color: var(--warning-border);
-    color: var(--warning-500);
+    background: var(--openmaic-warning-bg);
+    border-color: var(--openmaic-warning-border);
+    color: var(--openmaic-warning-500);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--openmaic-warning-500), transparent 80%);
 }
 .xs-confirm-rationale {
-    margin: 0 0 14px;
-    font-size: 13px;
-    color: var(--text-placeholder);
-    font-style: italic;
+    margin: 0 0 18px;
+    padding: 14px 16px;
+    background: var(--openmaic-dark-surface-solid);
+    border-left: 3px solid var(--openmaic-violet-400);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 14px;
+    color: #ffffff;
+    font-weight: var(--font-medium, 500);
+    line-height: 1.7;
 }
+
 .xs-confirm-scenes {
     list-style: none;
-    margin: 0 0 16px;
+    margin: 0 0 22px;
     padding: 0;
-    max-height: 280px;
+    max-height: 320px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.xs-confirm-scenes::-webkit-scrollbar { width: 6px; }
+.xs-confirm-scenes::-webkit-scrollbar-track { background: transparent; }
+.xs-confirm-scenes::-webkit-scrollbar-thumb {
+    background: var(--openmaic-violet-border);
+    border-radius: var(--radius-full);
+}
+.xs-confirm-scenes::-webkit-scrollbar-thumb:hover {
+    background: var(--openmaic-violet-500);
 }
 .xs-confirm-scenes li {
-    padding: 10px 14px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-sm, 10px);
-    margin-bottom: 6px;
-    font-size: 13px;
-    color: var(--text-body);
+    padding: 14px 16px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-md, 14px);
+    font-size: 14px;
+    color: #ffffff;
+    line-height: 1.6;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all var(--transition-fast);
+    animation: gp-scene-in 0.45s var(--transition-base) both;
+}
+.xs-confirm-scenes li:nth-child(1) { animation-delay: 0.04s; }
+.xs-confirm-scenes li:nth-child(2) { animation-delay: 0.10s; }
+.xs-confirm-scenes li:nth-child(3) { animation-delay: 0.16s; }
+.xs-confirm-scenes li:nth-child(4) { animation-delay: 0.22s; }
+.xs-confirm-scenes li:nth-child(5) { animation-delay: 0.28s; }
+.xs-confirm-scenes li:nth-child(6) { animation-delay: 0.34s; }
+.xs-confirm-scenes li:hover {
+    border-color: var(--openmaic-violet-500);
+    background: var(--openmaic-violet-bg);
+    transform: translateX(4px);
+    box-shadow: -4px 0 0 var(--openmaic-violet-400);
 }
 .xs-confirm-scenes li strong {
-    color: var(--brand-300);
-    margin-right: 8px;
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--openmaic-violet-500), var(--openmaic-violet-400));
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: var(--font-semibold);
+    box-shadow: 0 2px 8px color-mix(in oklch, var(--openmaic-violet-500), transparent 70%);
+    transition: transform 0.3s var(--transition-base);
 }
+.xs-confirm-scenes li:hover strong { transform: scale(1.1) rotate(-8deg); }
+
 .xs-confirm-actions {
     display: flex;
     justify-content: space-between;
-    gap: var(--gap-sm, 8px);
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--openmaic-glass-border);
 }
 
-/* ---- 9 件套进度面板 ---- */
+/* ===================== 11. 9 件套进度面板 (emerald 主题) ===================== */
+
 .xs-bundle-title {
     text-align: center;
-    margin: 0 0 18px;
-    font-size: 16px;
-    color: var(--text-muted);
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: var(--font-semibold, 600);
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    animation: gp-fade-up 0.5s var(--transition-base) both;
 }
+.xs-bundle-subtitle {
+    text-align: center;
+    margin: 0 0 22px;
+    font-size: 13.5px;
+    color: #ffffff;
+    font-weight: var(--font-medium, 500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.xs-bundle-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: var(--openmaic-emerald-bg);
+    border: 1px solid var(--openmaic-emerald-border);
+    border-radius: var(--radius-full);
+    color: var(--openmaic-emerald-500);
+    font-size: 11px;
+    font-weight: var(--font-semibold);
+    font-variant-numeric: tabular-nums;
+    transition: all 0.3s var(--transition-base);
+}
+.xs-bundle-counter b {
+    color: var(--openmaic-emerald-500);
+    font-size: 13px;
+    display: inline-block;
+    min-width: 12px;
+    text-align: center;
+}
+.xs-bundle-counter.complete {
+    background: linear-gradient(135deg, var(--openmaic-emerald-500), var(--openmaic-emerald-400));
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 4px 14px color-mix(in oklch, var(--openmaic-emerald-500), transparent 60%);
+    animation: gp-counter-bounce 0.6s var(--transition-base);
+}
+.xs-bundle-counter.complete b { color: #ffffff; }
+
 .xs-bundle-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 16px;
+    gap: 12px;
+    margin-bottom: 22px;
 }
+@media (max-width: 600px) {
+    .xs-bundle-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 .xs-comp {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    padding: 14px 8px;
-    background: var(--surface-glass);
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-md, 12px);
-    color: var(--text-muted);
-    font-size: 12px;
-    transition: all 0.3s;
+    justify-content: center;
+    gap: 6px;
+    padding: 18px 12px 16px;
+    background: var(--openmaic-dark-surface-solid);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: var(--radius-lg, 20px);
+    color: #ffffff;
+    text-align: center;
+    transition: all 0.5s var(--transition-base);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    animation: gp-comp-in 0.5s var(--transition-base) both;
 }
-.xs-comp[data-state="ready"] {
-    background: var(--success-bg);
-    border-color: var(--success-border);
-    color: var(--success-500);
-}
-.xs-comp[data-state="fallback"] {
-    background: var(--warning-bg);
-    border-color: var(--warning-border);
-    color: var(--warning-500);
+.xs-comp:nth-child(1) { animation-delay: 0.04s; }
+.xs-comp:nth-child(2) { animation-delay: 0.10s; }
+.xs-comp:nth-child(3) { animation-delay: 0.16s; }
+.xs-comp:nth-child(4) { animation-delay: 0.22s; }
+.xs-comp:nth-child(5) { animation-delay: 0.28s; }
+.xs-comp:nth-child(6) { animation-delay: 0.34s; }
+.xs-comp:nth-child(7) { animation-delay: 0.40s; }
+.xs-comp:nth-child(8) { animation-delay: 0.46s; }
+.xs-comp:nth-child(9) { animation-delay: 0.52s; }
+
+.xs-comp::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--openmaic-amber-500), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
 }
 .xs-comp[data-state="pending"] {
-    opacity: 0.5;
+    opacity: 0.55;
 }
+.xs-comp[data-state="pending"]:hover {
+    opacity: 0.85;
+    border-color: var(--openmaic-glass-border-strong);
+    transform: translateY(-2px);
+}
+
+.xs-comp[data-state="running"] {
+    border-color: color-mix(in oklch, var(--openmaic-amber-500), transparent 50%);
+    background: color-mix(in oklch, var(--openmaic-amber-500), transparent 90%);
+    color: var(--openmaic-amber-200);
+    box-shadow: 0 0 24px color-mix(in oklch, var(--openmaic-amber-500), transparent 75%);
+}
+.xs-comp[data-state="running"]::after { opacity: 1; animation: gp-comp-glow 1.5s ease-in-out infinite; }
+
+.xs-comp[data-state="ready"] {
+    background: linear-gradient(135deg, var(--openmaic-emerald-bg) 0%, color-mix(in oklch, var(--openmaic-emerald-500), transparent 92%) 100%);
+    border-color: var(--openmaic-emerald-border);
+    color: var(--openmaic-emerald-500);
+    transform: scale(1.04);
+    box-shadow: 0 8px 24px color-mix(in oklch, var(--openmaic-emerald-500), transparent 78%), 0 0 0 1px var(--openmaic-emerald-border) inset;
+    animation: gp-comp-ready 0.6s var(--transition-base);
+}
+.xs-comp[data-state="ready"] .xs-comp-icon {
+    filter: drop-shadow(0 0 10px color-mix(in oklch, var(--openmaic-emerald-500), transparent 40%));
+}
+
+.xs-comp[data-state="fallback"] {
+    background: var(--openmaic-warning-bg);
+    border-color: var(--openmaic-warning-border);
+    color: var(--openmaic-warning-500);
+    box-shadow: 0 0 16px color-mix(in oklch, var(--openmaic-warning-500), transparent 80%);
+}
+
 .xs-comp-icon {
-    font-size: 24px;
+    font-size: 30px;
+    line-height: 1;
+    transition: transform 0.4s var(--transition-base);
+    display: inline-block;
+}
+.xs-comp:hover .xs-comp-icon { transform: scale(1.1) rotate(-4deg); }
+.xs-comp[data-state="ready"] .xs-comp-icon {
+    transform: scale(1.15);
+    animation: gp-icon-celebrate 0.8s var(--transition-base);
 }
 .xs-comp-name {
-    font-weight: var(--font-medium, 500);
-    font-size: 13px;
+    font-weight: var(--font-semibold, 600);
+    font-size: 14px;
+    color: inherit;
+    letter-spacing: 0.01em;
 }
 .xs-comp-state {
-    font-size: 11px;
-    opacity: 0.7;
+    font-size: 11.5px;
+    opacity: 0.92;
+    font-weight: var(--font-medium, 500);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
 }
 .xs-comp[data-state="running"] .xs-comp-state {
-    animation: xs-pulse 1.4s ease-in-out infinite;
+    animation: gp-pulse-fade 1.4s ease-in-out infinite;
 }
-@keyframes xs-pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
+.xs-comp[data-state="running"] .xs-comp-state::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: gp-spin-pulse 1.2s ease-in-out infinite;
+    box-shadow: 0 0 8px currentColor;
 }
+.xs-comp[data-state="ready"] .xs-comp-state::before {
+    content: "✓";
+    font-weight: var(--font-bold, 700);
+    color: var(--openmaic-emerald-500);
+    animation: gp-checkmark 0.5s var(--transition-base);
+}
+.xs-comp[data-state="fallback"] .xs-comp-state::before {
+    content: "!";
+    color: var(--openmaic-warning-500);
+}
+
+.xs-bundle-progress {
+    margin: -8px 0 18px;
+    height: 6px;
+    background: var(--openmaic-dark-surface-solid);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 0 0 1px var(--openmaic-glass-border-strong) inset;
+}
+.xs-bundle-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg,
+        var(--openmaic-amber-500) 0%,
+        var(--openmaic-amber-400) 30%,
+        var(--openmaic-emerald-500) 70%,
+        var(--openmaic-emerald-400) 100%);
+    background-size: 200% 100%;
+    border-radius: var(--radius-full);
+    width: 0%;
+    transition: width 0.7s var(--transition-base);
+    position: relative;
+    animation: gp-gradient-pan-h 3s linear infinite;
+}
+.xs-bundle-progress-bar::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: gp-shimmer 1.8s linear infinite;
+}
+
 .xs-bundle-actions {
     display: flex;
     justify-content: center;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--openmaic-glass-border);
 }
 .xs-bundle-cancel {
-    background: var(--danger-bg);
-    border-color: var(--danger-border);
-    color: var(--danger-500);
+    background: var(--openmaic-danger-bg);
+    border-color: var(--openmaic-danger-border);
+    color: var(--openmaic-danger-500);
 }
 .xs-bundle-cancel:hover {
-    background: color-mix(in oklch, var(--danger), transparent 80%);
+    background: color-mix(in oklch, var(--openmaic-danger-500), transparent 80%);
+    transform: translateY(-1px);
 }
 
-/* ---- 脑暴进行中: 隐藏原 OpenMAIC 主区 ---- */
-#openmaic-main.xs-bs-active {
-    display: none;
+/* ===================== 12. 动画集 ===================== */
+
+@keyframes gp-fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gp-question-in {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes gp-option-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes gp-scene-in {
+    from { opacity: 0; transform: translateX(-10px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes gp-comp-in {
+    from { opacity: 0; transform: translateY(10px) rotateX(-8deg); }
+    to   { opacity: 1; transform: translateY(0) rotateX(0); }
+}
+@keyframes gp-comp-ready {
+    0%   { transform: scale(0.92); }
+    50%  { transform: scale(1.08); }
+    100% { transform: scale(1.04); }
+}
+@keyframes gp-comp-glow {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+}
+@keyframes gp-icon-celebrate {
+    0%   { transform: scale(0.4) rotate(-20deg); }
+    60%  { transform: scale(1.3) rotate(8deg); }
+    100% { transform: scale(1.15) rotate(0); }
+}
+@keyframes gp-checkmark {
+    0%   { transform: scale(0); }
+    70%  { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+@keyframes gp-counter-bounce {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+@keyframes gp-pulse-dot {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50%      { opacity: 1;   transform: scale(1.25); }
+}
+@keyframes gp-pulse-fade {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
+}
+@keyframes gp-spin-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.5); }
+    50%      { opacity: 1;   transform: scale(1.3); }
+}
+@keyframes gp-spin-slow {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+@keyframes gp-shimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes gp-shimmer-slow {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+}
+@keyframes gp-shimmer-fast {
+    0%   { transform: translateX(-100%); }
+    60%, 100% { transform: translateX(200%); }
+}
+@keyframes gp-gradient-pan {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+@keyframes gp-gradient-pan-h {
+    0%   { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+@keyframes gp-step-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px color-mix(in oklch, var(--openmaic-amber-500), transparent 80%), 0 0 16px color-mix(in oklch, var(--openmaic-amber-500), transparent 60%); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--openmaic-amber-500), transparent 85%), 0 0 22px color-mix(in oklch, var(--openmaic-amber-500), transparent 50%); }
+}
+@keyframes gp-orb-drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(60px, 40px) scale(1.1); }
+}
+@keyframes gp-orb-drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-80px, -60px) scale(1.15); }
+}
+@keyframes gp-glow-drift {
+    0%, 100% { transform: translate(0, 0); }
+    50%      { transform: translate(-40px, 20px); }
 }

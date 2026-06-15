@@ -418,6 +418,28 @@
     --openmaic-amber-800: #92400e;
     --openmaic-amber-900: #78350f;
 
+    /* Phase 2 辅助调色板 (脑暴/确认/进度 — 不参与 6 主题) */
+    --openmaic-cyan-300:  #67e8f9;
+    --openmaic-cyan-400:  #22d3ee;
+    --openmaic-cyan-500:  #06b6d4;
+    --openmaic-cyan-600:  #0891b2;
+    --openmaic-cyan-bg:   rgba(6, 182, 212, 0.14);
+    --openmaic-cyan-border: rgba(6, 182, 212, 0.32);
+
+    --openmaic-violet-300: #c4b5fd;
+    --openmaic-violet-400: #a78bfa;
+    --openmaic-violet-500: #8b5cf6;
+    --openmaic-violet-600: #7c3aed;
+    --openmaic-violet-bg:   rgba(139, 92, 246, 0.14);
+    --openmaic-violet-border: rgba(139, 92, 246, 0.32);
+
+    --openmaic-emerald-300: #6ee7b7;
+    --openmaic-emerald-400: #34d399;
+    --openmaic-emerald-500: #10b981;
+    --openmaic-emerald-600: #059669;
+    --openmaic-emerald-bg:   rgba(16, 185, 129, 0.14);
+    --openmaic-emerald-border: rgba(16, 185, 129, 0.32);
+
     /* 课程页画布（仅 dark 模式使用，light 模式由 .light-theme 块覆盖） */
     --openmaic-bg-deep:  #0a0f1c;
     --openmaic-bg-base:  #0f172a;
@@ -460,6 +482,29 @@
     --openmaic-video-icon-light: #0ea5e9;
     --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
     --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
+
+    /* === Phase 2 脑暴/确认/9件套面板 === 暗底玻璃上的文本与状态色 */
+    --openmaic-text-heading:    #f1f5f9;
+    --openmaic-text-body:       #e2e8f0;
+    --openmaic-text-muted:      #94a3b8;
+    --openmaic-text-placeholder:#64748b;
+    --openmaic-text-on-brand:   #ffffff;
+
+    /* 状态色 — 与 token 表(--success/--warning/--danger)一致 */
+    --openmaic-success-500:     #10b981;
+    --openmaic-success-bg:      rgba(16, 185, 129, 0.12);
+    --openmaic-success-border:  rgba(16, 185, 129, 0.3);
+    --openmaic-warning-500:     #f59e0b;
+    --openmaic-warning-bg:      rgba(245, 158, 11, 0.12);
+    --openmaic-warning-border:  rgba(245, 158, 11, 0.3);
+    --openmaic-danger-500:      #ef4444;
+    --openmaic-danger-bg:       rgba(239, 68, 68, 0.12);
+    --openmaic-danger-border:   rgba(239, 68, 68, 0.3);
+
+    /* 玻璃交互 — 面板内控件 (按钮/输入/选项) */
+    --openmaic-glass-control-bg:       var(--openmaic-glass-btn-bg);
+    --openmaic-glass-control-bg-hover: var(--openmaic-glass-btn-hover);
+    --openmaic-glass-control-border:   var(--openmaic-glass-border);
 
     /* === 课堂页面 (Classroom) === 玻璃面 + 学术配色，不随 6 主题变化 */
     --classroom-bg-from:    #f5f3ff;   /* 画布渐变起点（淡紫） */
@@ -549,6 +594,29 @@
     --openmaic-amber-700: #b45309;
     --openmaic-amber-800: #92400e;
     --openmaic-amber-900: #78350f;
+
+    /* Phase 2 辅助调色板 (深色主题下用更亮的变种) */
+    --openmaic-cyan-300:  #67e8f9;
+    --openmaic-cyan-400:  #22d3ee;
+    --openmaic-cyan-500:  #06b6d4;
+    --openmaic-cyan-600:  #0891b2;
+    --openmaic-cyan-bg:   rgba(34, 211, 238, 0.16);
+    --openmaic-cyan-border: rgba(34, 211, 238, 0.36);
+
+    --openmaic-violet-300: #c4b5fd;
+    --openmaic-violet-400: #a78bfa;
+    --openmaic-violet-500: #8b5cf6;
+    --openmaic-violet-600: #7c3aed;
+    --openmaic-violet-bg:   rgba(167, 139, 250, 0.16);
+    --openmaic-violet-border: rgba(167, 139, 250, 0.36);
+
+    --openmaic-emerald-300: #6ee7b7;
+    --openmaic-emerald-400: #34d399;
+    --openmaic-emerald-500: #10b981;
+    --openmaic-emerald-600: #059669;
+    --openmaic-emerald-bg:   rgba(52, 211, 153, 0.16);
+    --openmaic-emerald-border: rgba(52, 211, 153, 0.36);
+
     --openmaic-bg-deep:  #0a0f1c;
     --openmaic-bg-base:  #0f172a;
     --openmaic-bg-orb-1: #f59e0b;
@@ -582,6 +650,27 @@
     --openmaic-video-icon-light: #0ea5e9;
     --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
     --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
+
+    /* === Phase 2 脑暴/确认/9件套面板 — dark 主题覆盖 === */
+    --openmaic-text-heading:    #f1f5f9;
+    --openmaic-text-body:       #e2e8f0;
+    --openmaic-text-muted:      #94a3b8;
+    --openmaic-text-placeholder:#64748b;
+    --openmaic-text-on-brand:   #ffffff;
+
+    --openmaic-success-500:     #34d399;
+    --openmaic-success-bg:      rgba(52, 211, 153, 0.12);
+    --openmaic-success-border:  rgba(52, 211, 153, 0.3);
+    --openmaic-warning-500:     #fbbf24;
+    --openmaic-warning-bg:      rgba(251, 191, 36, 0.12);
+    --openmaic-warning-border:  rgba(251, 191, 36, 0.3);
+    --openmaic-danger-500:      #f87171;
+    --openmaic-danger-bg:       rgba(248, 113, 113, 0.12);
+    --openmaic-danger-border:   rgba(248, 113, 113, 0.3);
+
+    --openmaic-glass-control-bg:       var(--openmaic-glass-btn-bg);
+    --openmaic-glass-control-bg-hover: var(--openmaic-glass-btn-hover);
+    --openmaic-glass-control-border:   var(--openmaic-glass-border);
 
     /* === 课堂页面 (Classroom) — dark 主题覆盖 === */
     --classroom-bg-from:    #0a0f1c;   /* 画布渐变起点（深空蓝） */

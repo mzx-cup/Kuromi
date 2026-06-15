@@ -8797,11 +8797,22 @@ async def get_classrooms(user_id: int):
 
 @app.get("/api/v2/classroom/{course_id}")
 async def get_classroom(course_id: str):
-    """获取单个课堂的完整数据"""
+    """获取单个课堂的完整数据 (含解析后的 course_data 字段)"""
     record = get_classroom_record(course_id)
     if not record:
         raise HTTPException(status_code=404, detail="Classroom not found")
-    return {"success": True, "record": record}
+    # 解析 full_data JSON 字符串, 平铺成 course_data 字段供前端 classroom.js 兜底用
+    course_data = {}
+    raw = record.get("full_data")
+    if raw:
+        try:
+            course_data = json.loads(raw) if isinstance(raw, str) else (raw or {})
+        except Exception as e:
+            print(f"[classroom GET] 解析 full_data 失败: {e}")
+    enriched = dict(record)
+    enriched["course_data"] = course_data
+    enriched.setdefault("courseId", record.get("course_id") or course_data.get("courseId"))
+    return {"success": True, "record": enriched}
 
 
 @app.put("/api/v2/classroom/{course_id}")

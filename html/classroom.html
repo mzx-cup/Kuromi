@@ -145,9 +145,55 @@
                 <div class="scene-thumbnails" id="scene-thumbnails"></div>
             </aside>
 
+            <!-- 9 件套悬浮窗 (FAB + 抽屉式) -->
+            <div class="xs-floating-bundle" id="xs-floating-bundle" aria-label="9 件套悬浮窗">
+                <!-- 抽屉 (默认隐藏, 点 FAB 后从右侧滑入) -->
+                <aside class="xs-fb-drawer" id="xs-fb-drawer" aria-hidden="true">
+                    <header class="xs-fb-header">
+                        <div class="xs-fb-title">
+                            <span class="xs-fb-title-icon">✨</span>
+                            <span>九件套</span>
+                        </div>
+                        <button class="xs-fb-close" id="xs-fb-close" type="button" aria-label="关闭" title="关闭 (Esc)">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </header>
+                    <!-- 抽屉内导航 (9 个分类按钮) -->
+                    <nav class="xs-fb-nav" id="xs-fb-nav" role="tablist" aria-label="九件套分类">
+                        <button class="xs-fb-cat" data-tab="outline"  data-cat="amber"   role="tab" aria-selected="false"><span class="xs-fb-cat-ic">📋</span><span>大纲</span></button>
+                        <button class="xs-fb-cat" data-tab="plan"     data-cat="amber"   role="tab" aria-selected="false"><span class="xs-fb-cat-ic">📝</span><span>教案</span></button>
+                        <button class="xs-fb-cat" data-tab="ppt"      data-cat="amber"   role="tab" aria-selected="true"><span class="xs-fb-cat-ic">🎬</span><span>PPT</span></button>
+                        <button class="xs-fb-cat" data-tab="graph"    data-cat="cyan"    role="tab" aria-selected="false"><span class="xs-fb-cat-ic">🕸</span><span>图谱</span></button>
+                        <button class="xs-fb-cat" data-tab="radar"    data-cat="violet"  role="tab" aria-selected="false"><span class="xs-fb-cat-ic">📊</span><span>雷达</span></button>
+                        <button class="xs-fb-cat" data-tab="project"  data-cat="emerald" role="tab" aria-selected="false"><span class="xs-fb-cat-ic">🛠</span><span>项目</span></button>
+                        <button class="xs-fb-cat" data-tab="case"     data-cat="emerald" role="tab" aria-selected="false"><span class="xs-fb-cat-ic">📖</span><span>案例</span></button>
+                        <button class="xs-fb-cat" data-tab="exercises" data-cat="cyan"   role="tab" aria-selected="false"><span class="xs-fb-cat-ic">✏️</span><span>习题</span></button>
+                        <button class="xs-fb-cat" data-tab="survey"   data-cat="violet"  role="tab" aria-selected="false"><span class="xs-fb-cat-ic">📋</span><span>问卷</span></button>
+                    </nav>
+                    <!-- 抽屉内内容区 -->
+                    <div class="xs-fb-body" id="xs-fb-body">
+                        <section class="xs-ct-panel" data-panel="outline"></section>
+                        <section class="xs-ct-panel" data-panel="plan"></section>
+                        <section class="xs-ct-panel" data-panel="graph"></section>
+                        <section class="xs-ct-panel" data-panel="radar"></section>
+                        <section class="xs-ct-panel" data-panel="project"></section>
+                        <section class="xs-ct-panel" data-panel="case"></section>
+                        <section class="xs-ct-panel" data-panel="exercises"></section>
+                        <section class="xs-ct-panel" data-panel="survey"></section>
+                    </div>
+                </aside>
+                <!-- 遮罩 (点击收起抽屉) -->
+                <div class="xs-fb-scrim" id="xs-fb-scrim" aria-hidden="true"></div>
+                <!-- 浮动触发按钮 (FAB) - 默认显示 -->
+                <button class="xs-fb-fab" id="xs-fb-fab" type="button" aria-label="打开九件套" title="打开九件套 (九件套 / B)">
+                    <span class="xs-fb-fab-ic">✨</span>
+                    <span class="xs-fb-fab-label">九件套</span>
+                </button>
+            </div>
+
             <!-- Main Content -->
             <main class="main-content">
-                <div class="slide-viewer">
+                <div class="slide-viewer" id="slide-viewer">
                     <!-- Slide Container -->
                     <div class="slide-container" id="slide-container"></div>
 
@@ -646,6 +692,7 @@ document.addEventListener('click', function(e) {
 <script src="../js/whiteboard-renderer.js"></script>
 <script src="../js/notifications.js"></script>
 <script src="../js/link-renderer.js"></script>
+<script src="../js/course-utils.js"></script>
 <script src="../js/classroom.js"></script>
 </body>
 </html>

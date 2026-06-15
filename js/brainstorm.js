@@ -52,6 +52,21 @@
     function _show(panel) { panel && panel.classList.remove('hidden'); }
     function _hide(panel) { panel && panel.classList.add('hidden'); }
 
+    function _syncStepper(step) {
+        const steps = document.querySelectorAll('.gp-stepper .gp-step');
+        const lines = document.querySelectorAll('.gp-stepper .gp-step-line');
+        if (!steps.length) return;
+        steps.forEach(function (el) {
+            const n = parseInt(el.getAttribute('data-step') || '0', 10);
+            el.classList.remove('active', 'done');
+            if (n < step) el.classList.add('done');
+            else if (n === step) el.classList.add('active');
+        });
+        lines.forEach(function (el, i) {
+            el.classList.toggle('done', i + 1 < step);
+        });
+    }
+
     function _setBusy(btn, busy, text) {
         if (!btn) return;
         btn.disabled = !!busy;
@@ -62,6 +77,7 @@
         const panel = _$('xs-bs-panel');
         if (!panel) return;
         _show(panel);
+        _syncStepper(1);
         const main = _$('openmaic-main');
         if (main) main.classList.add('xs-bs-active');
 
@@ -235,6 +251,7 @@
         const panel = _$('xs-confirm-panel');
         if (!panel) return;
         _hide(_$('xs-bs-panel'));
+        _syncStepper(2);
         const main = _$('openmaic-main');
         if (main) main.classList.remove('xs-bs-active');
         _show(panel);
@@ -336,6 +353,7 @@
         const panel = _$('xs-bundle-panel');
         if (!panel) return;
         _hide(_$('xs-confirm-panel'));
+        _syncStepper(3);
         _show(panel);
 
         const grid = panel.querySelector('.xs-bundle-grid');
@@ -363,22 +381,55 @@
         el.dataset.state = state;
         const stateEl = el.querySelector('.xs-comp-state');
         if (stateEl && label) stateEl.textContent = label;
+        _refreshBundleProgress();
+    }
+
+    function _refreshBundleProgress() {
+        const all = document.querySelectorAll('#xs-bundle-panel .xs-comp');
+        if (!all.length) return;
+        let done = 0;
+        all.forEach(function (el) {
+            if (el.dataset.state === 'ready' || el.dataset.state === 'fallback') done++;
+        });
+        const pct = Math.round((done / all.length) * 100);
+        const bar = document.getElementById('xs-bundle-progress-bar');
+        if (bar) bar.style.width = pct + '%';
+        const countEl = document.getElementById('xs-bundle-count-ready');
+        if (countEl) countEl.textContent = String(done);
+        const titleEl = document.getElementById('xs-bundle-title');
+        if (titleEl) {
+            if (done === all.length) titleEl.textContent = '🎉 9 件套已生成完成';
+            else if (done > 0) titleEl.textContent = '正在并行生成 9 件套…';
+            else titleEl.textContent = '9 件套课程包生成中…';
+        }
     }
 
     async function xsStartBundle(opts) {
         opts = opts || {};
+        if (!_state.requirement) {
+            alert('缺少课程主题, 请重新输入');
+            console.error('[xsStartBundle] requirement is empty, _state:', JSON.stringify(_state, null, 2));
+            return;
+        }
+        if (!_state.id) {
+            alert('缺少脑暴会话, 请重新开始');
+            console.error('[xsStartBundle] brainstorm_id is empty');
+            return;
+        }
         const studentId = (() => {
             try { return (JSON.parse(localStorage.getItem('starlearn_user') || '{}') || {}).id || ''; }
             catch (e) { return ''; }
         })();
 
+        const outlineOverride = opts.outline_override || _state.outline || {};
+        const enabledComps = opts.enabled_components || Object.keys(COMPONENT_META);
         const body = {
-            requirement: _state.requirement,
-            student_id: studentId,
-            brainstorm_id: _state.id,
-            enabled_components: opts.enabled_components || Object.keys(COMPONENT_META),
-            obg_pbl_mode: _state.obg_pbl_mode,
-            outline_override: opts.outline_override || (_state.outline || {}),
+            requirement: String(_state.requirement || ''),
+            student_id: String(studentId == null ? '' : studentId),
+            brainstorm_id: String(_state.id || ''),
+            enabled_components: Array.isArray(enabledComps) ? enabledComps.map(String) : Object.keys(COMPONENT_META),
+            obg_pbl_mode: String(_state.obg_pbl_mode || 'obg'),
+            outline_override: (outlineOverride && typeof outlineOverride === 'object' && !Array.isArray(outlineOverride)) ? outlineOverride : {},
         };
 
         try {
@@ -395,8 +446,20 @@
                 const err = await resp.json().catch(() => ({}));
                 throw new Error(err.detail || '脑暴会话已过期,请重新开始');
             }
+            if (resp.status === 422) {
+                const err = await resp.json().catch(() => ({}));
+                const detail = err.detail || [];
+                const msgs = Array.isArray(detail)
+                    ? detail.map(function (d) { return (d.loc ? d.loc.join('.') + ': ' : '') + (d.msg || ''); })
+                    : [String(detail)];
+                const msg = '参数校验失败:\n' + (msgs.length ? msgs.join('\n') : '未知字段错误');
+                console.error('[xsStartBundle] 422 request body:', JSON.stringify(body, null, 2));
+                console.error('[xsStartBundle] 422 validation errors:', err);
+                throw new Error(msg);
+            }
             if (!resp.ok || !resp.body) {
-                throw new Error('bundle stream failed: ' + resp.status);
+                const err = await resp.json().catch(() => ({}));
+                throw new Error(err.detail || ('bundle stream failed: ' + resp.status));
             }
 
             const reader = resp.body.getReader();
@@ -480,8 +543,11 @@
     // ============================================================
 
     function _outlineToSceneOutlines(outline) {
-        // 把脑暴的 outline.scenes (id="s1", key_points=[...]) 翻译成
-        // CourseData.outlines (id:int, key_points, type)
+        // 委托到共享工具, classroom.js 也用同一份
+        if (window.xsCourseUtils && typeof window.xsCourseUtils.outlineToScenes === 'function') {
+            return window.xsCourseUtils.outlineToScenes(outline);
+        }
+        // 兜底: 本地实现 (course-utils.js 未加载时)
         const scenes = (outline && outline.scenes) || [];
         return scenes.map((s, i) => {
             const rawId = s && (s.id ?? s.scene_id);
@@ -515,6 +581,11 @@
         if (!slidesV2.length && bundle && Array.isArray(bundle.slides_v2)) {
             slidesV2 = bundle.slides_v2.slice();
         }
+        // 9 件套顶层平铺 (供 classroom 9 tab 渲染; bundle 整体保留作单一事实源)
+        const _pick = (name) => {
+            const c = components[name];
+            return c && typeof c === 'object' ? c : null;
+        };
         return {
             courseId: '',
             title: outline.title || _state.requirement || '未命名课程',
@@ -536,6 +607,15 @@
                 generated_at: new Date().toISOString(),
             },
             bundle: bundle || null,
+            outline_data: _pick('outline'),
+            plan_data: _pick('plan'),
+            ppt_data: pptMeta && Object.keys(pptMeta).length ? pptMeta : null,
+            graph_data: _pick('graph'),
+            radar_data: _pick('radar'),
+            project_data: _pick('project'),
+            case_data: _pick('case'),
+            exercises_data: _pick('exercises'),
+            survey_data: _pick('survey'),
         };
     }
 

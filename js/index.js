@@ -2622,7 +2622,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 进入课堂按钮点击处理
 document.addEventListener('DOMContentLoaded', function() {
-    // 原有首页的进入课堂按钮
+    // 原有首页的进入课堂按钮 — Phase 2: 跳到独立 generation-preview 页面
     const enterClassroomBtn = document.getElementById('enter-classroom-btn');
     if (enterClassroomBtn) {
         enterClassroomBtn.addEventListener('click', function() {
@@ -2631,11 +2631,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('请输入课程主题');
                 return;
             }
-            startCourseGeneration(requirement);
+            window.location.href = '/generation-preview.html?q=' + encodeURIComponent(requirement);
         });
     }
 
-    // OpenMAIC覆盖层的进入课堂按钮 (Phase 2: 改走脑暴)
+    // OpenMAIC覆盖层的进入课堂按钮 (Phase 2: 跳到独立 generation-preview 页面, 完整跑脑暴/确认/9件套)
     const openmaicEnterBtn = document.getElementById('openmaic-enter-btn');
     if (openmaicEnterBtn) {
         openmaicEnterBtn.addEventListener('click', function() {
@@ -2645,12 +2645,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('请输入课程主题');
                 return;
             }
-            if (typeof window.xsStartBrainstorm === 'function') {
-                window.xsStartBrainstorm(requirement);
-            } else {
-                console.warn('[openmaic] brainstorm.js 未加载, 回退到旧流程');
-                startCourseGeneration(requirement);
-            }
+            window.location.href = '/generation-preview.html?q=' + encodeURIComponent(requirement);
         });
     }
 
@@ -6959,17 +6954,13 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     // 字段在顶层 (来自 main.py event_queue.put): intent / prefill_requirement
                     try {
                         const intent = event.intent || (event.data && event.data.intent) || 'course_generate';
-                        if (intent === 'course_generate' && typeof window.xsStartBrainstorm === 'function') {
+                        if (intent === 'course_generate') {
                             const prefill = event.prefill_requirement || (event.data && event.data.prefill_requirement) || '';
-                            const input = document.getElementById('openmaic-course-input');
-                            if (input && prefill) input.value = prefill;
-                            const overlay = document.getElementById('openmaic-overlay');
-                            if (overlay && overlay.classList.contains('hidden')) {
-                                overlay.classList.remove('hidden');
-                            }
-                            if (typeof switchTab === 'function') switchTab('course');
+                            // Phase 2: 跳到独立 generation-preview 页面完成脑暴 + 9 件套
                             if (prefill) {
-                                setTimeout(() => { try { window.xsStartBrainstorm(prefill); } catch (e) { console.warn('[course_intent] auto-start failed:', e); } }, 200);
+                                window.location.href = '/generation-preview.html?q=' + encodeURIComponent(prefill);
+                            } else {
+                                window.location.href = '/generation-preview.html';
                             }
                         }
                     } catch (e) { console.warn('[course_intent] 渲染失败:', e); }

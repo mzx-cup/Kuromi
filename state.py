@@ -609,6 +609,16 @@ class CourseData(BaseModel):
               "generated_at": ISO 8601
             }
     """
+    # Phase 2 — 9 件套顶层平铺字段, 方便前端 classroom 9 tab 渲染 (向后兼容: 旧课程无)
+    outline_data: Optional[dict[str, Any]] = None
+    plan_data: Optional[dict[str, Any]] = None
+    ppt_data: Optional[dict[str, Any]] = None
+    graph_data: Optional[dict[str, Any]] = None
+    radar_data: Optional[dict[str, Any]] = None
+    project_data: Optional[dict[str, Any]] = None
+    case_data: Optional[dict[str, Any]] = None
+    exercises_data: Optional[dict[str, Any]] = None
+    survey_data: Optional[dict[str, Any]] = None
 
 
 class CourseGenerationRequest(BaseModel):

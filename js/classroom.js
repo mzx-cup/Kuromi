@@ -245,26 +245,440 @@
         // ---- Init ----
 
         async init() {
+            this._renderInitBanner('正在加载课堂数据...', false);
             this.loadData();
+            // 同步立即把标题/标题文案替换掉"课程加载中..."
+            this._updateCourseTitle();
+            // Fallback: sessionStorage 被清时, 拿 URL ?course_id= 调 GET 兜底
             if (!this.courseData) {
+                const cid = (new URLSearchParams(location.search)).get('course_id');
+                if (cid) {
+                    try {
+                        this._renderInitBanner('正在从服务器拉取课程数据...', false);
+                        const r = await fetch('/api/v2/classroom/' + encodeURIComponent(cid), { headers: { 'Accept': 'application/json' } });
+                        if (r.ok) {
+                            const resp = await r.json();
+                            // 后端响应: { success, record: { ..., course_data: { ... }, courseId } }
+                            const cd = (resp && resp.record && resp.record.course_data) || (resp && resp.course_data) || (resp && resp.record) || null;
+                            if (cd && (cd.outlines || cd.slides_v2 || cd.bundle || cd.title)) {
+                                this.courseData = cd;
+                                if (!this.courseData.courseId) this.courseData.courseId = cid;
+                                // 同步同步 this.courseId 让后台轮询拿到
+                                this.courseId = this.courseData.courseId;
+                                try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
+                            }
+                        } else {
+                            console.warn('[classroom] fallback fetch HTTP', r.status);
+                        }
+                    } catch (e) {
+                        console.warn('[classroom] fallback fetch failed', e);
+                    }
+                }
+            }
+            if (!this.courseData) {
+                this._renderInitBanner('未找到课堂数据，正在返回首页...', true);
                 alert('未找到课堂数据，正在返回首页...');
                 window.location.href = '/index.html';
                 return;
             }
-            this.loadVoicePreference();
-            this.buildScenes();
-            this.setupUI();
-            this.bindEvents();
-            this.initVoiceSelector();
-            this.initTTS();
-            this.renderSceneSidebar();
-            this.renderScene(0);
-            this.updateNav();
-            this.initTeacherAreaInteraction();
-            this.loadSettings(); // Load saved settings
-            this.startEyeBlinkScheduler();
-            // 启动后台轮询（如果courseId存在且生成未完成）
-            this.startBackgroundPolling();
+            this._renderInitBanner('正在构建场景与渲染界面...', false);
+            this._updateCourseTitle();
+            try { this.loadVoicePreference(); } catch (e) { console.error('[classroom] loadVoicePreference', e); }
+            try { this.buildScenes(); } catch (e) { console.error('[classroom] buildScenes', e); }
+            try { this.setupUI(); } catch (e) { console.error('[classroom] setupUI', e); }
+            try { this.bindEvents(); } catch (e) { console.error('[classroom] bindEvents', e); }
+            try { this.initVoiceSelector(); } catch (e) { console.error('[classroom] initVoiceSelector', e); }
+            try { this.initTTS(); } catch (e) { console.error('[classroom] initTTS', e); }
+            try { this.renderSceneSidebar(); } catch (e) { console.error('[classroom] renderSceneSidebar', e); }
+            try { this.renderScene(0); } catch (e) { console.error('[classroom] renderScene', e); }
+            try { this.updateNav(); } catch (e) { console.error('[classroom] updateNav', e); }
+            try { this.initTeacherAreaInteraction(); } catch (e) { console.error('[classroom] initTeacherAreaInteraction', e); }
+            try { this.loadSettings(); } catch (e) { console.error('[classroom] loadSettings', e); }
+            try { this.startEyeBlinkScheduler(); } catch (e) { console.error('[classroom] startEyeBlinkScheduler', e); }
+            try { this.startBackgroundPolling(); } catch (e) { console.error('[classroom] startBackgroundPolling', e); }
+            // 9 件套顶层 tab 渲染
+            try { this._renderNineTabs(); } catch (e) { console.error('[classroom] _renderNineTabs', e); }
+            try { this._bindNineTabs(); } catch (e) { console.error('[classroom] _bindNineTabs', e); }
+            // 清除 init banner
+            const banner = document.getElementById('xs-init-banner');
+            if (banner) banner.remove();
+        }
+
+        _updateCourseTitle() {
+            try {
+                const t = this.courseData && (this.courseData.title || this.courseData.metadata && this.courseData.metadata.title);
+                if (!t) return;
+                const titleEl = document.getElementById('course-title');
+                if (titleEl) {
+                    titleEl.innerHTML = '<i class="fas fa-graduation-cap"></i> <span>' + this._escInline(t) + '</span>';
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        _escInline(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        _renderInitBanner(msg, isError) {
+            try {
+                let el = document.getElementById('xs-init-banner');
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = 'xs-init-banner';
+                    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 18px;font:600 14px/1.4 -apple-system,sans-serif;color:#fff;text-align:center;backdrop-filter:blur(8px);';
+                    const header = document.querySelector('.classroom-header');
+                    if (header) header.parentNode.insertBefore(el, header);
+                    else document.body.prepend(el);
+                }
+                el.style.background = isError ? 'rgba(220,38,38,0.92)' : 'rgba(37,99,235,0.92)';
+                el.textContent = msg;
+            } catch (e) { /* ignore */ }
+        }
+
+        // ============================================================
+        // 9 件套顶层 tab 渲染 + 切换
+        // ============================================================
+
+        _renderNineTabs() {
+            try {
+                const cd = this.courseData || {};
+                const cu = window.xsCourseUtils;
+                const get = (n) => cu ? cu.getComponent(cd, n) : (cd[(n === 'ppt' ? 'ppt_data' : n + '_data')] || (cd.bundle && cd.bundle.components && cd.bundle.components[n]) || null);
+                // outline
+                this._renderOutlinePanel(get('outline'));
+                // plan
+                this._renderPlanPanel(get('plan'));
+                // graph
+                this._renderGraphPanel(get('graph'));
+                // radar
+                this._renderRadarPanel(get('radar'));
+                // project
+                this._renderProjectPanel(get('project'));
+                // case
+                this._renderCasePanel(get('case'));
+                // exercises
+                this._renderExercisesPanel(get('exercises'));
+                // survey
+                this._renderSurveyPanel(get('survey'));
+
+                // 默认激活 PPT tab (但抽屉默认关闭, 等用户点 FAB)
+                this._switchNineTab('ppt');
+            } catch (e) {
+                console.error('[classroom] 9 tab 渲染失败:', e);
+            }
+        }
+
+        _bindNineTabs() {
+            const self = this;
+            // FAB 触发按钮: 打开/关闭抽屉
+            const fab = document.getElementById('xs-fb-fab');
+            if (fab) fab.addEventListener('click', () => self._toggleFloatingBundle());
+            // 关闭按钮
+            const closeBtn = document.getElementById('xs-fb-close');
+            if (closeBtn) closeBtn.addEventListener('click', () => self._closeFloatingBundle());
+            // 遮罩点击关闭
+            const scrim = document.getElementById('xs-fb-scrim');
+            if (scrim) scrim.addEventListener('click', () => self._closeFloatingBundle());
+            // 抽屉内 9 个分类按钮
+            const cats = document.querySelectorAll('.xs-fb-cat');
+            cats.forEach((cat) => {
+                cat.addEventListener('click', function () {
+                    const name = this.dataset.tab;
+                    if (!name) return;
+                    self._switchNineTab(name);
+                });
+            });
+            // Esc 关闭抽屉
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    const drawer = document.getElementById('xs-fb-drawer');
+                    if (drawer && drawer.classList.contains('is-open')) {
+                        self._closeFloatingBundle();
+                    }
+                }
+                // 快捷键 B 打开抽屉
+                if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    const t = e.target;
+                    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+                    const drawer = document.getElementById('xs-fb-drawer');
+                    if (drawer && !drawer.classList.contains('is-open')) {
+                        self._openFloatingBundle();
+                    }
+                }
+            });
+        }
+
+        _toggleFloatingBundle() {
+            const drawer = document.getElementById('xs-fb-drawer');
+            if (!drawer) return;
+            if (drawer.classList.contains('is-open')) {
+                this._closeFloatingBundle();
+            } else {
+                this._openFloatingBundle();
+            }
+        }
+
+        _openFloatingBundle() {
+            const drawer = document.getElementById('xs-fb-drawer');
+            const scrim = document.getElementById('xs-fb-scrim');
+            const fab = document.getElementById('xs-fb-fab');
+            if (drawer) {
+                drawer.classList.add('is-open');
+                drawer.setAttribute('aria-hidden', 'false');
+            }
+            if (scrim) {
+                scrim.classList.add('is-open');
+                scrim.setAttribute('aria-hidden', 'false');
+            }
+            if (fab) fab.classList.add('is-open');
+        }
+
+        _closeFloatingBundle() {
+            const drawer = document.getElementById('xs-fb-drawer');
+            const scrim = document.getElementById('xs-fb-scrim');
+            const fab = document.getElementById('xs-fb-fab');
+            if (drawer) {
+                drawer.classList.remove('is-open');
+                drawer.setAttribute('aria-hidden', 'true');
+            }
+            if (scrim) {
+                scrim.classList.remove('is-open');
+                scrim.setAttribute('aria-hidden', 'true');
+            }
+            if (fab) fab.classList.remove('is-open');
+        }
+
+        _switchNineTab(name) {
+            // 抽屉内分类按钮 active
+            document.querySelectorAll('.xs-fb-cat').forEach((b) => {
+                const isActive = b.dataset.tab === name;
+                b.classList.toggle('active', isActive);
+                b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            // 切 panel 显示
+            document.querySelectorAll('.xs-ct-panel').forEach((p) => {
+                p.classList.toggle('active', p.dataset.panel === name);
+            });
+            // 抽屉描边色按当前分类 (仅当不是 ppt)
+            const drawer = document.getElementById('xs-fb-drawer');
+            if (drawer) {
+                const catBtn = document.querySelector('.xs-fb-cat[data-tab="' + name + '"]');
+                const cat = catBtn ? catBtn.dataset.cat : 'amber';
+                drawer.setAttribute('data-cat', cat);
+            }
+            // PPT tab: 显示场景播放器; 其他 tab: 隐藏
+            const slideViewer = document.getElementById('slide-viewer');
+            if (name === 'ppt') {
+                if (slideViewer) slideViewer.style.display = '';
+            } else {
+                if (slideViewer) slideViewer.style.display = 'none';
+            }
+        }
+
+        _panelEl(name) { return document.querySelector('.xs-ct-panel[data-panel="' + name + '"]'); }
+        _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        _empty(name) {
+            const p = this._panelEl(name);
+            if (p) p.innerHTML = '<div class="xs-ct-empty"><div class="xs-ct-empty-icon">📭</div><div class="xs-ct-empty-text">该模块尚未生成</div></div>';
+        }
+
+        _renderOutlinePanel(data) {
+            const p = this._panelEl('outline');
+            if (!p) return;
+            if (!data) { this._empty('outline'); return; }
+            const scenes = (data.scenes && data.scenes.length) ? data.scenes
+                : (this.courseData && this.courseData.outlines) || [];
+            const mode = data.obg_pbl_mode || (this.courseData && this.courseData.bundle && this.courseData.bundle.obg_pbl_mode) || 'obg';
+            const rationale = data.obg_pbl_rationale || data.rationale || (this.courseData && this.courseData.bundle && this.courseData.bundle.obg_pbl_rationale) || '';
+            const html = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">📋 课程大纲</div>',
+                '<div class="xs-ct-mode">' + this._esc(mode.toUpperCase()) + '</div></div>',
+                rationale ? '<div class="xs-ct-rationale">' + this._esc(rationale) + '</div>' : '',
+                '<ol class="xs-ct-scenes">',
+                scenes.map((s, i) => {
+                    const title = this._esc(s.title || '场景 ' + (i + 1));
+                    const kp = Array.isArray(s.key_points) ? s.key_points : [];
+                    const desc = s.description || '';
+                    return '<li class="xs-ct-scene">'
+                        + '<div class="xs-ct-scene-num">' + (i + 1) + '</div>'
+                        + '<div class="xs-ct-scene-body">'
+                        + '<div class="xs-ct-scene-title">' + title + '</div>'
+                        + (desc ? '<div class="xs-ct-scene-desc">' + this._esc(desc) + '</div>' : '')
+                        + (kp.length ? '<ul class="xs-ct-kp">' + kp.map(k => '<li>' + this._esc(k) + '</li>').join('') + '</ul>' : '')
+                        + '</div></li>';
+                }).join(''),
+                '</ol>',
+            ].join('');
+            p.innerHTML = html;
+        }
+
+        _renderPlanPanel(data) {
+            const p = this._panelEl('plan');
+            if (!p) return;
+            if (!data) { this._empty('plan'); return; }
+            const kp = Array.isArray(data.key_points) ? data.key_points : [];
+            const obj = Array.isArray(data.objectives) ? data.objectives : [];
+            const methods = Array.isArray(data.methods) ? data.methods : [];
+            const html = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">📝 教案</div></div>',
+                '<div class="xs-ct-section"><h4>🎯 教学目标</h4><ul>' + obj.map(o => '<li>' + this._esc(o) + '</li>').join('') + '</ul></div>',
+                '<div class="xs-ct-section"><h4>🔑 重点 / 难点</h4><ul>' + kp.map(k => '<li>' + this._esc(k) + '</li>').join('') + '</ul></div>',
+                '<div class="xs-ct-section"><h4>🧰 教学方法</h4><ul>' + methods.map(m => '<li>' + this._esc(m) + '</li>').join('') + '</ul></div>',
+                data.duration_min ? '<div class="xs-ct-section"><h4>⏱ 时长</h4><div>' + this._esc(String(data.duration_min)) + ' 分钟</div></div>' : '',
+                data.blackboard ? '<div class="xs-ct-section"><h4>📐 板书</h4><pre class="xs-ct-pre">' + this._esc(data.blackboard) + '</pre></div>' : '',
+            ].join('');
+            p.innerHTML = html;
+        }
+
+        _renderGraphPanel(data) {
+            const p = this._panelEl('graph');
+            if (!p) return;
+            if (!data || !(data.nodes && data.nodes.length)) { this._empty('graph'); return; }
+            // 简单 SVG 渲染: 圆圈节点 + 直线
+            const nodes = data.nodes || [];
+            const edges = data.edges || [];
+            const W = 720, H = 360;
+            const layers = {};
+            nodes.forEach(n => { const L = n.layer || 0; (layers[L] = layers[L] || []).push(n); });
+            const pos = {};
+            Object.keys(layers).sort().forEach((L, li) => {
+                const arr = layers[L];
+                arr.forEach((n, ni) => {
+                    const x = ((ni + 1) / (arr.length + 1)) * (W - 80) + 40;
+                    const y = ((li + 1) / (Object.keys(layers).length + 1)) * (H - 60) + 30;
+                    pos[n.id] = { x: x, y: y };
+                });
+            });
+            const nodeR = 22;
+            const svg = [
+                '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg">',
+                '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker></defs>',
+                edges.map(e => {
+                    const a = pos[e.from || e.from_id]; const b = pos[e.to || e.to_id];
+                    if (!a || !b) return '';
+                    return '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>';
+                }).join(''),
+                nodes.map(n => {
+                    const xy = pos[n.id] || { x: 40, y: 40 };
+                    const fill = n.layer === 0 ? '#fbbf24' : (n.layer === 1 ? '#22d3ee' : '#a78bfa');
+                    return '<g class="xs-ct-node">'
+                        + '<circle cx="' + xy.x + '" cy="' + xy.y + '" r="' + nodeR + '" fill="' + fill + '" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>'
+                        + '<text x="' + xy.x + '" y="' + (xy.y + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">' + this._esc(n.label || n.id) + '</text>'
+                        + '</g>';
+                }).join(''),
+                '</svg>',
+            ].join('');
+            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">🕸 知识图谱</div></div>' + svg;
+        }
+
+        _renderRadarPanel(data) {
+            const p = this._panelEl('radar');
+            if (!p) return;
+            if (!data) { this._empty('radar'); return; }
+            const dims = [
+                { key: 'knowledge_mastery', label: '知识掌握' },
+                { key: 'code_skill', label: '代码能力' },
+                { key: 'cognitive_level', label: '认知水平' },
+                { key: 'learning_goal', label: '学习目标' },
+                { key: 'weakness', label: '薄弱环节' },
+                { key: 'focus_level', label: '专注度' },
+            ];
+            const max = 100;
+            const N = dims.length;
+            const cx = 180, cy = 180, R = 130;
+            const ang = (i) => (i / N) * Math.PI * 2 - Math.PI / 2;
+            const pt = (i, v) => ({ x: cx + Math.cos(ang(i)) * (R * (v / max)), y: cy + Math.sin(ang(i)) * (R * (v / max)) });
+            const points = dims.map((d, i) => { const v = Number(data[d.key] || 0); return { ...d, v: v, p: pt(i, v) }; });
+            const polygon = points.map(p => p.p.x + ',' + p.p.y).join(' ');
+            const grid = [0.25, 0.5, 0.75, 1].map(scale => dims.map((_, i) => { const x = cx + Math.cos(ang(i)) * (R * scale); const y = cy + Math.sin(ang(i)) * (R * scale); return x + ',' + y; }).join(' ')).map(poly => '<polygon points="' + poly + '" fill="none" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>').join('');
+            const axes = dims.map((d, i) => { const x = cx + Math.cos(ang(i)) * R; const y = cy + Math.sin(ang(i)) * R; const lx = cx + Math.cos(ang(i)) * (R + 22); const ly = cy + Math.sin(ang(i)) * (R + 22); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x + '" y2="' + y + '" stroke="rgba(148,163,184,0.3)"/><text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">' + this._esc(d.label) + ' (' + Math.round(points[i].v) + ')</text>'; }).join('');
+            const cards = points.map(d => '<div class="xs-ct-radar-card"><div class="xs-ct-radar-label">' + this._esc(d.label) + '</div><div class="xs-ct-radar-value">' + Math.round(d.v) + '<span>/100</span></div></div>').join('');
+            const svg = '<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg">'
+                + grid
+                + axes
+                + '<polygon points="' + polygon + '" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="2"/>'
+                + points.map(p => '<circle cx="' + p.p.x + '" cy="' + p.p.y + '" r="4" fill="#fbbf24" stroke="#fff" stroke-width="1.5"/>').join('')
+                + '</svg>';
+            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">📊 课前雷达</div></div>'
+                + '<div class="xs-ct-radar-wrap">' + svg + '<div class="xs-ct-radar-cards">' + cards + '</div></div>';
+        }
+
+        _renderProjectPanel(data) {
+            const p = this._panelEl('project');
+            if (!p) return;
+            if (!data) { this._empty('project'); return; }
+            const req = Array.isArray(data.requirements) ? data.requirements : [];
+            const acc = Array.isArray(data.acceptance) ? data.acceptance : [];
+            const ms = Array.isArray(data.milestones) ? data.milestones : [];
+            p.innerHTML = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">🛠 项目</div>' + (data.difficulty ? '<div class="xs-ct-mode">' + this._esc(data.difficulty) + '</div>' : '') + '</div>',
+                data.title ? '<div class="xs-ct-big">' + this._esc(data.title) + '</div>' : '',
+                data.scenario ? '<div class="xs-ct-section"><h4>📍 场景</h4><div>' + this._esc(data.scenario) + '</div></div>' : '',
+                data.background ? '<div class="xs-ct-section"><h4>🎯 背景</h4><div>' + this._esc(data.background) + '</div></div>' : '',
+                req.length ? '<div class="xs-ct-section"><h4>✅ 要求</h4><ol>' + req.map(r => '<li>' + this._esc(r) + '</li>').join('') + '</ol></div>' : '',
+                acc.length ? '<div class="xs-ct-section"><h4>📋 验收标准</h4><ol>' + acc.map(a => '<li>' + this._esc(a) + '</li>').join('') + '</ol></div>' : '',
+                ms.length ? '<div class="xs-ct-section"><h4>🪜 里程碑</h4><ol>' + ms.map(m => '<li><b>' + this._esc(m.title || '') + '</b>' + (m.description ? ' — ' + this._esc(m.description) : '') + (m.deliverable ? '<div class="xs-ct-sub">📦 ' + this._esc(m.deliverable) + '</div>' : '') + '</li>').join('') + '</ol></div>' : '',
+                data.estimated_hours ? '<div class="xs-ct-section"><h4>⏱ 预估工时</h4><div>' + this._esc(String(data.estimated_hours)) + ' 小时</div></div>' : '',
+            ].join('');
+        }
+
+        _renderCasePanel(data) {
+            const p = this._panelEl('case');
+            if (!p) return;
+            if (!data) { this._empty('case'); return; }
+            const dp = Array.isArray(data.decision_points) ? data.decision_points : [];
+            const rf = Array.isArray(data.reflection) ? data.reflection : [];
+            p.innerHTML = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">📖 案例</div></div>',
+                data.title ? '<div class="xs-ct-big">' + this._esc(data.title) + '</div>' : '',
+                data.story ? '<div class="xs-ct-section"><h4>📜 故事</h4><div class="xs-ct-prose">' + this._esc(data.story) + '</div></div>' : '',
+                dp.length ? '<div class="xs-ct-section"><h4>🧭 决策点</h4><ol>' + dp.map(d => '<li>' + this._esc(d) + '</li>').join('') + '</ol></div>' : '',
+                rf.length ? '<div class="xs-ct-section"><h4>💭 反思题</h4><ol>' + rf.map(r => '<li>' + this._esc(r) + '</li>').join('') + '</ol></div>' : '',
+                data.takeaway ? '<div class="xs-ct-section"><h4>💡 启示</h4><div class="xs-ct-prose">' + this._esc(data.takeaway) + '</div></div>' : '',
+            ].join('');
+        }
+
+        _renderExercisesPanel(data) {
+            const p = this._panelEl('exercises');
+            if (!p) return;
+            if (!data) { this._empty('exercises'); return; }
+            const qs = Array.isArray(data.questions) ? data.questions : [];
+            if (!qs.length) { this._empty('exercises'); return; }
+            p.innerHTML = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">✏️ 习题 (共 ' + qs.length + ' 题)</div></div>',
+                '<ol class="xs-ct-exercises">',
+                qs.map((q, i) => {
+                    const typeLabel = ({ single: '单选', multi: '多选', fill: '填空', code: '编程', short: '简答' }[q.type] || q.type || '题');
+                    const opts = Array.isArray(q.options) ? q.options : [];
+                    const optsHtml = opts.length ? '<ul class="xs-ct-ex-opts">' + opts.map((o, oi) => '<li><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span>' + this._esc(o) + '</li>').join('') + '</ul>' : '';
+                    return '<li class="xs-ct-ex-item">'
+                        + '<div class="xs-ct-ex-head"><span class="xs-ct-ex-num">' + (i + 1) + '</span><span class="xs-ct-ex-type">' + this._esc(typeLabel) + '</span></div>'
+                        + '<div class="xs-ct-ex-stem">' + this._esc(q.stem || '') + '</div>'
+                        + optsHtml
+                        + (q.answer ? '<details class="xs-ct-ex-answer"><summary>查看答案</summary><div>' + this._esc(String(q.answer)) + '</div></details>' : '')
+                        + '</li>';
+                }).join(''),
+                '</ol>',
+            ].join('');
+        }
+
+        _renderSurveyPanel(data) {
+            const p = this._panelEl('survey');
+            if (!p) return;
+            if (!data) { this._empty('survey'); return; }
+            const sections = Array.isArray(data.sections) ? data.sections : [];
+            if (!sections.length) { this._empty('survey'); return; }
+            p.innerHTML = [
+                '<div class="xs-ct-header"><div class="xs-ct-title">📋 课前问卷</div></div>',
+                sections.map((s, i) => {
+                    const qs = Array.isArray(s.questions) ? s.questions : [];
+                    return '<div class="xs-ct-section"><h4>' + (i + 1) + '. ' + this._esc(s.title || '问卷') + '</h4><ol>'
+                        + qs.map(q => '<li><div class="xs-ct-ex-stem">' + this._esc(q.stem || q.question || '') + '</div>'
+                            + (Array.isArray(q.options) ? '<ul class="xs-ct-ex-opts">' + q.options.map((o, oi) => '<li><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span>' + this._esc(o) + '</li>').join('') + '</ul>' : '')
+                            + '</li>').join('')
+                        + '</ol></div>';
+                }).join(''),
+            ].join('');
         }
 
         loadData() {
@@ -675,7 +1089,16 @@
         }
 
         buildScenes() {
-            const outlines = this.courseData.outlines || [];
+            // 兜底: outlines 为空时, 从 bundle.components.outline.scenes 重算
+            let outlines = this.courseData.outlines || [];
+            if (!outlines.length && window.xsCourseUtils) {
+                const outlineComp = window.xsCourseUtils.getComponent(this.courseData, 'outline');
+                if (outlineComp && Array.isArray(outlineComp.scenes)) {
+                    outlines = window.xsCourseUtils.outlineToScenes(outlineComp);
+                    this.courseData.outlines = outlines;
+                    console.log('[classroom] outlines 兜底从 bundle.components.outline 重建:', outlines.length);
+                }
+            }
             const slides = this.courseData.slides || [];
             const quizData = this.courseData.quiz_data || [];
             const exerciseData = this.courseData.exercise_data || [];
