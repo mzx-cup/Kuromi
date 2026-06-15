@@ -23,6 +23,11 @@ export async function load() {
     loadPromise = Promise.resolve(window.monaco);
     return loadPromise;
   }
+  // 记录 load 之前 window.require 的状态，失败时还原，
+  // 避免覆盖页面已有的 require.js / 其他 AMD loader 配置。
+  const prevRequire = Object.prototype.hasOwnProperty.call(window, 'require')
+    ? window.require
+    : undefined;
   loadPromise = new Promise((resolve, reject) => {
     // ensure require config is set BEFORE loader runs
     window.require = window.require || {
@@ -37,6 +42,12 @@ export async function load() {
       });
     };
     script.onerror = () => {
+      // 还原 pre-existing window.require（如果 load 之前页面已经设置了它）
+      if (prevRequire === undefined) {
+        delete window.require;
+      } else {
+        window.require = prevRequire;
+      }
       loadPromise = null;  // 失败时清空缓存，允许重试
       reject(new Error('Monaco loader failed'));
     };
