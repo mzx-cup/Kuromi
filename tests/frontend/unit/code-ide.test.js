@@ -93,6 +93,16 @@ describe('CodeIDE', () => {
 });
 
 describe('CodeIDE resizer', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
   it('attachResizer 拖拽时回调传入新宽度', () => {
     document.body.insertAdjacentHTML('beforeend', `
       <div class="ide-shell">
@@ -119,6 +129,28 @@ describe('CodeIDE resizer', () => {
 
     expect(captured).toBe(460); // 360 + (200-100)
     expect(coach.style.width).toBe('460px');
+  });
+
+  it('attachResizer 二次调用不重复挂载', () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="ide-shell">
+        <aside class="ide-coach" style="width:300px"></aside>
+        <div class="ide-resizer" data-target=".ide-coach" style="width:4px;height:100px"></div>
+      </div>
+    `);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    const resizer = document.querySelector('.ide-resizer');
+    const coach = document.querySelector('.ide-coach');
+    let callCount = 0;
+    ide.attachResizer(resizer, 200, 600, () => { callCount++; });
+    ide.attachResizer(resizer, 200, 600, () => { callCount++; });  // second call should be no-op
+
+    coach.getBoundingClientRect = () => ({ width: 300, height: 100, top: 0, left: 0, right: 304, bottom: 100, x: 0, y: 0 });
+    resizer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 150 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 150 }));
+
+    expect(callCount).toBe(1);  // only first attach wired up the callback
   });
 });
 

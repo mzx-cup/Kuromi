@@ -7,6 +7,8 @@
  * - Task 3：新增 resizer 拖拽逻辑
  * - Task 4：新增面板宽度/折叠持久化
  */
+const RESIZER_HANDLES = new WeakSet();
+
 export class CodeIDE {
   constructor(shellEl, options = {}) {
     this.shell = shellEl;
@@ -63,6 +65,7 @@ export class CodeIDE {
   }
 
   attachResizer(handleEl, minWidth, maxWidth, onResize) {
+    if (RESIZER_HANDLES.has(handleEl)) return;
     let startX = 0;
     let startWidth = 0;
     let targetEl = null;
@@ -89,6 +92,13 @@ export class CodeIDE {
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
+    RESIZER_HANDLES.add(handleEl);
+  }
+
+  detachResizer(handleEl) {
+    // Future Task 14 will use this for teardown. For now, just clear the guard.
+    // The actual removeEventListener needs a stored reference — defer until Task 14.
+    RESIZER_HANDLES.delete(handleEl);
   }
 }
 
