@@ -84,6 +84,16 @@ VIDEO_DIR = os.path.join(BASE_DIR, "video")
 async def lifespan(app: FastAPI):
     """管理应用启动/关闭的生命周期事件。"""
     # Startup
+    try:
+        from app.core.database import init_db
+        await init_db()
+    except Exception as e:
+        logger.exception(f"[Startup] init_db failed: {e}")
+    try:
+        from app.services.course_seeder import seed_courses_if_empty
+        await seed_courses_if_empty()
+    except Exception as e:
+        logger.exception(f"[Startup] seed failed: {e}")
     all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
     v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
     logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
@@ -92,6 +102,45 @@ async def lifespan(app: FastAPI):
     await close_http_client()
 
 app = FastAPI(lifespan=lifespan)
+
+
+# ── Global exception handlers ─────────────────────────────────────
+# Catch-all so the frontend never sees a raw HTML 500 page.
+# Returns the same {code, message, data: null} envelope that success
+# handlers use, plus a server-side log entry with the stack trace.
+import traceback
+import uuid as _uuid
+from fastapi.responses import JSONResponse as _JSONResponse
+
+
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    rid = _uuid.uuid4().hex[:12]
+    logger.error(
+        "[err] %s rid=%s %s %s\n%s",
+        type(exc).__name__, rid, request.method, request.url.path,
+        traceback.format_exc(),
+    )
+    return _JSONResponse(
+        status_code=500,
+        content={
+            "code": 500,
+            "message": (
+                f"Internal server error (ref {rid}). "
+                "Please retry or contact support if the problem persists."
+            ),
+            "data": None,
+        },
+    )
+
+
+@app.exception_handler(404)
+async def _not_found_handler(request: Request, exc: Exception):
+    return _JSONResponse(
+        status_code=404,
+        content={"code": 404, "message": "Resource not found.", "data": None},
+    )
+
 
 # ── 学习路径实时刷新防抖 ──
 _path_refresh_debounce: dict[int, float] = {}
@@ -2704,6 +2753,7 @@ def load_user_progress(request: LoadProgressRequest):
 def get_progress_summary(user_id: int, range: str = "month"):
     """前端 progress.js 调用的学习进度汇总接口。"""
     try:
+        range_str = range  # avoid shadowing builtin `range` further down
         profile_data = database.get_user_profile(user_id)
         path_data = database.get_learning_path(user_id)
         lr = database.get_learning_record(user_id)
@@ -2724,7 +2774,7 @@ def get_progress_summary(user_id: int, range: str = "month"):
                 pass
 
         days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
-        weekly_activity = [{"day": days[i], "hours": round(total_hours / 7, 1), "minutes": int(total_hours * 60 / 7)} for i in range(7)]
+        weekly_activity = [{"day": days[i], "hours": round(total_hours / 7, 1), "minutes": int(total_hours * 60 / 7)} for i in (0, 1, 2, 3, 4, 5, 6)]
 
         course_progress = []
         if path_data and path_data.get("path_json"):

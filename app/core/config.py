@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+# Project root, used to anchor the SQLite file regardless of CWD.
+# app/core/config.py -> parents[0]=core, [1]=app, [2]=project root
+_BASE_DIR = Path(__file__).resolve().parents[2]
+_DEFAULT_SQLITE_PATH = _BASE_DIR / "xingshi_v2.db"
+_DEFAULT_SQLITE_URL = f"sqlite+aiosqlite:///{_DEFAULT_SQLITE_PATH.as_posix()}"
+
+
 class AppConfig(BaseSettings):
     database_url: str = Field(
-        default="mysql+asyncmy://root:@localhost:3306/starlearn",
-        description="SQLAlchemy async database URL (asyncmy driver)",
+        default=_DEFAULT_SQLITE_URL,
+        description="SQLAlchemy async database URL. Default: local SQLite (xingshi_v2.db).",
     )
     database_url_sync: str = Field(
         default="",
-        description="Sync fallback for Alembic (auto-derived from database_url if empty)",
+        description="Sync fallback for Alembic (auto-derived from database_url if empty).",
     )
     checkpoint_db_url: str = Field(
         default="",
-        description="LangGraph checkpointer database URL (defaults to database_url if empty)",
+        description="LangGraph checkpointer database URL (defaults to database_url if empty).",
     )
     app_debug: bool = Field(default=False, validation_alias="APP_DEBUG")
 
@@ -38,7 +46,5 @@ def get_config() -> AppConfig:
     return _config
 
 
-DATABASE_URL: str = os.getenv(
-    "DATABASE_URL",
-    "mysql+asyncmy://root:@localhost:3306/xingshi",
-)
+# Single source of truth. .env can override via DATABASE_URL=...
+DATABASE_URL: str = os.getenv("DATABASE_URL", "") or get_config().database_url

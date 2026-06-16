@@ -8,6 +8,7 @@ httpx==0.25.2
 python-pptx>=0.6.21
 sqlalchemy[asyncio]>=2.0
 asyncmy>=0.2
+aiosqlite>=0.20
 alembic>=1.13
 langgraph==0.2.60
 langgraph-checkpoint-mysql==2.0.10

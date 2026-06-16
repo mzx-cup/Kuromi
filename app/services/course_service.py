@@ -29,7 +29,11 @@ async def list_subjects() -> list[Subject]:
     async with get_sessionmaker()() as session:
         result = await session.execute(
             select(Subject)
-            .options(selectinload(Subject.courses))
+            .options(
+                selectinload(Subject.courses)
+                .selectinload(Course.chapters)
+                .selectinload(Chapter.subchapters)
+            )
             .order_by(Subject.sort_order)
         )
         return result.scalars().all()

@@ -69,6 +69,16 @@
   }
 
   /* ===================== 数据加载 ===================== */
+  function finishLoading() {
+    try {
+      if (window.LoadingSystem && typeof window.LoadingSystem.finish === 'function') {
+        window.LoadingSystem.finish();
+      }
+    } catch (e) {
+      console.error('LoadingSystem.finish failed', e);
+    }
+  }
+
   function loadSubjects() {
     state.loading = true;
     state.error = null;
@@ -80,40 +90,48 @@
         return r.json();
       })
       .then(function (res) {
-        if (!res || res.code !== 200) throw new Error(res && res.message || '加载失败');
-        var list = (res.data || []).filter(function (s) { return s.visible !== false; });
-        state.subjects = list.map(function (s) {
-          return {
-            id: s.id,
-            name: s.name,
-            slug: subjectSlug(s.slug),
-            icon: s.icon,
-            visible: s.visible !== false,
-            courses: (s.courses || []).map(function (c) {
-              return {
-                id: c.id,
-                title: c.title,
-                description: c.description || '',
-                bvid: c.bvid || '',
-                playlistUrl: c.playlist_url || '',
-                coverUrl: c.cover_url || '',
-                totalLessons: c.total_lessons || 0,
-                totalDuration: c.total_duration || 0,
-                progress: c.progress || 0,
-                visible: c.visible !== false
-              };
-            })
-          };
-        });
-        state.loading = false;
-        state.error = null;
-        render();
+        try {
+          if (!res || res.code !== 200) throw new Error(res && res.message || '加载失败');
+          var list = (res.data || []).filter(function (s) { return s.visible !== false; });
+          state.subjects = list.map(function (s) {
+            return {
+              id: s.id,
+              name: s.name,
+              slug: subjectSlug(s.slug),
+              icon: s.icon,
+              visible: s.visible !== false,
+              courses: (s.courses || []).map(function (c) {
+                return {
+                  id: c.id,
+                  title: c.title,
+                  description: c.description || '',
+                  bvid: c.bvid || '',
+                  playlistUrl: c.playlist_url || '',
+                  coverUrl: c.cover_url || '',
+                  totalLessons: c.total_lessons || 0,
+                  totalDuration: c.total_duration || 0,
+                  progress: c.progress || 0,
+                  visible: c.visible !== false
+                };
+              })
+            };
+          });
+          state.loading = false;
+          state.error = null;
+          render();
+        } finally {
+          finishLoading();
+        }
       })
       .catch(function (err) {
-        state.loading = false;
-        state.error = err && err.message ? err.message : '网络错误';
-        state.subjects = [];
-        render();
+        try {
+          state.loading = false;
+          state.error = err && err.message ? err.message : '网络错误';
+          state.subjects = [];
+          render();
+        } finally {
+          finishLoading();
+        }
       });
   }
 

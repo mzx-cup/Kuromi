@@ -12,10 +12,15 @@
   const TIMEOUT_MS = 2500;
   const FINISH_DELAY_MS = 500;
   const FADE_DURATION_MS = 800;
+  // Hard upper bound: overlay MUST die even if transitionend never fires.
+  const HARD_KILL_MS = 6000;
+  // Fallback in case transitionend never fires (e.g. display:none parent).
+  const TRANSITION_FALLBACK_MS = 2000;
 
   let isLoading = true;
   let overlayEl = null;
   let spinnerEl = null;
+  let _hardKillTimer = null;
 
   function createOverlay() {
     if (document.querySelector('.loading-overlay')) return;
@@ -81,66 +86,128 @@
     ]);
   }
 
-  function finish() {
-    if (!overlayEl) return;
+  function _forceRemoveOverlay() {
+    try {
+      var el = document.querySelector('.loading-overlay');
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    } catch (e) { /* swallow */ }
+    overlayEl = null;
+    spinnerEl = null;
+    isLoading = false;
+    if (_hardKillTimer) {
+      clearTimeout(_hardKillTimer);
+      _hardKillTimer = null;
+    }
+  }
 
-    // Step 1: Star dive animation
-    if (spinnerEl) {
-      spinnerEl.classList.add('star-dive');
+  function finish() {
+    if (!overlayEl) {
+      // Defensive: also remove any orphan overlay in DOM.
+      _forceRemoveOverlay();
+      return;
     }
 
-    // Step 2: Wait for dive animation, then fade out overlay
-    setTimeout(function () {
-      overlayEl.classList.add('fade-out');
+    try {
+      // Star dive animation
+      if (spinnerEl) {
+        spinnerEl.classList.add('star-dive');
+      }
 
-      // Step 3: Remove overlay after transition
-      overlayEl.addEventListener('transitionend', function handler() {
-        overlayEl.removeEventListener('transitionend', handler);
-        if (overlayEl && overlayEl.parentNode) {
-          overlayEl.parentNode.removeChild(overlayEl);
-        }
-        overlayEl = null;
-        spinnerEl = null;
-      });
-    }, 700); // star dive duration
+      // Hard kill — last-resort safety net.
+      if (_hardKillTimer) clearTimeout(_hardKillTimer);
+      _hardKillTimer = setTimeout(_forceRemoveOverlay, HARD_KILL_MS);
+
+      // Wait for dive animation, then fade out overlay
+      setTimeout(function () {
+        var ov = overlayEl;
+        if (!ov) { _forceRemoveOverlay(); return; }
+        ov.classList.add('fade-out');
+
+        var removed = false;
+        var onEnd = function (ev) {
+          if (ev && ev.target !== ov) return;
+          if (removed) return;
+          removed = true;
+          try { ov.removeEventListener('transitionend', onEnd); } catch (e) {}
+          if (ov.parentNode) ov.parentNode.removeChild(ov);
+          overlayEl = null;
+          spinnerEl = null;
+          isLoading = false;
+          if (_hardKillTimer) { clearTimeout(_hardKillTimer); _hardKillTimer = null; }
+        };
+        ov.addEventListener('transitionend', onEnd);
+
+        // Fallback if transitionend never fires.
+        setTimeout(onEnd, TRANSITION_FALLBACK_MS);
+      }, 700); // star dive duration
+    } catch (err) {
+      // Last-resort: never let finish() throw.
+      console.error('[loading] finish() error', err);
+      _forceRemoveOverlay();
+    }
   }
 
   function showSimple() {
-    // Re-show the overlay with simple spinner (no star dive on finish)
-    createOverlay();
-    if (spinnerEl) spinnerEl.classList.add('simple');
-    if (overlayEl) overlayEl.classList.remove('fade-out');
-    isLoading = true;
+    try {
+      // Re-show the overlay with simple spinner (no star dive on finish)
+      createOverlay();
+      if (spinnerEl) spinnerEl.classList.add('simple');
+      if (overlayEl) overlayEl.classList.remove('fade-out');
+      isLoading = true;
 
-    // Auto-hide after a brief delay
-    setTimeout(function () {
-      isLoading = false;
-      if (overlayEl) {
-        overlayEl.classList.add('fade-out');
-        overlayEl.addEventListener('transitionend', function handler() {
-          overlayEl.removeEventListener('transitionend', handler);
-          if (overlayEl && overlayEl.parentNode) {
-            overlayEl.parentNode.removeChild(overlayEl);
-          }
-          overlayEl = null;
-          spinnerEl = null;
-        });
-      }
-    }, 600);
+      // Hard kill in case transitionend never fires.
+      if (_hardKillTimer) clearTimeout(_hardKillTimer);
+      _hardKillTimer = setTimeout(_forceRemoveOverlay, HARD_KILL_MS);
+
+      // Auto-hide after a brief delay
+      setTimeout(function () {
+        isLoading = false;
+        if (overlayEl) {
+          overlayEl.classList.add('fade-out');
+          var ov = overlayEl;
+          var removed = false;
+          var handler = function () {
+            if (removed) return;
+            removed = true;
+            try { ov.removeEventListener('transitionend', handler); } catch (e) {}
+            if (ov.parentNode) ov.parentNode.removeChild(ov);
+            overlayEl = null;
+            spinnerEl = null;
+          };
+          ov.addEventListener('transitionend', handler);
+          setTimeout(handler, TRANSITION_FALLBACK_MS);
+        }
+      }, 600);
+    } catch (err) {
+      console.error('[loading] showSimple() error', err);
+      _forceRemoveOverlay();
+    }
   }
 
   function finishSimple() {
-    // Clean finish without dive animation — for simple spinner
-    if (!overlayEl) return;
-    overlayEl.classList.add('fade-out');
-    overlayEl.addEventListener('transitionend', function handler() {
-      overlayEl.removeEventListener('transitionend', handler);
-      if (overlayEl && overlayEl.parentNode) {
-        overlayEl.parentNode.removeChild(overlayEl);
-      }
-      overlayEl = null;
-      spinnerEl = null;
-    });
+    try {
+      if (!overlayEl) { _forceRemoveOverlay(); return; }
+      // Hard kill in case transitionend never fires.
+      if (_hardKillTimer) clearTimeout(_hardKillTimer);
+      _hardKillTimer = setTimeout(_forceRemoveOverlay, HARD_KILL_MS);
+
+      overlayEl.classList.add('fade-out');
+      var ov = overlayEl;
+      var removed = false;
+      var handler = function () {
+        if (removed) return;
+        removed = true;
+        try { ov.removeEventListener('transitionend', handler); } catch (e) {}
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+        overlayEl = null;
+        spinnerEl = null;
+      };
+      ov.addEventListener('transitionend', handler);
+      setTimeout(handler, TRANSITION_FALLBACK_MS);
+    } catch (err) {
+      console.error('[loading] finishSimple() error', err);
+      _forceRemoveOverlay();
+    }
   }
 
   function init() {
@@ -161,10 +228,15 @@
   }
 
   // Start loading
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  try {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  } catch (err) {
+    console.error('[loading] init() failed; removing overlay', err);
+    _forceRemoveOverlay();
   }
 
   // Expose for external use
