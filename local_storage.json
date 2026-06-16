@@ -1474,6 +1474,84 @@
       "completed": [],
       "generated_at": "2026-06-13T20:26:42.028994",
       "user_id": 1
+    },
+    {
+      "tasks": [
+        {
+          "id": 1,
+          "title": "基础数学概念学习",
+          "description": "学习一元二次方程基础知识",
+          "type": "study",
+          "duration": 30,
+          "subject": "数学",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 2,
+          "title": "一元二次方程练习",
+          "description": "完成5道一元二次方程练习题",
+          "type": "practice",
+          "duration": 45,
+          "subject": "数学",
+          "difficulty": "medium",
+          "taskUrl": "/assessment.html"
+        },
+        {
+          "id": 3,
+          "title": "基础编程入门",
+          "description": "学习变量和基本数据类型",
+          "type": "study",
+          "duration": 30,
+          "subject": "编程",
+          "difficulty": "easy",
+          "taskUrl": "/courses.html"
+        },
+        {
+          "id": 4,
+          "title": "简单编程练习",
+          "description": "编写一个计算面积的程序",
+          "type": "practice",
+          "duration": 60,
+          "subject": "编程",
+          "difficulty": "medium",
+          "taskUrl": "/code.html"
+        },
+        {
+          "id": 5,
+          "title": "苏格拉底式AI辅导",
+          "description": "与AI讨论学习中的疑问",
+          "type": "study",
+          "duration": 30,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/socratic-ai.html"
+        },
+        {
+          "id": 6,
+          "title": "学习进度回顾",
+          "description": "查看今日学习成果与不足",
+          "type": "review",
+          "duration": 15,
+          "subject": "综合",
+          "difficulty": "easy",
+          "taskUrl": "/progress.html"
+        },
+        {
+          "id": 7,
+          "title": "放松时间",
+          "description": "喂养虚拟宠物，放松心情",
+          "type": "relax",
+          "duration": 30,
+          "subject": "休闲",
+          "difficulty": "easy",
+          "taskUrl": "/pixel-pet-game.html"
+        }
+      ],
+      "date": "2026-06-16",
+      "completed": [],
+      "generated_at": "2026-06-16T09:07:43.134826",
+      "user_id": 1
     }
   ],
   "classroom_records": [
