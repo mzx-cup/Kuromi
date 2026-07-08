@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -16,6 +16,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     nickname: Mapped[str] = mapped_column(String(128), default="")
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    preferred_language: Mapped[str] = mapped_column(String(16), default="zh-CN")
     avatar_url: Mapped[str] = mapped_column(String(512), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
@@ -39,3 +40,21 @@ class StudentProfile(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class LoginRecord(Base):
+    """New SQLAlchemy model for login audit trail."""
+    __tablename__ = "user_login_records"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False)
+    ip_address: Mapped[str] = mapped_column(String(64))
+    user_agent: Mapped[str] = mapped_column(String(512))
+    login_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Profile(Base):
+    """Mirrors db.py 'user_profile' table for migration compatibility."""
+    __tablename__ = "user_profile"
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    preferred_language: Mapped[str] = mapped_column(String(16), default="zh-CN")
+    theme: Mapped[str] = mapped_column(String(32), default="dark")
