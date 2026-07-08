@@ -1,0 +1,172 @@
+"""Seed data generators for dual-backend testing.
+
+Provides consistent data across legacy db.py schema and ORM schema.
+"""
+from __future__ import annotations
+
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import json
+
+
+# Canonical seed dataset
+SEED_USERS = [
+    {"id": 1, "username": "alice", "password": "hashed_pw_1", "preferred_language": "zh-CN"},
+    {"id": 2, "username": "bob", "password": "hashed_pw_2", "preferred_language": "en-US"},
+    {"id": 3, "username": "charlie", "password": "hashed_pw_3", "preferred_language": "zh-CN"},
+]
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _days_ago(n: int) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=n)).isoformat()
+
+
+def init_legacy_schema(db_path: str) -> None:
+    """Create db.py-style tables for testing."""
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    # db.py 'user' table (INT PK)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(128) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            preferred_language VARCHAR(16) DEFAULT 'zh-CN'
+        )
+    """)
+
+    # db.py 'user_profile' table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_profile (
+            user_id INTEGER PRIMARY KEY,
+            preferred_language VARCHAR(16),
+            theme VARCHAR(32)
+        )
+    """)
+
+    # db.py 'user_login_records' table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_login_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            ip VARCHAR(64),
+            user_agent VARCHAR(512),
+            login_at TEXT
+        )
+    """)
+
+    # db.py 'user_preferences' table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id INTEGER NOT NULL,
+            key VARCHAR(128) NOT NULL,
+            value TEXT,
+            updated_at TEXT,
+            PRIMARY KEY (user_id, key)
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+def init_orm_schema(db_path: str) -> None:
+    """Create SQLAlchemy ORM tables for testing.
+
+    Only includes tables that exist in the current User model
+    (other slices add tables in later milestones).
+    """
+    from app.models.base import Base
+    from app.models.user import User, StudentProfile
+
+    # M1.2 will add LoginRecord, Profile; M0.4 only needs User and StudentProfile.
+    # Defensive optional imports so this module works both before and after M1.2.
+    try:
+        from app.models.user import LoginRecord  # noqa: F401
+    except ImportError:
+        pass
+    try:
+        from app.models.user import Profile  # noqa: F401
+    except ImportError:
+        pass
+
+    from sqlalchemy import create_engine
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+    engine.dispose()
+
+
+def populate_legacy(db_path: str, users: list = None) -> None:
+    """Populate legacy db.py tables with seed data."""
+    users = users or SEED_USERS
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    for u in users:
+        cur.execute(
+            "INSERT OR IGNORE INTO user (id, username, password, preferred_language) VALUES (?, ?, ?, ?)",
+            (u["id"], u["username"], u["password"], u["preferred_language"]),
+        )
+    conn.commit()
+    conn.close()
+
+
+def populate_orm(db_path: str, users: list = None) -> None:
+    """Populate ORM tables with seed data.
+
+    Note: ORM users use UUID strings as PK, mapping from int seed IDs.
+    """
+    users = users or SEED_USERS
+    from sqlalchemy import create_engine
+    from app.models.base import Base
+    from app.models.user import User
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    Base.metadata.create_all(engine)
+
+    from sqlalchemy.orm import sessionmaker
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        for u in users:
+            existing = session.query(User).filter_by(username=u["username"]).first()
+            if existing:
+                continue
+            user = User(
+                id=f"seed-{u['username']}",
+                username=u["username"],
+                password_hash=u["password"],
+            )
+            session.add(user)
+        session.commit()
+    finally:
+        session.close()
+    engine.dispose()
+
+
+def count_users_legacy(db_path: str) -> int:
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM user")
+    n = cur.fetchone()[0]
+    conn.close()
+    return n
+
+
+def count_users_orm(db_path: str) -> int:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from app.models.user import User
+
+    engine = create_engine(f"sqlite:///{db_path}")
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        return session.query(User).count()
+    finally:
+        session.close()
