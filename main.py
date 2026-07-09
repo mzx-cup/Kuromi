@@ -1553,6 +1553,35 @@ def save_user_preferences(request: UserPreferencesRequest):
                 )
                 conn.commit()
                 cursor.close()
+                # [Slice-2] ORM dual-write (additive). Only when DUAL_WRITE_LEGACY=true.
+                # Shadow failures are logged, never raised.
+                try:
+                    from app.core.feature_flags import is_dual_write_enabled
+                    if is_dual_write_enabled():
+                        import asyncio
+                        from app.core.database import get_sessionmaker
+                        from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                        pref_payload = request.preferences if isinstance(request.preferences, dict) else {}
+
+                        async def _orm_pref_write():
+                            SessionLocal = get_sessionmaker()
+                            async with SessionLocal()() as session:
+                                orm_repo = SqlAlchemyPreferencesRepository(session)
+                                orm_repo.set_preference(str(request.userId), "preferences", pref_payload)
+                                await session.commit()
+
+                        try:
+                            loop = asyncio.get_running_loop()
+                        except RuntimeError:
+                            loop = None
+                        if loop is not None:
+                            loop.create_task(_safe_orm_pref(_orm_pref_write))
+                        else:
+                            asyncio.run(_orm_pref_write())
+                except Exception as e:
+                    logger.warning(f"[dual-write] orm preferences failed: {e}")
+
                 return {"success": True, "message": "偏好设置已保存"}
         storage = database.load_local_storage()
         storage['user_preferences'] = storage.get('user_preferences', {})
@@ -1562,9 +1591,50 @@ def save_user_preferences(request: UserPreferencesRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存偏好失败: {str(e)}")
 
+
+async def _safe_orm_pref(coro_factory):
+    """Run an ORM preferences write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm preferences failed: {e}")
+
 @app.get("/api/user/preferences/{user_id}")
 def get_user_preferences(user_id: int):
     try:
+        # [Slice-2] ORM read path: when this user is in the ORM read percentage,
+        # serve preferences from the new SQLAlchemy backend. Shadow failures
+        # fall back to legacy so behavior is preserved.
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                async def _orm_pref_read():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyPreferencesRepository(session)
+                        rows = orm_repo.get_preferences(str(user_id))
+                        if rows:
+                            inner = rows.get("preferences", {})
+                            return inner if isinstance(inner, dict) else {}
+                        return {}
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    # Cannot await in a sync handler with a running loop; fall back.
+                    pass
+                else:
+                    orm_payload = asyncio.run(_orm_pref_read())
+                    return {"success": True, "preferences": orm_payload}
+        except Exception as e:
+            logger.warning(f"[orm read] preferences failed: {e}")
+
         with database.get_db() as conn:
             if conn:
                 cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -1602,14 +1672,75 @@ def sync_theme_to_server(request: ThemeSyncRequest):
             "customThemes": request.customThemes
         }
         database.save_user_theme_prefs(request.userId, prefs)
+
+        # [Slice-2] ORM dual-write for theme sync.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                async def _orm_theme_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyPreferencesRepository(session)
+                        orm_repo.set_theme(str(request.userId), request.theme, "#7c3aed")
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_theme(_orm_theme_write))
+                else:
+                    asyncio.run(_orm_theme_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm theme sync failed: {e}")
+
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "reason": str(e)}
+
+
+async def _safe_orm_theme(coro_factory):
+    """Run an ORM theme write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm theme sync failed: {e}")
 
 @app.get("/api/user/theme/sync")
 def get_theme_from_server(user_id: int = None):
     """Load user theme preferences from server."""
     try:
+        # [Slice-2] ORM read path for theme sync. Shadow failures fall back.
+        if user_id:
+            try:
+                from app.core.repository_factory import is_orm_read_path_active
+                if is_orm_read_path_active(str(user_id)):
+                    import asyncio
+                    from app.core.database import get_sessionmaker
+                    from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                    async def _orm_theme_read():
+                        SessionLocal = get_sessionmaker()
+                        async with SessionLocal()() as session:
+                            orm_repo = SqlAlchemyPreferencesRepository(session)
+                            return orm_repo.get_theme(str(user_id))
+
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = None
+                    if loop is None:
+                        orm_theme = asyncio.run(_orm_theme_read())
+                        if orm_theme and orm_theme.get("theme"):
+                            return orm_theme
+            except Exception as e:
+                logger.warning(f"[orm read] theme sync failed: {e}")
+
         if not user_id:
             return {"theme": None}
         prefs = database.get_user_theme_prefs(user_id)
@@ -6353,6 +6484,9 @@ class UserMetaUpdateRequest(BaseModel):
 def get_user_full_state(user_id: int):
     """一次性加载用户所有数据"""
     try:
+        # [Slice-2] ORM read path is opt-in via READ_BACKEND_PERCENTAGE.
+        # For now, the state bundle is still sourced from legacy so the
+        # response shape is preserved end-to-end.
         state = database.get_full_user_state(user_id)
         if state.get('user') is None:
             raise HTTPException(status_code=404, detail="用户不存在")
@@ -6374,9 +6508,58 @@ def update_user_meta(request: UserMetaUpdateRequest):
             theme=request.theme,
             last_agent_id=request.lastAgentId,
         )
+
+        # [Slice-2] ORM dual-write for user meta. Mirrors theme into user_themes
+        # and language into user_preferences (KV style) when DUAL_WRITE_LEGACY=true.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                async def _orm_meta_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyPreferencesRepository(session)
+                        if request.theme:
+                            orm_repo.set_theme(str(request.userId), request.theme, "#7c3aed")
+                        if request.preferredLanguage:
+                            orm_repo.set_preference(
+                                str(request.userId),
+                                "preferred_language",
+                                {"value": request.preferredLanguage},
+                            )
+                        if request.lastAgentId:
+                            orm_repo.set_preference(
+                                str(request.userId),
+                                "last_agent_id",
+                                {"value": str(request.lastAgentId)},
+                            )
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_meta(_orm_meta_write))
+                else:
+                    asyncio.run(_orm_meta_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm user meta failed: {e}")
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}")
+
+
+async def _safe_orm_meta(coro_factory):
+    """Run an ORM user-meta write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm user meta failed: {e}")
 
 
 # ── 花园 / 植物 ──
@@ -6960,14 +7143,63 @@ def save_settings(request: SettingsSaveRequest):
             floating_alarm_y=request.floatingAlarmY,
             hub_theme=request.hubTheme,
         )
+
+        # [Slice-2] ORM dual-write: mirror each scalar field to user_settings KV table.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                import json as _json
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
+
+                kv_payload = {
+                    "settings_json": _json.dumps(request.settingsData or {}, ensure_ascii=False),
+                    "weather_city": request.weatherCity or "",
+                    "floating_alarm_x": str(request.floatingAlarmX or ""),
+                    "floating_alarm_y": str(request.floatingAlarmY or ""),
+                    "hub_theme": request.hubTheme or "",
+                }
+
+                async def _orm_settings_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyPreferencesRepository(session)
+                        for k, v in kv_payload.items():
+                            orm_repo.set_setting(str(request.userId), k, v)
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_settings(_orm_settings_write))
+                else:
+                    asyncio.run(_orm_settings_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm settings save failed: {e}")
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存设置失败: {str(e)}")
 
 
+async def _safe_orm_settings(coro_factory):
+    """Run an ORM settings write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm settings save failed: {e}")
+
+
 @app.get("/api/settings/load/{user_id}")
 def load_settings(user_id: int):
     try:
+        # [Slice-2] ORM read path is opt-in via READ_BACKEND_PERCENTAGE. We
+        # always return the legacy shape (db.get_user_settings) so callers see
+        # no change; if the ORM read path is active, we still hit legacy so the
+        # response remains contract-stable for this slice.
         settings = database.get_user_settings(user_id)
         return {"success": True, **settings}
     except Exception as e:

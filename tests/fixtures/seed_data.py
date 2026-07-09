@@ -72,6 +72,27 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M2: legacy schema additions for settings + theme KV mirrors
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            setting_key VARCHAR(128) NOT NULL,
+            setting_value TEXT,
+            updated_at TEXT,
+            UNIQUE(user_id, setting_key)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_themes (
+            user_id INTEGER PRIMARY KEY,
+            theme VARCHAR(32) DEFAULT 'dark',
+            accent_color VARCHAR(16) DEFAULT '#7c3aed',
+            updated_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
