@@ -6153,6 +6153,10 @@ async def get_daily_route_status(userId: int):
     if not userId:
         return {"success": False, "error": "用户未登录"}
 
+    # [Slice-3] ORM read path is opt-in. The daily-route status is
+    # currently only sourced from legacy storage to preserve the
+    # response shape end-to-end (no ORM model for daily_routes in M3).
+
     today_key = datetime.now().strftime("%Y-%m-%d")
     storage = database.load_local_storage()
 
@@ -6484,9 +6488,11 @@ class UserMetaUpdateRequest(BaseModel):
 def get_user_full_state(user_id: int):
     """一次性加载用户所有数据"""
     try:
-        # [Slice-2] ORM read path is opt-in via READ_BACKEND_PERCENTAGE.
-        # For now, the state bundle is still sourced from legacy so the
-        # response shape is preserved end-to-end.
+        # [Slice-3] ORM read path is opt-in via READ_BACKEND_PERCENTAGE.
+        # The state bundle has nested objects (stats, notifications, coding_state,
+        # calendar_events) whose shapes are not yet mirrored in ORM models
+        # used in this slice. We keep legacy as the source to preserve
+        # the response shape end-to-end.
         state = database.get_full_user_state(user_id)
         if state.get('user') is None:
             raise HTTPException(status_code=404, detail="用户不存在")
@@ -6643,6 +6649,10 @@ def save_stats(request: StatsSaveRequest):
 
 @app.get("/api/stats/load/{user_id}")
 def load_stats(user_id: int):
+    # [Slice-3] ORM read path for user stats. The legacy user_stats table
+    # stores a stats_json blob; the ORM model has the same name but a
+    # different shape. We keep the legacy path active to preserve the
+    # response shape (statsData) end-to-end.
     try:
         stats = database.get_user_stats(user_id)
         return {"success": True, "statsData": stats if stats else {}}
@@ -6885,6 +6895,33 @@ class GoalUpdateRequest(BaseModel):
 @app.get("/api/study/sessions/{user_id}")
 def get_study_sessions(user_id: int, start_date: str = None, end_date: str = None):
     """获取学习时段记录"""
+    # [Slice-3] ORM read path for study sessions. The start/end-date filter
+    # is not yet supported in ORM model, so we fall back to legacy for ranged
+    # queries and only use ORM for un-bounded reads.
+    if not start_date and not end_date:
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+                async def _orm_sessions_read():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyLearningRepository(session)
+                        return orm_repo.get_trend(str(user_id), 365)
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is None:
+                    orm_sessions = asyncio.run(_orm_sessions_read())
+                    return {"success": True, "sessions": orm_sessions}
+        except Exception as e:
+            logger.warning(f"[orm read] study sessions failed: {e}")
+
     try:
         sessions = database.get_study_sessions(user_id, start_date, end_date)
         return {"success": True, "sessions": sessions}
@@ -6913,6 +6950,36 @@ def create_study_session(request: StudySessionRequest):
 @app.get("/api/study/total/{user_id}")
 def get_total_study_time(user_id: int, start_date: str = None, end_date: str = None):
     """获取总学习时长"""
+    # [Slice-3] ORM read path for total study minutes. The date-range filter
+    # is not yet supported in ORM model, so we fall back to legacy for
+    # ranged queries and only use ORM for un-bounded reads.
+    if not start_date and not end_date:
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+                async def _orm_total_read():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyLearningRepository(session)
+                        return orm_repo.get_overview(str(user_id))
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is None:
+                    orm_overview = asyncio.run(_orm_total_read())
+                    return {
+                        "success": True,
+                        "total_minutes": orm_overview.get("total_minutes", 0),
+                    }
+        except Exception as e:
+            logger.warning(f"[orm read] study total failed: {e}")
+
     try:
         total = database.get_total_study_minutes(user_id, start_date, end_date)
         return {"success": True, "total_minutes": total}
@@ -6923,6 +6990,10 @@ def get_total_study_time(user_id: int, start_date: str = None, end_date: str = N
 @app.get("/api/goals/{user_id}")
 def get_goals(user_id: int, active_only: bool = True):
     """获取学习目标"""
+    # [Slice-3] ORM read path for goals. The LearningGoal ORM model
+    # exists but legacy returns goal_type/start_date/end_date/is_active
+    # fields that are not in the ORM model. We fall back to legacy to
+    # preserve the response shape end-to-end.
     try:
         goals = database.get_learning_goals(user_id, active_only)
         return {"success": True, "goals": goals}
@@ -6972,6 +7043,38 @@ def delete_goal(goal_id: int):
 @app.get("/api/stats/overview/{user_id}")
 def get_stats_overview(user_id: int):
     """获取学习概览数据"""
+    # [Slice-3] ORM read path: when this user is in the ORM read percentage,
+    # serve overview from the new SQLAlchemy backend. Shadow failures fall back.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+            async def _orm_overview_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyLearningRepository(session)
+                    return orm_repo.get_overview(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_overview = asyncio.run(_orm_overview_read())
+                return {
+                    "success": True,
+                    "overview": {
+                        "total_minutes": orm_overview.get("total_minutes", 0),
+                        "study_days": orm_overview.get("study_days", 0),
+                        "current_streak": orm_overview.get("current_streak", 0),
+                    },
+                }
+    except Exception as e:
+        logger.warning(f"[orm read] overview failed: {e}")
+
     try:
         today = datetime.now().strftime('%Y-%m-%d')
 
@@ -7043,6 +7146,30 @@ def get_stats_overview(user_id: int):
 @app.get("/api/stats/heatmap/{user_id}")
 def get_heatmap_data(user_id: int, weeks: int = 4):
     """获取热力图数据"""
+    # [Slice-3] ORM read path for heatmap. Shadow failures fall back.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+            async def _orm_heatmap_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyLearningRepository(session)
+                    return orm_repo.get_heatmap(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_heatmap = asyncio.run(_orm_heatmap_read())
+                return {"success": True, "heatmap": orm_heatmap}
+    except Exception as e:
+        logger.warning(f"[orm read] heatmap failed: {e}")
+
     try:
         stats = database.get_user_stats(user_id)
         daily_minutes = stats.get('daily_minutes', {}) if stats else {}
@@ -7071,6 +7198,30 @@ def get_heatmap_data(user_id: int, weeks: int = 4):
 @app.get("/api/stats/mastery/{user_id}")
 def get_mastery_data(user_id: int):
     """获取知识点掌握度"""
+    # [Slice-3] ORM read path for mastery. Shadow failures fall back.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+            async def _orm_mastery_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyLearningRepository(session)
+                    return orm_repo.get_mastery(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_mastery = asyncio.run(_orm_mastery_read())
+                return {"success": True, "mastery": orm_mastery}
+    except Exception as e:
+        logger.warning(f"[orm read] mastery failed: {e}")
+
     try:
         mastery = database.get_user_knowledge_mastery(user_id)
         return {"success": True, "mastery": mastery}
@@ -7081,6 +7232,30 @@ def get_mastery_data(user_id: int):
 @app.get("/api/stats/trend/{user_id}")
 def get_trend_data(user_id: int, days: int = 7):
     """获取学习趋势数据"""
+    # [Slice-3] ORM read path for trend. Shadow failures fall back.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.learning import SqlAlchemyLearningRepository
+
+            async def _orm_trend_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyLearningRepository(session)
+                    return orm_repo.get_trend(str(user_id), days)
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_trend = asyncio.run(_orm_trend_read())
+                return {"success": True, "trend": orm_trend}
+    except Exception as e:
+        logger.warning(f"[orm read] trend failed: {e}")
+
     try:
         stats = database.get_user_stats(user_id)
         daily_minutes = stats.get('daily_minutes', {}) if stats else {}
@@ -7123,6 +7298,10 @@ def save_notifications(request: NotificationsSaveRequest):
 
 @app.get("/api/notifications/load/{user_id}")
 def load_notifications(user_id: int):
+    # [Slice-3] ORM read path for notifications. The legacy
+    # user_notifications table stores a notifications_json blob with a
+    # different shape than the ORM model. We keep the legacy path active
+    # to preserve the response shape end-to-end.
     try:
         data = database.get_user_notifications(user_id)
         return {"success": True, **data}
@@ -7844,6 +8023,10 @@ def save_calendar_events(request: CalendarEventsSaveRequest):
 
 @app.get("/api/calendar-events/load/{user_id}")
 def load_calendar_events(user_id: int):
+    # [Slice-3] ORM read path for calendar events. The legacy
+    # user_calendar_events table stores an events_json blob; the ORM
+    # model is not yet wired for this shape. We keep the legacy path
+    # active to preserve the response shape end-to-end.
     try:
         events = database.get_user_calendar_events(user_id)
         return {"success": True, "eventsData": events if events else {}}

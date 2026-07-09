@@ -93,6 +93,63 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M3: legacy schema additions for learning statistics
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS study_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            subject VARCHAR(64),
+            duration_minutes INTEGER DEFAULT 0,
+            session_date TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            activity_type VARCHAR(64) DEFAULT 'study',
+            subject VARCHAR(64),
+            minutes INTEGER DEFAULT 0,
+            metadata TEXT,
+            recorded_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_stats (
+            user_id INTEGER PRIMARY KEY,
+            total_minutes INTEGER DEFAULT 0,
+            streak_days INTEGER DEFAULT 0,
+            completed_courses INTEGER DEFAULT 0,
+            last_active TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            title VARCHAR(256),
+            target_value REAL DEFAULT 0,
+            current_value REAL DEFAULT 0,
+            unit VARCHAR(32) DEFAULT 'minutes',
+            deadline TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS weekly_summary (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            week_start TEXT,
+            total_minutes INTEGER DEFAULT 0,
+            subjects TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 

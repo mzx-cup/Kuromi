@@ -1,6 +1,13 @@
 from app.models.base import Base
 from app.models.user import User, StudentProfile, LoginRecord, Profile
 from app.models.preferences import UserPreference, UserSetting, UserTheme
+from app.models.learning import (
+    StudySession,
+    LearningRecord,
+    UserStats,
+    LearningGoal,
+    WeeklySummary,
+)
 from app.models.course import (
     Course,
     Chapter,
@@ -22,6 +29,11 @@ __all__ = [
     "UserPreference",
     "UserSetting",
     "UserTheme",
+    "StudySession",
+    "LearningRecord",
+    "UserStats",
+    "LearningGoal",
+    "WeeklySummary",
     "Course",
     "Chapter",
     "SubChapter",
