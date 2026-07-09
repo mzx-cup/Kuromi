@@ -10,7 +10,7 @@ from app.models.user import User, LoginRecord, Profile
 
 
 class SqlAlchemyUserRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session = None):
         self.session = session
 
     def create_user(self, username: str, password_hash: str, preferred_language: str = "zh-CN") -> str:

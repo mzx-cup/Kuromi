@@ -7,7 +7,7 @@ from app.models.preferences import UserPreference, UserSetting, UserTheme
 
 
 class SqlAlchemyPreferencesRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session = None):
         self.session = session
 
     def get_preferences(self, user_id: str) -> dict:

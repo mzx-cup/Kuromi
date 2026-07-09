@@ -20,7 +20,7 @@ from app.models.learning import (
 
 
 class SqlAlchemyLearningRepository:
-    def __init__(self, session: Session):
+    def __init__(self, session: Session = None):
         self.session = session
 
     # ── Read methods ──
