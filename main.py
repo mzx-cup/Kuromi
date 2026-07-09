@@ -1345,17 +1345,66 @@ def register(request: RegisterRequest):
         raise HTTPException(status_code=400, detail="用户名长度需在2-20个字符之间")
     if len(request.password) < 4:
         raise HTTPException(status_code=400, detail="密码长度不能少于4个字符")
+    # Existing existence check — preserved verbatim from the prior implementation.
     existing = database.get_user_by_username(request.username)
     if existing:
         raise HTTPException(status_code=400, detail="该用户名已被注册")
     hashed = hash_password(request.password)
     avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={request.username}&backgroundColor=b6e3f4"
     nickname = request.username + "同学"
+    preferred_language = getattr(request, "preferred_language", "zh-CN") or "zh-CN"
     try:
+        # Legacy write — preserves previous behaviour of database.create_user.
         user_id = database.create_user(request.username, hashed, avatar, nickname)
+
+        # [Slice-1] ORM dual-write (additive). Only when DUAL_WRITE_LEGACY=true.
+        # Shadow failures are logged, never raised, so the existing response
+        # is unchanged when the ORM is unavailable.
+        from app.core.feature_flags import is_dual_write_enabled
+        if is_dual_write_enabled():
+            try:
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.user import SqlAlchemyUserRepository
+
+                async def _orm_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyUserRepository(session)
+                        orm_repo.create_user(
+                            username=request.username,
+                            password_hash=hashed,
+                            preferred_language=preferred_language,
+                        )
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    # Schedule the ORM write without blocking the response.
+                    # Failures are still swallowed.
+                    loop.create_task(_safe_orm_register(_orm_write))
+                else:
+                    asyncio.run(_orm_write())
+            except Exception as e:
+                logger.warning(f"[dual-write] orm register failed: {e}")
+
         return {"success": True, "message": "注册成功", "userId": user_id, "username": request.username, "nickname": nickname, "avatar": avatar}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"注册失败: {str(e)}")
+
+
+async def _safe_orm_register(coro_factory):
+    """Run an ORM write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm register failed: {e}")
+
 
 @app.post("/api/login")
 def login(body: LoginRequest, http_request: Request):
@@ -1372,6 +1421,45 @@ def login(body: LoginRequest, http_request: Request):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
     database.update_last_login(user['id'])
     database.record_login_event(user['id'], user['username'], True, "", ip_address, user_agent)
+
+    # [Slice-1] ORM dual-write: also record the successful login via the new
+    # ORM repo. Shadow failures are logged, never raised. Password verification
+    # stays on the legacy backend to preserve existing hash compatibility.
+    from app.core.feature_flags import is_dual_write_enabled
+    if is_dual_write_enabled():
+        try:
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.user import SqlAlchemyUserRepository
+
+            username_for_orm = body.username
+            ip_for_orm = ip_address
+            ua_for_orm = user_agent
+
+            async def _orm_login_record():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyUserRepository(session)
+                    orm_user = orm_repo.get_by_username(username_for_orm)
+                    if orm_user is not None:
+                        orm_repo.record_login(
+                            orm_user.id,
+                            ip=ip_for_orm,
+                            user_agent=ua_for_orm,
+                        )
+                        await session.commit()
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is not None:
+                loop.create_task(_safe_orm_login(_orm_login_record))
+            else:
+                asyncio.run(_orm_login_record())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm login record failed: {e}")
+
     avatar = user['avatar'] or f"https://api.dicebear.com/7.x/adventurer/svg?seed={body.username}&backgroundColor=b6e3f4"
     nickname = user['nickname'] or (user['username'] + "同学")
 
@@ -1390,6 +1478,14 @@ def login(body: LoginRequest, http_request: Request):
         "preferences": get_user_preferences_internal(user['id']),
         "themePrefs": database.get_user_theme_prefs(user['id'])
     }
+
+
+async def _safe_orm_login(coro_factory):
+    """Run an ORM login-record coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm login record failed: {e}")
 
 def get_user_preferences_internal(user_id: int):
     try:
