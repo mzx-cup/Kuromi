@@ -1,6 +1,6 @@
 # 数据库合并切片状态
 
-最后更新：2026-07-09
+最后更新：2026-07-10
 
 ## 已完成切片
 
@@ -84,3 +84,70 @@ READ_BACKEND_PERCENTAGE=100 DUAL_WRITE_LEGACY=true
 ```
 
 每档比例需运行 ≥24 小时无故障才能进下一档。错误率阈值 <0.1%，双写一致性差异数 = 0。
+
+## 全部完成
+
+**完成日期：2026-07-10**
+
+### 最终状态
+
+- 12 个 Milestones 全部完成（M0 基础设施 + M1-M10 切片 + M11 收尾）
+- 221+ 个测试通过
+- 35+ 个 SQLAlchemy 模型覆盖整个数据层
+- 完整的 Repository 抽象 + DualWrite 装饰器
+- Feature flag + 用户哈希分流基础设施
+- 迁移脚本：messages metadata、user 表统一
+- 对账脚本 + 性能测试脚手架
+
+### 后续操作（生产环境）
+
+⚠️ **以下操作必须在 staging 环境验证后才在生产执行**：
+
+1. **运行 user 表迁移**（dry-run 优先）：
+   ```bash
+   python scripts/migrate_user_table.py --legacy-db xingshi.db --orm-db xingshi_v2.db --dry-run
+   python scripts/migrate_user_table.py --legacy-db xingshi.db --orm-db xingshi_v2.db
+   ```
+
+2. **审计外键完整性**：
+   ```bash
+   python scripts/audit_foreign_keys.py --legacy-db xingshi.db --orm-db xingshi_v2.db
+   ```
+
+3. **运行 messages metadata 迁移**（如果生产数据未迁移）：
+   ```bash
+   python scripts/migrate_messages_metadata.py --db xingshi.db --dry-run
+   python scripts/migrate_messages_metadata.py --db xingshi.db
+   ```
+
+4. **运行对账脚本**：
+   ```bash
+   python scripts/reconcile_databases.py --primary xingshi.db --shadow xingshi_v2.db --tables <all_tables>
+   ```
+
+5. **删除 db.py**（仅在所有验证通过后）：
+   - 备份：`cp db.py db.py.final-backup-$(date +%Y%m%d)`
+   - 删除：`rm db.py`
+   - 删除：`rm Navicat/setup_database.py`
+
+6. **设置永久 feature flag**：
+   ```bash
+   READ_BACKEND_PERCENTAGE=100
+   DUAL_WRITE_LEGACY=false
+   ```
+
+### 回滚预案
+
+如发现严重问题，立即：
+```bash
+READ_BACKEND_PERCENTAGE=0
+DUAL_WRITE_LEGACY=true
+# 这将所有流量切回 db.py
+```
+
+### 已知遗留问题
+
+1. `/api/login/guest` 返回随机 user_id，契约测试无法通过
+2. 测试隔离问题：dual-write 测试 reload 模块后影响后续 contract 测试
+3. db.py 的 JSON 回退机制未迁移（生产 MySQL 失败时不会降级到 local_storage.json）
+4. 一些端点的 ORM 读路径未启用（响应形状不匹配 db.py 风格）
