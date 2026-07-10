@@ -1487,6 +1487,14 @@ async def _safe_orm_login(coro_factory):
     except Exception as e:
         logger.warning(f"[dual-write] orm login record failed: {e}")
 
+
+async def _safe_dual_write(coro_factory):
+    """Run an ORM dual-write coroutine, logging any failure (Slice-9)."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm write failed: {e}")
+
 def get_user_preferences_internal(user_id: int):
     try:
         with database.get_db() as conn:
@@ -3165,6 +3173,34 @@ def multi_agent_workflow(request: ChatRequest):
             save_message(session_id, student_id, "user", request.userText, message_type="text")
             chat_history = get_conversation_messages(session_id, student_id, limit=20)
             workflow_logs.append(f"[Memory] 已加载 {len(chat_history)} 条历史消息 | 会话: {session_id[:20]}...")
+            # [Slice-9] ORM dual-write for chat messages
+            try:
+                from app.core.feature_flags import is_dual_write_enabled
+                if is_dual_write_enabled():
+                    import asyncio as _asyncio_chat
+                    from app.core.database import get_sessionmaker as _gsc
+                    from app.repositories.orm.chat import SqlAlchemyChatRepository as _Ocr
+
+                    user_id_str = str(student_id) if student_id is not None else "0"
+                    msg_payload = {"role": "user", "content": request.userText, "metadata": {}}
+
+                    async def _orm_chat_msg_write():
+                        SessionLocal = _gsc()
+                        async with SessionLocal()() as session:
+                            orm_repo = _Ocr(session)
+                            orm_repo.save_message(user_id_str, msg_payload)
+                            await session.commit()
+
+                    try:
+                        _loop = _asyncio_chat.get_running_loop()
+                    except RuntimeError:
+                        _loop = None
+                    if _loop is not None:
+                        _loop.create_task(_safe_dual_write(_orm_chat_msg_write))
+                    else:
+                        _asyncio_chat.run(_orm_chat_msg_write())
+            except Exception as _dw_e:
+                logger.warning(f"[dual-write] orm chat save failed: {_dw_e}")
         except Exception as mem_e:
             chat_history = []
             workflow_logs.append(f"[Memory] 历史消息加载失败（非阻塞）: {mem_e}")
@@ -3620,6 +3656,34 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
         save_message(session_id, student_id, "user", body.user_input, message_type="text")
         chat_history = get_conversation_messages(session_id, student_id, limit=20)
         logger.info(f"[Memory] 已加载 {len(chat_history)} 条历史消息 | 会话: {session_id}")
+        # [Slice-9] ORM dual-write for chat messages
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio as _asyncio_v2s
+                from app.core.database import get_sessionmaker as _gsc_v2s
+                from app.repositories.orm.chat import SqlAlchemyChatRepository as _OcrV2S
+
+                user_id_str = str(student_id) if student_id else "0"
+                msg_payload = {"role": "user", "content": body.user_input, "metadata": {}}
+
+                async def _orm_chat_msg_write_v2s():
+                    SessionLocal = _gsc_v2s()
+                    async with SessionLocal()() as session:
+                        orm_repo = _OcrV2S(session)
+                        orm_repo.save_message(user_id_str, msg_payload)
+                        await session.commit()
+
+                try:
+                    _loop = _asyncio_v2s.get_running_loop()
+                except RuntimeError:
+                    _loop = None
+                if _loop is not None:
+                    _loop.create_task(_safe_dual_write(_orm_chat_msg_write_v2s))
+                else:
+                    _asyncio_v2s.run(_orm_chat_msg_write_v2s())
+        except Exception as _dw_e:
+            logger.warning(f"[dual-write] orm chat save failed: {_dw_e}")
     except Exception as mem_e:
         logger.warning(f"[Memory] 历史消息加载失败（非阻塞）: {mem_e}")
 

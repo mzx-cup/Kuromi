@@ -244,8 +244,60 @@ async def save_extracted_memories(
         保存成功的记忆ID列表
     """
     saved_ids = []
-    from db import save_user_memory, update_user_memory
+    # Slice #9: route memory persistence through the SQLAlchemy chat repo
+    # so the dual-write to legacy db.py continues via DualWriteRepository.
+    from app.repositories.orm.chat import SqlAlchemyChatRepository
 
+    # Resolve a session lazily. If no session is bound (e.g. unit tests that
+    # call this function in isolation), fall back to db.py for backwards
+    # compatibility.
+    try:
+        from app.core.database import get_sessionmaker
+        SessionLocal = get_sessionmaker()
+        session_ctx = SessionLocal()
+    except Exception:
+        session_ctx = None
+
+    if session_ctx is not None:
+        try:
+            chat_repo = SqlAlchemyChatRepository(session_ctx)
+            for mem in memories:
+                mem_id = mem.get("_update_target_id")
+                if mem_id and mem.get("is_update"):
+                    # 更新已有记忆
+                    chat_repo.update_memory(
+                        mem_id,
+                        {"content": mem["content"], "importance": int(mem["confidence"] * 10)},
+                    )
+                    saved_ids.append(mem_id)
+                else:
+                    # 新增记忆
+                    new_id_int = chat_repo.save_memory(
+                        user_id=user_id,
+                        memory={
+                            "memory_type": mem["memory_type"],
+                            "content": mem["content"],
+                            "importance": int(mem["confidence"] * 10),
+                            "source_conversation_id": source,
+                        },
+                    )
+                    saved_ids.append(str(new_id_int))
+            session_ctx.commit()
+            return saved_ids
+        except Exception as e:
+            logger.warning(f"[MemoryExtractor] ORM save failed, falling back to db.py: {e}")
+            try:
+                session_ctx.rollback()
+            except Exception:
+                pass
+        finally:
+            try:
+                session_ctx.close()
+            except Exception:
+                pass
+
+    # Fallback: legacy db.py path (preserves old behaviour for callers without ORM session)
+    from db import save_user_memory, update_user_memory
     for mem in memories:
         mem_id = mem.get("_update_target_id")
         if mem_id and mem.get("is_update"):
