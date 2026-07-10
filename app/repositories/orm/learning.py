@@ -112,7 +112,95 @@ class SqlAlchemyLearningRepository:
             for r in results
         ]
 
-    # ── Write stub (M4's responsibility) ──
+    # ── Write methods (M4) ──
 
     def record_session(self, user_id, session_data: dict) -> None:
-        raise NotImplementedError("Write path is M4's responsibility")
+        """Insert a study session record (ORM).
+
+        Writes both StudySession and LearningRecord rows so the
+        overview/trend/mastery read paths remain consistent.
+        """
+        from datetime import datetime, date
+
+        minutes = int(
+            session_data.get("minutes")
+            or session_data.get("duration_minutes")
+            or 0
+        )
+        subject = session_data.get("subject", "")
+
+        session_date_raw = session_data.get("session_date")
+        if session_date_raw:
+            try:
+                session_date = datetime.fromisoformat(session_date_raw).date()
+            except (ValueError, TypeError):
+                session_date = date.today()
+        else:
+            session_date = date.today()
+
+        study = StudySession(
+            user_id=user_id,
+            subject=subject,
+            duration_minutes=minutes,
+            session_date=session_date,
+            created_at=datetime.utcnow(),
+        )
+        self.session.add(study)
+
+        record = LearningRecord(
+            user_id=user_id,
+            activity_type=session_data.get("activity_type", "study"),
+            subject=subject,
+            minutes=minutes,
+            metadata_json=session_data.get("metadata", {}),
+            recorded_at=datetime.utcnow(),
+        )
+        self.session.add(record)
+        self.session.flush()
+
+    def record_goal(self, user_id, goal_data: dict) -> int:
+        """Create or update a learning goal. Returns the goal id."""
+        from datetime import datetime
+
+        if goal_data.get("id"):
+            existing = (
+                self.session.query(LearningGoal)
+                .filter_by(id=goal_data["id"], user_id=user_id)
+                .first()
+            )
+            if existing:
+                existing.title = goal_data.get("title", existing.title)
+                existing.target_value = goal_data.get(
+                    "target_value", existing.target_value
+                )
+                existing.current_value = goal_data.get(
+                    "current_value", existing.current_value
+                )
+                existing.unit = goal_data.get("unit", existing.unit)
+                existing.deadline = goal_data.get("deadline", existing.deadline)
+                self.session.flush()
+                return existing.id
+
+        goal = LearningGoal(
+            user_id=user_id,
+            title=goal_data.get("title", ""),
+            target_value=goal_data.get("target_value", 0),
+            current_value=goal_data.get("current_value", 0),
+            unit=goal_data.get("unit", "minutes"),
+            deadline=goal_data.get("deadline"),
+            created_at=datetime.utcnow(),
+        )
+        self.session.add(goal)
+        self.session.flush()
+        return goal.id
+
+    def delete_goal(self, user_id, goal_id: int) -> None:
+        """Delete a learning goal owned by the user."""
+        goal = (
+            self.session.query(LearningGoal)
+            .filter_by(id=goal_id, user_id=user_id)
+            .first()
+        )
+        if goal:
+            self.session.delete(goal)
+            self.session.flush()

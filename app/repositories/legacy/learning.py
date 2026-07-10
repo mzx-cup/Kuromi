@@ -111,7 +111,121 @@ class DbPyLearningRepository:
         finally:
             conn.close()
 
-    # ── Write stub (M4's responsibility) ──
+    # ── Write methods (M4) ──
 
     def record_session(self, user_id, session_data: dict) -> None:
-        raise NotImplementedError("Write path is M4's responsibility")
+        """Insert a study session record (legacy db.py).
+
+        Writes both study_sessions and learning_records rows so the
+        overview/trend/mastery read paths remain consistent.
+        """
+        from datetime import datetime
+
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            minutes = int(
+                session_data.get("minutes")
+                or session_data.get("duration_minutes")
+                or 0
+            )
+            subject = session_data.get("subject", "")
+            session_date = (
+                session_data.get("session_date")
+                or datetime.now().date().isoformat()
+            )
+            now_iso = datetime.now().isoformat()
+
+            cur.execute(
+                """
+                INSERT INTO study_sessions
+                (user_id, subject, duration_minutes, session_date, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (user_id, subject, minutes, session_date, now_iso),
+            )
+            cur.execute(
+                """
+                INSERT INTO learning_records
+                (user_id, activity_type, subject, minutes, metadata, recorded_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user_id,
+                    session_data.get("activity_type", "study"),
+                    subject,
+                    minutes,
+                    json.dumps(
+                        session_data.get("metadata", {}), ensure_ascii=False
+                    ),
+                    now_iso,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def record_goal(self, user_id, goal_data: dict) -> int:
+        """Create or update a learning goal. Returns the goal id."""
+        from datetime import datetime
+
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            now_iso = datetime.now().isoformat()
+
+            if goal_data.get("id"):
+                cur.execute(
+                    """
+                    UPDATE learning_goals
+                    SET title = ?, target_value = ?, current_value = ?,
+                        unit = ?, deadline = ?
+                    WHERE id = ? AND user_id = ?
+                    """,
+                    (
+                        goal_data.get("title", ""),
+                        goal_data.get("target_value", 0),
+                        goal_data.get("current_value", 0),
+                        goal_data.get("unit", "minutes"),
+                        goal_data.get("deadline"),
+                        goal_data["id"],
+                        user_id,
+                    ),
+                )
+                conn.commit()
+                return goal_data["id"]
+            else:
+                cur.execute(
+                    """
+                    INSERT INTO learning_goals
+                    (user_id, title, target_value, current_value, unit,
+                     deadline, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        user_id,
+                        goal_data.get("title", ""),
+                        goal_data.get("target_value", 0),
+                        goal_data.get("current_value", 0),
+                        goal_data.get("unit", "minutes"),
+                        goal_data.get("deadline"),
+                        now_iso,
+                    ),
+                )
+                conn.commit()
+                return cur.lastrowid
+        finally:
+            conn.close()
+
+    def delete_goal(self, user_id, goal_id: int) -> None:
+        """Delete a learning goal owned by the user."""
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM learning_goals WHERE id = ? AND user_id = ?",
+                (goal_id, user_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
