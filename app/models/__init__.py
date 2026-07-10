@@ -33,6 +33,11 @@ from app.models.knowledge import (
     KnowledgeRecord,
     KnowledgePending,
 )
+from app.models.focus import (
+    FocusSession,
+    FocusEvent,
+    UserFocusHistory,
+)
 
 __all__ = [
     "Base",
@@ -70,4 +75,7 @@ __all__ = [
     "KnowledgeReview",
     "KnowledgeRecord",
     "KnowledgePending",
+    "FocusSession",
+    "FocusEvent",
+    "UserFocusHistory",
 ]

@@ -6771,7 +6771,27 @@ async def get_cockpit_analysis(user_id: int):
     """
     返回全息"智理"学习驾驶舱所需的所有实时分析数据
     包括：思维深度、概念掌握、专注度、学习动能、交互统计等
+
+    [Slice-7] ORM read path: when this user is in the ORM read percentage,
+    we pull focus history from the new SQLAlchemy backend. Shadow failures
+    fall back to the legacy ``db.py`` read; the rest of the cockpit payload
+    is still assembled from the existing stats / eco / garden / pet calls.
     """
+    # [Slice-7] ORM read path for focus history (focus_sessions + user_focus_history)
+    orm_focus_history = None
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.focus import SqlAlchemyFocusRepository
+
+            SessionLocal = get_sessionmaker()
+            async with SessionLocal()() as session:
+                orm_repo = SqlAlchemyFocusRepository(session)
+                orm_focus_history = orm_repo.get_history(str(user_id), 7)
+    except Exception as e:
+        logger.warning(f"[orm read] cockpit focus history failed: {e}")
+
     try:
         stats = database.get_user_stats(user_id)
         prefs = database.get_user_preferences(user_id)
@@ -6865,7 +6885,10 @@ async def get_cockpit_analysis(user_id: int):
                 "minutes": learning_minutes,
                 "tasks": completed_tasks,
                 "focus_sessions": focus_sessions,
-            }
+            },
+            # [Slice-7] Attach ORM-sourced focus history (may be None when ORM
+            # read path is inactive for this user).
+            "orm_focus_history": orm_focus_history,
         }
     except Exception as e:
         # 降级：返回合理默认值
@@ -7695,6 +7718,33 @@ def save_focus(request: FocusSaveRequest):
 
 @app.get("/api/focus/load/{user_id}")
 def load_focus(user_id: int):
+    """[Slice-7] ORM read path: when this user is in the ORM read percentage,
+    serve focus history from the new SQLAlchemy backend. Shadow failures fall
+    back to the legacy ``db.py`` read.
+    """
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.focus import SqlAlchemyFocusRepository
+
+            async def _orm_focus_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyFocusRepository(session)
+                    return orm_repo.get_history(str(user_id), 7)
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_history = asyncio.run(_orm_focus_read())
+                return {"success": True, "focusData": orm_history}
+    except Exception as e:
+        logger.warning(f"[orm read] focus load failed: {e}")
+
     try:
         focus = database.get_user_focus_history(user_id)
         return {"success": True, "focusData": focus if focus else []}
@@ -7928,7 +7978,37 @@ def record_focus(request: FocusRecordRequest):
 
 @app.get("/api/focus/analysis/{user_id}")
 def get_focus_analysis(user_id: int, range: str = "7d"):
-    """返回多角度心流分析数据，供 hub 页和 flow-meter 页共用。"""
+    """返回多角度心流分析数据，供 hub 页和 flow-meter 页共用。
+
+    [Slice-7] ORM read path: when this user is in the ORM read percentage,
+    serve history from the new SQLAlchemy backend. Shadow failures fall back
+    to the legacy ``db.py`` read.
+    """
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.focus import SqlAlchemyFocusRepository
+
+            async def _orm_focus_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyFocusRepository(session)
+                    return orm_repo.get_history(str(user_id), 7)
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_history = asyncio.run(_orm_focus_read())
+                analysis = _compute_focus_analysis(orm_history, range)
+                analysis["userId"] = user_id
+                return analysis
+    except Exception as e:
+        logger.warning(f"[orm read] focus analysis failed: {e}")
+
     try:
         history = database.get_user_focus_history(user_id)
         if not isinstance(history, list):

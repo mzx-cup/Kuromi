@@ -271,6 +271,43 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M7: legacy schema additions for focus session tracking
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS focus_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            started_at TEXT,
+            ended_at TEXT,
+            duration_minutes INTEGER DEFAULT 0,
+            planned_minutes INTEGER DEFAULT 0,
+            completed INTEGER DEFAULT 0,
+            subject VARCHAR(64)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS focus_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            event_type VARCHAR(64) DEFAULT 'start',
+            timestamp TEXT,
+            flow_score REAL DEFAULT 0,
+            metadata TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_focus_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            focus_date TEXT,
+            total_focus_minutes INTEGER DEFAULT 0,
+            sessions_count INTEGER DEFAULT 0,
+            avg_flow_score REAL DEFAULT 0,
+            deep_focus_minutes INTEGER DEFAULT 0
+        )
+    """)
+
     conn.commit()
     conn.close()
 
