@@ -44,6 +44,12 @@ from app.models.gamification import (
     UserAchievement,
     UserEcoData,
 )
+from app.models.chat import (
+    ChatMessage,
+    ChatSummary,
+    ChatTurnRecord,
+    UserMemory,
+)
 
 __all__ = [
     "Base",
@@ -88,4 +94,8 @@ __all__ = [
     "UserPet",
     "UserAchievement",
     "UserEcoData",
+    "ChatMessage",
+    "ChatSummary",
+    "ChatTurnRecord",
+    "UserMemory",
 ]

@@ -44,6 +44,9 @@ def _build_orm(repository_type: str):
     if repository_type == "gamification":
         from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
         return SqlAlchemyGamificationRepository
+    if repository_type == "chat":
+        from app.repositories.orm.chat import SqlAlchemyChatRepository
+        return SqlAlchemyChatRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -66,6 +69,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "gamification":
         from app.repositories.legacy.gamification import DbPyGamificationRepository
         return DbPyGamificationRepository
+    if repository_type == "chat":
+        from app.repositories.legacy.chat import DbPyChatRepository
+        return DbPyChatRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 

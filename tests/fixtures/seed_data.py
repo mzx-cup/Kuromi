@@ -352,6 +352,58 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M9: legacy schema additions for chat (messages / summaries / agent turns / memories).
+    # NOTE: messages table uses `msg_metadata` (not `metadata`) from the start so the
+    # rename migration script has nothing to do in the test environment
+    # (it remains idempotent for already-migrated production databases).
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            role VARCHAR(32) DEFAULT 'user',
+            content TEXT,
+            msg_metadata TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS conversation_summaries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            conversation_id TEXT NOT NULL,
+            summary TEXT,
+            key_facts TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS agent_turn_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            agent_id TEXT NOT NULL,
+            turn_number INTEGER DEFAULT 0,
+            user_input TEXT,
+            agent_output TEXT,
+            tool_calls TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_memories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            memory_type VARCHAR(32) DEFAULT 'fact',
+            content TEXT,
+            importance INTEGER DEFAULT 1,
+            source_conversation_id TEXT,
+            created_at TEXT,
+            last_accessed TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
