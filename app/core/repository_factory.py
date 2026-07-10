@@ -11,6 +11,7 @@ from app.repositories.base import (
     LearningRepository,
     PreferencesRepository,
     ChatRepository,
+    CourseProgressRepository,
 )
 from app.repositories.dual_write import DualWriteRepository
 
@@ -28,6 +29,9 @@ def _build_orm(repository_type: str):
     if repository_type == "preferences":
         from app.repositories.orm.preferences import SqlAlchemyPreferencesRepository
         return SqlAlchemyPreferencesRepository
+    if repository_type == "course_progress":
+        from app.repositories.orm.course_progress import SqlAlchemyCourseProgressRepository
+        return SqlAlchemyCourseProgressRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -38,6 +42,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "preferences":
         from app.repositories.legacy.preferences import DbPyPreferencesRepository
         return DbPyPreferencesRepository
+    if repository_type == "course_progress":
+        from app.repositories.legacy.course_progress import DbPyCourseProgressRepository
+        return DbPyCourseProgressRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 

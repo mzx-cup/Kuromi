@@ -150,6 +150,67 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M5: legacy schema additions for course progress + learning paths
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS course_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            course_id VARCHAR(64) NOT NULL,
+            progress_percent REAL DEFAULT 0,
+            completed_at TEXT,
+            last_accessed TEXT,
+            state TEXT,
+            UNIQUE(user_id, course_id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_paths (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name VARCHAR(256),
+            description TEXT,
+            status VARCHAR(32) DEFAULT 'active',
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS learning_path_nodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path_id INTEGER NOT NULL,
+            course_id VARCHAR(64),
+            title VARCHAR(256),
+            order_index INTEGER DEFAULT 0,
+            completed INTEGER DEFAULT 0
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_evaluations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            subject VARCHAR(64),
+            score REAL DEFAULT 0,
+            max_score REAL DEFAULT 100,
+            notes TEXT,
+            evaluated_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS course_generation_status (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            course_id VARCHAR(64) NOT NULL,
+            status VARCHAR(32) DEFAULT 'pending',
+            progress_percent REAL DEFAULT 0,
+            error_message TEXT,
+            started_at TEXT,
+            completed_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 

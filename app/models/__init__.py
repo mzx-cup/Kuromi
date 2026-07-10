@@ -8,6 +8,13 @@ from app.models.learning import (
     LearningGoal,
     WeeklySummary,
 )
+from app.models.course_progress import (
+    CourseProgress,
+    LearningPath,
+    LearningPathNode,
+    UserEvaluation,
+    CourseGenerationStatus,
+)
 from app.models.course import (
     Course,
     Chapter,
@@ -34,6 +41,11 @@ __all__ = [
     "UserStats",
     "LearningGoal",
     "WeeklySummary",
+    "CourseProgress",
+    "LearningPath",
+    "LearningPathNode",
+    "UserEvaluation",
+    "CourseGenerationStatus",
     "Course",
     "Chapter",
     "SubChapter",

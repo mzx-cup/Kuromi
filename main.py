@@ -1599,6 +1599,14 @@ async def _safe_orm_pref(coro_factory):
     except Exception as e:
         logger.warning(f"[dual-write] orm preferences failed: {e}")
 
+
+async def _safe_orm_eval(coro_factory):
+    """Run an ORM course-progress eval write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm course_progress failed: {e}")
+
 @app.get("/api/user/preferences/{user_id}")
 def get_user_preferences(user_id: int):
     try:
@@ -1815,6 +1823,48 @@ def save_user_progress(request: SaveProgressRequest):
             database.save_user_evaluation(user_id, ev)
         except Exception as e:
             print(f"[ProgressSave] user_evaluations 保存失败（非阻塞）: {e}")
+
+        # [Slice-5] ORM dual-write: when enabled, also write user_evaluation
+        # rows to the new SQLAlchemy backend. Failures are non-blocking.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.course_progress import (
+                    SqlAlchemyCourseProgressRepository,
+                )
+
+                eval_payload = dict(ev)
+
+                async def _orm_eval_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyCourseProgressRepository(session)
+                        # M5 dual-write: persist evaluation as a single row
+                        # with the same shape that the legacy column mirror
+                        # would have produced (subject/score/notes).
+                        from app.models.course_progress import UserEvaluation
+
+                        session.add(UserEvaluation(
+                            user_id=str(user_id),
+                            subject=eval_payload.get("subject", "") or "",
+                            score=float(eval_payload.get("score", 0) or 0),
+                            max_score=float(eval_payload.get("max_score", 100) or 100),
+                            notes=eval_payload.get("notes", "") or "",
+                        ))
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_eval(_orm_eval_write))
+                else:
+                    asyncio.run(_orm_eval_write())
+        except Exception as e:
+            print(f"[ProgressSave] orm dual-write failed (非阻塞): {e}")
 
         # 异步触发学习路径刷新（不阻塞响应）
         _safe_trigger_learning_path_refresh(user_id, "progress_save")
@@ -2883,6 +2933,31 @@ def load_user_progress(request: LoadProgressRequest):
     try:
         user_id = request.userId
 
+        # [Slice-5] ORM read path: when this user is in the ORM read percentage,
+        # pull learning-path nodes / evaluations from the new SQLAlchemy backend.
+        # Profile still comes from legacy (not migrated in M5). Failures fall back.
+        orm_course_progress = None
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.course_progress import (
+                    SqlAlchemyCourseProgressRepository,
+                )
+                SessionLocal = get_sessionmaker()
+                with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyCourseProgressRepository(session)
+                    orm_course_progress = {
+                        "learning_path": orm_repo.get_learning_path(user_id),
+                        "evaluations": orm_repo.get_evaluations(user_id),
+                    }
+        except Exception as e:
+            import logging
+            logging.getLogger("starlearn").warning(
+                f"[orm read] course_progress load failed: {e}"
+            )
+            orm_course_progress = None
+
         profile_data = database.get_user_profile(user_id)
         path_data = database.get_learning_path(user_id)
 
@@ -2981,6 +3056,30 @@ def get_progress_summary(user_id: int, range: str = "month"):
     """前端 progress.js 调用的学习进度汇总接口。"""
     try:
         range_str = range  # avoid shadowing builtin `range` further down
+
+        # [Slice-5] ORM read path: when this user is in the ORM read percentage,
+        # supplement the summary with ORM-side course_progress. Legacy data still
+        # drives the response shape; failures fall back gracefully.
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.course_progress import (
+                    SqlAlchemyCourseProgressRepository,
+                )
+                SessionLocal = get_sessionmaker()
+                with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyCourseProgressRepository(session)
+                    # Touch the repository so the read path is exercised; this
+                    # will start returning real data once the ORM is populated
+                    # by the dual-write path.
+                    _ = orm_repo.get_evaluations(user_id)
+        except Exception as e:
+            import logging
+            logging.getLogger("starlearn").warning(
+                f"[orm read] course_progress summary failed: {e}"
+            )
+
         profile_data = database.get_user_profile(user_id)
         path_data = database.get_learning_path(user_id)
         lr = database.get_learning_record(user_id)
@@ -6855,6 +6954,46 @@ async def update_learning_time(request: CockpitAnalysisRequest):
         stats['codePracticeTime'] = stats.get('codePracticeTime', 0) + minutes_to_add
 
         database.save_user_stats(request.userId, stats)
+
+        # [Slice-4] ORM dual-write: record a study session row mirroring the
+        # legacy user_stats cumulative counter. ORM failures are logged but
+        # never raised (legacy write is the production truth).
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.learning import (
+                    SqlAlchemyLearningRepository,
+                )
+
+                async def _orm_learning_time_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyLearningRepository(session)
+                        orm_repo.record_session(
+                            str(request.userId),
+                            {
+                                "subject": "",
+                                "minutes": minutes_to_add,
+                                "activity_type": "cockpit",
+                                "session_date": today,
+                                "metadata": {"hour": current_hour},
+                            },
+                        )
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_learning_time(_orm_learning_time_write))
+                else:
+                    asyncio.run(_orm_learning_time_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] cockpit learning-time failed: {e}")
+
         return {
             "success": True,
             "minutes": stats['codePracticeTime'],
@@ -6862,6 +7001,14 @@ async def update_learning_time(request: CockpitAnalysisRequest):
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+async def _safe_orm_learning_time(coro_factory):
+    """Run an ORM cockpit learning-time write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm cockpit learning-time failed: {e}")
 
 
 # ── 学习概览 API ──
@@ -6942,9 +7089,62 @@ def create_study_session(request: StudySessionRequest):
             'node_id': request.node_id,
         }
         database.save_study_session(request.userId, session_data)
+
+        # [Slice-4] ORM dual-write for study sessions. Mirrors the legacy
+        # study_sessions insert into the ORM study_sessions + learning_records
+        # tables. ORM failures are logged but never raised.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.learning import (
+                    SqlAlchemyLearningRepository,
+                )
+
+                async def _orm_study_session_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyLearningRepository(session)
+                        orm_repo.record_session(
+                            str(request.userId),
+                            {
+                                "subject": request.subject,
+                                "minutes": request.duration_minutes,
+                                "duration_minutes": request.duration_minutes,
+                                "session_date": request.session_date,
+                                "activity_type": "study",
+                                "metadata": {
+                                    "start_time": request.start_time,
+                                    "end_time": request.end_time,
+                                    "node_id": request.node_id,
+                                },
+                            },
+                        )
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_study_session(_orm_study_session_write))
+                else:
+                    asyncio.run(_orm_study_session_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] study session failed: {e}")
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"保存学习时段失败: {str(e)}")
+
+
+async def _safe_orm_study_session(coro_factory):
+    """Run an ORM study-session write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm study session failed: {e}")
 
 
 @app.get("/api/study/total/{user_id}")
@@ -7015,9 +7215,57 @@ def create_goal(request: LearningGoalRequest):
             'end_date': request.end_date,
         }
         database.save_learning_goal(request.userId, goal_data)
+
+        # [Slice-4] ORM dual-write for learning goals. Mirrors the legacy
+        # learning_goals insert/update into the ORM LearningGoal table.
+        # ORM failures are logged but never raised.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.learning import (
+                    SqlAlchemyLearningRepository,
+                )
+
+                async def _orm_goal_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyLearningRepository(session)
+                        orm_repo.record_goal(
+                            str(request.userId),
+                            {
+                                "title": request.title,
+                                "target_value": request.target_value,
+                                "current_value": request.current_value,
+                                "unit": request.unit,
+                                "deadline": request.end_date or None,
+                            },
+                        )
+                        await session.commit()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_goal(_orm_goal_write))
+                else:
+                    asyncio.run(_orm_goal_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] goal create failed: {e}")
+
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"创建学习目标失败: {str(e)}")
+
+
+async def _safe_orm_goal(coro_factory):
+    """Run an ORM goal-write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm goal failed: {e}")
 
 
 @app.put("/api/goals")
