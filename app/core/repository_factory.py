@@ -51,6 +51,9 @@ def _build_orm(repository_type: str):
     if repository_type == "classroom":
         from app.repositories.orm.classroom import SqlAlchemyClassroomRepository
         return SqlAlchemyClassroomRepository
+    if repository_type == "capability":
+        from app.repositories.orm.capability import SqlAlchemyCapabilityRepository
+        return SqlAlchemyCapabilityRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -79,6 +82,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "classroom":
         from app.repositories.legacy.classroom import DbPyClassroomRepository
         return DbPyClassroomRepository
+    if repository_type == "capability":
+        from app.repositories.legacy.capability import DbPyCapabilityRepository
+        return DbPyCapabilityRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 

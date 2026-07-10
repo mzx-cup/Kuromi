@@ -33,3 +33,19 @@ class TestIsOrmReadPathActive:
     def test_hundred_percentage_active(self, monkeypatch):
         monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "100")
         assert is_orm_read_path_active("user_a") is True
+
+
+class TestCapabilityRepositoryFactory:
+    def test_get_repository_for_user_capability_returns_capability(self, monkeypatch):
+        monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "0")
+        from app.core.repository_factory import get_repository_for_user
+        from app.repositories.base import CapabilityRepository
+        repo = get_repository_for_user("u1", repository_type="capability")
+        assert isinstance(repo, CapabilityRepository)
+
+    def test_hundred_percentage_returns_orm_capability(self, monkeypatch):
+        monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "100")
+        from app.core.repository_factory import get_repository_for_user
+        repo = get_repository_for_user("u1", repository_type="capability")
+        from app.repositories.orm.capability import SqlAlchemyCapabilityRepository
+        assert isinstance(repo, SqlAlchemyCapabilityRepository)
