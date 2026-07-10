@@ -308,6 +308,50 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M8: legacy schema additions for gamification (garden/pet/achievements/eco)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_garden (
+            user_id INTEGER PRIMARY KEY,
+            plants TEXT,
+            last_watered TEXT,
+            growth_points INTEGER DEFAULT 0
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_pet (
+            user_id INTEGER PRIMARY KEY,
+            name VARCHAR(64) DEFAULT 'Pixel',
+            level INTEGER DEFAULT 1,
+            happiness REAL DEFAULT 50.0,
+            hunger REAL DEFAULT 50.0,
+            energy REAL DEFAULT 100.0,
+            last_fed TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            achievement_id VARCHAR(64) NOT NULL,
+            title VARCHAR(256),
+            description TEXT,
+            unlocked_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_eco_data (
+            user_id INTEGER PRIMARY KEY,
+            eco_points INTEGER DEFAULT 0,
+            co2_saved_kg REAL DEFAULT 0,
+            trees_planted INTEGER DEFAULT 0,
+            level VARCHAR(32) DEFAULT 'Seedling',
+            updated_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 

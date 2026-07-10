@@ -38,6 +38,12 @@ from app.models.focus import (
     FocusEvent,
     UserFocusHistory,
 )
+from app.models.gamification import (
+    UserGarden,
+    UserPet,
+    UserAchievement,
+    UserEcoData,
+)
 
 __all__ = [
     "Base",
@@ -78,4 +84,8 @@ __all__ = [
     "FocusSession",
     "FocusEvent",
     "UserFocusHistory",
+    "UserGarden",
+    "UserPet",
+    "UserAchievement",
+    "UserEcoData",
 ]

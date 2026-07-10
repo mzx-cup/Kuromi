@@ -6680,10 +6680,46 @@ def save_garden(request: GardenSaveRequest):
 
 @app.get("/api/garden/load/{user_id}")
 def load_garden(user_id: int):
+    # [Slice-8] ORM read path for garden state. When this user is in the
+    # ORM read percentage, serve from the new SQLAlchemy backend. Shadow
+    # failures fall back to the legacy db.py read so we never break the
+    # frontend response shape.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
+
+            async def _orm_garden_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyGamificationRepository(session)
+                    return orm_repo.get_garden(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_garden = asyncio.run(_orm_garden_read())
+                plants = orm_garden.get("plants") or {}
+                return {
+                    "success": True,
+                    "seeds": 3,
+                    "gardenData": plants,
+                }
+    except Exception as e:
+        logger.warning(f"[orm read] garden load failed: {e}")
+
     try:
         garden = database.get_user_garden(user_id)
         if garden:
-            return {"success": True, "seeds": garden.get('seeds', 3), "gardenData": garden.get('garden_data', garden.get('garden_json', {}))}
+            return {
+                "success": True,
+                "seeds": garden.get("seeds", 3),
+                "gardenData": garden.get("garden_data", garden.get("garden_json", {})),
+            }
         return {"success": True, "seeds": 3, "gardenData": {}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载花园失败: {str(e)}")
@@ -6706,10 +6742,52 @@ def save_pet(request: PetSaveRequest):
 
 @app.get("/api/pet/load/{user_id}")
 def load_pet(user_id: int):
+    # [Slice-8] ORM read path for pet state.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
+
+            async def _orm_pet_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyGamificationRepository(session)
+                    return orm_repo.get_pet(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_pet = asyncio.run(_orm_pet_read())
+                # pet_data and pet_game_data legacy blob fields are not
+                # available in the normalized ORM model, so we surface an
+                # empty pet_game bucket and treat name/level/etc. as pet.
+                pet_info = {
+                    "name": orm_pet.get("name", "Pixel"),
+                    "level": orm_pet.get("level", 1),
+                    "happiness": orm_pet.get("happiness", 50.0),
+                    "hunger": orm_pet.get("hunger", 50.0),
+                    "energy": orm_pet.get("energy", 100.0),
+                }
+                return {
+                    "success": True,
+                    "petData": pet_info,
+                    "petGameData": {},
+                }
+    except Exception as e:
+        logger.warning(f"[orm read] pet load failed: {e}")
+
     try:
         pet = database.get_user_pet(user_id)
         if pet:
-            return {"success": True, "petData": pet.get('pet', {}), "petGameData": pet.get('pet_game', {})}
+            return {
+                "success": True,
+                "petData": pet.get("pet", {}),
+                "petGameData": pet.get("pet_game", {}),
+            }
         return {"success": True, "petData": {}, "petGameData": {}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载宠物失败: {str(e)}")
@@ -6728,14 +6806,47 @@ def save_achievements(request: AchievementsSaveRequest):
 
 @app.get("/api/achievements/load/{user_id}")
 def load_achievements(user_id: int):
+    # [Slice-8] ORM read path for achievements.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
+
+            async def _orm_achievements_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyGamificationRepository(session)
+                    return orm_repo.get_achievements(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_rows = asyncio.run(_orm_achievements_read())
+                # The legacy blob shape is a dict of {key: data}; the new
+                # ORM shape is a list of {achievement_id, title, ...}. Map
+                # the ORM rows back into the dict shape so the frontend
+                # contract stays stable.
+                ach_dict = {}
+                for row in orm_rows:
+                    ach_dict[row.get("achievement_id", "")] = {
+                        "title": row.get("title", ""),
+                        "description": row.get("description", ""),
+                        "unlocked_at": row.get("unlocked_at"),
+                    }
+                return {"success": True, "achievementsData": ach_dict}
+    except Exception as e:
+        logger.warning(f"[orm read] achievements load failed: {e}")
+
     try:
         achievements = database.get_user_achievements(user_id)
         return {"success": True, "achievementsData": achievements if achievements else {}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载成就失败: {str(e)}")
 
-
-# ── 统计数据 ──
 
 @app.post("/api/stats/save")
 def save_stats(request: StatsSaveRequest):
@@ -8101,6 +8212,30 @@ def save_eco(request: EcoSaveRequest):
 
 @app.get("/api/eco/load/{user_id}")
 def load_eco(user_id: int):
+    # [Slice-8] ORM read path for eco-data.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            import asyncio
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
+
+            async def _orm_eco_read():
+                SessionLocal = get_sessionmaker()
+                async with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyGamificationRepository(session)
+                    return orm_repo.get_eco(str(user_id))
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop is None:
+                orm_eco = asyncio.run(_orm_eco_read())
+                return {"success": True, "ecoData": orm_eco}
+    except Exception as e:
+        logger.warning(f"[orm read] eco load failed: {e}")
+
     try:
         eco = database.get_user_eco_data(user_id)
         return {"success": True, "ecoData": eco if eco else {}}

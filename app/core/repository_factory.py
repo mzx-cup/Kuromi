@@ -14,6 +14,7 @@ from app.repositories.base import (
     CourseProgressRepository,
     KnowledgeRepository,
     FocusRepository,
+    GamificationRepository,
 )
 from app.repositories.dual_write import DualWriteRepository
 
@@ -40,6 +41,9 @@ def _build_orm(repository_type: str):
     if repository_type == "focus":
         from app.repositories.orm.focus import SqlAlchemyFocusRepository
         return SqlAlchemyFocusRepository
+    if repository_type == "gamification":
+        from app.repositories.orm.gamification import SqlAlchemyGamificationRepository
+        return SqlAlchemyGamificationRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -59,6 +63,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "focus":
         from app.repositories.legacy.focus import DbPyFocusRepository
         return DbPyFocusRepository
+    if repository_type == "gamification":
+        from app.repositories.legacy.gamification import DbPyGamificationRepository
+        return DbPyGamificationRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
