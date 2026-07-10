@@ -26,6 +26,13 @@ from app.models.course import (
 )
 from app.models.classroom import ClassroomSession, QuizRecord, AgentTurnRecord
 from app.models.message import Message, ConversationSummary
+from app.models.knowledge import (
+    KnowledgeNode,
+    KnowledgeRelation,
+    KnowledgeReview,
+    KnowledgeRecord,
+    KnowledgePending,
+)
 
 __all__ = [
     "Base",
@@ -58,4 +65,9 @@ __all__ = [
     "AgentTurnRecord",
     "Message",
     "ConversationSummary",
+    "KnowledgeNode",
+    "KnowledgeRelation",
+    "KnowledgeReview",
+    "KnowledgeRecord",
+    "KnowledgePending",
 ]

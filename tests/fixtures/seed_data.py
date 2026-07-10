@@ -211,6 +211,66 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M6: legacy schema additions for knowledge graph + SM2 reviews
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_nodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name VARCHAR(256) NOT NULL,
+            subject VARCHAR(64),
+            description TEXT,
+            mastery REAL DEFAULT 0,
+            importance INTEGER DEFAULT 1,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_relations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            source_node_id INTEGER NOT NULL,
+            target_node_id INTEGER NOT NULL,
+            relation_type VARCHAR(64) DEFAULT 'related',
+            weight REAL DEFAULT 1.0
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            ease_factor REAL DEFAULT 2.5,
+            interval_days INTEGER DEFAULT 1,
+            repetitions INTEGER DEFAULT 0,
+            next_review_date TEXT,
+            last_reviewed_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            action VARCHAR(64) DEFAULT 'view',
+            quality INTEGER DEFAULT 0,
+            notes TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS knowledge_pending (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            due_date TEXT,
+            priority INTEGER DEFAULT 0
+        )
+    """)
+
     conn.commit()
     conn.close()
 

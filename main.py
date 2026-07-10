@@ -8036,6 +8036,24 @@ def get_nodes(user_id: int, active: bool = False):
     - active=true: 只返回已激活的节点（根据学习记录过滤）
     - active=false: 返回所有节点
     """
+    # [Slice-6] ORM read path: when this user is in the ORM read percentage,
+    # serve nodes from the new SQLAlchemy backend (non-active path only;
+    # active filtering still relies on legacy db.py). Shadow failures fall back.
+    if not active:
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.knowledge import SqlAlchemyKnowledgeRepository
+
+                SessionLocal = get_sessionmaker()
+                with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyKnowledgeRepository(session)
+                    nodes = orm_repo.get_nodes(str(user_id))
+                    return {"success": True, "nodes": nodes}
+        except Exception as e:
+            logger.warning(f"[orm read] knowledge nodes failed: {e}")
+
     try:
         if active:
             nodes = database.get_active_knowledge_nodes(user_id)
@@ -8081,6 +8099,41 @@ def submit_review(request: Request):
         if result is None:
             raise HTTPException(status_code=404, detail="知识节点不存在")
 
+        # [Slice-6] ORM dual-write: when enabled, also persist the SM2
+        # review row + audit log to the new SQLAlchemy backend. Failures
+        # are non-blocking — the legacy write is the source of truth.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                sm2_data = (result or {}).get("sm2_data", {}) if isinstance(result, dict) else {}
+                ease_factor = float(sm2_data.get("ease_factor", 2.5) or 2.5)
+                interval_days = int(sm2_data.get("interval_days", 1) or 1)
+
+                import asyncio
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.knowledge import SqlAlchemyKnowledgeRepository
+
+                async def _orm_review_write():
+                    SessionLocal = get_sessionmaker()
+                    async with SessionLocal()() as session:
+                        orm_repo = SqlAlchemyKnowledgeRepository(session)
+                        orm_repo.record_review(
+                            user_id=str(user_id),
+                            node_id=int(node_id),
+                            quality=int(quality),
+                            ease_factor=ease_factor,
+                            interval_days=interval_days,
+                        )
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is None:
+                    asyncio.run(_orm_review_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm knowledge review failed: {e}")
+
         return {"success": True, "result": result}
     except HTTPException:
         raise
@@ -8091,6 +8144,23 @@ def submit_review(request: Request):
 @app.get("/api/knowledge/pending/{user_id}")
 def get_pending(user_id: int):
     """获取需要复习的节点列表"""
+    # [Slice-6] ORM read path: when this user is in the ORM read percentage,
+    # serve pending reviews from the new SQLAlchemy backend. Shadow failures
+    # fall back to the legacy db.py implementation.
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.knowledge import SqlAlchemyKnowledgeRepository
+
+            SessionLocal = get_sessionmaker()
+            with SessionLocal()() as session:
+                orm_repo = SqlAlchemyKnowledgeRepository(session)
+                pending = orm_repo.get_pending(str(user_id))
+                return {"success": True, "pending": pending}
+    except Exception as e:
+        logger.warning(f"[orm read] knowledge pending failed: {e}")
+
     try:
         pending = database.get_pending_reviews(user_id)
         return {"success": True, "pending": pending}
@@ -8101,6 +8171,23 @@ def get_pending(user_id: int):
 @app.get("/api/knowledge/records/{user_id}")
 def get_records(user_id: int, node_id: str = None):
     """获取复习记录"""
+    # [Slice-6] ORM read path: only when no node_id filter is supplied; the
+    # node-scoped query still goes through legacy db.py. Shadow failures fall back.
+    if not node_id:
+        try:
+            from app.core.repository_factory import is_orm_read_path_active
+            if is_orm_read_path_active(str(user_id)):
+                from app.core.database import get_sessionmaker
+                from app.repositories.orm.knowledge import SqlAlchemyKnowledgeRepository
+
+                SessionLocal = get_sessionmaker()
+                with SessionLocal()() as session:
+                    orm_repo = SqlAlchemyKnowledgeRepository(session)
+                    records = orm_repo.get_records(str(user_id))
+                    return {"success": True, "records": records}
+        except Exception as e:
+            logger.warning(f"[orm read] knowledge records failed: {e}")
+
     try:
         records = database.get_review_records(user_id, node_id)
         return {"success": True, "records": records}
