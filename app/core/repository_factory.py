@@ -15,6 +15,7 @@ from app.repositories.base import (
     KnowledgeRepository,
     FocusRepository,
     GamificationRepository,
+    ClassroomRepository,
 )
 from app.repositories.dual_write import DualWriteRepository
 
@@ -47,6 +48,9 @@ def _build_orm(repository_type: str):
     if repository_type == "chat":
         from app.repositories.orm.chat import SqlAlchemyChatRepository
         return SqlAlchemyChatRepository
+    if repository_type == "classroom":
+        from app.repositories.orm.classroom import SqlAlchemyClassroomRepository
+        return SqlAlchemyClassroomRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -72,6 +76,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "chat":
         from app.repositories.legacy.chat import DbPyChatRepository
         return DbPyChatRepository
+    if repository_type == "classroom":
+        from app.repositories.legacy.classroom import DbPyClassroomRepository
+        return DbPyClassroomRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 

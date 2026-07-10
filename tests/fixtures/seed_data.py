@@ -404,6 +404,61 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # M10: legacy schema additions for classroom sessions, quiz records,
+    # and classroom agent turns. Mirrors the schema used by
+    # ``app.repositories.legacy.classroom.DbPyClassroomRepository``.
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classroom_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            course_id TEXT,
+            started_at TEXT,
+            ended_at TEXT,
+            current_slide INTEGER DEFAULT 0,
+            status VARCHAR(32) DEFAULT 'active',
+            teacher_mode INTEGER DEFAULT 0
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS quiz_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER,
+            user_id INTEGER NOT NULL,
+            question TEXT,
+            answer TEXT,
+            correct INTEGER DEFAULT 0,
+            score REAL DEFAULT 0,
+            max_score REAL DEFAULT 100,
+            passed INTEGER DEFAULT 0,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classroom_agent_turns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            agent_id TEXT NOT NULL,
+            turn_number INTEGER DEFAULT 0,
+            user_input TEXT,
+            agent_output TEXT,
+            created_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS classroom_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            course_id TEXT,
+            session_id INTEGER,
+            action VARCHAR(64),
+            details TEXT,
+            created_at TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 

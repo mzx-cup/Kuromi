@@ -9848,7 +9848,36 @@ async def v2_classroom_stream(req: StreamRequest):
 
 @app.get("/api/v2/classroom/list/{user_id}")
 async def get_classrooms(user_id: int):
-    """获取指定学生的所有课堂记录列表"""
+    """获取指定学生的所有课堂记录列表
+
+    [Slice-10] ORM read path: when this user is in the ORM read percentage,
+    try the SQLAlchemy ``SqlAlchemyClassroomRepository.list_sessions`` first.
+    On any failure we fall back to the legacy ``db.get_classroom_records``
+    call (which reads the ``classroom_records`` table, the M10 slice does
+    not yet migrate that table to the ORM). This keeps the response shape
+    stable for the frontend while the backend incrementally migrates.
+    """
+    # [Slice-10] ORM read path. Falls back to legacy on any error.
+    orm_sessions = None
+    try:
+        from app.core.repository_factory import is_orm_read_path_active
+        if is_orm_read_path_active(str(user_id)):
+            from app.core.database import get_sessionmaker
+            from app.repositories.orm.classroom import SqlAlchemyClassroomRepository
+            SessionLocal = get_sessionmaker()
+            with SessionLocal()() as session:
+                orm_repo = SqlAlchemyClassroomRepository(session)
+                orm_sessions = orm_repo.list_sessions(str(user_id))
+    except Exception as e:
+        import logging
+        logging.getLogger("starlearn").warning(
+            f"[orm read] classroom list failed: {e}"
+        )
+        orm_sessions = None
+
+    if orm_sessions is not None:
+        return {"success": True, "records": orm_sessions}
+
     records = get_classroom_records(user_id)
     return {"success": True, "records": records}
 
