@@ -317,49 +317,52 @@ class ProactiveTutor:
         return f"{period}！距离上次学习「{knowledge_point}」已经过去{days}天了，要不要先花3分钟玩个快问快答热热身？"
 
     async def _query_stale_knowledge(self, student_id: str, course_id: str) -> list[dict]:
-        stale = []
+        """Query stale knowledge points via Repository (not db.py)."""
         try:
-            from db import get_db
-            with get_db() as conn:
-                if conn is None:
-                    return self._fallback_stale_query(student_id)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT user_id, profile_json, created_at "
-                    "FROM learning_records WHERE user_id = %s ORDER BY created_at ASC LIMIT 10",
-                    (student_id,)
-                )
-                rows = cursor.fetchall()
-                now = datetime.now()
-                for row in rows:
-                    last_reviewed = row[2]
-                    profile_json = row[1] or "{}"
-                    try:
-                        profile = json.loads(profile_json) if isinstance(profile_json, str) else {}
-                    except (json.JSONDecodeError, TypeError):
-                        profile = {}
-                    knowledge_points = profile.get("knowledge_mastery", {})
-                    if last_reviewed:
-                        if isinstance(last_reviewed, str):
-                            last_reviewed = datetime.fromisoformat(last_reviewed.replace("Z", "+00:00").replace("+08:00", ""))
-                        days_diff = (now - last_reviewed).days
-                        if days_diff >= 2:
-                            for kp_name, mastery in knowledge_points.items():
-                                stale.append({
-                                    "knowledge_point": kp_name,
-                                    "mastery_level": mastery if isinstance(mastery, (int, float)) else 0,
-                                    "days_since_review": days_diff,
-                                })
-                            if not knowledge_points:
-                                stale.append({
-                                    "knowledge_point": "上次学习的内容",
-                                    "mastery_level": 0,
-                                    "days_since_review": days_diff,
-                                })
+            from app.core.repository_factory import get_repository_for_user
+            # For the legacy DbPyLearningRepository we need to honor the
+            # XINGSHI_DB_PATH env var (tests inject a temp DB). The factory
+            # always returns a repo instance, so we check the db_path attr.
+            try:
+                from app.repositories.legacy.learning import DbPyLearningRepository
+                import os
+                db_path = os.environ.get("XINGSHI_DB_PATH")
+                if db_path:
+                    repo = DbPyLearningRepository(db_path=db_path)
+                else:
+                    repo = get_repository_for_user(student_id, repository_type="learning")
+            except Exception:
+                repo = get_repository_for_user(student_id, repository_type="learning")
+            # If it's a DbPyLearningRepository, query learning_records
+            if hasattr(repo, "_conn"):
+                conn = repo._conn()
+                try:
+                    cur = conn.cursor()
+                    cur.execute(
+                        "SELECT user_id, profile_json, created_at "
+                        "FROM learning_records WHERE user_id = ? ORDER BY created_at ASC LIMIT 10",
+                        (student_id,),
+                    )
+                    stale = []
+                    for row in cur.fetchall():
+                        import json
+                        try:
+                            profile = json.loads(row[1]) if row[1] else {}
+                        except (json.JSONDecodeError, TypeError):
+                            profile = {}
+                        knowledge_point = profile.get("topic", profile.get("knowledge_point", ""))
+                        if knowledge_point:
+                            stale.append({
+                                "knowledge_point": knowledge_point,
+                                "last_review": row[2],
+                            })
+                    return stale
+                finally:
+                    conn.close()
+            return self._fallback_stale_query(student_id)
         except Exception as e:
-            logger.warning(f"DB query failed for stale knowledge: {e}")
-            stale = self._fallback_stale_query(student_id)
-        return stale
+            logger.warning(f"[ProactiveTutor] Repository 查询失败: {e}")
+            return self._fallback_stale_query(student_id)
 
     def _fallback_stale_query(self, student_id: str) -> list[dict]:
         import json as _json
