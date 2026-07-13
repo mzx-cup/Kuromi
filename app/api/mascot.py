@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
 from pydantic import BaseModel, Field
 
@@ -139,86 +140,108 @@ def _build_user_profile_text(student_id: str) -> str:
 # 端点
 # =============================================================================
 
+# Module-level singleton (mockable in tests)
+_mascot_adapter = None
+
+
+def _get_mascot_adapter():
+    """Lazy-init the MascotEngineAdapter singleton.
+
+    Kept as a separate function (instead of inlining the `global` assignment)
+    so tests can monkeypatch ``_mascot_adapter`` directly without needing to
+    mock the import path.
+    """
+    global _mascot_adapter
+    if _mascot_adapter is None:
+        from app.services.tutor_engine.mascot_adapter import MascotEngineAdapter
+        _mascot_adapter = MascotEngineAdapter()
+    return _mascot_adapter
+
+
 @router.post("/chat/stream")
 async def mascot_chat_stream(req: MascotChatRequest):
     """
-    小星 SSE 流式对话。
+    小星 SSE 流式对话 (通过 MascotEngineAdapter 路由)。
 
     事件类型:
-      event: text_delta   data: {"content": "..."}
-      event: command      data: {"tag": "navigate|expression|action", "content": "..."}
-      event: action       data: {"type": "proactive", "title": "...", "content": "...", "action_label": "..."}
-      event: link         data: {"title": "...", "url": "...", "type": "internal|external", "description": "..."}
-      event: done         data: {"full_text": "..."}
-      event: error        data: {"message": "..."}
+      event: text_delta        data: {"content": "..."}
+      event: command           data: {"tag": "navigate|expression|action", "content": "..."}
+      event: link              data: {"title": "...", "url": "...", "type": "internal|external", "description": "..."}
+      event: proactive_action  data: {"type": "...", "priority": int, "payload": {...}}
+      event: action            data: {"type": "proactive", "title": "...", "content": "...", "action_label": "..."}
+      event: done              data: {"full_text": "..."}
+      event: error             data: {"message": "..."}
     """
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
 
-    # 构建上下文
-    page_context = req.page_context or "未知页面"
-    user_profile = _build_user_profile_text(req.student_id)
-    today_stats = _build_today_stats(req.student_id)
-
-    # 构建系统提示词
-    system_prompt = MASCOT_SYSTEM_PROMPT.format(
-        page_context=page_context,
-        user_profile=user_profile,
-        today_stats=today_stats,
-    )
-
-    # 构建消息列表
-    msg = [{"role": "system", "content": system_prompt}]
-    for h in (req.conversation_history or [])[-20:]:
-        role = h.get("role", "user")
-        content = h.get("content", "")
-        if role in ("user", "assistant") and content:
-            msg.append({"role": role, "content": content})
-    msg.append({"role": "user", "content": req.message})
+    adapter = _get_mascot_adapter()
 
     async def event_stream():
-        from llm_stream import call_llm_stream_with_log_messages
-
-        full_text = ""
         assistant_message = ""
+        envelope = None
 
         try:
-            # 流式调用 LLM — 使用模型参数
-            stream = await call_llm_stream_with_log_messages(
-                messages=msg,
-                agent_name="mascot",
-                temperature=req.temperature,
-                max_tokens=2048,
-                model=req.model,
-                label="mascot_chat",
-            )
-
-            async for chunk in stream:
-                # chunk 可能是字符串或 dict
-                content = chunk.get("content", "") if isinstance(chunk, dict) else str(chunk)
-                if content:
-                    full_text += content
-                    assistant_message += content
-                    yield f"event: text_delta\ndata: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
-
+            envelope = await adapter.decide(req.student_id, req.message)
         except Exception as e:
-            logger.error(f"[mascot] LLM 流失败: {e}")
+            logger.error(f"[mascot] adapter.decide 失败: {e}")
             yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
             return
 
-        # 解析命令
+        # 1) Stream text — preserve existing text_delta semantics for backward compat.
+        try:
+            if envelope.answer_stream is not None:
+                async for chunk in envelope.answer_stream:
+                    # chunk may be a dict ({"type": "content_chunk", "content": "..."})
+                    # or a plain string. Handle both.
+                    if isinstance(chunk, dict):
+                        content = chunk.get("content", "") or ""
+                        if not content and chunk.get("type") == "done":
+                            full_text = chunk.get("full_text")
+                            if isinstance(full_text, str) and full_text:
+                                assistant_message = full_text
+                                yield f"event: text_delta\ndata: {json.dumps({'content': full_text}, ensure_ascii=False)}\n\n"
+                            continue
+                    else:
+                        content = str(chunk)
+                    if content:
+                        assistant_message += content
+                        yield f"event: text_delta\ndata: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
+            elif envelope.answer_text:
+                assistant_message = envelope.answer_text
+                yield f"event: text_delta\ndata: {json.dumps({'content': envelope.answer_text}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            logger.error(f"[mascot] 流式回答失败: {e}")
+            yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
+            return
+
+        # 2) Engine-driven proactive actions (new event name).
+        try:
+            for action in (envelope.proactive_actions or []):
+                payload = {
+                    "type": action.action_type.value,
+                    "priority": action.priority.value,
+                    "payload": action.action_payload,
+                }
+                yield f"event: proactive_action\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            logger.debug(f"[mascot] 引擎 proactive_actions emit 失败: {e}")
+
+        # 3) Command extraction (preserve existing UX)
         for cmd_event in _emit_commands(assistant_message):
             yield cmd_event
 
-        # 提取并发送链接（如果有）
-        links = _extract_links(req.student_id, req.message, assistant_message)
-        for link in links:
-            yield f"event: link\ndata: {json.dumps(link, ensure_ascii=False)}\n\n"
+        # 4) Link extraction (preserve existing UX)
+        try:
+            links = _extract_links(req.student_id, req.message, assistant_message)
+            for link in links:
+                yield f"event: link\ndata: {json.dumps(link, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            logger.debug(f"[mascot] 链接提取失败: {e}")
 
-        # 完成事件
-        yield f"event: done\ndata: {json.dumps({'full_text': assistant_message}, ensure_ascii=False)}\n\n"
-
-        # 推送主动动作
+        # 5) Legacy keyword-based proactive actions (preserved for backward compat).
+        # Old clients may still be subscribed to "action"; new clients prefer
+        # the structured "proactive_action" emitted above.
         try:
             proactive = _get_proactive_actions(req.student_id, assistant_message)
             for action in proactive:
@@ -226,7 +249,8 @@ async def mascot_chat_stream(req: MascotChatRequest):
         except Exception as e:
             logger.debug(f"[mascot] 主动推送决策失败: {e}")
 
-    from fastapi.responses import StreamingResponse
+        # 6) Done event (preserve existing shape)
+        yield f"event: done\ndata: {json.dumps({'full_text': assistant_message}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         event_stream(),
