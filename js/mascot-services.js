@@ -10,6 +10,68 @@ window.MascotServices = (() => {
   const BASE = '/api/mascot';
   const STORAGE_PREFIX = 'starlearn_mascot_';
 
+  /**
+   * Return authentication headers for outgoing requests.
+   *
+   * Currently returns an empty object: callers that need auth should attach
+   * their own headers before invoking the function. The function exists as a
+   * placeholder so consumers and the implementation match the plan spec.
+   *
+   * @returns {Object}
+   */
+  function authHeaders() {
+    return {};
+  }
+
+  // ═══════════════════════════════════════════
+  // 主动推送事件分发 — Task 12.3 后端 proactive_action 事件
+  // ═══════════════════════════════════════════
+  // Map ActionType → toast template. Only the most common types get a
+  // user-visible toast; other types are silently logged.
+  const ACTION_TEMPLATES = {
+    review_reminder: (p) => ({
+      title: '复习提醒',
+      body: `${p.subject || '内容'} - ${p.topic || ''}`,
+      level: 'normal',
+    }),
+    practice_prompt: (p) => ({
+      title: '练习建议',
+      body: `继续上次未完成的课程`,
+      level: 'low',
+    }),
+    health_reminder: (p) => ({
+      title: '适当休息',
+      body: `已学习 ${p.minutes_studied || '一段时间'} 分钟，注意休息`,
+      level: 'low',
+    }),
+    deadline_urgent: (p) => ({
+      title: '目标截止',
+      body: '截止日期临近，请尽快完成',
+      level: 'high',
+    }),
+    stuck_recommend_easier: (p) => ({
+      title: '换个角度',
+      body: `${p.subject || '当前内容'} 难度较大，建议先做基础练习`,
+      level: 'normal',
+    }),
+  };
+
+  /**
+   * Dispatch a proactive_action event to a toast handler if the action type
+   * is recognized. Pass `onToast(template)` to receive a structured toast
+   * payload. Returns true if a template was found, false otherwise.
+   */
+  function handleProactiveAction(payload, onToast) {
+    if (!payload || !payload.type) return false;
+    const template = ACTION_TEMPLATES[payload.type];
+    if (template) {
+      if (typeof onToast === 'function') onToast(template(payload.payload || {}));
+      return true;
+    }
+    console.debug('[mascot] unhandled proactive action:', payload.type);
+    return false;
+  }
+
   // ═══════════════════════════════════════════
   // 1. SSE 流式对话
   // ═══════════════════════════════════════════
@@ -40,6 +102,7 @@ window.MascotServices = (() => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let currentEvent = null;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -50,11 +113,18 @@ window.MascotServices = (() => {
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        try {
-          const data = JSON.parse(line.slice(6));
-          yield data;
-        } catch (_) { /* skip */ }
+        if (line.startsWith('event: ')) {
+          currentEvent = line.slice(7).trim();
+        } else if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            // Attach SSE event name as a discriminator. Existing consumers using
+            // destructuring (e.g. `const { content } = data`) keep working because
+            // they ignore the extra field. New consumers can dispatch on `__event`.
+            data.__event = currentEvent;
+            yield data;
+          } catch (_) { /* skip */ }
+        }
       }
     }
   }
@@ -254,6 +324,40 @@ window.MascotServices = (() => {
       body: JSON.stringify({ student_id: userId }),
     });
     return res.json();
+  }
+
+  // ═══════════════════════════════════════════
+  // 6b. 用户能力画像 (6-dim)
+  // ═══════════════════════════════════════════
+  async function fetchCapability(userId) {
+    const EMPTY = {
+      knowledge_base: {},
+      code_skill: {},
+      cognitive_style: { preferred_modality: 'visual', depth: 'deep' },
+      focus_level: { avg_session_minutes: 0, streak_days: 0 },
+      learning_goals: [],
+      weakness: [],
+      computed_at: new Date().toISOString(),
+    };
+    try {
+      const res = await fetch(`${BASE}/capability/${encodeURIComponent(userId)}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        if (res.status === 503) {
+          console.warn('[mascot] capability service unavailable, using empty profile');
+          return EMPTY;
+        }
+        if (res.status === 401) throw new Error('unauthorized');
+        if (res.status === 404) throw new Error('user_not_found');
+        throw new Error(`capability_failed_${res.status}`);
+      }
+      return await res.json();
+    } catch (err) {
+      if (err.message === 'unauthorized' || err.message === 'user_not_found') throw err;
+      console.warn('[mascot] fetchCapability failed:', err);
+      return EMPTY;
+    }
   }
 
   // ═══════════════════════════════════════════
@@ -496,6 +600,10 @@ window.MascotServices = (() => {
     fetchMemories, createMemory, confirmMemory, deleteMemory,
     // 画像 + 统计 + 签到
     fetchProfile, fetchStats, dailyCheckin,
+    // 能力画像
+    fetchCapability,
+    // 主动推送事件分发
+    handleProactiveAction, ACTION_TEMPLATES,
     // 历史
     saveChatHistory, loadChatHistory, clearChatHistory,
     exportChatHistory, downloadChatHistory,
