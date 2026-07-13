@@ -17,3 +17,11 @@ python-multipart>=0.0.6
 bcrypt>=4.0.0
 numpy>=1.26
 PyJWT>=2.8.0
+
+# 一体化知识中台 (P1)
+langchain-core>=0.3,<0.4
+langchain-text-splitters>=0.3,<0.4
+langchain-community>=0.3,<0.4
+qdrant-client>=1.7,<2.0
+redis>=5.0,<6.0
+apscheduler>=3.10,<4.0
