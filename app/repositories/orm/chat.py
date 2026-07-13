@@ -7,6 +7,15 @@ so callers can swap implementations behind the
 
 The ORM writes ``msg_metadata`` (JSON) directly via SQLAlchemy's JSON
 column type — no legacy ``metadata`` TEXT column is involved.
+
+Note on parity: ``get_memories`` in this implementation returns
+``confirmed`` and ``access_count`` keys. The legacy implementation
+cannot, because the M9 ``user_memories`` schema (what
+``DbPyChatRepository`` reads from directly) does not include those
+columns. The mutating methods (``confirm_memory`` / ``delete_memory`` /
+``bump_memory_access``) all delegate to ``db.py`` on the legacy side,
+which DOES write those columns on the canonical schema, so writes stay
+consistent — only the read shape is asymmetric.
 """
 from __future__ import annotations
 

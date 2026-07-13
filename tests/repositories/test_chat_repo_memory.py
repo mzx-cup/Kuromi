@@ -74,6 +74,9 @@ def legacy_db(tmp_path, monkeypatch):
     conn.close()
 
     monkeypatch.setattr(dbmod, "SQLITE_PATH", db_path)
+    # ``db.get_db()`` memoizes the resolved backend on first call; force it
+    # back to "sqlite" so the delegating helpers (confirm_user_memory etc.)
+    # route to our tmp file rather than a stale cached config.
     monkeypatch.setattr(dbmod, "_effective_backend", "sqlite")
     yield db_path
 
@@ -128,8 +131,11 @@ class TestOrmMemoryManagement:
         repo.save_memory("u1", {"memory_type": "preference", "content": "p"})
         orm_session.commit()
         facts = repo.get_memories("u1", memory_type="fact")
+        assert facts == [
+            m for m in repo.get_memories("u1") if m["memory_type"] == "fact"
+        ]
         assert len(facts) == 1
-        assert facts[0]["memory_type"] == "fact"
+        assert facts[0]["content"] == "f"
 
     def test_orm_get_memories_no_filter_returns_all(self, orm_session):
         repo = SqlAlchemyChatRepository(orm_session)
@@ -185,8 +191,10 @@ class TestLegacyMemoryManagement:
         repo.save_memory("1", {"memory_type": "fact", "content": "f"})
         repo.save_memory("1", {"memory_type": "preference", "content": "p"})
         facts = repo.get_memories("1", memory_type="fact")
+        all_mems = repo.get_memories("1")
+        assert facts == [m for m in all_mems if m["memory_type"] == "fact"]
         assert len(facts) == 1
-        assert facts[0]["memory_type"] == "fact"
+        assert facts[0]["content"] == "f"
 
 
 class TestProtocolCompliance:
