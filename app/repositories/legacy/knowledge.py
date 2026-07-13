@@ -217,22 +217,20 @@ class DbPyKnowledgeRepository:
         date is today or earlier are returned.
 
         Note: schema-deviation from the plan. ``knowledge_nodes`` has
-        ``name`` (not ``topic``) and no ``interval_days`` column —
-        ``interval_days`` is read from the matching ``review_history`` row.
-        Output dict shape preserves the plan contract: ``node_id``,
-        ``subject``, ``topic`` (=name), ``interval_days``.
+        ``name`` (not ``topic``) and neither ``knowledge_nodes`` nor
+        ``review_history`` expose an ``interval_days`` column, so this
+        query does not project it at all and emits a hardcoded
+        ``interval_days=1`` in the result dict — matching the plan's
+        ``node.interval_days or 1`` fallback. Output dict shape still
+        preserves the contract: ``node_id``, ``subject``, ``topic``
+        (=name), ``interval_days``.
         """
         from datetime import date
         conn = self._conn()
         try:
             cur = conn.cursor()
             cur.execute("""
-                SELECT kn.id, kn.subject, kn.name,
-                       (SELECT rh.interval_days
-                        FROM review_history rh
-                        WHERE rh.node_id = kn.id AND rh.user_id = kn.user_id
-                        ORDER BY rh.next_review_date DESC
-                        LIMIT 1)
+                SELECT kn.id, kn.subject, kn.name
                 FROM knowledge_nodes kn
                 WHERE kn.user_id = ?
                   AND (
@@ -243,7 +241,7 @@ class DbPyKnowledgeRepository:
                 LIMIT 20
             """, (user_id,))
             return [
-                {"node_id": row[0], "subject": row[1], "topic": row[2], "interval_days": row[3] or 1}
+                {"node_id": row[0], "subject": row[1], "topic": row[2], "interval_days": 1}
                 for row in cur.fetchall()
             ]
         finally:

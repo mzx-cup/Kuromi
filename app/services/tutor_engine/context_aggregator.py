@@ -401,7 +401,7 @@ class ContextAggregator:
             repo = get_repository_for_user(student_id, repository_type="knowledge")
             return repo.get_sm2_due(student_id)
         except Exception as e:
-            logger.warning(f"[ContextAggregator] SM2 Repository 获取失败: {e}")
+            logger.warning(f"[ContextAggregator] SM2 Repository 获取失败 student_id={student_id}: {e}")
             return []
 
     async def _get_upcoming_deadlines(self, student_id: str, days: int = 7) -> list[dict]:
@@ -415,5 +415,5 @@ class ContextAggregator:
             repo = get_repository_for_user(student_id, repository_type="course_progress")
             return repo.get_upcoming_deadlines(student_id, days=days)
         except Exception as e:
-            logger.warning(f"[ContextAggregator] Deadlines Repository 获取失败: {e}")
+            logger.warning(f"[ContextAggregator] Deadlines Repository 获取失败 student_id={student_id}: {e}")
             return []

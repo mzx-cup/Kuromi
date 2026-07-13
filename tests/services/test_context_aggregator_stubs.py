@@ -44,14 +44,19 @@ async def test_get_upcoming_deadlines_uses_repository(aggregator, monkeypatch):
 @pytest.mark.asyncio
 async def test_fetch_sm2_called_in_aggregate(aggregator, monkeypatch):
     """ContextAggregator.aggregate should call _fetch_sm2 and populate rich_context."""
-    called = {"flag": False}
-    original = aggregator._fetch_sm2
+    # Patch the inner SM2-items method (the actual workhorse called by
+    # _fetch_sm2) with a spy that flips a flag only when invoked. The
+    # previous version monkeypatched _fetch_sm2 itself, but the flag
+    # assignment happens inside the spy wrapper, so it was set at attach
+    # time regardless of whether aggregate() ever reached _fetch_sm2.
+    called = {"count": 0}
+    original = aggregator._get_sm2_due_items
 
-    async def spy(event, rich):
-        called["flag"] = True
-        return await original(event, rich)
+    async def spy(student_id):
+        called["count"] += 1
+        return await original(student_id)
 
-    monkeypatch.setattr(aggregator, "_fetch_sm2", spy)
+    monkeypatch.setattr(aggregator, "_get_sm2_due_items", spy)
     event = TutorEvent(
         type=TutorEventType.QUESTION_ASKED,
         student_id="u1",
@@ -59,4 +64,4 @@ async def test_fetch_sm2_called_in_aggregate(aggregator, monkeypatch):
         payload={"question": "test"},
     )
     rich = await aggregator.aggregate(event)
-    assert called["flag"] is True
+    assert called["count"] >= 1

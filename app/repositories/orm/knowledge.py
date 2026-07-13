@@ -181,10 +181,13 @@ class SqlAlchemyKnowledgeRepository:
         """Return SM2-spaced-repetition review items due now.
 
         Note: schema-deviation from the plan. ``KnowledgeNode`` has
-        ``name`` (not ``topic``) and no ``interval_days`` column —
-        ``interval_days`` is read from the matching ``ReviewHistory``
-        row. Output dict shape preserves the plan contract: ``node_id``,
-        ``subject``, ``topic`` (=name), ``interval_days``.
+        ``name`` (not ``topic``) and the ``ReviewHistory`` table does not
+        expose a per-row ``interval_days`` column, so this query omits the
+        interval-days projection entirely and emits a hardcoded
+        ``interval_days=1`` in the result dict — matching the plan's
+        ``node.interval_days or 1`` fallback. Output dict shape still
+        preserves the contract: ``node_id``, ``subject``, ``topic``
+        (=name), ``interval_days``.
         """
         from datetime import date
         from app.models.knowledge import KnowledgeNode, ReviewHistory
@@ -194,14 +197,13 @@ class SqlAlchemyKnowledgeRepository:
             self.session.query(
                 ReviewHistory.node_id,
                 func.max(ReviewHistory.next_review_date).label("next"),
-                func.max(ReviewHistory.interval_days).label("interval_days"),
             )
             .filter(ReviewHistory.user_id == user_id)
             .group_by(ReviewHistory.node_id)
             .subquery()
         )
         rows = (
-            self.session.query(KnowledgeNode, subq.c.next, subq.c.interval_days)
+            self.session.query(KnowledgeNode, subq.c.next)
             .outerjoin(subq, KnowledgeNode.id == subq.c.node_id)
             .filter(KnowledgeNode.user_id == user_id)
             .filter((subq.c.next == None) | (subq.c.next <= date.today()))
@@ -213,7 +215,7 @@ class SqlAlchemyKnowledgeRepository:
                 "node_id": node.id,
                 "subject": node.subject,
                 "topic": node.name,
-                "interval_days": interval_days or 1,
+                "interval_days": 1,
             }
-            for node, _, interval_days in rows
+            for node, _ in rows
         ]
