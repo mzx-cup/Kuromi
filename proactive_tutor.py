@@ -343,7 +343,6 @@ class ProactiveTutor:
                         (student_id,),
                     )
                     stale = []
-                    from datetime import datetime
                     import json
                     today = datetime.now().date()
                     for row in cur.fetchall():
