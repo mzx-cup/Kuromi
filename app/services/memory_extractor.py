@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import json
 import logging
-import uuid
 from datetime import datetime, timezone
 from typing import Any
 
@@ -296,29 +295,48 @@ async def save_extracted_memories(
             except Exception:
                 pass
 
-    # Fallback: legacy db.py path (preserves old behaviour for callers without ORM session)
-    from db import save_user_memory, update_user_memory
+    # Fallback: legacy ChatRepository path (preserves old behaviour for
+    # callers without an ORM session, e.g. unit tests that call this
+    # function in isolation). Routes through DbPyChatRepository instead of
+    # raw db.py functions, so the entire file flows through the Repository
+    # abstraction.
+    from app.repositories.legacy.chat import DbPyChatRepository
+    chat_repo = DbPyChatRepository()
     for mem in memories:
         mem_id = mem.get("_update_target_id")
         if mem_id and mem.get("is_update"):
-            # 更新已有记忆
-            update_user_memory(
-                mem_id,
-                content=mem["content"],
-                confidence=mem["confidence"],
+            # 更新已有记忆 — DbPyChatRepository.update_memory expects an
+            # INTEGER id and a dict of updates. The id space shifts from
+            # uuid-string to int-auto-increment; that's an intentional
+            # consequence of routing through ChatRepository (the dual-write
+            # slice #9 made the same shift on the ORM path).
+            try:
+                int_mem_id = int(mem_id)
+            except (TypeError, ValueError):
+                logger.warning(
+                    f"[MemoryExtractor] Skipping update for non-int memory_id: {mem_id!r}"
+                )
+                continue
+            chat_repo.update_memory(
+                int_mem_id,
+                {
+                    "content": mem["content"],
+                    "importance": int(mem["confidence"] * 10),
+                },
             )
             saved_ids.append(mem_id)
         else:
-            # 新增记忆
-            new_id = f"mem_{uuid.uuid4().hex[:16]}"
-            save_user_memory(
-                memory_id=new_id,
+            # 新增记忆 — returns int auto-increment id; stringify for the
+            # existing return contract (list[str]).
+            new_id_int = chat_repo.save_memory(
                 user_id=user_id,
-                memory_type=mem["memory_type"],
-                content=mem["content"],
-                source=source,
-                confidence=mem["confidence"],
+                memory={
+                    "memory_type": mem["memory_type"],
+                    "content": mem["content"],
+                    "importance": int(mem["confidence"] * 10),
+                    "source_conversation_id": source,
+                },
             )
-            saved_ids.append(new_id)
+            saved_ids.append(str(new_id_int))
 
     return saved_ids
