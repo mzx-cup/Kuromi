@@ -86,3 +86,18 @@ class KnowledgePending(Base):
     node_id: Mapped[int] = mapped_column(Integer, ForeignKey("knowledge_nodes.id"), nullable=False)
     due_date: Mapped[date] = mapped_column(Date, default=date.today)
     priority: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ReviewHistory(Base):
+    """Append-only SM2 review history (one row per review).
+
+    Used by ``KnowledgeRepository.get_sm2_due`` to compute the next due
+    review date via ``MAX(next_review_date)`` per node.
+    """
+    __tablename__ = "review_history"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    node_id: Mapped[int] = mapped_column(Integer, ForeignKey("knowledge_nodes.id"), nullable=False, index=True)
+    next_review_date: Mapped[date] = mapped_column(Date, default=date.today)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow())

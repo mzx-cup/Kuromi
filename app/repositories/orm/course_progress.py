@@ -122,3 +122,26 @@ class SqlAlchemyCourseProgressRepository:
             }
             for e in evals
         ]
+
+    # ── Upcoming deadlines (slice-11) ──
+
+    def get_upcoming_deadlines(self, user_id, days: int = 7) -> list:
+        """Return course deadlines within the next ``days`` days."""
+        from datetime import date, timedelta
+        from app.models.course_progress import CourseDeadline
+
+        cutoff = date.today() + timedelta(days=days)
+        rows = (
+            self.session.query(CourseDeadline)
+            .filter(
+                CourseDeadline.user_id == user_id,
+                CourseDeadline.deadline <= cutoff,
+            )
+            .order_by(CourseDeadline.deadline.asc())
+            .limit(20)
+            .all()
+        )
+        return [
+            {"course_id": r.course_id, "title": r.title, "deadline": str(r.deadline)}
+            for r in rows
+        ]

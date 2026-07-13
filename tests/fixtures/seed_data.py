@@ -271,6 +271,27 @@ def init_legacy_schema(db_path: str) -> None:
         )
     """)
 
+    # Slice-11: review history + course deadlines
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS review_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            node_id INTEGER NOT NULL,
+            next_review_date TEXT,
+            reviewed_at TEXT
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS course_deadlines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            course_id VARCHAR(64) NOT NULL,
+            title VARCHAR(256) DEFAULT '',
+            deadline TEXT NOT NULL
+        )
+    """)
+
     # M7: legacy schema additions for focus session tracking
     cur.execute("""
         CREATE TABLE IF NOT EXISTS focus_sessions (

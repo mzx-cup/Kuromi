@@ -160,3 +160,23 @@ class DbPyCourseProgressRepository:
             ]
         finally:
             conn.close()
+
+    # ── Upcoming deadlines (slice-11) ──
+
+    def get_upcoming_deadlines(self, user_id, days: int = 7) -> list:
+        """Return course deadlines within the next ``days`` days."""
+        conn = self._conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT course_id, title, deadline
+                FROM course_deadlines
+                WHERE user_id = ? AND deadline <= date('now', ?)
+                ORDER BY deadline ASC LIMIT 20
+            """, (user_id, f"+{days} days"))
+            return [
+                {"course_id": row[0], "title": row[1], "deadline": row[2]}
+                for row in cur.fetchall()
+            ]
+        finally:
+            conn.close()

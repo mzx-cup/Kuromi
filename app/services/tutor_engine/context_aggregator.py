@@ -35,6 +35,8 @@ from app.services.tutor_engine.models import (
     TutorEvent,
 )
 
+from app.core.repository_factory import get_repository_for_user
+
 logger = logging.getLogger("starlearn.tutor_engine")
 
 
@@ -388,12 +390,30 @@ class ContextAggregator:
             logger.warning(f"[ContextAggregator] 默认学习状态获取失败: {e}")
             return LearningState()
 
-    async def _get_sm2_due_items(self, student_id: str) -> list[ReviewItem]:
-        """获取 SM2 到期复习项。默认返回空列表，需接入真实 SM2 服务。"""
-        # TODO: 接入真实的 SM2 计算服务
-        return []
+    async def _get_sm2_due_items(self, student_id: str) -> list[dict]:
+        """获取 SM2 到期复习项，走 KnowledgeRepository。
 
-    async def _get_upcoming_deadlines(self, student_id: str, days: int = 7) -> list[Deadline]:
-        """获取即将到期的任务。默认返回空列表，需接入真实课程服务。"""
-        # TODO: 接入真实的课程/任务服务
-        return []
+        Note: returns raw dicts (not ``ReviewItem`` dataclasses) — callers
+        in this slice index by string keys; the dict shape matches the
+        Repository contract: ``{node_id, subject, topic, interval_days}``.
+        """
+        try:
+            repo = get_repository_for_user(student_id, repository_type="knowledge")
+            return repo.get_sm2_due(student_id)
+        except Exception as e:
+            logger.warning(f"[ContextAggregator] SM2 Repository 获取失败: {e}")
+            return []
+
+    async def _get_upcoming_deadlines(self, student_id: str, days: int = 7) -> list[dict]:
+        """获取即将到期的任务，走 CourseProgressRepository。
+
+        Note: returns raw dicts (not ``Deadline`` dataclasses) — callers
+        in this slice index by string keys; the dict shape matches the
+        Repository contract: ``{course_id, title, deadline}``.
+        """
+        try:
+            repo = get_repository_for_user(student_id, repository_type="course_progress")
+            return repo.get_upcoming_deadlines(student_id, days=days)
+        except Exception as e:
+            logger.warning(f"[ContextAggregator] Deadlines Repository 获取失败: {e}")
+            return []
