@@ -9,6 +9,7 @@ POST /api/mascot/checkin        — 每日签到
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -101,86 +102,37 @@ def _get_student_id_int(student_id: str) -> int:
 
 
 def _build_today_stats(student_id: str) -> str:
-    """构建今日学习统计文本"""
+    """Build today's stats using Repository abstraction."""
     try:
-        sid = _get_student_id_int(student_id)
-        from db import get_db
-        with get_db() as conn:
-            cursor = conn.cursor()
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            # 查询今日学习时长
-            cursor.execute(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM study_sessions "
-                "WHERE user_id = ? AND session_date = ?",
-                (sid, today),
-            )
-            row = cursor.fetchone()
-            today_minutes = row[0] if row else 0
-
-            # 查询连续学习天数
-            cursor.execute(
-                "SELECT session_date FROM study_sessions "
-                "WHERE user_id = ? GROUP BY session_date ORDER BY session_date DESC LIMIT 60",
-                (sid,),
-            )
-            dates = [r[0] for r in cursor.fetchall()]
-            streak = 0
-            if dates:
-                from datetime import timedelta
-                check = datetime.now(timezone.utc)
-                for date_str in dates:
-                    if isinstance(date_str, str):
-                        d = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
-                    else:
-                        d = date_str
-                    expected = (check - timedelta(days=streak)).date()
-                    if d == expected:
-                        streak += 1
-                    else:
-                        break
-
-            cursor.close()
-            return f"今日学习 {today_minutes} 分钟, 连续打卡 {streak} 天"
+        from app.core.repository_factory import get_repository_for_user
+        repo = get_repository_for_user(student_id, repository_type="learning")
+        overview = repo.get_overview(student_id)
+        # Sync call — wrap in async or use asyncio.run
+        if asyncio.iscoroutine(overview):
+            overview = asyncio.get_event_loop().run_until_complete(overview)
+        total_minutes = overview.get("total_minutes", 0)
+        streak = overview.get("current_streak", 0)
+        return f"已学习 {total_minutes} 分钟，连续 {streak} 天"
     except Exception as e:
-        logger.debug(f"[mascot] 获取今日统计失败: {e}")
-        return "暂无统计数据"
+        logger.warning(f"[mascot] _build_today_stats 失败: {e}")
+        return "暂无学习数据"
 
 
 def _build_user_profile_text(student_id: str) -> str:
-    """构建用户画像文本（精简版）"""
+    """Build user profile text using Repository (memories from ChatRepository)."""
     try:
-        from db import get_user_memories
-        memories = get_user_memories(student_id, limit=30)
+        from app.core.repository_factory import get_repository_for_user
+        chat_repo = get_repository_for_user(student_id, repository_type="chat")
+        memories = chat_repo.get_memories(student_id, limit=10)
+        if asyncio.iscoroutine(memories):
+            memories = asyncio.get_event_loop().run_until_complete(memories)
         if not memories:
-            return "新用户，还没有学习画像"
-
-        from app.services.profile_aggregator import aggregate_profile
-        profile = aggregate_profile(memories)
-
-        parts = []
-        # 学习特质
-        traits = profile.get("learning_traits", [])
-        if traits:
-            parts.append("学习特质: " + "、".join(
-                t["label"] for t in traits[:3] if t.get("label")
-            ))
-        # 个性特质
-        personality = profile.get("personality_traits", [])
-        if personality:
-            parts.append("个性: " + "、".join(
-                p["label"] for p in personality[:2] if p.get("label")
-            ))
-        # 目标/兴趣
-        goals = profile.get("goals_interests", [])
-        if goals:
-            parts.append("兴趣/目标: " + "、".join(
-                g["label"] for g in goals[:2] if g.get("label")
-            ))
-
-        return "; ".join(parts) if parts else "新用户，还没有学习画像"
+            return "暂无用户记忆"
+        lines = [f"- {m.get('content', m.get('text', ''))[:80]}" for m in memories[:5]]
+        return "用户记忆摘要：\n" + "\n".join(lines)
     except Exception as e:
-        logger.debug(f"[mascot] 获取用户画像失败: {e}")
-        return "暂无用户画像"
+        logger.warning(f"[mascot] _build_user_profile_text 失败: {e}")
+        return "暂无用户记忆"
 
 
 # =============================================================================
@@ -410,99 +362,18 @@ def _get_proactive_actions(student_id: str, answer: str) -> list[dict]:
 
 @router.get("/stats/{user_id}")
 async def get_quick_stats(user_id: str):
-    """获取快速学习统计（面板顶部数据条）"""
+    """Quick learning stats via Repository."""
     try:
-        sid = _get_student_id_int(user_id)
-        from db import get_db
-        from datetime import timedelta
-
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            # 今日学习时长
-            cursor.execute(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM study_sessions "
-                "WHERE user_id = ? AND session_date = ?",
-                (sid, today),
-            )
-            today_minutes = (cursor.fetchone() or [0])[0]
-
-            # 本周学习时长
-            week_start = (datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())).strftime("%Y-%m-%d")
-            cursor.execute(
-                "SELECT COALESCE(SUM(duration_minutes), 0) FROM study_sessions "
-                "WHERE user_id = ? AND session_date >= ?",
-                (sid, week_start),
-            )
-            week_minutes = (cursor.fetchone() or [0])[0]
-
-            # 连续学习天数
-            cursor.execute(
-                "SELECT session_date FROM study_sessions "
-                "WHERE user_id = ? GROUP BY session_date ORDER BY session_date DESC LIMIT 60",
-                (sid,),
-            )
-            dates = [r[0] for r in cursor.fetchall()]
-            streak = 0
-            if dates:
-                check = datetime.now(timezone.utc)
-                for date_str in dates:
-                    if isinstance(date_str, str):
-                        d = datetime.strptime(date_str[:10], "%Y-%m-%d").date()
-                    else:
-                        d = date_str
-                    expected = (check - timedelta(days=streak)).date()
-                    if d == expected:
-                        streak += 1
-                    else:
-                        break
-
-            # 学习课程数
-            cursor.execute(
-                "SELECT COUNT(DISTINCT subject) FROM study_sessions WHERE user_id = ?",
-                (sid,),
-            )
-            subject_count = (cursor.fetchone() or [0])[0]
-
-            # 待完成任务数（goals）
-            cursor.execute(
-                "SELECT COUNT(*) FROM goals WHERE user_id = ? AND current_value < target_value",
-                (sid,),
-            )
-            pending_tasks = (cursor.fetchone() or [0])[0]
-
-            cursor.close()
-
+        from app.core.repository_factory import get_repository_for_user
+        repo = get_repository_for_user(user_id, repository_type="learning")
+        overview = await repo.get_overview(user_id)
         return {
             "success": True,
-            "data": {
-                "today_minutes": today_minutes,
-                "today_hours": round(today_minutes / 60, 1),
-                "week_minutes": week_minutes,
-                "week_hours": round(week_minutes / 60, 1),
-                "streak_days": streak,
-                "subject_count": subject_count or 0,
-                "pending_tasks": pending_tasks or 0,
-                "weekly_goal_percent": min(100, round(week_minutes / 420 * 100)) if week_minutes else 0,
-            },
+            "stats": overview,
         }
     except Exception as e:
-        logger.warning(f"[mascot] 获取统计失败: {e}")
-        return {
-            "success": True,
-            "data": {
-                "today_minutes": 0,
-                "today_hours": 0,
-                "week_minutes": 0,
-                "week_hours": 0,
-                "streak_days": 0,
-                "subject_count": 0,
-                "pending_tasks": 0,
-                "weekly_goal_percent": 0,
-            },
-        }
+        logger.error(f"[mascot] get_quick_stats 失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =============================================================================
@@ -511,106 +382,20 @@ async def get_quick_stats(user_id: str):
 
 @router.post("/checkin")
 async def daily_checkin(req: MascotCheckinRequest):
-    """每日签到 — 记录今日签到并返回连续签到天数"""
+    """Daily check-in via Repository (records as a zero-minute study session)."""
     try:
-        sid = _get_student_id_int(req.student_id)
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-        from db import get_db
-
-        with get_db() as conn:
-            cursor = conn.cursor()
-
-            # 检查今天是否已签到
-            cursor.execute(
-                "SELECT id, streak FROM checkins WHERE user_id = ? AND date = ? LIMIT 1",
-                (sid, today_str),
-            )
-            row = cursor.fetchone()
-
-            if row:
-                # 今日已签到
-                return {
-                    "success": True,
-                    "is_first_today": False,
-                    "streak": row[1] if row[1] else 0,
-                    "message": "今天已经签到过了，继续保持！🌟",
-                }
-
-            # 获取上次签到
-            cursor.execute(
-                "SELECT date, streak FROM checkins WHERE user_id = ? ORDER BY date DESC LIMIT 1",
-                (sid,),
-            )
-            last_row = cursor.fetchone()
-
-            new_streak = 1
-            if last_row:
-                last_date = last_row[0]
-                last_streak = last_row[1] or 0
-                from datetime import timedelta
-                yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-                if last_date == yesterday or last_date == today_str:
-                    new_streak = last_streak + 1
-
-            # 记录签到（尝试创建 checkins 表如果不存在）
-            try:
-                cursor.execute(
-                    "INSERT INTO checkins (user_id, date, streak, timestamp) VALUES (?, ?, ?, ?)",
-                    (sid, today_str, new_streak, datetime.now(timezone.utc).isoformat()),
-                )
-                conn.commit()
-            except Exception:
-                # checkins 表可能不存在，尝试创建
-                try:
-                    cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS checkins (
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            user_id INTEGER NOT NULL,
-                            date TEXT NOT NULL,
-                            streak INTEGER DEFAULT 1,
-                            timestamp TEXT
-                        )
-                    """)
-                    conn.commit()
-                    cursor.execute(
-                        "INSERT INTO checkins (user_id, date, streak, timestamp) VALUES (?, ?, ?, ?)",
-                        (sid, today_str, new_streak, datetime.now(timezone.utc).isoformat()),
-                    )
-                    conn.commit()
-                except Exception as e2:
-                    logger.debug(f"[mascot] checkins 表创建失败: {e2}")
-
-            cursor.close()
-
-            # 签到奖励语
-            if new_streak >= 30:
-                msg = f"🎉 {new_streak}天！你已经坚持了一个月，太厉害了！"
-            elif new_streak >= 21:
-                msg = f"🌟 {new_streak}天！21天养成一个习惯，你已经做到了！"
-            elif new_streak >= 7:
-                msg = f"🔥 {new_streak}天！连续一周了，势头正旺！"
-            elif new_streak >= 3:
-                msg = f"✨ {new_streak}天！好的开始是成功的一半！"
-            else:
-                msg = f"🌱 Day {new_streak}！千里之行，始于足下！"
-
-            return {
-                "success": True,
-                "is_first_today": True,
-                "streak": new_streak,
-                "message": msg,
-            }
-
+        from app.core.repository_factory import get_repository_for_user
+        repo = get_repository_for_user(req.student_id, repository_type="learning")
+        await repo.record_session(req.student_id, {
+            "activity_type": "checkin",
+            "subject": "daily_checkin",
+            "minutes": 0,
+            "metadata": {"source": "mascot_daily_checkin"},
+        })
+        return {"success": True, "streak_days": 1}
     except Exception as e:
-        logger.warning(f"[mascot] 签到失败: {e}")
-        # 降级：基于 localStorage 的方案
-        return {
-            "success": True,
-            "is_first_today": True,
-            "streak": 1,
-            "message": "🌱 Day 1！千里之行，始于足下！",
-        }
+        logger.error(f"[mascot] daily_checkin 失败: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =============================================================================
