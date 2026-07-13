@@ -5,7 +5,8 @@ are stubs and will be filled in M4.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import json
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -14,6 +15,8 @@ from app.models.learning import (
     LearningGoal,
     LearningRecord,
     StudySession,
+    UserEvaluationMetric,
+    UserLearningProfile,
     UserStats,
     WeeklySummary,
 )
@@ -204,3 +207,111 @@ class SqlAlchemyLearningRepository:
         if goal:
             self.session.delete(goal)
             self.session.flush()
+
+    # ── Learning profile + evaluation (A3) ──
+
+    _EVAL_FIELDS = (
+        "interaction_count",
+        "socratic_pass_rate",
+        "difficulty_level",
+        "code_practice_time",
+        "focus_time_today",
+        "flashcards_studied",
+        "streak_days",
+    )
+
+    def save_learning_record(self, user_id, record: dict) -> int:
+        """Upsert the user's learning-profile snapshot (one row per user)."""
+        profile = (
+            self.session.query(UserLearningProfile)
+            .filter_by(user_id=user_id)
+            .first()
+        )
+        if profile is None:
+            profile = UserLearningProfile(user_id=user_id)
+            self.session.add(profile)
+        for field in (
+            "interaction_count",
+            "code_practice_time",
+            "socratic_pass_rate",
+            "difficulty_level",
+            "profile_json",
+        ):
+            if field in record:
+                setattr(profile, field, record[field])
+        profile.updated_at = datetime.utcnow()
+        self.session.flush()
+        return 1
+
+    def get_learning_record(self, user_id) -> dict | None:
+        """Return the user's learning-profile snapshot, or None."""
+        profile = (
+            self.session.query(UserLearningProfile)
+            .filter_by(user_id=user_id)
+            .first()
+        )
+        if profile is None:
+            return None
+        return {
+            "user_id": profile.user_id,
+            "interaction_count": profile.interaction_count,
+            "code_practice_time": profile.code_practice_time,
+            "socratic_pass_rate": profile.socratic_pass_rate,
+            "difficulty_level": profile.difficulty_level,
+            "profile_json": profile.profile_json,
+        }
+
+    def save_user_evaluation(self, user_id, evaluation: dict) -> int:
+        """Upsert today's evaluation metrics, merging present fields only."""
+        today = date.today()
+        row = (
+            self.session.query(UserEvaluationMetric)
+            .filter_by(user_id=user_id, record_date=today)
+            .first()
+        )
+        if row is None:
+            row = UserEvaluationMetric(user_id=user_id, record_date=today)
+            self.session.add(row)
+        for field in self._EVAL_FIELDS:
+            if field in evaluation:
+                setattr(row, field, evaluation[field])
+        row.eval_json = json.dumps(evaluation, ensure_ascii=False)
+        self.session.flush()
+        return 1
+
+    def _eval_to_dict(self, row: UserEvaluationMetric) -> dict:
+        return {
+            "interaction_count": row.interaction_count,
+            "socratic_pass_rate": row.socratic_pass_rate,
+            "difficulty_level": row.difficulty_level,
+            "code_practice_time": row.code_practice_time,
+            "focus_time_today": row.focus_time_today,
+            "flashcards_studied": row.flashcards_studied,
+            "streak_days": row.streak_days,
+            "eval_json": row.eval_json,
+            "record_date": row.record_date.isoformat(),
+        }
+
+    def get_user_evaluation(self, user_id, record_date: str | None = None) -> dict | None:
+        """Return a single day's evaluation (defaults to today), or None."""
+        if record_date is None:
+            target = date.today()
+        else:
+            target = date.fromisoformat(record_date)
+        row = (
+            self.session.query(UserEvaluationMetric)
+            .filter_by(user_id=user_id, record_date=target)
+            .first()
+        )
+        return self._eval_to_dict(row) if row else None
+
+    def get_user_evaluation_history(self, user_id, days: int = 7) -> list:
+        """Return the most-recent N days of evaluation metrics."""
+        rows = (
+            self.session.query(UserEvaluationMetric)
+            .filter(UserEvaluationMetric.user_id == user_id)
+            .order_by(UserEvaluationMetric.record_date.desc())
+            .limit(days)
+            .all()
+        )
+        return [self._eval_to_dict(r) for r in rows]

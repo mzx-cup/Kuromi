@@ -7,6 +7,8 @@ from app.models.learning import (
     UserStats,
     LearningGoal,
     WeeklySummary,
+    UserLearningProfile,
+    UserEvaluationMetric,
 )
 from app.models.course_progress import (
     CourseProgress,
@@ -65,6 +67,8 @@ __all__ = [
     "UserStats",
     "LearningGoal",
     "WeeklySummary",
+    "UserLearningProfile",
+    "UserEvaluationMetric",
     "CourseProgress",
     "LearningPath",
     "LearningPathNode",

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, date
 from typing import Optional
-from sqlalchemy import String, Integer, DateTime, Date, Float, ForeignKey, JSON
+from sqlalchemy import String, Integer, DateTime, Date, Float, ForeignKey, JSON, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import Base
 
@@ -67,3 +67,47 @@ class WeeklySummary(Base):
     week_start: Mapped[date] = mapped_column(Date)
     total_minutes: Mapped[int] = mapped_column(Integer, default=0)
     subjects: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class UserLearningProfile(Base):
+    """User learning profile snapshot (replaces db.py learning_records table).
+
+    One row per user (user_id is the primary key), so re-saving performs an
+    upsert. Distinct from :class:`LearningRecord`, which stores granular
+    per-activity rows.
+    """
+    __tablename__ = "user_learning_profile"
+
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), primary_key=True)
+    interaction_count: Mapped[int] = mapped_column(Integer, default=0)
+    code_practice_time: Mapped[int] = mapped_column(Integer, default=0)
+    socratic_pass_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    difficulty_level: Mapped[str] = mapped_column(String(20), default="basic")
+    profile_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow())
+
+
+class UserEvaluationMetric(Base):
+    """Daily user evaluation metrics (mirrors db.py user_evaluations columns).
+
+    NOTE: ``app/models/course_progress.py`` already defines a ``UserEvaluation``
+    ORM class mapped to the ``user_evaluations`` table with an unrelated
+    schema (subject/score/notes). To avoid a MetaData table collision, this
+    metrics model owns a distinct table ``user_evaluation_metrics``. The
+    legacy repository path continues to use db.py's real ``user_evaluations``
+    table via the db.py helpers.
+    """
+    __tablename__ = "user_evaluation_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    interaction_count: Mapped[int] = mapped_column(Integer, default=0)
+    socratic_pass_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    difficulty_level: Mapped[str] = mapped_column(String(20), default="basic")
+    code_practice_time: Mapped[int] = mapped_column(Integer, default=0)
+    focus_time_today: Mapped[int] = mapped_column(Integer, default=0)
+    flashcards_studied: Mapped[int] = mapped_column(Integer, default=0)
+    streak_days: Mapped[int] = mapped_column(Integer, default=0)
+    eval_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    record_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow())

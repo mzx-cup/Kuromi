@@ -9,6 +9,8 @@ import json
 import sqlite3
 from datetime import datetime, timedelta
 
+import db
+
 
 class DbPyLearningRepository:
     def __init__(self, db_path: str = None):
@@ -229,3 +231,37 @@ class DbPyLearningRepository:
             conn.commit()
         finally:
             conn.close()
+
+    # ── Learning profile + evaluation (A3) ──
+
+    def save_learning_record(self, user_id, record: dict) -> int:
+        """Upsert the user's learning-profile snapshot via db.py."""
+        profile_json = record.get("profile_json", "{}")
+        if not isinstance(profile_json, str):
+            profile_json = json.dumps(profile_json, ensure_ascii=False)
+        db.save_learning_record(
+            user_id,
+            record.get("interaction_count", 0),
+            record.get("code_practice_time", 0),
+            record.get("socratic_pass_rate", 0.0),
+            record.get("difficulty_level", "basic"),
+            profile_json,
+        )
+        return 1
+
+    def get_learning_record(self, user_id) -> dict | None:
+        """Return the user's learning-profile snapshot, or None."""
+        return db.get_learning_record(user_id)
+
+    def save_user_evaluation(self, user_id, evaluation: dict) -> int:
+        """Upsert today's evaluation metrics via db.py. Returns 1 on success."""
+        ok = db.save_user_evaluation(user_id, evaluation)
+        return 1 if ok else 0
+
+    def get_user_evaluation(self, user_id, record_date: str | None = None) -> dict | None:
+        """Return a single day's evaluation (defaults to today), or None."""
+        return db.get_user_evaluation(user_id, record_date)
+
+    def get_user_evaluation_history(self, user_id, days: int = 7) -> list:
+        """Return the most-recent N days of evaluation metrics."""
+        return db.get_user_evaluation_history(user_id, days)
