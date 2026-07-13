@@ -32,10 +32,14 @@ def backup_databases(legacy_db: Path, orm_db: Path) -> dict:
     return paths
 
 
-def fetch_legacy_users(legacy_db: Path) -> list:
+def fetch_legacy_users(legacy_db: Path) -> list | None:
+    """Returns list of user dicts, or None if the 'user' table doesn't exist."""
     conn = sqlite3.connect(str(legacy_db))
     try:
         cur = conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='user'")
+        if cur.fetchone() is None:
+            return None
         cur.execute("SELECT id, username, password, preferred_language FROM user")
         rows = cur.fetchall()
         return [
@@ -73,6 +77,10 @@ def migrate_user_table(legacy_db: Path, orm_db: Path, dry_run: bool = False) -> 
         return report
 
     users = fetch_legacy_users(legacy_db)
+    if users is None:
+        report["status"] = "skipped"
+        report["errors"].append("legacy 'user' table not found — nothing to migrate")
+        return report
     report["users_in_legacy"] = len(users)
 
     if dry_run:
@@ -174,7 +182,7 @@ def main():
     report = migrate_user_table(args.legacy_db, args.orm_db, dry_run=args.dry_run)
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
-    if report.get("errors"):
+    if report["status"] not in ("complete", "dry_run_complete", "skipped"):
         sys.exit(1)
 
 

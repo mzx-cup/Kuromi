@@ -87,3 +87,27 @@ class TestMigrateUserTable:
         from scripts.migrate_user_table import migrate_user_table
         report = migrate_user_table(tmp_path / "missing.db", orm_db, dry_run=False)
         assert report["status"] == "error"
+
+    def test_legacy_db_without_user_table_skips_gracefully(self, tmp_path, orm_db):
+        """Legacy DB exists but has no 'user' table — should skip, not crash."""
+        from scripts.migrate_user_table import migrate_user_table
+        empty_legacy = tmp_path / "empty_legacy.db"
+        sqlite3.connect(str(empty_legacy)).close()  # creates empty DB
+        report = migrate_user_table(empty_legacy, orm_db, dry_run=True)
+        assert report["status"] == "skipped"
+        assert "user" in str(report["errors"]).lower()
+        assert report["users_in_legacy"] == 0
+
+    def test_legacy_db_with_empty_user_table_runs_normally(self, legacy_db):
+        """Legacy DB has a 'user' table with zero rows — should run with users_in_legacy=0, not skip."""
+        from scripts.migrate_user_table import migrate_user_table
+        # Remove the seeded users so the table exists but is empty
+        conn = sqlite3.connect(str(legacy_db))
+        conn.execute("DELETE FROM user")
+        conn.commit()
+        conn.close()
+        orm = legacy_db.parent / "orm_empty.db"
+        sqlite3.connect(str(orm)).close()
+        report = migrate_user_table(legacy_db, orm, dry_run=True)
+        assert report["status"] == "dry_run_complete"
+        assert report["users_in_legacy"] == 0
