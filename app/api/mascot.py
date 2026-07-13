@@ -366,7 +366,12 @@ async def get_quick_stats(user_id: str):
     try:
         from app.core.repository_factory import get_repository_for_user
         repo = get_repository_for_user(user_id, repository_type="learning")
-        overview = await repo.get_overview(user_id)
+        # Note: LearningRepository.get_overview is a SYNC method despite the
+        # Protocol declaring it as async — see app/repositories/legacy/learning.py
+        # and app/repositories/orm/learning.py. Pre-existing signature mismatch
+        # from M3 learning-read; tracked as a separate follow-up to align the
+        # Protocol. Calling without `await` here so the endpoint actually works.
+        overview = repo.get_overview(user_id)
         return {
             "success": True,
             "stats": overview,
@@ -386,7 +391,8 @@ async def daily_checkin(req: MascotCheckinRequest):
     try:
         from app.core.repository_factory import get_repository_for_user
         repo = get_repository_for_user(req.student_id, repository_type="learning")
-        await repo.record_session(req.student_id, {
+        # record_session is sync (see comment in get_quick_stats above).
+        repo.record_session(req.student_id, {
             "activity_type": "checkin",
             "subject": "daily_checkin",
             "minutes": 0,

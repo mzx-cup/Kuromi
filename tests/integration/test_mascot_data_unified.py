@@ -76,16 +76,14 @@ async def test_mascot_stats_uses_repository_not_db(xingshi_cwd, monkeypatch):
 
     We replace the factory's legacy-repo class with a recording stub that
     raises if anyone imports ``db`` during the call. This proves the
-    endpoint routes via the Repository abstraction. (The pre-existing
-    ``get_overview`` signature mismatch — Protocol declares async, impls are
-    sync — is out of scope for this slice and is being tracked separately.)
+    endpoint routes via the Repository abstraction.
     """
     from app.core import repository_factory
 
     class RecordingRepo:
         last_user_id = None
 
-        async def get_overview(self, user_id):
+        def get_overview(self, user_id):
             RecordingRepo.last_user_id = user_id
             return {"total_minutes": 120, "study_days": 1, "current_streak": 1}
 
