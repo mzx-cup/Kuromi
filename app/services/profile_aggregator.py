@@ -3,10 +3,11 @@
 Profile Aggregator — 将分散的 user_memories 聚合成"AI眼中的你"画像数据
 
 Usage:
+    from app.core.repository_factory import get_repository_for_user
     from app.services.profile_aggregator import aggregate_profile
-    from db import get_user_memories
 
-    profile = aggregate_profile(get_user_memories(user_id))
+    chat_repo = get_repository_for_user(user_id, repository_type="chat")
+    profile = aggregate_profile(chat_repo.get_memories(user_id, limit=200))
 """
 
 from __future__ import annotations
