@@ -1,6 +1,6 @@
 # 数据库合并切片状态
 
-最后更新：2026-07-10
+最后更新：2026-07-16
 
 ## 已完成切片
 
@@ -61,9 +61,29 @@
 
 **负责人：** `<待填>`
 
+### 切片 #12 小星决策引擎集成 — Phase 3 完成（2026-07-16）
+
+**已完成：**
+- CapabilityAggregator + MascotEngineAdapter（commit e9322fa）
+- MascotEngineAdapter review fixes — eager engine, fallback spy, magic number（commit c3506e5）
+- mascot_chat_stream 接入 MascotEngineAdapter，新增 SSE `proactive_action` 事件（commit 888fa96）
+- /api/mascot/capability/{user_id} 端点（commit ccbd000）
+- SSE 契约 + e2e engine→mascot 测试（commit 756b657）
+- 前端 mascot-services.js 同步：fetchCapability + handleProactiveAction（commit 136f4f7）
+
+**完成标志：**
+- [x] 6 维画像在 mascot 至少 1 处使用（`GET /api/mascot/capability` + `CapabilityAggregator.for_user`）
+- [x] 25+ ProactiveAdvisor 规则至少 5 个在测试中触发（`test_e2e_engine_emits_5_proactive_actions` 5 个）
+- [x] ActionLedger 实例独立（2 个：engine 内 + proactive_tutor）
+- [ ] 灰度 1% → 10% → 50% → 100%（待生产执行）
+
+**当前阶段：** Phase 3 完成（双写开启 + 引擎集成 + 前端同步），等待 Phase 4 灰度切读
+
+**负责人：** `<待填>`
+
 ## 进行中切片
 
-（无 — 等待 #1 完成 Phase 4-5）
+（无 — 等待 #1 / #12 完成 Phase 4-5）
 
 ## 待启动切片
 
