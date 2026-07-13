@@ -63,3 +63,57 @@ async def test_query_stale_knowledge_uses_repository(monkeypatch, legacy_db_path
             sys.modules["db"] = original_db
         else:
             del sys.modules["db"]
+
+
+# ---------------------------------------------------------------------------
+# Regression: each returned dict must include "days_since_review". The caller
+# at proactive_tutor.py line ~238 reads topic.get("days_since_review", 2) and
+# silently falls back to 2 when the key is missing, which masks the bug. A
+# record with a created_at of "2026-06-01" is well over 2 days old, so the
+# computed value must be >= 3 (not the default 2).
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_query_stale_knowledge_includes_days_since_review(
+    monkeypatch, legacy_db_path
+):
+    """The returned dicts must include ``days_since_review`` populated from
+    ``created_at`` so that callers using ``topic.get("days_since_review", 2)``
+    receive the real value instead of the silent default.
+    """
+    monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "0")
+    monkeypatch.setenv("XINGSHI_DB_PATH", legacy_db_path)
+
+    # NOTE: intentionally does NOT block sys.modules['db'] — we are testing
+    # the data shape, not import discipline here. The previous test already
+    # covers that.
+    try:
+        from unittest.mock import MagicMock
+        from proactive_tutor import ProactiveTutor
+
+        tutor = ProactiveTutor(manager=MagicMock())
+        result = await tutor._query_stale_knowledge("u1", "course_1")
+
+        assert isinstance(result, list)
+        algebra_rows = [r for r in result if r.get("knowledge_point") == "algebra"]
+        assert algebra_rows, f"Expected an 'algebra' row; got {result!r}"
+
+        algebra = algebra_rows[0]
+        # The regression: the key must be present.
+        assert "days_since_review" in algebra, (
+            f"days_since_review missing from {algebra!r}; caller at line 238 "
+            "would silently fall back to 2"
+        )
+        # Seeded created_at is 2026-06-01 and "today" is after that, so the
+        # value must be a real, non-default number (>= 3, given 2026-06-01 vs
+        # today 2026-07-13 is ~42 days).
+        days = algebra["days_since_review"]
+        assert isinstance(days, int)
+        assert days >= 3, (
+            f"Expected days_since_review >= 3 for 2026-06-01 record, got {days}"
+        )
+        # Sanity: the other keys we expect to still be present.
+        assert algebra.get("last_review") == "2026-06-01"
+        assert algebra.get("knowledge_point") == "algebra"
+    finally:
+        pass

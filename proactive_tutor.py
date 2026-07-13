@@ -333,7 +333,6 @@ class ProactiveTutor:
                     repo = get_repository_for_user(student_id, repository_type="learning")
             except Exception:
                 repo = get_repository_for_user(student_id, repository_type="learning")
-            # If it's a DbPyLearningRepository, query learning_records
             if hasattr(repo, "_conn"):
                 conn = repo._conn()
                 try:
@@ -344,17 +343,25 @@ class ProactiveTutor:
                         (student_id,),
                     )
                     stale = []
+                    from datetime import datetime
+                    import json
+                    today = datetime.now().date()
                     for row in cur.fetchall():
-                        import json
                         try:
                             profile = json.loads(row[1]) if row[1] else {}
                         except (json.JSONDecodeError, TypeError):
                             profile = {}
                         knowledge_point = profile.get("topic", profile.get("knowledge_point", ""))
                         if knowledge_point:
+                            try:
+                                last_review_dt = datetime.fromisoformat(row[2]).date() if isinstance(row[2], str) else row[2]
+                                days_since = max(0, (today - last_review_dt).days)
+                            except (ValueError, TypeError):
+                                days_since = 0
                             stale.append({
                                 "knowledge_point": knowledge_point,
                                 "last_review": row[2],
+                                "days_since_review": days_since,
                             })
                     return stale
                 finally:
