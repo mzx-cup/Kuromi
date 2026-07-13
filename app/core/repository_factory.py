@@ -54,6 +54,9 @@ def _build_orm(repository_type: str):
     if repository_type == "capability":
         from app.repositories.orm.capability import SqlAlchemyCapabilityRepository
         return SqlAlchemyCapabilityRepository
+    if repository_type == "user":
+        from app.repositories.orm.user import SqlAlchemyUserRepository
+        return SqlAlchemyUserRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
@@ -85,6 +88,9 @@ def _build_legacy(repository_type: str):
     if repository_type == "capability":
         from app.repositories.legacy.capability import DbPyCapabilityRepository
         return DbPyCapabilityRepository
+    if repository_type == "user":
+        from app.repositories.legacy.user import DbPyUserRepository
+        return DbPyUserRepository
     raise ValueError(f"Unknown repository_type: {repository_type}")
 
 
