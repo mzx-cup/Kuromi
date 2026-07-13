@@ -10,7 +10,7 @@ from app.models.base import Base
 from app.repositories.base import UserRepository
 from app.repositories.legacy.user import DbPyUserRepository
 from app.repositories.orm.user import SqlAlchemyUserRepository
-from app.core.repository_factory import get_repository_for_user, is_orm_read_path_active
+from app.core.repository_factory import get_repository_for_user
 
 
 @pytest.fixture
@@ -53,19 +53,9 @@ class TestUserRepositoryProtocol:
 class TestFactoryUserRouting:
     def test_zero_percentage_returns_legacy_user_repo(self, monkeypatch, tmp_path):
         monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "0")
-        # Set up a minimal legacy db so DbPyUserRepository doesn't fail at construction
+        # Constructor touches db_path but the factory only calls .instantiate(),
+        # so a tmp_path is fine even without a real schema.
         db = tmp_path / "legacy.db"
-        conn = sqlite3.connect(str(db))
-        conn.execute("""
-            CREATE TABLE user (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username VARCHAR(128) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                preferred_language VARCHAR(16) DEFAULT 'zh-CN'
-            )
-        """)
-        conn.commit()
-        conn.close()
         monkeypatch.setattr(
             "app.repositories.legacy.user.DbPyUserRepository.__init__",
             lambda self, db_path=None: setattr(self, "db_path", str(db)),
@@ -75,7 +65,6 @@ class TestFactoryUserRouting:
 
     def test_hundred_percentage_returns_orm_user_repo(self, monkeypatch):
         monkeypatch.setenv("READ_BACKEND_PERCENTAGE", "100")
-        from app.repositories.orm.user import SqlAlchemyUserRepository
         repo = get_repository_for_user("any_user", repository_type="user")
         assert isinstance(repo, SqlAlchemyUserRepository)
 
