@@ -16,9 +16,10 @@ logger = logging.getLogger("starlearn.memory")
 
 def _retrieve_memories_core(user_id: str, current_input: str, limit: int, min_confidence: float) -> list[dict[str, Any]]:
     """核心检索逻辑（同步）。"""
-    from db import get_user_memories, bump_memory_access
+    from app.repositories.legacy.chat import DbPyChatRepository
 
-    all_memories = get_user_memories(user_id)
+    chat_repo = DbPyChatRepository()
+    all_memories = chat_repo.get_memories(user_id, limit=200)
     if not all_memories:
         return []
 
@@ -41,7 +42,7 @@ def _retrieve_memories_core(user_id: str, current_input: str, limit: int, min_co
 
     for mem in top_memories:
         try:
-            bump_memory_access(mem.get("id"))
+            chat_repo.bump_memory_access(int(mem.get("id")))
         except Exception:
             pass
 
@@ -79,9 +80,10 @@ def retrieve_memories_with_logs(
     检索记忆并返回检索日志（用于thinking链路展示）。
     Returns: (memories, retrieval_logs)
     """
-    from db import get_user_memories, bump_memory_access
+    from app.repositories.legacy.chat import DbPyChatRepository
 
-    all_memories = get_user_memories(user_id)
+    chat_repo = DbPyChatRepository()
+    all_memories = chat_repo.get_memories(user_id, limit=200)
     if not all_memories:
         return [], []
 
@@ -111,7 +113,7 @@ def retrieve_memories_with_logs(
             "memory_type": mem.get("memory_type", "fact"),
         })
         try:
-            bump_memory_access(mem.get("id"))
+            chat_repo.bump_memory_access(int(mem.get("id")))
         except Exception:
             pass
 
