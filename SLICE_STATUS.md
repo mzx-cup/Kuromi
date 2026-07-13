@@ -38,6 +38,28 @@
 
 **负责人：** `<待填>`
 
+### 切片 #11 小星数据源统一化 — Phase 3 双写开启（2026-07-13）
+
+**已完成：**
+- CapabilityRepository Protocol + stubs（commit 2a6955f）
+- DbPyCapabilityRepository 双套实现（commit 008476b）
+- SqlAlchemyCapabilityRepository 双套实现（commit 1dc4870）
+- repository_factory 注册 capability（commit b0345c4）
+- proactive_tutor._query_stale_knowledge 迁移到 Repository（commit bb3c2c8）
+- _query_stale_knowledge 修复 days_since_review（commit ac51d78）
+- context_aggregator 2 个 TODO stub 走 Repository（commit ae2ce01）
+- mascot.py 4 处 `from db import` 删除（commit 9670cd7）
+
+**完成标志：**
+- [x] `from db import` 在 mascot/ + proactive_tutor 出现次数 = 0
+- [x] dual-write 测试 100% 通过
+- [x] Repository 单测 100% 通过
+- [x] 集成测试通过 (tests/integration/test_mascot_data_unified.py 2/2)
+
+**当前阶段：** Phase 3 完成，等待 Phase 4 灰度切读
+
+**负责人：** `<待填>`
+
 ## 进行中切片
 
 （无 — 等待 #1 完成 Phase 4-5）
