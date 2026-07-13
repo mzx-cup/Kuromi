@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -495,3 +496,35 @@ async def get_mascot_config():
             "version": "4.0.0",
         },
     }
+
+
+# =============================================================================
+# 用户能力画像 (Slice 12.4)
+# =============================================================================
+
+@router.get("/capability/{user_id}")
+async def get_capability_profile(user_id: str):
+    """Get the 6-dim capability profile for a user.
+
+    Used by the frontend mascot-services.js to:
+      - Adjust LLM system prompt based on cognitive_style
+      - Show knowledge_base heatmap
+      - Highlight weakness in proactive_action toasts
+    """
+    try:
+        from app.services.tutor_engine.capability_aggregator import CapabilityAggregator
+        agg = CapabilityAggregator()
+        profile = await agg.for_user(user_id)
+        return {
+            "user_id": user_id,
+            "knowledge_base": profile.knowledge_base,
+            "code_skill": profile.code_skill,
+            "cognitive_style": asdict(profile.cognitive_style),
+            "focus_level": asdict(profile.focus_level),
+            "learning_goals": [asdict(g) for g in profile.learning_goals],
+            "weakness": [asdict(w) for w in profile.weakness],
+            "computed_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"[mascot] get_capability_profile 失败: {e}")
+        raise HTTPException(status_code=503, detail=f"Capability aggregation failed: {str(e)[:100]}")
