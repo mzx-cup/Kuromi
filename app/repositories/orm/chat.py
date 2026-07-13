@@ -69,10 +69,12 @@ class SqlAlchemyChatRepository:
         self.session.flush()
         return mem.id
 
-    def get_memories(self, user_id: str, limit: int = 20) -> list:
+    def get_memories(self, user_id: str, memory_type: str | None = None, limit: int = 20) -> list:
+        query = self.session.query(UserMemory).filter_by(user_id=user_id)
+        if memory_type is not None:
+            query = query.filter_by(memory_type=memory_type)
         mems = (
-            self.session.query(UserMemory)
-            .filter_by(user_id=user_id)
+            query
             .order_by(UserMemory.importance.desc(), UserMemory.created_at.desc())
             .limit(limit)
             .all()
@@ -86,6 +88,8 @@ class SqlAlchemyChatRepository:
                 "source_conversation_id": m.source_conversation_id,
                 "created_at": m.created_at.isoformat() if m.created_at else None,
                 "last_accessed": m.last_accessed.isoformat() if m.last_accessed else None,
+                "confirmed": m.confirmed,
+                "access_count": m.access_count,
             }
             for m in mems
         ]
@@ -97,4 +101,23 @@ class SqlAlchemyChatRepository:
                 mem.content = updates["content"]
             if "importance" in updates:
                 mem.importance = updates["importance"]
+            self.session.flush()
+
+    def confirm_memory(self, memory_id: int, confirmed: bool = True) -> None:
+        mem = self.session.query(UserMemory).filter_by(id=memory_id).first()
+        if mem:
+            mem.confirmed = 1 if confirmed else 0
+            self.session.flush()
+
+    def delete_memory(self, memory_id: int) -> None:
+        mem = self.session.query(UserMemory).filter_by(id=memory_id).first()
+        if mem:
+            self.session.delete(mem)
+            self.session.flush()
+
+    def bump_memory_access(self, memory_id: int) -> None:
+        mem = self.session.query(UserMemory).filter_by(id=memory_id).first()
+        if mem:
+            mem.access_count = (mem.access_count or 0) + 1
+            mem.last_accessed = datetime.utcnow()
             self.session.flush()

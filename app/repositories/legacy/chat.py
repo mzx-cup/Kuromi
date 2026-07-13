@@ -18,6 +18,8 @@ import json
 import sqlite3
 from datetime import datetime
 
+import db
+
 
 class DbPyChatRepository:
     def __init__(self, db_path: str = None):
@@ -95,18 +97,28 @@ class DbPyChatRepository:
         finally:
             conn.close()
 
-    def get_memories(self, user_id, limit: int = 20) -> list:
+    def get_memories(self, user_id, memory_type: str | None = None, limit: int = 20) -> list:
         conn = self._conn()
         try:
             cur = conn.cursor()
-            cur.execute("""
-                SELECT id, memory_type, content, importance, source_conversation_id,
-                       created_at, last_accessed
-                FROM user_memories
-                WHERE user_id = ?
-                ORDER BY importance DESC, created_at DESC
-                LIMIT ?
-            """, (user_id, limit))
+            if memory_type is not None:
+                cur.execute("""
+                    SELECT id, memory_type, content, importance, source_conversation_id,
+                           created_at, last_accessed
+                    FROM user_memories
+                    WHERE user_id = ? AND memory_type = ?
+                    ORDER BY importance DESC, created_at DESC
+                    LIMIT ?
+                """, (user_id, memory_type, limit))
+            else:
+                cur.execute("""
+                    SELECT id, memory_type, content, importance, source_conversation_id,
+                           created_at, last_accessed
+                    FROM user_memories
+                    WHERE user_id = ?
+                    ORDER BY importance DESC, created_at DESC
+                    LIMIT ?
+                """, (user_id, limit))
             return [
                 {
                     "id": r[0],
@@ -138,3 +150,12 @@ class DbPyChatRepository:
             conn.commit()
         finally:
             conn.close()
+
+    def confirm_memory(self, memory_id: int, confirmed: bool = True) -> None:
+        db.confirm_user_memory(memory_id, confirmed)
+
+    def delete_memory(self, memory_id: int) -> None:
+        db.delete_user_memory(memory_id)
+
+    def bump_memory_access(self, memory_id: int) -> None:
+        db.bump_memory_access(memory_id)

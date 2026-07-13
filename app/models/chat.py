@@ -96,3 +96,5 @@ class UserMemory(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    confirmed: Mapped[int] = mapped_column(Integer, default=0)
+    access_count: Mapped[int] = mapped_column(Integer, default=1)
