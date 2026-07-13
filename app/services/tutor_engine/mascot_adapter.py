@@ -22,6 +22,10 @@ from app.services.tutor_engine.models import (
 
 logger = logging.getLogger("starlearn.tutor.mascot_adapter")
 
+# Maximum characters from an exception message to embed in the user-facing
+# fallback response. Keeps error details bounded to avoid leaking huge traces.
+_FALLBACK_ERROR_MAX_LEN = 100
+
 
 class MascotEngineAdapter:
     def __init__(
@@ -30,17 +34,11 @@ class MascotEngineAdapter:
         timeout_seconds: float = 30.0,
         fallback_text: Optional[str] = None,
     ):
-        self._engine = engine
+        self._engine = engine if engine is not None else TutorDecisionEngine()
         self.timeout_seconds = timeout_seconds
-        # If env var MASCOT_FALLBACK_NO_LLM=1 is set, or fallback_text is provided,
-        # we skip the LLM call in fallback_simple_chat to keep tests fast.
         self._fallback_text = fallback_text
-
-    @property
-    def engine(self) -> TutorDecisionEngine:
-        if self._engine is None:
-            self._engine = TutorDecisionEngine()
-        return self._engine
+        # Cache env-var once to avoid repeated os.environ lookups
+        self._skip_llm = fallback_text is not None or os.environ.get("MASCOT_FALLBACK_NO_LLM") == "1"
 
     def _build_event(self, user_id: str, question: str) -> TutorEvent:
         return TutorEvent(
@@ -54,7 +52,7 @@ class MascotEngineAdapter:
         event = self._build_event(user_id, question)
         try:
             envelope = await asyncio.wait_for(
-                self.engine.decide(event),
+                self._engine.decide(event),
                 timeout=self.timeout_seconds,
             )
             return envelope
@@ -62,14 +60,11 @@ class MascotEngineAdapter:
             logger.warning(f"[MascotEngineAdapter] engine.decide timeout for user={user_id}")
             return await self.fallback_simple_chat(user_id, question)
         except Exception as e:
-            logger.warning(f"[MascotEngineAdapter] engine.decide error for user={user_id}: {e}")
+            logger.warning(
+                f"[MascotEngineAdapter] engine.decide error for user={user_id}: {e}",
+                exc_info=True,
+            )
             return await self.fallback_simple_chat(user_id, question)
-
-    def _should_skip_llm(self) -> bool:
-        """Skip LLM call if explicitly configured (env var or constructor arg)."""
-        if self._fallback_text is not None:
-            return True
-        return os.environ.get("MASCOT_FALLBACK_NO_LLM") == "1"
 
     async def fallback_simple_chat(self, user_id: str, question: str) -> ResponseEnvelope:
         """Last-resort chat path: direct LLM call without engine context.
@@ -78,7 +73,7 @@ class MascotEngineAdapter:
         was provided to the constructor, skip the LLM call and return a canned
         response. This keeps tests fast and predictable.
         """
-        if self._should_skip_llm():
+        if self._skip_llm:
             canned = self._fallback_text or "抱歉，AI 助手暂时不可用，请稍后再试。"
             return ResponseEnvelope(answer_text=canned)
 
@@ -106,4 +101,4 @@ class MascotEngineAdapter:
             return ResponseEnvelope(answer_text="".join(text_parts))
         except Exception as e:
             logger.error(f"[MascotEngineAdapter] fallback LLM failed: {e}")
-            return ResponseEnvelope(answer_text=f"抱歉，AI 助手暂时不可用: {str(e)[:100]}")
+            return ResponseEnvelope(answer_text=f"抱歉，AI 助手暂时不可用: {str(e)[:_FALLBACK_ERROR_MAX_LEN]}")

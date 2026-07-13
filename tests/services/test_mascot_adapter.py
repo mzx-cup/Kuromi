@@ -17,7 +17,7 @@ class TestMascotEngineAdapter:
         assert envelope.answer_text == "stub answer"
 
     @pytest.mark.asyncio
-    async def test_decide_handles_timeout(self):
+    async def test_decide_handles_timeout(self, monkeypatch):
         """If engine.decide() times out, fallback_simple_chat is invoked."""
         import asyncio
         from app.services.tutor_engine.models import ResponseEnvelope
@@ -26,20 +26,26 @@ class TestMascotEngineAdapter:
             async def decide(self, event):
                 await asyncio.sleep(100)  # would timeout
 
-        # Pass a canned fallback text to avoid hitting real LLM in test
         adapter = MascotEngineAdapter(
             engine=StubEngine(),
             timeout_seconds=0.1,
             fallback_text="cached fallback reply",
         )
-        # The fallback must return a valid envelope
+        fallback_called = {"n": 0}
+        original_fallback = adapter.fallback_simple_chat
+
+        async def spy(user_id, question):
+            fallback_called["n"] += 1
+            return await original_fallback(user_id, question)
+
+        monkeypatch.setattr(adapter, "fallback_simple_chat", spy)
         envelope = await adapter.decide("u1", "test")
         assert envelope is not None
-        assert envelope.answer_text  # non-empty fallback text
         assert envelope.answer_text == "cached fallback reply"
+        assert fallback_called["n"] == 1, "fallback_simple_chat must be invoked exactly once on timeout"
 
     @pytest.mark.asyncio
-    async def test_decide_fallback_on_engine_error(self):
+    async def test_decide_fallback_on_engine_error(self, monkeypatch):
         from app.services.tutor_engine.models import ResponseEnvelope
 
         class StubEngine:
@@ -50,7 +56,15 @@ class TestMascotEngineAdapter:
             engine=StubEngine(),
             fallback_text="error fallback reply",
         )
+        fallback_called = {"n": 0}
+        original_fallback = adapter.fallback_simple_chat
+
+        async def spy(user_id, question):
+            fallback_called["n"] += 1
+            return await original_fallback(user_id, question)
+
+        monkeypatch.setattr(adapter, "fallback_simple_chat", spy)
         envelope = await adapter.decide("u1", "test")
         assert envelope is not None
-        assert envelope.answer_text  # non-empty
         assert envelope.answer_text == "error fallback reply"
+        assert fallback_called["n"] == 1, "fallback_simple_chat must be invoked exactly once on engine error"
