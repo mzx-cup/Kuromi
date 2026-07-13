@@ -49,6 +49,7 @@
 - _query_stale_knowledge 修复 days_since_review（commit ac51d78）
 - context_aggregator 2 个 TODO stub 走 Repository（commit ae2ce01）
 - mascot.py 4 处 `from db import` 删除（commit 9670cd7）
+- mascot 端点修复 sync/await 不匹配（commit dc75713）
 
 **完成标志：**
 - [x] `from db import` 在 mascot/ + proactive_tutor 出现次数 = 0
