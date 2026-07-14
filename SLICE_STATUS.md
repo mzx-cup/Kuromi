@@ -112,6 +112,32 @@ CourseProgressRepository，覆盖 slices #2-#10 的读写路径统一。
 
 **负责人：** `<待填>`
 
+### Phase 1 演示账号登录开关（2026-07-14）
+
+把切片 #1 的"演示账号自动注入"从生产默认行为收紧为显式开关：
+`ALLOW_DEMO_LOGIN` 默认 false；后端 `app/api/auth.py:_ensure_demo_accounts`
+前置门禁；新增 `POST /api/auth/demo-login?role=...` 端点；
+`app/api/datacenter.py:_build_fallback_dashboard` 在开关关闭时抛 404
+（不再向真实用户返回 Python 基础 78% 等假数据）；
+前端 `js/login.js:quickLogin` 切换到 `/api/auth/demo-login` 并处理 403。
+
+**已完成：**
+- 1.1 `_ensure_demo_accounts` 门禁（`feat(auth): gate demo accounts on ALLOW_DEMO_LOGIN`）
+- 1.2 `POST /api/auth/demo-login` 端点（`feat(auth): add /api/auth/demo-login endpoint`）
+- 1.3 `_build_fallback_dashboard` 404 门禁（`feat(datacenter): gate fallback dashboard on ALLOW_DEMO_LOGIN`）
+- 1.4 前端 `quickLogin` 切换（`feat(login): switch quickLogin to /api/auth/demo-login`）
+
+**完成标志：**
+- [x] `test_auth_api_uses_repo.py` 11/11 + `test_auth_demo_login.py` 5/5 通过
+- [x] `test_datacenter_fallback.py` 5/5 通过
+- [x] `tests/frontend/unit/login.test.js` 6/6 通过
+- [x] 后端 19 个 Phase 1 相关测试 + 前端 6 个，共 25/25 通过
+- [ ] 双写灰度（受 Phase 4-5 收尾阻塞，待 slices #1/#12 切到 100%）
+
+**当前阶段：** Phase 1 代码 + 测试完成；灰度跟随切片 #1/#12 一同推进。
+
+**负责人：** `<待填>`
+
 ## 进行中切片
 
 （无 — 等待 #1 / #12 完成 Phase 4-5）
