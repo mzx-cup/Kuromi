@@ -22,8 +22,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from app.core.repository_factory import get_repository_for_user
 from app.services.llm_json import LLMJsonError, llm_json
-from db import get_student_portrait
 from prompts import build_prompt
 from state import LearningPortrait
 
@@ -91,14 +91,80 @@ async def _load(brainstorm_id: str) -> BrainstormState:
 # 画像 -> variables
 # ============================================================
 
-def _load_portrait(student_id: str) -> dict[str, Any]:
-    """从 db 读 6 维画像, 转成 dict(失败给空 dict)."""
+def _capability_to_learning_portrait(profile: dict[str, Any]) -> dict[str, Any]:
+    knowledge_base = profile.get("knowledge_base", {})
+    code_skill = profile.get("code_skill", {})
+    cognitive_style = profile.get("cognitive_style", {})
+    focus_level = profile.get("focus_level", {})
+    learning_goals = profile.get("learning_goals", [])
+    weakness = profile.get("weakness", [])
+
+    knowledge_scores = list(knowledge_base.values())
+    code_scores = list(code_skill.values())
+    average_code_score = sum(code_scores) / len(code_scores) if code_scores else 0.0
+    code_level = (
+        "advanced"
+        if average_code_score >= 0.7
+        else "intermediate"
+        if average_code_score >= 0.35
+        else "beginner"
+    )
+    modality = {
+        "visual": "视觉型",
+        "auditory": "文字型",
+        "kinesthetic": "实践型",
+    }.get(cognitive_style.get("preferred_modality"), "实践型")
+    average_session_minutes = focus_level.get("avg_session_minutes", 0)
+    if average_session_minutes >= 45:
+        focus = "高专注"
+    elif average_session_minutes < 20:
+        focus = "需要引导"
+    else:
+        focus = "中等专注"
+    goal_titles = [goal.get("title", "") for goal in learning_goals if goal.get("title")]
+
+    return {
+        "knowledge_mastery": {
+            "topics": [
+                {"name": subject, "level": score}
+                for subject, score in knowledge_base.items()
+            ],
+            "overall": (
+                sum(knowledge_scores) / len(knowledge_scores)
+                if knowledge_scores
+                else 0.0
+            ),
+        },
+        "code_skill": {
+            "level": code_level,
+            "strong_areas": [
+                subject for subject, score in code_skill.items() if score >= 0.6
+            ],
+            "weak_areas": [
+                subject for subject, score in code_skill.items() if score < 0.4
+            ],
+        },
+        "cognitive_style": {"type": modality},
+        "learning_goal": {
+            "current": goal_titles[0] if goal_titles else "",
+            "target_positions": goal_titles,
+        },
+        "weakness": {
+            "areas": [item.get("subject", "") for item in weakness if item.get("subject")]
+        },
+        "focus_level": {"current": focus},
+    }
+
+
+async def _load_portrait(student_id: str) -> dict[str, Any]:
+    """Load the six-dimension portrait through CapabilityRepository."""
     if not student_id:
         return {}
     try:
-        portrait_dict = get_student_portrait(int(student_id))
-        if isinstance(portrait_dict, dict):
-            return portrait_dict
+        repository = get_repository_for_user(student_id, repository_type="capability")
+        profile = await repository.aggregate_profile(student_id)
+        if isinstance(profile, dict):
+            return _capability_to_learning_portrait(profile)
     except Exception as e:
         logger.warning(f"[brainstorm] 读画像失败 student_id={student_id}: {e}")
     return {}
@@ -263,7 +329,7 @@ async def start_brainstorm(requirement: str, student_id: str = "") -> dict[str, 
         student_id=student_id,
         requirement=requirement,
     )
-    portrait_dict = _load_portrait(student_id)
+    portrait_dict = await _load_portrait(student_id)
 
     # 第 1 轮 — 出题但 state.turn=0(尚未收到答案)
     q = await _ask_one_slot("goal", state, portrait_dict)
@@ -301,7 +367,7 @@ async def turn_brainstorm(
         done=True:  返回 obg_pbl_mode, obg_pbl_rationale, outline
     """
     state = await _load(brainstorm_id)
-    portrait_dict = _load_portrait(state.student_id)
+    portrait_dict = await _load_portrait(state.student_id)
 
     async with state.lock:
         # state.turn = 已记录答案数(0 / 1 / 2)
@@ -425,5 +491,5 @@ async def confirm_brainstorm(
 async def get_brainstorm_for_bundle(brainstorm_id: str) -> tuple[dict, dict, Optional[LearningPortrait]]:
     """给 course_bundle 喂数据: 返回 (outline, slots, LearningPortrait)."""
     state = await _load(brainstorm_id)
-    portrait_dict = _load_portrait(state.student_id)
+    portrait_dict = await _load_portrait(state.student_id)
     return state.outline, state.slots, _portrait_to_learning_portrait(portrait_dict)

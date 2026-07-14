@@ -31,7 +31,7 @@ from app.services.course_brainstorm import (  # noqa: E402
 
 
 # ============================================================
-# 通用 mock fixture: 替换 llm_json + get_student_portrait
+# 通用 mock fixture: 替换 llm_json + capability repository
 # ============================================================
 
 MOCK_QUESTIONS = {
@@ -76,10 +76,22 @@ def mock_llm(monkeypatch):
         raise RuntimeError(f"unexpected prompt_id in test: {prompt_id}")
     monkeypatch.setattr(course_brainstorm, "llm_json", fake_llm_json)
 
-    # 画像读不到也无害
-    def fake_get_portrait(student_id):
-        return {"learning_goals": ["求职"], "knowledge_base": {"python": "intermediate"}}
-    monkeypatch.setattr(course_brainstorm, "get_student_portrait", fake_get_portrait)
+    class FakeCapabilityRepository:
+        async def aggregate_profile(self, user_id):
+            return {
+                "knowledge_base": {"Python": 0.6},
+                "code_skill": {"Python": 0.6},
+                "cognitive_style": {"preferred_modality": "visual"},
+                "focus_level": {"avg_session_minutes": 30, "streak_days": 2},
+                "learning_goals": [{"id": 1, "title": "求职"}],
+                "weakness": [],
+            }
+
+    monkeypatch.setattr(
+        course_brainstorm,
+        "get_repository_for_user",
+        lambda user_id, repository_type: FakeCapabilityRepository(),
+    )
 
     BRAINSTORM_STORE.clear()
     yield
