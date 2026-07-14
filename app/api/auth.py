@@ -16,7 +16,8 @@ import jwt
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from db import get_db, get_user_by_username, _is_sqlite
+from db import get_db, _is_sqlite, load_local_storage, save_local_storage
+from app.core.repository_factory import get_repository_for_user
 
 logger = logging.getLogger("starlearn.auth")
 
@@ -135,7 +136,8 @@ def _ensure_demo_accounts():
         ("admin", "管理员", "admin"),
     ]
     for username, display_name, role in demo_users:
-        existing = get_user_by_username(username)
+        repo = get_repository_for_user(username, repository_type="user")
+        existing = repo.get_by_username(username)
         if existing:
             continue
         hashed = _hash_password("123456")
@@ -158,7 +160,6 @@ def _ensure_demo_accounts():
                     continue
 
             # JSON fallback
-            from db import load_local_storage, save_local_storage
             storage = load_local_storage()
             user_id = len(storage.get('users', [])) + 1
             new_user = {
@@ -240,7 +241,8 @@ def login(request: LoginRequest):
     """用户登录，返回 JWT token 和用户信息。"""
     _ensure_user_table()
 
-    user = get_user_by_username(request.username)
+    repo = get_repository_for_user(request.username, repository_type="user")
+    user = repo.get_by_username(request.username)
     if not user:
         raise HTTPException(status_code=401, detail="用户名或密码错误")
 
@@ -271,7 +273,8 @@ def register(request: RegisterRequest):
         raise HTTPException(status_code=400, detail="无效的角色")
 
     # 检查用户名是否已存在
-    existing = get_user_by_username(request.username)
+    repo = get_repository_for_user(request.username, repository_type="user")
+    existing = repo.get_by_username(request.username)
     if existing:
         raise HTTPException(status_code=409, detail="用户名已存在")
 
@@ -298,7 +301,6 @@ def register(request: RegisterRequest):
                 raise HTTPException(status_code=500, detail=f"注册失败: {e}")
 
         # JSON fallback
-        from db import load_local_storage, save_local_storage
         storage = load_local_storage()
         user_id = len(storage.get('users', [])) + 1
         new_user = {
@@ -334,7 +336,8 @@ def get_me(request: Request):
 
     # 从数据库获取最新用户信息
     if username:
-        user = get_user_by_username(username)
+        repo = get_repository_for_user(username, repository_type="user")
+        user = repo.get_by_username(username)
     else:
         user = None
 

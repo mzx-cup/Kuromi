@@ -26,14 +26,21 @@ class DbPyUserRepository:
             conn.close()
 
     def get_by_username(self, username: str) -> dict | None:
+        """Look up a user by username; return the full row or None.
+
+        Returns the same shape as ``db.get_user_by_username`` (a dict mapping
+        every user-table column) so API layers can access ``role``,
+        ``display_name``, ``nickname``, ``avatar`` etc. without reshaping.
+        """
         conn = self._conn()
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, username, password, preferred_language FROM user WHERE username = ?", (username,))
+            cur.execute("SELECT * FROM user WHERE username = ?", (username,))
             row = cur.fetchone()
             if not row:
                 return None
-            return {"id": row[0], "username": row[1], "password": row[2], "preferred_language": row[3]}
+            cols = [d[0] for d in cur.description]
+            return {col: row[i] for i, col in enumerate(cols)}
         finally:
             conn.close()
 
