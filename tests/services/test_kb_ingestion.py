@@ -42,3 +42,20 @@ def test_source_ref_accepts_all_valid_types():
     for t in ("textbook", "codebase", "agent_output", "manual", "external_parsed"):
         ref = SourceRef(type=t, reference="r", confidence=0.5, verifier_id=None)
         assert ref.is_valid()
+
+
+def test_ingestion_rejects_node_without_source():
+    from app.services.kb.ingestion import ingest_node, IngestionRejected
+    with pytest.raises(IngestionRejected, match="source"):
+        ingest_node(subject="math", title="x", content="y", source=None)
+
+
+def test_ingestion_accepts_node_with_valid_source(monkeypatch):
+    from app.services.kb.ingestion import ingest_node
+    monkeypatch.setattr("app.services.kb.ingestion._persist_to_qdrant", lambda n: True)
+    monkeypatch.setattr("app.services.kb.ingestion._persist_to_db", lambda n: True)
+    nid = ingest_node(
+        subject="math", title="勾股定理", content="a²+b²=c²",
+        source={"type": "textbook", "reference": "ISBN-1234", "confidence": 0.95, "verifier_id": None}
+    )
+    assert nid.startswith("KB-CON-")
