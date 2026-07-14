@@ -27,5 +27,5 @@ def parse_with_retry(
             raw_text + "\n\n（必须为每条 claim 提供 [KB:node_id] 引用。）"
         )
         out = parser.parse(retried)
-        out.retry_succeeded = True
+        out.retry_succeeded = not out.blocked
         return out

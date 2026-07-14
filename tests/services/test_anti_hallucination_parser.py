@@ -70,3 +70,33 @@ def test_parse_with_retry_succeeds_on_second_attempt(monkeypatch):
     out = parse_with_retry(parser, "勾股定理是 a²+b²=c²。", fake_llm_call)
     assert out.retry_succeeded is True
     assert not out.blocked
+
+
+def test_parse_with_retry_blocks_when_retry_still_unbacked(monkeypatch):
+    """Both first and retry attempts have unbacked claims → blocked, retry_succeeded=False."""
+    parser = AntiHallucinationOutputParser(
+        valid_node_ids={"KB-CON-0001"}, retry_count=0
+    )
+
+    def fake_llm_call(_prompt: str) -> str:
+        return "勾股定理是 a²+b²=c²。"  # still no citation
+
+    out = parse_with_retry(parser, "勾股定理是 a²+b²=c²。", fake_llm_call)
+    assert out.blocked is True
+    assert out.block_reason == "unbacked_claims"
+    assert out.retry_succeeded is False
+
+
+def test_parse_with_retry_blocked_on_invalid_id_in_retry(monkeypatch):
+    """Retry produces invalid citation id → blocked with invalid_citation_id, retry_succeeded=False."""
+    parser = AntiHallucinationOutputParser(
+        valid_node_ids={"KB-CON-0001"}, retry_count=0
+    )
+
+    def fake_llm_call(_prompt: str) -> str:
+        return "勾股定理 [KB:KB-CON-9999] 是 a²+b²=c²。"  # invalid id
+
+    out = parse_with_retry(parser, "勾股定理是 a²+b²=c²。", fake_llm_call)
+    assert out.blocked is True
+    assert out.block_reason == "invalid_citation_id"
+    assert out.retry_succeeded is False

@@ -63,7 +63,6 @@ class AntiHallucinationOutputParser(BaseOutputParser[ValidatedResponse]):
                 blocked=True,
                 block_reason="invalid_citation_id",
                 risk=1.0,
-                citations=citations,
             )
 
         if unbacked:

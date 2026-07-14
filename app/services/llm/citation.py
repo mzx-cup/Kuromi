@@ -43,4 +43,6 @@ def has_citation(claim: str, citations: List[Citation]) -> bool:
 
 
 def compute_risk(unbacked_ratio: float, invalid_ratio: float) -> float:
+    # Unbacked (no grounding) is weighted higher than invalid (partially grounded
+    # but referencing a non-existent node) because unbacked is a worse failure mode.
     return round(unbacked_ratio * 0.6 + invalid_ratio * 0.4, 2)
