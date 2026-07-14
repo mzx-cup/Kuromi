@@ -220,6 +220,16 @@ class SqlAlchemyLearningRepository:
         "streak_days",
     )
 
+    _EVAL_INPUT_ALIASES = {
+        "interaction_count": "interactionCount",
+        "socratic_pass_rate": "socraticPassRate",
+        "difficulty_level": "difficultyLevel",
+        "code_practice_time": "codePracticeTime",
+        "focus_time_today": "focusTimeToday",
+        "flashcards_studied": "flashcardsStudied",
+        "streak_days": "streakDays",
+    }
+
     def save_learning_record(self, user_id, record: dict) -> int:
         """Upsert the user's learning-profile snapshot (one row per user)."""
         profile = (
@@ -275,6 +285,10 @@ class SqlAlchemyLearningRepository:
         for field in self._EVAL_FIELDS:
             if field in evaluation:
                 setattr(row, field, evaluation[field])
+                continue
+            alias = self._EVAL_INPUT_ALIASES[field]
+            if alias in evaluation:
+                setattr(row, field, evaluation[alias])
         row.eval_json = json.dumps(evaluation, ensure_ascii=False)
         self.session.flush()
         return 1

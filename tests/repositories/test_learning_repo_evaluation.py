@@ -122,6 +122,32 @@ class TestOrmEvaluation:
         orm_session.commit()
         assert len(repo.get_user_evaluation_history("u1")) == 1
 
+    def test_orm_save_user_evaluation_accepts_api_field_names(self, orm_session):
+        repo = SqlAlchemyLearningRepository(orm_session)
+        repo.save_user_evaluation(
+            "u1",
+            {
+                "interactionCount": 5,
+                "socraticPassRate": 0.8,
+                "difficultyLevel": "advanced",
+                "codePracticeTime": 30,
+                "focusTimeToday": 20,
+                "flashcardsStudied": 4,
+                "streakDays": 6,
+            },
+        )
+        orm_session.commit()
+
+        rec = repo.get_user_evaluation("u1")
+
+        assert rec["interaction_count"] == 5
+        assert rec["socratic_pass_rate"] == 0.8
+        assert rec["difficulty_level"] == "advanced"
+        assert rec["code_practice_time"] == 30
+        assert rec["focus_time_today"] == 20
+        assert rec["flashcards_studied"] == 4
+        assert rec["streak_days"] == 6
+
     def test_orm_save_user_evaluation_upserts_same_day(self, orm_session):
         repo = SqlAlchemyLearningRepository(orm_session)
         repo.save_user_evaluation("u1", {"interaction_count": 5})
