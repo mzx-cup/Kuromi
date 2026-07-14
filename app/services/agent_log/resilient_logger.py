@@ -20,20 +20,50 @@ gap before S3.2 lands. The real implementation is wired in S3 task S3.2.
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
+
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm import sessionmaker
 
 from app.models.agent_behavior_log import AgentBehaviorLog
 from app.services.agent_log.buffer import redis_push
 from app.services.agent_log.disk_spool import disk_append
 
 
+def _to_sync_url(url: str) -> str:
+    """Convert async SQLAlchemy URL (postgresql+asyncpg) to sync (postgresql+psycopg2).
+
+    Returns ``''`` if URL is empty so callers can no-op cleanly.
+    """
+    if not url:
+        return ""
+    return url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+
+
+_sync_url: str = _to_sync_url(os.getenv("DATABASE_URL", ""))
+_engine: Optional[Engine] = create_engine(_sync_url, future=True) if _sync_url else None
+_SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False) if _engine else None
+
+
 def db_insert(log: AgentBehaviorLog) -> bool:
     """Insert ``log`` into the canonical store (PostgreSQL).
 
-    Real DB insert — implemented in S3 task S3.2.
+    Wired in S3.2: real ORM insert using a dedicated sync engine.
+    Returns True on success, False on any failure (caller falls through
+    to Redis/disk layers).
     """
-    return False
+    if _SessionLocal is None:
+        return False
+    try:
+        with _SessionLocal() as session:
+            session.add(log)
+            session.commit()
+        return True
+    except Exception:  # noqa: BLE001 - fail-open contract.
+        return False
 
 
 @dataclass

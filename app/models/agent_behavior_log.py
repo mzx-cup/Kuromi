@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Integer, DateTime, Text, JSON
+from sqlalchemy import String, Integer, DateTime, Text, JSON, Float, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
@@ -27,6 +27,9 @@ class AgentBehaviorLog(Base):
     input_summary: Mapped[str] = mapped_column(Text, default="")
     output_text: Mapped[str] = mapped_column(Text, default="")
     citations: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    hallucination_risk_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    blocked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    block_reason: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.utcnow(),
