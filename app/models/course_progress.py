@@ -99,3 +99,20 @@ class CourseDeadline(Base):
     course_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     title: Mapped[str] = mapped_column(String(256), default="")
     deadline: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+
+
+class DailyRoute(Base):
+    """Per-user daily task route (replaces db.py daily_routes).
+
+    One row per (user_id, route_date). ``tasks_json`` holds the suggested
+    tasks for the day; ``completed_json`` holds the completed-subset markers
+    used by the rule engine / dashboard widgets.
+    """
+    __tablename__ = "daily_routes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False, index=True)
+    route_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    tasks_json: Mapped[list] = mapped_column(JSON, default=list)
+    completed_json: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.utcnow())
