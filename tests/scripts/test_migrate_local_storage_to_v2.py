@@ -61,15 +61,20 @@ def _ensure_v2_db_schema(target_db: Path) -> None:
                 student_id VARCHAR(64) NOT NULL,
                 course_id VARCHAR(64) NOT NULL,
                 course_data JSON,
-                current_scene_index INTEGER NOT NULL DEFAULT 0,
+                current_scene_index INTEGER NOT NULL,
                 visited_scenes JSON,
                 quiz_answers JSON,
                 chat_history JSON,
-                time_spent INTEGER NOT NULL DEFAULT 0,
-                status VARCHAR(20) NOT NULL DEFAULT 'active',
-                teacher_persona VARCHAR(32) NOT NULL DEFAULT 'expert_mentor',
+                time_spent INTEGER NOT NULL,
+                status VARCHAR(20) NOT NULL,
+                teacher_persona VARCHAR(32) NOT NULL,
                 created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                user_id VARCHAR(64),
+                started_at DATETIME,
+                ended_at DATETIME,
+                current_slide INTEGER NOT NULL,
+                teacher_mode INTEGER NOT NULL
             );
 
             CREATE TABLE daily_routes (
@@ -78,7 +83,7 @@ def _ensure_v2_db_schema(target_db: Path) -> None:
                 route_date DATE NOT NULL,
                 tasks_json JSON NOT NULL DEFAULT '[]',
                 completed_json JSON NOT NULL DEFAULT '[]',
-                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME NOT NULL
             );
             """
         )
@@ -299,23 +304,25 @@ def test_migrate_classroom_records_maps_to_classroom_sessions(fixture_env):
 
 
 def test_migrate_daily_routes_renames_date_field_and_wraps_tasks(fixture_env):
-    """JSON 'date' → ORM 'route_date'; 'tasks'/'completed' lists → JSON columns."""
+    """JSON 'date' → ORM 'route_date'; 'tasks'/'completed' lists → JSON columns;
+    created_at is supplied from JSON's generated_at (NOT NULL with no DB default)."""
     mig.run(json_path=fixture_env["json"], db_path=fixture_env["db"])
 
     conn = sqlite3.connect(str(fixture_env["db"]))
     try:
         row = conn.execute(
-            "SELECT user_id, route_date, tasks_json, completed_json "
+            "SELECT user_id, route_date, tasks_json, completed_json, created_at "
             "FROM daily_routes WHERE user_id = '7'"
         ).fetchone()
     finally:
         conn.close()
     assert row is not None
-    user_id, route_date, tasks_json, completed_json = row
+    user_id, route_date, tasks_json, completed_json, created_at = row
     assert user_id == "7"
     assert route_date == "2025-04-02"
     assert json.loads(tasks_json) == [{"task_id": "t1", "title": "看视频"}]
     assert json.loads(completed_json) == ["t1"]
+    assert created_at == "2025-04-02T08:00:00"
 
 
 def test_migrate_creates_user_flashcard_progress_and_inserts(fixture_env):

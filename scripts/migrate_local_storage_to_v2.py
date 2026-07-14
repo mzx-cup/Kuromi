@@ -196,13 +196,17 @@ def _migrate_classroom_records(conn: sqlite3.Connection, records: list[dict]) ->
         new_id = str(r["id"])
         # course_data column holds the full_data JSON blob; other JSON columns
         # are nullable defaults (the legacy class had no scene/quiz concept).
+        # classroom_sessions.time_spent / current_slide / teacher_mode are
+        # NOT NULL with no DB default; provide 0/false to keep the INSERT
+        # valid (and prevent INSERT OR IGNORE from silently swallowing it).
         full_data = r.get("full_data") or "{}"
         cur.execute(
             """
             INSERT OR IGNORE INTO classroom_sessions
                 (id, student_id, course_id, course_data,
-                 current_scene_index, status, teacher_persona)
-            VALUES (?, ?, ?, ?, 0, 'active', 'expert_mentor')
+                 current_scene_index, time_spent, status, teacher_persona,
+                 current_slide, teacher_mode)
+            VALUES (?, ?, ?, ?, 0, 0, 'active', 'expert_mentor', 0, 0)
             """,
             (
                 new_id,
@@ -229,12 +233,16 @@ def _migrate_daily_routes(conn: sqlite3.Connection, routes: list[dict]) -> int:
         )
         if cur.fetchone() is not None:
             continue
+        # daily_routes.created_at is NOT NULL without a DB default in v2.db;
+        # fall back to the JSON's generated_at, or now() if absent.
+        created_at = r.get("generated_at") or _now_iso()
         cur.execute(
             """
-            INSERT INTO daily_routes (user_id, route_date, tasks_json, completed_json)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO daily_routes
+                (user_id, route_date, tasks_json, completed_json, created_at)
+            VALUES (?, ?, ?, ?, ?)
             """,
-            (str(r["user_id"]), r.get("date", ""), tasks_json, completed_json),
+            (str(r["user_id"]), r.get("date", ""), tasks_json, completed_json, created_at),
         )
         inserted += 1
     return inserted
