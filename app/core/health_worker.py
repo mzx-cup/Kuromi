@@ -6,9 +6,12 @@ from app.services.health.health_probe import HealthProbe
 
 
 def probe_qdrant() -> bool:
-    from app.services.kb.qdrant_client import QdrantClientSingleton
-    status = QdrantClientSingleton.health()["status"]
-    return status in ("ok", "degraded")
+    try:
+        from app.services.kb.qdrant_client import QdrantClientSingleton
+        status = QdrantClientSingleton.health()["status"]
+        return status in ("ok", "degraded")
+    except Exception:
+        return False
 
 
 def probe_redis() -> bool:
