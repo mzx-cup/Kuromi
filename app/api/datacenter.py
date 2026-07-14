@@ -332,7 +332,18 @@ def _build_focus_summary(focus_history: list) -> dict[str, Any]:
 
 
 def _build_fallback_dashboard(user_id: int, range_key: str) -> dict[str, Any]:
-    """当数据库不可用或用户不存在时，返回演示数据。"""
+    """当数据库不可用或用户不存在时,返回演示数据。
+
+    仅当 ALLOW_DEMO_LOGIN=true 时调用 (开发/演示模式);生产环境
+    (ALLOW_DEMO_LOGIN=false) 下用户不存在应返回 404 而非假数据,
+    避免用户误以为假数据是自己的学习记录。
+    """
+    import os
+    if os.environ.get("ALLOW_DEMO_LOGIN", "false").lower() not in ("true", "1", "yes"):
+        raise HTTPException(
+            status_code=404,
+            detail="用户无学习数据,且演示模式已关闭 (生产环境不应返回假数据)",
+        )
     today = date.today()
     days_map = {"7d": 7, "30d": 30, "90d": 90}
     range_days = days_map.get(range_key, 30)
