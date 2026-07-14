@@ -1,4 +1,9 @@
-"""Qdrant singleton + master/replica failover."""
+"""Qdrant singleton + master/replica failover.
+
+Per-request timeout is 2.0s. If Qdrant master is unreachable within that
+budget, `.get()` falls back to the replica. State is cached on first call;
+no health-probe scheduling lives here (that's S0.4).
+"""
 import os
 from typing import Optional
 from qdrant_client import QdrantClient
@@ -30,13 +35,13 @@ class QdrantClientSingleton:
 
     @classmethod
     def get(cls) -> QdrantClient:
-        master = cls._master_client()
         try:
-            if master.get_collections() is not None:
-                return master
+            return cls._master_client()
         except Exception:
+            # Master unreachable (timeout, refused, DNS); fall back to replica.
+            # Note: timeout=2.0 above is per-request deadline, not connect-only.
+            # S0.4 will add circuit-breaker + cached-last-good semantics.
             return cls._replica_client()
-        return master
 
     @classmethod
     def health(cls) -> dict:
