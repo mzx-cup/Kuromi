@@ -20,7 +20,7 @@ def _persist_to_db(node: KnowledgeNode) -> bool:
 
 
 def _persist_to_qdrant(node: KnowledgeNode) -> bool:
-    """Qdrant upsert — Qdrant upsert wiring deferred to S2.3 follow-up.
+    """Qdrant upsert wiring — deferred to S2.3 follow-up.
 
     S2.3 ships the CitationRetriever over an injected vector store (see
     ``app/services/kb/citation_retriever.py``); the production wiring of

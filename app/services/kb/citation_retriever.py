@@ -16,7 +16,7 @@ from langchain_core.documents import Document
 from typing import List
 
 
-@dataclass
+@dataclass(frozen=True)
 class CitationHit:
     node_id: str
     title: str
