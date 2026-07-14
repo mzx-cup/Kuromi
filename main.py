@@ -94,6 +94,15 @@ async def lifespan(app: FastAPI):
         await seed_courses_if_empty()
     except Exception as e:
         logger.exception(f"[Startup] seed failed: {e}")
+    try:
+        from app.core.health_worker import HealthWorker
+        from app.core.config import kb_settings
+        health_worker = HealthWorker(interval_seconds=kb_settings.health_check_interval_s)
+        health_worker.start_background()
+        app.state.health_worker = health_worker
+        logger.info(f"[Startup] HealthWorker started (interval={kb_settings.health_check_interval_s}s)")
+    except Exception as e:
+        logger.exception(f"[Startup] HealthWorker start failed: {e}")
     all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
     v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
     logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
