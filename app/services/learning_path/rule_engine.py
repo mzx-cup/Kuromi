@@ -13,6 +13,12 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import db as database
+from app.core.repository_factory import get_repository_for_user
+
+
+def _course_progress_repo(user_id):
+    """CourseProgressRepository instance routed for this user."""
+    return get_repository_for_user(str(user_id), repository_type="course_progress")
 
 
 # ── 规则配置 ──
@@ -119,7 +125,8 @@ def _topic_similarity(a: str, b: str) -> float:
 
 def _get_node_study_stats(user_id: str | int, node_id: str) -> dict:
     """获取某知识点的学习统计"""
-    node = database.get_learning_path_node(user_id, node_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    node = course_progress_repo.get_learning_path_node(user_id, node_id)
     if node:
         return {
             'interaction_count': node.get('interaction_count', 0),
@@ -142,9 +149,10 @@ def evaluate_node(
     """
     config = config or DEFAULT_RULE_CONFIG
     evidence = {}
+    course_progress_repo = _course_progress_repo(user_id)
 
     # 1. 获取现有节点状态
-    existing = database.get_learning_path_node(user_id, node_id)
+    existing = course_progress_repo.get_learning_path_node(user_id, node_id)
     current_status = existing.get('status', 'locked') if existing else 'locked'
 
     # 2. 评估各维度
@@ -356,7 +364,8 @@ def on_interaction(user_id: str | int, node_id: str | None = None) -> RuleEvalua
 
 def _apply_result(user_id, node_id, result: RuleEvaluationResult) -> bool:
     """将规则评估结果保存到数据库"""
-    existing = database.get_learning_path_node(user_id, node_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    existing = course_progress_repo.get_learning_path_node(user_id, node_id)
 
     # 构建节点数据
     node_data = {
@@ -377,7 +386,7 @@ def _apply_result(user_id, node_id, result: RuleEvaluationResult) -> bool:
         node_data['code_task_passed'] = existing.get('code_task_passed', 0)
         node_data['classroom_progress_pct'] = existing.get('classroom_progress_pct', 0.0)
 
-    success = database.save_learning_path_node(user_id, node_data)
+    success = course_progress_repo.save_learning_path_node(user_id, node_data)
     if success:
         print(f"[RuleEngine] 节点 {node_id} 评估完成: status={result.status}, mastery={result.mastery_score}")
     return success
@@ -412,7 +421,8 @@ def _infer_node_id_from_course(course_id: str) -> str | None:
 
 def reevaluate_all_nodes(user_id: str | int) -> list[RuleEvaluationResult]:
     """重新评估该学生的所有节点（用于定时刷新或路径重生成前）"""
-    nodes = database.get_learning_path_nodes(user_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    nodes = course_progress_repo.get_learning_path_nodes(user_id)
     results = []
     for node in nodes:
         node_id = node.get('node_id')

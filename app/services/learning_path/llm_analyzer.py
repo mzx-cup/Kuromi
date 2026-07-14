@@ -14,7 +14,13 @@ from dataclasses import dataclass
 from typing import Any
 
 import db as database
+from app.core.repository_factory import get_repository_for_user
 from config import settings
+
+
+def _course_progress_repo(user_id):
+    """CourseProgressRepository instance routed for this user."""
+    return get_repository_for_user(str(user_id), repository_type="course_progress")
 
 
 @dataclass
@@ -125,7 +131,8 @@ def analyze_node_from_conversation(
         LLMNodeAnalysis 或 None（如果无法分析）
     """
     # 获取节点信息
-    node = database.get_learning_path_node(user_id, node_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    node = course_progress_repo.get_learning_path_node(user_id, node_id)
     if not node:
         return None
 
@@ -163,7 +170,8 @@ def apply_llm_analysis(user_id: str | int, analysis: LLMNodeAnalysis) -> bool:
     - understood + confidence >= 0.8 + recommend_quiz=True：标记 mastered（待验证）
     - understood + confidence < 0.8：不做状态变更，仅记录分析
     """
-    existing = database.get_learning_path_node(user_id, analysis.node_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    existing = course_progress_repo.get_learning_path_node(user_id, analysis.node_id)
     if not existing:
         return False
 
@@ -204,7 +212,7 @@ def apply_llm_analysis(user_id: str | int, analysis: LLMNodeAnalysis) -> bool:
         if current_status == 'locked':
             node_data['status'] = 'in_progress'
 
-    success = database.save_learning_path_node(user_id, node_data)
+    success = course_progress_repo.save_learning_path_node(user_id, node_data)
     if success:
         print(f"[LLMAnalyzer] 节点 {analysis.node_id} LLM分析完成: "
               f"understood={analysis.understood}, confidence={analysis.confidence}, "
