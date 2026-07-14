@@ -20,8 +20,18 @@ def _persist_to_db(node: KnowledgeNode) -> bool:
 
 
 def _persist_to_qdrant(node: KnowledgeNode) -> bool:
-    """Qdrant upsert — wired in S2."""
-    raise NotImplementedError
+    """Qdrant upsert — Qdrant upsert wiring deferred to S2.3 follow-up.
+
+    S2.3 ships the CitationRetriever over an injected vector store (see
+    ``app/services/kb/citation_retriever.py``); the production wiring of
+    ``_persist_to_qdrant`` to ``QdrantClientSingleton.get()`` (with an
+    embedding function and a chosen collection / vector name) requires
+    a dedicated task so the embedding source and collection schema can be
+    decided explicitly. Until then, ingestion accepts the node in the
+    SQL store but skips the vector upsert — callers must monkeypatch this
+    stub in tests (see ``tests/services/test_kb_ingestion.py``).
+    """
+    raise NotImplementedError("Qdrant upsert — wired in S2.3 follow-up")
 
 
 def ingest_node(subject: str, title: str, content: str, source: dict | None, tags: list[str] | None = None, ttl_days: int = 180) -> str:
