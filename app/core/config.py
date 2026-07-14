@@ -48,3 +48,25 @@ def get_config() -> AppConfig:
 
 # Single source of truth. .env can override via DATABASE_URL=...
 DATABASE_URL: str = os.getenv("DATABASE_URL", "") or get_config().database_url
+
+
+class KBSettings(BaseSettings):
+    """KB platform plumbing: Qdrant, Redis, gray cutover. Distinct from AppConfig."""
+    qdrant_master_host: str = "localhost"
+    qdrant_replica_host: str = "localhost"
+    qdrant_port: int = 6333
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    health_check_interval_s: int = 10
+    behavior_log_spool_dir: str = "./spool/agent_log"  # relative-to-cwd; override via KB_BEHAVIOR_LOG_SPOOL_DIR
+    read_backend_percentage: int = 0  # 0..100, gray cutover for LangChain path
+    dual_write_legacy: bool = True
+
+    model_config = {
+        "env_file": ".env",
+        "env_prefix": "KB_",
+        "extra": "ignore",
+    }
+
+
+kb_settings = KBSettings()
