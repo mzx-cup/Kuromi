@@ -135,18 +135,23 @@ class DbPyChatRepository:
             conn.close()
 
     def update_memory(self, memory_id: int, updates: dict) -> None:
+        assignments = []
+        values = []
+        if "content" in updates:
+            assignments.append("content = ?")
+            values.append(updates["content"])
+        if "importance" in updates:
+            assignments.append("importance = ?")
+            values.append(updates["importance"])
+        if not assignments:
+            return
+
         conn = self._conn()
         try:
-            cur = conn.cursor()
-            cur.execute("""
-                UPDATE user_memories
-                SET content = ?, importance = ?
-                WHERE id = ?
-            """, (
-                updates.get("content", ""),
-                updates.get("importance", 1),
-                memory_id,
-            ))
+            conn.execute(
+                f"UPDATE user_memories SET {', '.join(assignments)} WHERE id = ?",
+                (*values, memory_id),
+            )
             conn.commit()
         finally:
             conn.close()

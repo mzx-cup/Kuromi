@@ -196,6 +196,24 @@ class TestLegacyMemoryManagement:
         assert len(facts) == 1
         assert facts[0]["content"] == "f"
 
+    def test_legacy_update_content_preserves_importance(self, legacy_db):
+        repo = DbPyChatRepository(legacy_db)
+        mem_id = repo.save_memory(
+            "1", {"memory_type": "fact", "content": "old", "importance": 5}
+        )
+
+        repo.update_memory(mem_id, {"content": "new"})
+
+        conn = sqlite3.connect(legacy_db)
+        try:
+            row = conn.execute(
+                "SELECT content, importance FROM user_memories WHERE id = ?",
+                (mem_id,),
+            ).fetchone()
+        finally:
+            conn.close()
+        assert row == ("new", 5)
+
 
 class TestProtocolCompliance:
     def test_protocol_includes_new_methods(self):
