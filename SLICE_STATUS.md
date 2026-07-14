@@ -138,6 +138,40 @@ CourseProgressRepository，覆盖 slices #2-#10 的读写路径统一。
 
 **负责人：** `<待填>`
 
+### Phase 2 local_storage.json → v2.db 一次性迁移（2026-07-14）
+
+把前端 `local_storage.json` 持久化的 5 个集合（users / user_login_records
+/ classroom_records / daily_routes / user_flashcard_progress）一次性迁
+到 ORM 管理的 SQLite（xingshi_v2.db），后续读写全部走 Repository。
+
+**已完成：**
+- 2.1 `scripts/migrate_local_storage_to_v2.py` + 11 个 pytest 用例
+  （commit 3c57d21）
+- 2.2 真实 `local_storage.json` 跑迁移，对照 JSON 唯一键与 v2.db 行数
+  全部一致；幂等重跑 0 新增；备份策略与既有 migrate_*.py 一致
+  （commit 2982e5b 修复 classroom_sessions / daily_routes 的 NOT NULL
+  漏列问题；测试 fixture 升级对齐生产 v2.db schema）
+
+**迁移结果：**
+| 集合 | JSON 唯一键 | v2.db 行数 | 一致 |
+|------|------------|------------|------|
+| users                  | 5    | 5    | ✓ |
+| user_login_records     | 52   | 52   | ✓ |
+| classroom_sessions     | 12   | 12   | ✓ |
+| daily_routes           | 22   | 22   | ✓ |
+| user_flashcard_progress| 3    | 3    | ✓ |
+
+**完成标志：**
+- [x] 11/11 pytest 用例通过（含 ALTER TABLE 加列、字段重命名、JSON 包装、幂等、空/缺失文件错误路径、备份创建）
+- [x] 真实 `local_storage.json` 5 张表全量一致
+- [x] 重跑 0 增量
+- [ ] `load_local_storage` / `save_local_storage` 在生产路径 raise（Phase 2.3 待做）
+- [ ] `local_storage.json` 归档 / 移除（待 Phase 2.3 完成后由用户决定）
+
+**当前阶段：** Phase 2 迁移 + 验证完成；待 Phase 2.3 收口 dual-write 路径。
+
+**负责人：** `<待填>`
+
 ## 进行中切片
 
 （无 — 等待 #1 / #12 完成 Phase 4-5）
