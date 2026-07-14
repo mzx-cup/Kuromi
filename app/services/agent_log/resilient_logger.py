@@ -14,8 +14,9 @@ retry later, drop, etc).
 Each layer is a module-level callable so tests can patch
 ``app.services.agent_log.resilient_logger.<name>`` directly.
 
-NOTE: ``db_insert`` is intentionally a stub that raises NotImplementedError.
-The real implementation is wired in S3 task S3.2.
+NOTE: ``db_insert`` is intentionally a stub that returns False for now
+so the fallthrough path (Redis -> Disk) is exercised cleanly during the
+gap before S3.2 lands. The real implementation is wired in S3 task S3.2.
 """
 from __future__ import annotations
 
@@ -30,11 +31,9 @@ from app.services.agent_log.disk_spool import disk_append
 def db_insert(log: AgentBehaviorLog) -> bool:
     """Insert ``log`` into the canonical store (PostgreSQL).
 
-    Intentionally a stub for S0.3. The real implementation is wired in
-    S3 task S3.2; calling this now will raise NotImplementedError so we
-    surface that gap loudly instead of silently dropping logs.
+    Real DB insert — implemented in S3 task S3.2.
     """
-    raise NotImplementedError("Wired up in S3 task S3.2")
+    return False
 
 
 @dataclass
@@ -51,14 +50,16 @@ class ResilientBehaviorLogger:
     caller decides what to do with a rejected entry.
     """
 
-    def log(self, log: AgentBehaviorLog, *, timeout_ms: int = 500) -> LogResult:
+    def log(self, log: AgentBehaviorLog) -> LogResult:
         # Layer 1: DB.
         try:
             if db_insert(log):
                 return LogResult(status="ok", layer="db")
         except Exception as exc:  # noqa: BLE001 - fail-open contract.
-            # Stub raises NotImplementedError until S3.2; treat as DB-failed
-            # so we fall through to Redis/disk.
+            # If db_insert raises, treat as DB-failed so we fall through
+            # to Redis/disk. The S0.3 stub returns False directly, so this
+            # branch only fires once S3.2 wires the real DB layer and a
+            # transient error escapes (e.g. connection drop).
             db_error = str(exc)
         else:
             db_error = ""

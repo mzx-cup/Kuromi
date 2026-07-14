@@ -32,18 +32,8 @@ class AgentBehaviorLog(Base):
         default=lambda: datetime.utcnow(),
     )
 
-    def __init__(
-        self,
-        agent_id: str,
-        user_id: str,
-        action_type: str,
-        input_summary: str = "",
-        output_text: str = "",
-        citations: Optional[list] = None,
-    ) -> None:
-        self.agent_id = agent_id
-        self.user_id = user_id
-        self.action_type = action_type
-        self.input_summary = input_summary
-        self.output_text = output_text
-        self.citations = citations
+    # NOTE: no custom __init__ is defined. SQLAlchemy generates one from
+    # the ``Mapped[...]`` annotations above; it accepts ``**kwargs`` and
+    # applies mapped defaults (e.g. ``default=datetime.utcnow``) at flush
+    # time. Custom constructors would shadow this and break
+    # ``AgentBehaviorLog(**dict)`` patterns used by S3.2's real DB wiring.
