@@ -10,6 +10,7 @@ from datetime import date, datetime
 from typing import Any
 
 import db as database
+from app.core.repository_factory import get_repository_for_user
 
 
 def _safe_json(val):
@@ -37,6 +38,7 @@ def build_student_analytics(user_id: str | int) -> dict[str, Any]:
       - messages / conversation_summaries（近期对话）
     """
     user_id = str(user_id)
+    course_progress_repo = get_repository_for_user(user_id, repository_type="course_progress")
 
     # 1. 用户画像
     profile_raw = database.get_user_profile(user_id)
@@ -59,10 +61,10 @@ def build_student_analytics(user_id: str | int) -> dict[str, Any]:
 
     # 6. 今日航线
     today = date.today().isoformat()
-    daily_route = database.get_daily_route(user_id, today)
+    daily_route = course_progress_repo.get_daily_route(user_id, today)
 
     # 7. 当前路径
-    path_raw = database.get_learning_path(user_id)
+    path_raw = course_progress_repo.get_learning_path_graph(user_id)
     raw_path_data = _safe_json(path_raw.get("path_json")) if path_raw else []
     # 兼容新格式 {path: [...], capability_analysis: {...}} 和旧格式 [...]
     if isinstance(raw_path_data, dict) and "path" in raw_path_data:
