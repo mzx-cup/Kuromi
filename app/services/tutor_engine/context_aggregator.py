@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, Optional
@@ -150,7 +151,15 @@ class ContextAggregator:
         tasks = []
 
         if self.config.enable_rag:
-            tasks.append(self._fetch_rag(event, rich))
+            # 灰度切流：根据 kb_settings.read_backend_percentage 把
+            # 1%..100% 的 RAG 调用路由到 LangChain 检索路径，
+            # 其余继续走 legacy _fetch_rag。langchain 路径异常会被
+            # gather(..., return_exceptions=True) 捕获，legacy 不会补位
+            # （_fetch_rag_langchain 内部已 fall-through，见该方法）。
+            if self._should_use_langchain_backend():
+                tasks.append(self._fetch_rag_langchain(event, rich))
+            else:
+                tasks.append(self._fetch_rag(event, rich))
         if self.config.enable_web_search:
             tasks.append(self._fetch_web(event, rich))
         if self.config.enable_memory:
@@ -208,6 +217,91 @@ class ContextAggregator:
             logger.info(f"[ContextAggregator] RAG 检索到 {len(sources)} 条教材引用")
         except Exception as e:
             logger.warning(f"[ContextAggregator] RAG 失败: {e}")
+
+    # ------------------------------------------------------------------
+    # 灰度切流: LangChain 检索路径 (S2.4)
+    # ------------------------------------------------------------------
+
+    def _should_use_langchain_backend(self) -> bool:
+        """根据 kb_settings.read_backend_percentage 决定本次 RAG 是否走 LangChain。
+
+        单一随机源 ``random.randint(1, 100)``，阈值取自
+        ``app.core.config.kb_settings.read_backend_percentage`` (0..100)。
+        当 percentage == 0 时永远走 legacy；== 100 时永远走 langchain。
+        测试通过 ``monkeypatch.setattr(random, 'randint', ...)`` 控制。
+        """
+        try:
+            from app.core.config import kb_settings
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"[ContextAggregator] 读取 kb_settings 失败: {e}")
+            return False
+        pct = int(getattr(kb_settings, "read_backend_percentage", 0) or 0)
+        if pct <= 0:
+            return False
+        return random.randint(1, 100) <= pct
+
+    async def _fetch_rag_langchain(self, event: TutorEvent, rich: RichContext) -> None:
+        """LangChain 检索路径 —— 由 ``_should_use_langchain_backend`` 灰度触发。
+
+        使用流程:
+          1) 取问题文本
+          2) 构建 Qdrant 向量库的 LangChain 包装
+          3) 通过 ``CitationRetriever`` 检索 CitationHit
+          4) 将命中写入 ``rich.rag_results`` / ``rich.rag_context_text``
+          5) 任何异常都不会阻塞 aggregate：fall-through 到 legacy 占位
+             （gather 已 return_exceptions=True，这里只记 warning 让后续
+             评估流程能在 rag 字段为空的情况下继续）
+
+        当前 S2.4 先打通切流钩子；向量库的产线包装（Qdrant wrapper +
+        XunfeiEmbeddings + collection / vector name 决策）按 S2.3 的
+        deferral 模式延后到 S2.4 follow-up 实现。此处使用
+        ``_build_langchain_vector_store`` 钩子以便测试通过 monkeypatch
+        注入 FakeVS。
+        """
+        question = event.get_question_text()
+        if not question:
+            return
+
+        try:
+            vs = self._build_langchain_vector_store()
+            from app.services.kb.citation_retriever import CitationRetriever
+            retriever = CitationRetriever(vector_store=vs)
+            hits = retriever.retrieve(question, top_k=self.config.rag_top_k)
+
+            # 构造 RAGContext 文本（拼接命中内容，供 LLM prompt 使用）
+            snippets = [h.content for h in hits if getattr(h, "content", "")]
+            rich.rag_context_text = "\n".join(snippets)
+
+            # 写入结构化结果，供下游 RAGResult / Citation 复用
+            for h in hits:
+                rich.rag_results.append(RAGResult(
+                    source_id=h.node_id,
+                    content=h.content,
+                    source_title=h.title,
+                    relevance_score=h.score,
+                ))
+
+            logger.info(
+                f"[ContextAggregator] LangChain RAG 检索到 {len(hits)} 条 "
+                f"(cutover={self._should_use_langchain_backend()})"
+            )
+        except Exception as e:
+            # 容错：langchain 路径失败不让 aggregate 整体失败
+            logger.warning(f"[ContextAggregator] LangChain RAG 失败: {e}")
+
+    def _build_langchain_vector_store(self) -> object:
+        """构建生产 Qdrant 向量库的 LangChain 包装。
+
+        完整实现需决策: collection 名 / vector 名 / XunfeiEmbeddings 实例
+        / batch_size / distance metric 等。按 S2.3 对 ``_persist_to_qdrant``
+        的 deferred 模式，本方法在 S2.4 follow-up 落地前先抛
+        ``NotImplementedError``。测试可通过 ``monkeypatch.setattr`` 将其
+        替换为返回 ``FakeVS`` 的 lambda（见
+        ``tests/services/test_context_aggregator_gray.py``）。
+        """
+        raise NotImplementedError(
+            "LangChain Qdrant vector-store wiring — implemented in S2.4 follow-up"
+        )
 
     async def _fetch_web(self, event: TutorEvent, rich: RichContext) -> None:
         """Web 搜索 —— 只在必要时触发"""
