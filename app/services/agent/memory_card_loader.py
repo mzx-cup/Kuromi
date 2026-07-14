@@ -152,4 +152,9 @@ class MemoryCardLoader:
         P1: schema-loader only. S9 wires the per-field fetchers
         (episodic, capability, semantic, supervision).
         """
+        import logging
+        logging.getLogger(__name__).warning(
+            "MemoryCardLoader.load() is a P1 stub for agent_id=%s user_id=%s; "
+            "S9 will wire per-field fetchers.", agent_id, user_id,
+        )
         return LoadedCard(markdown="", token_count=0)
