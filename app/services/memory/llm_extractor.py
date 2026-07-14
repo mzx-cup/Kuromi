@@ -17,6 +17,12 @@ PROMPT = """以下是用户 X 的 {n} 条学习事件。请提取 1 条 pattern�
 {{"statement": "<一句陈述>", "confidence": <0-1>, "evidence_ids": [...]}}
 """
 
+PROMPT_VERSION = "v1"
+
+# Validate the format string at import time so a placeholder typo surfaces
+# here rather than in the consolidator (S6.3) or the live LLM call.
+_ = PROMPT.format(n=1)
+
 
 def extract_pattern(user_id: str, cluster: list[dict]) -> dict:
     """Extract one declarative pattern from a cluster of episodic events.
