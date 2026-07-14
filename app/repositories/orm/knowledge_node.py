@@ -16,9 +16,8 @@ L1 repo lives here under the singular ``knowledge_node`` name.
 """
 from __future__ import annotations
 
-import logging
 import os
-from typing import Optional, Protocol
+from typing import Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -26,8 +25,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import DATABASE_URL
 from app.models.knowledge_node import KnowledgeNode  # noqa: F401  (register table on Base.metadata)
-
-logger = logging.getLogger("starlearn.kb.orm")
 
 
 # ── Sync URL derivation ──────────────────────────────────────────────────
@@ -90,21 +87,6 @@ def reset_session_factory(db_url: Optional[str] = None) -> None:
         url = _resolve_sync_url()
     _engine = create_engine(url, future=True)
     SessionFactory = sessionmaker(bind=_engine, expire_on_commit=False, class_=Session)
-
-
-# ── Protocol (structural type for callers) ───────────────────────────────
-
-class KnowledgeRepository(Protocol):
-    """L1 KnowledgeNode repository protocol.
-
-    Note: an identically-named Protocol already exists in
-    ``app.repositories.base`` (with SM2-method signatures). The two
-    coexist as structural types; callers should import the right one
-    for the layer they want, or rely on duck-typing.
-    """
-    def insert(self, node: KnowledgeNode) -> None: ...
-    def get(self, node_id: str) -> KnowledgeNode | None: ...
-    def list_by_subject(self, subject: str) -> list[KnowledgeNode]: ...
 
 
 # ── Sync ORM implementation ──────────────────────────────────────────────
