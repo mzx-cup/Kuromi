@@ -28,6 +28,10 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "starlearn-jwt-secret-key-2026")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 72
 
+# 演示账号开关: 仅当 ALLOW_DEMO_LOGIN=true 时启用 /api/auth/demo-login
+# 生产环境必须设为 false (默认),开发环境可设为 true 走"演示账号登录"按钮
+ALLOW_DEMO_LOGIN = os.environ.get("ALLOW_DEMO_LOGIN", "false").lower() in ("true", "1", "yes")
+
 
 # ── 密码工具（导入 main.py 中的函数可能导致循环引用，这里内联一份） ──
 
@@ -127,55 +131,48 @@ def _ensure_user_columns():
             logger.warning(f"确保 user 列失败（可能已存在）: {e}")
 
 
-def _ensure_demo_accounts():
-    """确保演示账号存在（teacher/student/admin，密码均为 123456）。"""
+DEMO_ACCOUNTS = {
+    "teacher": ("教师演示", "teacher"),
+    "student": ("学生演示", "student"),
+    "admin": ("管理员", "admin"),
+}
+
+
+def _ensure_demo_account(username: str) -> dict | None:
+    """按需创建单个演示账号,存在则直接返回。返回 user dict 或 None。
+
+    仅由 /api/auth/demo-login 调用,生产路径 (ALLOW_DEMO_LOGIN=false) 不会触发。
+    """
+    if username not in DEMO_ACCOUNTS:
+        return None
+    display_name, role = DEMO_ACCOUNTS[username]
     _ensure_user_table()
-    demo_users = [
-        ("teacher", "教师演示", "teacher"),
-        ("student", "学生演示", "student"),
-        ("admin", "管理员", "admin"),
-    ]
-    for username, display_name, role in demo_users:
-        repo = get_repository_for_user(username, repository_type="user")
-        existing = repo.get_by_username(username)
-        if existing:
-            continue
-        hashed = _hash_password("123456")
-        with get_db() as conn:
-            if conn is not None:
-                try:
-                    cursor = conn.cursor()
-                    if _is_sqlite(conn):
-                        sql = """INSERT INTO user (username, password, avatar, nickname, role, display_name)
-                                 VALUES (?, ?, ?, ?, ?, ?)"""
-                    else:
-                        sql = """INSERT INTO user (username, password, avatar, nickname, role, display_name)
-                                 VALUES (%s, %s, %s, %s, %s, %s)"""
-                    cursor.execute(sql, (username, hashed, "", display_name, role, display_name))
-                    conn.commit()
-                    cursor.close()
-                    logger.info(f"演示账号已创建: {username}")
-                except Exception as e:
-                    logger.warning(f"创建演示账号失败 ({username}): {e}")
-                    continue
 
-            # JSON fallback
-            storage = load_local_storage()
-            user_id = len(storage.get('users', [])) + 1
-            new_user = {
-                'id': user_id, 'username': username, 'password': hashed,
-                'avatar': '', 'nickname': display_name, 'role': role,
-                'display_name': display_name, 'created_at': 'local', 'last_login': 'local',
-            }
-            storage['users'] = storage.get('users', []) + [new_user]
-            save_local_storage(storage)
+    repo = get_repository_for_user(username, repository_type="user")
+    existing = repo.get_by_username(username)
+    if existing:
+        return existing
 
+    hashed = _hash_password("123456")
+    with get_db() as conn:
+        if conn is not None:
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    sql = """INSERT INTO user (username, password, avatar, nickname, role, display_name)
+                             VALUES (?, ?, ?, ?, ?, ?)"""
+                else:
+                    sql = """INSERT INTO user (username, password, avatar, nickname, role, display_name)
+                             VALUES (%s, %s, %s, %s, %s, %s)"""
+                cursor.execute(sql, (username, hashed, "", display_name, role, display_name))
+                conn.commit()
+                cursor.close()
+                logger.info(f"演示账号已创建: {username}")
+            except Exception as e:
+                logger.warning(f"创建演示账号失败 ({username}): {e}")
+                return None
 
-# 模块加载时自动确保演示账号存在
-try:
-    _ensure_demo_accounts()
-except Exception as e:
-    logger.warning(f"初始化演示账号失败: {e}")
+    return repo.get_by_username(username)
 
 
 # ── 请求 / 响应模型 ──

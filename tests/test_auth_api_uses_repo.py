@@ -1,11 +1,13 @@
 """Auth API uses UserRepository (Task B8).
 
 Verifies:
-- login, register, /me, and _ensure_demo_accounts all use ``user_repo.get_by_username``
+- login, register, /me, and _ensure_demo_account (per-username) all use ``user_repo.get_by_username``
 - The factory routes to a "user" repository, not legacy ``db.get_user_by_username``
 - API still works correctly: login returns token + user info, /me returns user info
 - The ``user`` module only imports infra symbols (``get_db`` / ``_is_sqlite`` /
   ``load_local_storage`` / ``save_local_storage``) and ``UserRepository`` factory
+- Demo accounts are NOT auto-created at module load (Phase 1.1) — only via
+  explicit ``_ensure_demo_account(username)`` call from /api/auth/demo-login
 """
 from __future__ import annotations
 
@@ -67,7 +69,7 @@ def user_repository(monkeypatch):
 
 
 def _install_demo_users(repository, usernames):
-    """Pre-populate the fake repo with demo accounts (``_ensure_demo_accounts``
+    """Pre-populate the fake repo with demo accounts (``_ensure_demo_account``
     would otherwise create them via raw INSERT)."""
     for u in usernames:
         repository.users[u] = {
@@ -154,17 +156,56 @@ async def _call_get_me(request):
     return auth_api.get_me(request)
 
 
-def test_ensure_demo_accounts_uses_user_repository(user_repository, monkeypatch):
+def test_ensure_demo_account_uses_user_repository(user_repository, monkeypatch):
+    """Each demo account is created via per-username ``_ensure_demo_account`` call."""
     repository, factory_calls = user_repository
     monkeypatch.setattr(auth_api, "_ensure_user_table", lambda: None)
 
-    auth_api._ensure_demo_accounts()
+    for username in ("teacher", "student", "admin"):
+        auth_api._ensure_demo_account(username)
 
-    # Should have queried the repo for each demo username (teacher, student, admin)
     queries = [c for c in repository.calls if c[0] == "get_by_username"]
     assert ("get_by_username", "teacher") in queries
     assert ("get_by_username", "student") in queries
     assert ("get_by_username", "admin") in queries
+
+
+def test_ensure_demo_account_returns_none_for_unknown_username(user_repository, monkeypatch):
+    """Unknown demo username → returns None (no repo call)."""
+    repository, _ = user_repository
+    monkeypatch.setattr(auth_api, "_ensure_user_table", lambda: None)
+
+    result = auth_api._ensure_demo_account("ghost")
+
+    assert result is None
+    assert repository.calls == []
+
+
+def test_demo_accounts_not_auto_created_at_module_import(monkeypatch):
+    """Phase 1.1: ``_ensure_demo_account`` must NOT be invoked at module load time.
+
+    The old behavior called ``_ensure_demo_accounts()`` at import time, which
+    silently created teacher/student/admin with password 123456 in every
+    deployed environment. That auto-invocation is now removed.
+    """
+    auto_invoked = []
+
+    def _spy(*a, **kw):
+        auto_invoked.append((a, kw))
+        return None
+
+    # Patch the new per-username function before re-importing the module
+    monkeypatch.setattr(
+        "app.api.auth._ensure_demo_account", _spy, raising=False
+    )
+
+    import importlib
+    import app.api.auth as fresh_auth
+    importlib.reload(fresh_auth)
+
+    assert auto_invoked == [], (
+        f"_ensure_demo_account was called at import time: {auto_invoked}"
+    )
 
 
 def test_auth_api_only_imports_infra_and_factory_from_db():
@@ -194,4 +235,4 @@ def test_auth_api_uses_repository_factory():
     source = Path(auth_api.__file__).read_text(encoding="utf-8")
     assert "get_repository_for_user" in source
     # Should NOT contain db.get_user_by_username (the migrated function)
-    assert "get_user_by_username" not in source or "_ensure_demo_accounts" in source
+    assert "get_user_by_username" not in source or "_ensure_demo_account" in source
