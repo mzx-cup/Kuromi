@@ -39,6 +39,8 @@ def reinforce(semantic: dict, pattern: dict) -> None:
 
     - ``confidence += pattern["confidence"] * _REINFORCE_GAIN`` (cap 1.0).
     - Append ``pattern["evidence_ids"]`` to ``evidence_ids`` (deduped).
+    - Update ``last_reinforced_at`` to utcnow so the 90/180-day stale
+      timers reset (otherwise they would never trip).
     - If currently fading and the new confidence crosses the reactivate
       threshold, transition back to active.
     """
@@ -48,6 +50,8 @@ def reinforce(semantic: dict, pattern: dict) -> None:
     existing = set(semantic.get("evidence_ids", []))
     existing.update(pattern.get("evidence_ids", []))
     semantic["evidence_ids"] = list(existing)
+
+    semantic["last_reinforced_at"] = datetime.utcnow()
 
     if (
         semantic.get("status") == FADING
