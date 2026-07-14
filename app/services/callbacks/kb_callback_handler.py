@@ -64,5 +64,13 @@ class KBCallbackHandler(BaseCallbackHandler):
     # Langchain 0.3.x framework hook — do not pass our custom kwargs to it.
     # This is invoked by the framework during streaming; we ignore it and
     # let on_validated_response be the canonical entry point.
-    def on_llm_end(self, response, *, run_manager=None) -> None:  # noqa: D401
+    def on_llm_end(
+        self,
+        response,
+        *,
+        run_id=None,
+        parent_run_id=None,
+        run_manager=None,
+        **_,
+    ) -> None:  # noqa: D401
         pass

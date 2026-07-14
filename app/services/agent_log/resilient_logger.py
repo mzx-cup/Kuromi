@@ -14,9 +14,10 @@ retry later, drop, etc).
 Each layer is a module-level callable so tests can patch
 ``app.services.agent_log.resilient_logger.<name>`` directly.
 
-NOTE: ``db_insert`` is intentionally a stub that returns False for now
-so the fallthrough path (Redis -> Disk) is exercised cleanly during the
-gap before S3.2 lands. The real implementation is wired in S3 task S3.2.
+NOTE: ``db_insert`` writes via a dedicated sync engine created at module
+import time. On any failure (engine missing, malformed URL, connection
+drop, constraint violation) it returns False so the resilient logger can
+fall through to the Redis buffer and disk spool layers.
 """
 from __future__ import annotations
 
@@ -34,17 +35,47 @@ from app.services.agent_log.disk_spool import disk_append
 
 
 def _to_sync_url(url: str) -> str:
-    """Convert async SQLAlchemy URL (postgresql+asyncpg) to sync (postgresql+psycopg2).
+    """Convert an async SQLAlchemy URL to its sync equivalent.
 
-    Returns ``''`` if URL is empty so callers can no-op cleanly.
+    Mirrors the mapping table in ``app/repositories/orm/knowledge_node.py``
+    so the default sqlite+aiosqlite URL becomes a usable sync sqlite URL.
     """
     if not url:
         return ""
-    return url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+    mapping = {
+        "postgresql+asyncpg://": "postgresql+psycopg2://",
+        "sqlite+aiosqlite://": "sqlite://",
+        "mysql+aiomysql://": "mysql+pymysql://",
+    }
+    for async_prefix, sync_prefix in mapping.items():
+        if url.startswith(async_prefix):
+            return sync_prefix + url[len(async_prefix):]
+    # Fallback: strip any "+driver" suffix so a sync driver is selected.
+    if "+" in url.split("://", 1)[0]:
+        scheme = url.split("://", 1)[0].split("+", 1)[0]
+        rest = url.split("://", 1)[1]
+        return f"{scheme}://{rest}"
+    return url
 
 
-_sync_url: str = _to_sync_url(os.getenv("DATABASE_URL", ""))
-_engine: Optional[Engine] = create_engine(_sync_url, future=True) if _sync_url else None
+def _build_engine() -> "Engine | None":
+    url = os.getenv("DATABASE_URL", "")
+    sync_url = _to_sync_url(url)
+    if not sync_url:
+        return None
+    try:
+        return create_engine(
+            sync_url,
+            future=True,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+        )
+    except Exception:
+        # Malformed URL or driver missing — let db_insert no-op.
+        return None
+
+
+_engine = _build_engine()
 _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False) if _engine else None
 
 

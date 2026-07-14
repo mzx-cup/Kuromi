@@ -55,3 +55,27 @@ def test_callback_handler_handles_missing_user_id():
         assert entry.user_id == ""
         assert entry.blocked is False  # defaults
         assert entry.hallucination_risk_score == 0.0  # defaults
+
+
+def test_callback_handler_accepts_none_citations():
+    """citations=None (not just []) must propagate as empty list to the log entry."""
+    handler = KBCallbackHandler(agent_id="SocraticAgent", user_id="u1")
+    with patch("app.services.callbacks.kb_callback_handler.ResilientBehaviorLogger") as MockL:
+        MockL.return_value.log.return_value.status = "ok"
+        handler.on_validated_response(output_text="x", citations=None)
+        entry = MockL.return_value.log.call_args[0][0]
+        assert entry.citations == []
+
+
+def test_callback_handler_lazy_logger_init():
+    """_logger is None before first on_validated_response call; mock patch is honored.
+
+    This guards against a regression to eager init in __init__, which would
+    silently bypass the mock and create a real ResilientBehaviorLogger.
+    """
+    handler = KBCallbackHandler(agent_id="SocraticAgent", user_id="u1")
+    assert handler._logger is None
+    with patch("app.services.callbacks.kb_callback_handler.ResilientBehaviorLogger") as MockL:
+        MockL.return_value.log.return_value.status = "ok"
+        handler.on_validated_response(output_text="x")
+        MockL.return_value.log.assert_called_once()
