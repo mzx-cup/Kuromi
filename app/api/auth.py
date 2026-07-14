@@ -127,8 +127,20 @@ def _ensure_user_columns():
             logger.warning(f"确保 user 列失败（可能已存在）: {e}")
 
 
+DEMO_ACCOUNTS = ("teacher", "student", "admin")
+
+ALLOW_DEMO_LOGIN = os.environ.get("ALLOW_DEMO_LOGIN", "false").lower() in ("true", "1", "yes")
+
+
 def _ensure_demo_accounts():
-    """确保演示账号存在（teacher/student/admin，密码均为 123456）。"""
+    """确保演示账号存在（teacher/student/admin，密码均为 123456）。
+
+    仅当 ALLOW_DEMO_LOGIN=true 时才创建。生产环境默认 false,模块加载时
+    不会自动注入 teacher/student/admin (123456) 账号;前端"演示账号登录"
+    按钮调用 /api/auth/demo-login 时再触发创建。
+    """
+    if not ALLOW_DEMO_LOGIN:
+        return
     _ensure_user_table()
     demo_users = [
         ("teacher", "教师演示", "teacher"),
@@ -254,6 +266,40 @@ def login(request: LoginRequest):
     return {
         "token": token,
         "user": _user_to_response(user),
+    }
+
+
+@router.post("/demo-login")
+def demo_login(role: str = "student"):
+    """登录演示账号 (teacher / student / admin)。
+
+    仅当 ALLOW_DEMO_LOGIN=true 时启用 (生产默认 false)。
+    账号不存在则自动创建 (密码 123456),然后签发 JWT。
+    前端"演示账号登录"按钮调用此端点。
+    """
+    if not ALLOW_DEMO_LOGIN:
+        raise HTTPException(
+            status_code=403,
+            detail="演示账号登录已禁用 (生产环境默认关闭,需 ALLOW_DEMO_LOGIN=true 启用)",
+        )
+    if role not in DEMO_ACCOUNTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"无效的演示角色,允许: {', '.join(DEMO_ACCOUNTS)}",
+        )
+
+    # 调用原版函数 (内部已用 ALLOW_DEMO_LOGIN gate,这里直接用)
+    _ensure_demo_accounts()
+    repo = get_repository_for_user(role, repository_type="user")
+    user = repo.get_by_username(role)
+    if not user:
+        raise HTTPException(status_code=500, detail="演示账号创建失败")
+
+    token = create_jwt(user)
+    return {
+        "token": token,
+        "user": _user_to_response(user),
+        "isDemo": True,
     }
 
 

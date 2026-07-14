@@ -157,6 +157,7 @@ async def _call_get_me(request):
 def test_ensure_demo_accounts_uses_user_repository(user_repository, monkeypatch):
     repository, factory_calls = user_repository
     monkeypatch.setattr(auth_api, "_ensure_user_table", lambda: None)
+    monkeypatch.setattr(auth_api, "ALLOW_DEMO_LOGIN", True)
 
     auth_api._ensure_demo_accounts()
 
@@ -165,6 +166,21 @@ def test_ensure_demo_accounts_uses_user_repository(user_repository, monkeypatch)
     assert ("get_by_username", "teacher") in queries
     assert ("get_by_username", "student") in queries
     assert ("get_by_username", "admin") in queries
+
+
+def test_ensure_demo_accounts_skipped_when_demo_login_disabled(user_repository, monkeypatch):
+    """Phase 1.1: when ALLOW_DEMO_LOGIN=false, ``_ensure_demo_accounts`` is a no-op.
+
+    This is the safety gate that prevents production deployments from silently
+    creating teacher/student/admin (123456) accounts at module import time.
+    """
+    repository, _ = user_repository
+    monkeypatch.setattr(auth_api, "ALLOW_DEMO_LOGIN", False)
+
+    auth_api._ensure_demo_accounts()
+
+    # No repo calls should have been made
+    assert repository.calls == []
 
 
 def test_auth_api_only_imports_infra_and_factory_from_db():
