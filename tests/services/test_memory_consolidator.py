@@ -1,6 +1,6 @@
-"""Memory consolidation — clustering (S6.1) + lifecycle (S6.1).
+"""Memory consolidation — clustering (S6.1) + lifecycle (S6.1) + LLM extractor (S6.2).
 
-S6.2 will append LLM extractor tests; S6.3 will append consolidator tests.
+S6.3 will append consolidator tests.
 """
 from __future__ import annotations
 
@@ -229,3 +229,65 @@ def test_reinforce_dedupes_evidence_ids():
     reinforce(semantic, pattern={"confidence": 0.5, "evidence_ids": ["e2", "e3"]})
     # Order may vary (set dedup), but no duplicates and both old + new kept.
     assert sorted(semantic["evidence_ids"]) == ["e1", "e2", "e3"]
+
+
+# ---------------------------------------------------------------------------
+# llm_extractor.py (S6.2)
+# ---------------------------------------------------------------------------
+
+
+def test_extract_pattern_returns_statement_and_evidence():
+    """Plan-required test: extract_pattern returns statement + evidence_ids."""
+    from app.services.memory.llm_extractor import extract_pattern
+    out = extract_pattern(user_id="u1", cluster=[
+        {"id": "e1", "summary": "Q1: 函数概念"},
+        {"id": "e2", "summary": "Q2: 函数定义"},
+        {"id": "e3", "summary": "Q3: 复合函数"},
+    ])
+    assert "statement" in out
+    assert set(out["evidence_ids"]) == {"e1", "e2", "e3"}
+
+
+def test_extract_pattern_confidence_in_unit_interval():
+    """confidence must be a float in [0.0, 1.0]."""
+    from app.services.memory.llm_extractor import extract_pattern
+    out = extract_pattern(user_id="u1", cluster=[
+        {"id": "e1", "summary": "x"},
+        {"id": "e2", "summary": "y"},
+        {"id": "e3", "summary": "z"},
+    ])
+    assert isinstance(out["confidence"], float)
+    assert 0.0 <= out["confidence"] <= 1.0
+
+
+def test_extract_pattern_evidence_ids_match_cluster_ids():
+    """evidence_ids must contain exactly the ids present in the cluster (set equality)."""
+    from app.services.memory.llm_extractor import extract_pattern
+    cluster = [
+        {"id": "a", "summary": "alpha"},
+        {"id": "b", "summary": "beta"},
+        {"id": "c", "summary": "gamma"},
+        {"id": "d", "summary": "delta"},
+    ]
+    out = extract_pattern(user_id="u1", cluster=cluster)
+    assert set(out["evidence_ids"]) == {"a", "b", "c", "d"}
+    assert len(out["evidence_ids"]) == len(cluster)
+
+
+def test_extract_pattern_handles_empty_cluster():
+    """Empty cluster: zero evidence, confidence collapses to 0.0 (nothing to extract)."""
+    from app.services.memory.llm_extractor import extract_pattern
+    out = extract_pattern(user_id="u1", cluster=[])
+    assert out["evidence_ids"] == []
+    assert out["confidence"] == 0.0
+    # statement should still be a string (graceful degradation)
+    assert isinstance(out["statement"], str)
+
+
+def test_extract_pattern_statement_mentions_cluster_size():
+    """Stub determinism: the statement must reference the cluster size so tests can assert it."""
+    from app.services.memory.llm_extractor import extract_pattern
+    cluster = [{"id": f"e{i}", "summary": f"item {i}"} for i in range(5)]
+    out = extract_pattern(user_id="u1", cluster=cluster)
+    # The plan stub says: f"用户在 {len(cluster)} 个事件中重复练习相关内容"
+    assert str(len(cluster)) in out["statement"]
