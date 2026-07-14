@@ -1,6 +1,6 @@
 # 数据库合并切片状态
 
-最后更新：2026-07-16
+最后更新：2026-07-14
 
 ## 已完成切片
 
@@ -78,6 +78,37 @@
 - [ ] 灰度 1% → 10% → 50% → 100%（待生产执行）
 
 **当前阶段：** Phase 3 完成（双写开启 + 引擎集成 + 前端同步），等待 Phase 4 灰度切读
+
+**负责人：** `<待填>`
+
+### Phase 4-5 迁移收尾：Hard 域 Repository 化（2026-07-14）
+
+把 `app/` 剩余直接调用 db.py 的 Hard 域（datacenter / learning_path / analytics）迁移到
+CourseProgressRepository，覆盖 slices #2-#10 的读写路径统一。
+
+**已完成（C0-C5）：**
+- C0 DailyRoute ORM 模型（commit a3ecdcf）
+- C1 CourseProgressRepository 扩展路径图 + daily route 方法（commit b08141d）
+- C2 datacenter 状态加载走 aggregator service（commit a98c58c）
+- C3 learning_path.py 图操作走 CourseProgressRepository（commit 6ef70d6）
+- C4 analytics_builder daily route + path graph 走 Repository（commit 0dd2f15）
+- C5 llm_analyzer + rule_engine 节点操作走 CourseProgressRepository（commit 240c1d1）
+
+**完成标志：**
+- [x] learning_path / analytics / llm_analyzer / rule_engine 迁移后的路径图/节点操作 = 0 处 `database.*`
+- [x] 43 个新增测试全部通过（C3: 11，C4: 10，C5: 11，及 C0/C1 模型/repo 测试）
+- [x] dual-write 一致性测试 2/2 通过
+- [x] `READ_BACKEND_PERCENTAGE=1 DUAL_WRITE_LEGACY=true` 下 227 个 repo 测试通过
+- [x] 全量测试 603 passed（28 个 pre-existing 失败与本次迁移无关，已用 git stash 验证）
+
+**保留在 db.py 的未迁移辅助函数**（尚无 Repository surface，属后续工作）：
+`get_user_profile`、`get_recent_quizzes`、`get_recent_classrooms`、`get_user_stats`、
+`get_conversation_summary`、`get_recent_messages_summary`。
+
+**基础设施层保留**（用户决定，不迁移）：
+`get_db` / `_is_sqlite` / `load_local_storage` / `save_local_storage`。
+
+**当前阶段：** slices #2-#10 Phase 4-5 迁移完成，剩余未迁移辅助函数待后续加 Repository surface。
 
 **负责人：** `<待填>`
 
