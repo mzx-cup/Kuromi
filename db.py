@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
 
+from app.core.feature_flags import is_dual_write_enabled
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # MySQL 配置
@@ -99,8 +101,26 @@ def get_db():
     yield None
 
 
+def _check_dual_write_for_json_fallback(operation: str) -> None:
+    """Phase 2.3: 收口 — JSON fallback 仅在 DUAL_WRITE_LEGACY=true 时保留.
+
+    调用方落入 get_db() → None 的 JSON 路径时，必须显式通过 dual-write 安全网。
+    生产环境（默认 DUAL_WRITE_LEGACY=false）若走到这里，说明 MySQL/SQLite 全
+    不可用且 ORM 已接管 — 应当 fail loudly，而不是悄悄写本地 JSON 导致和
+    xingshi_v2.db 失同步。"""
+    if is_dual_write_enabled():
+        return
+    raise RuntimeError(
+        f"db.{operation}() disabled in production (Phase 2.3). "
+        f"Set DUAL_WRITE_LEGACY=true to retain the JSON fallback during cutover, "
+        f"or run scripts/migrate_local_storage_to_v2.py to finish migrating "
+        f"data from local_storage.json to xingshi_v2.db."
+    )
+
+
 def load_local_storage():
     """加载本地 JSON 存储"""
+    _check_dual_write_for_json_fallback("load_local_storage")
     if os.path.exists(LOCAL_STORAGE_PATH):
         try:
             with open(LOCAL_STORAGE_PATH, 'r', encoding='utf-8') as f:
@@ -120,6 +140,7 @@ def load_local_storage():
 
 def save_local_storage(data):
     """保存到本地 JSON 存储"""
+    _check_dual_write_for_json_fallback("save_local_storage")
     try:
         with open(LOCAL_STORAGE_PATH, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

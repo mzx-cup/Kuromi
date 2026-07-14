@@ -2,6 +2,8 @@
 """pytest 全局配置 + dual-backend fixtures"""
 from __future__ import annotations
 
+import os
+
 import pytest
 from pathlib import Path
 
@@ -12,6 +14,14 @@ from tests.fixtures.seed_data import (
     populate_orm,
     SEED_USERS,
 )
+
+
+# Phase 2.3: 收口 — 生产环境 JSON fallback 默认 raise. 但测试套件里大量
+# 契约/集成测试模拟 "DB 不可用" 走 JSON fallback 来验证老路径，必须显式
+# 打开 dual-write 安全网，否则这些测试会一上来就 RuntimeError. 个别测试
+# （如 test_db_local_storage_raises_in_production.py）通过 monkeypatch.delenv
+# 显式移除该 flag 来验证 raise 路径。
+os.environ.setdefault("DUAL_WRITE_LEGACY", "true")
 
 
 def pytest_configure(config):

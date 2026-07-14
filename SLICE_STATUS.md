@@ -151,6 +151,15 @@ CourseProgressRepository，覆盖 slices #2-#10 的读写路径统一。
   全部一致；幂等重跑 0 新增；备份策略与既有 migrate_*.py 一致
   （commit 2982e5b 修复 classroom_sessions / daily_routes 的 NOT NULL
   漏列问题；测试 fixture 升级对齐生产 v2.db schema）
+- 2.3 `db.load_local_storage` / `db.save_local_storage` 收口：在
+  `DUAL_WRITE_LEGACY=false`（生产默认）下 raise `RuntimeError`；dual-write
+  安全网开启时保留原行为。`_check_dual_write_for_json_fallback` 单一闸门
+  函数，提示文本包含 DUAL_WRITE_LEGACY / Phase 2.3 / 迁移脚本路径。
+  7 个 pytest 用例覆盖：默认 raise / 显式 false raise / dual-write=true 读写
+  / 缺文件返回默认 dict / 错误信息含 phase 标记。
+  conftest.py 设 `DUAL_WRITE_LEGACY=true` 作为测试会话默认（保证契约/
+  集成测试模拟 "DB 不可用 + JSON fallback" 走老路径的行为不破），个别
+  测试通过 `monkeypatch.delenv` 移除该 flag 验证 raise 路径。
 
 **迁移结果：**
 | 集合 | JSON 唯一键 | v2.db 行数 | 一致 |
@@ -165,10 +174,11 @@ CourseProgressRepository，覆盖 slices #2-#10 的读写路径统一。
 - [x] 11/11 pytest 用例通过（含 ALTER TABLE 加列、字段重命名、JSON 包装、幂等、空/缺失文件错误路径、备份创建）
 - [x] 真实 `local_storage.json` 5 张表全量一致
 - [x] 重跑 0 增量
-- [ ] `load_local_storage` / `save_local_storage` 在生产路径 raise（Phase 2.3 待做）
-- [ ] `local_storage.json` 归档 / 移除（待 Phase 2.3 完成后由用户决定）
+- [x] `load_local_storage` / `save_local_storage` 在生产路径 raise（Phase 2.3 完成）
+- [x] 7/7 Phase 2.3 测试通过；契约/集成测试无新增回归（pre-existing 失败：`test_guest_login_creates_temporary_session` 随机 user_id，与本次无关）
+- [ ] `local_storage.json` 归档 / 移除（待 Phase 3.1 验证一周后由用户决定）
 
-**当前阶段：** Phase 2 迁移 + 验证完成；待 Phase 2.3 收口 dual-write 路径。
+**当前阶段：** Phase 2 全量收口完成；待 Phase 3.1 双写一致性再验证一周。
 
 **负责人：** `<待填>`
 
