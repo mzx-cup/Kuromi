@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
+from app.core.repository_factory import get_repository_for_user
 from app.services.profile_aggregator import aggregate_profile
 
 router = APIRouter(prefix="/profile", tags=["profile"])
@@ -17,8 +18,8 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 async def get_profile(user_id: str):
     """获取用户的聚合画像（AI眼中的你）。"""
     try:
-        from db import get_user_memories
-        memories = get_user_memories(user_id, limit=200)
+        repository = get_repository_for_user(user_id, repository_type="chat")
+        memories = repository.get_memories(user_id, limit=200)
         profile = aggregate_profile(memories)
         return {
             "success": True,
