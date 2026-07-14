@@ -9,8 +9,14 @@ class IngestionRejected(ValueError):
 
 
 def _persist_to_db(node: KnowledgeNode) -> bool:
-    """ORM insert — wired to SessionLocal in S1.4."""
-    raise NotImplementedError
+    """ORM insert — wired to the L1 OrmKnowledgeRepository in S1.4.
+
+    The repository builds its own sync sessionmaker from ``DATABASE_URL``
+    at module import, so this call site stays a one-liner.
+    """
+    from app.repositories.orm.knowledge_node import OrmKnowledgeRepository
+    OrmKnowledgeRepository().insert(node)
+    return True
 
 
 def _persist_to_qdrant(node: KnowledgeNode) -> bool:

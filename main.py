@@ -277,6 +277,10 @@ try:
 except ImportError:
     print("[main] Seed Media 模块不可用，跳过")
 
+# ---- KB API (L1 内容层 ingest 端点) ----
+from app.api.kb import router as kb_router
+app.include_router(kb_router)
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
