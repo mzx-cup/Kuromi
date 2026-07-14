@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models.course_progress import (
     CourseGenerationStatus,
     CourseProgress,
+    DailyRoute,
     LearningPath,
     LearningPathNode,
     UserEvaluation,
@@ -145,3 +146,81 @@ class SqlAlchemyCourseProgressRepository:
             {"course_id": r.course_id, "title": r.title, "deadline": str(r.deadline)}
             for r in rows
         ]
+
+    # ── Learning-path graph (Task C1) ──
+    # The existing ORM ``learning_paths`` table is structurally distinct
+    # from db.py's singular ``learning_path`` graph table (per-user JSON
+    # blob vs. multi-row document). Until that schema is unified, the ORM
+    # implementation routes through db.py helpers so legacy and ORM
+    # produce identical results.
+
+    def get_learning_path_graph(self, user_id) -> dict | None:
+        import db as dbmod
+        return dbmod.get_learning_path(user_id)
+
+    def save_learning_path_graph(self, user_id, path_json, reasoning=None, data_sources=None, confidence=0.0) -> None:
+        import db as dbmod
+        dbmod.save_learning_path(
+            user_id,
+            path_json,
+            reasoning=reasoning,
+            data_sources=data_sources,
+            confidence=confidence,
+        )
+
+    def get_learning_path_nodes(self, user_id) -> list:
+        import db as dbmod
+        return dbmod.get_learning_path_nodes(user_id)
+
+    def get_learning_path_node(self, user_id, node_id) -> dict | None:
+        import db as dbmod
+        return dbmod.get_learning_path_node(user_id, node_id)
+
+    def save_learning_path_node(self, user_id, node_data: dict) -> bool:
+        import db as dbmod
+        return bool(dbmod.save_learning_path_node(user_id, node_data))
+
+    def sync_path_to_nodes(self, user_id, path_json) -> int:
+        import db as dbmod
+        return dbmod.sync_path_to_nodes(user_id, path_json)
+
+    # ── Daily route (Task C1) ──
+
+    def get_daily_route(self, user_id, route_date: str) -> dict | None:
+        from datetime import date as _date
+        target = _date.fromisoformat(route_date) if isinstance(route_date, str) else route_date
+        row = (
+            self.session.query(DailyRoute)
+            .filter_by(user_id=str(user_id), route_date=target)
+            .first()
+        )
+        if not row:
+            return None
+        return {
+            "user_id": row.user_id,
+            "route_date": row.route_date.isoformat(),
+            "tasks_json": list(row.tasks_json or []),
+            "completed_json": list(row.completed_json or []),
+        }
+
+    def save_daily_route(self, user_id, route_date: str, tasks, completed=None) -> None:
+        from datetime import date as _date
+        target = _date.fromisoformat(route_date) if isinstance(route_date, str) else route_date
+        existing = (
+            self.session.query(DailyRoute)
+            .filter_by(user_id=str(user_id), route_date=target)
+            .first()
+        )
+        if existing:
+            existing.tasks_json = tasks if tasks is not None else existing.tasks_json
+            existing.completed_json = completed if completed is not None else existing.completed_json
+        else:
+            self.session.add(
+                DailyRoute(
+                    user_id=str(user_id),
+                    route_date=target,
+                    tasks_json=tasks or [],
+                    completed_json=completed or [],
+                )
+            )
+        self.session.flush()

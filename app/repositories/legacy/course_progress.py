@@ -180,3 +180,48 @@ class DbPyCourseProgressRepository:
             ]
         finally:
             conn.close()
+
+    # ── Learning-path graph (Task C1) ──
+    # The db.py helpers own the per-user graph storage (``learning_path``
+    # + ``learning_path_nodes`` tables). Repository methods route through
+    # those helpers so the API/service code only ever sees the protocol.
+
+    def get_learning_path_graph(self, user_id) -> dict | None:
+        import db as dbmod
+        return dbmod.get_learning_path(user_id)
+
+    def save_learning_path_graph(self, user_id, path_json, reasoning=None, data_sources=None, confidence=0.0) -> None:
+        import db as dbmod
+        dbmod.save_learning_path(
+            user_id,
+            path_json,
+            reasoning=reasoning,
+            data_sources=data_sources,
+            confidence=confidence,
+        )
+
+    def get_learning_path_nodes(self, user_id) -> list:
+        import db as dbmod
+        return dbmod.get_learning_path_nodes(user_id)
+
+    def get_learning_path_node(self, user_id, node_id) -> dict | None:
+        import db as dbmod
+        return dbmod.get_learning_path_node(user_id, node_id)
+
+    def save_learning_path_node(self, user_id, node_data: dict) -> bool:
+        import db as dbmod
+        return bool(dbmod.save_learning_path_node(user_id, node_data))
+
+    def sync_path_to_nodes(self, user_id, path_json) -> int:
+        import db as dbmod
+        return dbmod.sync_path_to_nodes(user_id, path_json)
+
+    # ── Daily route (Task C1) ──
+
+    def get_daily_route(self, user_id, route_date: str) -> dict | None:
+        import db as dbmod
+        return dbmod.get_daily_route(user_id, route_date)
+
+    def save_daily_route(self, user_id, route_date: str, tasks, completed=None) -> None:
+        import db as dbmod
+        dbmod.save_daily_route(user_id, route_date, tasks, completed=completed)
