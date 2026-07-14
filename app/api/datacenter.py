@@ -68,9 +68,9 @@ def _last_n_dates(n: int) -> list[str]:
 # ── 仪表盘数据构建 ──
 
 def _build_dashboard(user_id: int, range_key: str) -> dict[str, Any]:
-    import db as database
+    from app.services.datacenter_aggregator import build_full_user_state
 
-    full_state = database.get_full_user_state(user_id)
+    full_state = build_full_user_state(user_id)
     if not full_state or not full_state.get("user"):
         return _build_fallback_dashboard(user_id, range_key)
 
