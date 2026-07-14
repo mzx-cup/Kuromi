@@ -248,9 +248,11 @@ class ContextAggregator:
           2) 构建 Qdrant 向量库的 LangChain 包装
           3) 通过 ``CitationRetriever`` 检索 CitationHit
           4) 将命中写入 ``rich.rag_results`` / ``rich.rag_context_text``
-          5) 任何异常都不会阻塞 aggregate：fall-through 到 legacy 占位
-             （gather 已 return_exceptions=True，这里只记 warning 让后续
-             评估流程能在 rag 字段为空的情况下继续）
+          5) 任何异常都不会阻塞 aggregate：吞掉异常、记 warning，让
+             ``rag_results`` / ``rag_context_text`` 保持为空（让后续评估
+             流程在 RAG 字段为空的情况下继续；gather 已
+             return_exceptions=True，切流决断在调用方一次性完成，
+             此处不会再回退到 legacy 路径 —— 1% 灰度下空 RAG 可接受）
 
         当前 S2.4 先打通切流钩子；向量库的产线包装（Qdrant wrapper +
         XunfeiEmbeddings + collection / vector name 决策）按 S2.3 的
