@@ -21,6 +21,7 @@ def add_deadline(
         user_id=user_id,
         title=title,
         due_at=due_at,
+        status="pending",
         supervised_by_rule_id=supervised_by_rule_id,
     )
     return repo.insert(entry)
