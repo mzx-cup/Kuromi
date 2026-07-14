@@ -69,41 +69,46 @@ async function handleLogin() {
 
 async function quickLogin(name) {
     try {
-        // 游客登录走服务端，生成持久化账号
-        const res = await fetch(`${API_URL}/login/guest`, {
+        // 演示账号登录走 /api/auth/demo-login (需后端 ALLOW_DEMO_LOGIN=true)
+        const res = await fetch(`${API_URL}/auth/demo-login?role=${encodeURIComponent(name)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
         const data = await res.json();
 
-        if (data.success) {
-            const user = {
-                id: data.userId,
-                name: data.nickname || name,
-                username: data.username,
-                avatar: data.avatar,
-                currentTask: data.currentTask || '大数据导论'
-            };
-            localStorage.setItem('starlearn_user', JSON.stringify(user));
-
-            if (window.StarData) {
-                StarData.init(data.userId);
-            }
-
-            if (data.preferences && Object.keys(data.preferences).length > 0) {
-                localStorage.setItem('starlearn_preferences', JSON.stringify(data.preferences));
-            }
+        if (res.status === 403) {
+            alert('演示账号登录已禁用 (生产环境默认关闭)\n如需启用,设置环境变量 ALLOW_DEMO_LOGIN=true');
+            return;
         }
-    } catch (e) {
-        console.warn('游客登录服务端失败，使用纯本地模式');
-        // Fallback: 纯本地游客模式
-        const avatarSeed = name + Date.now();
+        if (!res.ok) {
+            alert(data.detail || '演示账号登录失败');
+            return;
+        }
+
         const user = {
-            name: name,
-            avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=b6e3f4`,
+            id: data.user.id || data.userId,
+            name: data.user.display_name || data.user.username || name,
+            username: data.user.username || name,
+            avatar: data.user.avatar || '',
+            role: data.user.role || name,
             currentTask: '大数据导论'
         };
         localStorage.setItem('starlearn_user', JSON.stringify(user));
+        if (data.isDemo) {
+            localStorage.setItem('starlearn_is_demo', 'true');
+        }
+
+        if (window.StarData) {
+            StarData.init(user.id);
+        }
+
+        if (data.preferences && Object.keys(data.preferences).length > 0) {
+            localStorage.setItem('starlearn_preferences', JSON.stringify(data.preferences));
+        }
+    } catch (e) {
+        console.warn('演示账号登录服务端失败:', e);
+        alert('无法连接服务器,请确认后端已启动且 ALLOW_DEMO_LOGIN=true');
+        return;
     }
     window.location.href = '/index.html';
 }
