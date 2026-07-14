@@ -1,7 +1,7 @@
 """BaseChatModel adapter wrapping existing llm_stream.py."""
-from typing import AsyncIterator, Iterator, List, Optional
+from typing import Iterator, List, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
 
