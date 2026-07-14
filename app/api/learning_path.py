@@ -16,10 +16,19 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 import db as database
+from app.core.repository_factory import get_repository_for_user
 from app.services.analytics_builder import build_student_analytics
 from config import settings
 
 router = APIRouter()
+
+
+def _course_progress_repo(user_id):
+    """CourseProgressRepository instance routed for this user.
+
+    Owns learning-path graph + nodes + daily route (Task C1).
+    """
+    return get_repository_for_user(str(user_id), repository_type="course_progress")
 
 
 # ── Pydantic Models ──
@@ -311,8 +320,9 @@ def _validate_and_ground_learning_goals(path: list[dict], analytics: dict) -> di
 def _merge_node_states_into_path(user_id: int, path: list[dict]) -> list[dict]:
     """将节点追踪表中的状态融合到路径中（节点表优先）。"""
     nodes_map = {}
+    course_progress_repo = _course_progress_repo(user_id)
     try:
-        nodes = database.get_learning_path_nodes(user_id)
+        nodes = course_progress_repo.get_learning_path_nodes(user_id)
         for n in nodes:
             nid = n.get('node_id')
             if nid:
@@ -689,12 +699,13 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
     可被 main.py 或其他模块直接调用，避免循环导入和 HTTP 开销。
     goal: 用户自定义学习目标，用于指导 LLM 生成路径。
     """
+    course_progress_repo = _course_progress_repo(user_id)
     # 1. 聚合学情
     try:
         analytics = build_student_analytics(user_id)
     except Exception as e:
         print(f"[LearningPath] 学情聚合失败: {e}")
-        existing = database.get_learning_path(user_id)
+        existing = course_progress_repo.get_learning_path_graph(user_id)
         path = _normalize_path(existing.get("path_json")) if existing else []
         return GenerateLearningPathResponse(
             success=True,
@@ -707,7 +718,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
 
     # 2. 检查缓存（5分钟防抖）
     if not force_refresh:
-        existing = database.get_learning_path(user_id)
+        existing = course_progress_repo.get_learning_path_graph(user_id)
         if existing and existing.get("generated_at"):
             try:
                 last_gen = datetime.fromisoformat(existing["generated_at"])
@@ -760,7 +771,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
         stored_obj = path
 
     if not path:
-        existing = database.get_learning_path(user_id)
+        existing = course_progress_repo.get_learning_path_graph(user_id)
         existing_path = existing.get("path_json") if existing else []
         if isinstance(existing_path, dict) and "path" in existing_path:
             path = _normalize_path(existing_path["path"])
@@ -797,7 +808,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
     path = _merge_node_states_into_path(user_id, path)
 
     # 6. 同步路径到节点追踪表（初始化缺失节点）
-    database.sync_path_to_nodes(user_id, path)
+    course_progress_repo.sync_path_to_nodes(user_id, path)
 
     # 7. 保存到数据库（若为新格式，保存完整对象；旧格式仍保存数组）
     data_sources = ["profile", "cockpit_analysis", "quiz_records", "classroom_sessions", "user_stats", "daily_route", "messages", "node_states", "capability_analysis"]
@@ -808,7 +819,7 @@ async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal
     if isinstance(stored_obj, dict) and "path" in stored_obj:
         stored_obj["path"] = path
 
-    database.save_learning_path(
+    course_progress_repo.save_learning_path_graph(
         user_id=user_id,
         path_json=stored_obj,
         reasoning=reasoning,
@@ -843,7 +854,8 @@ async def get_current_learning_path(user_id: int):
     获取学生当前保存的学习路径（不触发 LLM 生成）。
     返回的路径已融合节点追踪表中的最新状态。
     """
-    existing = database.get_learning_path(user_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    existing = course_progress_repo.get_learning_path_graph(user_id)
     if not existing:
         return GenerateLearningPathResponse(
             success=True,
@@ -897,6 +909,7 @@ async def get_current_learning_path(user_id: int):
 @router.post("/nodes/update", response_model=NodeStateResponse)
 async def update_learning_path_nodes(request: BatchUpdateNodesRequest):
     """批量更新知识点节点状态（前端或事件系统调用）。"""
+    course_progress_repo = _course_progress_repo(request.userId)
     updated = []
     changed = 0
     for item in request.nodes:
@@ -911,9 +924,9 @@ async def update_learning_path_nodes(request: BatchUpdateNodesRequest):
         }
         # 过滤 None 值
         node_data = {k: v for k, v in node_data.items() if v is not None}
-        existing = database.get_learning_path_node(request.userId, item.node_id)
+        existing = course_progress_repo.get_learning_path_node(request.userId, item.node_id)
         old_status = existing.get('status') if existing else None
-        success = database.save_learning_path_node(request.userId, node_data)
+        success = course_progress_repo.save_learning_path_node(request.userId, node_data)
         if success:
             updated.append(item.node_id)
             if item.status and item.status != old_status:
@@ -930,7 +943,8 @@ async def update_learning_path_nodes(request: BatchUpdateNodesRequest):
 @router.get("/nodes/{user_id}", response_model=NodeStateResponse)
 async def get_learning_path_nodes(user_id: int):
     """获取学生的所有知识点节点状态。"""
-    nodes = database.get_learning_path_nodes(user_id)
+    course_progress_repo = _course_progress_repo(user_id)
+    nodes = course_progress_repo.get_learning_path_nodes(user_id)
     return NodeStateResponse(
         success=True,
         nodes=nodes,
