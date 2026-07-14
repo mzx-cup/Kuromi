@@ -43,12 +43,12 @@ class SemanticMemory(Base):
     )
     last_reinforced_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.utcnow(),
+        default=lambda: datetime.utcnow(),  # naive UTC to match lifecycle.compare
         index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.utcnow(),
+        default=lambda: datetime.utcnow(),  # naive UTC to match lifecycle.compare
     )
 
 

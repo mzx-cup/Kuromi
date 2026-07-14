@@ -63,6 +63,4 @@ def start_consolidation_scheduler() -> AsyncIOScheduler:
 
 __all__ = [
     "start_consolidation_scheduler",
-    "_run_daily_consolidation",
-    "_list_active_user_ids",
 ]

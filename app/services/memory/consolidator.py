@@ -48,6 +48,10 @@ _log = logging.getLogger(__name__)
 _EPS = 1e-9
 # Threshold above which the LLM-extracted pattern is considered to
 # reinforce an existing semantic memory (rather than weaken it).
+# Intentionally a constant for the S6.2 stub boundary: the stub
+# returns 0.7, so 0.5 → reinforce. Should become tunable once
+# ``find_similar`` exposes a similarity score alongside
+# ``extract_pattern``'s confidence.
 _REINFORCE_CONFIDENCE_THRESHOLD = 0.5
 # Minimum episodic events required to attempt consolidation.
 _MIN_EPISODIC = 3
@@ -79,7 +83,10 @@ def _persist_semantic_dict(
     source: Optional[SemanticMemory] = None,
 ) -> None:
     """Push the lifecycle-mutated dict back to SQL and (if provided) mirror it
-    onto the in-memory ``source`` row so callers see up-to-date attributes."""
+    onto the in-memory ``source`` row so callers see up-to-date attributes.
+
+    Caveat: mutates the caller-supplied ORM row in addition to writing
+    to SQL — convenient for tests, but couples in-memory and DB state."""
     sid = semantic_dict.get("id")
     if sid is None:
         return
@@ -222,6 +229,5 @@ def consolidate_user(user_id: str) -> dict:
         job.error = str(exc)
         raise
     finally:
-        from datetime import datetime as _dt
-        job.finished_at = _dt.utcnow()
+        job.finished_at = datetime.utcnow()
         job_repo.update(job)

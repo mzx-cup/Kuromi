@@ -13,6 +13,7 @@ from typing import Optional
 
 from app.models.semantic_memory import SemanticMemory  # noqa: F401  (register table)
 from app.models.memory_consolidation_job import MemoryConsolidationJob  # noqa: F401  (register table)
+from app.services.memory.lifecycle import ACTIVE
 from app.repositories.orm.knowledge_node import (
     SessionFactory,
     reset_session_factory,
@@ -60,7 +61,7 @@ class OrmSemanticMemoryRepository:
         with self._sf() as s:
             rows = (
                 s.query(SemanticMemory)
-                .filter_by(user_id=user_id)
+                .filter_by(user_id=user_id, status=ACTIVE)
                 .all()
             )
             return list(rows)

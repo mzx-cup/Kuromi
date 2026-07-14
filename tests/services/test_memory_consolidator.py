@@ -544,7 +544,7 @@ def test_consolidator_partial_failure_does_not_block_other_clusters():
     assert MockSem.return_value.insert.call_count == 2
 
 
-def test_consolidator_concurrent_writes_dont_lose_clusters():
+def test_consolidator_sequential_runs_are_independent():
     """Two sequential consolidate_user calls on disjoint event sets both run cleanly."""
     from app.services.memory import consolidator as con
 

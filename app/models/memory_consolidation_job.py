@@ -35,7 +35,7 @@ class MemoryConsolidationJob(Base):
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.utcnow(),
+        default=lambda: datetime.utcnow(),  # naive UTC to match lifecycle.compare
     )
     finished_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None,
