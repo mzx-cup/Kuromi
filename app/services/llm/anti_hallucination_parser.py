@@ -1,6 +1,6 @@
 """Anti-Hallucination OutputParser — core innovation 1.
 
-Every claim in an LLM response must carry a `[KB-node_id]` citation that
+Every claim in an LLM response must carry a `[KB:node_id]` citation that
 resolves to a valid KB id. If not, retry once. If still not, block.
 """
 from dataclasses import dataclass, field
@@ -69,7 +69,7 @@ class AntiHallucinationOutputParser(BaseOutputParser[ValidatedResponse]):
         if unbacked:
             if self.retry_count < self.max_retry:
                 raise OutputParserException(
-                    "必须为每条 claim 提供 [KB-xxx] 引用"
+                    "必须为每条 claim 提供 [KB:xxx] 引用"
                 )
             return ValidatedResponse(
                 text="我需要核实一下再回答。",

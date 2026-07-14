@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 
 
-_CITE_RE = re.compile(r"\[(KB-[A-Z0-9\-]+)\]")
+_CITE_RE = re.compile(r"\[KB:([A-Z0-9\-]+)\]")
 
 
 @dataclass
@@ -36,7 +36,7 @@ def extract_claims(text: str) -> List[str]:
 def has_citation(claim: str, citations: List[Citation]) -> bool:
     """Best-effort proximity check: citation marker appears anywhere in the claim."""
     for c in citations:
-        marker = f"[{c.kb_node_id}]"
+        marker = f"[KB:{c.kb_node_id}]"
         if marker in claim:
             return True
     return False
