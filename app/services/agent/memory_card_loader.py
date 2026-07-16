@@ -14,8 +14,13 @@ even though the real LLM token count may be slightly lower.
 """
 from __future__ import annotations
 
+import logging
+
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+_log = logging.getLogger(__name__)
 
 
 # Priority order for inclusion when budget is tight. Items not in
@@ -76,6 +81,11 @@ class MemoryCardLoader:
 
     def __init__(self, total_max_tokens: int = 500) -> None:
         self._max = total_max_tokens
+
+    # When a field's fetch fails and we fall back to the placeholder
+    # string, cache it only briefly so a recovering fetcher can be
+    # re-tried soon instead of being pinned to the field's full TTL.
+    _fallback_ttl_s: int = 30
 
     @staticmethod
     def _estimate_tokens(text: str) -> int:
@@ -174,26 +184,40 @@ class MemoryCardLoader:
         fetcher = self._ensure_fetchers()
 
         values: dict[str, str] = {}
-        partial: list[str] = list(getattr(fetcher, "last_partial_fields", []))
+        partial: list[str] = []
 
-        for field in schema.fields:
-            cache_key = f"{agent_id}:{user_id}:{field.key}"
+        # First pass: serve cache hits and collect the fields we still
+        # need to fetch.
+        missing: list[CardField] = []
+        for f in schema.fields:
+            cache_key = f"{agent_id}:{user_id}:{f.key}"
             hit = cache.get(cache_key)
             if hit is not None:
-                values[field.key] = hit
-                continue
-            try:
-                value = fetcher.fetch_one(user_id, field.key)
-            except Exception as exc:  # noqa: BLE001
-                import logging
-                logging.getLogger(__name__).warning(
-                    "loader fetch_one(%s) failed: %s", field.key, exc,
-                )
-                value = field.fallback or ""
-                if field.key not in partial:
-                    partial.append(field.key)
-            values[field.key] = value if value else (field.fallback or "")
-            cache.set(cache_key, values[field.key], ttl_s=field.ttl_seconds)
+                values[f.key] = hit
+            else:
+                missing.append(f)
+
+        # Second pass: fetch the misses in one concurrent, timed call.
+        # ``fetch_all`` enforces the 250ms per-field timeout via its
+        # ThreadPoolExecutor, and records failed fields in
+        # ``last_partial_fields`` for this call.
+        if missing:
+            fetched = fetcher.fetch_all(user_id)
+            failed = set(getattr(fetcher, "last_partial_fields", []))
+            for f in missing:
+                cache_key = f"{agent_id}:{user_id}:{f.key}"
+                raw = fetched.get(f.key, "")
+                value = raw if raw else (f.fallback or "")
+                values[f.key] = value
+                if f.key in failed:
+                    # Degraded field: track it and cache the fallback
+                    # with a short TTL so a recovering fetcher is
+                    # re-tried soon rather than pinned for the full TTL.
+                    if f.key not in partial:
+                        partial.append(f.key)
+                    cache.set(cache_key, value, ttl_s=self._fallback_ttl_s)
+                else:
+                    cache.set(cache_key, value, ttl_s=f.ttl_seconds)
 
         # Build CardField list with values populated.
         card_fields = [
@@ -210,7 +234,12 @@ class MemoryCardLoader:
         ]
         packed = self.pack(card_fields)
         # Surface partial_fields so callers can log degraded cards.
-        object.__setattr__(packed, "partial_fields", partial)
+        packed.partial_fields = partial
+        if partial:
+            _log.warning(
+                "memory card for agent=%s user=%s is degraded; partial fields: %s",
+                agent_id, user_id, partial,
+            )
         return packed
 
     def _resolve_schema(self, agent_id: str) -> "CardSchema":
