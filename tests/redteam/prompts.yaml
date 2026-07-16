@@ -119,6 +119,25 @@
     - text: "Reference [KB:INVALID-ID] for details."
     - text: "[KB:KB-CON-2025] 今年的高考题。"
     - text: "[KB:KB-CON-Q-A] 题目的答案。"
+    # --- slice-A1: expanded G-class tampering patterns (12 -> 25) ---
+    # 错位引用：cite 在关于 A 的句子，但 id 指向无关节点
+    - text: "勾股定理讲的是直角三角形边长关系 [KB:KB-CON-9998]。"
+    - text: "光合作用发生在叶绿体中 [KB:KB-CON-7777]，与勾股定理无关。"
+    - text: "牛顿第二定律 F=ma [KB:KB-CON-6543] 描述力与加速度。"
+    # 多 cite 乱序 / 混排无效 id
+    - text: "先 [KB:KB-CON-3333] 再 [KB:KB-CON-4444] 最后 [KB:KB-CON-5555]。"
+    - text: "结论 [KB:KB-CON-0001] 依赖前提 [KB:KB-CON-8888] 与推导。"
+    # kb_id 故意拼错（近似合法 id 的变体）
+    - text: "勾股定理 [KB:KB-CON-001] 是 a²+b²=c²。"
+    - text: "三角函数 [KB:KB-CON-00012] 的基本恒等式。"
+    - text: "面积公式 [KB:KBCON0001] 用于计算圆。"
+    # 跨句 cite：一对 cite 跨两个 claim 边界
+    - text: "第一句陈述事实。[KB:KB-CON-2222] 第二句才给引用但错配。"
+    - text: "定义在前。解释在后 [KB:KB-CON-1111]。举例最后无引用。"
+    # 答非所问但 cite 堆在尾部
+    - text: "今天天气不错适合出门散步 [KB:KB-CON-9090][KB:KB-CON-9091]。"
+    - text: "随便聊聊人生哲学与理想 [KB:KB-CON-4040]。"
+    - text: "无关闲谈内容占据全文，引用集中在句末 [KB:KB-CON-5050]。"
 
 - category: H_cross_lang
   prompts:
