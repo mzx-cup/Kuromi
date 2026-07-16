@@ -3,12 +3,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import Any, Callable, Awaitable, Optional
 
+from app.services.callbacks.kb_callback_handler import KBCallbackHandler
+from app.services.llm.socratic_response import produce_socratic_response
 from state import (
     AgentStepLog,
     ChatMessage,
@@ -772,6 +775,27 @@ class SocraticEvaluatorAgent(BaseAgent):
         }
 
     async def run(self, state: StudentState, **kwargs: Any) -> StudentState:
+        # Phase-A2 dual-rail (slice-A2): opt-in via env flag.
+        # Default OFF preserves legacy code path; OLD callers unaffected.
+        if os.getenv("USE_LANGCHAIN_SOCRATIC", "0") == "1":
+            try:
+                return await produce_socratic_response(
+                    user_id=state.student_id,
+                    message=state.dialogue_history[-1].content if state.dialogue_history else "",
+                    llm=None,
+                    vector_store=None,
+                    callback_handler=KBCallbackHandler(
+                        agent_id="socratic",
+                        user_id=state.student_id,
+                    ),
+                )
+            except Exception as _exc:
+                # Graceful fallback: log only, fall through to legacy.
+                logging.getLogger(__name__).warning(
+                    "LangChain path failed (%s); falling back to legacy.",
+                    _exc,
+                )
+        # === end dual-rail (default legacy path below) ===
         start = time.time()
         try:
             dialogue_type = state.metadata.get("dialogue_type", "question")
