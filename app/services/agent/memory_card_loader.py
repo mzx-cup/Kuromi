@@ -147,14 +147,90 @@ class MemoryCardLoader:
         return LoadedCard(markdown="\n\n".join(parts), token_count=budget)
 
     def load(self, *, agent_id: str, user_id: str) -> LoadedCard:
-        """Load a memory card for an agent/user pair.
+        """Load a memory card for an agent/user pair (slice-A3).
 
-        P1: schema-loader only. S9 wires the per-field fetchers
-        (episodic, capability, semantic, supervision).
+        Flow:
+          1. Resolve the schema for ``agent_id`` (e.g. SocraticAgent's
+             schema from ``socratic_memory_card.socratic_schema``).
+          2. Check the field-level cache (``CardCache``) for each field.
+          3. Misses are fetched concurrently via ``FieldFetchers`` with
+             a 250ms per-field timeout. Failures fall back to the
+             schema's ``fallback`` string and record the field in
+             ``partial_fields``.
+          4. Pack the fetched values into a markdown ``LoadedCard``,
+             truncating lower-priority fields if the schema's
+             ``total_max_tokens`` budget is exceeded.
+          5. Cache the per-field values for the schema's TTL.
+
+        Production wiring of the four repos is B3's responsibility —
+        tests pass a ``FieldFetchers(repos=...)`` directly via the
+        optional ``fetchers`` arg or class-level override.
         """
-        import logging
-        logging.getLogger(__name__).warning(
-            "MemoryCardLoader.load() is a P1 stub for agent_id=%s user_id=%s; "
-            "S9 will wire per-field fetchers.", agent_id, user_id,
-        )
-        return LoadedCard(markdown="", token_count=0)
+        # Resolve schema.
+        schema = self._resolve_schema(agent_id)
+
+        # Gather from cache, fall through to fetcher on miss.
+        cache = self._ensure_cache()
+        fetcher = self._ensure_fetchers()
+
+        values: dict[str, str] = {}
+        partial: list[str] = list(getattr(fetcher, "last_partial_fields", []))
+
+        for field in schema.fields:
+            cache_key = f"{agent_id}:{user_id}:{field.key}"
+            hit = cache.get(cache_key)
+            if hit is not None:
+                values[field.key] = hit
+                continue
+            try:
+                value = fetcher.fetch_one(user_id, field.key)
+            except Exception as exc:  # noqa: BLE001
+                import logging
+                logging.getLogger(__name__).warning(
+                    "loader fetch_one(%s) failed: %s", field.key, exc,
+                )
+                value = field.fallback or ""
+                if field.key not in partial:
+                    partial.append(field.key)
+            values[field.key] = value if value else (field.fallback or "")
+            cache.set(cache_key, values[field.key], ttl_s=field.ttl_seconds)
+
+        # Build CardField list with values populated.
+        card_fields = [
+            CardField(
+                key=f.key,
+                source_layer=f.source_layer,
+                query=f.query,
+                max_tokens=f.max_tokens,
+                ttl_seconds=f.ttl_seconds,
+                fallback=f.fallback,
+                value=values.get(f.key, "") or (f.fallback or ""),
+            )
+            for f in schema.fields
+        ]
+        packed = self.pack(card_fields)
+        # Surface partial_fields so callers can log degraded cards.
+        object.__setattr__(packed, "partial_fields", partial)
+        return packed
+
+    def _resolve_schema(self, agent_id: str) -> "CardSchema":
+        if agent_id == "socratic":
+            from app.services.agent.socratic_memory_card import socratic_schema
+            return socratic_schema()
+        raise ValueError(f"unknown agent_id={agent_id!r}")
+
+    _cache: Optional["object"] = None
+    _fetchers: Optional["object"] = None
+
+    def _ensure_cache(self):
+        if self._cache is None:
+            from app.services.agent.card_cache import CardCache
+            self._cache = CardCache()
+        return self._cache
+
+    def _ensure_fetchers(self):
+        if self._fetchers is None:
+            from app.services.agent.field_fetchers import FieldFetchers
+            # Default: empty repos; tests/production override ``_fetchers``.
+            self._fetchers = FieldFetchers(repos={})
+        return self._fetchers
