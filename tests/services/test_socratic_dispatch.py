@@ -11,7 +11,7 @@ tests therefore exercise the existing ``run()`` method, which is where
 the dispatch is installed.
 """
 import os
-from unittest.mock import AsyncMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -35,7 +35,7 @@ def state():
 async def test_default_routes_to_legacy_path(agent, state, monkeypatch):
     """USE_LANGCHAIN_SOCRATIC unset / not "1" → legacy run() path."""
     monkeypatch.delenv("USE_LANGCHAIN_SOCRATIC", raising=False)
-    with patch("agents.produce_socratic_response", new=AsyncMock()) as mock_p:
+    with patch("agents.produce_socratic_response", new=MagicMock()) as mock_p:
         result = await agent.run(state)
     assert result is state
     assert not mock_p.called
@@ -47,7 +47,7 @@ async def test_flag_one_routes_to_produce(agent, state, monkeypatch):
     monkeypatch.setenv("USE_LANGCHAIN_SOCRATIC", "1")
     with patch(
         "agents.produce_socratic_response",
-        new=AsyncMock(return_value="new_response"),
+        new=MagicMock(return_value="new_response"),
     ) as mock_p:
         result = await agent.run(state)
     assert mock_p.called
@@ -60,7 +60,7 @@ async def test_flag_one_llm_failure_falls_back_to_legacy(agent, state, monkeypat
     monkeypatch.setenv("USE_LANGCHAIN_SOCRATIC", "1")
     with patch(
         "agents.produce_socratic_response",
-        new=AsyncMock(side_effect=RuntimeError("qdrant down")),
+        new=MagicMock(side_effect=RuntimeError("qdrant down")),
     ):
         # Must NOT propagate the exception.
         result = await agent.run(state)
@@ -73,7 +73,7 @@ async def test_flag_one_llm_failure_falls_back_to_legacy(agent, state, monkeypat
 async def test_empty_env_string_treated_as_zero(agent, state, monkeypatch):
     """USE_LANGCHAIN_SOCRATIC='' → treat as 0 (no new-path dispatch)."""
     monkeypatch.setenv("USE_LANGCHAIN_SOCRATIC", "")
-    with patch("agents.produce_socratic_response", new=AsyncMock()) as mock_p:
+    with patch("agents.produce_socratic_response", new=MagicMock()) as mock_p:
         result = await agent.run(state)
     assert not mock_p.called
     assert result is state

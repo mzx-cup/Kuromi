@@ -775,11 +775,9 @@ class SocraticEvaluatorAgent(BaseAgent):
         }
 
     async def run(self, state: StudentState, **kwargs: Any) -> StudentState:
-        # Phase-A2 dual-rail (slice-A2): opt-in via env flag.
-        # Default OFF preserves legacy code path; OLD callers unaffected.
         if os.getenv("USE_LANGCHAIN_SOCRATIC", "0") == "1":
             try:
-                return await produce_socratic_response(
+                return produce_socratic_response(
                     user_id=state.student_id,
                     message=state.dialogue_history[-1].content if state.dialogue_history else "",
                     llm=None,
@@ -791,11 +789,10 @@ class SocraticEvaluatorAgent(BaseAgent):
                 )
             except Exception as _exc:
                 # Graceful fallback: log only, fall through to legacy.
-                logging.getLogger(__name__).warning(
+                logging.warning(
                     "LangChain path failed (%s); falling back to legacy.",
                     _exc,
                 )
-        # === end dual-rail (default legacy path below) ===
         start = time.time()
         try:
             dialogue_type = state.metadata.get("dialogue_type", "question")
