@@ -108,12 +108,18 @@ def _persist_semantic_dict(
             source.last_reinforced_at = fields["last_reinforced_at"]
 
 
-def consolidate_user(user_id: str) -> dict:
+def consolidate_user(user_id: str, llm: Any = None) -> dict:
     """Run the full consolidation pass for one user.
 
     Returns a small dict summarising the run. A pass that didn't run
     (too few episodes, no clusters of size >= 3) is reported with
     ``skipped: True`` and a ``reason``.
+
+    Args:
+        user_id: Owner whose recent episodes to consolidate.
+        llm: Optional ``XunfeiChatModel`` threaded into ``extract_pattern``.
+            When ``None`` (the default) the extractor uses its deterministic
+            stub — production callers pass a live ``XunfeiChatModel``.
     """
     epi_repo = OrmEpisodicMemoryRepository()
     sem_repo = OrmSemanticMemoryRepository()
@@ -170,7 +176,14 @@ def consolidate_user(user_id: str) -> dict:
         for c in clusters:
             try:
                 cluster_episode_ids = [ev["id"] for ev in c]
-                pattern = extract_pattern(user_id=user_id, cluster=c)
+                # Only forward ``llm`` when supplied so the legacy 2-arg
+                # stub call (and tests that patch it) stay untouched.
+                if llm is None:
+                    pattern = extract_pattern(user_id=user_id, cluster=c)
+                else:
+                    pattern = extract_pattern(
+                        user_id=user_id, cluster=c, llm=llm,
+                    )
 
                 existing_rows = sem_repo.find_similar(
                     user_id=user_id, statement=pattern["statement"],
