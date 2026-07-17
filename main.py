@@ -185,6 +185,20 @@ async def _not_found_handler(request: Request, exc: Exception):
     )
 
 
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse as _RateLimitJSONResponse
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request, exc):
+    """Return 429 with Retry-After header when rate limit exceeded."""
+    return _RateLimitJSONResponse(
+        status_code=429,
+        content={"detail": "Too many requests. Please slow down."},
+        headers={"Retry-After": "60"},
+    )
+
+
 # ── 学习路径实时刷新防抖 ──
 _path_refresh_debounce: dict[int, float] = {}
 
@@ -257,6 +271,12 @@ app.add_middleware(
     allow_headers=["*"],
     max_age=600,
 )
+
+# Rate limiting (SlowAPI)
+from app.core.rate_limiter import limiter
+app.state.limiter = limiter
+from slowapi.middleware import SlowAPIMiddleware
+app.add_middleware(SlowAPIMiddleware)
 
 # ---- Static files (专注音乐 MP3 等资源) ----
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
