@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
 import uuid
 from typing import Any
@@ -110,6 +111,21 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
         yield _sse_format("heartbeat", {
             "trace_id": trace_id, "ts": int(time.time() * 1000),
         })
+        # B3: emit memory_card once at stream start (cross-layer context
+        # snapshot the Socratic agent uses). Failures degrade gracefully —
+        # the rest of the pipeline runs without a card.
+        try:
+            from app.services.agent.memory_card_loader import MemoryCardLoader
+            _card = MemoryCardLoader().load(
+                agent_id="socratic", user_id=req.student_id,
+            )
+            yield _sse_format("memory_card", {
+                "trace_id": trace_id,
+                "token_count": getattr(_card, "token_count", 0),
+                "partial_fields": getattr(_card, "partial_fields", []),
+            })
+        except Exception as _card_exc:
+            logging.warning("SSE memory_card emit failed (%s); skipping.", _card_exc)
         controller = create_default_controller()
         cancel_state = {"cancelled": False}
 

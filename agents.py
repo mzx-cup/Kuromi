@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import Any, Callable, Awaitable, Optional
 
+from app.services.agent.memory_card_loader import MemoryCardLoader
 from app.services.callbacks.kb_callback_handler import KBCallbackHandler
 from app.services.llm.socratic_response import produce_socratic_response
 from state import (
@@ -777,9 +778,19 @@ class SocraticEvaluatorAgent(BaseAgent):
     async def run(self, state: StudentState, **kwargs: Any) -> StudentState:
         if os.getenv("USE_LANGCHAIN_SOCRATIC", "0") == "1":
             try:
+                # B3: prepend memory card so cross-layer context reaches the LLM.
+                original = state.dialogue_history[-1].content if state.dialogue_history else ""
+                try:
+                    card_md = MemoryCardLoader().load(
+                        agent_id="socratic", user_id=state.student_id,
+                    ).markdown
+                except Exception as card_exc:
+                    logging.warning("memory card load failed (%s); unenriched message.", card_exc)
+                    card_md = ""
+                message = f"{card_md}\n\n{original}" if card_md else original
                 return produce_socratic_response(
                     user_id=state.student_id,
-                    message=state.dialogue_history[-1].content if state.dialogue_history else "",
+                    message=message,
                     llm=None,
                     vector_store=None,
                     callback_handler=KBCallbackHandler(
