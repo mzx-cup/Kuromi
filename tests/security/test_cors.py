@@ -7,7 +7,7 @@ Verifies:
   - Allowed origins return correct CORS headers
   - Disallowed origins do not echo back
 """
-from app.core.security_config import get_security_config, reset_security_config
+from app.core.security_config import SecurityConfig, get_security_config, reset_security_config
 
 
 class TestCORSConfiguration:
