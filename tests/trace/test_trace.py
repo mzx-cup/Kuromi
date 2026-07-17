@@ -67,3 +67,65 @@ class TestParseTraceparent:
     def test_malformed_version_ignored(self):
         ctx = parse_traceparent("99-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-1111111111111111-01")
         assert re.match(r"^[0-9a-f]{32}$", ctx.trace_id)
+
+
+class TestSpanRecorder:
+    def test_set_attribute(self):
+        from app.core.trace import SpanRecorder
+        span = SpanRecorder()
+        span.set_attribute("user_id", 42)
+        span.set_attribute("latency_ms", 123.4)
+        assert span.attributes["user_id"] == 42
+        assert span.attributes["latency_ms"] == 123.4
+
+    def test_default_status_is_ok(self):
+        from app.core.trace import SpanRecorder
+        span = SpanRecorder()
+        assert span.status == "ok"
+
+    def test_set_status_error(self):
+        from app.core.trace import SpanRecorder
+        span = SpanRecorder()
+        span.set_status("error")
+        assert span.status == "error"
+
+    def test_attributes_default_to_empty_dict(self):
+        from app.core.trace import SpanRecorder
+        span = SpanRecorder()
+        assert span.attributes == {}
+
+
+class TestStartFinishSpan:
+    def test_start_creates_span_in_context(self):
+        from app.core.trace import start_span, get_current_span, finish_span
+        span, token = start_span("test.span")
+        try:
+            assert get_current_span() is span
+            assert span.attributes["span.name"] == "test.span"
+        finally:
+            finish_span(span, token)
+
+    def test_start_resets_to_none_after_finish(self):
+        from app.core.trace import start_span, get_current_span, finish_span
+        span, token = start_span("test.span")
+        finish_span(span, token)
+        assert get_current_span() is None
+
+    def test_finish_emits_span_end_log(self, caplog):
+        import logging
+        from app.core.trace import start_span, finish_span
+        span, token = start_span("test.timed")
+        with caplog.at_level(logging.INFO, logger="starlearn.trace"):
+            finish_span(span, token)
+        # Verify log contains span_end marker
+        assert any("span_end" in record.message for record in caplog.records)
+
+    def test_finish_includes_duration_in_log(self, caplog):
+        import logging
+        import time
+        from app.core.trace import start_span, finish_span
+        span, token = start_span("test.timed")
+        time.sleep(0.01)  # ensure duration > 0
+        with caplog.at_level(logging.INFO, logger="starlearn.trace"):
+            finish_span(span, token)
+        assert any("duration_ms=" in record.message for record in caplog.records)
