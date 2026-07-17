@@ -278,6 +278,10 @@ app.state.limiter = limiter
 from slowapi.middleware import SlowAPIMiddleware
 app.add_middleware(SlowAPIMiddleware)
 
+# CSRF / Origin check (after rate limit to avoid wasting quota on bad requests)
+from app.core.middleware.origin_check import OriginCheckMiddleware
+app.add_middleware(OriginCheckMiddleware)
+
 # ---- Static files (专注音乐 MP3 等资源) ----
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
