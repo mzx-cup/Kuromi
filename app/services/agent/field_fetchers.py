@@ -120,11 +120,39 @@ class FieldFetchers:
             return f"近 7 天 {len(rows)} 项能力快照"
 
         if key == "semantic_top3":
-            # real ORM: find_similar / list_active / get. The loader
-            # mock uses .top_by_confidence(user_id, n=3, status='active').
-            rows = self._repos["semantic"].top_by_confidence(
-                user_id=user_id, n=3, status="active",
-            )
+            # Resolution order (test contract first, then real ORM):
+            #   1. ``top_by_confidence(user_id, n=3, status='active')``
+            #      — MagicMock contract used by ``test_field_fetchers``.
+            #   2. ``top_active(user_id, n=3)``
+            #      — added on ``OrmSemanticMemoryRepository`` for the
+            #        production wiring; sorts by ``confidence`` desc.
+            #   3. ``find_similar(user_id, statement='')``
+            #      — older real ORM API; we sort + slice top-N in
+            #        Python because the repo returns the full set.
+            #   4. fallback placeholder.
+            #
+            # We deliberately do NOT wrap the call in try/except: when
+            # the chosen method raises (e.g. DB down), ``fetch_all``'s
+            # outer try/except records the field in ``partial_fields``
+            # and substitutes the fallback string. Swallowing here would
+            # hide that degraded-field signal from callers.
+            repo = self._repos["semantic"]
+            rows: list[Any]
+            if hasattr(repo, "top_by_confidence"):
+                rows = repo.top_by_confidence(
+                    user_id=user_id, n=3, status="active",
+                )
+            elif hasattr(repo, "top_active"):
+                rows = repo.top_active(user_id=user_id, n=3)
+            elif hasattr(repo, "find_similar"):
+                all_rows = repo.find_similar(user_id=user_id, statement="")
+                rows = sorted(
+                    list(all_rows),
+                    key=lambda r: float(getattr(r, "confidence", 0) or 0.0),
+                    reverse=True,
+                )[:3]
+            else:
+                rows = []
             if not rows:
                 return _FALLBACK[key]
             items = "; ".join(

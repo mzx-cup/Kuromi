@@ -266,6 +266,77 @@ class MemoryCardLoader:
     def _ensure_fetchers(self):
         if self._fetchers is None:
             from app.services.agent.field_fetchers import FieldFetchers
-            # Default: empty repos; tests/production override ``_fetchers``.
-            self._fetchers = FieldFetchers(repos={})
+            # Production wiring (follow-up #3): try to instantiate the
+            # four real ORM repos and hand them to ``FieldFetchers``.
+            # Each instantiation is wrapped in its own try/except so a
+            # single broken import / factory does not blow up the whole
+            # loader — we just leave that repo out and FieldFetchers
+            # degrades that field to its fallback string.
+            #
+            # Tests that build their own ``FieldFetchers(repos=...)``
+            # bypass this path entirely by injecting ``_fetchers``
+            # before the first ``load()`` call.
+            repos: dict[str, object] = {}
+
+            def _try_add(key: str, factory) -> None:
+                try:
+                    repos[key] = factory()
+                except Exception as exc:  # noqa: BLE001
+                    _log.warning(
+                        "MemoryCardLoader: failed to instantiate %s repo (%s); "
+                        "field will fall back to placeholder",
+                        key, exc,
+                    )
+
+            try:
+                from app.repositories.orm.episodic_memory import (
+                    OrmEpisodicMemoryRepository,
+                )
+                _try_add("episodic", OrmEpisodicMemoryRepository)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning(
+                    "MemoryCardLoader: cannot import episodic repo: %s", exc,
+                )
+
+            try:
+                from app.repositories.orm.weakness_timeline import (
+                    OrmWeaknessTimelineRepository,
+                )
+                _try_add("capability", OrmWeaknessTimelineRepository)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning(
+                    "MemoryCardLoader: cannot import capability repo: %s", exc,
+                )
+
+            try:
+                from app.repositories.orm.semantic_memory import (
+                    OrmSemanticMemoryRepository,
+                )
+                _try_add("semantic", OrmSemanticMemoryRepository)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning(
+                    "MemoryCardLoader: cannot import semantic repo: %s", exc,
+                )
+
+            try:
+                from app.repositories.orm.supervision import (
+                    OrmSupervisionEventRepository,
+                )
+                _try_add("supervision", OrmSupervisionEventRepository)
+            except Exception as exc:  # noqa: BLE001
+                _log.warning(
+                    "MemoryCardLoader: cannot import supervision repo: %s", exc,
+                )
+
+            if not repos:
+                # Guard: an empty ``repos`` dict means production is
+                # running without any real ORM wiring. Log loudly so
+                # on-call sees it; ``FieldFetchers`` itself will still
+                # return fallback strings for every field, never raise.
+                _log.warning(
+                    "MemoryCardLoader: NO ORM repos available; every memory-card "
+                    "field will return its placeholder string. Check DB / imports."
+                )
+
+            self._fetchers = FieldFetchers(repos=repos)
         return self._fetchers

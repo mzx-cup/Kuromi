@@ -66,6 +66,29 @@ class OrmSemanticMemoryRepository:
             )
             return list(rows)
 
+    def top_active(
+        self, *, user_id: str, n: int = 3,
+    ) -> list[SemanticMemory]:
+        """Return the top-N active semantic memories for ``user_id``,
+        ordered by ``confidence`` descending.
+
+        Used by the agent memory-card field fetcher to surface the most
+        confident long-lived patterns in the prompt. Added in the
+        follow-up that wires ``FieldFetchers`` to real ORM repos — the
+        fetcher tries ``top_by_confidence`` first (test contract) then
+        ``top_active`` then falls back to ``find_similar`` with manual
+        sort+slice.
+        """
+        with self._sf() as s:
+            rows = (
+                s.query(SemanticMemory)
+                .filter_by(user_id=user_id, status=ACTIVE)
+                .order_by(SemanticMemory.confidence.desc())
+                .limit(n)
+                .all()
+            )
+            return list(rows)
+
     def get(self, semantic_id: int) -> Optional[SemanticMemory]:
         with self._sf() as s:
             return s.get(SemanticMemory, semantic_id)
