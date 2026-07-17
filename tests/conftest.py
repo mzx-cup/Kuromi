@@ -144,3 +144,22 @@ def contract_runner(dual_db_environment):
     orm_client = TestClient(app)
 
     return ContractRunner(legacy_client=legacy_client, orm_client=orm_client)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Reset SlowAPI state between every test.
+
+    SlowAPI's in-memory storage accumulates hits per-IP across tests when
+    the same TestClient hits the same endpoints. Tests that share the
+    testclient IP (``testclient``) would otherwise exhaust rate limits
+    and produce spurious 429s. The dedicated rate-limit tests in
+    ``tests/security/test_rate_limit.py`` work correctly because they
+    rely on per-test state — the reset happens AFTER those tests.
+    """
+    yield
+    try:
+        from app.core.rate_limiter import limiter
+        limiter.reset()
+    except Exception:
+        pass
