@@ -26,8 +26,8 @@ os.environ.setdefault("DUAL_WRITE_LEGACY", "true")
 
 @pytest.fixture(autouse=True, scope="session")
 def _ensure_supervision_tables():
-    """slice-B1: create supervision_rules / supervision_events on the L1 sync
-    engine so RuleEngine repo queries work under the test DB.
+    """slice-B1 + slice-B2: create supervision / drift ORM tables on the
+    L1 sync engine so repo queries work under the test DB.
 
     ``evaluate_all_active_users`` re-imports the ORM repos locally (bypassing
     ``patch.object`` on the module), so the real repository runs against the
@@ -35,6 +35,7 @@ def _ensure_supervision_tables():
     """
     from app.models.base import Base
     from app.models import supervision  # noqa: F401  (register tables)
+    from app.models import drift_report  # noqa: F401  (slice-B2 register)
     from app.repositories.orm.knowledge_node import SessionFactory
 
     with SessionFactory() as s:
@@ -44,6 +45,7 @@ def _ensure_supervision_tables():
             tables=[
                 supervision.SupervisionRule.__table__,
                 supervision.SupervisionEvent.__table__,
+                drift_report.DriftReport.__table__,
             ],
             checkfirst=True,
         )
