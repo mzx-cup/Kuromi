@@ -256,6 +256,10 @@ if not req_logger.handlers:
     req_logger.addHandler(rh)
     req_logger.setLevel(logging.INFO)
 
+# Trace context middleware (MUST be added FIRST so trace_id is available to all other middlewares)
+from app.core.middleware.trace import TraceMiddleware
+app.add_middleware(TraceMiddleware)
+
 # Security headers middleware (MUST be added before CORS so preflight responses also get headers)
 from app.core.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
