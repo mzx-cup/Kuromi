@@ -212,12 +212,16 @@ if not req_logger.handlers:
 from app.core.middleware.security_headers import SecurityHeadersMiddleware
 app.add_middleware(SecurityHeadersMiddleware)
 
+# CORS — strict mode (no wildcard; uses SecurityConfig allowlist)
+from app.core.security_config import get_security_config
+config = get_security_config()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=config.allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    max_age=600,
 )
 
 # ---- Static files (专注音乐 MP3 等资源) ----
