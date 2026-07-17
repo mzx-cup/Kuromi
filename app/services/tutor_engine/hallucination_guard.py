@@ -22,6 +22,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Optional, Tuple
 
+from app.core.trace import get_current_span
 from app.services.tutor_engine.models import (
     Citation,
     ConfidenceReport,
@@ -110,6 +111,14 @@ class HallucinationGuard:
 
         # Step 6: 根据置信度处理回答
         final_text = self._apply_confidence_policy(answer_text, confidence, rich)
+
+        # Trace: record guard attributes on the current root span (if any).
+        span = get_current_span()
+        if span is not None:
+            span.set_attribute("guard.citations_checked", len(citations))
+            span.set_attribute("guard.citation_validated", citation_valid)
+            span.set_attribute("guard.web_consistency", web_consistency)
+            span.set_attribute("guard.blocked", getattr(confidence, "blocked", False))
 
         # 创建模拟流（兼容现有 SSE 接口）
         async def _stream() -> AsyncIterator[str]:

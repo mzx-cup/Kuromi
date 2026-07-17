@@ -37,6 +37,7 @@ from app.services.tutor_engine.models import (
 )
 
 from app.core.repository_factory import get_repository_for_user
+from app.core.trace import get_current_span
 
 logger = logging.getLogger("starlearn.tutor_engine")
 
@@ -179,6 +180,13 @@ class ContextAggregator:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logger.warning(f"[ContextAggregator] 数据源 #{i} 失败: {result}")
+
+        # Trace: record aggregation counts on the current root span (if any).
+        span = get_current_span()
+        if span is not None:
+            span.set_attribute("context.rag_count", len(getattr(rich, "rag_results", [])))
+            span.set_attribute("context.web_count", len(getattr(rich, "web_results", [])))
+            span.set_attribute("context.memory_count", len(getattr(rich, "memories", [])))
 
         return rich
 
