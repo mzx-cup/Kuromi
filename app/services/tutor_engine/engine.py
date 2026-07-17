@@ -25,6 +25,7 @@ import asyncio
 import logging
 from typing import Any, AsyncIterator, Optional
 
+from app.core.trace import finish_span, start_span
 from app.services.tutor_engine.action_ledger import ActionLedger
 from app.services.tutor_engine.context_aggregator import ContextAggregator
 from app.services.tutor_engine.models import (
@@ -76,6 +77,12 @@ class TutorDecisionEngine:
         trace: list[str] = [f"🚀 TutorDecisionEngine 开始处理: {event.type.value}"]
         envelope = ResponseEnvelope(engine_trace=trace)
 
+        # Trace span for observability. The span records per-phase attributes
+        # (counts, timing, status) on the current root span via contextvar.
+        span, token = start_span("tutor.decide")
+        span.set_attribute("user_id", str(event.student_id))
+        span.set_attribute("event_type", event.type.value)
+
         try:
             # === Step 1: 聚合上下文 ===
             trace.append("📚 ContextAggregator 并行聚合...")
@@ -83,12 +90,21 @@ class TutorDecisionEngine:
             trace.append(f"   RAG: {len(rich_context.rag_results)} 条, "
                         f"Web: {len(rich_context.web_results)} 条, "
                         f"Memories: {len(rich_context.memories)} 条")
+            context_count = (
+                len(getattr(rich_context, "rag_results", []))
+                + len(getattr(rich_context, "web_results", []))
+                + len(getattr(rich_context, "memories", []))
+            )
+            span.set_attribute("context_count", context_count)
 
             # === Step 2: 生成回答 + 校验 ===
             trace.append("🧠 生成回答并校验...")
+            import time
+            llm_start = time.perf_counter()
             answer_stream, answer_text, citations, confidence = await self._generate_and_guard(
                 event, rich_context
             )
+            span.set_attribute("llm_latency_ms", (time.perf_counter() - llm_start) * 1000)
             envelope.answer_stream = answer_stream
             envelope.answer_text = answer_text
             envelope.citations = citations
@@ -96,12 +112,21 @@ class TutorDecisionEngine:
             trace.append(f"   置信度: {confidence.final_confidence:.2f}, "
                         f"引用: {len(citations)} 条, "
                         f"blocked: {confidence.blocked}")
+            span.set_attribute("guard_final_confidence", confidence.final_confidence)
+            if getattr(confidence, "blocked", False):
+                span.set_status("error")
+                span.set_attribute("error.type", "HallucinationBlocked")
+                span.set_attribute(
+                    "error.message",
+                    f"guard blocked: confidence={confidence.final_confidence}"[:200],
+                )
 
             # === Step 3: 生成学习链接 ===
             trace.append("🔗 生成学习链接...")
             links = await self._generate_links(event, rich_context)
             envelope.links = links
             trace.append(f"   链接: {len(links)} 条")
+            span.set_attribute("links_count", len(links))
 
             # 记录链接暴露（用于后续去重）
             for link in links:
@@ -113,6 +138,7 @@ class TutorDecisionEngine:
             actions = await self._advise_proactive(event, rich_context, envelope)
             envelope.proactive_actions = actions
             trace.append(f"   推送: {len(actions)} 条")
+            span.set_attribute("actions_count", len(actions))
 
             # 记录推送暴露
             for action in actions:
@@ -126,8 +152,13 @@ class TutorDecisionEngine:
         except Exception as e:
             logger.exception(f"[TutorDecisionEngine] 决策失败: {e}")
             trace.append(f"❌ 错误: {e}")
+            span.set_status("error")
+            span.set_attribute("error.type", type(e).__name__)
+            span.set_attribute("error.message", str(e)[:200])
             # 返回降级响应：空 envelope，让调用方回退到旧逻辑
             envelope.answer_text = "[系统处理中，请稍后再试]"
+        finally:
+            finish_span(span, token)
 
         return envelope
 
