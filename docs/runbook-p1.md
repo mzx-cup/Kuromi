@@ -497,6 +497,94 @@ business days. Template lives at
 
 ---
 
+## 11. 灰度发布（gray rollout）
+
+P1 的 SocraticAgent 重构通过环境变量 `USE_LANGCHAIN_SOCRATIC`
+与既有调用路径双轨并存，默认 `=0`（legacy 路径）。该切片依赖原 spec
+的双轨原则：「老路径永远可回退」。本节定义从 `0` 到 `100` 的灰度节奏。
+
+### 11.1 灰度档位与节奏
+
+每一档至少运行 **24 小时**、错误率 < 0.1% 才能进下一档。
+跨档必须留 5 分钟观察窗，避免熔断回退。
+
+| 档位          | 比例 | 持续 | 通过条件（基于 P99 + 错误率）            | 通讯要求         |
+|---------------|------|------|------------------------------------------|------------------|
+| 0 内部白名单  | 0%   | 1 周 | 单元 + 集成 + 红队全过                  | 团队内公示        |
+| 1 灰度 1%     | 1%   | 3 天 | 错误率 < 0.5%、P99 < 3s                  | 灰度 QQ/微信群    |
+| 2 灰度 10%    | 10%  | 3 天 | 错误率 < 0.2%、反幻觉拒答率 < 15%       | 灰度群            |
+| 3 灰度 50%    | 50%  | 3 天 | 同上 + 人工抽检 50 条无明显质量下降      | 产品 + 全平台用户预热 |
+| 4 全量 100%   | 100% | —    | 同上 + chaos drill 通过                   | 正式发布公告      |
+
+### 11.2 灰度用户哈希分流
+
+切读通过 `READ_BACKEND_PERCENTAGE`（沿用既有 + feature flag 机制，
+详见 `app/core/feature_flags.py`）按用户哈希取模分流，与切片 #1 用户
+认证、切片 #12 小星决策引擎灰度策略一致。
+
+```bash
+# 1% 切读（约 100/10000 用 user_id MD5 前 1 位命中）
+deploy env set READ_BACKEND_PERCENTAGE=1
+deploy env set DUAL_WRITE_LEGACY=true     # 同步写老路径，避免双数据源漂移
+
+# 升级到 10%
+deploy env set READ_BACKEND_PERCENTAGE=10
+
+# 升级到 50%
+deploy env set READ_BACKEND_PERCENTAGE=50
+
+# 升级到 100%（双写仍保留，便于紧急回滚）
+deploy env set READ_BACKEND_PERCENTAGE=100
+```
+
+### 11.3 Socratic 单独灰度
+
+`USE_LANGCHAIN_SOCRATIC` 与 `READ_BACKEND_PERCENTAGE` 正交，可在不切整
+个读路径的前提下单独打开 Socratic 新路径。建议节奏：
+
+1. 先 `READ_BACKEND_PERCENTAGE=0`、单纯开 `USE_LANGCHAIN_SOCRATIC=1`
+   给白名单用户（≤ 100 个员工 / 内部账号），跑 1 周。
+2. 灰度 `READ_BACKEND_PERCENTAGE=1`（其中 Socratic 是否走新路径由
+   `USE_LANGCHAIN_SOCRATIC` 决定 — 默认全部 Socratic 用户都走新路径）。
+3. 灰度档位升降与 11.1 一致，但验收额外观察：
+   - 反幻觉拒答率（blocked / total）< 15%
+   - Socratic 流 1 P99 < 3s（验收 A5）
+   - parity 4 指标全过（验收 A6）
+
+### 11.4 灰度期监控
+
+| 指标                       | 来源             | 告警阈值            |
+|----------------------------|------------------|---------------------|
+| 反幻觉拒答率              | parity + redteam | > 15%             |
+| 流 1 P99 延迟             | perf-results/    | > 3s              |
+| L3 拒答率                 | HealthProbe      | > 0.5%            |
+| Parity cite overlap       | parity report    | < 0.85            |
+| SessionStart hook P95     | Sentry APM       | > 2s              |
+| `agents.py` 净增长        | CI `agents-size-net` | > 50 行/PR     |
+
+### 11.5 回滚
+
+灰度期内任一档发现致命问题，立即按 §9.1 一键回退：
+
+```bash
+deploy env set USE_LANGCHAIN_SOCRATIC=0
+deploy env set READ_BACKEND_PERCENTAGE=0
+deploy env set DUAL_WRITE_LEGACY=true
+```
+
+回退生效时间 ≤ 30s（env 刷新周期）。回退后保持 `DUAL_WRITE_LEGACY=true`
+至少一周，防止新路径再次落入同一故障窗口。
+
+### 11.6 灰度通过后的清理
+
+`READ_BACKEND_PERCENTAGE=100` 稳定运行 7 天后：
+
+1. 拆除 `DUAL_WRITE_LEGACY=true`（设为 `false`，停止写老路径）。
+2. 在下一个稳定 release 标记 legacy 代码为 deprecated。
+3. P1.5 之后再删除老路径物理代码（spec 第 6 节）。
+
+---
+
 ## Appendix A — Chaos drill
 
 The chaos drill exercises three fault scenarios:
