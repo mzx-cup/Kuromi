@@ -148,3 +148,31 @@ jobs:
       - name: Run audit tool unit tests
         run: |
           python -m pytest tests/scripts/ -v --tb=short
+
+  # ====== agents.py 净增长回归网 (P1 closure follow-up #6) ======
+  # Spec invariant: agents.py is a 1600+ line file; P1 added only 32 lines.
+  # Future PRs should add behavior via new modules, not by editing agents.py.
+  # This job fails the PR if the net change exceeds 50 lines.
+  agents-size-net:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check agents.py net growth vs base branch
+        run: |
+          BASE="${BASE_REF:-origin/main}"
+          if ! git rev-parse --verify "$BASE" >/dev/null 2>&1; then
+            # Fall back to HEAD~1 if base ref unavailable (e.g., workflow_dispatch on initial main)
+            BASE="HEAD~1"
+          fi
+          BEFORE=$(git show "$BASE":agents.py 2>/dev/null | wc -l)
+          AFTER=$(wc -l < agents.py)
+          NET=$((AFTER - BEFORE))
+          echo "agents.py: $BEFORE -> $AFTER (net $NET lines, base=$BASE)"
+          if [ "$NET" -gt 50 ]; then
+            echo "::error::agents.py net grew by $NET lines (>50). Refactor instead of patching agents.py."
+            exit 1
+          fi
