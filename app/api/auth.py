@@ -113,6 +113,9 @@ def _ensure_user_columns():
                     cursor.execute("ALTER TABLE user ADD COLUMN role TEXT DEFAULT 'student'")
                 if 'display_name' not in columns:
                     cursor.execute("ALTER TABLE user ADD COLUMN display_name TEXT DEFAULT ''")
+                if 'password' not in columns and 'password_hash' in columns:
+                    cursor.execute("ALTER TABLE user ADD COLUMN password TEXT")
+                    cursor.execute("UPDATE user SET password = password_hash WHERE password IS NULL AND password_hash IS NOT NULL")
             else:
                 cursor.execute("SHOW COLUMNS FROM user LIKE 'role'")
                 if not cursor.fetchone():
