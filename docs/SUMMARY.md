@@ -92,13 +92,34 @@ Each slice ran: TDD bite-sized steps → implementer subagent → two-stage revi
 
 These are documented in the final code review. They are **outside** the P1 close-out and require separate work items.
 
-1. **Fill `a_langchain` in `tests/parity/conversations.jsonl`** — 100 of 100 rows have empty `a_langchain`; the parity test still SKIPs via `_skip_if_no_real_data()`. Run real `produce_socratic_response` against the 100 `q` pairs and persist answers. Once filled, the 4 thresholds (overlap > 0.85, block diff < 0.05, latency p99 < legacy × 1.20, token ratio < 1.15) will start enforcing.
-2. **Wire `start_drift_scheduler()` and `start_consolidation_scheduler()` in `main.py:lifespan`** (lines 84-111). Currently both factories exist; no caller invokes `.start()`, so daily cron jobs never run in production.
-3. **Wire `FieldFetchers(repos=...)` with the 4 real ORM repos** (`OrmEpisodicMemoryRepository`, `OrmWeaknessTimelineRepository`, `OrmSemanticMemoryRepository`, `OrmSupervisionEventRepository`). Without this, `MemoryCardLoader._ensure_fetchers` falls back to placeholder strings for all 4 fields.
-4. **Add P99 < 3s perf assertion** for `test_socratic_e2e_card_flow.py` to satisfy spec §9.2 A5. Existing tests cover behavior, not perf.
-5. **Add `灰度` rollout section** to `docs/runbook-p1.md` describing the 1%→10%→50%→100% plan via `USE_LANGCHAIN_SOCRATIC` (or a per-user feature flag in `app/core/feature_flags.py`). Runbook currently covers 4 incident quick-cards but not the rollout.
-6. **Add an explicit regression net** asserting `agents.py` net diff stays under 50 lines per future PR (the "do not bloat agents.py" invariant). Currently held by review discipline only.
-7. **Move `.claude/settings.json` `SessionStart` hook out of staging parity** — verify it actually fires on `claude-code` startup in a live session.
+1. **Fill `a_langchain` in `tests/parity/conversations.jsonl`** — 100 of 100 rows have empty `a_langchain`; the parity test still SKIPs via `_skip_if_no_real_data()`. ✅ **Tooling landed** (`scripts/fill_parity_answers.py --in-place`). Run real `produce_socratic_response` against the 100 `q` pairs in a staging/prod env (the script falls back to a mock LLM if 讯飞 creds absent — useful for proving wiring but not representative of real output). See `docs/runbook-p1.md §10.6`.
+2. **Wire `start_drift_scheduler()` and `start_consolidation_scheduler()` in `main.py:lifespan`** (lines 84-111). ✅ Done at `62fe4c8`. Both factories now `.start()`-ed on app startup (consolidator opt-out via `MEMORY_CONSOLIDATOR_ENABLED=0`); clean shutdown on lifespan exit.
+3. **Wire `FieldFetchers(repos=...)` with the 4 real ORM repos** (`OrmEpisodicMemoryRepository`, `OrmWeaknessTimelineRepository`, `OrmSemanticMemoryRepository`, `OrmSupervisionEventRepository`). ✅ Done at `4054eae`. `MemoryCardLoader._ensure_fetchers` now defaults to instantiating all 4 real repos with per-repo fail-open. Added `OrmSemanticMemoryRepository.top_active()` for the production semantic_top3 path; tests continue to pass via MagicMock contract.
+4. **Add P99 < 3s perf assertion** for `test_socratic_e2e_card_flow.py` to satisfy spec §9.2 A5. ✅ Done at `f502b8f`. Added `tests/integration/test_socratic_e2e_perf.py` (100 iterations, mocks both LLM and card loader, asserts P99 < 3000ms). Tagged `@pytest.mark.perf`; excluded from default CI via `-m "not perf"`.
+5. **Add `灰度` rollout section** to `docs/runbook-p1.md`. ✅ Done at `1d6a0d2`. New `## 11. 灰度发布` covers 4 档节奏 (1% / 10% / 50% / 100%) plus dedicated `### 11.3 Socratic 单独灰度` section tied to `USE_LANGCHAIN_SOCRATIC`.
+6. **Add an explicit regression net** asserting `agents.py` net diff stays under 50 lines per future PR. ✅ Done at `3e6bc89`. New CI job `agents-size-net` computes `wc -l agents.py` against base ref, fails PR if net > 50 lines.
+7. **Verify `.claude/settings.json` `SessionStart` hook** actually fires on `claude-code` startup in a live session. ✅ Verified in-sandbox portion: hook entry present, command `PYTHONPATH=. python -m app.services.claude_card.loader` runs successfully (exit 0, output 826 bytes under 3KB cap, contains expected sections). Remaining verification — that Claude-Code's runtime actually injects the captured stdout — must happen on a live session. Documented below.
+
+### SessionStart hook — sandbox-verifiable parts
+
+Verified by executing the hook command directly:
+
+```
+$ PYTHONPATH=. python -m app.services.claude_card.loader
+loader[drift] failed:            # graceful fallback when DB unreachable
+# Project State @ f45bc54
+_Refreshed: 2026-07-17T02:50:14+00:00_
+...
+[exit code 0, 826 bytes emitted, content includes all 5 sections]
+```
+
+What was NOT verified here (requires live Claude-Code session):
+- Whether `claude-code`'s hook runtime captures the stdout and injects it into the conversation context
+- Whether the hook fires on all 3 matcher states (`startup`, `resume`, `clear`)
+- Whether the 1500ms `timeout` in `.claude/settings.json:25` is honored if the loader hangs
+- Whether the 5-source parallel fetch actually parallelizes under a live session (vs cold-cache baseline)
+
+These need a live Claude-Code session to fully validate.
 
 ## 7. Spec compliance (`A1-A15` from spec §9.2)
 
