@@ -103,11 +103,45 @@ async def lifespan(app: FastAPI):
         logger.info(f"[Startup] HealthWorker started (interval={kb_settings.health_check_interval_s}s)")
     except Exception as e:
         logger.exception(f"[Startup] HealthWorker start failed: {e}")
+    # P1 closure follow-up #2: start daily cron jobs (drift + memory
+    # consolidation). Each is fail-open: a startup failure must not
+    # crash the app — only log and move on, so health endpoints still
+    # respond and on-call can investigate via runbook §9.
+    consolidator_enabled = os.getenv("MEMORY_CONSOLIDATOR_ENABLED", "1") == "1"
+    if consolidator_enabled:
+        try:
+            from app.services.memory.scheduler import start_consolidation_scheduler
+            sched = start_consolidation_scheduler()
+            sched.start()
+            app.state.consolidation_scheduler = sched
+            logger.info("[Startup] Memory consolidation cron started (03:00 daily)")
+        except Exception as e:
+            logger.exception(f"[Startup] consolidation scheduler failed: {e}")
+    else:
+        logger.info("[Startup] Memory consolidation cron disabled (MEMORY_CONSOLIDATOR_ENABLED=0)")
+    try:
+        from app.services.drift.scheduler import start_drift_scheduler
+        drift_sched = start_drift_scheduler()
+        drift_sched.start()
+        app.state.drift_scheduler = drift_sched
+        logger.info("[Startup] Drift detection cron started (04:00 daily)")
+    except Exception as e:
+        logger.exception(f"[Startup] drift scheduler failed: {e}")
     all_paths = [r.path for r in app.routes if hasattr(r, 'path')]
     v2_paths = [p for p in all_paths if 'v2' in p or 'textbook' in p]
     logger.info(f"[Startup] Total routes: {len(all_paths)}, v2/textbook: {len(v2_paths)}")
     yield
-    # Shutdown
+    # Shutdown — drain cron schedulers cleanly. APScheduler's shutdown()
+    # waits for in-flight jobs (default wait=True) and tears down the
+    # underlying event loop.
+    for attr in ("drift_scheduler", "consolidation_scheduler"):
+        sched = getattr(app.state, attr, None)
+        if sched is not None:
+            try:
+                sched.shutdown(wait=False)
+                logger.info(f"[Shutdown] {attr} stopped")
+            except Exception as e:
+                logger.exception(f"[Shutdown] {attr} shutdown failed: {e}")
     await close_http_client()
 
 app = FastAPI(lifespan=lifespan)
