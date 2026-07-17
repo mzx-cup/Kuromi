@@ -282,6 +282,10 @@ app.add_middleware(SlowAPIMiddleware)
 from app.core.middleware.origin_check import OriginCheckMiddleware
 app.add_middleware(OriginCheckMiddleware)
 
+# Request size limit (innermost security middleware)
+from app.core.middleware.request_size import RequestSizeLimitMiddleware
+app.add_middleware(RequestSizeLimitMiddleware)
+
 # ---- Static files (专注音乐 MP3 等资源) ----
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
