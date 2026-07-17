@@ -486,6 +486,37 @@ business days. Template lives at
 4. File a P2; the parity suite is the regression net for
    the Socratic refactor.
 
+#### Filling `a_langchain` to enable the 4-metric gates
+
+The 4 metrics are SKIPPED while `tests/parity/conversations.jsonl`
+rows have empty `a_langchain` (this is the default — the real fill is
+a production-environment operation, not a CI step). To enable the
+gates:
+
+```bash
+# 1. Run the fill script against the live 100 prompts. Requires:
+#    - 讯飞 API credentials configured (env XUNFEI_*)
+#    - Qdrant reachable + populated with the same KB nodes the
+#      parity test fixture references
+#    - the agents parity-batch user has KB / episodic / semantic
+#      rows visible (use `/api/admin/seed parity-fixture` if not)
+
+PYTHONPATH=. python scripts/fill_parity_answers.py --in-place
+
+# 2. Verify the file was populated:
+python -c "import json; n=sum(1 for l in open('tests/parity/conversations.jsonl', encoding='utf-8') if l.strip() and json.loads(l).get('a_langchain','').strip()); print(f'{n}/100 a_langchain filled')"
+
+# 3. Re-run parity — the 4 tests now enforce rather than skip:
+PYTHONPATH=. pytest tests/parity/langchain_parity.py -v
+```
+
+In sandboxed dev envs without 讯飞 API access, the fill script
+falls back to a deterministic mock LLM — useful for proving the
+wiring works end-to-end but NOT representative of real LangChain
+quality. Always run on a staging/prod env with real credentials
+before relying on the 4 metrics to gate merges.
+
+
 ### 10.7 "Drift spike"
 
 1. Open the most recent `perf-results/drift-*.json`.
