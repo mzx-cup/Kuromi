@@ -40,8 +40,16 @@ def clean_security_env(monkeypatch):
 
 @pytest.fixture
 def production_mode(monkeypatch):
-    """Force production mode (disable dev shortcuts)."""
+    """Force production mode (disable dev shortcuts).
+
+    Also resets the SecurityConfig singleton so the new env var takes
+    effect (the singleton is constructed once on first read).
+    """
     monkeypatch.setenv("SECURITY_DEV_MODE", "false")
+    from app.core.security_config import reset_security_config
+    reset_security_config()
+    yield
+    reset_security_config()
 
 
 @pytest.fixture
