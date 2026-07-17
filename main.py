@@ -208,6 +208,10 @@ if not req_logger.handlers:
     req_logger.addHandler(rh)
     req_logger.setLevel(logging.INFO)
 
+# Security headers middleware (MUST be added before CORS so preflight responses also get headers)
+from app.core.middleware.security_headers import SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
