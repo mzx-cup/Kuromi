@@ -1,69 +1,88 @@
-"""db.py wrapper for user authentication."""
+"""User repository backed by db.py (MySQL / SQLite / JSON)."""
 from __future__ import annotations
 
-import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
+
+from db import get_db, _is_sqlite, load_local_storage, save_local_storage
+
+
+def _placeholder(conn) -> str:
+    return "?" if _is_sqlite(conn) else "%s"
 
 
 class DbPyUserRepository:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str = None):
         self.db_path = db_path
 
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
-
     def create_user(self, username: str, password_hash: str, preferred_language: str = "zh-CN") -> int:
-        conn = self._conn()
-        try:
+        with get_db() as conn:
+            if conn is None:
+                storage = load_local_storage()
+                uid = len(storage.get("users", [])) + 1
+                storage.setdefault("users", []).append({
+                    "id": uid, "username": username, "password": password_hash,
+                    "preferred_language": preferred_language,
+                })
+                save_local_storage(storage)
+                return uid
             cur = conn.cursor()
+            ph = _placeholder(conn)
             cur.execute(
-                "INSERT INTO user (username, password, preferred_language) VALUES (?, ?, ?)",
+                f"INSERT INTO user (username, password, preferred_language) VALUES ({ph}, {ph}, {ph})",
                 (username, password_hash, preferred_language),
             )
             conn.commit()
-            return cur.lastrowid
-        finally:
-            conn.close()
+            rid = cur.lastrowid
+            cur.close()
+            return rid
 
     def get_by_username(self, username: str) -> dict | None:
-        """Look up a user by username; return the full row or None.
-
-        Returns the same shape as ``db.get_user_by_username`` (a dict mapping
-        every user-table column) so API layers can access ``role``,
-        ``display_name``, ``nickname``, ``avatar`` etc. without reshaping.
-        """
-        conn = self._conn()
-        try:
+        with get_db() as conn:
+            if conn is None:
+                storage = load_local_storage()
+                for u in storage.get("users", []):
+                    if u.get("username") == username:
+                        return u
+                return None
             cur = conn.cursor()
-            cur.execute("SELECT * FROM user WHERE username = ?", (username,))
+            ph = _placeholder(conn)
+            cur.execute(
+                f"SELECT * FROM user WHERE username = {ph}",
+                (username,),
+            )
             row = cur.fetchone()
             if not row:
+                cur.close()
                 return None
             cols = [d[0] for d in cur.description]
-            return {col: row[i] for i, col in enumerate(cols)}
-        finally:
-            conn.close()
+            result = {col: row[i] for i, col in enumerate(cols)}
+            cur.close()
+            return result
 
     def record_login(self, user_id, ip: str = "", user_agent: str = "") -> None:
-        conn = self._conn()
-        try:
+        with get_db() as conn:
+            if conn is None:
+                return
             cur = conn.cursor()
+            ph = _placeholder(conn)
             cur.execute(
-                "INSERT INTO user_login_records (user_id, ip, user_agent, login_at) VALUES (?, ?, ?, ?)",
+                f"INSERT INTO user_login_records (user_id, ip, user_agent, login_at) VALUES ({ph}, {ph}, {ph}, {ph})",
                 (user_id, ip, user_agent, datetime.now(timezone.utc).isoformat()),
             )
             conn.commit()
-        finally:
-            conn.close()
+            cur.close()
 
     def get_login_history(self, user_id) -> list:
-        conn = self._conn()
-        try:
+        with get_db() as conn:
+            if conn is None:
+                return []
             cur = conn.cursor()
+            ph = _placeholder(conn)
             cur.execute(
-                "SELECT id, ip, user_agent, login_at FROM user_login_records WHERE user_id = ? ORDER BY login_at DESC",
+                f"SELECT id, ip, user_agent, login_at FROM user_login_records WHERE user_id = {ph} ORDER BY login_at DESC",
                 (user_id,),
             )
-            return [{"id": r[0], "ip": r[1], "user_agent": r[2], "login_at": r[3]} for r in cur.fetchall()]
-        finally:
-            conn.close()
+            result = [{"id": r[0], "ip": r[1], "user_agent": r[2], "login_at": r[3]} for r in cur.fetchall()]
+            cur.close()
+            return result

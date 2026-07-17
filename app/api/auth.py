@@ -6,8 +6,6 @@ POST /api/auth/register — 注册新用户
 GET  /api/auth/me       — 获取当前用户信息（需 Bearer token）
 """
 
-from __future__ import annotations
-
 import logging
 import os
 from datetime import datetime, timedelta
