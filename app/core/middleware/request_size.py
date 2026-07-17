@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from app.core.security_config import get_security_config
+from app.core.security_config import SECURITY_HEADERS, get_security_config
 
 # Endpoints that legitimately handle large payloads (AI streaming, file upload, etc.)
 STREAMING_ENDPOINTS = {
@@ -23,6 +23,22 @@ STREAMING_ENDPOINTS = {
     "/api/v2/course/chat/stream",
     "/api/v2/course/discussion/stream",
 }
+
+
+def _with_security_headers(response: JSONResponse) -> JSONResponse:
+    """Attach fixed security headers to a short-circuit JSONResponse.
+
+    Because this middleware is added LAST it sits at the OUTERMOST position
+    in the ASGI stack. When it returns a JSONResponse directly (short-circuit),
+    inner middlewares like SecurityHeadersMiddleware are NEVER invoked for
+    the response. To keep the security header contract intact we apply the
+    fixed headers here.
+    """
+    config = get_security_config()
+    for header, value in SECURITY_HEADERS.items():
+        response.headers[header] = value
+    response.headers["Content-Security-Policy"] = config.csp_policy
+    return response
 
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
@@ -40,9 +56,11 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         try:
             size = int(content_length)
         except ValueError:
-            return JSONResponse(
-                status_code=400,
-                content={"detail": "Invalid Content-Length header"},
+            return _with_security_headers(
+                JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid Content-Length header"},
+                )
             )
 
         # Determine limit based on endpoint
@@ -54,9 +72,11 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         limit_bytes = limit_mb * 1024 * 1024
 
         if size > limit_bytes:
-            return JSONResponse(
-                status_code=413,
-                content={"detail": f"Request body too large (max {limit_mb}MB)"},
+            return _with_security_headers(
+                JSONResponse(
+                    status_code=413,
+                    content={"detail": f"Request body too large (max {limit_mb}MB)"},
+                )
             )
 
         return await call_next(request)
