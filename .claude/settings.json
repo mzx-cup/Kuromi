@@ -12,6 +12,18 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PYTHONPATH=. python -m app.services.claude_card.loader",
+            "timeout": 1500
+          }
+        ]
+      }
     ]
   },
   "enabledPlugins": {
