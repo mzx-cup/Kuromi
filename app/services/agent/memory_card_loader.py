@@ -246,6 +246,12 @@ class MemoryCardLoader:
         if agent_id == "socratic":
             from app.services.agent.socratic_memory_card import socratic_schema
             return socratic_schema()
+        if agent_id == "profiler":
+            from app.services.agent.profile_memory_card import profile_schema
+            return profile_schema()
+        if agent_id == "echo":
+            from app.services.agent.echo_memory_card import echo_schema
+            return echo_schema()
         raise ValueError(f"unknown agent_id={agent_id!r}")
 
     _cache: Optional["object"] = None
