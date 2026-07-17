@@ -3703,7 +3703,8 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
 
 
 @app.post("/api/v2/chat/stream")
-async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
+@ai_chat_rate_limit()
+async def chat_stream_v2(request: Request, body: StreamChatRequest):
     logger.info(f"Stream connected: student={body.student_id}, input={body.user_input[:50]}")
 
     # ===== L0 — 输入安全网关 =====
@@ -4196,7 +4197,7 @@ async def chat_stream_v2(raw_request: Request, body: StreamChatRequest):
     async def event_generator():
         try:
             while not disconnected.is_set():
-                if await raw_request.is_disconnected():
+                if await request.is_disconnected():
                     logger.info(f"Client disconnected: student={body.student_id}")
                     disconnected.set()
                     break
@@ -4844,7 +4845,7 @@ async def generate_coding_problem(body: ProblemGenerationRequest):
 
 
 @app.post("/api/v2/coding-problem/generate/stream")
-async def generate_coding_problem_stream(raw_request: Request, body: ProblemGenerationRequest):
+async def generate_coding_problem_stream(request: Request, body: ProblemGenerationRequest):
     """SSE 流式生成 Debug 题：先实时推 starter code，再返回结构化结果。"""
     logger.info(f"Streaming problem generation: student={body.student_id}, chapter={body.chapter}, topic={body.topic}")
 
@@ -4861,7 +4862,7 @@ async def generate_coding_problem_stream(raw_request: Request, body: ProblemGene
             yield sse_event("status", {"msg": "正在请求大模型流式生成代码..."})
 
             async for chunk in call_llm_stream(system_prompt, user_prompt, temperature=0.7):
-                if await raw_request.is_disconnected():
+                if await request.is_disconnected():
                     logger.info(f"Problem generation stream disconnected: student={body.student_id}")
                     return
                 full_text += chunk
@@ -5060,7 +5061,8 @@ async def review_user_code(body: CodeReviewRequest):
 
 
 @app.post("/api/v2/code/review/stream")
-async def review_user_code_stream(raw_request: Request, body: CodeReviewRequest):
+@ai_chat_rate_limit()
+async def review_user_code_stream(request: Request, body: CodeReviewRequest):
     """SSE 流式批阅：先推分析状态，最后推结构化 JSON 结果。"""
     logger.info(f"Streaming code review: student={body.student_id}, problem={body.problem_id}")
     system_prompt, user_prompt = build_code_review_prompt(body)
@@ -5074,7 +5076,7 @@ async def review_user_code_stream(raw_request: Request, body: CodeReviewRequest)
 
             chunk_count = 0
             async for chunk in call_llm_stream(system_prompt, user_prompt, temperature=0.3):
-                if await raw_request.is_disconnected():
+                if await request.is_disconnected():
                     logger.info(f"Code review stream disconnected: student={body.student_id}")
                     return
                 full_text += chunk
@@ -5318,7 +5320,8 @@ async def run_judge_synthesis(
 
 
 @app.post("/api/v2/debate/stream")
-async def debate_stream(raw_request: Request, body: DebateRequest):
+@ai_chat_rate_limit()
+async def debate_stream(request: Request, body: DebateRequest):
     """多身份辩论模式流式API"""
     logger.info(f"Debate stream started: student={body.student_id}, input={body.user_input[:50]}")
 
@@ -5436,7 +5439,7 @@ async def debate_stream(raw_request: Request, body: DebateRequest):
     async def event_generator():
         try:
             while not disconnected.is_set():
-                if await raw_request.is_disconnected():
+                if await request.is_disconnected():
                     disconnected.set()
                     break
 
@@ -9287,8 +9290,7 @@ async def course_chat(request: CourseChatRequest):
         return {"success": False, "content": "抱歉，我暂时无法回答这个问题。"}
 
 
-@app.post("/api/v2/course/chat/stream")
-async def course_chat_stream(request: CourseChatRequest):
+async def course_chat_stream(body: CourseChatRequest):
     """课堂内AI问答（流式SSE）"""
     from llm_stream import call_llm_stream
 
@@ -9299,11 +9301,11 @@ async def course_chat_stream(request: CourseChatRequest):
             from app.services.teacher.web_search import search_web, format_as_context
             beyond_keywords = ["最新", "现在", "新闻", "动态", "最近", "202", "如何", "怎么"]
             needs_search = (
-                len(request.slide_content) < 100 or
-                any(kw in request.user_input for kw in beyond_keywords)
+                len(body.slide_content) < 100 or
+                any(kw in body.user_input for kw in beyond_keywords)
             )
             if needs_search:
-                search_resp = await search_web(request.user_input)
+                search_resp = await search_web(body.user_input)
                 if search_resp and search_resp.source_count > 0:
                     web_context = format_as_context(search_resp)
         except Exception:
@@ -9311,19 +9313,19 @@ async def course_chat_stream(request: CourseChatRequest):
 
     system_prompt = f"""你是一个课堂AI助教，正在辅助学生学习课程。
 
-当前课程: {request.course_id}
-当前幻灯片: {request.slide_title}
-幻灯片内容: {request.slide_content[:500]}
-教师台词: {request.speech[:300]}
+当前课程: {body.course_id}
+当前幻灯片: {body.slide_title}
+幻灯片内容: {body.slide_content[:500]}
+教师台词: {body.speech[:300]}
 {web_context}
 
 请基于以上课程上下文回答学生的问题。回答要简洁、准确、有教育意义。"""
 
     history_str = "\n".join(
         f"{'学生' if m.get('role') == 'user' else '教师'}: {m.get('content', '')}"
-        for m in request.history[-6:]
+        for m in body.history[-6:]
     )
-    user_prompt = f"历史对话：\n{history_str}\n\n学生提问：{request.user_input}"
+    user_prompt = f"历史对话：\n{history_str}\n\n学生提问：{body.user_input}"
 
     async def event_generator():
         full_content = ""
@@ -9344,6 +9346,13 @@ async def course_chat_stream(request: CourseChatRequest):
     )
 
 
+
+
+@app.post("/api/v2/course/chat/stream")
+@ai_chat_rate_limit()
+async def course_chat_stream_route(request: Request, body: CourseChatRequest):
+    """Rate-limited route entry; delegates to ``course_chat_stream``."""
+    return course_chat_stream(body)
 @app.post("/api/v2/course/discussion/stream")
 async def course_discussion_stream(request: Request):
     """AI同学多智能体讨论流式API"""
