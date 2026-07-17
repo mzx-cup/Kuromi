@@ -32,16 +32,21 @@ def _env_list(name: str, default: str) -> list[str]:
     return [s.strip() for s in raw.split(",") if s.strip()]
 
 
-def _env_int(name: str, default: int) -> int:
-    """Parse an int env var; return default on parse error (logged)."""
+def _env_int(name: str, default: int, on_error: int | None = None) -> int:
+    """Parse an int env var; return default when unset.
+
+    On parse error, return ``on_error`` when provided (e.g. 0 to disable a
+    rate limit), otherwise fall back to ``default``. Errors are logged.
+    """
     raw = os.getenv(name)
     if raw is None:
         return default
     try:
         return int(raw)
     except ValueError:
-        logger.warning("[security_config] %s=%r is not an int, using default %d", name, raw, default)
-        return default
+        fallback = on_error if on_error is not None else default
+        logger.warning("[security_config] %s=%r is not an int, using %d", name, raw, fallback)
+        return fallback
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -76,21 +81,21 @@ class SecurityConfig:
     )
 
     # Content Security Policy
-    csp_policy: str = os.getenv(
+    csp_policy: str = field(default_factory=lambda: os.getenv(
         "SECURITY_CSP_POLICY",
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "connect-src 'self'"
-    )
+    ))
 
     # HSTS — only enable in HTTPS deployments
     enable_hsts: bool = field(default_factory=lambda: _env_bool("SECURITY_ENABLE_HSTS", False))
     hsts_value: str = "max-age=31536000; includeSubDomains"
 
     # Rate limits
-    login_rate_per_minute: int = field(default_factory=lambda: _env_int("RATE_LIMIT_LOGIN", 5))
+    login_rate_per_minute: int = field(default_factory=lambda: _env_int("RATE_LIMIT_LOGIN", 5, on_error=0))
     register_rate_per_hour: int = field(default_factory=lambda: _env_int("RATE_LIMIT_REGISTER", 3))
     guest_login_rate_per_hour: int = field(default_factory=lambda: _env_int("RATE_LIMIT_GUEST", 10))
     ai_chat_rate_per_minute: int = field(default_factory=lambda: _env_int("RATE_LIMIT_AI", 30))
