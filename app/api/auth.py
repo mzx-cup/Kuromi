@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from db import get_db, _is_sqlite, load_local_storage, save_local_storage
 from app.core.repository_factory import get_repository_for_user
+from app.core.rate_limiter import login_rate_limit, register_rate_limit
 
 logger = logging.getLogger("starlearn.auth")
 
@@ -248,18 +249,17 @@ def _user_to_response(user: dict) -> dict:
 
 # ── 路由 ──
 
-@router.post("/login")
-def login(request: LoginRequest):
+def login(body: LoginRequest):
     """用户登录，返回 JWT token 和用户信息。"""
     _ensure_user_table()
 
-    repo = get_repository_for_user(request.username, repository_type="user")
-    user = repo.get_by_username(request.username)
+    repo = get_repository_for_user(body.username, repository_type="user")
+    user = repo.get_by_username(body.username)
     if not user:
         raise HTTPException(status_code=401, detail="用户名或密码错误")
 
     hashed = user.get("password", "")
-    if not _verify_password(request.password, hashed):
+    if not _verify_password(body.password, hashed):
         raise HTTPException(status_code=401, detail="用户名或密码错误")
 
     token = create_jwt(user)
@@ -267,6 +267,13 @@ def login(request: LoginRequest):
         "token": token,
         "user": _user_to_response(user),
     }
+
+
+@router.post("/login")
+@login_rate_limit()
+def login_route(request: Request, body: LoginRequest):
+    """Rate-limited route entry; delegates to ``login``."""
+    return login(body)
 
 
 @router.post("/demo-login")
@@ -303,29 +310,28 @@ def demo_login(role: str = "student"):
     }
 
 
-@router.post("/register")
-def register(request: RegisterRequest):
+def register(body: RegisterRequest):
     """注册新用户。"""
     _ensure_user_table()
 
     # 验证输入
-    if not request.username or not request.password:
+    if not body.username or not body.password:
         raise HTTPException(status_code=400, detail="用户名和密码不能为空")
-    if len(request.password) < 6:
+    if len(body.password) < 6:
         raise HTTPException(status_code=400, detail="密码至少6位")
-    if request.confirmPassword and request.password != request.confirmPassword:
+    if body.confirmPassword and body.password != body.confirmPassword:
         raise HTTPException(status_code=400, detail="两次密码输入不一致")
-    if request.role not in ("teacher", "student", "admin"):
+    if body.role not in ("teacher", "student", "admin"):
         raise HTTPException(status_code=400, detail="无效的角色")
 
     # 检查用户名是否已存在
-    repo = get_repository_for_user(request.username, repository_type="user")
-    existing = repo.get_by_username(request.username)
+    repo = get_repository_for_user(body.username, repository_type="user")
+    existing = repo.get_by_username(body.username)
     if existing:
         raise HTTPException(status_code=409, detail="用户名已存在")
 
-    hashed = _hash_password(request.password)
-    display_name = request.display_name or request.username
+    hashed = _hash_password(body.password)
+    display_name = body.display_name or body.username
 
     with get_db() as conn:
         if conn is not None:
@@ -337,7 +343,7 @@ def register(request: RegisterRequest):
                 else:
                     sql = """INSERT INTO user (username, password, avatar, nickname, role, display_name)
                              VALUES (%s, %s, %s, %s, %s, %s)"""
-                cursor.execute(sql, (request.username, hashed, "", display_name, request.role, display_name))
+                cursor.execute(sql, (body.username, hashed, "", display_name, body.role, display_name))
                 conn.commit()
                 user_id = cursor.lastrowid
                 cursor.close()
@@ -350,13 +356,20 @@ def register(request: RegisterRequest):
         storage = load_local_storage()
         user_id = len(storage.get('users', [])) + 1
         new_user = {
-            'id': user_id, 'username': request.username, 'password': hashed,
-            'avatar': '', 'nickname': display_name, 'role': request.role,
+            'id': user_id, 'username': body.username, 'password': hashed,
+            'avatar': '', 'nickname': display_name, 'role': body.role,
             'display_name': display_name, 'created_at': 'local', 'last_login': 'local',
         }
         storage['users'] = storage.get('users', []) + [new_user]
         save_local_storage(storage)
         return {"success": True, "id": user_id}
+
+
+@router.post("/register")
+@register_rate_limit()
+def register_route(request: Request, body: RegisterRequest):
+    """Rate-limited route entry; delegates to ``register``."""
+    return register(body)
 
 
 @router.get("/me")

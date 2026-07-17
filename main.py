@@ -273,7 +273,7 @@ app.add_middleware(
 )
 
 # Rate limiting (SlowAPI)
-from app.core.rate_limiter import limiter
+from app.core.rate_limiter import limiter, register_rate_limit, guest_login_rate_limit, ai_chat_rate_limit
 app.state.limiter = limiter
 from slowapi.middleware import SlowAPIMiddleware
 app.add_middleware(SlowAPIMiddleware)
@@ -1413,24 +1413,25 @@ async def whiteboard_draw(request: WhiteboardDrawRequest):
 
 
 @app.post("/api/register")
-def register(request: RegisterRequest):
-    if not request.username or not request.password:
+@register_rate_limit()
+def register(body: RegisterRequest, request: Request):
+    if not body.username or not body.password:
         raise HTTPException(status_code=400, detail="用户名和密码不能为空")
-    if len(request.username) < 2 or len(request.username) > 20:
+    if len(body.username) < 2 or len(body.username) > 20:
         raise HTTPException(status_code=400, detail="用户名长度需在2-20个字符之间")
-    if len(request.password) < 4:
+    if len(body.password) < 4:
         raise HTTPException(status_code=400, detail="密码长度不能少于4个字符")
     # Existing existence check — preserved verbatim from the prior implementation.
-    existing = database.get_user_by_username(request.username)
+    existing = database.get_user_by_username(body.username)
     if existing:
         raise HTTPException(status_code=400, detail="该用户名已被注册")
-    hashed = hash_password(request.password)
-    avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={request.username}&backgroundColor=b6e3f4"
-    nickname = request.username + "同学"
-    preferred_language = getattr(request, "preferred_language", "zh-CN") or "zh-CN"
+    hashed = hash_password(body.password)
+    avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={body.username}&backgroundColor=b6e3f4"
+    nickname = body.username + "同学"
+    preferred_language = getattr(body, "preferred_language", "zh-CN") or "zh-CN"
     try:
         # Legacy write — preserves previous behaviour of database.create_user.
-        user_id = database.create_user(request.username, hashed, avatar, nickname)
+        user_id = database.create_user(body.username, hashed, avatar, nickname)
 
         # [Slice-1] ORM dual-write (additive). Only when DUAL_WRITE_LEGACY=true.
         # Shadow failures are logged, never raised, so the existing response
@@ -1447,7 +1448,7 @@ def register(request: RegisterRequest):
                     async with SessionLocal()() as session:
                         orm_repo = SqlAlchemyUserRepository(session)
                         orm_repo.create_user(
-                            username=request.username,
+                            username=body.username,
                             password_hash=hashed,
                             preferred_language=preferred_language,
                         )
@@ -1466,7 +1467,7 @@ def register(request: RegisterRequest):
             except Exception as e:
                 logger.warning(f"[dual-write] orm register failed: {e}")
 
-        return {"success": True, "message": "注册成功", "userId": user_id, "username": request.username, "nickname": nickname, "avatar": avatar}
+        return {"success": True, "message": "注册成功", "userId": user_id, "username": body.username, "nickname": nickname, "avatar": avatar}
     except HTTPException:
         raise
     except Exception as e:
@@ -8759,9 +8760,10 @@ def load_daily_route_db(user_id: int, route_date: str):
 # ── 游客登录 ──
 
 @app.post("/api/login/guest")
-def guest_login(http_request: Request):
+@guest_login_rate_limit()
+def guest_login(request: Request):
     """游客快速登录 - 生成临时账号"""
-    ip_address, user_agent = get_login_request_meta(http_request)
+    ip_address, user_agent = get_login_request_meta(request)
     import random
     import string
     guest_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
