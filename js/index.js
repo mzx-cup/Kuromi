@@ -3494,13 +3494,15 @@ function mapProfileToScore(val, invert) {
 
 function renderSparkline(data, width, height) {
     if (!data || data.length < 2) return '';
-    const max = Math.max(...data, 1);
-    const min = Math.min(...data, 0);
+    // Filter out invalid values (NaN, null, undefined)
+    const validData = data.map(v => Number(v) || 0);
+    const max = Math.max(...validData, 1);
+    const min = Math.min(...validData, 0);
     const range = max - min || 1;
-    const points = data.map((v, i) => {
-        const x = (i / (data.length - 1)) * width;
+    const points = validData.map((v, i) => {
+        const x = (i / (validData.length - 1)) * width;
         const y = height - ((v - min) / range) * height;
-        return `${x},${y}`;
+        return `${x},${isNaN(y) ? height : y}`;
     }).join(' ');
     return `<svg width="${width}" height="${height}" class="eval-sparkline">
         <polyline points="${points}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>

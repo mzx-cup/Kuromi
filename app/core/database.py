@@ -46,7 +46,13 @@ async def init_db(timeout_seconds: float = 10.0) -> bool:
     so a misconfigured DB never blocks app startup.
     """
     # Import model modules so their tables register on Base.metadata.
-    from app.models import course  # noqa: F401
+    from app.models import (  # noqa: F401
+        user, preferences, learning, course_progress, course,
+        classroom, message, knowledge, focus, gamification, chat,
+        knowledge_node, agent_behavior_log, deadline, drift_report,
+        episodic_memory, memory_consolidation_job, semantic_memory,
+        supervision, weakness_timeline,
+    )
 
     async def _do_init():
         engine = get_engine()

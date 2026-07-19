@@ -140,7 +140,7 @@ function renderAvatarGrid() {
 
     html += avatarStyles.map(style => {
         const url = `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(currentUser.name)}&backgroundColor=b6e3f4`;
-        const isSelected = currentUser.avatar.includes(style);
+        const isSelected = (currentUser.avatar || '').includes(style);
         return `<img src="${url}" alt="${style}" class="avatar-option ${isSelected ? 'selected' : ''}" onclick="selectAvatar('${style}', this)">`;
     }).join('');
 

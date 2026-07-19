@@ -893,13 +893,18 @@ async def get_current_learning_path(user_id: int):
             _downgrade_completed_to_inprogress(path)
     except Exception:
         pass
+    generated_at = existing.get("generated_at")
+    if isinstance(generated_at, datetime):
+        generated_at = generated_at.isoformat()
+    elif not generated_at:
+        generated_at = datetime.now().isoformat()
     return GenerateLearningPathResponse(
         success=True,
         path=path,
         capability_analysis=capability_analysis,
         reasoning=existing.get("reasoning") or "",
         data_sources=existing.get("data_sources") or [],
-        generated_at=existing.get("generated_at") or datetime.now().isoformat(),
+        generated_at=generated_at,
         confidence=existing.get("confidence", 0.0) or 0.0,
     )
 

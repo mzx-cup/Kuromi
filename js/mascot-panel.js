@@ -385,6 +385,7 @@ document.addEventListener('alpine:init', () => {
     modelSwitching: false,
 
     // ─── AI 模型 ───
+    showAiModelSelector: false,
     aiModels: [],
     currentAiModel: 'MiniMax-Text-01',
     aiConfig: null,

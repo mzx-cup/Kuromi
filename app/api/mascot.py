@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import os
+import sqlite3
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Optional
@@ -401,6 +402,10 @@ async def get_quick_stats(user_id: str):
             "success": True,
             "stats": overview,
         }
+    except sqlite3.OperationalError as e:
+        if "no such table" in str(e):
+            return {"success": True, "stats": {"totalMinutes": 0, "studyDays": 0, "streakDays": 0}}
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         logger.error(f"[mascot] get_quick_stats 失败: {e}")
         raise HTTPException(status_code=500, detail=str(e))

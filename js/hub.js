@@ -1714,7 +1714,11 @@ function resolveCSSColor(varName, fallback) {
         canvas.width = canvas.height = 1;
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = resolved;
-        _resolvedColorCache[varName] = ctx.fillStyle; // Always #rrggbb or rgb(r,g,b)
+        const converted = ctx.fillStyle;
+        // Force browser to parse and return rgb/rgba by drawing and reading back
+        ctx.fillRect(0, 0, 1, 1);
+        const pixel = ctx.getImageData(0, 0, 1, 1).data;
+        _resolvedColorCache[varName] = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
     }
     return _resolvedColorCache[varName];
 }

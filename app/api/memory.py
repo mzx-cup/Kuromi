@@ -13,6 +13,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.repository_factory import get_repository_for_user
+import sqlite3
 from db import _is_sqlite, get_db
 
 router = APIRouter(prefix="/memories", tags=["memories"])
@@ -50,6 +51,16 @@ def get_memories(user_id: str, memory_type: str | None = None, limit: int = 100)
             "count": len(memories),
             "memories": memories,
         }
+    except RuntimeError as e:
+        # JSON fallback disabled in production — return empty memories
+        if "load_local_storage() disabled" in str(e):
+            return {"success": True, "count": 0, "memories": []}
+        raise HTTPException(status_code=500, detail=f"查询记忆失败: {e}")
+    except sqlite3.OperationalError as e:
+        # Table doesn't exist in the connected database — return empty memories
+        if "no such table" in str(e):
+            return {"success": True, "count": 0, "memories": []}
+        raise HTTPException(status_code=500, detail=f"查询记忆失败: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询记忆失败: {e}")
 

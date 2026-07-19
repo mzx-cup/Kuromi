@@ -84,10 +84,11 @@ class SecurityConfig:
     csp_policy: str = field(default_factory=lambda: os.getenv(
         "SECURITY_CSP_POLICY",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self'"
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+        "img-src 'self' data: https: https://api.dicebear.com; "
+        "media-src 'self' https://cdn.pixabay.com; "
+        "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com"
     ))
 
     # HSTS — only enable in HTTPS deployments
