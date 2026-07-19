@@ -13,20 +13,32 @@
 
   // ============ helpers ============
 
+  // 将任意 CSS 颜色转换为 RGB 字符串（ECharts addColorStop 不支持 oklch/lab 等格式）
+  function toRgb(color) {
+    if (!color || color === 'transparent' || color === 'none') return 'rgb(128,128,128)';
+    var canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, 1, 1);
+    var d = ctx.getImageData(0, 0, 1, 1).data;
+    return 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')';
+  }
+
   // 从 CSS 自定义属性读取颜色，与 tokens.css 主题保持一致
   var _tokenColors = null;
   function tok(name) {
     if (!_tokenColors) {
       var s = getComputedStyle(document.documentElement);
       _tokenColors = {
-        success: s.getPropertyValue('--success').trim() || '#10b981',
-        warning: s.getPropertyValue('--warning').trim() || '#f59e0b',
-        danger:  s.getPropertyValue('--danger').trim()  || '#ef4444',
-        info:    s.getPropertyValue('--info').trim()    || '#06b6d4',
-        brand:   s.getPropertyValue('--brand-500').trim() || '#6366f1',
-        text:    s.getPropertyValue('--text-heading').trim() || '#fff',
-        muted:   s.getPropertyValue('--text-muted').trim() || 'rgba(255,255,255,0.4)',
-        border:  s.getPropertyValue('--border-glass').trim() || 'rgba(255,255,255,0.06)'
+        success: toRgb(s.getPropertyValue('--success').trim() || '#10b981'),
+        warning: toRgb(s.getPropertyValue('--warning').trim() || '#f59e0b'),
+        danger:  toRgb(s.getPropertyValue('--danger').trim()  || '#ef4444'),
+        info:    toRgb(s.getPropertyValue('--info').trim()    || '#06b6d4'),
+        brand:   toRgb(s.getPropertyValue('--brand-500').trim() || '#6366f1'),
+        text:    toRgb(s.getPropertyValue('--text-heading').trim() || '#fff'),
+        muted:   toRgb(s.getPropertyValue('--text-muted').trim() || 'rgba(255,255,255,0.4)'),
+        border:  toRgb(s.getPropertyValue('--border-glass').trim() || 'rgba(255,255,255,0.06)')
       };
     }
     return _tokenColors[name];

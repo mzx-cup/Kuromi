@@ -1281,7 +1281,7 @@
 
                 // 如果有指定音色，优先使用老师的音色
                 // 兼容 voiceId（驼峰，来自 agent_team）和 voice_id（下划线，来自 TeacherInfo）
-                const teacherVoice = this.currentTeacher.voiceId || this.currentTeacher.voice_id;
+                const teacherVoice = this.currentTeacher?.voiceId || this.currentTeacher?.voice_id;
                 if (teacherVoice && MINIMAX_VOICES[teacherVoice]) {
                     TTS_CONFIG.voice = teacherVoice;
                 }
@@ -1614,7 +1614,7 @@
 
         buildScenes() {
             // 兜底: outlines 为空时, 从 bundle.components.outline.scenes 重算
-            let outlines = this.courseData.outlines || [];
+            let outlines = Array.isArray(this.courseData.outlines) ? this.courseData.outlines : [];
             if (!outlines.length && window.xsCourseUtils) {
                 const outlineComp = window.xsCourseUtils.getComponent(this.courseData, 'outline');
                 if (outlineComp && Array.isArray(outlineComp.scenes)) {

@@ -84,11 +84,12 @@ class SecurityConfig:
     csp_policy: str = field(default_factory=lambda: os.getenv(
         "SECURITY_CSP_POLICY",
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: https: https://api.dicebear.com; "
         "media-src 'self' https://cdn.pixabay.com; "
-        "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co"
+        "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co https://fonts.googleapis.com https://fonts.gstatic.com"
     ))
 
     # HSTS — only enable in HTTPS deployments

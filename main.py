@@ -2094,14 +2094,34 @@ def serve_architecture_blueprint():
 def serve_generation_preview():
     path = os.path.join(HTML_DIR, "generation-preview.html")
     if os.path.exists(path):
-        return FileResponse(path)
+        response = FileResponse(path)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://cdnjs.cloudflare.com data:; "
+            "img-src 'self' data: https: https://api.dicebear.com; "
+            "media-src 'self' https://cdn.pixabay.com; "
+            "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co https://fonts.googleapis.com https://fonts.gstatic.com"
+        )
+        return response
     raise HTTPException(status_code=404, detail="课程生成预览页面未找到")
 
 @app.get("/classroom.html")
 def serve_classroom():
     path = os.path.join(HTML_DIR, "classroom.html")
     if os.path.exists(path):
-        return FileResponse(path)
+        response = FileResponse(path)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://cdnjs.cloudflare.com data:; "
+            "img-src 'self' data: https: https://api.dicebear.com; "
+            "media-src 'self' https://cdn.pixabay.com; "
+            "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co https://fonts.googleapis.com https://fonts.gstatic.com"
+        )
+        return response
     raise HTTPException(status_code=404, detail="课堂页面未找到")
 
 # ---- Teacher pages ----
