@@ -17,7 +17,7 @@ from app.services.course_service import (
     create_chapter,
     create_subchapter,
     create_subject,
-    get_subject,
+    get_subject_by_slug,
 )
 
 logger = logging.getLogger("starlearn.course_import")
@@ -30,13 +30,16 @@ _DEFAULT_SUBJECTS = {
 }
 
 
-async def _ensure_subject(subject_id: str):
-    """Ensure a subject exists in the database, creating it if necessary."""
-    subj = await get_subject(subject_id)
+async def _ensure_subject(subject_id: str) -> str:
+    """Ensure a subject exists in the database, creating it if necessary.
+    Returns the actual subject_id (not slug) for use in create_course."""
+    # subject_id here is actually a slug (e.g. "cs", "math")
+    subj = await get_subject_by_slug(subject_id)
     if subj is not None:
-        return subj
+        return subj.id
     name, slug = _DEFAULT_SUBJECTS.get(subject_id, (subject_id, subject_id))
-    return await create_subject({"id": subject_id, "name": name, "slug": slug})
+    new_subj = await create_subject({"id": f"subj_{subject_id}", "name": name, "slug": slug})
+    return new_subj.id
 
 
 async def import_bilibili_video(
@@ -49,11 +52,11 @@ async def import_bilibili_video(
     if not info:
         return None
 
-    await _ensure_subject(subject_id)
+    actual_subject_id = await _ensure_subject(subject_id)
 
     title = course_title or info.get("title", "未命名课程")
     course = await create_course({
-        "subject_id": subject_id,
+        "subject_id": actual_subject_id,
         "title": title,
         "description": info.get("description", ""),
         "bvid": bvid,
@@ -111,10 +114,10 @@ async def import_bilibili_playlist(
     if not items:
         return None
 
-    await _ensure_subject(subject_id)
+    actual_subject_id = await _ensure_subject(subject_id)
 
     course = await create_course({
-        "subject_id": subject_id,
+        "subject_id": actual_subject_id,
         "title": course_name,
         "description": f"从B站合集导入，共 {len(items)} 个视频",
         "playlist_url": playlist_url,

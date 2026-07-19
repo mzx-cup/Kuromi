@@ -576,7 +576,29 @@
         const components = (bundle && bundle.components) || {};
         const pptMeta = components.ppt || {};
         // 从 bundle PPT 组件提取 slides_v2, 让 classroom 直接可渲染
-        var slidesV2 = (pptMeta.slides && Array.isArray(pptMeta.slides)) ? pptMeta.slides.slice() : [];
+        // 防护: 确保 slides_v2 是数组, 不是数字或 undefined
+        var rawSlidesV2 = pptMeta.slides;
+        var slidesV2 = Array.isArray(rawSlidesV2) ? rawSlidesV2.slice() : [];
+        // 兼容 bundle 顶层 slides_v2 (旧格式)
+        if (!slidesV2.length && bundle && Array.isArray(bundle.slides_v2)) {
+            slidesV2 = bundle.slides_v2.slice();
+        }
+        // 如果仍然是空的, 从 bundle.components 逐层查找
+        if (!slidesV2.length && bundle && bundle.components) {
+            for (const [name, comp] of Object.entries(bundle.components)) {
+                if (comp && Array.isArray(comp.slides)) {
+                    slidesV2 = comp.slides.slice();
+                    console.warn('[brainstorm] slides_v2 从 components.' + name + '.slides 提取');
+                    break;
+                }
+                if (comp && Array.isArray(comp.slides_v2)) {
+                    slidesV2 = comp.slides_v2.slice();
+                    console.warn('[brainstorm] slides_v2 从 components.' + name + '.slides_v2 提取');
+                    break;
+                }
+            }
+        }
+        console.log('[brainstorm] _buildCourseData slides_v2 count:', slidesV2.length, 'from bundle:', JSON.stringify(bundle ? Object.keys(bundle) : null));
         // 如果 PPT 组件没带 slides 但 bundle 顶层有(兼容旧格式)
         if (!slidesV2.length && bundle && Array.isArray(bundle.slides_v2)) {
             slidesV2 = bundle.slides_v2.slice();

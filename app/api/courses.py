@@ -228,6 +228,15 @@ async def delete_course_api(course_id: str):
     return {"code": 200, "message": "已删除"}
 
 
+@router.get("/courses/{course_id}/subchapters/{subchapter_id}/content")
+async def get_subchapter_content(course_id: str, subchapter_id: str):
+    """Return empty learning content for a subchapter.
+    AI-generated transcript/concepts/mindMap/exercises are not available for
+    seeder-imported courses — this endpoint returns an empty skeleton so the
+    frontend can degrade gracefully instead of 404-ing."""
+    return {"code": 200, "data": {"transcript": "", "concepts": [], "mindMap": None, "exercises": []}}
+
+
 # ── routes: import ──
 
 @router.post("/import-bilibili")

@@ -144,6 +144,19 @@
           });
           document.getElementById('cl-course-title').textContent = course.title;
           document.getElementById('cl-welcome-title-text').textContent = course.title;
+
+          // 如果课程有 bvid 但子章节 cid 为空（seeder 导入的课程），
+          // 从 B站 API 补全章节结构
+          if (course.bvid) {
+            var hasEmptyCids = chapters.every(function (ch) {
+              return ch.children.every(function (sc) { return !sc.cid; });
+            });
+            if (hasEmptyCids) {
+              loadBilibiliChapters(course.bvid);
+              return; // loadBilibiliChapters 内部会调用 renderChapterTree + selectChapter
+            }
+          }
+
           renderChapterTree();
           var start = findStartIndex();
           if (chapters.length > 0) selectChapter(start, 0);

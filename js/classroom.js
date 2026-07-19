@@ -1623,11 +1623,11 @@
                     console.log('[classroom] outlines 兜底从 bundle.components.outline 重建:', outlines.length);
                 }
             }
-            const slides = this.courseData.slides || [];
-            const quizData = this.courseData.quiz_data || [];
-            const exerciseData = this.courseData.exercise_data || [];
-            const codeData = this.courseData.code_data || [];
-            const slidesV2 = this.courseData.slides_v2 || [];
+            const slides = Array.isArray(this.courseData.slides) ? this.courseData.slides : [];
+            const quizData = Array.isArray(this.courseData.quiz_data) ? this.courseData.quiz_data : [];
+            const exerciseData = Array.isArray(this.courseData.exercise_data) ? this.courseData.exercise_data : [];
+            const codeData = Array.isArray(this.courseData.code_data) ? this.courseData.code_data : [];
+            const slidesV2 = Array.isArray(this.courseData.slides_v2) ? this.courseData.slides_v2 : [];
 
             const sameId = function(a, b) {
                 return String(a != null ? a : '') !== '' && String(a != null ? a : '') === String(b != null ? b : '');

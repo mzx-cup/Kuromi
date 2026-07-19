@@ -9695,6 +9695,10 @@ def _get_course_path(course_id: str) -> str:
 async def save_course(request: CourseSaveRequest):
     """保存课程数据到服务端"""
     course = request.course_data
+    # Debug: log slides_v2 type and value
+    print(f"[DEBUG save_course] slides_v2 type: {type(course.slides_v2)}, value: {course.slides_v2}")
+    print(f"[DEBUG save_course] slides_v2 is list: {isinstance(course.slides_v2, list)}")
+    print(f"[DEBUG save_course] course_data keys: {list(course.model_dump().keys())}")
     # 兼容前端的 course_id / courseId 写法
     course_id = course.courseId or getattr(course, 'course_id', '') or ''
     if not course_id:

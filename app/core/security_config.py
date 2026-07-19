@@ -88,7 +88,8 @@ class SecurityConfig:
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com https://cdnjs.cloudflare.com data:; "
         "img-src 'self' data: https: https://api.dicebear.com; "
-        "media-src 'self' https://cdn.pixabay.com; "
+        "media-src 'self' https://cdn.pixabay.com https://player.bilibili.com; "
+        "frame-src 'self' https://player.bilibili.com; "
         "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co https://fonts.googleapis.com https://fonts.gstatic.com"
     ))
 
@@ -124,10 +125,6 @@ def get_security_config() -> SecurityConfig:
     global _security_config
     if _security_config is None:
         _security_config = SecurityConfig()
-        # Debug: log the CSP policy being used
-        import logging
-        logger = logging.getLogger("starlearn.security.config")
-        logger.warning(f"[CSP DEBUG] Using CSP: {_security_config.csp_policy[:100]}...")
     return _security_config
 
 

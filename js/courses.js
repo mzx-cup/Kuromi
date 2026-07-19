@@ -297,36 +297,42 @@
 
   function renderCourse(course, parentSlug) {
     var pct = Math.max(0, Math.min(100, Math.round(course.progress || 0)));
+    var hasBvid = !!(course.bvid);
     var status;
-    if (pct >= 100) status = 'complete';
+    if (!hasBvid) status = 'novideo';
+    else if (pct >= 100) status = 'complete';
     else if (pct > 0) status = 'continue';
     else status = 'start';
 
-    var ctaText = status === 'complete' ? '再次学习' : status === 'continue' ? '继续学习' : '开始学习';
+    var ctaText = status === 'novideo' ? '待关联视频' : status === 'complete' ? '再次学习' : status === 'continue' ? '继续学习' : '开始学习';
     var pillHtml = '';
-    if (pct > 0) {
+    if (pct > 0 && hasBvid) {
       var pillClass = pct >= 100 ? 'cc-course-progress-pill complete' : 'cc-course-progress-pill';
       pillHtml = '<span class="' + pillClass + '">' + pct + '%</span>';
     }
 
     var bvidShort = course.bvid ? course.bvid.replace(/^BV/, '') : '';
     var bvidHtml = bvidShort ? '<span class="cc-course-bvid">BV' + escapeHtml(bvidShort.slice(0, 6)) + '</span>' : '';
+    var noVideoBadge = !hasBvid ? '<span class="cc-course-no-video-badge">暂无视频</span>' : '';
 
-    var coverClass = 'cc-course-cover ' + escapeHtml(parentSlug);
+    var coverClass = 'cc-course-cover ' + escapeHtml(parentSlug) + (!hasBvid ? ' no-video' : '');
 
     var descHtml = course.description
       ? '<p class="cc-course-desc">' + escapeHtml(course.description) + '</p>'
       : '';
 
-    var ctaIcon = status === 'start'
+    var ctaIcon = status === 'novideo'
+      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16" stroke-linecap="round"/></svg>'
+      : status === 'start'
       ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>'
       : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
 
     return (
-      '<div class="cc-course" data-course-id="' + escapeHtml(course.id) + '">' +
+      '<div class="cc-course' + (!hasBvid ? ' no-video' : '') + '" data-course-id="' + escapeHtml(course.id) + '">' +
         '<div class="' + coverClass + '">' +
           bvidHtml +
           pillHtml +
+          noVideoBadge +
           '<div class="cc-course-cover-icon">' + subjectIcon(parentSlug) + '</div>' +
         '</div>' +
         '<div class="cc-course-body">' +
@@ -342,7 +348,7 @@
               formatDuration(course.totalDuration) +
             '</span>' : '') +
           '</div>' +
-          (pct > 0 ? '<div class="cc-course-bar"><div class="cc-course-bar-fill" style="width:' + pct + '%"></div></div>' : '') +
+          (pct > 0 && hasBvid ? '<div class="cc-course-bar"><div class="cc-course-bar-fill" style="width:' + pct + '%"></div></div>' : '') +
           '<div class="cc-course-foot">' +
             '<span class="cc-course-cta ' + status + '">' + ctaText + ctaIcon + '</span>' +
           '</div>' +

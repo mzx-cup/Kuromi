@@ -347,6 +347,18 @@
   box-shadow: var(--cc-shadow);
 }
 
+/* 无视频课程 — 静默态 */
+.cc-course.no-video {
+  cursor: default;
+  opacity: 0.65;
+}
+.cc-course.no-video:hover {
+  background: var(--cc-bg-card);
+  border-color: var(--cc-border);
+  transform: none;
+  box-shadow: none;
+}
+
 .cc-course-cover {
   position: relative;
   height: 130px;
@@ -377,6 +389,26 @@
 }
 
 .cc-course-cover-icon svg { width: 28px; height: 28px; }
+
+.cc-course-cover.no-video {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  filter: saturate(0.4);
+}
+
+.cc-course-no-video-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px 8px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.3px;
+}
 
 .cc-course-bvid {
   position: absolute;
@@ -498,6 +530,7 @@
 .cc-course-cta.start     { color: var(--cc-text-muted); }
 .cc-course-cta.continue  { color: var(--cc-accent); }
 .cc-course-cta.complete  { color: var(--cc-success); }
+.cc-course-cta.novideo   { color: var(--cc-text-faint); }
 
 /* ---- 学科内空状态 ---- */
 .cc-subject-empty {

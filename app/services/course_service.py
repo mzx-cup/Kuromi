@@ -49,6 +49,16 @@ async def get_subject(subject_id: str) -> Subject | None:
         return result.scalar_one_or_none()
 
 
+async def get_subject_by_slug(slug: str) -> Subject | None:
+    async with get_sessionmaker()() as session:
+        result = await session.execute(
+            select(Subject)
+            .where(Subject.slug == slug)
+            .options(selectinload(Subject.courses))
+        )
+        return result.scalar_one_or_none()
+
+
 async def create_subject(data: dict[str, Any]) -> Subject:
     async with get_sessionmaker()() as session:
         subject = Subject(
