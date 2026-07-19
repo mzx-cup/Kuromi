@@ -8761,6 +8761,11 @@ def load_calendar_events(user_id: int):
     try:
         events = database.get_user_calendar_events(user_id)
         return {"success": True, "eventsData": events if events else {}}
+    except (RuntimeError, AttributeError) as e:
+        # load_local_storage() disabled or generator error — return empty
+        if "disabled" in str(e) or "generator" in str(e):
+            return {"success": True, "eventsData": {}}
+        raise HTTPException(status_code=500, detail=f"加载日历事件失败: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载日历事件失败: {str(e)}")
 

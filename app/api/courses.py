@@ -163,8 +163,15 @@ def _subchapter_to_dict(sc) -> dict[str, Any]:
 
 @router.get("/subjects")
 async def list_subjects_api():
-    subjects = await list_subjects()
-    return {"code": 200, "data": [_subject_to_dict(s) for s in subjects]}
+    try:
+        subjects = await list_subjects()
+        return {"code": 200, "data": [_subject_to_dict(s) for s in subjects]}
+    except Exception as e:
+        err_str = str(e).lower()
+        if "no such table" in err_str or "undefinedtable" in err_str or "no module named 'aiosqlite'" in err_str:
+            return {"code": 200, "data": []}
+        logger.error(f"[courses] list_subjects failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/subjects")
