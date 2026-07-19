@@ -124,6 +124,10 @@ def get_security_config() -> SecurityConfig:
     global _security_config
     if _security_config is None:
         _security_config = SecurityConfig()
+        # Debug: log the CSP policy being used
+        import logging
+        logger = logging.getLogger("starlearn.security.config")
+        logger.warning(f"[CSP DEBUG] Using CSP: {_security_config.csp_policy[:100]}...")
     return _security_config
 
 

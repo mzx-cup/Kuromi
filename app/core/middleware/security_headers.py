@@ -27,7 +27,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             response.headers[header] = value
 
         # Content-Security-Policy
-        response.headers["Content-Security-Policy"] = config.csp_policy
+        csp_value = config.csp_policy
+        response.headers["Content-Security-Policy"] = csp_value
+        # Debug log
+        import logging
+        logger = logging.getLogger("starlearn.security.headers")
+        logger.warning(f"[CSP DEBUG] Setting CSP for {request.url.path}: {csp_value[:80]}...")
 
         # HSTS — only on HTTPS deployments
         if config.enable_hsts:
