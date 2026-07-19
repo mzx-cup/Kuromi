@@ -336,6 +336,12 @@ app.include_router(teacher_router)
 from app.api.datacenter import router as datacenter_router
 app.include_router(datacenter_router)
 
+# Fallback endpoint in case datacenter_router doesn't register properly
+@app.get("/api/datacenter/dashboard/summary")
+def dashboard_summary_fallback(range: str = "30d"):
+    """Fallback endpoint if datacenter router fails to register."""
+    return {"success": False, "error": "datacenter router not loaded"}
+
 # ---- Agent Orchestration API (Agent 编排控制塔) ----
 from app.api.agent_orchestration import router as agent_orchestration_router
 app.include_router(agent_orchestration_router)

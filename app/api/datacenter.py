@@ -505,5 +505,40 @@ def dashboard_summary(request: Request, range: str = Query("30d")):
     """
     if range not in ("7d", "30d", "90d"):
         range = "30d"
-    user_id = _get_user_id_from_request(request)
-    return _build_dashboard(user_id, range)
+    try:
+        user_id = _get_user_id_from_request(request)
+        return _build_dashboard(user_id, range)
+    except RuntimeError as e:
+        # get_db() generator failed (e.g. load_local_storage disabled before yield)
+        logger.error(f"[datacenter] dashboard_summary failed: {e}")
+        # Return safe empty dashboard
+        return {
+            "success": True,
+            "userId": 0,
+            "range": range,
+            "stats": {"totalHours": 0, "coursesCompleted": 0, "coursesTotal": 0, "exercises": 0, "streak": 0},
+            "dailyMinutes": {},
+            "weeklyActivity": [],
+            "courseProgress": [],
+            "timeline": [],
+            "radar": {"dimensions": [], "thisMonth": [], "lastMonth": []},
+            "focus": {"total": 0, "todayMinutes": 0, "sessions": 0, "average": 0},
+            "heatmap": {"days": [], "monthSummary": None},
+            "goalRings": {"hoursGoal": 0, "exGoal": 0, "courseGoal": 0},
+        }
+    except Exception as e:
+        logger.error(f"[datacenter] dashboard_summary failed: {e}")
+        return {
+            "success": True,
+            "userId": 0,
+            "range": range,
+            "stats": {"totalHours": 0, "coursesCompleted": 0, "coursesTotal": 0, "exercises": 0, "streak": 0},
+            "dailyMinutes": {},
+            "weeklyActivity": [],
+            "courseProgress": [],
+            "timeline": [],
+            "radar": {"dimensions": [], "thisMonth": [], "lastMonth": []},
+            "focus": {"total": 0, "todayMinutes": 0, "sessions": 0, "average": 0},
+            "heatmap": {"days": [], "monthSummary": None},
+            "goalRings": {"hoursGoal": 0, "exGoal": 0, "courseGoal": 0},
+        }

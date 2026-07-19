@@ -88,7 +88,7 @@ class SecurityConfig:
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https: https://api.dicebear.com; "
         "media-src 'self' https://cdn.pixabay.com; "
-        "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com"
+        "connect-src 'self' http://localhost:* https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://api.dicebear.com https://ipapi.co"
     ))
 
     # HSTS — only enable in HTTPS deployments
