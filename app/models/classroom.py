@@ -56,6 +56,11 @@ class ClassroomSession(Base):
     current_slide: Mapped[int] = mapped_column(Integer, default=0)
     teacher_mode: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Demo content marker + structured slide data (added 2026-07-20)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    demo_version: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    slides: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
 
 class QuizRecord(Base):
     __tablename__ = "quiz_records"

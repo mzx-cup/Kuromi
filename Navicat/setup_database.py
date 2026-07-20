@@ -608,6 +608,9 @@ MYSQL_TABLES = [
         teacher_persona VARCHAR(32) NOT NULL DEFAULT 'expert_mentor',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        `slides` JSON DEFAULT NULL,
+        `is_demo` TINYINT DEFAULT 0,
+        `demo_version` VARCHAR(16) DEFAULT '',
         INDEX idx_cs_student (student_id),
         INDEX idx_cs_updated (updated_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -647,6 +650,94 @@ MYSQL_TABLES = [
         actions JSON DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_atr_classroom (classroom_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 35. subjects (legacy mirror — was missing from MYSQL_TABLES)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS subjects (
+        id VARCHAR(64) PRIMARY KEY,
+        name VARCHAR(128) NOT NULL,
+        slug VARCHAR(64) NOT NULL UNIQUE,
+        icon VARCHAR(32) DEFAULT 'default',
+        visible TINYINT DEFAULT 1,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_demo TINYINT DEFAULT 0,
+        demo_version VARCHAR(16) DEFAULT ''
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 36. courses (legacy mirror)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS courses (
+        id VARCHAR(64) PRIMARY KEY,
+        subject_id VARCHAR(64) NOT NULL,
+        title VARCHAR(256) NOT NULL,
+        description TEXT,
+        bvid VARCHAR(32) DEFAULT '',
+        playlist_url VARCHAR(512) DEFAULT '',
+        cover_url VARCHAR(512) DEFAULT '',
+        author_name VARCHAR(128) DEFAULT '',
+        total_lessons INT DEFAULT 0,
+        total_duration INT DEFAULT 0,
+        progress FLOAT DEFAULT 0.0,
+        visible TINYINT DEFAULT 1,
+        sort_order INT DEFAULT 0,
+        student_id VARCHAR(64) DEFAULT '',
+        outlines JSON,
+        scenes JSON,
+        data_json JSON,
+        status VARCHAR(32) DEFAULT 'draft',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        is_demo TINYINT DEFAULT 0,
+        demo_version VARCHAR(16) DEFAULT ''
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 37. chapters (legacy mirror — adds lecture + mindmap)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS chapters (
+        id VARCHAR(64) PRIMARY KEY,
+        course_id VARCHAR(64) NOT NULL,
+        title VARCHAR(256) NOT NULL,
+        description TEXT,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_demo TINYINT DEFAULT 0,
+        demo_version VARCHAR(16) DEFAULT '',
+        lecture JSON,
+        mindmap JSON
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 38. subchapters (legacy mirror)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS subchapters (
+        id VARCHAR(64) PRIMARY KEY,
+        chapter_id VARCHAR(64) NOT NULL,
+        title VARCHAR(256) NOT NULL,
+        description TEXT,
+        bvid VARCHAR(32) DEFAULT '',
+        cid INT DEFAULT 0,
+        page INT DEFAULT 1,
+        duration INT DEFAULT 0,
+        type VARCHAR(32) DEFAULT 'video',
+        completed TINYINT DEFAULT 0,
+        transcript TEXT,
+        sort_order INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_demo TINYINT DEFAULT 0,
+        demo_version VARCHAR(16) DEFAULT ''
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 ]
@@ -689,6 +780,13 @@ TABLE_NAMES = [
     "quiz_records",
     "agent_turn_records",
 ]
+
+TABLE_NAMES.extend([
+    "subjects",
+    "courses",
+    "chapters",
+    "subchapters",
+])
 
 
 # ============================================================

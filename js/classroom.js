@@ -33,8 +33,8 @@
         heartbeat: 'elem-attention-heartbeat'
     };
 
-    // MiniMax TTS voice mapping (string key -> {name, description})
-    // v2 endpoints use string voice IDs directly; index field is vestigial
+    // MiniMax TTS voice mapping (string key -> {index, name, description})
+    // index 0-4 maps to /api/socratic/tts voice_id
     const MINIMAX_VOICES = {
         'female-shaonv': { index: 0, name: '晓雅', description: '活泼可爱的年轻女声' },
         'female-yujie': { index: 0, name: '晓雅', description: '成熟温柔的姐姐声音' },
@@ -120,6 +120,10 @@
             this.currentAnimationEffects = [];
             this.isTransitioning = false;
             this.animationQueue = [];
+
+            // TTS 预加载状态（按需：用户停留7秒后预加载下一场景）
+            this._ttsPreloadTimer = null;
+            this._ttsPreloadPromises = new Map(); // sceneId -> Promise
 
             // Spotlight/laser state
             this.spotlightElement = null;
@@ -242,1025 +246,86 @@
                       .replace(/'/g, '&#039;');
         }
 
-        // ---- Init (Phase 2: 4 阶段 banner) ----
+        // ---- Init ----
 
         async init() {
-            // 阶段 0: 初始化 banner 系统
-            this._initBannerSys();
+            this.loadData();
 
-            // 阶段 1: 拿 courseId
-            this._showInitBanner('正在加载课堂...', 'loading');
-            try { this.loadData(); } catch (e) { console.error('[classroom] loadData', e); }
-
-            // Fallback: sessionStorage 被清时, 拿 URL ?course_id= 调 GET 兜底
+            // 兜底: 当 sessionStorage 没有数据时, 从 URL ?course_id= 取, 调 GET /api/v2/classroom/{id} 拉取
             if (!this.courseData) {
-                const cid = (new URLSearchParams(location.search)).get('course_id') || this.courseId;
+                const cid = (new URLSearchParams(location.search)).get('course_id')
+                    || sessionStorage.getItem('courseId')
+                    || null;
                 if (cid) {
                     try {
-                        this._showInitBanner('正在从服务器拉取课程数据...', 'loading');
-                        const r = await fetch('/api/v2/classroom/' + encodeURIComponent(cid), { headers: { 'Accept': 'application/json' } });
+                        const r = await fetch('/api/v2/classroom/' + encodeURIComponent(cid), {
+                            headers: { 'Accept': 'application/json' }
+                        });
                         if (r.ok) {
                             const resp = await r.json();
-                            const cd = (resp && resp.record && resp.record.course_data) || (resp && resp.course_data) || (resp && resp.record) || null;
+                            const cd = (resp && resp.record && resp.record.course_data)
+                                || (resp && resp.course_data)
+                                || (resp && resp.record)
+                                || null;
                             if (cd && (cd.outlines || cd.slides_v2 || cd.bundle || cd.title)) {
                                 this.courseData = cd;
                                 if (!this.courseData.courseId) this.courseData.courseId = cid;
                                 this.courseId = this.courseData.courseId;
                                 try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
-                                this._showInitBanner('从服务器加载完成', 'ok');
-                            } else {
-                                this._showInitBanner('服务器返回的课程数据为空', 'error');
                             }
-                        } else {
-                            this._showInitBanner('服务器返回 HTTP ' + r.status, 'error');
+                        } else if (r.status === 404) {
+                            alert('课堂数据不存在或已被删除 (course_id: ' + cid + '), 正在返回首页...');
+                            window.location.href = '/index.html';
+                            return;
                         }
                     } catch (e) {
-                        this._showInitBanner('网络错误: ' + e.message, 'error');
+                        console.warn('[classroom] Fallback fetch failed:', e);
                     }
-                }
-            } else {
-                this._showInitBanner('从缓存加载完成', 'ok');
-                if (!this.courseId && this.courseData.courseId) {
-                    this.courseId = this.courseData.courseId;
                 }
             }
 
-            // 阶段 2: 数据检测 — 没数据时显示显式 UI, 不再静默跳首页
             if (!this.courseData) {
-                this._showNoDataUI();
+                alert('未找到课堂数据，正在返回首页...');
+                window.location.href = '/index.html';
                 return;
             }
 
-            // 阶段 3: 正常渲染 (每步 try/catch)
-            this._showInitBanner('正在构建场景...', 'loading');
-            this._updateCourseTitle();
-            const stages = [
-                ['loadVoicePreference',   () => this.loadVoicePreference()],
-                ['buildScenes',           () => this.buildScenes()],
-                ['setupUI',               () => this.setupUI()],
-                ['bindEvents',            () => this.bindEvents()],
-                ['initVoiceSelector',     () => this.initVoiceSelector()],
-                ['initTTS',               () => this.initTTS()],
-                ['renderSceneSidebar',    () => this.renderSceneSidebar()],
-                ['renderScene(0)',        () => this.renderScene(0)],
-                ['updateNav',             () => this.updateNav()],
-                ['initTeacherArea',       () => this.initTeacherAreaInteraction()],
-                ['loadSettings',          () => this.loadSettings()],
-                ['startEyeBlinkScheduler', () => this.startEyeBlinkScheduler()],
-                ['startBackgroundPolling', () => this.startBackgroundPolling()],
-                ['_renderNineTabs',       () => this._renderNineTabs()],
-                ['_bindNineTabs',         () => this._bindNineTabs()],
-            ];
-            for (const [name, fn] of stages) {
-                try { await fn(); }
-                catch (e) { console.error('[classroom] stage ' + name, e); }
-            }
-            this._showInitBanner('课堂准备就绪', 'ok');
-        }
-
-        // ---- Banner 系统 ----
-
-        _initBannerSys() {
-            let el = document.getElementById('xs-init-banner');
-            if (!el) {
-                el = document.createElement('div');
-                el.id = 'xs-init-banner';
-                el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px 18px;font:600 14px/1.4 -apple-system,sans-serif;color:#fff;text-align:center;backdrop-filter:blur(8px);transition:opacity 0.3s ease;';
-                const header = document.querySelector('.classroom-header');
-                if (header) header.parentNode.insertBefore(el, header);
-                else document.body.prepend(el);
-            }
-            this._bannerEl = el;
-            if (this._bannerTimer) { clearTimeout(this._bannerTimer); this._bannerTimer = null; }
-        }
-
-        _showInitBanner(msg, level) {
-            const el = this._bannerEl;
-            if (!el) return;
-            if (this._bannerTimer) { clearTimeout(this._bannerTimer); this._bannerTimer = null; }
-            const colors = { loading: 'rgba(37,99,235,0.92)', ok: 'rgba(16,185,129,0.92)', error: 'rgba(220,38,38,0.92)' };
-            el.style.background = colors[level] || colors.loading;
-            el.style.opacity = '1';
-            el.textContent = msg;
-            if (level === 'ok') {
-                this._bannerTimer = setTimeout(() => {
-                    el.style.opacity = '0';
-                    this._bannerTimer = setTimeout(() => { if (el.parentNode) el.remove(); }, 350);
-                }, 1200);
-            }
-        }
-
-        _showNoDataUI() {
-            // 清除 banner
-            if (this._bannerEl && this._bannerEl.parentNode) this._bannerEl.remove();
-            // 注入占位 UI
-            const main = document.querySelector('.main-content');
-            if (!main) return;
-            const html = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:#e2e8f0;font:14px/1.5 -apple-system,sans-serif;padding:40px;">'
-                + '<div style="font-size:64px;">📭</div>'
-                + '<div style="font-size:18px;font-weight:600;">未找到课程数据</div>'
-                + '<div style="color:#94a3b8;">该课程可能尚未生成或已被清理</div>'
-                + '<div style="display:flex;gap:12px;margin-top:8px;">'
-                + '<a href="/index.html" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:var(--radius-full,9999px);color:#fff;text-decoration:none;font-weight:500;transition:background 0.2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.14)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.08)\'"><i class="fas fa-home"></i> 回首页</a>'
-                + '<a href="/generation-preview.html" style="display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:linear-gradient(135deg,var(--openmaic-amber-500,#f59e0b),var(--openmaic-amber-400,#fbbf24));border:1px solid rgba(255,255,255,0.3);border-radius:var(--radius-full,9999px);color:#fff;text-decoration:none;font-weight:600;transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\'0 8px 24px rgba(245,158,11,0.5)\'" onmouseout="this.style.boxShadow=\'none\'"><i class="fas fa-play"></i> 开始生成 9 件套</a>'
-                + '</div></div>';
-            main.innerHTML = html;
-        }
-
-        _updateCourseTitle() {
-            try {
-                const t = this.courseData && (this.courseData.title || this.courseData.metadata && this.courseData.metadata.title);
-                if (!t) return;
-                const titleEl = document.getElementById('course-title');
-                if (titleEl) {
-                    titleEl.innerHTML = '<i class="fas fa-graduation-cap"></i> <span>' + this._escInline(t) + '</span>';
+            // 验证: courseData 必须有 outlines 或 slides_v2, 否则视为空数据
+            const hasContent = (Array.isArray(this.courseData.outlines) && this.courseData.outlines.length > 0)
+                || (Array.isArray(this.courseData.slides_v2) && this.courseData.slides_v2.length > 0)
+                || (Array.isArray(this.courseData.slides) && this.courseData.slides.length > 0)
+                || (this.courseData.bundle);
+            if (!hasContent) {
+                // 生成中状态: 保留 courseId 但显示生成占位符, 让后台轮询去拉数据
+                console.warn('[classroom] courseData 缺少可渲染内容 (可能正在生成中):', Object.keys(this.courseData || {}));
+                if (this.courseId) {
+                    this._showGeneratingPlaceholder();
+                    // 仍然 init UI 但不 buildScenes, 让后续轮询填充内容
+                    this.setupUI();
+                    this.bindEvents();
+                    this.initVoiceSelector();
+                    this.initTTS();
+                    this.startBackgroundPolling();
+                    return;
                 }
-            } catch (e) { /* ignore */ }
-        }
-
-        _escInline(s) {
-            return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-        }
-
-        // _renderInitBanner 已废弃 (Phase 2), 由 _showInitBanner 替代
-
-        // ============================================================
-        // 9 件套顶层 tab 渲染 + 切换
-        // ============================================================
-
-        _renderNineTabs() {
-            try {
-                const cd = this.courseData || {};
-                const cu = window.xsCourseUtils;
-                const get = (n) => cu ? cu.getComponent(cd, n) : (cd[(n === 'ppt' ? 'ppt_data' : n + '_data')] || (cd.bundle && cd.bundle.components && cd.bundle.components[n]) || null);
-                // outline
-                this._renderOutlinePanel(get('outline'));
-                // plan
-                this._renderPlanPanel(get('plan'));
-                // graph
-                this._renderGraphPanel(get('graph'));
-                // radar
-                this._renderRadarPanel(get('radar'));
-                // project
-                this._renderProjectPanel(get('project'));
-                // case
-                this._renderCasePanel(get('case'));
-                // exercises
-                this._renderExercisesPanel(get('exercises'));
-                // survey
-                this._renderSurveyPanel(get('survey'));
-
-                // Inject config gears into all panels
-                this._injectAllConfigGears();
-
-                // 默认激活 PPT tab (但抽屉默认关闭, 等用户点 FAB)
-                this._switchNineTab('ppt');
-            } catch (e) {
-                console.error('[classroom] 9 tab 渲染失败:', e);
+                alert('课堂数据为空，正在返回首页...');
+                window.location.href = '/index.html';
+                return;
             }
-        }
-
-        _bindNineTabs() {
-            const self = this;
-            // FAB 触发按钮: 打开/关闭抽屉
-            const fab = document.getElementById('xs-fb-fab');
-            if (fab) fab.addEventListener('click', () => self._toggleFloatingBundle());
-            // 关闭按钮
-            const closeBtn = document.getElementById('xs-fb-close');
-            if (closeBtn) closeBtn.addEventListener('click', () => self._closeFloatingBundle());
-            // 遮罩点击关闭
-            const scrim = document.getElementById('xs-fb-scrim');
-            if (scrim) scrim.addEventListener('click', () => self._closeFloatingBundle());
-            // 抽屉内 9 个分类按钮
-            const cats = document.querySelectorAll('.xs-fb-cat');
-            cats.forEach((cat) => {
-                cat.addEventListener('click', function () {
-                    const name = this.dataset.tab;
-                    if (!name) return;
-                    self._switchNineTab(name);
-                });
-            });
-            // Esc 关闭抽屉
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    const drawer = document.getElementById('xs-fb-drawer');
-                    if (drawer && drawer.classList.contains('is-open')) {
-                        self._closeFloatingBundle();
-                    }
-                }
-                // 快捷键 B 打开抽屉
-                if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                    const t = e.target;
-                    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-                    const drawer = document.getElementById('xs-fb-drawer');
-                    if (drawer && !drawer.classList.contains('is-open')) {
-                        self._openFloatingBundle();
-                    }
-                }
-            });
-        }
-
-        _toggleFloatingBundle() {
-            const drawer = document.getElementById('xs-fb-drawer');
-            if (!drawer) return;
-            if (drawer.classList.contains('is-open')) {
-                this._closeFloatingBundle();
-            } else {
-                this._openFloatingBundle();
-            }
-        }
-
-        _openFloatingBundle() {
-            const drawer = document.getElementById('xs-fb-drawer');
-            const scrim = document.getElementById('xs-fb-scrim');
-            const fab = document.getElementById('xs-fb-fab');
-            if (drawer) {
-                drawer.classList.add('is-open');
-                drawer.setAttribute('aria-hidden', 'false');
-            }
-            if (scrim) {
-                scrim.classList.add('is-open');
-                scrim.setAttribute('aria-hidden', 'false');
-            }
-            if (fab) fab.classList.add('is-open');
-        }
-
-        _closeFloatingBundle() {
-            const drawer = document.getElementById('xs-fb-drawer');
-            const scrim = document.getElementById('xs-fb-scrim');
-            const fab = document.getElementById('xs-fb-fab');
-            if (drawer) {
-                drawer.classList.remove('is-open');
-                drawer.setAttribute('aria-hidden', 'true');
-            }
-            if (scrim) {
-                scrim.classList.remove('is-open');
-                scrim.setAttribute('aria-hidden', 'true');
-            }
-            if (fab) fab.classList.remove('is-open');
-        }
-
-        _switchNineTab(name) {
-            // 抽屉内分类按钮 active
-            document.querySelectorAll('.xs-fb-cat').forEach((b) => {
-                const isActive = b.dataset.tab === name;
-                b.classList.toggle('active', isActive);
-                b.setAttribute('aria-selected', isActive ? 'true' : 'false');
-            });
-            // 切 panel 显示
-            document.querySelectorAll('.xs-ct-panel').forEach((p) => {
-                p.classList.toggle('active', p.dataset.panel === name);
-            });
-            // 抽屉描边色按当前分类 (仅当不是 ppt)
-            const drawer = document.getElementById('xs-fb-drawer');
-            if (drawer) {
-                const catBtn = document.querySelector('.xs-fb-cat[data-tab="' + name + '"]');
-                const cat = catBtn ? catBtn.dataset.cat : 'amber';
-                drawer.setAttribute('data-cat', cat);
-            }
-            // PPT tab: 显示场景播放器; 其他 tab: 隐藏
-            const slideViewer = document.getElementById('slide-viewer');
-            if (name === 'ppt') {
-                if (slideViewer) slideViewer.style.display = '';
-            } else {
-                if (slideViewer) slideViewer.style.display = 'none';
-            }
-        }
-
-        _panelEl(name) { return document.querySelector('.xs-ct-panel[data-panel="' + name + '"]'); }
-        _esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-        _escAttr(s) { return String(s == null ? '' : s).replace(/[&"']/g, c => ({ '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c])); }
-        _bundleComponent(name) {
-            const b = (this.courseData && this.courseData.bundle) || {};
-            const c = b.components || {};
-            return c[name] || null;
-        }
-        _getAvailableComponents() {
-            const b = (this.courseData && this.courseData.bundle) || {};
-            const components = b.components || {};
-            const available = [];
-            for (const [key, val] of Object.entries(components)) {
-                if (val && (typeof val !== 'object' || Object.keys(val).length > 0)) {
-                    // Map internal names to display names
-                    const displayMap = {
-                        outline: '大纲', ppt: 'PPT', exercises: '习题', project: '项目',
-                        case_study: '案例', survey: '问卷', plan: '教案', graph: '图谱', radar: '雷达'
-                    };
-                    available.push({ key, label: displayMap[key] || key });
-                }
-            }
-            return available;
-        }
-        _renderRefPills(escapedText) {
-            // Replace [ref:xxx] with clickable pills
-            const refMap = {
-                outline: '📋', ppt: '📽', exercises: '✏️', project: '🛠',
-                case_study: '📖', survey: '📋', plan: '📝', graph: '🕸', radar: '📊',
-                case: '📖'
-            };
-            return escapedText.replace(/\[ref:(\w+)\]/g, (match, name) => {
-                const icon = refMap[name] || '📌';
-                const label = name === 'case_study' ? '案例' : name;
-                return '<span class="xs-ref-pill" data-ref="' + name + '" style="display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);border-radius:12px;padding:1px 8px;margin:0 2px;cursor:pointer;font-size:0.9em;white-space:nowrap;transition:background 0.2s" onmouseenter="this.style.background=\'rgba(59,130,246,0.4)\'" onmouseleave="this.style.background=\'rgba(59,130,246,0.2)\'">' + icon + ' ' + this._esc(label) + '</span>';
-            });
-        }
-        _md2html(text) {
-            if (!text) return '';
-            let html = String(text);
-            // Bold + italic
-            html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            // Inline code
-            html = html.replace(/`(.+?)`/g, '<code style="background:#1e293b;color:#e2e8f0;padding:1px 4px;border-radius:3px;font-family:Consolas,monospace;font-size:0.9em">$1</code>');
-            // Headings
-            html = html.replace(/^### (.+)$/gm, '<h5 style="margin:0.5em 0 0.2em">$1</h5>');
-            html = html.replace(/^## (.+)$/gm, '<h4 style="margin:0.5em 0 0.2em">$1</h4>');
-            html = html.replace(/^# (.+)$/gm, '<h3 style="margin:0.5em 0 0.2em">$1</h3>');
-            // Horizontal rule
-            html = html.replace(/^---$/gm, '<hr style="border-color:#334155;margin:0.5em 0">');
-            // Unordered lists
-            html = html.replace(/^[*-] (.+)$/gm, '<li style="margin-left:1.2em">$1</li>');
-            // Ordered lists
-            html = html.replace(/^\d+\. (.+)$/gm, '<li style="margin-left:1.2em">$1</li>');
-            // Line breaks
-            html = html.replace(/\n\n/g, '<br><br>');
-            html = html.replace(/\n/g, '<br>');
-            return html;
-        }
-        // ---- Per-component LLM config (localStorage) ----
-        _getComponentConfig(name) {
-            try {
-                const raw = localStorage.getItem('xs-component-config');
-                const cfg = raw ? JSON.parse(raw) : {};
-                return cfg[name] || {};
-            } catch (e) { return {}; }
-        }
-        _saveComponentConfig(name, config) {
-            try {
-                const raw = localStorage.getItem('xs-component-config');
-                const cfg = raw ? JSON.parse(raw) : {};
-                cfg[name] = config;
-                localStorage.setItem('xs-component-config', JSON.stringify(cfg));
-            } catch (e) {}
-        }
-        _injectAllConfigGears() {
-            const panels = ['outline', 'plan', 'graph', 'radar', 'project', 'case', 'exercises', 'survey'];
-            panels.forEach(name => this._injectConfigGear(name));
-        }
-        _injectConfigGear(name) {
-            const panel = this._panelEl(name);
-            if (!panel) return;
-            const header = panel.querySelector('.xs-ct-header');
-            if (!header || header.querySelector('.xs-ct-config-gear')) return;
-            const gearBtn = document.createElement('button');
-            gearBtn.className = 'xs-ct-config-gear';
-            gearBtn.innerHTML = '<i class="fas fa-cog"></i>';
-            gearBtn.title = '配置生成参数';
-            gearBtn.style.cssText = 'margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#94a3b8;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0';
-            const self = this;
-            gearBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                // Remove any existing dropdown
-                const existing = document.querySelector('.xs-ct-config-drop');
-                if (existing && existing.parentNode === header) {
-                    existing.remove(); return;
-                }
-                if (existing) existing.remove();
-                const cfg = self._getComponentConfig(name);
-                const AVAILABLE_MODELS = [
-                    { id: '', label: '默认 (全局)' },
-                    { id: 'deepseek-v3', label: 'DeepSeek V3' },
-                    { id: 'deepseek-r1', label: 'DeepSeek R1' },
-                    { id: 'gpt-4o', label: 'GPT-4o' },
-                    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6' },
-                ];
-                const modelOpts = AVAILABLE_MODELS.map(m =>
-                    '<option value="' + m.id + '"' + (cfg.model === m.id ? ' selected' : '') + '>' + m.label + '</option>'
-                ).join('');
-                const drop = document.createElement('div');
-                drop.className = 'xs-ct-config-drop';
-                drop.style.cssText = 'position:absolute;top:100%;right:0;margin-top:4px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:12px;z-index:100;min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
-                drop.innerHTML = ''
-                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">模型</div>'
-                    + '<select class="xs-ct-config-model" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:13px;margin-bottom:8px">' + modelOpts + '</select>'
-                    + '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">Prompt 模板 (留空=默认)</div>'
-                    + '<textarea class="xs-ct-config-prompt" rows="2" style="width:100%;background:#0f172a;border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;font-size:12px;resize:vertical" placeholder="自定义 prompt 模板...">' + self._esc(cfg.prompt_template || '') + '</textarea>'
-                    + '<div style="display:flex;gap:6px;margin-top:8px">'
-                    + '<button class="xs-ct-config-save" style="flex:1;background:#3b82f6;border:none;color:#fff;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px">保存</button>'
-                    + '<button class="xs-ct-config-close" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid #334155;color:#e2e8f0;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px">关闭</button>'
-                    + '</div>';
-                // Save button
-                drop.querySelector('.xs-ct-config-save').addEventListener('click', function () {
-                    const model = drop.querySelector('.xs-ct-config-model').value;
-                    const promptTemplate = drop.querySelector('.xs-ct-config-prompt').value.trim();
-                    const newCfg = {};
-                    if (model) newCfg.model = model;
-                    if (promptTemplate) newCfg.prompt_template = promptTemplate;
-                    self._saveComponentConfig(name, newCfg);
-                    drop.remove();
-                });
-                // Close button
-                drop.querySelector('.xs-ct-config-close').addEventListener('click', () => drop.remove());
-                // Click outside to close
-                setTimeout(() => {
-                    const closer = (ev) => {
-                        if (!drop.contains(ev.target) && ev.target !== gearBtn) {
-                            drop.remove();
-                            document.removeEventListener('click', closer);
-                        }
-                    };
-                    document.addEventListener('click', closer);
-                }, 10);
-                header.appendChild(drop);
-            });
-            header.appendChild(gearBtn);
-        }
-
-        _empty(name, opts) {
-            opts = opts || {};
-            const p = this._panelEl(name);
-            if (!p) return;
-            const retryBtn = opts.canRetry
-                ? '<button class="xs-ct-retry-btn" data-retry="' + this._esc(name) + '"><i class="fas fa-redo"></i> 重新生成</button>'
-                : '';
-            p.innerHTML = '<div class="xs-ct-empty">'
-                + '<div class="xs-ct-empty-icon">📭</div>'
-                + '<div class="xs-ct-empty-text">' + this._esc(opts.reason || '该模块尚未生成') + '</div>'
-                + retryBtn
-                + '</div>';
-            if (opts.canRetry) {
-                const btn = p.querySelector('.xs-ct-retry-btn');
-                if (btn) btn.addEventListener('click', () => this._retryComponent(name));
-            }
-        }
-
-        async _retryComponent(name) {
-            if (!this.courseId) return;
-            const panel = this._panelEl(name);
-            if (panel) panel.innerHTML = '<div class="xs-ct-empty"><div class="xs-ct-empty-icon">⏳</div><div class="xs-ct-empty-text">正在重新生成...</div></div>';
-            try {
-                const outline = (this.courseData && this.courseData.bundle && this.courseData.bundle.components && this.courseData.bundle.components.outline) || {};
-                const slots = (this.courseData && this.courseData.slots) || {};
-                const compConfig = this._getComponentConfig(name);
-                const body = { outline, slots };
-                if (compConfig.model) body.model = compConfig.model;
-                if (compConfig.prompt_template) body.prompt_template = compConfig.prompt_template;
-                const r = await fetch('/api/v2/course/' + encodeURIComponent(this.courseId) + '/component/' + encodeURIComponent(name), {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                const resp = await r.json();
-                const newComp = resp.payload || (resp.bundle && resp.bundle.components && resp.bundle.components[name]);
-                if (newComp) {
-                    this.courseData.bundle = this.courseData.bundle || { components: {} };
-                    this.courseData.bundle.components[name] = newComp;
-                    const rendererName = '_render' + name.charAt(0).toUpperCase() + name.slice(1) + 'Panel';
-                    if (typeof this[rendererName] === 'function') this[rendererName](newComp);
-                    try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
-                } else {
-                    throw new Error('服务器未返回组件数据');
-                }
-            } catch (e) {
-                this._empty(name, { canRetry: true, reason: '重试失败: ' + e.message });
-            }
-        }
-
-        _renderOutlinePanel(data) {
-            const p = this._panelEl('outline');
-            if (!p) return;
-            if (!data) { this._empty('outline'); return; }
-            const scenes = (data.scenes && data.scenes.length) ? data.scenes
-                : (this.courseData && this.courseData.outlines) || [];
-            const mode = data.obg_pbl_mode || (this.courseData && this.courseData.bundle && this.courseData.bundle.obg_pbl_mode) || 'obg';
-            const rationale = data.obg_pbl_rationale || data.rationale || (this.courseData && this.courseData.bundle && this.courseData.bundle.obg_pbl_rationale) || '';
-            const html = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">📋 课程大纲</div>',
-                '<div class="xs-ct-mode">' + this._esc(mode.toUpperCase()) + '</div></div>',
-                rationale ? '<div class="xs-ct-rationale">' + this._esc(rationale) + '</div>' : '',
-                '<ol class="xs-ct-scenes">',
-                scenes.map((s, i) => {
-                    const title = this._esc(s.title || '场景 ' + (i + 1));
-                    const kp = Array.isArray(s.key_points) ? s.key_points : [];
-                    const desc = s.description || '';
-                    return '<li class="xs-ct-scene">'
-                        + '<div class="xs-ct-scene-num">' + (i + 1) + '</div>'
-                        + '<div class="xs-ct-scene-body">'
-                        + '<div class="xs-ct-scene-title">' + title + '</div>'
-                        + (desc ? '<div class="xs-ct-scene-desc">' + this._esc(desc) + '</div>' : '')
-                        + (kp.length ? '<ul class="xs-ct-kp">' + kp.map(k => '<li>' + this._esc(k) + '</li>').join('') + '</ul>' : '')
-                        + '</div></li>';
-                }).join(''),
-                '</ol>',
-            ].join('');
-            p.innerHTML = html;
-        }
-
-        _renderPlanPanel(data) {
-            const p = this._panelEl('plan');
-            if (!p) return;
-            if (!data) { this._empty('plan', { canRetry: true, reason: '教案数据为空' }); return; }
-            // 兼容嵌套: data.plans[scene_id].objectives
-            let flat = data;
-            if (data.plans && typeof data.plans === 'object' && !Array.isArray(data.plans)) {
-                const sceneIds = Object.keys(data.plans);
-                const first = sceneIds.length ? data.plans[sceneIds[0]] : {};
-                flat = {
-                    objectives: first.objectives || [],
-                    key_points: first.key_points || [],
-                    methods: first.methods || [],
-                    duration_min: first.duration_min,
-                    blackboard: first.blackboard,
-                    _allPlans: data.plans,
-                };
-            }
-            const kp = Array.isArray(flat.key_points) ? flat.key_points : [];
-            const obj = Array.isArray(flat.objectives) ? flat.objectives : [];
-            const methods = Array.isArray(flat.methods) ? flat.methods : [];
-            const html = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">📝 教案</div></div>',
-                '<div class="xs-ct-section"><h4>🎯 教学目标</h4><ul>' + obj.map(o => '<li>' + this._md2html(o) + '</li>').join('') + '</ul></div>',
-                '<div class="xs-ct-section"><h4>🔑 重点 / 难点</h4><ul>' + kp.map(k => '<li>' + this._md2html(k) + '</li>').join('') + '</ul></div>',
-                '<div class="xs-ct-section"><h4>🧰 教学方法</h4><ul>' + methods.map(m => '<li>' + this._md2html(m) + '</li>').join('') + '</ul></div>',
-                flat.duration_min ? '<div class="xs-ct-section"><h4>⏱ 时长</h4><div>' + this._esc(String(flat.duration_min)) + ' 分钟</div></div>' : '',
-                flat.blackboard ? '<div class="xs-ct-section"><h4>📐 板书</h4><div class="xs-ct-md">' + this._md2html(flat.blackboard) + '</div></div>' : '',
-            ].join('');
-            p.innerHTML = html;
-        }
-
-        _renderGraphPanel(data) {
-            const p = this._panelEl('graph');
-            if (!p) return;
-            if (!data || !(data.nodes && data.nodes.length)) { this._empty('graph'); return; }
-            const self = this;
-            const nodes = data.nodes || [];
-            const edges = data.edges || [];
-            const W = 720, H = 360;
-            // Build adjacency for highlighting
-            const adj = {};
-            nodes.forEach(n => { adj[n.id] = []; });
-            edges.forEach(e => {
-                const a = e.from || e.from_id; const b = e.to || e.to_id;
-                if (adj[a] !== undefined) adj[a].push(b);
-                if (adj[b] !== undefined) adj[b].push(a);
-            });
-            const layers = {};
-            nodes.forEach(n => { const L = n.layer || 0; (layers[L] = layers[L] || []).push(n); });
-            const pos = {};
-            const allLayers = Object.keys(layers).sort((a, b) => Number(a) - Number(b));
-            allLayers.forEach((L, li) => {
-                const arr = layers[L];
-                arr.forEach((n, ni) => {
-                    const x = ((ni + 1) / (arr.length + 1)) * (W - 80) + 40;
-                    const y = ((li + 1) / (allLayers.length + 1)) * (H - 60) + 30;
-                    pos[n.id] = { x: x, y: y };
-                });
-            });
-            const nodeR = 22;
-            const svg = [
-                '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg" id="graph-svg">',
-                '<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/></marker></defs>',
-                '<g class="xs-ct-graph-edges">',
-                edges.map(e => {
-                    const a = pos[e.from || e.from_id]; const b = pos[e.to || e.to_id];
-                    if (!a || !b) return '';
-                    const eid = 'ge-' + (e.from || e.from_id) + '-' + (e.to || e.to_id);
-                    return '<line id="' + eid + '" x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>';
-                }).join(''),
-                '</g>',
-                '<g class="xs-ct-graph-nodes">',
-                nodes.map(n => {
-                    const xy = pos[n.id] || { x: 40, y: 40 };
-                    const fill = Number(n.layer) === 0 ? '#fbbf24' : (Number(n.layer) === 1 ? '#22d3ee' : '#a78bfa');
-                    return '<g class="xs-ct-node" data-node-id="' + n.id + '" data-layer="' + (n.layer || 0) + '" style="cursor:pointer">'
-                        + '<circle cx="' + xy.x + '" cy="' + xy.y + '" r="' + nodeR + '" fill="' + fill + '" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>'
-                        + '<text x="' + xy.x + '" y="' + (xy.y + 4) + '" text-anchor="middle" font-size="11" font-weight="600" fill="#0f172a">' + self._esc(n.label || n.id) + '</text>'
-                        + '</g>';
-                }).join(''),
-                '</g>',
-                '</svg>',
-            ].join('');
-            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">🕸 知识图谱</div>'
-                + '<button class="xs-ct-graph-reset" style="margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12px">↺ 重置</button>'
-                + '</div>'
-                + '<div class="xs-ct-graph-viewport" style="overflow:hidden;position:relative;border-radius:8px;background:#0f172a;min-height:320px">'
-                + '<div class="xs-ct-graph-inner" style="transform-origin:0 0;transition:transform 0.1s ease-out">'
-                + svg
-                + '</div>'
-                + '<div class="xs-ct-graph-tooltip" style="display:none;position:absolute;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:12px;pointer-events:none;z-index:10"></div>'
-                + '</div>';
-
-            // Zoom & pan
-            const viewport = p.querySelector('.xs-ct-graph-viewport');
-            const inner = p.querySelector('.xs-ct-graph-inner');
-            const tooltip = p.querySelector('.xs-ct-graph-tooltip');
-            let scale = 1, tx = 0, ty = 0;
-            let isPanning = false, panStart = { x: 0, y: 0 };
-
-            function applyTransform() {
-                inner.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
-            }
-
-            viewport.addEventListener('wheel', function (e) {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                scale = Math.max(0.5, Math.min(3, scale + delta));
-                applyTransform();
-            });
-
-            viewport.addEventListener('mousedown', function (e) {
-                if (e.target.closest('.xs-ct-node')) return; // Don't pan on node click
-                isPanning = true;
-                panStart = { x: e.clientX - tx, y: e.clientY - ty };
-                viewport.style.cursor = 'grabbing';
-            });
-            window.addEventListener('mouseup', function () {
-                isPanning = false;
-                if (viewport) viewport.style.cursor = 'grab';
-            });
-            window.addEventListener('mousemove', function (e) {
-                if (!isPanning) return;
-                tx = e.clientX - panStart.x;
-                ty = e.clientY - panStart.y;
-                applyTransform();
-            });
-            viewport.style.cursor = 'grab';
-
-            // Node click → highlight neighbors
-            const svgEl = p.querySelector('#graph-svg');
-            p.querySelectorAll('.xs-ct-node').forEach(g => {
-                g.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    const nid = this.dataset.nodeId;
-                    const neighbors = adj[nid] || [];
-                    // Reset all
-                    svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
-                    svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
-                    // Highlight selected
-                    const myCircle = this.querySelector('circle');
-                    if (myCircle) { myCircle.setAttribute('stroke', '#fbbf24'); myCircle.setAttribute('stroke-width', '3'); }
-                    neighbors.forEach(nb => {
-                        const nbG = svgEl.querySelector('.xs-ct-node[data-node-id="' + nb + '"] circle');
-                        if (nbG) { nbG.setAttribute('stroke', '#22d3ee'); nbG.setAttribute('stroke-width', '2.5'); }
-                    });
-                    edges.forEach(e => {
-                        const a = e.from || e.from_id; const b = e.to || e.to_id;
-                        if (a === nid || b === nid) {
-                            const line = svgEl.querySelector('#ge-' + a + '-' + b);
-                            if (line) { line.setAttribute('stroke', '#f59e0b'); line.setAttribute('stroke-width', '2.5'); }
-                        }
-                    });
-                    // Tooltip
-                    const rect = this.getBoundingClientRect();
-                    const vpRect = viewport.getBoundingClientRect();
-                    const node = nodes.find(n => n.id === nid);
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = (rect.left - vpRect.left + 40) + 'px';
-                    tooltip.style.top = (rect.top - vpRect.top - 10) + 'px';
-                    tooltip.innerHTML = '<b>' + self._esc(node ? (node.label || node.id) : nid) + '</b><br>关联: ' + neighbors.length + ' 个节点';
-                });
-            });
-
-            // Reset button
-            p.querySelector('.xs-ct-graph-reset').addEventListener('click', function () {
-                scale = 1; tx = 0; ty = 0;
-                applyTransform();
-                svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
-                svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
-                tooltip.style.display = 'none';
-            });
-
-            // Click outside nodes hides tooltip
-            svgEl.addEventListener('click', function (e) {
-                if (!e.target.closest('.xs-ct-node')) {
-                    tooltip.style.display = 'none';
-                    svgEl.querySelectorAll('.xs-ct-node circle').forEach(c => { c.setAttribute('stroke', 'rgba(255,255,255,0.6)'); c.setAttribute('stroke-width', '1.5'); });
-                    svgEl.querySelectorAll('.xs-ct-graph-edges line').forEach(l => { l.setAttribute('stroke', '#94a3b8'); l.setAttribute('stroke-width', '1.5'); });
-                }
-            });
-        }
-
-        _renderRadarPanel(data) {
-            const p = this._panelEl('radar');
-            if (!p) return;
-            if (!data) { this._empty('radar'); return; }
-            const self = this;
-            const dims = [
-                { key: 'knowledge_mastery', label: '知识掌握' },
-                { key: 'code_skill', label: '代码能力' },
-                { key: 'cognitive_level', label: '认知水平' },
-                { key: 'learning_goal', label: '学习目标' },
-                { key: 'weakness', label: '薄弱环节' },
-                { key: 'focus_level', label: '专注度' },
-            ];
-            const max = 100;
-            const N = dims.length;
-            const cx = 180, cy = 180, R = 130;
-            const ang = (i) => (i / N) * Math.PI * 2 - Math.PI / 2;
-            const pt = (i, v) => ({ x: cx + Math.cos(ang(i)) * (R * (v / max)), y: cy + Math.sin(ang(i)) * (R * (v / max)) });
-
-            // Store initial values
-            const initValues = {};
-            dims.forEach(d => { initValues[d.key] = Number(data[d.key] || 0); });
-            let values = { ...initValues };
-
-            function buildSvg() {
-                const points = dims.map((d, i) => {
-                    const v = values[d.key] || 0;
-                    return { ...d, v: v, p: pt(i, v) };
-                });
-                const polygon = points.map(p => p.p.x + ',' + p.p.y).join(' ');
-                const grid = [0.25, 0.5, 0.75, 1].map(scale => dims.map((_, i) => { const x = cx + Math.cos(ang(i)) * (R * scale); const y = cy + Math.sin(ang(i)) * (R * scale); return x + ',' + y; }).join(' ')).map(poly => '<polygon points="' + poly + '" fill="none" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>').join('');
-                const axes = dims.map((d, i) => { const x = cx + Math.cos(ang(i)) * R; const y = cy + Math.sin(ang(i)) * R; const lx = cx + Math.cos(ang(i)) * (R + 22); const ly = cy + Math.sin(ang(i)) * (R + 22); return '<line x1="' + cx + '" y1="' + cy + '" x2="' + x + '" y2="' + y + '" stroke="rgba(148,163,184,0.3)"/><text x="' + lx + '" y="' + ly + '" text-anchor="middle" font-size="12" font-weight="600" fill="#e2e8f0">' + self._esc(d.label) + ' (' + Math.round(points[i].v) + ')</text>'; }).join('');
-                return grid + axes
-                    + '<polygon points="' + polygon + '" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="2"/>'
-                    + points.map((p, i) => '<circle class="xs-ct-radar-dot" data-dim-idx="' + i + '" cx="' + p.p.x + '" cy="' + p.p.y + '" r="6" fill="#fbbf24" stroke="#fff" stroke-width="2" style="cursor:grab"/>').join('');
-            }
-
-            function buildCards() {
-                return dims.map(d => '<div class="xs-ct-radar-card">'
-                    + '<div class="xs-ct-radar-label">' + self._esc(d.label) + '</div>'
-                    + '<div class="xs-ct-radar-value"><input class="xs-ct-radar-input" data-dim="' + d.key + '" type="number" min="0" max="100" value="' + Math.round(values[d.key] || 0) + '" style="width:50px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:4px;text-align:center;font-size:18px"><span>/100</span></div>'
-                    + '</div>').join('');
-            }
-
-            function refreshUI() {
-                const svgEl = p.querySelector('.xs-ct-radar-svg');
-                if (svgEl) svgEl.innerHTML = buildSvg();
-                const cardsEl = p.querySelector('.xs-ct-radar-cards');
-                if (cardsEl) cardsEl.innerHTML = buildCards();
-                bindEvents();
-            }
-
-            function updateDot(i, value) {
-                values[dims[i].key] = Math.max(0, Math.min(max, value));
-                refreshUI();
-                // Persist to courseData
-                if (self.courseData && self.courseData.bundle && self.courseData.bundle.components && self.courseData.bundle.components.radar) {
-                    self.courseData.bundle.components.radar[dims[i].key] = values[dims[i].key];
-                }
-            }
-
-            function bindEvents() {
-                // Drag dots
-                p.querySelectorAll('.xs-ct-radar-dot').forEach(dot => {
-                    let dragging = false;
-                    dot.addEventListener('mousedown', function (e) {
-                        e.preventDefault();
-                        dragging = true;
-                        dot.style.cursor = 'grabbing';
-                    });
-                    window.addEventListener('mousemove', function (e) {
-                        if (!dragging) return;
-                        const svgRect = p.querySelector('.xs-ct-radar-svg').getBoundingClientRect();
-                        const mx = e.clientX - svgRect.left;
-                        const my = e.clientY - svgRect.top;
-                        const svgW = svgRect.width;
-                        const svgH = svgRect.height;
-                        const viewX = (mx / svgW) * 360;
-                        const viewY = (my / svgH) * 360;
-                        const i = parseInt(dot.dataset.dimIdx);
-                        const a = ang(i);
-                        // Project mouse to the radial axis
-                        const dx = viewX - cx;
-                        const dy = viewY - cy;
-                        const proj = dx * Math.cos(a) + dy * Math.sin(a);
-                        const dist = Math.max(0, Math.min(R, proj));
-                        const newVal = (dist / R) * max;
-                        updateDot(i, newVal);
-                    });
-                    window.addEventListener('mouseup', function () {
-                        if (dragging) {
-                            dragging = false;
-                            dot.style.cursor = 'grab';
-                        }
-                    });
-                });
-                // Card input changes
-                p.querySelectorAll('.xs-ct-radar-input').forEach(inp => {
-                    inp.addEventListener('change', function () {
-                        const key = this.dataset.dim;
-                        const idx = dims.findIndex(d => d.key === key);
-                        if (idx >= 0) updateDot(idx, parseInt(this.value) || 0);
-                    });
-                });
-                // Reset button
-                const resetBtn = p.querySelector('.xs-ct-radar-reset');
-                if (resetBtn) {
-                    resetBtn.addEventListener('click', function () {
-                        values = { ...initValues };
-                        refreshUI();
-                    });
-                }
-            }
-
-            p.innerHTML = '<div class="xs-ct-header"><div class="xs-ct-title">📊 课前雷达</div>'
-                + '<button class="xs-ct-radar-reset" style="margin-left:auto;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;border-radius:6px;padding:2px 10px;cursor:pointer;font-size:12px">↺ 重置</button>'
-                + '</div>'
-                + '<div class="xs-ct-radar-wrap">'
-                + '<svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg" class="xs-ct-svg xs-ct-radar-svg">' + buildSvg() + '</svg>'
-                + '<div class="xs-ct-radar-cards">' + buildCards() + '</div>'
-                + '</div>';
-        }
-
-        _renderProjectPanel(data) {
-            const p = this._panelEl('project');
-            if (!p) return;
-            if (!data) { this._empty('project'); return; }
-            const req = Array.isArray(data.requirements) ? data.requirements : [];
-            const acc = Array.isArray(data.acceptance) ? data.acceptance : [];
-            const ms = Array.isArray(data.milestones) ? data.milestones : [];
-            p.innerHTML = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">🛠 项目</div>' + (data.difficulty ? '<div class="xs-ct-mode">' + this._esc(data.difficulty) + '</div>' : '') + '</div>',
-                data.title ? '<div class="xs-ct-big">' + this._esc(data.title) + '</div>' : '',
-                data.scenario ? '<div class="xs-ct-section"><h4>📍 场景</h4><div>' + this._esc(data.scenario) + '</div></div>' : '',
-                data.background ? '<div class="xs-ct-section"><h4>🎯 背景</h4><div>' + this._esc(data.background) + '</div></div>' : '',
-                req.length ? '<div class="xs-ct-section"><h4>✅ 要求</h4><ol>' + req.map(r => '<li>' + this._esc(r) + '</li>').join('') + '</ol></div>' : '',
-                acc.length ? '<div class="xs-ct-section"><h4>📋 验收标准</h4><ol>' + acc.map(a => '<li>' + this._esc(a) + '</li>').join('') + '</ol></div>' : '',
-                ms.length ? '<div class="xs-ct-section"><h4>🪜 里程碑</h4><ol>' + ms.map(m => '<li><b>' + this._esc(m.title || '') + '</b>' + (m.description ? ' — ' + this._esc(m.description) : '') + (m.deliverable ? '<div class="xs-ct-sub">📦 ' + this._esc(m.deliverable) + '</div>' : '') + '</li>').join('') + '</ol></div>' : '',
-                data.estimated_hours ? '<div class="xs-ct-section"><h4>⏱ 预估工时</h4><div>' + this._esc(String(data.estimated_hours)) + ' 小时</div></div>' : '',
-            ].join('');
-        }
-
-        _renderCasePanel(data) {
-            const p = this._panelEl('case');
-            if (!p) return;
-            if (!data) { this._empty('case'); return; }
-            const dp = Array.isArray(data.decision_points) ? data.decision_points : [];
-            const rf = Array.isArray(data.reflection) ? data.reflection : [];
-            p.innerHTML = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">📖 案例</div></div>',
-                data.title ? '<div class="xs-ct-big">' + this._esc(data.title) + '</div>' : '',
-                data.story ? '<div class="xs-ct-section"><h4>📜 故事</h4><div class="xs-ct-prose">' + this._esc(data.story) + '</div></div>' : '',
-                dp.length ? '<div class="xs-ct-section"><h4>🧭 决策点</h4><ol>' + dp.map(d => '<li>' + this._esc(d) + '</li>').join('') + '</ol></div>' : '',
-                rf.length ? '<div class="xs-ct-section"><h4>💭 反思题</h4><ol>' + rf.map(r => '<li>' + this._esc(r) + '</li>').join('') + '</ol></div>' : '',
-                data.takeaway ? '<div class="xs-ct-section"><h4>💡 启示</h4><div class="xs-ct-prose">' + this._esc(data.takeaway) + '</div></div>' : '',
-            ].join('');
-        }
-
-        _renderExercisesPanel(data) {
-            const p = this._panelEl('exercises');
-            if (!p) return;
-            if (!data) { this._empty('exercises'); return; }
-            const qs = Array.isArray(data.questions) ? data.questions : [];
-            if (!qs.length) { this._empty('exercises'); return; }
-            const self = this;
-            p.innerHTML = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">✏️ 习题 (共 ' + qs.length + ' 题)</div></div>',
-                '<div class="xs-ct-exercises">',
-                qs.map((q, i) => {
-                    const typeLabel = ({ single: '单选', multi: '多选', fill: '填空', code: '编程', short: '简答' }[q.type] || q.type || '题');
-                    const qid = 'ex-q-' + i;
-                    let inputHtml = '';
-                    if (q.type === 'single') {
-                        const opts = Array.isArray(q.options) ? q.options : [];
-                        inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
-                            '<label class="xs-ct-ex-opt"><input type="radio" name="' + qid + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
-                        ).join('') + '</div>';
-                    } else if (q.type === 'multi') {
-                        const opts = Array.isArray(q.options) ? q.options : [];
-                        inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
-                            '<label class="xs-ct-ex-opt"><input type="checkbox" name="' + qid + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
-                        ).join('') + '</div>';
-                    } else if (q.type === 'fill') {
-                        inputHtml = '<input class="xs-ct-ex-fill" data-qid="' + qid + '" placeholder="输入答案...">';
-                    } else {
-                        inputHtml = '<textarea class="xs-ct-ex-textarea" data-qid="' + qid + '" rows="3" placeholder="输入答案..."></textarea>';
-                    }
-                    return '<div class="xs-ct-ex-item" data-qidx="' + i + '">'
-                        + '<div class="xs-ct-ex-head"><span class="xs-ct-ex-num">' + (i + 1) + '</span><span class="xs-ct-ex-type">' + self._esc(typeLabel) + '</span></div>'
-                        + '<div class="xs-ct-ex-stem">' + self._esc(q.stem || '') + '</div>'
-                        + inputHtml
-                        + '<button class="xs-ct-ex-submit" data-qidx="' + i + '" data-qid="' + qid + '" data-type="' + (q.type || 'single') + '" data-answer="' + self._escAttr(String(q.answer || '')) + '">提交</button>'
-                        + '<div class="xs-ct-ex-feedback" id="fb-' + qid + '" style="display:none"></div>'
-                        + '</div>';
-                }).join(''),
-                '</div>',
-            ].join('');
-            // Bind submit buttons
-            p.querySelectorAll('.xs-ct-ex-submit').forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const qidx = parseInt(this.dataset.qidx);
-                    const type = this.dataset.type;
-                    const correctAnswer = this.dataset.answer;
-                    const fb = p.querySelector('#fb-' + this.dataset.qid);
-                    let userAnswer = '';
-                    if (type === 'single') {
-                        const checked = p.querySelector('input[name="' + this.dataset.qid + '"]:checked');
-                        userAnswer = checked ? checked.value : '';
-                    } else if (type === 'multi') {
-                        const checked = p.querySelectorAll('input[name="' + this.dataset.qid + '"]:checked');
-                        userAnswer = Array.from(checked).map(c => c.value).sort().join('');
-                    } else if (type === 'fill') {
-                        userAnswer = (p.querySelector('input[data-qid="' + this.dataset.qid + '"]') || {}).value || '';
-                    } else {
-                        userAnswer = (p.querySelector('textarea[data-qid="' + this.dataset.qid + '"]') || {}).value || '';
-                    }
-                    if (!userAnswer) { fb.style.display = 'block'; fb.innerHTML = '<span style="color:#f59e0b">请先作答</span>'; return; }
-                    // Local grading for single/multi/fill
-                    const normUser = String(userAnswer).trim().toLowerCase();
-                    const normCorrect = String(correctAnswer).trim().toLowerCase();
-                    const isCorrect = normUser === normCorrect;
-                    fb.style.display = 'block';
-                    if (isCorrect) {
-                        fb.innerHTML = '<span style="color:#10b981">✅ 回答正确!</span>';
-                    } else if (type === 'code' || type === 'short') {
-                        // Open-ended: send to chat for AI grading
-                        fb.innerHTML = '<span style="color:#f59e0b">⏳ 提交AI评判中...</span>';
-                        self._gradeOpenEnded(qidx, userAnswer, fb);
-                        return;
-                    } else {
-                        fb.innerHTML = '<span style="color:#ef4444">❌ 不正确，正确答案: ' + self._esc(correctAnswer) + '</span>';
-                    }
-                    // Disable after submission
-                    this.disabled = true;
-                    const inputs = p.querySelectorAll('[data-qidx="' + qidx + '"] input, [data-qidx="' + qidx + '"] textarea');
-                    inputs.forEach(inp => { inp.disabled = true; });
-                });
-            });
-        }
-
-        async _gradeOpenEnded(qidx, userAnswer, fbEl) {
-            try {
-                const resp = await fetch('/api/v2/course/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        session_id: this.courseId,
-                        message: '请评判这道题的回答:\n题目: ' + (this._bundleComponent('exercises')?.questions?.[qidx]?.stem || '') + '\n学生答案: ' + userAnswer + '\n请给出评分(1-10)和简要反馈。',
-                        role: 'exercise_grader',
-                    }),
-                });
-                const data = await resp.json();
-                const reply = data.reply || '评判结果不可用';
-                fbEl.innerHTML = '<div class="xs-ct-grade-result">' + self._md2html(reply) + '</div>';
-            } catch (e) {
-                fbEl.innerHTML = '<span style="color:#ef4444">评判请求失败，请重试</span>';
-            }
-        }
-
-        _renderSurveyPanel(data) {
-            const p = this._panelEl('survey');
-            if (!p) return;
-            if (!data) { this._empty('survey'); return; }
-            const sections = Array.isArray(data.sections) ? data.sections : [];
-            if (!sections.length) { this._empty('survey'); return; }
-            const self = this;
-            const surveyId = 'survey-form-' + Date.now();
-            p.innerHTML = [
-                '<div class="xs-ct-header"><div class="xs-ct-title">📋 课前问卷</div></div>',
-                '<form class="xs-ct-survey-form" id="' + surveyId + '">',
-                sections.map((s, si) => {
-                    const qs = Array.isArray(s.questions) ? s.questions : [];
-                    return '<div class="xs-ct-section"><h4>' + (si + 1) + '. ' + self._esc(s.title || '问卷') + '</h4>'
-                        + qs.map((q, qi) => {
-                            const name = 'survey-' + si + '-' + qi;
-                            const qType = q.type || 'single';
-                            let inputHtml = '';
-                            const opts = Array.isArray(q.options) ? q.options : [];
-                            if (qType === 'single') {
-                                inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
-                                    '<label class="xs-ct-ex-opt"><input type="radio" name="' + name + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
-                                ).join('') + '</div>';
-                            } else if (qType === 'multi') {
-                                inputHtml = '<div class="xs-ct-ex-inputs">' + opts.map((o, oi) =>
-                                    '<label class="xs-ct-ex-opt"><input type="checkbox" name="' + name + '" value="' + String.fromCharCode(65 + oi) + '"><span class="xs-ct-ex-opt-lbl">' + String.fromCharCode(65 + oi) + '</span><span>' + self._esc(o) + '</span></label>'
-                                ).join('') + '</div>';
-                            } else {
-                                inputHtml = '<textarea class="xs-ct-ex-textarea" name="' + name + '" rows="2" placeholder="请输入..."></textarea>';
-                            }
-                            return '<div class="xs-ct-ex-item"><div class="xs-ct-ex-stem">' + self._esc(q.stem || q.question || '') + '</div>' + inputHtml + '</div>';
-                        }).join('')
-                        + '</div>';
-                }).join(''),
-                '<button type="submit" class="xs-ct-survey-submit">提交问卷</button>',
-                '<div class="xs-ct-survey-done" style="display:none;text-align:center;padding:16px;color:#10b981;font-weight:600">✅ 问卷已提交，感谢你的反馈!</div>',
-                '</form>',
-            ].join('');
-            // Handle submission
-            const form = p.querySelector('#' + surveyId);
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    const results = {};
-                    const formData = new FormData(form);
-                    for (const [key, value] of formData.entries()) {
-                        if (!results[key]) results[key] = [];
-                        results[key].push(value);
-                    }
-                    // Flatten single-value arrays
-                    for (const k in results) {
-                        if (results[k].length === 1) results[k] = results[k][0];
-                    }
-                    sessionStorage.setItem('xs-survey-' + (self.courseId || ''), JSON.stringify({ results, submittedAt: Date.now() }));
-                    // Show done message, disable form
-                    form.querySelectorAll('input,textarea,button').forEach(el => { el.disabled = true; });
-                    form.querySelector('.xs-ct-survey-submit').style.display = 'none';
-                    form.querySelector('.xs-ct-survey-done').style.display = 'block';
-                });
-            }
+            this.loadVoicePreference();
+            this.buildScenes();
+            this.setupUI();
+            this.bindEvents();
+            this.initVoiceSelector();
+            this.initTTS();
+            this.renderSceneSidebar();
+            this.renderScene(0);
+            this.updateNav();
+            this.initTeacherAreaInteraction();
+            this.loadSettings(); // Load saved settings
+            this.startEyeBlinkScheduler();
+            // 启动后台轮询（如果courseId存在且生成未完成）
+            this.startBackgroundPolling();
         }
 
         loadData() {
@@ -1281,7 +346,7 @@
 
                 // 如果有指定音色，优先使用老师的音色
                 // 兼容 voiceId（驼峰，来自 agent_team）和 voice_id（下划线，来自 TeacherInfo）
-                const teacherVoice = this.currentTeacher?.voiceId || this.currentTeacher?.voice_id;
+                const teacherVoice = this.currentTeacher && (this.currentTeacher.voiceId || this.currentTeacher.voice_id);
                 if (teacherVoice && MINIMAX_VOICES[teacherVoice]) {
                     TTS_CONFIG.voice = teacherVoice;
                 }
@@ -1325,9 +390,107 @@
             }
         }
 
-        // ---- 后台轮询：已弃用 (Phase 2 — 9 件套一次性交付所有 slides) ----
+        // ---- 后台轮询：增量加载新幻灯片 ----
         startBackgroundPolling() {
-            // No-op: 9-bundle delivers all slides upfront, no incremental polling needed
+            if (!this.courseId) {
+                console.warn('[classroom] No courseId, skipping background polling');
+                return;
+            }
+            console.log('[classroom] Starting background polling for courseId:', this.courseId);
+            const self = this;
+            let consecutiveFails = 0;
+            this.pollingInterval = setInterval(async function() {
+                try {
+                    // 优先尝试轮询 pending 接口
+                    const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
+                    if (resp.ok) {
+                        const data = await resp.json();
+                        consecutiveFails = 0;
+                        console.log('[classroom] Poll result:', {
+                            pendingV2: (data.pending_slides_v2 || []).length,
+                            pendingQuiz: (data.pending_quiz_data || []).length,
+                            pendingExercise: (data.pending_exercise_data || []).length,
+                            isComplete: data.is_complete,
+                            generatedCount: data.generated_count,
+                            totalOutlines: data.total_outlines
+                        });
+                        // 处理 pending slides / quiz / exercise
+                        const hasPending = (data.pending_slides_v2 && data.pending_slides_v2.length > 0) ||
+                                           (data.pending_quiz_data && data.pending_quiz_data.length > 0) ||
+                                           (data.pending_exercise_data && data.pending_exercise_data.length > 0);
+                        if (hasPending) {
+                            const addedCount = self.addNewScenes(data);
+                            // 消费成功后通知后端清空已消费的 slides，避免重复轮询
+                            if (addedCount > 0 && data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
+                                try {
+                                    const consumedTitles = data.pending_slides_v2.map(function(s) { return s.title; });
+                                    await fetch(`/api/v2/course/${self.courseId}/slides/consume`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ consumed_slide_titles: consumedTitles })
+                                    });
+                                    console.log('[classroom] Consumed pending slides, titles:', consumedTitles);
+                                } catch (consumeErr) {
+                                    console.warn('[classroom] Failed to consume pending slides:', consumeErr);
+                                }
+                            }
+                        }
+                        // 只有确认 total_outlines > 0 且 generated_count >= total_outlines 时才认为真正完成
+                        // 避免数据库无记录时错误返回 is_complete=True 导致停止轮询
+                        const trulyComplete = data.is_complete && data.total_outlines > 0 && data.generated_count >= data.total_outlines;
+                        if (trulyComplete) {
+                            console.log('[classroom] Generation truly complete (generated_count >= total_outlines), stopping poll');
+                            clearInterval(self.pollingInterval);
+                            // 生成完成后保存到本地历史，确保最近课堂能显示
+                            self._saveToRecentHistory();
+                            // 同步完整课程数据到服务器
+                            self._persistCourseData();
+                            return;
+                        }
+                    } else if (resp.status === 404) {
+                        // pending 接口不存在, 改用 classroom 接口轮询完整课程数据
+                        consecutiveFails = 0;
+                        try {
+                            const clsResp = await fetch('/api/v2/classroom/' + encodeURIComponent(self.courseId));
+                            if (clsResp.ok) {
+                                const clsData = await clsResp.json();
+                                const cd = (clsData && clsData.record && clsData.record.course_data) || (clsData && clsData.course_data) || null;
+                                if (cd) {
+                                    const hasOutlines = Array.isArray(cd.outlines) && cd.outlines.length > 0;
+                                    const hasSlides = Array.isArray(cd.slides_v2) && cd.slides_v2.length > 0;
+                                    if (hasOutlines || hasSlides) {
+                                        console.log('[classroom] Classroom API returned content, reloading');
+                                        try { sessionStorage.setItem('classroomData', JSON.stringify(cd)); } catch (e) {}
+                                        // 简单做法: 整页刷新让 classroom.js 重新走正常流程
+                                        clearInterval(self.pollingInterval);
+                                        window.location.reload();
+                                        return;
+                                    }
+                                }
+                            } else if (clsResp.status === 404) {
+                                // classroom API 也找不到 → 课程不存在, 停止轮询
+                                console.warn('[classroom] Course not found in any table, stopping poll');
+                                clearInterval(self.pollingInterval);
+                                self.pollingInterval = null;
+                                return;
+                            }
+                        } catch (e) {
+                            // 静默失败, 继续轮询
+                        }
+                    } else {
+                        console.warn('[classroom] Poll response not OK:', resp.status);
+                        consecutiveFails++;
+                        if (consecutiveFails >= 3) {
+                            console.warn('[classroom] Poll failed', consecutiveFails, 'times, stopping');
+                            clearInterval(self.pollingInterval);
+                            self.pollingInterval = null;
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    console.warn('[classroom] Polling error:', e);
+                }
+            }, 5000);
         }
 
         addNewScenes(data) {
@@ -1613,21 +776,25 @@
         }
 
         buildScenes() {
-            // 兜底: outlines 为空时, 从 bundle.components.outline.scenes 重算
-            let outlines = Array.isArray(this.courseData.outlines) ? this.courseData.outlines : [];
-            if (!outlines.length && window.xsCourseUtils) {
-                const outlineComp = window.xsCourseUtils.getComponent(this.courseData, 'outline');
-                if (outlineComp && Array.isArray(outlineComp.scenes)) {
-                    outlines = window.xsCourseUtils.outlineToScenes(outlineComp);
-                    this.courseData.outlines = outlines;
-                    console.log('[classroom] outlines 兜底从 bundle.components.outline 重建:', outlines.length);
+            // 兼容 outlines 是 dict/object 或 null 的情况, 始终归一为数组
+            const normalizeList = (v) => {
+                if (Array.isArray(v)) return v;
+                if (v && typeof v === 'object') {
+                    // 常见 schema: {items: [...]}, {scenes: [...]}, {outlines: [...]}
+                    for (const k of ['items', 'scenes', 'outlines', 'data']) {
+                        if (Array.isArray(v[k])) return v[k];
+                    }
+                    // 否则视为空数组, 避免 .map 失败
+                    return [];
                 }
-            }
-            const slides = Array.isArray(this.courseData.slides) ? this.courseData.slides : [];
-            const quizData = Array.isArray(this.courseData.quiz_data) ? this.courseData.quiz_data : [];
-            const exerciseData = Array.isArray(this.courseData.exercise_data) ? this.courseData.exercise_data : [];
-            const codeData = Array.isArray(this.courseData.code_data) ? this.courseData.code_data : [];
-            const slidesV2 = Array.isArray(this.courseData.slides_v2) ? this.courseData.slides_v2 : [];
+                return Array.isArray(v) ? v : [];
+            };
+            const outlines = normalizeList(this.courseData.outlines);
+            const slides = normalizeList(this.courseData.slides);
+            const quizData = normalizeList(this.courseData.quiz_data);
+            const exerciseData = normalizeList(this.courseData.exercise_data);
+            const codeData = normalizeList(this.courseData.code_data);
+            const slidesV2 = normalizeList(this.courseData.slides_v2);
 
             const sameId = function(a, b) {
                 return String(a != null ? a : '') !== '' && String(a != null ? a : '') === String(b != null ? b : '');
@@ -2272,6 +1439,9 @@
             this.updateNav();
             if (this.isPlaying) this.playSceneAudio(scene);
             this.checkCompletion();
+
+            // 按需预加载：停留7秒后缓存下一场景的语音
+            this._scheduleNextScenePreload(index);
         }
 
         hideAllSceneContainers() {
@@ -2308,6 +1478,32 @@
             `;
         }
 
+        // 生成中占位符: 当 courseId 存在但还没内容时显示, 配合后台轮询
+        _showGeneratingPlaceholder() {
+            if (!this.slideContainer) return;
+            var esc = function(s) {
+                if (!s) return '';
+                return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+            };
+            this.slideContainer.style.display = 'block';
+            var reqText = (this.courseData && (this.courseData.requirement || this.courseData.title)) || '';
+            this.slideContainer.innerHTML = `
+                <div class="slide-v2-container layout-title-only">
+                    <div class="slide-header">
+                        <h1>${esc(this.courseData && this.courseData.title ? this.courseData.title : '课程生成中')}</h1>
+                    </div>
+                    <div class="slide-body" style="display:flex;align-items:center;justify-content:center;min-height:300px;">
+                        <div style="text-align:center;color:#64748b;padding:2rem;">
+                            <div style="font-size:3rem;margin-bottom:1rem;animation:spin 2s linear infinite;">⏳</div>
+                            <p style="font-size:1.1rem;font-weight:600;">AI 老师正在生成课件...</p>
+                            ${reqText ? `<p style="font-size:0.85rem;margin-top:0.8rem;max-width:480px;color:#94a3b8;">需求: ${esc(reqText).slice(0, 200)}</p>` : ''}
+                            <p style="font-size:0.8rem;margin-top:1rem;color:#cbd5e1;">本页面会自动刷新, 课件生成完成后即可看到</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // ============================================================
         // SlideV2 渲染器（结构化布局）
         // ============================================================
@@ -2337,14 +1533,9 @@
                 }
                 // Single card with valid theme: keep it, no cycling needed
                 if (cards.length === 1) return cards;
-                // 后端已强制注入 colorTheme: 尊重后端, 跳过轮换
-                const allFromBackend = cards.every(c => c.colorTheme && this.COLOR_THEMES.indexOf(c.colorTheme) !== -1);
-                if (allFromBackend) return cards;
-                // 兜底: 老数据/未注入, 才走 i % 8 轮换
+                // Two or more cards: always cycle themes for visual variety
                 for (let i = 0; i < cards.length; i++) {
-                    if (!cards[i].colorTheme) {
-                        cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
-                    }
+                    cards[i].colorTheme = this.COLOR_THEMES[i % this.COLOR_THEMES.length];
                 }
                 return cards;
             },
@@ -3679,6 +2870,11 @@
             render(scene, container) {
                 if (!scene || !container) return;
 
+                // 停止上一个场景的 TTS
+                if (window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                }
+
                 // 渲染 audio_script（需要用户点击播放）
                 this._renderAudioNarration(scene, container);
 
@@ -4007,11 +3203,10 @@
             }
         };
 
-        // TTS 播放控制（全局）— 使用 MiniMax TTS + audioPlayer
+        // TTS 播放控制（全局）
         initTTS() {
             window.ttsIsPlaying = false;
-            const self = this;
-            document.addEventListener('click', async (e) => {
+            document.addEventListener('click', (e) => {
                 const ttsBtn = e.target.closest('.tts-play-btn');
                 if (!ttsBtn) return;
 
@@ -4019,7 +3214,7 @@
                 e.stopPropagation();
 
                 if (window.ttsIsPlaying) {
-                    self.stopAudio();
+                    window.speechSynthesis.cancel();
                     window.ttsIsPlaying = false;
                     const icon = ttsBtn.querySelector('.tts-icon');
                     const label = ttsBtn.querySelector('.tts-label');
@@ -4029,47 +3224,36 @@
                     const script = decodeURIComponent(ttsBtn.dataset.script || '');
                     if (!script) return;
 
-                    const icon = ttsBtn.querySelector('.tts-icon');
-                    const label = ttsBtn.querySelector('.tts-label');
-                    if (icon) icon.textContent = '⏳';
-                    if (label) label.textContent = '生成中...';
+                    const utterance = new SpeechSynthesisUtterance(script);
+                    utterance.lang = 'zh-CN';
+                    utterance.rate = 1.0;
 
-                    window.ttsIsPlaying = true;
-                    const result = await self.generateTTS(script);
-                    if (result.success && result.audioUrl && self.audioPlayer) {
+                    utterance.onstart = () => {
+                        window.ttsIsPlaying = true;
+                        const icon = ttsBtn.querySelector('.tts-icon');
+                        const label = ttsBtn.querySelector('.tts-label');
                         if (icon) icon.textContent = '⏸';
                         if (label) label.textContent = '暂停';
-                        self.audioPlayer.load();
-                        self.audioPlayer.src = result.audioUrl;
-                        self.audioPlayer.onended = () => {
-                            window.ttsIsPlaying = false;
-                            if (icon) icon.textContent = '🔊';
-                            if (label) label.textContent = '播放旁白';
-                            if (result.audioUrl && result.audioUrl.startsWith('blob:')) {
-                                URL.revokeObjectURL(result.audioUrl);
-                            }
-                        };
-                        self.audioPlayer.onerror = () => {
-                            window.ttsIsPlaying = false;
-                            if (icon) icon.textContent = '🔊';
-                            if (label) label.textContent = '播放旁白';
-                        };
-                        self.audioPlayer.play().catch(() => {
-                            window.ttsIsPlaying = false;
-                            if (icon) icon.textContent = '🔊';
-                            if (label) label.textContent = '播放旁白';
-                        });
-                    } else {
+                    };
+                    utterance.onend = utterance.onerror = () => {
                         window.ttsIsPlaying = false;
+                        const icon = ttsBtn.querySelector('.tts-icon');
+                        const label = ttsBtn.querySelector('.tts-label');
                         if (icon) icon.textContent = '🔊';
                         if (label) label.textContent = '播放旁白';
-                        console.warn('[Classroom] TTS generation failed for narration');
-                    }
+                    };
+
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.speak(utterance);
                 }
             }, true);
 
             window.addEventListener('beforeunload', () => {
+                window.speechSynthesis?.cancel();
                 if (this.pollingInterval) clearInterval(this.pollingInterval);
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) window.speechSynthesis?.cancel();
             });
         }
 
@@ -4205,7 +3389,7 @@
                 this.slideContainer.style.backgroundColor = theme.backgroundColor;
             } else {
                 // Default: use light background for infographic-style cards
-                this.slideContainer.style.backgroundColor = 'var(--surface-card)';
+                this.slideContainer.style.backgroundColor = '#FFFFFF';
             }
         }
 
@@ -5003,38 +4187,72 @@
                 };
 
                 this.audioPlayer.onerror = () => {
-                    // MiniMax TTS playback error — log and clean up UI
-                    console.error('[Classroom] Audio playback error:', this.audioPlayer.error);
-                    this.showSpeechSyncIndicator(false);
-                    this.updateTeacherStatus('待机中', false);
-                    if (this.teacherAvatar) {
-                        this.teacherAvatar.classList.remove('speaking');
-                    }
-                    this.clearSpotlight();
+                    // Fallback to browser TTS
+                    this._speakText(text, voiceId, speed);
                 };
 
-                await this.audioPlayer.play().catch((e) => {
-                    console.error('[Classroom] Audio play() rejected:', e);
-                    this.showSpeechSyncIndicator(false);
-                    this.updateTeacherStatus('待机中', false);
-                    if (this.teacherAvatar) {
-                        this.teacherAvatar.classList.remove('speaking');
-                    }
-                    this.clearSpotlight();
+                await this.audioPlayer.play().catch(() => {
+                    this._speakText(text, voiceId, speed);
                 });
             } else {
-                // MiniMax TTS generation failed — log and clean up UI
-                console.error('[Classroom] TTS generation failed:', ttsResult.error);
-                this.showSpeechSyncIndicator(false);
-                this.updateTeacherStatus('待机中', false);
-                if (this.teacherAvatar) {
-                    this.teacherAvatar.classList.remove('speaking');
-                }
-                this.clearSpotlight();
-                showToast('语音生成失败，请稍后重试', 'error');
+                // Fallback to browser TTS
+                await this._speakText(text, voiceId, speed);
             }
         }
 
+        _speakText(text, voiceId = null, speed = 1.0) {
+            return new Promise((resolve) => {
+                if (!window.speechSynthesis) {
+                    resolve();
+                    return;
+                }
+
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = speed;
+
+                // Map to browser voice if available
+                if (voiceId && window.speechSynthesis.getVoices) {
+                    const voices = window.speechSynthesis.getVoices();
+                    const targetVoice = voices.find(v => v.lang.includes('zh'));
+                    if (targetVoice) {
+                        utterance.voice = targetVoice;
+                    }
+                }
+
+                utterance.onstart = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.add('speaking');
+                    }
+                    this.showSpeechSyncIndicator(true);
+                    this.updateTeacherStatus('讲解中', true);
+                };
+
+                utterance.onend = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
+                    this.clearSpotlight();
+                    resolve();
+                };
+
+                utterance.onerror = () => {
+                    if (this.teacherAvatar) {
+                        this.teacherAvatar.classList.remove('speaking');
+                    }
+                    this.showSpeechSyncIndicator(false);
+                    this.updateTeacherStatus('待机中', false);
+                    resolve();
+                };
+
+                window.speechSynthesis.speak(utterance);
+            });
+        }
 
         _findElementForSpeech(text) {
             if (!this.courseData || !this.courseData.scenes) return null;
@@ -5126,175 +4344,34 @@
         }
 
         async generateTTS(text, voiceId = null, speed = 1.0) {
-            // v2 端点使用字符串音色 ID，不再需要整数索引映射
             const voice = voiceId || TTS_CONFIG.voice;
-            // MINIMAX_VOICES 的 key 就是字符串 ID，验证其存在
-            const validVoice = MINIMAX_VOICES[voice] ? voice : 'female-yujie';
+            const voiceConfig = MINIMAX_VOICES[voice] || MINIMAX_VOICES['female-yujie'];
+            const voiceIndex = voiceConfig.index || 0;
 
             try {
-                // 尝试流式 SSE 端点
-                const result = await this._collectSSEStream(text, validVoice, speed);
-                if (result.success && result.blobUrl) {
-                    console.log('[Classroom] TTS stream success:', result.blobUrl, result.wordTimestamps?.length, 'word timestamps');
-                    return {
-                        success: true,
-                        audioUrl: result.blobUrl,
-                        wordTimestamps: result.wordTimestamps || []
-                    };
-                }
-                console.warn('[Classroom] SSE stream failed, falling back to base64:', result.error);
-            } catch (e) {
-                console.warn('[Classroom] SSE stream exception, falling back to base64:', e);
-            }
-
-            // 降级：v2 base64 端点
-            try {
-                const response = await fetch('/api/v2/tts/generate', {
+                // Use /api/socratic/tts endpoint (same as socratic-ai.html)
+                const response = await fetch('/api/socratic/tts', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text: text,
-                        voice: validVoice,
-                        speed: speed
+                        voice_id: voiceIndex
                     })
                 });
+
                 const data = await response.json();
-                if (data.audio_base64) {
-                    const mimeType = 'audio/' + (data.format || 'mp3');
-                    const dataUri = 'data:' + mimeType + ';base64,' + data.audio_base64;
-                    console.log('[Classroom] TTS base64 fallback success');
-                    return {
-                        success: true,
-                        audioUrl: dataUri,
-                        wordTimestamps: data.word_timestamps || []
-                    };
+                console.log('[Classroom] TTS response:', data);
+                if (data.success && data.audio_url && typeof data.audio_url === 'string' && data.audio_url.trim().length > 0) {
+                    console.log('[Classroom] TTS audioUrl:', data.audio_url);
+                    return { success: true, audioUrl: data.audio_url.trim() };
                 }
-                return { success: false, error: data.detail || 'TTS generation failed' };
+                if (data.error) {
+                    console.error('[Classroom] TTS API error:', data.error);
+                }
+                return { success: false, error: data.error || 'TTS generation failed' };
             } catch (e) {
-                console.error('[Classroom] TTS base64 fallback error:', e);
+                console.error('TTS API error:', e);
                 return { success: false, error: e.message };
-            }
-        }
-
-        /**
-         * 从 v2 SSE 流式 TTS 端点收集音频数据。
-         * 消费 SSE text/event-stream，提取所有 audio chunk (hex) 和 word timestamp。
-         * 返回 Blob 和逐字时间戳数组，供后续播放和同步高亮使用。
-         *
-         * @param {string} text - 要合成语音的文本
-         * @param {string} voiceId - MiniMax 音色字符串 ID (如 'female-yujie')
-         * @param {number} speed - 语速 (0.5 ~ 2.0)
-         * @returns {Promise<{success: boolean, audioBlob?: Blob, blobUrl?: string, wordTimestamps?: Array, error?: string}>}
-         */
-        async _collectSSEStream(text, voiceId, speed = 1.0) {
-            const controller = new AbortController();
-            // 保存到实例，stopAudio() 时可以通过它中断流
-            this._activeStreamController = controller;
-
-            try {
-                const response = await fetch('/api/v2/tts/stream', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: text,
-                        voice: voiceId,
-                        speed: speed
-                    }),
-                    signal: controller.signal
-                });
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    return { success: false, error: errData.detail || 'TTS stream request failed' };
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                const audioChunks = [];      // Uint8Array[]
-                const wordTimestamps = [];   // {word, start_ms, end_ms}[]
-                let buffer = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    // 最后一行可能不完整，保留到下次循环
-                    buffer = lines.pop() || '';
-
-                    let currentEvent = '';
-                    for (const line of lines) {
-                        if (line.startsWith('event: ')) {
-                            currentEvent = line.slice(7).trim();
-                        } else if (line.startsWith('data: ') && currentEvent) {
-                            const dataStr = line.slice(6);
-                            try {
-                                const data = JSON.parse(dataStr);
-                                if (currentEvent === 'audio' && data.hex) {
-                                    const bytes = new Uint8Array(data.hex.length / 2);
-                                    for (let i = 0; i < data.hex.length; i += 2) {
-                                        bytes[i / 2] = parseInt(data.hex.substring(i, i + 2), 16);
-                                    }
-                                    audioChunks.push(bytes);
-                                } else if (currentEvent === 'word') {
-                                    wordTimestamps.push({
-                                        word: data.word,
-                                        start_ms: data.start_ms,
-                                        end_ms: data.end_ms,
-                                        sentence_index: data.sentence_index
-                                    });
-                                }
-                                // 'done' event: stream finished, nothing extra to extract
-                                // 'error' event: stream error
-                                if (currentEvent === 'error') {
-                                    return { success: false, error: data.message || 'TTS stream error' };
-                                }
-                            } catch (e) {
-                                // skip unparseable lines
-                            }
-                            currentEvent = '';
-                        }
-                    }
-                }
-
-                if (audioChunks.length === 0) {
-                    return { success: false, error: 'No audio data received from stream' };
-                }
-
-                // 拼接所有音频块为完整 Blob
-                const totalLength = audioChunks.reduce((sum, chunk) => sum + chunk.length, 0);
-                const combined = new Uint8Array(totalLength);
-                let offset = 0;
-                for (const chunk of audioChunks) {
-                    combined.set(chunk, offset);
-                    offset += chunk.length;
-                }
-                const audioBlob = new Blob([combined], { type: 'audio/mp3' });
-
-                // 创建 blob URL（stopAudio 时通过 revokeObjectURL 释放）
-                const blobUrl = URL.createObjectURL(audioBlob);
-                // 保存引用以便后续清理
-                this._activeBlobUrl = blobUrl;
-
-                console.log('[Classroom] SSE stream collected:',
-                    audioChunks.length, 'chunks,',
-                    totalLength, 'bytes,',
-                    wordTimestamps.length, 'word timestamps');
-                return {
-                    success: true,
-                    audioBlob: audioBlob,
-                    blobUrl: blobUrl,
-                    wordTimestamps: wordTimestamps
-                };
-            } catch (e) {
-                if (e.name === 'AbortError') {
-                    return { success: false, error: 'Stream aborted' };
-                }
-                console.error('[Classroom] SSE stream error:', e);
-                return { success: false, error: e.message };
-            } finally {
-                this._activeStreamController = null;
             }
         }
 
@@ -5342,48 +4419,95 @@
             return text && text.trim().length > 0 ? text.trim() : null;
         }
 
+        _scheduleNextScenePreload(currentIdx) {
+            // 取消之前的定时器
+            if (this._ttsPreloadTimer) {
+                clearTimeout(this._ttsPreloadTimer);
+                this._ttsPreloadTimer = null;
+            }
+
+            const nextIdx = currentIdx + 1;
+            if (nextIdx >= this.scenes.length) return;
+
+            const nextScene = this.scenes[nextIdx];
+            const text = this.getSceneSpeechText(nextScene);
+            if (!text) return;
+
+            // 如果已经缓存，不需要再预加载
+            if (nextScene.audioUrl || this.courseData.tts_audio_urls?.[String(nextScene.id)]) return;
+
+            // 15秒后如果用户还在当前场景，预加载下一场景
+            this._ttsPreloadTimer = setTimeout(() => {
+                if (this.currentIndex !== currentIdx) return; // 用户已切换场景，取消
+                this._preloadSceneTTS(nextScene);
+            }, 7000);
+        }
+
+        async _preloadSceneTTS(scene) {
+            const text = this.getSceneSpeechText(scene);
+            if (!text) return;
+            const sceneId = String(scene.id);
+
+            // 如果已经在缓存中，跳过
+            if (scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId]) return;
+
+            // 如果该场景正在预加载中，复用 Promise
+            if (this._ttsPreloadPromises.has(sceneId)) {
+                return this._ttsPreloadPromises.get(sceneId);
+            }
+
+            const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
+            const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
+
+            const preloadPromise = (async () => {
+                try {
+                    const result = await this.generateTTS(text, voiceId, speed);
+                    if (result.success && result.audioUrl) {
+                        scene.audioUrl = result.audioUrl;
+                        if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
+                        this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
+                        // 持久化到 sessionStorage，刷新后缓存仍有效
+                        try {
+                            sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
+                        } catch (e) {}
+                        console.log('[Classroom] TTS preloaded for scene', scene.id, ':', result.audioUrl);
+                    }
+                } catch (e) {
+                    console.warn('[Classroom] TTS preload failed for scene', scene.id, e);
+                }
+            })();
+
+            this._ttsPreloadPromises.set(sceneId, preloadPromise);
+            return preloadPromise;
+        }
 
         async _ensureSceneTTSCached(scene) {
             const sceneId = String(scene.id);
-            // 1. 检查内存缓存（blob URL 或 data URI）
+            // 1. 检查内存缓存
             if (scene.audioUrl) return scene.audioUrl;
             if (this.courseData.tts_audio_urls?.[sceneId]) {
                 scene.audioUrl = this.courseData.tts_audio_urls[sceneId];
                 return scene.audioUrl;
             }
 
-            // 2. 从持久化 base64 缓存恢复（转换回 data URI，因为 blob URL 已过期）
-            if (scene.audioBase64 || this.courseData.tts_audio_base64?.[sceneId]) {
-                const b64 = scene.audioBase64 || this.courseData.tts_audio_base64[sceneId];
-                if (b64) {
-                    const dataUri = 'data:audio/mp3;base64,' + b64;
-                    scene.audioUrl = dataUri;
-                    return dataUri;
-                }
-            }
-
             const text = this.getSceneSpeechText(scene);
             if (!text) return null;
 
-            // 3. 立即生成（按需，非预加载）
+            // 2. 如果该场景正在后台预加载中，等待它完成
+            if (this._ttsPreloadPromises.has(sceneId)) {
+                await this._ttsPreloadPromises.get(sceneId);
+                return scene.audioUrl || this.courseData.tts_audio_urls?.[sceneId] || null;
+            }
+
+            // 3. 否则立即生成（插队）
             this.updateTeacherStatus('正在合成语音...', false);
             const voiceId = this.ttsConfig?.voice || TTS_CONFIG.voice;
             const speed = this.ttsConfig?.speed || TTS_CONFIG.speed;
             const result = await this.generateTTS(text, voiceId, speed);
             if (result.success && result.audioUrl) {
                 scene.audioUrl = result.audioUrl;
-                let base64Data = null;
-                if (result.audioUrl.startsWith('data:')) {
-                    const commaIdx = result.audioUrl.indexOf(',');
-                    if (commaIdx >= 0) base64Data = result.audioUrl.substring(commaIdx + 1);
-                }
-                scene.audioBase64 = base64Data;
                 if (!this.courseData.tts_audio_urls) this.courseData.tts_audio_urls = {};
                 this.courseData.tts_audio_urls[sceneId] = result.audioUrl;
-                if (base64Data) {
-                    if (!this.courseData.tts_audio_base64) this.courseData.tts_audio_base64 = {};
-                    this.courseData.tts_audio_base64[sceneId] = base64Data;
-                }
                 try {
                     sessionStorage.setItem('classroomData', JSON.stringify(this.courseData));
                 } catch (e) {}
@@ -7303,6 +6427,19 @@
         // ---- Audio / TTS ----
 
         async playSceneAudio(scene) {
+            // 防御: scene 可能为 undefined (例如 scenes 为空时)
+            if (!scene) {
+                console.warn('[Classroom] playSceneAudio: scene is undefined, skipping');
+                this.isPlaying = false;
+                const playBtn = document.getElementById('playback-play-btn');
+                const playIcon = playBtn?.querySelector('i');
+                if (playBtn) {
+                    playBtn.classList.remove('playing');
+                    playBtn.title = '播放';
+                }
+                if (playIcon) playIcon.className = 'fas fa-play';
+                return;
+            }
             this.stopAudio();
             // Activate slide mode when playing slides (compact UI to avoid covering content)
             if (this.teacherArea) this.teacherArea.classList.add('slide-mode');
@@ -7358,9 +6495,8 @@
             if (cachedUrl && this.audioPlayer) {
                 this._playAudioUrl(cachedUrl, scene);
             } else {
-                console.error('[Classroom] TTS generation failed — no cached URL or audio player');
-                this.speechSync.style.display = 'none';
-                showToast('语音生成失败，请稍后重试', 'error');
+                // 生成失败，回退到浏览器 TTS
+                this.fallbackTTS(scene);
             }
         }
 
@@ -7374,10 +6510,7 @@
             this.speechSync.style.display = 'flex';
             this.audioPlayer.load();
             this.audioPlayer.src = url;
-            this.audioPlayer.play().catch((e) => {
-                console.error('[Classroom] Audio play() rejected:', e);
-                this.speechSync.style.display = 'none';
-            });
+            this.audioPlayer.play().catch(() => this.fallbackTTS(scene));
             this.audioPlayer.onended = () => {
                 this.speechSync.style.display = 'none';
                 const playBtn = document.getElementById('playback-play-btn');
@@ -7387,10 +6520,6 @@
                     playBtn.title = '播放';
                 }
                 if (playIcon) playIcon.className = 'fas fa-play';
-                // Clean up blob URL after playback completes
-                if (url && url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url);
-                }
                 if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
                     setTimeout(() => this.nextScene(), 800);
                 }
@@ -7415,8 +6544,8 @@
                     console.log('[Classroom] audio play event fired!');
                 };
                 this.audioPlayer.onerror = () => {
-                    console.error('[Classroom] audio playback error:', this.audioPlayer.error);
-                    this.speechSync.style.display = 'none';
+                    console.error('[Classroom] audio error, falling back to browser TTS:', this.audioPlayer.error);
+                    this.fallbackTTS({ slide: { speech: text } });
                 };
                 this.audioPlayer.onended = () => {
                     this.speechSync.style.display = 'none';
@@ -7431,17 +6560,43 @@
                         setTimeout(() => this.nextScene(), 800);
                     }
                 };
-                this.audioPlayer.play().catch((e) => {
-                    console.error('[Classroom] Audio play() rejected:', e);
-                    this.speechSync.style.display = 'none';
+                this.audioPlayer.play().catch(() => {
+                    this.fallbackTTS({ slide: { speech: text } });
                 });
             } else {
-                console.error('[Classroom] TTS generation failed:', result.error);
-                this.speechSync.style.display = 'none';
-                showToast('语音生成失败，请稍后重试', 'error');
+                this.fallbackTTS({ slide: { speech: text } });
             }
         }
 
+        fallbackTTS(scene) {
+            const text = scene.slide?.speech || scene.quiz?.speech || scene.slides_v2?.[0]?.content?.[0]?.narration || '';
+            if (!text) return;
+            // Use browser SpeechSynthesis since HTMLAudioElement is blocked on this machine
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                var utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = this.ttsConfig?.speed || TTS_CONFIG.speed;
+                utterance.onend = () => {
+                    this.speechSync.style.display = 'none';
+                    const playBtn = document.getElementById('playback-play-btn');
+                    const playIcon = playBtn?.querySelector('i');
+                    if (playBtn) {
+                        playBtn.classList.remove('playing');
+                        playBtn.title = '播放';
+                    }
+                    if (playIcon) playIcon.className = 'fas fa-play';
+                    if (this.isPlaying && this.currentIndex < this.scenes.length - 1) {
+                        setTimeout(() => this.nextScene(), 800);
+                    }
+                };
+                utterance.onerror = () => { this.speechSync.style.display = 'none'; };
+                this.speechSynthesisUtterance = utterance;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                this.speechSync.style.display = 'none';
+            }
+        }
 
         toggleVoice() {
             this.isPlaying = !this.isPlaying;
@@ -7463,16 +6618,6 @@
         }
 
         stopAudio() {
-            // Abort any in-flight SSE stream
-            if (this._activeStreamController) {
-                try { this._activeStreamController.abort(); } catch (e) {}
-                this._activeStreamController = null;
-            }
-            // Clean up blob URL from current/last stream
-            if (this._activeBlobUrl) {
-                try { URL.revokeObjectURL(this._activeBlobUrl); } catch (e) {}
-                this._activeBlobUrl = null;
-            }
             if (this.audioPlayer) {
                 // Remove event listeners first to prevent fallback TTS from firing when we clear src
                 this.audioPlayer.onloadedmetadata = null;
@@ -7484,6 +6629,7 @@
                 // (code 4: MEDIA_ELEMENT_ERROR: Empty src attribute). Just pause and clear
                 // listeners; the next play call will set a new src.
             }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
             if (this.openmaicPlayer) this.openmaicPlayer.stop({ keepSlide: true });
             if (this.speechSync) this.speechSync.style.display = 'none';
             // Clear spotlight when audio stops
@@ -7518,6 +6664,10 @@
             if (this.audioPlayer && !this.audioPlayer.paused) {
                 this.audioPausedBefore = true;
                 this.audioPlayer.pause();
+            }
+            // Cancel browser TTS (Web Speech API doesn't support pause/resume well)
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
             }
         }
 
@@ -8563,7 +7713,6 @@
                         user_input: text,
                         history: this.chatHistory.slice(-10),
                         agent_role: agentId ? (this.agentTeam.find(a => a.id === agentId)?.role || 'AI助教') : 'AI助教',
-                        available_components: this._getAvailableComponents(),
                     })
                 });
                 const data = await resp.json();
@@ -8620,16 +7769,7 @@
                 }
             }
 
-            const textWithRefs = this._renderRefPills(this.escapeHtml(text));
-            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${textWithRefs}</p>${linksHtml}</div>`;
-            // Bind ref pill click events
-            div.querySelectorAll('.xs-ref-pill').forEach(pill => {
-                pill.addEventListener('click', () => {
-                    const refName = pill.dataset.ref;
-                    this._switchNineTab(refName);
-                    this._openFloatingBundle();
-                });
-            });
+            div.innerHTML = `<div class="message-avatar">${avatarHtml}</div><div class="message-bubble"><p>${this.escapeHtml(text)}</p>${linksHtml}</div>`;
             this.chatMessages.appendChild(div);
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
         }
@@ -8873,27 +8013,6 @@
             // Markdown无序列表 - 行首的 - 或 * 列表项
             html = html.replace(/<br>\s*[-*]\s+(.*?)(?=<br>|$)/g, '<br><span class="list-bullet">•</span> $1');
 
-            // [ref:xxx] → 可点击标签
-            const self = this;
-            html = html.replace(/\[ref:(\w+)\]/g, function (match, name) {
-                const icon = ({ outline: '📋', ppt: '📽', exercises: '✏️', project: '🛠', case_study: '📖', survey: '📋', plan: '📝', graph: '🕸', radar: '📊' })[name] || '📌';
-                return '<span class="xs-ref-pill" data-ref="' + name + '" style="display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(59,130,246,0.4);border-radius:12px;padding:1px 8px;margin:0 2px;cursor:pointer;font-size:0.9em;white-space:nowrap;transition:background 0.2s" onmouseenter="this.style.background=\'rgba(59,130,246,0.4)\'" onmouseleave="this.style.background=\'rgba(59,130,246,0.2)\'">' + icon + ' ' + name + '</span>';
-            });
-            // Bind events to ref pills after insertion
-            setTimeout(() => {
-                if (this.discussionMessages) {
-                    this.discussionMessages.querySelectorAll('.xs-ref-pill').forEach(pill => {
-                        if (!pill._refBound) {
-                            pill._refBound = true;
-                            pill.addEventListener('click', () => {
-                                this._switchNineTab(pill.dataset.ref);
-                                this._openFloatingBundle();
-                            });
-                        }
-                    });
-                }
-            }, 50);
-
             // 清理多余br
             html = html.replace(/(<br>)+/g, '<br>');
             html = html.replace(/^<br>/, '');
@@ -8920,10 +8039,9 @@
             div.className = `discussion-message ${roleClass}`;
 
             if (type === 'system') {
-                const formattedSys = this._formatDiscussionText(cleanText);
                 div.innerHTML = `
                     <div class="message-content" style="margin-left: 0;">
-                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${formattedSys}</div>
+                        <div class="message-text" style="color: var(--text-tertiary); font-style: italic;">${this.escapeHtml(cleanText)}</div>
                     </div>
                 `;
             } else if (type === 'user') {

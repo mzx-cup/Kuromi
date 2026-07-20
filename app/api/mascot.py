@@ -142,8 +142,9 @@ def _build_user_profile_text(student_id: str) -> str:
 # 端点
 # =============================================================================
 
-# Module-level singleton (mockable in tests)
+# Module-level singletons (mockable in tests)
 _mascot_adapter = None
+_mascot_llm_service = None
 
 
 def _get_mascot_adapter():
@@ -160,102 +161,59 @@ def _get_mascot_adapter():
     return _mascot_adapter
 
 
+def _get_mascot_llm_service():
+    """Lazy-init the MascotLLMService singleton (MiniMax 直连接入)。"""
+    global _mascot_llm_service
+    if _mascot_llm_service is None:
+        from app.services.mascot.llm_service import MascotLLMService
+        _mascot_llm_service = MascotLLMService()
+    return _mascot_llm_service
+
+
+# 小星是否走 MiniMax 直连路径（不走 TutorDecisionEngine 决策管线）。
+# 默认开启；通过环境变量 ``MASCOT_USE_MINIMAX_DIRECT=0`` 回退到引擎路径。
+_USE_MINIMAX_DIRECT = os.environ.get("MASCOT_USE_MINIMAX_DIRECT", "1") not in ("0", "false", "False")
+
+
 @router.post("/chat/stream")
 async def mascot_chat_stream(req: MascotChatRequest):
     """
-    小星 SSE 流式对话 (通过 MascotEngineAdapter 路由)。
+    小星 SSE 流式对话。
 
-    事件类型:
+    路由策略：
+      * ``MASCOT_USE_MINIMAX_DIRECT=1``（默认）—— 直连
+        ``MascotLLMService`` → MiniMax Chat Completions，
+        注入 ``MASCOT_SYSTEM_PROMPT`` 并使用请求中的 ``conversation_history`` /
+        ``page_context`` / ``model`` / ``temperature``。
+      * ``MASCOT_USE_MINIMAX_DIRECT=0`` —— 走 ``MascotEngineAdapter`` →
+        ``TutorDecisionEngine`` 决策管线（保留旧版 RAG + 防幻觉 + 主动推送）。
+
+    事件类型（MiniMax 直连路径）:
       event: text_delta        data: {"content": "..."}
       event: command           data: {"tag": "navigate|expression|action", "content": "..."}
       event: link              data: {"title": "...", "url": "...", "type": "internal|external", "description": "..."}
-      event: proactive_action  data: {"type": "...", "priority": int, "payload": {...}}
       event: action            data: {"type": "proactive", "title": "...", "content": "...", "action_label": "..."}
-      event: done              data: {"full_text": "..."}
+      event: done              data: {"full_text": "...", "model": "minimax-Text-01", "provider": "MiniMax"}
       event: error             data: {"message": "..."}
     """
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
 
+    if _USE_MINIMAX_DIRECT:
+        service = _get_mascot_llm_service()
+        return StreamingResponse(
+            _sse_wrap(_mascot_direct_event_stream(req, service)),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     adapter = _get_mascot_adapter()
-
-    async def event_stream():
-        assistant_message = ""
-        envelope = None
-
-        try:
-            envelope = await adapter.decide(req.student_id, req.message)
-        except Exception as e:
-            logger.error(f"[mascot] adapter.decide 失败: {e}")
-            yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
-            return
-
-        # 1) Stream text — preserve existing text_delta semantics for backward compat.
-        try:
-            if envelope.answer_stream is not None:
-                async for chunk in envelope.answer_stream:
-                    # chunk may be a dict ({"type": "content_chunk", "content": "..."})
-                    # or a plain string. Handle both.
-                    if isinstance(chunk, dict):
-                        content = chunk.get("content", "") or ""
-                        if not content and chunk.get("type") == "done":
-                            full_text = chunk.get("full_text")
-                            if isinstance(full_text, str) and full_text:
-                                assistant_message = full_text
-                                yield f"event: text_delta\ndata: {json.dumps({'content': full_text}, ensure_ascii=False)}\n\n"
-                            continue
-                    else:
-                        content = str(chunk)
-                    if content:
-                        assistant_message += content
-                        yield f"event: text_delta\ndata: {json.dumps({'content': content}, ensure_ascii=False)}\n\n"
-            elif envelope.answer_text:
-                assistant_message = envelope.answer_text
-                yield f"event: text_delta\ndata: {json.dumps({'content': envelope.answer_text}, ensure_ascii=False)}\n\n"
-        except Exception as e:
-            logger.error(f"[mascot] 流式回答失败: {e}")
-            yield f"event: error\ndata: {json.dumps({'message': str(e)}, ensure_ascii=False)}\n\n"
-            return
-
-        # 2) Engine-driven proactive actions (new event name).
-        try:
-            for action in (envelope.proactive_actions or []):
-                payload = {
-                    "type": action.action_type.value,
-                    "priority": action.priority.value,
-                    "payload": action.action_payload,
-                }
-                yield f"event: proactive_action\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-        except Exception as e:
-            logger.debug(f"[mascot] 引擎 proactive_actions emit 失败: {e}")
-
-        # 3) Command extraction (preserve existing UX)
-        for cmd_event in _emit_commands(assistant_message):
-            yield cmd_event
-
-        # 4) Link extraction (preserve existing UX)
-        try:
-            links = _extract_links(req.student_id, req.message, assistant_message)
-            for link in links:
-                yield f"event: link\ndata: {json.dumps(link, ensure_ascii=False)}\n\n"
-        except Exception as e:
-            logger.debug(f"[mascot] 链接提取失败: {e}")
-
-        # 5) Legacy keyword-based proactive actions (preserved for backward compat).
-        # Old clients may still be subscribed to "action"; new clients prefer
-        # the structured "proactive_action" emitted above.
-        try:
-            proactive = _get_proactive_actions(req.student_id, assistant_message)
-            for action in proactive:
-                yield f"event: action\ndata: {json.dumps(action, ensure_ascii=False)}\n\n"
-        except Exception as e:
-            logger.debug(f"[mascot] 主动推送决策失败: {e}")
-
-        # 6) Done event (preserve existing shape)
-        yield f"event: done\ndata: {json.dumps({'full_text': assistant_message}, ensure_ascii=False)}\n\n"
-
     return StreamingResponse(
-        event_stream(),
+        _sse_wrap(_mascot_engine_event_stream(req, adapter)),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -265,19 +223,192 @@ async def mascot_chat_stream(req: MascotChatRequest):
     )
 
 
+# =============================================================================
+# MiniMax 直连事件流（小星 → MiniMax 大模型 API）
+# =============================================================================
+
+
+async def _mascot_direct_event_stream(req: MascotChatRequest, service):
+    """MascotLLMService → MiniMax Chat Completions 的 SSE 事件流。
+
+    注入：
+      * ``MASCOT_SYSTEM_PROMPT`` 模板 +  ``page_context`` / ``user_profile`` /
+        ``today_stats`` 三类上下文；
+      * ``req.conversation_history``（前端 js/mascot-services.js 已截到 20 条）；
+      * ``req.model``（默认 ``settings.minimax_model_name``）；
+      * ``req.temperature``（默认 ``MASCOT_DEFAULT_TEMPERATURE``）。
+    """
+    assistant_message = ""
+
+    # 1) 拉取上下文（page_context / user_profile / today_stats）。
+    page_context = req.page_context or ""
+    try:
+        user_profile = _build_user_profile_text(req.student_id)
+    except Exception as e:
+        logger.debug(f"[mascot] user_profile 拉取失败: {e}")
+        user_profile = ""
+    try:
+        today_stats = _build_today_stats(req.student_id)
+    except Exception as e:
+        logger.debug(f"[mascot] today_stats 拉取失败: {e}")
+        today_stats = ""
+
+    # 2) 调用 MiniMax 大模型 API（流式）。
+    try:
+        async for chunk in service.stream_chat(
+            user_message=req.message,
+            system_prompt=MASCOT_SYSTEM_PROMPT,
+            page_context=page_context,
+            user_profile=user_profile,
+            today_stats=today_stats,
+            conversation_history=req.conversation_history,
+            model=req.model,
+            temperature=req.temperature,
+        ):
+            if not chunk:
+                continue
+            assistant_message += chunk
+            yield {"event": "text_delta", "data": {"content": chunk}}
+    except Exception as e:
+        logger.error(f"[mascot] MiniMax 直连流式回答失败: {e}")
+        yield {"event": "error", "data": {"message": str(e)}}
+        return
+
+    # 3) 命令提取（保留原有 UX 行为）。
+    for cmd_event in _emit_commands(assistant_message):
+        yield cmd_event
+
+    # 4) 链接提取。
+    try:
+        links = _extract_links(req.student_id, req.message, assistant_message)
+        for link in links:
+            yield {"event": "link", "data": link}
+    except Exception as e:
+        logger.debug(f"[mascot] 链接提取失败: {e}")
+
+    # 5) 主动推送（沿用旧版关键词规则；直连路径不调用引擎决策）。
+    try:
+        proactive = _get_proactive_actions(req.student_id, assistant_message)
+        for action in proactive:
+            yield {"event": "action", "data": action}
+    except Exception as e:
+        logger.debug(f"[mascot] 主动推送决策失败: {e}")
+
+    # 6) Done 事件。
+    from config import settings as _settings
+    yield {
+        "event": "done",
+        "data": {
+            "full_text": assistant_message,
+            "model": req.model or _settings.minimax_model_name,
+            "provider": "MiniMax",
+        },
+    }
+
+
+# =============================================================================
+# 引擎决策路径（保留旧版，feature flag 关闭时使用）
+# =============================================================================
+
+
+async def _mascot_engine_event_stream(req: MascotChatRequest, adapter):
+    """TutorDecisionEngine 路径 —— RAG + 防幻觉 + 主动推送。"""
+    assistant_message = ""
+    envelope = None
+
+    try:
+        envelope = await adapter.decide(req.student_id, req.message)
+    except Exception as e:
+        logger.error(f"[mascot] adapter.decide 失败: {e}")
+        yield {"event": "error", "data": {"message": str(e)}}
+        return
+
+    # 1) Stream text — preserve existing text_delta semantics for backward compat.
+    try:
+        if envelope.answer_stream is not None:
+            async for chunk in envelope.answer_stream:
+                # chunk may be a dict ({"type": "content_chunk", "content": "..."})
+                # or a plain string. Handle both.
+                if isinstance(chunk, dict):
+                    content = chunk.get("content", "") or ""
+                    if not content and chunk.get("type") == "done":
+                        full_text = chunk.get("full_text")
+                        if isinstance(full_text, str) and full_text:
+                            assistant_message = full_text
+                            yield {"event": "text_delta", "data": {"content": full_text}}
+                        continue
+                else:
+                    content = str(chunk)
+                if content:
+                    assistant_message += content
+                    yield {"event": "text_delta", "data": {"content": content}}
+        elif envelope.answer_text:
+            assistant_message = envelope.answer_text
+            yield {"event": "text_delta", "data": {"content": envelope.answer_text}}
+    except Exception as e:
+        logger.error(f"[mascot] 流式回答失败: {e}")
+        yield {"event": "error", "data": {"message": str(e)}}
+        return
+
+    # 2) Engine-driven proactive actions (new event name).
+    try:
+        for action in (envelope.proactive_actions or []):
+            payload = {
+                "type": action.action_type.value,
+                "priority": action.priority.value,
+                "payload": action.action_payload,
+            }
+            yield {"event": "proactive_action", "data": payload}
+    except Exception as e:
+        logger.debug(f"[mascot] 引擎 proactive_actions emit 失败: {e}")
+
+    # 3) Command extraction (preserve existing UX)
+    for cmd_event in _emit_commands(assistant_message):
+        yield cmd_event
+
+    # 4) Link extraction (preserve existing UX)
+    try:
+        links = _extract_links(req.student_id, req.message, assistant_message)
+        for link in links:
+            yield {"event": "link", "data": link}
+    except Exception as e:
+        logger.debug(f"[mascot] 链接提取失败: {e}")
+
+    # 5) Legacy keyword-based proactive actions (preserved for backward compat).
+    # Old clients may still be subscribed to "action"; new clients prefer
+    # the structured "proactive_action" emitted above.
+    try:
+        proactive = _get_proactive_actions(req.student_id, assistant_message)
+        for action in proactive:
+            yield {"event": "action", "data": action}
+    except Exception as e:
+        logger.debug(f"[mascot] 主动推送决策失败: {e}")
+
+    # 6) Done event (preserve existing shape)
+    yield {"event": "done", "data": {"full_text": assistant_message}}
+
+
 def _emit_commands(text: str):
-    """从回复文本中提取并 yield 命令事件。此函数在 event_stream 内部调用。"""
+    """从回复文本中提取并 yield 命令事件（dict 形式，由 _sse_wrap 序列化为 SSE）。"""
     import re
     # [navigate:目标] → 导航命令
     nav_match = re.search(r'\[navigate:([^\]]+)\]', text)
     if nav_match:
         target = nav_match.group(1).strip()
-        yield f"event: command\ndata: {json.dumps({'tag': 'navigate', 'content': target}, ensure_ascii=False)}\n\n"
+        yield {"event": "command", "data": {"tag": "navigate", "content": target}}
     # [expression:表情] → 表情命令
     expr_match = re.search(r'\[expression:([^\]]+)\]', text)
     if expr_match:
         expr = expr_match.group(1).strip()
-        yield f"event: command\ndata: {json.dumps({'tag': 'expression', 'content': expr}, ensure_ascii=False)}\n\n"
+        yield {"event": "command", "data": {"tag": "expression", "content": expr}}
+
+
+async def _sse_wrap(event_stream):
+    """将 dict 事件流包装为 SSE 格式（event_type + json data）。"""
+    async for event in event_stream:
+        event_type = event.get("event", "message")
+        data = event.get("data", {})
+        yield f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 def _extract_links(student_id: str, question: str, answer: str) -> list[dict]:

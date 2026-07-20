@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 from pathlib import Path
 
@@ -9,7 +10,14 @@ from pydantic_settings import BaseSettings
 
 logger = logging.getLogger("starlearn.config")
 
-_dotenv_path = Path(__file__).resolve().parent / ".env"
+# .env lookup order:
+#   1. $STARLEARN_USER_ENV  — set by the packaged installer launcher so user
+#      edits under %APPDATA%\StarLearn\.env take effect.
+#   2. <install>/config/.env  — shipped defaults (developer-mode fallback).
+_dotenv_path = Path(
+    os.environ.get("STARLEARN_USER_ENV")
+    or str(Path(__file__).resolve().parent / ".env")
+)
 
 
 class Settings(BaseSettings):

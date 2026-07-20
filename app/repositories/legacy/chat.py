@@ -23,7 +23,10 @@ import db
 
 class DbPyChatRepository:
     def __init__(self, db_path: str = None):
-        self.db_path = db_path or "xingshi.db"
+        # Absolute path from ``db.py`` so legacy reads follow the same
+        # SQLite file the rest of the project uses, regardless of CWD.
+        import db as _db
+        self.db_path = db_path or _db.SQLITE_PATH
 
     def _conn(self):
         return sqlite3.connect(self.db_path)

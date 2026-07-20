@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.mysql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,6 +28,10 @@ class Subject(Base):
     visible: Mapped[bool] = mapped_column(default=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Demo content marker (added 2026-07-20)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    demo_version: Mapped[str] = mapped_column(String(16), default="", server_default="")
 
     courses: Mapped[list["Course"]] = relationship(back_populates="subject", order_by="Course.sort_order")
 
@@ -57,6 +61,10 @@ class Course(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
+    # Demo content marker (added 2026-07-20)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    demo_version: Mapped[str] = mapped_column(String(16), default="", server_default="")
+
     subject: Mapped["Subject"] = relationship(back_populates="courses")
     chapters: Mapped[list["Chapter"]] = relationship(back_populates="course", order_by="Chapter.sort_order")
 
@@ -71,6 +79,12 @@ class Chapter(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Demo content marker + structured content (added 2026-07-20)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    demo_version: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    lecture: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    mindmap: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     course: Mapped["Course"] = relationship(back_populates="chapters")
     subchapters: Mapped[list["SubChapter"]] = relationship(back_populates="chapter", order_by="SubChapter.sort_order")
@@ -93,6 +107,10 @@ class SubChapter(Base):
     transcript: Mapped[str] = mapped_column(Text, default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    # Demo content marker (added 2026-07-20)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    demo_version: Mapped[str] = mapped_column(String(16), default="", server_default="")
 
     chapter: Mapped["Chapter"] = relationship(back_populates="subchapters")
     knowledge_points: Mapped[list["KnowledgePoint"]] = relationship(back_populates="subchapter")

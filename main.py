@@ -9692,48 +9692,113 @@ def _get_course_path(course_id: str) -> str:
 
 
 @app.post("/api/v2/course/save")
-async def save_course(request: CourseSaveRequest):
-    """保存课程数据到服务端"""
-    course = request.course_data
-    # Debug: log slides_v2 type and value
-    print(f"[DEBUG save_course] slides_v2 type: {type(course.slides_v2)}, value: {course.slides_v2}")
-    print(f"[DEBUG save_course] slides_v2 is list: {isinstance(course.slides_v2, list)}")
-    print(f"[DEBUG save_course] course_data keys: {list(course.model_dump().keys())}")
-    # 兼容前端的 course_id / courseId 写法
-    course_id = course.courseId or getattr(course, 'course_id', '') or ''
+async def save_course(request: Request):
+    """保存课程数据到服务端
+
+    接受 dict 形式以避免 LLM 生成的非完全合规数据导致 Pydantic 422 错误。
+    JSON 文件保存始终执行 (核心数据)，DB classroom_records 保存为次要.
+    """
+    try:
+        raw = await request.json()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON body: {e}")
+
+    # 兼容两种 body 格式: {course_data: {...}} 或 顶层就是 course_data
+    if isinstance(raw, dict) and 'course_data' in raw and isinstance(raw['course_data'], dict):
+        course_dict = raw['course_data']
+        student_id = raw.get('student_id', '')
+        ppt_pages = raw.get('ppt_pages', 0)
+    elif isinstance(raw, dict) and ('title' in raw or 'courseId' in raw or 'outlines' in raw or 'slides_v2' in raw):
+        # 兼容前端直接发 course_data 字段平铺的情况
+        course_dict = raw
+        student_id = raw.get('student_id', '')
+        ppt_pages = raw.get('ppt_pages', 0)
+    else:
+        raise HTTPException(status_code=400, detail="Missing course_data in request body")
+
+    # 兜底: 任何字段缺失都用默认值填充
+    def _ensure_list(v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return v
+        return [v]
+
+    def _ensure_dict(v):
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            return v
+        return {}
+
+    course_dict.setdefault('courseId', '')
+    course_dict.setdefault('title', course_dict.get('title') or '未命名课程')
+    course_dict['outlines'] = _ensure_list(course_dict.get('outlines'))
+    course_dict['slides'] = _ensure_list(course_dict.get('slides'))
+    course_dict['slides_v2'] = _ensure_list(course_dict.get('slides_v2'))
+    course_dict['agent_team'] = _ensure_list(course_dict.get('agent_team'))
+    course_dict['quiz_data'] = _ensure_list(course_dict.get('quiz_data'))
+    course_dict['exercise_data'] = _ensure_list(course_dict.get('exercise_data'))
+    course_dict['interactive_data'] = _ensure_list(course_dict.get('interactive_data'))
+    course_dict['code_data'] = _ensure_list(course_dict.get('code_data'))
+    course_dict['tts_audio_urls'] = _ensure_dict(course_dict.get('tts_audio_urls'))
+    course_dict['scene_actions'] = _ensure_list(course_dict.get('scene_actions'))
+    course_dict['metadata'] = _ensure_dict(course_dict.get('metadata'))
+    course_dict.setdefault('teacher', {})
+
+    # 兼容 course_id / courseId
+    course_id = course_dict.get('courseId') or course_dict.get('course_id') or ''
     if not course_id:
         course_id = f"course_{int(time.time())}_{os.urandom(4).hex()}"
-        course.courseId = course_id
+    course_dict['courseId'] = course_id
 
-    if request.student_id:
-        course.metadata["student_id"] = request.student_id
+    if student_id:
+        course_dict['metadata']['student_id'] = str(student_id)
+
     filepath = _get_course_path(course_id)
 
-    # 保存到JSON文件
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(course.model_dump(mode="json"), f, ensure_ascii=False, indent=2)
+    # 1) 保存到 JSON 文件 (核心, 必须成功)
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(course_dict, f, ensure_ascii=False, indent=2)
+        print(f"[save_course] {course_id}: {len(course_dict.get('slides_v2', []))} slides saved to disk")
+    except Exception as e:
+        print(f"[save_course] {course_id} 写文件失败: {e}")
+        raise HTTPException(status_code=500, detail=f"写课程文件失败: {e}")
 
-    # 同步到数据库
+    # 2) 同步到数据库 classroom_records (次要, 失败不阻塞)
     user_id = 0
-    if request.student_id:
+    if student_id:
         try:
-            user_id = int(request.student_id)
-        except ValueError:
-            print(f"警告: student_id '{request.student_id}' 不是有效数字，无法保存到数据库课堂记录")
-
-    if course_id:
-        try:
-            full_data = json.dumps(course.model_dump(mode="json"), ensure_ascii=False)
-            ppt_pages = request.ppt_pages if request.ppt_pages else (
-                len(course.slides_v2) if course.slides_v2 else (
-                    len(course.slides) if course.slides else 0
-                )
+            user_id = int(student_id)
+        except (ValueError, TypeError):
+            user_id = 0
+    try:
+        if not ppt_pages:
+            ppt_pages = (
+                len(course_dict.get('slides_v2') or [])
+                or len(course_dict.get('slides') or [])
             )
-            save_classroom_record(user_id, course_id, course.title, full_data, ppt_pages)
-        except Exception as e:
-            print(f"数据库保存失败（非致命）: {e}")
+        full_data = json.dumps(course_dict, ensure_ascii=False)
+        save_classroom_record(user_id, course_id, course_dict.get('title', ''), full_data, ppt_pages)
+    except Exception as e:
+        print(f"[save_course] {course_id} DB 保存失败（非致命）: {e}")
 
-    return {"success": True, "course_id": course_id}
+    # 3) 同步到 courses 表 (查询/列表需要)
+    try:
+        from db import save_course as db_save_course
+        db_save_course(
+            user_id=user_id,
+            course_id=course_id,
+            title=course_dict.get('title', ''),
+            outlines=course_dict.get('outlines') or [],
+            scenes=[],
+            requirement=course_dict.get('metadata', {}).get('requirement', ''),
+        )
+    except Exception as e:
+        print(f"[save_course] {course_id} courses 表保存失败（非致命）: {e}")
+
+    return {"success": True, "course_id": course_id, "saved_to": "disk"}
 
 
 # [Phase 2] 旧 GET /api/v2/course/{course_id} 已废弃 — 统一走 GET /api/v2/classroom/{course_id}

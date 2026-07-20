@@ -15,7 +15,10 @@ from typing import Optional
 
 class DbPyCourseProgressRepository:
     def __init__(self, db_path: str = None):
-        self.db_path = db_path or "xingshi.db"
+        # Use the absolute path from db.py so legacy reads open the same
+        # SQLite file the rest of the project uses (CWD-agnostic).
+        import db as _db
+        self.db_path = db_path or _db.SQLITE_PATH
 
     def _conn(self):
         return sqlite3.connect(self.db_path)

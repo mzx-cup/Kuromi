@@ -26,7 +26,7 @@ DB_BACKEND = os.environ.get('STARLEARN_DB_BACKEND', 'auto')
 _initialized = False
 _effective_backend = None
 
-LOCAL_STORAGE_PATH = os.path.join(BASE_DIR, 'local_storage.json')
+LOCAL_STORAGE_PATH = os.environ.get('LOCAL_STORAGE_PATH', os.path.join(BASE_DIR, 'local_storage.json'))
 
 
 def _detect_backend():
@@ -3089,9 +3089,16 @@ def get_user_focus_history(user_id):
                     return json.loads(val) if isinstance(val, str) else val
             except Exception as e:
                 print(f"数据库查询失败: {e}")
+            # Phase 2.3: SQLite/MySQL 是权威数据源 —— 当 SQL 后端可用时，
+            # 没有命中行就视为"无记录"，不再回退到已禁用的 JSON 路径，
+            # 避免在生产环境抛 ``load_local_storage() disabled``。
+            return []
 
-        record = _get_json_record(load_local_storage(), 'user_focus_histories', user_id)
-        return record.get('focus_json', []) if record else []
+    # 只有 SQL 后端也拿不到连接（极少见）时才回退 JSON —— 此分支在生产
+    # 下会被 ``_check_dual_write_for_json_fallback`` 显式打开的 DUAL_WRITE
+    # 开关下走通。
+    record = _get_json_record(load_local_storage(), 'user_focus_histories', user_id)
+    return record.get('focus_json', []) if record else []
 
 
 def save_user_focus_history(user_id, focus_data):
@@ -3101,10 +3108,31 @@ def save_user_focus_history(user_id, focus_data):
             try:
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
+                    # ``user_focus_history`` 没有 UNIQUE(user_id) 约束，
+                    # 不能用 ``ON CONFLICT(user_id)``；改用 check-then-INSERT/UPDATE
+                    # 以保证幂等性（同一 user 多次写不会产生重复行）。
+                    # ``focus_date`` / ``total_focus_minutes`` / ``sessions_count`` /
+                    # ``avg_flow_score`` / ``deep_focus_minutes`` 都是 NOT NULL 必填列，
+                    # 必须在 INSERT 时一起写入。
+                    today = datetime.now().strftime("%Y-%m-%d")
                     cursor.execute(
-                        """INSERT INTO user_focus_history (user_id, focus_json) VALUES (?, ?)
-                           ON CONFLICT(user_id) DO UPDATE SET focus_json=excluded.focus_json""",
-                        (user_id, focus_json))
+                        "SELECT id FROM user_focus_history WHERE user_id = ?",
+                        (user_id,),
+                    )
+                    existing = cursor.fetchone()
+                    if existing:
+                        cursor.execute(
+                            "UPDATE user_focus_history SET focus_json = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                            (focus_json, user_id),
+                        )
+                    else:
+                        cursor.execute(
+                            """INSERT INTO user_focus_history
+                               (user_id, focus_date, total_focus_minutes, sessions_count,
+                                avg_flow_score, deep_focus_minutes, focus_json)
+                               VALUES (?, ?, 0, 0, 0.0, 0, ?)""",
+                            (user_id, today, focus_json),
+                        )
                 else:
                     cursor.execute(
                         """INSERT INTO user_focus_history (user_id, focus_json) VALUES (%s, %s)
@@ -3115,6 +3143,8 @@ def save_user_focus_history(user_id, focus_data):
                 return
             except Exception as e:
                 print(f"数据库保存失败: {e}")
+            # SQL 写失败时同样直接放弃，不回退 JSON（Phase 2.3）。
+            return
 
         storage = load_local_storage()
         for f in storage.get('user_focus_histories', []):
@@ -4666,6 +4696,39 @@ def get_total_study_minutes(user_id, start_date=None, end_date=None):
 # 学习目标 (learning_goals)
 # ============================================================
 
+def _ensure_learning_goals_is_active(conn):
+    """学习目标表自愈：补齐 ``is_active`` 列。
+
+    旧版本的 ``learning_goals`` 表只有 ``id/user_id/title/target_value/
+    current_value/unit/deadline/created_at``，而 ``save_learning_goal`` /
+    ``get_learning_goals`` 都引用了 ``is_active``。该列缺失时会触发
+    ``OperationalError: no such column: is_active``，这里做幂等补齐。
+    """
+    try:
+        cursor = conn.cursor()
+        if not _is_sqlite(conn):
+            return
+        cursor.execute("PRAGMA table_info(learning_goals)")
+        cols = {row[1] for row in cursor.fetchall()}
+        if "is_active" not in cols:
+            cursor.execute(
+                "ALTER TABLE learning_goals ADD COLUMN is_active INTEGER DEFAULT 1"
+            )
+            cursor.execute(
+                "ALTER TABLE learning_goals ADD COLUMN goal_type VARCHAR(32) DEFAULT 'daily'"
+            )
+            cursor.execute(
+                "ALTER TABLE learning_goals ADD COLUMN start_date VARCHAR(32) DEFAULT ''"
+            )
+            cursor.execute(
+                "ALTER TABLE learning_goals ADD COLUMN end_date VARCHAR(32) DEFAULT ''"
+            )
+            conn.commit()
+            print("[db] 已为 learning_goals 补齐 is_active / goal_type / start_date / end_date 列")
+    except Exception as e:
+        # 静默失败 — 补齐失败不应阻塞主流程
+        print(f"[db] _ensure_learning_goals_is_active 失败: {e}")
+
 def save_learning_goal(user_id, goal_data):
     """创建或更新学习目标"""
     with get_db() as conn:
@@ -4673,6 +4736,7 @@ def save_learning_goal(user_id, goal_data):
             try:
                 cursor = conn.cursor()
                 is_sql = _is_sqlite(conn)
+                _ensure_learning_goals_is_active(conn)
                 ph = '?' if is_sql else '%s'
 
                 goal_type = goal_data.get('goal_type', 'daily')
@@ -4714,6 +4778,7 @@ def get_learning_goals(user_id, active_only=True):
             try:
                 cursor = conn.cursor()
                 is_sql = _is_sqlite(conn)
+                _ensure_learning_goals_is_active(conn)
                 ph = '?' if is_sql else '%s'
 
                 if active_only:
@@ -5579,10 +5644,16 @@ def get_classroom_records(user_id: int) -> list:
 
 
 def get_classroom_record(course_id: str) -> Optional[dict]:
-    """获取单个课堂记录的完整数据"""
+    """获取单个课堂记录的完整数据
+
+    Fallback chain: classroom_records → classroom_sessions → courses
+    PPT data may live in classroom_sessions.course_data or courses.scenes
+    when classroom_records was never populated.
+    """
     init_classroom_tables()  # 确保表已创建
     with get_db() as conn:
         if conn is not None:
+            # 1) Try classroom_records first
             try:
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
@@ -5593,14 +5664,152 @@ def get_classroom_record(course_id: str) -> Optional[dict]:
                     cursor.execute("SELECT * FROM classroom_records WHERE course_id = %s", (course_id,))
                 row = cursor.fetchone()
                 cursor.close()
-                return dict(row) if row and _is_sqlite(conn) else row
+                if row:
+                    return dict(row) if _is_sqlite(conn) else row
             except Exception as e:
-                print(f"查询课堂记录失败: {e}")
+                print(f"查询课堂记录失败(classroom_records): {e}")
 
-        storage = load_local_storage()
-        for r in storage.get('classroom_records', []):
-            if r.get('course_id') == course_id:
-                return r
+            # 2) Fallback: synthesize from classroom_sessions.course_data
+            try:
+                if _is_sqlite(conn):
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT course_data, current_scene_index, status FROM classroom_sessions WHERE course_id = ? ORDER BY updated_at DESC LIMIT 1",
+                        (course_id,),
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT course_data, current_scene_index, status FROM classroom_sessions WHERE course_id = %s ORDER BY updated_at DESC LIMIT 1",
+                        (course_id,),
+                    )
+                session_row = cursor.fetchone()
+                if session_row:
+                    if isinstance(session_row, dict):
+                        raw_cd = session_row.get("course_data")
+                        scene_idx = session_row.get("current_scene_index")
+                        sess_status = session_row.get("status")
+                    else:
+                        raw_cd = session_row[0]
+                        scene_idx = session_row[1]
+                        sess_status = session_row[2]
+                    if raw_cd:
+                        if isinstance(raw_cd, str):
+                            try:
+                                course_data = json.loads(raw_cd)
+                            except Exception:
+                                course_data = None
+                        else:
+                            course_data = raw_cd
+                        if course_data and isinstance(course_data, dict):
+                            synthesized = {
+                                "course_id": course_id,
+                                "title": course_data.get("title", ""),
+                                "ppt_pages": len(course_data.get("slides_v2") or course_data.get("slides") or []),
+                                "full_data": json.dumps(course_data, ensure_ascii=False),
+                                "course_data": course_data,
+                                "current_scene_index": scene_idx,
+                                "status": sess_status,
+                                "_source": "classroom_sessions",
+                            }
+                            return synthesized
+                cursor.close()
+            except Exception as e:
+                print(f"查询课堂记录失败(classroom_sessions fallback): {e}")
+
+            # 3) Final fallback: synthesize from courses table (scenes/outlines)
+            try:
+                cursor = conn.cursor()
+                if _is_sqlite(conn):
+                    # courses 表只有 id 列 (无 course_id), 用 id 匹配
+                    cursor.execute(
+                        "SELECT title, scenes, outlines, data_json FROM courses WHERE id = ? LIMIT 1",
+                        (course_id,),
+                    )
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
+                    cursor.execute(
+                        "SELECT title, scenes, outlines, data_json FROM courses WHERE id = %s LIMIT 1",
+                        (course_id,),
+                    )
+                course_row = cursor.fetchone()
+                if course_row:
+                    title = course_row[0] if not isinstance(course_row, dict) else course_row['title']
+                    scenes_raw = course_row[1] if not isinstance(course_row, dict) else course_row['scenes']
+                    outlines_raw = course_row[2] if not isinstance(course_row, dict) else course_row['outlines']
+                    data_json_raw = course_row[3] if not isinstance(course_row, dict) else course_row['data_json']
+
+                    def _normalize_list(v):
+                        if isinstance(v, list):
+                            return v
+                        if isinstance(v, str):
+                            try:
+                                parsed = json.loads(v)
+                                return parsed if isinstance(parsed, list) else []
+                            except Exception:
+                                return []
+                        if isinstance(v, dict):
+                            for k in ('items', 'scenes', 'outlines', 'data'):
+                                inner = v.get(k)
+                                if isinstance(inner, list):
+                                    return inner
+                        return []
+
+                    course_data = {}
+                    if scenes_raw:
+                        if isinstance(scenes_raw, str):
+                            try:
+                                course_data = json.loads(scenes_raw)
+                            except Exception:
+                                course_data = {"scenes": scenes_raw}
+                        elif isinstance(scenes_raw, dict):
+                            course_data = scenes_raw
+                    # outlines: 可能是 dict(如 {items:[]})、str(JSON) 或 list
+                    outlines_list = _normalize_list(outlines_raw)
+                    if outlines_list:
+                        course_data["outlines"] = outlines_list
+                    # slides_v2: 同样归一化
+                    slides_v2_list = []
+                    if isinstance(course_data.get("slides_v2"), list):
+                        slides_v2_list = course_data["slides_v2"]
+                    elif isinstance(course_data.get("slides_v2"), dict):
+                        for k in ('items', 'slides', 'data'):
+                            inner = course_data["slides_v2"].get(k)
+                            if isinstance(inner, list):
+                                slides_v2_list = inner
+                                break
+                    course_data["slides_v2"] = slides_v2_list
+                    if data_json_raw and isinstance(data_json_raw, str):
+                        try:
+                            course_data["data_json"] = json.loads(data_json_raw)
+                        except Exception:
+                            course_data["data_json"] = data_json_raw
+                    if course_data:
+                        course_data.setdefault("courseId", course_id)
+                        course_data.setdefault("title", title or "")
+                        return {
+                            "course_id": course_id,
+                            "title": title or course_data.get("title", ""),
+                            "ppt_pages": len(course_data["slides_v2"]),
+                            "full_data": json.dumps(course_data, ensure_ascii=False),
+                            "course_data": course_data,
+                            "_source": "courses",
+                        }
+                cursor.close()
+            except Exception as e:
+                print(f"查询课堂记录失败(courses fallback): {e}")
+
+        storage = None
+        try:
+            storage = load_local_storage()
+        except Exception:
+            storage = None
+        if storage:
+            for r in storage.get('classroom_records', []):
+                if r.get('course_id') == course_id:
+                    return r
         return None
 
 

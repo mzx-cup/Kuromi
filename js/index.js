@@ -1586,11 +1586,12 @@ function isRawAssessmentProfile(p) {
     return typeof p.knowledgeBase === 'string' && levels.includes(p.knowledgeBase);
 }
 
-let currentUser = JSON.parse(localStorage.getItem('starlearn_user') || 'null') || {
+const DEFAULT_USER = {
     name: '同学',
     avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4',
     currentTask: '大数据导论'
 };
+let currentUser = Object.assign({}, DEFAULT_USER, JSON.parse(localStorage.getItem('starlearn_user') || 'null') || {});
 
 // 评估数据映射到画像显示
 const assessmentToProfileMap = {
@@ -2201,9 +2202,9 @@ function updateUserUI() {
     const userAvatarImg = document.getElementById('user-avatar-img');
     const dropdownAvatar = document.getElementById('dropdown-avatar');
     const dropdownUsername = document.getElementById('dropdown-username');
-    if (userAvatarImg) userAvatarImg.src = currentUser.avatar;
-    if (dropdownAvatar) dropdownAvatar.src = currentUser.avatar;
-    if (dropdownUsername) dropdownUsername.textContent = currentUser.name;
+    if (userAvatarImg) userAvatarImg.src = currentUser.avatar || DEFAULT_USER.avatar;
+    if (dropdownAvatar) dropdownAvatar.src = currentUser.avatar || DEFAULT_USER.avatar;
+    if (dropdownUsername) dropdownUsername.textContent = currentUser.name || DEFAULT_USER.name;
 }
 
 function switchTab(tab) {

@@ -13,10 +13,24 @@ import json
 import sqlite3
 from datetime import datetime, date
 
+import db as _db
+
+
+def _default_db_path() -> str:
+    """Resolve the SQLite path absolutely so the legacy repo doesn't
+    accidentally open an empty ``xingshi.db`` next to whatever CWD the
+    process happens to be launched from.
+    """
+    return _db.SQLITE_PATH
+
 
 class DbPyFocusRepository:
     def __init__(self, db_path: str = None):
-        self.db_path = db_path or "xingshi.db"
+        # Default to the absolute path declared in ``db.py``; the relative
+        # ``"xingshi.db"`` fallback previously broke legacy reads when the
+        # server was launched from the project parent (parent dir has an
+        # empty file of the same name).
+        self.db_path = db_path or _default_db_path()
 
     def _conn(self):
         return sqlite3.connect(self.db_path)
