@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的课程 · 星识</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="/css/search-command.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
+    <style>
+        .mc-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .mc-tabs { display: flex; gap: 4px; padding: 16px 24px; border-bottom: 1px solid var(--cp-card-border); }
+        .mc-tab { padding: 8px 20px; border: none; background: none; color: var(--cp-text-secondary); font-size: 14px; cursor: pointer; border-radius: 8px; transition: all 0.15s; }
+        .mc-tab:hover { color: var(--cp-text-primary); }
+        .mc-tab.active { background: color-mix(in oklch, var(--info), transparent 88%); color: var(--info); font-weight: 600; }
+        .mc-content { padding: 24px; }
+        .mc-panel { display: none; min-height: 400px; }
+        .mc-panel.active { display: block; }
+        .mc-placeholder { display: flex; align-items: center; justify-content: center; min-height: 300px; color: var(--cp-text-tertiary); font-size: 14px; }
+        .mc-loading { text-align: center; padding: 40px; color: var(--cp-text-tertiary); }
+        .mc-loading::after { content: ''; display: inline-block; width: 20px; height: 20px; margin-left: 8px; border: 2px solid var(--cp-text-tertiary); border-top-color: var(--cp-accent); border-radius: 50%; animation: mc-spin 0.8s linear infinite; vertical-align: middle; }
+        @keyframes mc-spin { to { transform: rotate(360deg); } }
+        .mc-error { text-align: center; padding: 40px; color: var(--cp-danger, var(--danger)); }
+    </style>
+    <script src="/js/auth.js"></script>
+    <script src="/js/http-intercept.js"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/toast.js"></script>
+</head>
+<body data-bg-unified="true" class="app-body hub-body">
+    
+
+
+    <!-- 小星 AI 助手 -->
+    <div class="app-kanban" id="app-kanban"></div>
+
+    <div class="mc-page fade-in">
+        <div class="mc-tabs">
+            <button class="mc-tab active" data-tab="courses">📚 课程中心</button>
+            <button class="mc-tab" data-tab="progress">📊 学习进度</button>
+            <button class="mc-tab" data-tab="calendar">📅 学习日历</button>
+        </div>
+        <div class="mc-content">
+            <div class="mc-panel active app-content-card" id="panel-courses">
+                <div class="mc-loading">加载中...</div>
+            </div>
+            <div class="mc-panel app-content-card" id="panel-progress">
+                <div class="mc-loading">加载中...</div>
+            </div>
+            <div class="mc-panel app-content-card" id="panel-calendar">
+                <div class="mc-loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
+    <script>
+    (function() {
+        // Tab switching
+        document.querySelectorAll('.mc-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.mc-tab').forEach(function(t) { t.classList.remove('active'); });
+                document.querySelectorAll('.mc-panel').forEach(function(p) { p.classList.remove('active'); });
+                this.classList.add('active');
+                var panel = document.getElementById('panel-' + this.dataset.tab);
+                if (panel) panel.classList.add('active');
+            });
+        });
+
+        // Redirect tab hint from old pages
+        var redirectTab = localStorage.getItem('sp_redirect_tab');
+        if (redirectTab) {
+            localStorage.removeItem('sp_redirect_tab');
+            var btn = document.querySelector('.mc-tab[data-tab="' + redirectTab + '"]');
+            if (btn) btn.click();
+        }
+
+        // Hash-based tab activation
+        function activateTabFromHash() {
+            var hash = location.hash.replace('#', '');
+            if (!hash) return;
+            var btn = document.querySelector('.mc-tab[data-tab="' + hash + '"]');
+            if (btn) btn.click();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', activateTabFromHash);
+        } else {
+            activateTabFromHash();
+        }
+        window.addEventListener('hashchange', activateTabFromHash);
+
+        // AJAX lazy-load panel content
+        var panelSources = {
+            'courses': '/courses.html',
+            'progress': '/progress.html',
+            'calendar': '/calendar.html',
+        };
+        var loaded = {};
+        document.querySelectorAll('.mc-tab').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                var panelId = 'panel-' + this.dataset.tab;
+                if (loaded[panelId]) return;
+                var panel = document.getElementById(panelId);
+                var url = panelSources[this.dataset.tab];
+                if (!url) return;
+                loaded[panelId] = true;
+                fetch(url)
+                    .then(function(r) { return r.text(); })
+                    .then(function(html) {
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(html, 'text/html');
+                        var main = doc.querySelector('main') || doc.querySelector('.content') || doc.body;
+                        panel.innerHTML = main ? main.innerHTML : html;
+                        panel.dataset.loaded = 'true';
+                        // Re-execute inline scripts in loaded content
+                        panel.querySelectorAll('script').forEach(function(s) {
+                            var ns = document.createElement('script');
+                            ns.textContent = s.textContent;
+                            document.body.appendChild(ns).remove();
+                        });
+                    })
+                    .catch(function() {
+                        panel.innerHTML = '<div class="mc-error">⚠️ 加载失败，请<a href="' + url + '" style="color:var(--cp-accent);">直接打开页面</a></div>';
+                    });
+            });
+        });
+    })();
+    </script>
+    <script src="/js/search-command.js"></script>
+    <script src="/js/onboarding.js"></script>
+</body>
+</html>

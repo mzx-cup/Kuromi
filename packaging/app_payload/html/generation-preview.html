@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程生成 - 星识</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/phase2-bundle.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body data-bg-unified="true" class="app-body gen-preview-page">
+
+    <!-- Background Decor -->
+    <div class="bg-decor">
+        <div class="bg-blob bg-blob-blue"></div>
+        <div class="bg-blob bg-blob-purple"></div>
+    </div>
+
+    <!-- Starlight Particles -->
+    <div class="particle-bg">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- 返回按钮 (浮在左上) -->
+    <button id="back-btn" class="gp-back-btn">
+        <i class="fas fa-arrow-left"></i>
+        <span>返回首页</span>
+    </button>
+
+    <div class="gp-content-wrapper">
+
+        <!-- Hero 标题区 -->
+        <header class="gp-hero">
+            <div class="gp-hero-eyebrow">
+                <span class="dot"></span>
+                <span>AI 课程工厂</span>
+            </div>
+            <h1>把你的想法, 变成一门完整课程</h1>
+            <div id="gp-requirement-readout" class="gp-requirement-readout" hidden></div>
+        </header>
+
+        <!-- 1. 步骤条 -->
+        <nav class="gp-stepper" id="gp-stepper">
+            <div class="gp-step active" data-step="1">
+                <span class="gp-step-num">1</span>
+                <span>需求澄清</span>
+            </div>
+            <div class="gp-step-line"></div>
+            <div class="gp-step" data-step="2">
+                <span class="gp-step-num">2</span>
+                <span>确认大纲</span>
+            </div>
+            <div class="gp-step-line"></div>
+            <div class="gp-step" data-step="3">
+                <span class="gp-step-num">3</span>
+                <span>生成 9 件套</span>
+            </div>
+        </nav>
+
+        <!-- 1. 脑暴面板 -->
+        <section id="xs-bs-panel" class="xs-bs-panel hidden" data-step="1">
+            <div class="xs-bs-header">
+                <div class="xs-bs-progress">
+                    <span id="xs-bs-turn-label">1</span>
+                    <span class="xs-bs-divider">/</span>
+                    <span id="xs-bs-turn-total">3</span>
+                </div>
+                <div class="xs-bs-slot-badge" id="xs-bs-slot-badge">学习目标</div>
+                <button class="xs-bs-close" id="xs-bs-close" title="关闭">&times;</button>
+            </div>
+            <h3 class="xs-bs-question" id="xs-bs-question">问题加载中…</h3>
+            <div class="xs-bs-options" id="xs-bs-options"></div>
+            <div class="xs-bs-custom-row">
+                <input type="text" id="xs-bs-custom" class="xs-bs-custom-input" placeholder="✍️ 其他想法(可选)…">
+            </div>
+            <div class="xs-bs-actions">
+                <button class="xs-bs-btn xs-bs-skip" id="xs-bs-skip">跳过本题</button>
+                <button class="xs-bs-btn xs-bs-next" id="xs-bs-next">下一题 →</button>
+            </div>
+        </section>
+
+        <!-- 2. 大纲确认面板 -->
+        <section id="xs-confirm-panel" class="xs-confirm-panel hidden" data-step="2">
+            <div class="xs-confirm-header">
+                <h3>确认课程大纲</h3>
+                <div class="xs-confirm-mode">
+                    <span class="xs-confirm-mode-label">模式:</span>
+                    <button class="xs-confirm-toggle" id="xs-confirm-toggle" data-mode="obg">OBG · 目标驱动</button>
+                </div>
+            </div>
+            <p class="xs-confirm-rationale" id="xs-confirm-rationale">—</p>
+            <ul class="xs-confirm-scenes" id="xs-confirm-scenes"></ul>
+            <div class="xs-confirm-actions">
+                <button class="xs-bs-btn xs-confirm-back" id="xs-confirm-back">← 重新澄清</button>
+                <button class="xs-bs-btn xs-confirm-go" id="xs-confirm-go">开始生成 9 件套 →</button>
+            </div>
+        </section>
+
+        <!-- 3. 9 件套进度面板 -->
+        <section id="xs-bundle-panel" class="xs-bundle-panel hidden" data-step="3">
+            <h3 class="xs-bundle-title" id="xs-bundle-title">9 件套课程包生成中…</h3>
+            <p class="xs-bundle-subtitle">
+                <span>并行生成中</span>
+                <span class="xs-bundle-counter">
+                    <b id="xs-bundle-count-ready">0</b>
+                    <span>/</span>
+                    <span>9</span>
+                    <span>已完成</span>
+                </span>
+            </p>
+            <div class="xs-bundle-progress" aria-hidden="true">
+                <div class="xs-bundle-progress-bar" id="xs-bundle-progress-bar" style="width: 0%"></div>
+            </div>
+            <div class="xs-bundle-grid" id="xs-bundle-grid">
+                <div class="xs-comp" data-name="outline"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">大纲</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="plan"><span class="xs-comp-icon">📝</span><span class="xs-comp-name">教案</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="ppt"><span class="xs-comp-icon">🎬</span><span class="xs-comp-name">PPT</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="graph"><span class="xs-comp-icon">🕸</span><span class="xs-comp-name">图谱</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="radar"><span class="xs-comp-icon">📊</span><span class="xs-comp-name">雷达</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="project"><span class="xs-comp-icon">🛠</span><span class="xs-comp-name">项目</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="case"><span class="xs-comp-icon">📖</span><span class="xs-comp-name">案例</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="exercises"><span class="xs-comp-icon">✏️</span><span class="xs-comp-name">习题</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="survey"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">问卷</span><span class="xs-comp-state">待生成</span></div>
+            </div>
+            <div class="xs-bundle-actions">
+                <button class="xs-bs-btn xs-bundle-cancel" id="xs-bundle-cancel" hidden>取消生成</button>
+            </div>
+        </section>
+
+        <!-- 入参卡 (未带 requirement 时显示) -->
+        <section id="gp-requirement-card" class="gp-requirement-card">
+            <div class="gp-card-icon"><i class="fas fa-sparkles"></i></div>
+            <h3>开始生成你的课程</h3>
+            <p class="gp-requirement-hint">输入课程主题, AI 会通过 3 轮对话了解你的需求 (目标 / 基础 / 学习路径 / 真实案例), 然后生成 9 件套完整课程包 — 大纲 · 教案 · PPT · 图谱 · 雷达 · 项目 · 案例 · 习题 · 问卷</p>
+            <textarea id="gp-requirement-input" class="gp-requirement-input" rows="3" placeholder="例如: 我想系统学习 Java 编程, 从基础语法到面向对象, 准备找一份后端实习…"></textarea>
+            <div class="gp-requirement-actions">
+                <span class="gp-requirement-tip">
+                    <i class="fas fa-lightbulb"></i>
+                    越具体, 课程越贴合你
+                </span>
+                <button id="gp-requirement-start" class="xs-bs-btn xs-bs-next">
+                    开始 3 轮脑暴
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <script src="/js/brainstorm.js?v=1"></script>
+    <script src="/js/generation-preview.js?v=2"></script>
+</body>
+</html>

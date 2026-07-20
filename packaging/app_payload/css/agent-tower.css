@@ -1,0 +1,302 @@
+/* css/agent-tower.css — Agent 编排控制塔 (Tab layout) */
+
+/* === Header (unchanged) === */
+.tower-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid var(--border-glass);
+  flex-shrink: 0;
+}
+.tower-header h2 { font-size: 13px; color: var(--text-primary); margin: 0; }
+.tower-actions { display: flex; gap: 6px; }
+.tower-btn {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md); padding: 4px 10px;
+  color: var(--text-primary); cursor: pointer; font-size: 11px;
+  transition: background 200ms; white-space: nowrap;
+}
+.tower-btn:hover { background: var(--surface-glass-2); }
+.tower-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* === Tabs === */
+.tower-tabs {
+  display: flex; border-bottom: 1px solid var(--border-glass);
+  flex-shrink: 0; background: rgba(0,0,0,0.08);
+}
+.tower-tab {
+  flex: 1; padding: 8px 6px; font-size: 10.5px; font-weight: 500;
+  color: var(--text-tertiary); background: transparent; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer;
+  transition: all 200ms; text-align: center; white-space: nowrap;
+}
+.tower-tab:hover { color: var(--text-secondary); background: rgba(255,255,255,0.02); }
+.tower-tab.is-active {
+  color: var(--primary-light); border-bottom-color: var(--primary-light);
+  background: rgba(168,85,247,0.06);
+}
+
+/* === Tab content === */
+.tower-tab-content {
+  display: none; flex: 1; min-height: 0;
+}
+.tower-tab-content.is-active { display: flex; flex-direction: column; }
+.tower-scroll-area {
+  flex: 1; overflow-y: auto; padding: 10px 14px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tower-scroll-area::-webkit-scrollbar { width: 3px; }
+.tower-scroll-area::-webkit-scrollbar-thumb { background: var(--surface-glass-2); border-radius: 2px; }
+
+.tower-section-title {
+  font-size: 10px; font-weight: 600; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-top: 4px; padding-bottom: 2px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+/* === Status cards (Tab 1) === */
+.tower-card-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+}
+.tower-status-card {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: 8px; padding: 8px 10px; display: flex;
+  flex-direction: column; gap: 2px;
+}
+.tower-status-card .tsc-label {
+  font-size: 9px; color: var(--text-tertiary); text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.tower-status-card .tsc-value {
+  font-size: 14px; font-weight: 700; color: var(--text-primary);
+}
+.tower-status-card .tsc-sub {
+  font-size: 9px; color: var(--text-tertiary);
+}
+.tower-status-card .tsc-bar-bg {
+  height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); margin-top: 4px;
+}
+.tower-status-card .tsc-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.6s ease;
+}
+
+/* === Weakness list (Tab 1) === */
+.tower-weakness-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 6px;
+  background: rgba(239,68,68,0.04); border: 1px solid rgba(239,68,68,0.1);
+  font-size: 10.5px; color: var(--text-secondary);
+}
+.tower-weakness-item .twi-label { flex: 1; }
+.tower-weakness-item .twi-actions { display: flex; gap: 4px; }
+.tower-weakness-item .twi-btn {
+  padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-glass);
+  background: var(--surface-glass); color: var(--text-secondary);
+  font-size: 9px; cursor: pointer; transition: all 150ms;
+}
+.tower-weakness-item .twi-btn:hover {
+  background: var(--surface-glass-2); border-color: var(--primary-light);
+  color: var(--primary-light);
+}
+
+/* === Flow nodes (inside Tab 1) === */
+.tower-flow {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.tower-stage-group { display: flex; flex-direction: column; gap: 3px; }
+.tower-stage-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-tertiary);
+}
+.tower-stage-header::after {
+  content: ''; flex: 1; height: 1px; background: var(--border-glass);
+}
+.tower-stage-agents { display: flex; flex-wrap: wrap; gap: 4px; }
+.tower-stage-connector {
+  display: flex; align-items: center; justify-content: center;
+  height: 16px; color: var(--text-tertiary); font-size: 9px;
+}
+.flow-node {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: 8px; padding: 4px 8px; font-size: 10px;
+  color: var(--text-secondary); display: inline-flex; align-items: center; gap: 4px;
+  transition: all 200ms;
+}
+.flow-node.is-busy {
+  color: var(--agent-busy); border-color: var(--agent-busy); box-shadow: 0 0 6px var(--agent-busy);
+}
+.flow-node.is-success { color: var(--agent-success); border-color: var(--agent-success); }
+.flow-node.is-failed { color: var(--agent-failed); border-color: var(--agent-failed); animation: pulse-failed 1.2s infinite; }
+@keyframes pulse-failed {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes busySpin { to { transform: rotate(360deg); } }
+
+/* Terminal (inside Tab 1) */
+.tower-terminal {
+  background: var(--code-bg);
+  padding: 6px 10px; max-height: 140px; overflow-y: auto;
+  border: 1px solid var(--border-glass); border-radius: 6px;
+  display: flex; flex-direction: column; gap: 1px;
+  font-size: 10px;
+}
+.tower-terminal::-webkit-scrollbar { width: 3px; }
+.tower-terminal::-webkit-scrollbar-thumb { background: var(--surface-glass-2); border-radius: 2px; }
+.tower-log-entry {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 3px 6px; border-radius: 4px;
+}
+.tower-log-entry:hover { background: rgba(255,255,255,0.02); }
+.tower-log-entry.is-error { background: rgba(239,68,68,0.06); }
+.tower-log-status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.tower-log-status-dot.status-success { background: var(--agent-success, #22c55e); }
+.tower-log-status-dot.status-busy { background: var(--agent-busy, #f59e0b); animation: pulse-failed 1.5s infinite; }
+.tower-log-status-dot.status-failed { background: var(--agent-failed, #ef4444); }
+.tower-log-status-dot.status-idle { background: var(--text-tertiary); }
+.tower-log-entry-body { flex: 1; min-width: 0; }
+.tower-log-entry-agent {
+  font-size: 9px; font-weight: 600; color: var(--primary-light);
+  display: inline;
+}
+.tower-log-entry-msg {
+  font-size: 9.5px; color: var(--text-secondary); line-height: 1.4;
+  display: inline; margin-left: 4px;
+}
+.tower-log-entry-msg.error-text { color: var(--danger); }
+
+/* Tower status dot */
+.tower-status-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-tertiary); vertical-align: middle; margin-right: 2px;
+  transition: all 300ms;
+}
+.tower-status-dot.is-running { background: var(--agent-busy); animation: pulse-failed 1.5s infinite; }
+.tower-status-dot.is-complete { background: var(--agent-success); }
+
+/* === Persona grid (Tab 2) === */
+.tcg-persona-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+}
+.tcg-persona-card {
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  border-radius: 8px; padding: 8px; cursor: pointer;
+  transition: all 200ms; text-align: center;
+}
+.tcg-persona-card:hover {
+  border-color: var(--primary-light); background: rgba(168,85,247,0.06);
+}
+.tcg-persona-card.is-active {
+  border-color: var(--primary-light); background: rgba(168,85,247,0.1);
+  box-shadow: 0 0 8px rgba(168,85,247,0.15);
+}
+.tcg-persona-card .tpc-name {
+  font-size: 12px; font-weight: 700; color: var(--text-primary);
+}
+.tcg-persona-card .tpc-desc {
+  font-size: 9px; color: var(--text-tertiary); margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* === Slider (Tab 2) === */
+.tcg-slider-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0;
+}
+.tcg-slider-label { font-size: 9px; color: var(--text-tertiary); white-space: nowrap; }
+.tcg-slider {
+  flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+  background: rgba(255,255,255,0.08); border-radius: 2px; outline: none;
+}
+.tcg-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--primary-light);
+  border: 2px solid var(--surface-glass); box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+}
+.tcg-slider-value { font-size: 10px; color: var(--text-secondary); min-width: 28px; text-align: right; }
+
+/* === Strategy pills (Tab 2) === */
+.tcg-strategy-pills {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.tcg-strategy-pill {
+  padding: 4px 12px; border-radius: 999px; border: 1px solid var(--border-glass);
+  background: var(--surface-glass); color: var(--text-secondary);
+  font-size: 10px; cursor: pointer; transition: all 200ms;
+}
+.tcg-strategy-pill:hover { border-color: var(--primary-light); color: var(--text-primary); }
+.tcg-strategy-pill.is-active {
+  background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(59,130,246,0.1));
+  border-color: var(--primary-light); color: var(--primary-light);
+}
+
+/* === Inject row (Tab 2) === */
+.tcg-inject-row {
+  display: flex; gap: 6px;
+}
+.tcg-inject-input {
+  flex: 1; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--border-glass); background: var(--surface-glass);
+  color: var(--text-primary); font-size: 11px; outline: none;
+  transition: border-color 200ms;
+}
+.tcg-inject-input:focus { border-color: var(--primary-light); }
+.tcg-inject-input::placeholder { color: var(--text-tertiary); font-size: 10px; }
+.tcg-tags {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.tcg-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.15);
+  color: var(--text-secondary); font-size: 9px;
+}
+.tcg-tag-remove {
+  cursor: pointer; font-size: 11px; color: var(--text-tertiary);
+  line-height: 1; transition: color 150ms;
+}
+.tcg-tag-remove:hover { color: var(--danger); }
+
+/* === Plan tasks (Tab 3) === */
+.tower-plan-empty {
+  text-align: center; padding: 20px 10px; font-size: 11px;
+  color: var(--text-tertiary);
+}
+.tower-plan-task {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  background: var(--surface-glass); border: 1px solid var(--border-glass);
+  transition: all 200ms;
+}
+.tower-plan-task:hover { border-color: rgba(168,85,247,0.15); }
+.tower-plan-task.is-completed { opacity: 0.55; }
+.tower-plan-task.is-in-progress { border-left: 2px solid var(--primary-light); }
+.tower-plan-task .tpt-status { font-size: 12px; flex-shrink: 0; }
+.tower-plan-task .tpt-body { flex: 1; min-width: 0; }
+.tower-plan-task .tpt-name { font-size: 11px; font-weight: 600; color: var(--text-primary); }
+.tower-plan-task .tpt-desc { font-size: 9px; color: var(--text-tertiary); margin-top: 1px; }
+.tower-plan-task .tpt-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.tower-plan-task .tpt-btn {
+  padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border-glass);
+  background: var(--surface-glass); color: var(--text-tertiary);
+  font-size: 8px; cursor: pointer; transition: all 150ms;
+}
+.tower-plan-task .tpt-btn:hover { color: var(--text-primary); border-color: var(--primary-light); }
+
+/* Plan progress bar */
+.tower-plan-progress {
+  display: flex; align-items: center; gap: 8px;
+}
+.tower-plan-progress-bar-bg {
+  flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden;
+}
+.tower-plan-progress-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 0.6s ease;
+}
+.tower-plan-progress-text { font-size: 10px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.tower-plan-replan { margin-top: 4px; width: 100%; text-align: center; }

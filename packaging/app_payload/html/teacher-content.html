@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>内容管理 · 星识</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/app-base.css">
+  <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="/css/teacher.css">
+</head>
+<body data-bg-unified="true" class="app-body teacher-page">
+    
+
+
+  <!-- ═══ SVG 定义 + 深空背景 ═══ -->
+  <svg width="0" height="0" style="position:absolute"><defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--info)"/><stop offset="50%" stop-color="var(--brand-300)"/><stop offset="100%" stop-color="var(--warning)"/></linearGradient>
+    <linearGradient id="constLineGrad1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="var(--info)" stop-opacity="0"/><stop offset="50%" stop-color="var(--info)" stop-opacity="0.55"/><stop offset="100%" stop-color="var(--info)" stop-opacity="0"/></linearGradient>
+    <linearGradient id="constLineGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--brand-400)" stop-opacity="0"/><stop offset="50%" stop-color="var(--brand-400)" stop-opacity="0.50"/><stop offset="100%" stop-color="var(--brand-400)" stop-opacity="0"/></linearGradient>
+    <linearGradient id="constLineGrad3" x1="100%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="var(--warning)" stop-opacity="0"/><stop offset="50%" stop-color="var(--warning)" stop-opacity="0.45"/><stop offset="100%" stop-color="var(--warning)" stop-opacity="0"/></linearGradient>
+    <linearGradient id="constLineGrad4" x1="0%" y1="100%" x2="100%" y2="0%"><stop offset="0%" stop-color="var(--info)" stop-opacity="0"/><stop offset="50%" stop-color="var(--info)" stop-opacity="0.48"/><stop offset="100%" stop-color="var(--info)" stop-opacity="0"/></linearGradient>
+    <filter id="starGlowFilter" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="0.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="starGlowBright" x="-300%" y="-300%" width="700%" height="700%"><feGaussianBlur stdDeviation="1.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs></svg>
+
+  <div class="teacher-bg">
+    <div class="teacher-bg-nebula"></div><div class="teacher-bg-orb-1"></div><div class="teacher-bg-orb-2"></div>
+    <svg class="teacher-bg-stars" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <g class="teacher-star-scatter" opacity="0.5"><circle cx="45" cy="72" r="0.6" fill="#8098c8"/><circle cx="120" cy="38" r="0.4" fill="#8898c0"/><circle cx="210" cy="95" r="0.8" fill="#90a0d0"/><circle cx="280" cy="25" r="0.5" fill="#7888b8"/><circle cx="350" cy="180" r="0.7" fill="#8898c8"/><circle cx="420" cy="55" r="0.4" fill="#90a0c8"/><circle cx="510" cy="140" r="0.9" fill="#a0b0d8"/><circle cx="580" cy="32" r="0.5" fill="#7888b0"/><circle cx="660" cy="200" r="0.6" fill="#90a0c8"/><circle cx="730" cy="88" r="1.0" fill="#b0c0e0"/><circle cx="810" cy="45" r="0.5" fill="#8090b8"/><circle cx="890" cy="160" r="0.7" fill="#8898c0"/><circle cx="960" cy="30" r="0.4" fill="#7888b0"/><circle cx="1050" cy="210" r="0.8" fill="#90a0d0"/><circle cx="1140" cy="55" r="0.6" fill="#8898c8"/><circle cx="1230" cy="190" r="0.5" fill="#8098c0"/><circle cx="1310" cy="75" r="0.7" fill="#90a0c8"/><circle cx="1380" cy="140" r="0.4" fill="#7888b8"/><circle cx="70" cy="350" r="0.8" fill="#90a0d0"/><circle cx="160" cy="420" r="0.5" fill="#8090b8"/><circle cx="380" cy="380" r="0.6" fill="#8898c0"/><circle cx="550" cy="450" r="0.7" fill="#90a0c8"/><circle cx="720" cy="350" r="0.5" fill="#8098c0"/><circle cx="880" cy="420" r="0.8" fill="#8898c8"/><circle cx="1020" cy="380" r="0.6" fill="#90a0d0"/><circle cx="1200" cy="450" r="0.5" fill="#7888b8"/><circle cx="1350" cy="360" r="0.7" fill="#90a0c8"/><circle cx="200" cy="650" r="0.8" fill="#8898c0"/><circle cx="450" cy="620" r="0.6" fill="#90a0d0"/><circle cx="650" cy="680" r="0.5" fill="#8098c0"/><circle cx="850" cy="640" r="0.7" fill="#8898c8"/><circle cx="1080" cy="680" r="0.6" fill="#90a0c8"/><circle cx="1280" cy="630" r="0.8" fill="#8090b8"/></g>
+      <g transform="translate(180,100)" filter="url(#starGlowBright)" opacity="0.7"><line x1="-5" y1="0" x2="5" y2="0" stroke="#d0d8f0" stroke-width="0.3"/><line x1="0" y1="-5" x2="0" y2="5" stroke="#d0d8f0" stroke-width="0.3"/><line x1="-3" y1="-3" x2="3" y2="3" stroke="#c0c8e8" stroke-width="0.15"/><line x1="3" y1="-3" x2="-3" y2="3" stroke="#c0c8e8" stroke-width="0.15"/><circle cx="0" cy="0" r="1.2" fill="#e0e8f8"/></g>
+      <g transform="translate(920,280)" filter="url(#starGlowBright)" opacity="0.8"><line x1="-6" y1="0" x2="6" y2="0" stroke="#c8e8f0" stroke-width="0.35"/><line x1="0" y1="-6" x2="0" y2="6" stroke="#c8e8f0" stroke-width="0.35"/><line x1="-4" y1="-4" x2="4" y2="4" stroke="#b8d8e8" stroke-width="0.18"/><line x1="4" y1="-4" x2="-4" y2="4" stroke="#b8d8e8" stroke-width="0.18"/><circle cx="0" cy="0" r="1.4" fill="#e8f4f8"/></g>
+      <g transform="translate(1100,560)" filter="url(#starGlowFilter)" opacity="0.55"><line x1="-4" y1="0" x2="4" y2="0" stroke="#e8d8b0" stroke-width="0.25"/><line x1="0" y1="-4" x2="0" y2="4" stroke="#e8d8b0" stroke-width="0.25"/><circle cx="0" cy="0" r="1.0" fill="#f0e8d0"/></g>
+      <g opacity="0.55"><line x1="120" y1="150" x2="180" y2="100" stroke="url(#constLineGrad1)" stroke-width="0.6"/><line x1="180" y1="100" x2="250" y2="120" stroke="url(#constLineGrad2)" stroke-width="0.55"/><line x1="250" y1="120" x2="200" y2="180" stroke="url(#constLineGrad1)" stroke-width="0.6"/><line x1="200" y1="180" x2="120" y2="150" stroke="url(#constLineGrad2)" stroke-width="0.55"/><line x1="180" y1="100" x2="140" y2="220" stroke="url(#constLineGrad4)" stroke-width="0.4" stroke-dasharray="3 6"/><circle cx="120" cy="150" r="3.0" fill="#7098d0" filter="url(#starGlowFilter)"/><circle cx="180" cy="100" r="3.5" fill="#80a8e0" filter="url(#starGlowBright)"/><circle cx="250" cy="120" r="2.5" fill="#6888c0" filter="url(#starGlowFilter)"/><circle cx="200" cy="180" r="2.0" fill="#7098c8" filter="url(#starGlowFilter)"/><circle cx="140" cy="220" r="1.8" fill="#6080b8" filter="url(#starGlowFilter)"/></g>
+      <g opacity="0.58"><line x1="900" y1="200" x2="920" y2="280" stroke="url(#constLineGrad2)" stroke-width="0.6"/><line x1="920" y1="280" x2="880" y2="300" stroke="url(#constLineGrad3)" stroke-width="0.7"/><line x1="880" y1="300" x2="960" y2="320" stroke="url(#constLineGrad3)" stroke-width="0.7"/><line x1="960" y1="320" x2="920" y2="280" stroke="url(#constLineGrad3)" stroke-width="0.7"/><line x1="920" y1="280" x2="940" y2="400" stroke="url(#constLineGrad1)" stroke-width="0.55"/><line x1="940" y1="400" x2="910" y2="480" stroke="url(#constLineGrad4)" stroke-width="0.4" stroke-dasharray="3 6"/><line x1="940" y1="400" x2="970" y2="470" stroke="url(#constLineGrad4)" stroke-width="0.4" stroke-dasharray="3 6"/><circle cx="900" cy="200" r="2.5" fill="#80a0d8" filter="url(#starGlowFilter)"/><circle cx="920" cy="280" r="3.5" fill="#68c0c8" filter="url(#starGlowBright)"/><circle cx="880" cy="300" r="2.8" fill="#d8b070" filter="url(#starGlowFilter)"/><circle cx="960" cy="320" r="2.8" fill="#d8b070" filter="url(#starGlowFilter)"/><circle cx="940" cy="400" r="2.2" fill="#7098c8" filter="url(#starGlowFilter)"/><circle cx="910" cy="480" r="1.8" fill="#6088b8" filter="url(#starGlowFilter)"/><circle cx="970" cy="470" r="1.8" fill="#6088b8" filter="url(#starGlowFilter)"/></g>
+      <g opacity="0.53"><line x1="1100" y1="100" x2="1130" y2="160" stroke="url(#constLineGrad2)" stroke-width="0.55"/><line x1="1130" y1="160" x2="1160" y2="110" stroke="url(#constLineGrad1)" stroke-width="0.55"/><line x1="1160" y1="110" x2="1190" y2="170" stroke="url(#constLineGrad2)" stroke-width="0.55"/><line x1="1190" y1="170" x2="1220" y2="120" stroke="url(#constLineGrad1)" stroke-width="0.55"/><circle cx="1100" cy="100" r="2.5" fill="#8098d0" filter="url(#starGlowFilter)"/><circle cx="1130" cy="160" r="3.2" fill="#98b0e0" filter="url(#starGlowBright)"/><circle cx="1160" cy="110" r="2.2" fill="#7090c0" filter="url(#starGlowFilter)"/><circle cx="1190" cy="170" r="2.8" fill="#b8a0e0" filter="url(#starGlowFilter)"/><circle cx="1220" cy="120" r="2.0" fill="#6888b8" filter="url(#starGlowFilter)"/></g>
+      <g opacity="0.56"><line x1="60" y1="550" x2="130" y2="520" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="130" y1="520" x2="200" y2="480" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="200" y1="480" x2="260" y2="510" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="260" y1="510" x2="230" y2="580" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="230" y1="580" x2="180" y2="620" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="180" y1="620" x2="130" y2="580" stroke="url(#constLineGrad4)" stroke-width="0.6"/><line x1="130" y1="580" x2="130" y2="520" stroke="url(#constLineGrad2)" stroke-width="0.4" stroke-dasharray="3 6"/><circle cx="60" cy="550" r="2.0" fill="#6888b8" filter="url(#starGlowFilter)"/><circle cx="130" cy="520" r="3.0" fill="#80a8d8" filter="url(#starGlowBright)"/><circle cx="200" cy="480" r="2.2" fill="#7098c8" filter="url(#starGlowFilter)"/><circle cx="260" cy="510" r="1.8" fill="#6080b0" filter="url(#starGlowFilter)"/><circle cx="230" cy="580" r="2.5" fill="#7898c8" filter="url(#starGlowFilter)"/><circle cx="180" cy="620" r="1.8" fill="#6080b0" filter="url(#starGlowFilter)"/><circle cx="130" cy="580" r="2.0" fill="#6890b8" filter="url(#starGlowFilter)"/></g>
+      <g opacity="0.50"><line x1="1050" y1="600" x2="1100" y2="560" stroke="url(#constLineGrad3)" stroke-width="0.5"/><line x1="1100" y1="560" x2="1160" y2="580" stroke="url(#constLineGrad3)" stroke-width="0.5"/><line x1="1100" y1="560" x2="1120" y2="630" stroke="url(#constLineGrad1)" stroke-width="0.35" stroke-dasharray="2 5"/><circle cx="1050" cy="600" r="2.0" fill="#c8a868" filter="url(#starGlowFilter)"/><circle cx="1100" cy="560" r="3.0" fill="#d8c080" filter="url(#starGlowBright)"/><circle cx="1160" cy="580" r="2.0" fill="#c0a060" filter="url(#starGlowFilter)"/><circle cx="1120" cy="630" r="1.5" fill="#a89050" filter="url(#starGlowFilter)"/></g>
+    </svg>
+  </div>
+
+  <div class="teacher-layout">
+    <aside class="teacher-sidebar" x-data>
+      <div class="teacher-brand"><span class="gradient-text">星识教师端</span></div>
+      <nav class="teacher-nav">
+        <a class="teacher-nav-item" href="/teacher-dashboard.html">工作台</a>
+        <a class="teacher-nav-item" href="/teacher-class.html">班级管理</a>
+        <a class="teacher-nav-item" href="/teacher-manage.html">题库管理</a>
+        <a class="teacher-nav-item" href="/teacher-exam.html">考试管理</a>
+        <a class="teacher-nav-item active" href="/teacher-content.html">内容管理</a>
+        <a class="teacher-nav-item" href="/data-dashboard.html">数据大屏</a>
+      </nav>
+      <div class="teacher-sidebar-footer"><button class="teacher-logout-btn" @click="Auth.logout()">退出登录</button></div>
+    </aside>
+    <main class="teacher-main" x-data="teacherContent" x-init="init()">
+      <h1 class="teacher-page-title">内容管理</h1>
+      <div x-show="success" x-text="success" class="success-banner"></div>
+      <div class="tabs-wrapper">
+        <button class="tab-btn" :class="{ active: activeTab === 'courses' }" @click="activeTab = 'courses'">课程大纲</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'resources' }" @click="activeTab = 'resources'">教学资源</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'ai' }" @click="activeTab = 'ai'">AI 内容审核</button>
+      </div>
+
+      <div x-show="activeTab === 'courses'">
+        <button @click="openCourseModal(null)" class="btn-primary" style="margin-bottom:16px">+ 添加根节点</button>
+        <div class="tree-editor fade-in">
+          <template x-for="node in courseTree" :key="node.id">
+            <div class="tree-node">
+              <div class="tree-node-header">
+                <span class="tree-node-toggle" x-show="node.children && node.children.length">&#9660;</span>
+                <span class="tree-node-title" x-text="node.title"></span>
+                <span class="tree-node-meta" x-show="node.description" x-text="node.description.slice(0,40)"></span>
+                <span class="tree-node-actions">
+                  <button @click="openCourseModal(node.id)" class="btn-sm">+子节点</button>
+                  <button @click="openEditCourseModal(node)" class="btn-sm">编辑</button>
+                  <button @click="openResourceModal(node.id)" class="btn-sm btn-sm-info">资源</button>
+                  <button @click="deleteCourse(node.id)" class="btn-sm btn-sm-danger">删除</button>
+                </span>
+              </div>
+              <template x-if="node.children && node.children.length">
+                <div class="tree-children">
+                  <template x-for="child in node.children" :key="child.id">
+                    <div class="tree-node"><div class="tree-node-header"><span class="tree-node-title" x-text="child.title"></span><span class="tree-node-actions"><button @click="openCourseModal(child.id)" class="btn-sm">+子节点</button><button @click="openEditCourseModal(child)" class="btn-sm">编辑</button><button @click="deleteCourse(child.id)" class="btn-sm btn-sm-danger">删除</button></span></div></div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+          <div x-show="courses.length === 0" class="empty-state">暂无课程大纲</div>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'resources'">
+        <div style="display:flex;gap:8px;margin-bottom:16px">
+          <select x-model="selectedCourse" @change="loadResources(selectedCourse)" class="gen-select" style="min-width:200px"><option value="">选择课程...</option><template x-for="c in courses" :key="c.id"><option :value="c.id" x-text="c.title"></option></template></select>
+          <button x-show="selectedCourse" @click="openResourceModal(selectedCourse)" class="btn-primary">+ 上传资源</button>
+        </div>
+        <div x-show="!selectedCourse" class="empty-state">请先选择一个课程</div>
+        <div x-show="selectedCourse" class="resources-grid stagger">
+          <template x-for="r in resources" :key="r.id">
+            <div class="resource-card app-content-card fade-up"><div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div><div class="resource-card-icon" style="font-size:20px">&#128196;</div><div class="resource-card-body"><div class="resource-card-title" x-text="r.title"></div><div class="resource-card-meta"><span x-text="r.type || '文件'"></span><span x-text="formatBytes(r.size)"></span><span x-show="r.created_at" x-text="formatDate(r.created_at)"></span></div></div><button @click="deleteResource(r.id)" class="btn-sm btn-sm-danger">删除</button></div>
+          </template>
+          <div x-show="resources.length === 0" class="empty-state">暂无资源</div>
+        </div>
+      </div>
+
+      <div x-show="activeTab === 'ai'">
+        <button @click="openAiReviewModal()" class="btn-accent" style="margin-bottom:16px">AI 内容审核</button>
+        <div class="empty-state">使用 AI 助手审核课程内容、试题质量、学生作业</div>
+      </div>
+
+      <div class="modal-overlay" x-show="showCourseModal" @click.self="showCourseModal = false" x-cloak>
+        <div class="modal-content"><h2 x-text="editingNode ? '编辑节点' : '添加节点'"></h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">标题 *</label><input x-model="form.title" class="auth-field" placeholder="课程/章节名称">
+          <label class="auth-label">描述</label><textarea x-model="form.description" class="auth-field" rows="2" placeholder="描述（选填）"></textarea>
+          <div class="modal-actions"><button @click="showCourseModal = false" class="btn-cancel">取消</button><button @click="saveCourse()" :disabled="loading" class="btn-primary" x-text="loading ? '保存中...' : '保存'"></button></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" x-show="showResourceModal" @click.self="showResourceModal = false" x-cloak>
+        <div class="modal-content"><h2>上传教学资源</h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">资源标题 *</label><input x-model="resourceForm.title" class="auth-field" placeholder="资源标题">
+          <label class="auth-label">资源类型</label><select x-model="resourceForm.type" class="auth-field"><option value="document">文档</option><option value="video">视频</option><option value="image">图片</option><option value="other">其他</option></select>
+          <label class="auth-label">选择文件 *</label>
+          <div class="file-upload-area" @click="$refs.resFile.click()" @dragover.prevent="$el.classList.add('drag-over')" @dragleave="$el.classList.remove('drag-over')" @drop.prevent="$el.classList.remove('drag-over'); handleResourceFile({target:{files:$event.dataTransfer.files}})"><input type="file" x-ref="resFile" @change="handleResourceFile" style="display:none"><p>点击选择文件或拖拽到此处</p><div class="file-name" x-show="resourceForm.fileName" x-text="resourceForm.fileName"></div></div>
+          <div class="modal-actions"><button @click="showResourceModal = false" class="btn-cancel">取消</button><button @click="uploadResource()" :disabled="loading || !resourceForm.file" class="btn-primary" x-text="loading ? '上传中...' : '上传'"></button></div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" x-show="showAiReviewModal" @click.self="showAiReviewModal = false" x-cloak>
+        <div class="modal-content modal-wide"><h2>AI 内容审核</h2><div x-show="error" x-text="error" class="error-banner"></div>
+          <label class="auth-label">内容</label><textarea x-model="aiReview.content" rows="6" class="auth-field" placeholder="粘贴需要审核的教学内容..."></textarea>
+          <button @click="runAiReview()" :disabled="aiReview.loading" class="btn-accent" style="margin:12px 0" x-text="aiReview.loading ? 'AI审核中...' : '开始审核'"></button>
+          <div x-show="aiReview.result" class="ai-suggestions-panel" style="margin-top:12px">
+            <template x-if="typeof aiReview.result === 'string'"><p x-text="aiReview.result" style="white-space:pre-wrap"></p></template>
+            <template x-if="typeof aiReview.result === 'object'"><div><div x-show="aiReview.result.score != null" style="margin-bottom:8px"><strong>评分:</strong> <span x-text="aiReview.result.score"></span></div><div x-show="aiReview.result.suggestions" style="margin-bottom:8px"><strong>建议:</strong><template x-if="Array.isArray(aiReview.result.suggestions)"><ul style="padding-left:20px"><template x-for="s in aiReview.result.suggestions"><li x-text="s" style="font-size:13px;margin:4px 0"></li></template></ul></template></div></div></template>
+          </div>
+          <div class="modal-actions"><button @click="showAiReviewModal = false" class="btn-cancel">关闭</button></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心流共振仪 - 星识 Star-Learn</title>
+    <script defer src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/flow-meter.css">
+</head>
+<body data-bg-unified="true" class="flow-body">
+
+    <div class="flow-bg"></div>
+
+    <!-- ── 导航栏 ── -->
+    <nav class="flow-nav">
+        <div class="nav-container">
+            <a href="/hub.html" class="nav-back">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span>返回中枢</span>
+            </a>
+            <div class="nav-title-group">
+                <span class="nav-icon">⌁</span>
+                <h1 class="nav-title">心流共振仪</h1>
+            </div>
+            <div class="nav-status">
+                <span class="status-dot"></span>
+                <span class="status-text">实时监测中</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── 主内容 ── -->
+    <main class="flow-main">
+
+        <!-- Hero Banner: 实时状态 -->
+        <section class="hero-banner">
+            <div class="hero-orb" id="hero-orb">
+                <div class="hero-orb-inner"></div>
+            </div>
+            <div class="hero-info">
+                <h2 class="hero-state-text" id="state-text">深度专注中</h2>
+                <p class="hero-state-desc" id="state-desc">继续保持，学习效率很高</p>
+            </div>
+            <div class="hero-bar-wrap">
+                <div class="hero-bar">
+                    <div class="hero-bar-fill" id="state-fill" style="width: 82%;"></div>
+                </div>
+                <div class="hero-bar-labels">
+                    <span>分散</span>
+                    <span>轻度</span>
+                    <span>专注</span>
+                    <span>心流</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 核心指标卡片 -->
+        <section class="metrics-row">
+            <div class="metric-card">
+                <div class="metric-accent deep"></div>
+                <div class="metric-body">
+                    <div class="metric-ring">
+                        <svg viewBox="0 0 100 100">
+                            <circle class="ring-bg" cx="50" cy="50" r="40"/>
+                            <circle class="ring-fill" cx="50" cy="50" r="40" id="deep-ring"/>
+                        </svg>
+                        <span class="ring-value" id="deep-value">82</span>
+                    </div>
+                    <span class="metric-label">深度专注率</span>
+                    <span class="metric-unit">%</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-accent green"></div>
+                <div class="metric-body">
+                    <div class="metric-value-large" id="focus-time">45:30</div>
+                    <span class="metric-label">累计专注</span>
+                    <span class="metric-unit">时:分</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-accent amber"></div>
+                <div class="metric-body">
+                    <div class="metric-value-large" id="switch-count">3</div>
+                    <span class="metric-label">切屏次数</span>
+                    <span class="metric-unit">次</span>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-accent purple"></div>
+                <div class="metric-body">
+                    <div class="metric-value-large" id="flow-score">78</div>
+                    <span class="metric-label">心流指数</span>
+                    <span class="metric-unit" id="flow-trend">—</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 双图表行 -->
+        <section class="charts-row">
+            <div class="chart-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-accent deep"></span>
+                        实时心流波形
+                    </h2>
+                    <div class="chart-legend">
+                        <span class="legend-tag deep">深度</span>
+                        <span class="legend-tag shallow">轻度</span>
+                        <span class="legend-tag distracted">分心</span>
+                    </div>
+                </div>
+                <div class="chart-body" id="waveform-chart"></div>
+            </div>
+            <div class="chart-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-accent cyan"></span>
+                        时段专注分布
+                    </h2>
+                </div>
+                <div class="chart-body" id="timeofday-chart"></div>
+            </div>
+        </section>
+
+        <!-- 信息行: 本次会话 + 专注建议 -->
+        <section class="info-row">
+            <div class="info-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-accent green"></span>
+                        本次会话
+                    </h2>
+                </div>
+                <div class="session-grid">
+                    <div class="session-cell">
+                        <span class="session-label">开始时间</span>
+                        <span class="session-value" id="session-start">14:00:00</span>
+                    </div>
+                    <div class="session-cell">
+                        <span class="session-label">学习内容</span>
+                        <span class="session-value">Python 数据结构</span>
+                    </div>
+                    <div class="session-cell">
+                        <span class="session-label">目标时长</span>
+                        <span class="session-value">60 分钟</span>
+                    </div>
+                    <div class="session-cell">
+                        <span class="session-label">剩余时间</span>
+                        <span class="session-value highlight" id="remaining-time">14:30</span>
+                    </div>
+                </div>
+                <div class="session-progress">
+                    <div class="progress-track">
+                        <div class="progress-fill" id="session-progress" style="width: 75%;"></div>
+                    </div>
+                    <span class="progress-text" id="progress-label">75% 完成</span>
+                </div>
+            </div>
+            <div class="info-card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <span class="title-accent amber"></span>
+                        专注建议
+                    </h2>
+                </div>
+                <div class="tips-list"></div>
+            </div>
+        </section>
+
+        <!-- 历史趋势 -->
+        <section class="history-section">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span class="title-accent purple"></span>
+                    历史趋势
+                </h2>
+                <div class="filter-group">
+                    <button class="filter-btn active" data-range="day">今日</button>
+                    <button class="filter-btn" data-range="week">本周</button>
+                    <button class="filter-btn" data-range="month">本月</button>
+                </div>
+            </div>
+            <div class="chart-body" id="history-chart"></div>
+        </section>
+
+    </main>
+
+    <script src="/js/data-layer.js"></script>
+    <script src="/js/focus-analysis.js"></script>
+    <script src="/js/flow-meter.js"></script>
+</body>
+</html>

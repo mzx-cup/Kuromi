@@ -1,0 +1,170 @@
+# -*- coding: utf-8 -*-
+"""Tests for GET /api/agents/catalog endpoint.
+
+Catalog 返回 agent 目录与流水线定义；前端 Agent 编排控制塔据此渲染 flow-nodes。
+"""
+
+from datetime import datetime
+
+import pytest
+from fastapi.testclient import TestClient
+
+import app.api.agent_orchestration as ao_module
+import app.api.telemetry as tel_module
+from agents import AgentStepLog
+from main import app
+
+
+@pytest.fixture
+def client():
+    return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _clear_module_state():
+    """避免模块级状态污染跨测试."""
+    ao_module._PIPELINE_STATUS.clear()
+    tel_module._TELEMETRY_BUFFER.clear()
+    yield
+    ao_module._PIPELINE_STATUS.clear()
+    tel_module._TELEMETRY_BUFFER.clear()
+
+
+class TestCatalogApi:
+    def test_catalog_returns_agents(self, client):
+        resp = client.get("/api/agents/catalog")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "agents" in data
+        assert "pipeline" in data
+        agents = data["agents"]
+        assert len(agents) == 9
+        ids = {a["id"] for a in agents}
+        assert ids == {
+            "echo", "profiler", "planner",
+            "document_generator", "exercise_generator",
+            "mindmap_generator", "video_content",
+            "resource_push", "evaluator",
+        }
+
+    def test_catalog_pipeline_has_stages(self, client):
+        resp = client.get("/api/agents/catalog")
+        pipeline = resp.json()["pipeline"]
+        stages = {p["stage"] for p in pipeline}
+        assert stages == {"pre", "main", "parallel", "post"}
+        parallel = next(p for p in pipeline if p["stage"] == "parallel")
+        assert parallel["max_concurrent"] == 4
+        assert parallel["agents"] == [
+            "document_generator", "exercise_generator",
+            "mindmap_generator", "video_content",
+        ]
+
+
+class TestExecuteApi:
+    def test_execute_emits_agent_step_event(self, monkeypatch):
+        """POST /api/agents/execute 应通过 SSE 流至少下发一个 agent_step 事件.
+
+        用假 controller 替换真实 create_default_controller,避免真实 LLM 调用.
+        """
+
+        class FakeController:
+            async def execute(self, state, on_step_complete=None):
+                if on_step_complete:
+                    log1 = AgentStepLog(
+                        agent_name="profiler", agent_role="画像分析",
+                        input_summary="in1", output_summary="out1",
+                        processing_time_ms=100, status="success",
+                        error_message="", timestamp=datetime.now(),
+                    )
+                    await on_step_complete(log1)
+                # 不等真实完成,直接结束 (run_controller 的 finally 会下发 sentinel)
+
+        monkeypatch.setattr(ao_module, "create_default_controller", FakeController)
+
+        client = TestClient(app)
+        with client.stream(
+            "POST", "/api/agents/execute",
+            json={"student_id": "u1", "user_input": "hi"},
+        ) as r:
+            assert r.status_code == 200
+            seen_events = set()
+            for line in r.iter_lines():
+                if line.startswith("event:"):
+                    seen_events.add(line.split(":", 1)[1].strip())
+                if "agent_step" in seen_events:
+                    break
+
+        assert "agent_step" in seen_events
+        assert "heartbeat" in seen_events
+
+
+class TestStatusApi:
+    def test_status_404_for_unknown_trace(self):
+        """GET /api/agents/status/{unknown} 应返回 404."""
+        client = TestClient(app)
+        r = client.get("/api/agents/status/this-trace-does-not-exist-xyz")
+        assert r.status_code == 404
+        assert r.json()["detail"] == "trace not found"
+
+    def test_status_200_for_known_trace_after_execute(self, monkeypatch):
+        """执行 execute 后,status 端点应能查到 trace."""
+        class FakeController:
+            async def execute(self, state, on_step_complete=None):
+                # 立即返回 → run_controller 的 finally 会写入 _PIPELINE_STATUS
+                return
+
+        monkeypatch.setattr(ao_module, "create_default_controller", FakeController)
+        client = TestClient(app)
+        # 先跑一次 execute,获取 trace_id
+        with client.stream("POST", "/api/agents/execute",
+                           json={"student_id": "u1", "user_input": "hi"}) as r:
+            assert r.status_code == 200
+            seen_trace = None
+            for line in r.iter_lines():
+                if line.startswith("data:"):
+                    import json as _json
+                    payload = _json.loads(line.split(":", 1)[1].strip())
+                    if "trace_id" in payload:
+                        seen_trace = payload["trace_id"]
+                        break
+        assert seen_trace is not None
+        # 现在查 status
+        r2 = client.get(f"/api/agents/status/{seen_trace}")
+        assert r2.status_code == 200
+        body = r2.json()
+        assert body["trace_id"] == seen_trace
+        assert body["status"] == "complete"
+        assert "started_at" in body
+        assert "completed_at" in body
+        assert body["assets"] == []
+        assert body["agents"] == []
+
+
+class TestTelemetryApi:
+    def test_telemetry_batch_accepted(self):
+        client = TestClient(app)
+        r = client.post("/api/telemetry", json={
+            "student_id": "u_telemetry_test_001",  # unique to avoid pollution
+            "batch": [{"type": "scroll", "metrics": {"speed": 100}, "ts": 0}],
+        })
+        assert r.status_code == 200
+        data = r.json()
+        assert data["accepted"] == 1
+        assert data["buffer_size"] == 1
+
+    def test_telemetry_batch_appends(self):
+        client = TestClient(app)
+        sid = "u_telemetry_test_002"
+        # 第一次
+        r1 = client.post("/api/telemetry", json={
+            "student_id": sid,
+            "batch": [{"type": "scroll", "ts": 0}],
+        })
+        assert r1.json()["buffer_size"] == 1
+        # 第二次(同一 student_id)应追加而非覆盖
+        r2 = client.post("/api/telemetry", json={
+            "student_id": sid,
+            "batch": [{"type": "click", "ts": 1}, {"type": "hover", "ts": 2}],
+        })
+        assert r2.json()["accepted"] == 2
+        assert r2.json()["buffer_size"] == 3

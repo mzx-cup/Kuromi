@@ -59,11 +59,16 @@ def ensure_pip_works() -> None:
     import re
     for pth in PYTHON_DIR.glob("python*._pth"):
         text = pth.read_text(encoding="utf-8")
-        if "import site" in text and not text.startswith("#import site"):
+        # Check if there's an active (uncommented) "import site" line already
+        if re.search(r"^import\s+site\s*$", text, flags=re.M):
+            print(f"[portable] {pth.name} already has active 'import site'")
             continue
         new_text = re.sub(r"^#\s*import\s+site", "import site", text, flags=re.M)
-        pth.write_text(new_text, encoding="utf-8")
-        print(f"[portable] Patched {pth.name}")
+        if new_text != text:
+            pth.write_text(new_text, encoding="utf-8")
+            print(f"[portable] Patched {pth.name} — uncommented 'import site'")
+        else:
+            print(f"[portable] {pth.name} — no 'import site' line found")
 
 
 def install_deps() -> None:

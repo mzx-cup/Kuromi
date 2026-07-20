@@ -1,0 +1,9 @@
+{"ts": "2026-06-15T12:07:51.865210+00:00", "kind": "intent_route", "student_id": "1", "intent": "socratic_qa"}
+{"ts": "2026-07-10T08:54:25.281522+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-07-10T08:56:02.666653+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-07-10T08:57:01.959314+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-07-19T10:51:03.319150+00:00", "kind": "intent_route", "student_id": "3", "intent": "socratic_qa"}
+{"ts": "2026-07-19T10:51:43.893039+00:00", "kind": "intent_route", "student_id": "3", "intent": "socratic_qa"}
+{"ts": "2026-07-19T10:52:36.691554+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}
+{"ts": "2026-07-19T11:10:53.431443+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}
+{"ts": "2026-07-19T12:05:51.306749+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}

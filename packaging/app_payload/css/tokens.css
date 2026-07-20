@@ -1,0 +1,713 @@
+/* ============================================================
+   Design Tokens v4 — 全局设计令牌（新主题系统）
+   规则：
+     1. 三层架构：原始 HCL → 计算色阶 → 语义令牌
+     2. 6 个精品预设（3 亮 + 3 暗）+ 旧主题 ID 映射保留兼容
+     3. 颜色全部走 oklch + color-mix 推导，禁止硬编码 hex
+     4. 暗黑模式靠 [data-theme] 自动激活 --_color-scheme
+   ============================================================ */
+
+
+/* ============================================================
+   LAYER 1 — 原始令牌（HCL 三元组）
+   ============================================================ */
+
+/* 默认主题：dawn 晨曦（亮色暖橙） */
+:root {
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 56%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 12;           --_danger-c: 0.22;      --_danger-l: 54%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 58%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+/* ---- 亮色主题 ---- */
+
+/* dawn 晨曦（暖橙） */
+[data-theme="dawn"] {
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 145;         --_success-c: 0.16;     --_success-l: 56%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 12;           --_danger-c: 0.22;      --_danger-l: 54%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 58%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+
+/* forest 森野（翠绿） */
+[data-theme="forest"] {
+    --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
+    --_success-h: 152;         --_success-c: 0.15;     --_success-l: 50%;
+    --_warning-h: 56;          --_warning-c: 0.16;     --_warning-l: 62%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 48%;
+    --_info-h: 195;            --_info-c: 0.14;        --_info-l: 54%;
+    --_neutral-h: 135;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.025;
+    --_color-scheme: light;
+}
+
+/* sakura 樱语（樱花粉） */
+[data-theme="sakura"] {
+    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 60%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 52%;
+    --_warning-h: 38;          --_warning-c: 0.16;     --_warning-l: 62%;
+    --_danger-h: 355;          --_danger-c: 0.20;      --_danger-l: 52%;
+    --_info-h: 270;            --_info-c: 0.13;        --_info-l: 56%;
+    --_neutral-h: 350;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+}
+
+/* ---- 暗色主题 ---- */
+
+/* midnight 子夜（琥珀） */
+[data-theme="midnight"] {
+    --_brand-h: 38;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 50;          --_warning-c: 0.16;     --_warning-l: 68%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 220;            --_info-c: 0.14;        --_info-l: 64%;
+    --_neutral-h: 224;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+
+/* nebula 星云（紫蓝） */
+[data-theme="nebula"] {
+    --_brand-h: 268;           --_brand-c: 0.18;       --_brand-l: 70%;
+    --_success-h: 150;         --_success-c: 0.14;     --_success-l: 62%;
+    --_warning-h: 48;          --_warning-c: 0.17;     --_warning-l: 68%;
+    --_danger-h: 8;            --_danger-c: 0.20;      --_danger-l: 58%;
+    --_info-h: 220;            --_info-c: 0.16;        --_info-l: 66%;
+    --_neutral-h: 250;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.32;  --_surface-saturation: 0.025;
+    --_color-scheme: dark;
+}
+
+/* cyber 赛博（霓虹青） */
+[data-theme="cyber"] {
+    --_brand-h: 192;           --_brand-c: 0.24;       --_brand-l: 64%;
+    --_success-h: 158;         --_success-c: 0.22;     --_success-l: 62%;
+    --_warning-h: 45;          --_warning-c: 0.22;     --_warning-l: 65%;
+    --_danger-h: 358;          --_danger-c: 0.28;      --_danger-l: 60%;
+    --_info-h: 210;            --_info-c: 0.22;        --_info-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.03;
+    --_shadow-strength: 0.50;  --_surface-saturation: 0.05;
+    --_color-scheme: dark;
+}
+
+
+/* ============================================================
+   LEGACY 主题 ID 映射 — 保留旧 data-theme 兼容
+   pink-dark / deep-ocean / star-vault / starry-night 等
+   都会按品牌色相近原则映射到 6 个新主题
+   ============================================================ */
+
+[data-theme="warm-morning"],
+[data-theme="ocean-glass"],
+[data-theme="twilight-glow"] {
+    --_brand-h: 32;            --_brand-c: 0.18;       --_brand-l: 62%;
+    --_neutral-h: 38;          --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+[data-theme="forest-light"],
+[data-theme="bamboo-grove"] {
+    --_brand-h: 148;           --_brand-c: 0.16;       --_brand-l: 52%;
+    --_neutral-h: 135;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.05;  --_surface-saturation: 0.025;
+    --_color-scheme: light;
+}
+[data-theme="sakura-whisper"] {
+    --_brand-h: 340;           --_brand-c: 0.18;       --_brand-l: 60%;
+    --_neutral-h: 350;         --_neutral-c: 0.012;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.03;
+    --_color-scheme: light;
+}
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"] {
+    --_brand-h: 38;            --_brand-c: 0.19;       --_brand-l: 68%;
+    --_neutral-h: 224;         --_neutral-c: 0.014;
+    --_shadow-strength: 0.30;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
+[data-theme="star-vault"] {
+    --_brand-h: 268;           --_brand-c: 0.18;       --_brand-l: 70%;
+    --_neutral-h: 250;         --_neutral-c: 0.018;
+    --_shadow-strength: 0.32;  --_surface-saturation: 0.025;
+    --_color-scheme: dark;
+}
+[data-theme="neon-cyber"] {
+    --_brand-h: 192;           --_brand-c: 0.24;       --_brand-l: 64%;
+    --_neutral-h: 220;         --_neutral-c: 0.03;
+    --_shadow-strength: 0.50;  --_surface-saturation: 0.05;
+    --_color-scheme: dark;
+}
+
+
+/* ============================================================
+   LAYER 2 — 生成色阶（全局计算）
+   ============================================================ */
+
+:root {
+    /* 品牌色阶 */
+    --brand-50:  color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 92%);
+    --brand-100: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 80%);
+    --brand-200: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 62%);
+    --brand-300: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 38%);
+    --brand-400: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), white 14%);
+    --brand-500: oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h));
+    --brand-600: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 18%);
+    --brand-700: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 40%);
+    --brand-800: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 62%);
+    --brand-900: color-mix(in oklch, oklch(var(--_brand-l) var(--_brand-c) var(--_brand-h)), black 82%);
+
+    /* 语义色 */
+    --success:  oklch(var(--_success-l) var(--_success-c) var(--_success-h));
+    --warning:  oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h));
+    --danger:   oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h));
+    --info:     oklch(var(--_info-l) var(--_info-c) var(--_info-h));
+
+    --success-bg: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 88%);
+    --warning-bg: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 88%);
+    --danger-bg:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 88%);
+    --info-bg:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 88%);
+
+    --success-border: color-mix(in oklch, oklch(var(--_success-l) var(--_success-c) var(--_success-h)), transparent 75%);
+    --warning-border: color-mix(in oklch, oklch(var(--_warning-l) var(--_warning-c) var(--_warning-h)), transparent 75%);
+    --danger-border:  color-mix(in oklch, oklch(var(--_danger-l) var(--_danger-c) var(--_danger-h)), transparent 75%);
+    --info-border:    color-mix(in oklch, oklch(var(--_info-l) var(--_info-c) var(--_info-h)), transparent 75%);
+
+    /* 中性色阶（亮色：浅；暗色：深 — 由 color-scheme 调整 oklch L） */
+    --neutral-50:  oklch(96% var(--_neutral-c) var(--_neutral-h));
+    --neutral-100: oklch(90% var(--_neutral-c) var(--_neutral-h));
+    --neutral-200: oklch(82% var(--_neutral-c) var(--_neutral-h));
+    --neutral-300: oklch(72% var(--_neutral-c) var(--_neutral-h));
+    --neutral-400: oklch(58% var(--_neutral-c) var(--_neutral-h));
+    --neutral-500: oklch(48% var(--_neutral-c) var(--_neutral-h));
+    --neutral-600: oklch(38% var(--_neutral-c) var(--_neutral-h));
+    --neutral-700: oklch(28% var(--_neutral-c) var(--_neutral-h));
+    --neutral-800: oklch(20% var(--_neutral-c) var(--_neutral-h));
+    --neutral-900: oklch(13% var(--_neutral-c) var(--_neutral-h));
+
+    /* 表面色（亮色基线） */
+    --surface-page:    color-mix(in oklch, var(--neutral-50), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
+    --surface-card:    color-mix(in oklch, var(--neutral-100), oklch(100% 0 none) calc(var(--_surface-saturation) * 100%));
+    --surface-hover:   color-mix(in oklch, var(--neutral-200), oklch(100% 0 none) calc(var(--_surface-saturation) * 80%));
+    --surface-pressed: color-mix(in oklch, var(--neutral-300), oklch(100% 0 none) calc(var(--_surface-saturation) * 60%));
+    --surface-overlay: color-mix(in oklch, var(--neutral-900), transparent 40%);
+    --surface-nav:     color-mix(in oklch, var(--neutral-50), transparent 15%);
+
+    /* 毛玻璃 */
+    --surface-glass:       color-mix(in oklch, var(--surface-card), transparent 60%);
+    --surface-glass-hover: color-mix(in oklch, var(--surface-hover), transparent 50%);
+    --border-glass:        color-mix(in oklch, var(--neutral-200), transparent 55%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-300), transparent 40%);
+
+    /* 品牌强调 */
+    --accent-bg:     color-mix(in oklch, var(--brand-500), transparent 88%);
+    --accent-border: color-mix(in oklch, var(--brand-500), transparent 78%);
+}
+
+
+/* ---- 暗色模式表面色反转（不再依赖每个主题手写 override） ---- */
+[data-theme="midnight"],
+[data-theme="nebula"],
+[data-theme="cyber"],
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"],
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
+[data-theme="star-vault"],
+[data-theme="neon-cyber"] {
+    --surface-page:    oklch(14% var(--_neutral-c) var(--_neutral-h));
+    --surface-card:    color-mix(in oklch, oklch(20% var(--_neutral-c) var(--_neutral-h)), transparent 25%);
+    --surface-hover:   color-mix(in oklch, oklch(26% var(--_neutral-c) var(--_neutral-h)), transparent 15%);
+    --surface-pressed: oklch(30% var(--_neutral-c) var(--_neutral-h));
+    --surface-overlay: color-mix(in oklch, oklch(8% var(--_neutral-c) var(--_neutral-h)), transparent 30%);
+    --surface-nav:     color-mix(in oklch, oklch(18% var(--_neutral-c) var(--_neutral-h)), transparent 20%);
+    --surface-glass:       color-mix(in oklch, oklch(22% var(--_neutral-c) var(--_neutral-h)), transparent 50%);
+    --surface-glass-hover: color-mix(in oklch, oklch(28% var(--_neutral-c) var(--_neutral-h)), transparent 40%);
+    --border-glass:        color-mix(in oklch, oklch(45% var(--_neutral-c) var(--_neutral-h)), transparent 70%);
+    --border-glass-hover:  color-mix(in oklch, var(--brand-400), transparent 50%);
+}
+
+
+/* ============================================================
+   LAYER 3 — 语义令牌（组件唯一接口）
+   ============================================================ */
+
+:root {
+    /* 阴影 */
+    --shadow-xs: 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 150%)));
+    --shadow-sm: 0 1px 3px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 140%))),
+                 0 1px 2px  color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 100%)));
+    --shadow-md: 0 4px 16px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 200%)));
+    --shadow-lg: 0 12px 40px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 300%)));
+    --shadow-xl: 0 24px 64px color-mix(in oklch, var(--neutral-900), transparent calc(100% - (var(--_shadow-strength) * 400%)));
+    --shadow-inset: inset 0 2px 4px rgba(0,0,0, calc(var(--_shadow-strength) * 0.5));
+    --shadow-glow: 0 0 20px color-mix(in oklch, var(--brand-400), transparent 60%);
+    --shadow-card-hover: 0 8px 30px rgba(0,0,0, calc(var(--_shadow-strength) * 1.2));
+    --shadow-modal: 0 20px 60px rgba(0,0,0, calc(var(--_shadow-strength) * 1.5));
+    --shadow-toast: 0 4px 20px rgba(0,0,0, calc(var(--_shadow-strength) * 1));
+
+    /* 文字色（亮色基线） */
+    --text-heading:     var(--neutral-900);
+    --text-body:        var(--neutral-700);
+    --text-muted:       var(--neutral-500);
+    --text-placeholder: var(--neutral-400);
+    --text-link:        var(--brand-600);
+    --text-on-brand:    #ffffff;
+
+    /* 圆角 */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --radius-full: 9999px;
+    --radius-pill: 9999px;
+
+    /* 间距 */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 40px;
+    --space-2xl: 64px;
+    --space-3xl: 80px;
+    --space-section: 48px;
+    --space-gutter: 24px;
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap-md: 16px;
+    --gap-lg: 24px;
+    --gap-xl: 32px;
+
+    /* 缓动 */
+    --ease-out:     cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-standard: 0.15s ease;
+
+    /* 字体 */
+    --text-xs: 11px;
+    --text-sm: 13px;
+    --text-base: 15px;
+    --text-lg: 18px;
+    --text-xl: 22px;
+    --text-2xl: 28px;
+    --text-3xl: 36px;
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+    /* 过渡 */
+    --transition-fast:   var(--ease-standard);
+    --transition-base:   0.25s var(--ease-out);
+    --transition-slow:   0.4s var(--ease-out);
+    --transition-spring: 0.3s var(--ease-out);
+
+    /* 便捷别名 */
+    --bg-card:         var(--surface-card);
+    --card-bg:         var(--surface-card);
+    --card-border:     var(--neutral-200);
+    --border-color:    var(--neutral-200);
+    --border-secondary: var(--neutral-300);
+    --hover-bg:        var(--surface-hover);
+    --input-bg:        var(--neutral-100);
+    --input-border:    var(--neutral-200);
+    --input-focus-border: var(--brand-500);
+    --input-focus-ring: color-mix(in oklch, var(--brand-500), transparent 85%);
+    --btn-secondary-bg:    var(--neutral-100);
+    --btn-secondary-hover: var(--neutral-200);
+
+    --glass-bg:        var(--surface-glass);
+    --glass-blur:      24px;
+    --glass-shadow:    var(--shadow-md);
+    --shadow-glass:    var(--shadow-md);
+
+    --surface-glass-2: color-mix(in oklch, var(--surface-glass), transparent 50%);
+
+    /* 便捷品牌别名 (页面可覆写) */
+    --primary: var(--brand-500);
+    --primary-light: var(--brand-400);
+    --primary-dark: var(--brand-600);
+    --accent: var(--brand-400);
+
+    --success-500: var(--success);
+    --warning-500: var(--warning);
+    --danger-500:  var(--danger);
+    --info-500:    var(--info);
+    --accent-500:  var(--brand-500);
+
+    --surface-elevated: var(--surface-card);
+    --surface-raised: color-mix(in oklch, var(--surface-card), white 5%);
+    --surface-sunken: color-mix(in oklch, var(--surface-card), black 5%);
+    --separator: color-mix(in oklch, var(--border-color), transparent 50%);
+    --overlay-dim: rgba(0, 0, 0, 0.5);
+    --focus-ring: 0 0 0 3px color-mix(in oklch, var(--brand-400), transparent 60%);
+
+    /* Z-Index */
+    --z-base: 0;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 500;
+    --z-modal: 1000;
+    --z-toast: 1100;
+    --z-tooltip: 1200;
+
+    /* ----- 壁纸控制变量（theme.js 动态写入） ----- */
+    --theme-bg-image: none;
+    --theme-bg-video: none;
+    --theme-brightness: 100%;
+    --theme-blur: 0px;
+    --theme-overlay: 0;
+    --theme-text-contrast: 0%;
+
+    /* Legacy 兼容：旧 leleo-* 变量映射（壁纸） */
+    --leleo-bg-image: var(--theme-bg-image);
+    --leleo-bg-video: var(--theme-bg-video);
+    --leleo-brightness: var(--theme-brightness);
+    --leleo-blur: var(--theme-blur);
+    --leleo-text-contrast: var(--theme-text-contrast);
+
+    /* === Agent 编排控制塔 (Phase 5) === */
+    --agent-idle: var(--text-tertiary);
+    --agent-busy: var(--primary);
+    --agent-success: var(--success);
+    --agent-failed: var(--danger);
+
+    /* Radar / terminal */
+    --code-bg: #0a0e1a;
+    --radar-fill-start: var(--primary);
+    --radar-fill-end: var(--accent);
+    --radar-glow: var(--primary-light);
+
+    /* 学情画像面板 4 卡 */
+    --profile-card-bg: var(--surface-glass);
+    --profile-card-border: var(--border-glass);
+    --profile-label: var(--text-primary);
+    --profile-title: var(--text-tertiary);
+    --profile-progress: var(--primary);
+    --profile-progress-bg: var(--surface-glass-2);
+
+    /* 情绪状态色 (4 档) */
+    --emotion-calm: var(--success);
+    --emotion-anxious: var(--warning);
+    --emotion-frustrated: var(--danger);
+    --emotion-engaged: var(--primary);
+
+    /* === 课程生成面板 (OpenMAIC) === 固定琥珀色品牌，不随 6 主题变化 */
+    --openmaic-amber-50:  #fffbeb;
+    --openmaic-amber-100: #fef3c7;
+    --openmaic-amber-200: #fde68a;
+    --openmaic-amber-300: #fcd34d;
+    --openmaic-amber-400: #fbbf24;
+    --openmaic-amber-500: #f59e0b;   /* 主品牌色 */
+    --openmaic-amber-600: #d97706;   /* hover/active */
+    --openmaic-amber-700: #b45309;
+    --openmaic-amber-800: #92400e;
+    --openmaic-amber-900: #78350f;
+
+    /* Phase 2 辅助调色板 (脑暴/确认/进度 — 不参与 6 主题) */
+    --openmaic-cyan-300:  #67e8f9;
+    --openmaic-cyan-400:  #22d3ee;
+    --openmaic-cyan-500:  #06b6d4;
+    --openmaic-cyan-600:  #0891b2;
+    --openmaic-cyan-bg:   rgba(6, 182, 212, 0.14);
+    --openmaic-cyan-border: rgba(6, 182, 212, 0.32);
+
+    --openmaic-violet-300: #c4b5fd;
+    --openmaic-violet-400: #a78bfa;
+    --openmaic-violet-500: #8b5cf6;
+    --openmaic-violet-600: #7c3aed;
+    --openmaic-violet-bg:   rgba(139, 92, 246, 0.14);
+    --openmaic-violet-border: rgba(139, 92, 246, 0.32);
+
+    --openmaic-emerald-300: #6ee7b7;
+    --openmaic-emerald-400: #34d399;
+    --openmaic-emerald-500: #10b981;
+    --openmaic-emerald-600: #059669;
+    --openmaic-emerald-bg:   rgba(16, 185, 129, 0.14);
+    --openmaic-emerald-border: rgba(16, 185, 129, 0.32);
+
+    /* 课程页画布（仅 dark 模式使用，light 模式由 .light-theme 块覆盖） */
+    --openmaic-bg-deep:  #0a0f1c;
+    --openmaic-bg-base:  #0f172a;
+    --openmaic-bg-orb-1: #f59e0b;
+    --openmaic-bg-orb-2: #06b6d4;
+    --openmaic-bg-orb-3: #3b82f6;
+
+    /* 课程页 light 块专用：浅色面上的琥珀变体 */
+    --openmaic-on-light-bg:     #fffbeb;
+    --openmaic-on-light-border: #fde68a;
+    --openmaic-on-light-text:   #92400e;
+    --openmaic-on-light-muted:  #b45309;
+
+    /* 课程生成页玻璃按钮（深色页面上浮起的白色半透明按钮，不随 6 主题变化） */
+    --openmaic-glass-btn-bg:       rgba(255, 255, 255, 0.88);
+    --openmaic-glass-btn-hover:    rgba(255, 255, 255, 0.98);
+    --openmaic-glass-btn-active:   rgba(255, 255, 255, 0.96);
+    --openmaic-glass-btn-expanded: rgba(255, 255, 255, 0.95);
+    --openmaic-glass-card-bg:      rgba(255, 255, 255, 0.78);
+
+    /* 课程生成页深色半透明表面 */
+    --openmaic-dark-surface-dim:    rgba(30, 41, 59, 0.4);
+    --openmaic-dark-surface:        rgba(30, 41, 59, 0.5);
+    --openmaic-dark-surface-solid:  rgba(30, 41, 59, 0.8);
+    --openmaic-dark-surface-hover:  rgba(30, 41, 59, 0.85);
+    --openmaic-dark-surface-card:   rgba(30, 41, 59, 0.9);
+    --openmaic-dark-surface-modal:  rgba(30, 41, 59, 0.95);
+
+    /* 课程生成页细边框 & 微阴影 */
+    --openmaic-glass-border-dim:    rgba(255, 255, 255, 0.06);
+    --openmaic-glass-border:        rgba(255, 255, 255, 0.08);
+    --openmaic-glass-border-strong: rgba(255, 255, 255, 0.1);
+    --openmaic-glass-highlight:     rgba(255, 255, 255, 0.05);
+    --openmaic-glass-inset-btn:     rgba(255, 255, 255, 0.2);
+    --openmaic-glass-inset-btn-hover: rgba(255, 255, 255, 0.25);
+    --openmaic-shadow-tint:         rgba(15, 23, 42, 0.06);
+
+    /* 课程生成页视频图标色（固定 cyan，不随品牌色变化） */
+    --openmaic-video-icon:       #38bdf8;
+    --openmaic-video-icon-light: #0ea5e9;
+    --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
+    --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
+
+    /* === Phase 2 脑暴/确认/9件套面板 === 暗底玻璃上的文本与状态色 */
+    --openmaic-text-heading:    #f1f5f9;
+    --openmaic-text-body:       #e2e8f0;
+    --openmaic-text-muted:      #94a3b8;
+    --openmaic-text-placeholder:#64748b;
+    --openmaic-text-on-brand:   #ffffff;
+
+    /* 状态色 — 与 token 表(--success/--warning/--danger)一致 */
+    --openmaic-success-500:     #10b981;
+    --openmaic-success-bg:      rgba(16, 185, 129, 0.12);
+    --openmaic-success-border:  rgba(16, 185, 129, 0.3);
+    --openmaic-warning-500:     #f59e0b;
+    --openmaic-warning-bg:      rgba(245, 158, 11, 0.12);
+    --openmaic-warning-border:  rgba(245, 158, 11, 0.3);
+    --openmaic-danger-500:      #ef4444;
+    --openmaic-danger-bg:       rgba(239, 68, 68, 0.12);
+    --openmaic-danger-border:   rgba(239, 68, 68, 0.3);
+
+    /* 玻璃交互 — 面板内控件 (按钮/输入/选项) */
+    --openmaic-glass-control-bg:       var(--openmaic-glass-btn-bg);
+    --openmaic-glass-control-bg-hover: var(--openmaic-glass-btn-hover);
+    --openmaic-glass-control-border:   var(--openmaic-glass-border);
+
+    /* === 课堂页面 (Classroom) === 玻璃面 + 学术配色，不随 6 主题变化 */
+    --classroom-bg-from:    #f5f3ff;   /* 画布渐变起点（淡紫） */
+    --classroom-bg-to:      #ede9fe;   /* 画布渐变终点 */
+    --classroom-bg-orb-1:   #c4b5fd;   /* 紫色光晕（淡） */
+    --classroom-bg-orb-2:   #fbcfe8;   /* 樱粉光晕（淡） */
+    --classroom-bg-orb-3:   #a5f3fc;   /* 青色光晕（淡） */
+
+    /* 玻璃面板（PPT 卡片、侧栏、聊天面板共用） */
+    --classroom-glass-bg:        color-mix(in oklch, white, transparent 35%);
+    --classroom-glass-bg-hover:  color-mix(in oklch, white, transparent 25%);
+    --classroom-glass-border:    color-mix(in oklch, var(--neutral-900), transparent 88%);
+    --classroom-glass-shadow:    0 8px 32px rgba(15, 23, 42, 0.08),
+                                0 1px 0 rgba(255, 255, 255, 0.6) inset;
+
+    /* PPT 卡片（PPT 内容是浅底白卡以保证文字可读） */
+    --slide-bg-from:         #ffffff;
+    --slide-bg-to:           #f1f5f9;
+    --slide-title-color:     #1e293b;   /* slate-800 */
+    --slide-accent-color:    var(--openmaic-amber-500);   /* 顶部彩色 accent stripe：固定琥珀 */
+    --slide-shadow:          0 25px 50px -12px rgba(15, 23, 42, 0.18),
+                             0 0 0 1px color-mix(in oklch, var(--neutral-900), transparent 92%);
+
+    /* 课堂品牌主色（不参与 6 主题切换） */
+    --classroom-accent:        var(--openmaic-amber-500);
+    --classroom-accent-hover:  var(--openmaic-amber-600);
+    --classroom-accent-soft:   color-mix(in oklch, var(--openmaic-amber-500), transparent 80%);
+
+    /* 樱花粉（quiz 高亮/装饰） */
+    --classroom-sakura-300:   #ff9ec4;
+    --classroom-sakura-400:   #ffb6d9;
+
+    /* 5 角色头像渐变（角色身份不参与主题） */
+    --classroom-avatar-teacher:    linear-gradient(135deg, #6366f1, #8b5cf6);
+    --classroom-avatar-student:    linear-gradient(135deg, #10b981, #34d399);
+    --classroom-avatar-agent:      linear-gradient(135deg, #f59e0b, #fbbf24);
+    --classroom-avatar-moderator:  linear-gradient(135deg, #ec4899, #f472b6);
+    --classroom-avatar-user:       linear-gradient(135deg, #06b6d4, #3b82f6);
+}
+
+/* ---- 暗色模式文字色 ---- */
+[data-theme="midnight"],
+[data-theme="nebula"],
+[data-theme="cyber"],
+[data-theme="study-night"],
+[data-theme="starry-night"],
+[data-theme="pink-dark"],
+[data-theme="deep-ocean"],
+[data-theme="ocean-glass-dark"],
+[data-theme="star-vault"],
+[data-theme="neon-cyber"] {
+    --text-heading:     var(--neutral-50);
+    --text-body:        var(--neutral-200);
+    --text-muted:       var(--neutral-400);
+    --text-placeholder: var(--neutral-500);
+    --text-link:        var(--brand-300);
+    --text-on-brand:    oklch(14% var(--_neutral-c) var(--_neutral-h));
+
+    /* Agent 编排控制塔 (Phase 5) - dark theme override */
+    --agent-idle: var(--text-tertiary);
+    --agent-busy: var(--primary);
+    --agent-success: var(--success);
+    --agent-failed: var(--danger);
+    --code-bg: #050810;
+    --radar-fill-start: var(--primary);
+    --radar-fill-end: var(--accent);
+    --radar-glow: var(--primary-light);
+    --profile-card-bg: var(--surface-glass);
+    --profile-card-border: var(--border-glass);
+    --profile-label: var(--text-primary);
+    --profile-title: var(--text-tertiary);
+    --profile-progress: var(--primary);
+    --profile-progress-bg: var(--surface-glass-2);
+    --emotion-calm: var(--success);
+    --emotion-anxious: var(--warning);
+    --emotion-frustrated: var(--danger);
+    --emotion-engaged: var(--primary);
+
+    /* OpenMAIC 品牌色（不随 6 主题变化，但 dark 块也需声明以保证所有主题下可用） */
+    --openmaic-amber-50:  #fffbeb;
+    --openmaic-amber-100: #fef3c7;
+    --openmaic-amber-200: #fde68a;
+    --openmaic-amber-300: #fcd34d;
+    --openmaic-amber-400: #fbbf24;
+    --openmaic-amber-500: #f59e0b;
+    --openmaic-amber-600: #d97706;
+    --openmaic-amber-700: #b45309;
+    --openmaic-amber-800: #92400e;
+    --openmaic-amber-900: #78350f;
+
+    /* Phase 2 辅助调色板 (深色主题下用更亮的变种) */
+    --openmaic-cyan-300:  #67e8f9;
+    --openmaic-cyan-400:  #22d3ee;
+    --openmaic-cyan-500:  #06b6d4;
+    --openmaic-cyan-600:  #0891b2;
+    --openmaic-cyan-bg:   rgba(34, 211, 238, 0.16);
+    --openmaic-cyan-border: rgba(34, 211, 238, 0.36);
+
+    --openmaic-violet-300: #c4b5fd;
+    --openmaic-violet-400: #a78bfa;
+    --openmaic-violet-500: #8b5cf6;
+    --openmaic-violet-600: #7c3aed;
+    --openmaic-violet-bg:   rgba(167, 139, 250, 0.16);
+    --openmaic-violet-border: rgba(167, 139, 250, 0.36);
+
+    --openmaic-emerald-300: #6ee7b7;
+    --openmaic-emerald-400: #34d399;
+    --openmaic-emerald-500: #10b981;
+    --openmaic-emerald-600: #059669;
+    --openmaic-emerald-bg:   rgba(52, 211, 153, 0.16);
+    --openmaic-emerald-border: rgba(52, 211, 153, 0.36);
+
+    --openmaic-bg-deep:  #0a0f1c;
+    --openmaic-bg-base:  #0f172a;
+    --openmaic-bg-orb-1: #f59e0b;
+    --openmaic-bg-orb-2: #06b6d4;
+    --openmaic-bg-orb-3: #3b82f6;
+    --openmaic-on-light-bg:     #fffbeb;
+    --openmaic-on-light-border: #fde68a;
+    --openmaic-on-light-text:   #92400e;
+    --openmaic-on-light-muted:  #b45309;
+
+    /* 课程生成页玻璃按钮（深色主题下保持一致，不变化） */
+    --openmaic-glass-btn-bg:       rgba(255, 255, 255, 0.88);
+    --openmaic-glass-btn-hover:    rgba(255, 255, 255, 0.98);
+    --openmaic-glass-btn-active:   rgba(255, 255, 255, 0.96);
+    --openmaic-glass-btn-expanded: rgba(255, 255, 255, 0.95);
+    --openmaic-glass-card-bg:      rgba(255, 255, 255, 0.78);
+    --openmaic-dark-surface-dim:    rgba(30, 41, 59, 0.4);
+    --openmaic-dark-surface:        rgba(30, 41, 59, 0.5);
+    --openmaic-dark-surface-solid:  rgba(30, 41, 59, 0.8);
+    --openmaic-dark-surface-hover:  rgba(30, 41, 59, 0.85);
+    --openmaic-dark-surface-card:   rgba(30, 41, 59, 0.9);
+    --openmaic-dark-surface-modal:  rgba(30, 41, 59, 0.95);
+    --openmaic-glass-border-dim:    rgba(255, 255, 255, 0.06);
+    --openmaic-glass-border:        rgba(255, 255, 255, 0.08);
+    --openmaic-glass-border-strong: rgba(255, 255, 255, 0.1);
+    --openmaic-glass-highlight:     rgba(255, 255, 255, 0.05);
+    --openmaic-glass-inset-btn:     rgba(255, 255, 255, 0.2);
+    --openmaic-glass-inset-btn-hover: rgba(255, 255, 255, 0.25);
+    --openmaic-shadow-tint:         rgba(15, 23, 42, 0.06);
+    --openmaic-video-icon:       #38bdf8;
+    --openmaic-video-icon-light: #0ea5e9;
+    --openmaic-video-icon-bg:    rgba(56, 189, 248, 0.15);
+    --openmaic-video-icon-bg-light: rgba(14, 165, 233, 0.1);
+
+    /* === Phase 2 脑暴/确认/9件套面板 — dark 主题覆盖 === */
+    --openmaic-text-heading:    #f1f5f9;
+    --openmaic-text-body:       #e2e8f0;
+    --openmaic-text-muted:      #94a3b8;
+    --openmaic-text-placeholder:#64748b;
+    --openmaic-text-on-brand:   #ffffff;
+
+    --openmaic-success-500:     #34d399;
+    --openmaic-success-bg:      rgba(52, 211, 153, 0.12);
+    --openmaic-success-border:  rgba(52, 211, 153, 0.3);
+    --openmaic-warning-500:     #fbbf24;
+    --openmaic-warning-bg:      rgba(251, 191, 36, 0.12);
+    --openmaic-warning-border:  rgba(251, 191, 36, 0.3);
+    --openmaic-danger-500:      #f87171;
+    --openmaic-danger-bg:       rgba(248, 113, 113, 0.12);
+    --openmaic-danger-border:   rgba(248, 113, 113, 0.3);
+
+    --openmaic-glass-control-bg:       var(--openmaic-glass-btn-bg);
+    --openmaic-glass-control-bg-hover: var(--openmaic-glass-btn-hover);
+    --openmaic-glass-control-border:   var(--openmaic-glass-border);
+
+    /* === 课堂页面 (Classroom) — dark 主题覆盖 === */
+    --classroom-bg-from:    #0a0f1c;   /* 画布渐变起点（深空蓝） */
+    --classroom-bg-to:      #1a1f2e;   /* 画布渐变终点 */
+    --classroom-bg-orb-1:   #6366f1;   /* 紫色光晕 */
+    --classroom-bg-orb-2:   #8b5cf6;   /* 紫罗兰光晕 */
+    --classroom-bg-orb-3:   #06b6d4;   /* 青色光晕 */
+
+    /* 玻璃面板（dark 模式用更深一点的玻璃） */
+    --classroom-glass-bg:        color-mix(in oklch, white, transparent 94%);
+    --classroom-glass-bg-hover:  color-mix(in oklch, white, transparent 90%);
+    --classroom-glass-border:    color-mix(in oklch, white, transparent 85%);
+    --classroom-glass-shadow:    0 8px 32px rgba(0, 0, 0, 0.4),
+                                0 1px 0 color-mix(in oklch, white, transparent 90%) inset;
+
+    /* PPT 卡片在 dark 模式下保持浅底（PPT 内容是白底） */
+    --slide-bg-from:         #f8fafc;
+    --slide-bg-to:           #e2e8f0;
+    --slide-title-color:     #0f172a;
+    --slide-accent-color:    var(--openmaic-amber-500);
+    --slide-shadow:          0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                             0 0 0 1px color-mix(in oklch, white, transparent 90%);
+
+    /* 课堂品牌主色（不参与 6 主题切换，dark 模式也是固定琥珀） */
+    --classroom-accent:        var(--openmaic-amber-500);
+    --classroom-accent-hover:  var(--openmaic-amber-600);
+    --classroom-accent-soft:   color-mix(in oklch, var(--openmaic-amber-500), transparent 80%);
+
+    --classroom-sakura-300:   #ff9ec4;
+    --classroom-sakura-400:   #ffb6d9;
+
+    --classroom-avatar-teacher:    linear-gradient(135deg, #6366f1, #8b5cf6);
+    --classroom-avatar-student:    linear-gradient(135deg, #10b981, #34d399);
+    --classroom-avatar-agent:      linear-gradient(135deg, #f59e0b, #fbbf24);
+    --classroom-avatar-moderator:  linear-gradient(135deg, #ec4899, #f472b6);
+    --classroom-avatar-user:       linear-gradient(135deg, #06b6d4, #3b82f6);
+}
+
+/* ---- color-scheme: 控制浏览器原生 UI（滚动条/表单） ---- */
+html { color-scheme: var(--_color-scheme, light); }

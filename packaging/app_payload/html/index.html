@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星识 Star-Learn - AI 智能学习助手</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+    <link rel="stylesheet" href="/css/loading.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <link rel="stylesheet" href="/css/index.css?v=2">
+    <link rel="stylesheet" href="/css/phase2-bundle.css">
+    <link rel="stylesheet" href="/css/link-renderer.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+    <link rel="stylesheet" href="/css/mascot.css">
+    <link rel="stylesheet" href="css/agent-tower.css">
+    <link rel="stylesheet" href="/css/focus-quiz.css">
+    <link rel="stylesheet" href="/css/onboarding.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="/js/theme.js"></script>
+    <script src="/js/data-layer.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/data-layer.js"></script>
+    <script src="/js/achievements-data.js"></script>
+    <script src="/js/data-layer.js"></script>
+    <script src="/js/achievement-manager.js"></script>
+    <script src="/js/data-layer.js"></script>
+    <script src="/js/voice-input.js"></script>
+    <script src="/js/teachers-config.js"></script>
+    <script src="/js/link-renderer.js"></script>
+    <script src="/js/focus-analysis.js"></script>
+    <script src="/js/focus-quiz-intervention.js"></script>
+    <script src="/js/index.js?v=3"></script>
+    <script src="/js/brainstorm.js?v=1"></script>
+    <script src="/js/onboarding.js"></script>
+</head>
+<body class="glass-app font-sans h-screen flex overflow-hidden antialiased">
+    <!-- Global Wallpaper Background Layer -->
+<div id="dynamic-bg-layer" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 1;"></div>
+
+    <div class="mesh-gradient-bg"></div>
+    <div class="mesh-orb mesh-orb-1"></div>
+    <div class="mesh-orb mesh-orb-2"></div>
+    <div class="mesh-orb mesh-orb-3"></div>
+
+    <div id="left-col" class="left-col" style="position: relative; z-index: 1; background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <div class="left-col-inner">
+            <button class="sidebar-toggle-btn" onclick="window.sidebarManager.toggleLeft()" aria-label="收起左侧面板" title="收起面板">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+        <div class="p-4 border-b shrink-0 sidebar-header-bar" style="border-color: var(--border-glass);">
+            <div class="flex items-center gap-2 mb-1">
+                <i data-lucide="brain-circuit" class="w-5 h-5" style="color: var(--primary-light);"></i>
+                <h1 class="text-base font-bold tracking-wider sidebar-title-text">星识 Star-Learn</h1>
+            </div>
+            <p class="text-[10px]" style="color: var(--text-tertiary);">V5.0: 全息智控学习舱</p>
+        </div>
+
+        <div class="p-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="radar" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">6维知识雷达</h2>
+            </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('radar-section', this)" data-section="radar-section" aria-expanded="true" aria-controls="radar-section" title="展开/收起知识雷达">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
+            <div class="sidebar-section-content" id="radar-section">
+                <div class="glass-radar-wrap rounded-2xl p-2 shadow-sm flex items-center justify-center">
+                    <div class="radar-loading" id="radar-loading">加载中...</div>
+                    <canvas id="radar-chart" style="display:none; max-width: 100%; max-height: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3">
+            <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                <i data-lucide="user" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学情画像</h2>
+            </div>
+            <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('profile-section', this)" data-section="profile-section" aria-expanded="true" aria-controls="profile-section" title="展开/收起学情画像">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="expand-text text-xs font-medium">收起</span>
+            </button>
+            <div class="sidebar-section-content space-y-2" id="profile-section">
+                <div class="space-y-2" id="profile-container"></div>
+            </div>
+        </div>
+
+        </div>
+    </div>
+
+    <div class="main-glass-surface flex-1 flex flex-col h-full relative min-w-0" style="position: relative; z-index: 1; background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+        <div class="top-bar-glass h-14 flex items-center px-6 justify-between z-10 shrink-0 border-b" style="border-color: var(--border-glass);">
+            <div class="flex items-center gap-3">
+                <a href="/hub.html" id="home-btn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border); text-decoration: none;" title="返回首页">
+                    <i data-lucide="home" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">首页</span>
+                </a>
+                <div class="w-px h-5" style="background: var(--border-glass);"></div>
+                <div class="segmented-btn-group flex items-center rounded-lg overflow-hidden" style="border: 1px solid var(--border-glass);">
+                    <button class="tab-btn active px-4 py-2 text-sm font-semibold" data-tab="chat" onclick="switchTab('chat')">
+                        <span class="flex items-center gap-1.5"><i data-lucide="message-circle" class="w-4 h-4"></i> 智能对话</span>
+                    </button>
+                    <button class="tab-btn px-4 py-2 text-sm font-semibold" data-tab="course" onclick="switchTab('course')">
+                        <span class="flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-4 h-4"></i> 课程生成</span>
+                    </button>
+                </div>
+                <button class="tab-btn px-4 py-4 text-sm font-semibold rounded-t" data-tab="code" onclick="switchTab('code')">
+                    <span class="flex items-center gap-1.5"><i data-lucide="terminal" class="w-4 h-4"></i> 代码控制台</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="flow-enter-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border);" onclick="window.flowMode.enter()" aria-label="进入心流模式">
+                    <i data-lucide="zap" class="w-3.5 h-3.5"></i> 心流
+                </button>
+                <button id="flashcard-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200" style="background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border);" onclick="window.flashcardUI.open()" aria-label="知识胶囊">
+                    <i data-lucide="layers" class="w-3.5 h-3.5"></i> 胶囊
+                </button>
+                <div id="dispatch-badge" class="dispatch-indicator dispatch-idle" title="AI 调度状态">
+                    <div class="dispatch-light"></div>
+                </div>
+                <button class="theme-settings-btn" id="theme-settings-btn" aria-label="主题设置" title="主题设置">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" stroke-width="2"/>
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleLeftCol()" aria-label="切换左栏">
+                    <i data-lucide="panel-left" class="w-4 h-4"></i>
+                </button>
+                <button class="lg:hidden p-2 rounded-lg" style="color: var(--text-secondary);" onclick="toggleRightCol()" aria-label="切换右栏">
+                    <i data-lucide="panel-right" class="w-4 h-4"></i>
+                </button>
+                <div class="relative" id="avatar-wrapper">
+                    <img id="user-avatar-img" src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="用户头像" class="user-avatar" onclick="toggleDropdown()"/>
+                    <div class="avatar-dropdown border shadow-2xl" id="avatar-dropdown" style="background: var(--dropdown-bg); border-color: var(--glass-border); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);">
+                        <div class="p-3 border-b flex items-center gap-3" style="border-color: var(--border-glass);">
+                            <img id="dropdown-avatar" src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="" class="w-10 h-10 rounded-full border-2" style="border-color: var(--primary-200);"/>
+                            <div>
+                                <div class="text-sm font-bold" style="color: var(--text-primary);" id="dropdown-username">同学</div>
+                                <div class="text-xs" style="color: var(--text-tertiary);">在线学习中</div>
+                            </div>
+                        </div>
+                        <div class="dropdown-item" onclick="toggleThemePanel()"><i data-lucide="palette"></i> <span style="color: var(--text-main);">更换主题</span></div>
+                        <div class="dropdown-item" onclick="goToPersonal()"><i data-lucide="user-circle"></i> <span style="color: var(--text-main);">个人中心</span></div>
+                        <div class="dropdown-item" onclick="goToPlantFarm()"><i data-lucide="sprout"></i> <span style="color: var(--text-main);">星识·云端林场</span></div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" onclick="logout()"><i data-lucide="log-out" style="color: var(--danger);"></i> <span style="color: var(--danger);">退出登录</span></div>
+                    </div>
+                    <div id="nickname-modal" class="fixed inset-0 flex items-center justify-center z-50 hidden" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);">
+                        <div class="rounded-xl p-6 w-80 shadow-xl border" style="background: var(--surface-glass); border-color: var(--border-glass); backdrop-filter: blur(24px);">
+                            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">修改昵称</h3>
+                            <input type="text" id="nickname-input" class="w-full border rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2" style="background: var(--surface-glass); border-color: var(--border-glass); color: var(--text-primary); --tw-ring-color: var(--primary);" placeholder="请输入新昵称" maxlength="20">
+                            <div class="flex gap-3">
+                                <button onclick="hideNicknameInput()" class="flex-1 px-4 py-2 rounded-lg transition-colors" style="background: var(--surface-glass); color: var(--text-secondary); border: 1px solid var(--border-glass);">取消</button>
+                                <button onclick="confirmNicknameChange()" class="flex-1 px-4 py-2 rounded-lg transition-colors" style="background: var(--accent); color: var(--text-on-accent);">确认</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="theme-panel border shadow-2xl" id="theme-panel" style="background: var(--dropdown-bg); border-color: var(--glass-border); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);">
+                        <div class="text-sm font-bold mb-3 flex items-center gap-2" style="color: var(--text-primary);"><i data-lucide="palette" class="w-4 h-4" style="color: var(--primary);"></i> 选择主题</div>
+                        <div class="space-y-2">
+                            <div class="theme-option active" data-theme="ocean" onclick="setTheme('ocean')"><div class="theme-dot" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">星海蓝</div><div class="text-xs" style="color: var(--text-tertiary);">沉稳专注，适合深度学习</div></div></div>
+                            <div class="theme-option" data-theme="forest" onclick="setTheme('forest')"><div class="theme-dot" style="background: linear-gradient(135deg, #059669, #047857);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">翠林绿</div><div class="text-xs" style="color: var(--text-tertiary);">清新自然，缓解视觉疲劳</div></div></div>
+                            <div class="theme-option" data-theme="sunset" onclick="setTheme('sunset')"><div class="theme-dot" style="background: linear-gradient(135deg, #d97706, #b45309);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">暮光橙</div><div class="text-xs" style="color: var(--text-tertiary);">温暖活力，激发创造力</div></div></div>
+                            <div class="theme-divider"><span>✨ 动态特效</span></div>
+                            <div class="theme-option" data-theme="starry-night" onclick="setTheme('starry-night')"><div class="theme-dot" style="background: linear-gradient(135deg, #1e293b, #3b82f6);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌌 浩瀚星空</div><div class="text-xs" style="color: var(--text-tertiary);">深邃宇宙，星光闪烁</div></div></div>
+                            <div class="theme-option" data-theme="sakura-falling" onclick="setTheme('sakura-falling')"><div class="theme-dot" style="background: linear-gradient(135deg, #f9a8d4, #fdf2f8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌸 烂漫樱花</div><div class="text-xs" style="color: var(--text-tertiary);">花瓣飘落，温柔浪漫</div></div></div>
+                            <div class="theme-option" data-theme="lunar-halo" onclick="setTheme('lunar-halo')"><div class="theme-dot" style="background: linear-gradient(135deg, #0c1222, #94a3b8);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">🌕 皎月流光</div><div class="text-xs" style="color: var(--text-tertiary);">月晕呼吸，静谧安详</div></div></div>
+                            <div class="theme-option" data-theme="flowing-aurora" onclick="setTheme('flowing-aurora')"><div class="theme-dot" style="background: linear-gradient(135deg, #030712, #2dd4bf);"></div><div><div class="text-sm font-semibold" style="color: var(--text-primary);">✨ 极光之影</div><div class="text-xs" style="color: var(--text-tertiary);">青紫交织，极光流动</div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-view" class="tab-view flex-1 flex h-full min-h-0">
+            <div class="flex flex-col md:flex-row w-full h-full min-h-0">
+
+                <div id="track-a-container" class="relative md:shrink-0 collapsed">
+                    <div id="tower-collapsed-indicator" class="tower-collapsed-indicator hidden">
+                        <span class="tci-pulse"></span>
+                        <span class="tci-text">流水线运行中</span>
+                    </div>
+                    <div id="track-a" class="track-sandbox flex flex-col h-[35vh] md:h-full">
+                        <!-- Header -->
+                        <div class="tower-header">
+                            <h2><span id="tower-status-dot" class="tower-status-dot"></span> 🛰 控制塔</h2>
+                            <div class="tower-actions">
+                                <button class="tower-btn" id="tower-start" title="启动协作">▶ 启动</button>
+                                <button class="tower-btn" id="tower-pause" disabled title="暂停">⏸</button>
+                                <button class="tower-btn" id="tower-stop" disabled title="停止">⏹</button>
+                                <button class="tower-btn" id="tower-toggle" title="折叠控制塔" aria-label="折叠控制塔">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="tower-tabs" id="tower-tabs">
+                            <button class="tower-tab is-active" data-tab="status">📊 实时学情</button>
+                            <button class="tower-tab" data-tab="control">🎛 教学调控</button>
+                            <button class="tower-tab" data-tab="plan">📋 任务编排</button>
+                        </div>
+
+                        <!-- Tab: 实时学情 -->
+                        <div class="tower-tab-content is-active" id="tab-status">
+                            <div class="tower-scroll-area">
+                                <!-- Status cards -->
+                                <div class="tower-card-grid" id="tower-status-cards"></div>
+                                <!-- Weakness alerts -->
+                                <div class="tower-section-title">⚠️ 薄弱环节</div>
+                                <div id="tower-weakness-list"></div>
+                                <!-- Mini pipeline status -->
+                                <div class="tower-section-title">🔄 流水线状态</div>
+                                <div class="tower-flow" id="tower-flow"></div>
+                                <div class="tower-terminal" id="tower-terminal"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: 教学调控 -->
+                        <div class="tower-tab-content" id="tab-control">
+                            <div class="tower-scroll-area">
+                                <div class="tower-section-title">👤 教师人格</div>
+                                <div class="tcg-persona-grid" id="tcg-persona-grid"></div>
+                                <div class="tower-section-title">📈 难度偏好</div>
+                                <div class="tcg-slider-wrap">
+                                    <span class="tcg-slider-label">简单</span>
+                                    <input type="range" id="tcg-difficulty-slider" min="1" max="5" value="3" class="tcg-slider">
+                                    <span class="tcg-slider-label">困难</span>
+                                    <span class="tcg-slider-value" id="tcg-difficulty-val">适中</span>
+                                </div>
+                                <div class="tower-section-title">🧠 教学策略</div>
+                                <div class="tcg-strategy-pills" id="tcg-strategy-pills"></div>
+                                <div class="tower-section-title">💉 知识注入</div>
+                                <div class="tcg-inject-row">
+                                    <input type="text" id="tcg-inject-input" class="tcg-inject-input" placeholder="输入你想学的知识点..." maxlength="100">
+                                    <button class="tower-btn" id="tcg-inject-btn">注入</button>
+                                </div>
+                                <div class="tcg-tags" id="tcg-injected-tags"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: 任务编排 -->
+                        <div class="tower-tab-content" id="tab-plan">
+                            <div class="tower-scroll-area">
+                                <div class="tower-section-title">🎯 学习目标</div>
+                                <div class="tcg-inject-row">
+                                    <input type="text" id="tcg-goal-input" class="tcg-inject-input" placeholder="描述你的学习目标..." maxlength="200">
+                                    <button class="tower-btn" id="tcg-goal-btn">AI 拆解</button>
+                                </div>
+                                <div class="tower-plan-tasks" id="tower-plan-tasks">
+                                    <div class="tower-plan-empty">输入目标并点击 "AI 拆解" 来生成学习计划</div>
+                                </div>
+                                <div class="tower-plan-progress" id="tower-plan-progress" style="display:none">
+                                    <div class="tower-plan-progress-bar-bg">
+                                        <div class="tower-plan-progress-bar-fill" id="tower-plan-progress-fill" style="width:0%"></div>
+                                    </div>
+                                    <span class="tower-plan-progress-text" id="tower-plan-progress-text">0%</span>
+                                </div>
+                                <button class="tower-btn tower-plan-replan" id="tower-plan-replan" style="display:none">🔄 重新规划</button>
+                            </div>
+                        </div>
+
+                        <!-- Hidden: sandbox internals for backward compat -->
+                        <div id="sandbox-search-bar" class="hidden" style="display:none">
+                            <input type="text" id="sandbox-search-input">
+                        </div>
+                        <div id="sandbox-filter-bar" class="hidden" style="display:none"></div>
+                        <div id="flow-nodes" style="display:none"><div id="flow-node-container"></div></div>
+                        <div id="sandbox-logs" style="display:none"></div>
+                    </div>
+                </div>
+
+                <!-- 展开沙盘按钮 (移到容器外，始终可见) -->
+                <button id="sandbox-expand-btn" class="sidebar-expand-btn sidebar-expand-left sandbox-expand-btn-styled" aria-label="展开沙盘" title="展开沙盘">
+                    <i data-lucide="chevron-right" class="w-4 h-4" id="sandbox-expand-icon"></i>
+                </button>
+
+                <div id="track-b" class="track-chat flex-1 flex flex-col min-h-0 min-w-0">
+                    <!-- 辩论面板 (浮动底部展开面板) -->
+                    <div id="debate-panel" class="hidden debate-panel-container shrink-0">
+                        <!-- 可折叠标题栏 -->
+                        <div class="debate-panel-header" id="debate-panel-header">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="message-square"></i>
+                                <span class="font-semibold text-sm">多视角辩论</span>
+                                <span class="debate-status" id="debate-status">等待提问...</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button id="debate-panel-expand-btn" class="debate-panel-btn" title="展开">
+                                    <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                                </button>
+                                <button id="debate-panel-collapse-btn" class="debate-panel-btn hidden" title="收起">
+                                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 展开后的内容 -->
+                        <div class="debate-panel-body" id="debate-panel-body">
+                            <div class="debate-agents-row" id="debate-agents-row"></div>
+                            <div class="debate-content-area">
+                                <div class="debate-round-label" id="debate-round-label">第一轮：独立观点</div>
+                                <div class="debate-messages" id="debate-messages"></div>
+                            </div>
+                        </div>
+
+                        <!-- 裁判悬浮卡片 -->
+                        <div class="debate-judge-float-card" id="debate-judge-float-card">
+                            <div class="float-card-header">
+                                <div class="flex items-center gap-2 text-amber-400">
+                                    <i data-lucide="scale"></i>
+                                    <span class="font-semibold text-sm">裁判综合判定</span>
+                                </div>
+                                <button id="debate-judge-close-btn" class="float-card-close" title="关闭">
+                                    <i data-lucide="x" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div class="judge-content" id="judge-content"></div>
+                        </div>
+                    </div>
+
+                    <div class="chat-glass-scroll flex-1 overflow-y-auto p-6 space-y-6 min-h-0" id="chat-container"></div>
+
+                    <!-- OpenMAIC风格课程生成输入区 -->
+                    <div id="course-input-section" class="hidden px-6 pb-4">
+                        <div class="course-input-card">
+                            <div class="course-input-header">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                <span>AI课程生成</span>
+                            </div>
+                            <textarea id="course-requirement" class="course-textarea" placeholder="描述你想学习的主题，例如：Python基础语法、机器学习入门..." rows="4"></textarea>
+                            <div class="course-toolbar">
+                                <div class="course-pills">
+                                    <button class="course-pill active" id="web-search-pill">
+                                        <i data-lucide="globe" class="w-3.5 h-3.5"></i> 网络搜索
+                                    </button>
+                                    <button class="course-pill" id="pdf-upload-pill">
+                                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i> 上传PDF
+                                    </button>
+                                    <button class="course-pill" id="interactive-pill">
+                                        <i data-lucide="brain" class="w-3.5 h-3.5"></i> 深度交互
+                                    </button>
+                                </div>
+                                <button id="enter-classroom-btn" class="enter-classroom-btn">
+                                    <span>进入课堂</span>
+                                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="source-panel" class="source-glass-panel hidden mx-6 mb-4 rounded-2xl p-3 shadow-sm border shrink-0">
+                        <div class="flex items-center gap-2 mb-2" style="color: var(--warning);"><i data-lucide="book-open" class="w-4 h-4"></i><span class="text-xs font-bold">引用溯源 (Reference Tracing)</span></div>
+                        <div id="source-list" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <div class="composer-glass-bar p-4 border-t shrink-0">
+                        <div class="max-w-4xl mx-auto w-full">
+                            <div id="persona-chip-bar" class="persona-chip-bar">
+                                <div id="persona-chips-container" class="persona-chips-container expanded">
+                                    <button class="persona-chip active" data-persona="patient_tutor" data-desc="陈默 — 55岁退休中学教师，慢条斯理，用生活比喻拆解概念，从不批评学生错误">
+                                        <span class="persona-chip-icon">🍵</span>
+                                        <span class="persona-chip-name">陈默</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="socratic_questioner" data-desc="林问 — 42岁哲学系副教授，冷静理性，用层层追问引导你自己找到答案">
+                                        <span class="persona-chip-icon">🔍</span>
+                                        <span class="persona-chip-name">林问</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="energetic_lecturer" data-desc="周燃 — 33岁前大厂技术布道师，热情风趣，用故事和悬念让知识变得有趣">
+                                        <span class="persona-chip-icon">⚡</span>
+                                        <span class="persona-chip-name">周燃</span>
+                                    </button>
+                                    <button class="persona-chip" data-persona="expert_mentor" data-desc="严铮 — 48岁985高校教授，沉稳权威，从第一性原理出发教你专家如何思考">
+                                        <span class="persona-chip-icon">🏔️</span>
+                                        <span class="persona-chip-name">严铮</span>
+                                    </button>
+                                </div>
+                                <div class="persona-divider" id="persona-divider"></div>
+                                <div class="subject-dropdown-wrapper" id="subject-dropdown-wrapper">
+                                    <button class="subject-dropdown-btn" id="subject-dropdown-btn" title="切换学科领域身份" style="--agent-theme-color: #6366f1; --agent-theme-glow: rgba(99,102,241,0.25);">
+                                        <span class="subject-dropdown-icon">✨</span>
+                                        <span class="subject-dropdown-name">默认</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </button>
+                                    <div class="subject-dropdown-menu hidden" id="subject-dropdown-menu"></div>
+                                </div>
+                            </div>
+                            <div id="notion-input" class="notion-input" contenteditable="true" role="textbox" aria-label="输入消息" aria-multiline="true" data-placeholder="试试问我 HDFS 的工作原理，或说'我不太懂MapReduce'触发苏格拉底诊断..." style="width: 100%;"></div>
+                            <div class="flex items-center justify-between mt-2">
+                                <div class="flex items-center gap-2 text-[10px]" style="color: var(--text-tertiary);"><span>Enter 发送 · Shift+Enter 换行</span></div>
+                                <div class="flex items-center gap-2">
+                                    <button id="chat-voice-btn" class="p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95" style="background: var(--accent-bg); color: var(--text-secondary);" aria-label="语音输入">
+                                        <i data-lucide="mic" class="w-4 h-4"></i>
+                                    </button>
+                                    <button id="send-btn" class="send-fab p-2 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg" style="background: var(--accent); color: var(--text-on-accent);" onmouseover="this.style.background='var(--accent-hover)'" onmouseout="this.style.background='var(--accent)'" aria-label="发送消息"><i data-lucide="send" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="code-view" class="tab-view flex-1 flex flex-col h-full min-h-0 hidden">
+            <div class="flex-1 flex overflow-hidden min-h-0">
+                <div class="flex-1 flex flex-col min-h-0" style="border-right: 1px solid var(--border-glass);">
+                    <div class="code-editor-toolbar shrink-0">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-code-2" class="w-4 h-4" style="color: var(--accent);"></i>
+                            <span class="text-sm font-semibold" style="color: var(--text-primary);">代码编辑器</span>
+                            <select id="lang-select" class="text-xs" onchange="changeLanguage()">
+                                <option value="python">Python</option>
+                                <option value="java">Java</option>
+                                <option value="c">C</option>
+                                <option value="cpp">C++</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="go">Go</option>
+                                <option value="sql">SQL</option>
+                                <option value="scala">Scala</option>
+                                <option value="rust">Rust</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="runCode()" class="run-btn flex items-center gap-1.5"><i data-lucide="play" class="w-3.5 h-3.5"></i> 运行</button>
+                            <button onclick="submitGrade()" class="grade-btn flex items-center gap-1.5"><i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 提交批阅</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 relative overflow-hidden min-h-0"><textarea id="code-editor"></textarea></div>
+                </div>
+                <div class="w-[480px] flex flex-col shrink-0 min-h-0" style="background: var(--surface-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+                    <div class="code-editor-toolbar shrink-0"><div class="flex items-center gap-3"><i data-lucide="clipboard-list" class="w-4 h-4" style="color: var(--accent);"></i><span class="text-sm font-semibold" style="color: var(--text-primary);">编程题目</span></div></div>
+                    <div class="p-4 border-b shrink-0 max-h-48 overflow-y-auto" style="border-color: var(--border-glass);"><textarea id="task-input" rows="4" placeholder="在此输入或粘贴编程题目要求...&#10;例如：编写一个函数，实现快速排序算法" class="w-full text-sm rounded-lg p-3 focus:outline-none resize-none" style="background: var(--surface-glass); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea></div>
+                    <div class="flex border-b shrink-0" style="border-color: var(--border-glass);"><button class="flex-1 py-3 text-xs font-semibold text-center transition-colors output-tab active" data-output-tab="run" onclick="switchOutputTab('run')"><span class="flex items-center justify-center gap-1" style="color: var(--text-secondary);"><i data-lucide="terminal" class="w-3 h-3"></i> 运行输出</span></button><button class="flex-1 py-3 text-xs font-semibold text-center transition-colors output-tab" data-output-tab="grade" onclick="switchOutputTab('grade')"><span class="flex items-center justify-center gap-1" style="color: var(--text-secondary);"><i data-lucide="award" class="w-3 h-3"></i> AI 批阅</span></button></div>
+                    <div id="run-output-panel" class="code-output-panel flex-1 overflow-y-auto p-4 text-sm min-h-0"><div style="color: var(--text-tertiary); font-size: 12px;">点击「运行」查看输出结果...</div></div>
+                    <div id="grade-output-panel" class="flex-1 overflow-y-auto p-5 hidden min-h-0"><div style="color: var(--text-tertiary); font-size: 13px; text-align: center; margin-top: 32px;">点击「提交批阅」获取 AI 评分与反馈</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="right-col" class="right-col">
+        <div class="right-col-inner" style="background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);">
+            <div class="p-4 border-b shrink-0 sidebar-header-bar flex items-center" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 flex-1" style="padding-right: 4px;">
+                    <i data-lucide="map" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">学习路径</h2>
+                    <button id="right-toggle-inline" class="p-1.5 rounded-lg transition-colors" style="color: var(--text-tertiary);" onclick="window.sidebarManager.toggleRight()" aria-label="收起右侧面板" title="收起面板">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 transition-transform duration-300 right-toggle-icon"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 sidebar-path-section">
+                <div class="path-header-row flex items-center justify-between mb-2" style="padding-right: 4px;">
+                    <span class="text-[10px] font-medium" style="color: var(--text-tertiary);" id="path-last-updated">加载中...</span>
+                    <button id="path-refresh-btn" class="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold transition-all duration-200 hover:scale-105 active:scale-95" style="background: var(--accent-bg); color: var(--primary-light); border: 1px solid var(--accent-border);" onclick="refreshLearningPath(true)" title="基于最新学情刷新路径">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3" id="path-refresh-icon"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                        <span>刷新路径</span>
+                    </button>
+                </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('path-section', this)" data-section="path-section" aria-expanded="true" aria-controls="path-section" title="展开/收起学习路径">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content" id="path-section">
+                    <div class="path-analysis-loading hidden" id="path-tree-loading">
+                        <div class="path-loading-bar"></div>
+                    </div>
+                    <div class="path-tree" id="path-tree-container"></div>
+                </div>
+            </div>
+
+            <!-- ===== 我的记忆面板（含画像摘要） ===== -->
+            <div class="p-4 border-t sidebar-memory-section" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                    <i data-lucide="brain" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">我的记忆</h2>
+                    <span id="memory-count-badge" class="text-[10px] px-1.5 py-0.5 rounded-full hidden" style="background: var(--accent-bg); color: var(--primary-light);">0</span>
+                </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('memory-section', this)" data-section="memory-section" aria-expanded="true" aria-controls="memory-section" title="展开/收起我的记忆">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content" id="memory-section">
+                    <!-- 类型筛选 -->
+                    <div class="memory-filter-chips" id="memory-filter-chips">
+                        <button class="memory-chip active" data-type="all">全部</button>
+                        <button class="memory-chip" data-type="background">📋背景</button>
+                        <button class="memory-chip" data-type="preference">⭐偏好</button>
+                        <button class="memory-chip" data-type="knowledge">📚知识</button>
+                        <button class="memory-chip" data-type="interest">💡兴趣</button>
+                        <button class="memory-chip" data-type="goal">🎯目标</button>
+                        <button class="memory-chip" data-type="emotion">💭情感</button>
+                    </div>
+                    <!-- 搜索框 -->
+                    <div class="memory-search-wrap">
+                        <input type="text" id="memory-search-input" class="memory-search-input" placeholder="🔍 搜索记忆内容..." oninput="filterAndRenderMemories()">
+                    </div>
+                    <!-- 记忆列表 -->
+                    <div id="memory-list-container" class="memory-list space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <div class="memory-empty-state text-center py-3 text-[11px]" style="color: var(--text-tertiary);">
+                            🤖 AI 正在了解你...<br>聊得越多，记得越牢
+                        </div>
+                    </div>
+                    <!-- 底部状态栏 -->
+                    <div class="memory-footer" id="memory-footer">
+                        <span class="memory-footer-status" id="memory-footer-status">🔄 自动刷新中</span>
+                        <button class="memory-footer-refresh" onclick="loadUserMemories()" title="立即刷新">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t sidebar-eval-section" style="border-color: var(--border-glass);">
+                <div class="flex items-center gap-2 mb-3" style="padding-right: 4px;">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4" style="color: var(--primary-light);"></i>
+                    <h2 class="font-semibold text-xs flex-1 sidebar-title-text">评估指标</h2>
+                </div>
+                <button class="section-expand-btn w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" onclick="toggleSection('eval-section', this)" data-section="eval-section" aria-expanded="true" aria-controls="eval-section" title="展开/收起评估指标">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 transition-transform duration-300 expand-icon"><path d="m6 9 6 6 6-6"/></svg>
+                    <span class="expand-text text-xs font-medium">收起</span>
+                </button>
+                <div class="sidebar-section-content space-y-3" id="eval-section"><div class="space-y-3" id="eval-container"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="music-panel" class="music-panel">
+        <div class="music-panel-header shrink-0">
+            <div class="music-panel-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                <span>专注音乐</span>
+            </div>
+            <button class="music-panel-close" onclick="window.musicPanel.toggle()" aria-label="关闭音乐面板">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="music-panel-genres shrink-0 flex overflow-x-auto scrollbar-hide" id="music-genres"></div>
+        <div class="music-panel-list flex-1 overflow-y-auto pb-4" id="music-list"></div>
+        <div class="music-panel-player shrink-0" id="music-player">
+            <div class="music-player-top-row">
+                <div class="music-player-cover" id="music-player-cover"></div>
+                <div class="music-player-info">
+                    <div class="music-player-title" id="music-player-title">未选择音乐</div>
+                    <div class="music-player-artist" id="music-player-artist">--</div>
+                </div>
+                <div class="music-panel-visualizer" id="music-panel-visualizer">
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                    <div class="music-vis-bar"></div>
+                </div>
+            </div>
+            <div class="music-player-bottom-row">
+                <div class="music-player-controls">
+                    <button class="music-ctrl-btn" id="music-prev-btn" onclick="window.musicPanel.prev()" aria-label="上一首">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                    </button>
+                    <button class="music-ctrl-btn music-ctrl-play" id="music-play-btn" onclick="window.musicPanel.togglePlay()" aria-label="播放/暂停">
+                        <svg id="music-play-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <button class="music-ctrl-btn" id="music-next-btn" onclick="window.musicPanel.next()" aria-label="下一首">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                    </button>
+                </div>
+                <div class="music-volume-ctrl flex-1 items-center gap-2 px-2">
+                    <button class="music-volume-btn" id="music-volume-btn" onclick="window.musicPanel.toggleMute()" aria-label="静音/取消静音">
+                        <svg id="music-volume-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                    </button>
+                    <input type="range" id="music-volume-slider" class="music-volume-slider w-full" min="0" max="100" value="60" oninput="window.musicPanel.setVolume(this.value)" aria-label="音量调节">
+                    <span class="music-volume-label" id="music-volume-label">60</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="music-toggle-btn" class="music-toggle-btn" onclick="window.musicPanel.toggle()" aria-label="打开音乐面板" title="专注音乐">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <div class="mini-visualizer" id="mini-visualizer">
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+            <div class="mini-vis-bar"></div>
+        </div>
+    </button>
+
+    <div id="focus-duration-panel" class="focus-duration-panel">
+        <div class="focus-duration-header">
+            <div class="focus-duration-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>专注时长</span>
+            </div>
+            <button class="focus-duration-close" onclick="window.focusDurationPanel.toggle()" aria-label="关闭时长面板">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="focus-mode-switch" id="focus-mode-switch">
+            <button class="focus-mode-tab active" data-mode="focus" onclick="window.focusDurationPanel.switchMode('focus')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                专注
+            </button>
+            <button class="focus-mode-tab" data-mode="rest" onclick="window.focusDurationPanel.switchMode('rest')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                休息
+            </button>
+        </div>
+        <div class="focus-duration-presets" id="focus-presets"></div>
+        <div class="focus-duration-recent" id="focus-recent"></div>
+        <div class="focus-duration-custom">
+            <div class="focus-custom-input-wrap">
+                <input type="text" id="focus-custom-input" class="focus-custom-input" placeholder="自定义" inputmode="numeric" maxlength="3" aria-label="自定义时长（分钟）">
+                <span class="focus-custom-unit">分钟</span>
+            </div>
+            <button class="focus-custom-confirm" id="focus-custom-confirm" onclick="window.focusDurationPanel.confirmCustom()" aria-label="确认自定义时长">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+        </div>
+        <div class="focus-duration-error" id="focus-duration-error"></div>
+        <button class="focus-duration-start" id="focus-start-btn" onclick="window.focusDurationPanel.startFocus()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>开始专注</span>
+        </button>
+    </div>
+    <button id="focus-duration-toggle-btn" class="focus-duration-toggle-btn" onclick="window.focusDurationPanel.toggle()" aria-label="打开时长选择" title="专注时长">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+    </button>
+
+    <div id="mini-player" class="mini-player">
+        <div class="mini-player-info" id="mini-player-info">
+            <div class="mini-player-title" id="mini-player-title">未在播放</div>
+        </div>
+        <div class="mini-player-controls">
+            <button class="mini-ctrl-btn" onclick="window.musicPanel.prev()" aria-label="上一首">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+            </button>
+            <button class="mini-ctrl-btn mini-ctrl-play" id="mini-play-btn" onclick="window.musicPanel.togglePlay()" aria-label="播放/暂停">
+                <svg id="mini-play-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            <button class="mini-ctrl-btn" onclick="window.musicPanel.next()" aria-label="下一首">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="flow-dynamic-island" class="flow-dynamic-island">
+        <div class="flow-island-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </div>
+        <div class="flow-island-content">
+            <div>
+                <div class="flow-island-time" id="island-timer-display">25:00</div>
+                <div class="flow-island-label" id="island-timer-label">专注模式</div>
+            </div>
+        </div>
+        <div class="flow-island-controls">
+            <button class="flow-island-btn" id="island-play-btn" onclick="window.flowMode.toggleTimer()" title="暂停/继续">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" id="island-play-icon"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            </button>
+            <button class="flow-island-btn" onclick="window.flowMode.resetTimer()" title="重置计时器">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+            </button>
+            <button class="flow-island-btn" onclick="window.flowMode.exit()" title="退出心流">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        <div class="flow-island-progress">
+            <div class="flow-island-progress-bar" id="island-progress-bar" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <div id="flow-overlay" class="flow-overlay">
+        <div class="flow-immersive-layout">
+            <div class="flow-sidebar flow-sidebar-left collapsed" id="flow-sidebar-left">
+                <div class="flow-sidebar-header">
+                    <span class="flow-sidebar-title">时长选择</span>
+                    <button class="flow-sidebar-collapse-btn" onclick="window.flowMode.toggleLeftSidebar()" title="收起侧边栏">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                </div>
+                <div class="flow-sidebar-body">
+                    <div class="flow-mode-switch" id="flow-mode-switch">
+                        <button class="flow-mode-tab active" data-mode="focus" onclick="window.flowMode.switchFlowMode('focus')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            专注
+                        </button>
+                        <button class="flow-mode-tab" data-mode="rest" onclick="window.flowMode.switchFlowMode('rest')">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                            休息
+                        </button>
+                    </div>
+                    <div class="flow-presets-grid" id="flow-presets-grid"></div>
+                    <div class="flow-custom-duration">
+                        <div class="flow-custom-input-wrap">
+                            <input type="number" class="flow-custom-field" id="flow-custom-field" placeholder="自定义" min="1" max="180">
+                            <span class="flow-custom-unit">分钟</span>
+                        </div>
+                        <button class="flow-custom-ok" onclick="window.flowMode.confirmCustomDuration()">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flow-center-area">
+                <div class="flow-timer-container">
+                    <div class="flow-timer-ring">
+                        <svg viewBox="0 0 280 280">
+                            <circle class="ring-bg" cx="140" cy="140" r="130"/>
+                            <circle class="ring-progress" id="flow-ring-progress" cx="140" cy="140" r="130" stroke-dasharray="816.8 816.8" stroke-dashoffset="0"/>
+                        </svg>
+                        <div class="flow-timer-display">
+                            <div class="flow-timer-time" id="flow-timer-display">25:00</div>
+                            <div class="flow-timer-label" id="flow-timer-label">专注模式</div>
+                        </div>
+                    </div>
+                    <div class="flow-timer-controls">
+                        <button class="flow-btn flow-btn-primary" id="flow-start-btn" onclick="window.flowMode.toggleTimer()">
+                            <i data-lucide="play" class="w-4 h-4"></i> 开始专注
+                        </button>
+                        <button class="flow-btn flow-btn-ghost" onclick="window.flowMode.exit()">
+                            <i data-lucide="x" class="w-4 h-4"></i> 退出心流
+                        </button>
+                    </div>
+                    <div class="flow-audio-controls">
+                        <button class="flow-audio-btn" id="flow-audio-toggle" onclick="window.flowMode.toggleAudio()">
+                            <i data-lucide="music" class="w-4 h-4"></i>
+                        </button>
+                        <input type="range" class="flow-volume-slider" id="flow-volume" min="0" max="100" value="40" oninput="window.flowMode.setVolume(this.value)">
+                        <span class="text-xs" style="color: var(--text-tertiary);" id="flow-volume-label">40%</span>
+                        <div class="flow-visualizer" id="flow-visualizer">
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                            <div class="flow-vis-bar"></div>
+                        </div>
+                    </div>
+                    <div class="flow-exit-hint">按 Esc 退出心流模式</div>
+                </div>
+            </div>
+
+            <div class="flow-sidebar flow-sidebar-right collapsed" id="flow-sidebar-right">
+                <div class="flow-sidebar-header">
+                    <span class="flow-sidebar-title">音乐播放</span>
+                    <button class="flow-sidebar-collapse-btn" onclick="window.flowMode.toggleRightSidebar()" title="收起侧边栏">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+                <div class="flow-sidebar-body">
+                    <div class="flow-music-genres" id="flow-music-genres"></div>
+                    <div class="flow-music-list" id="flow-music-list"></div>
+                    <div class="flow-music-player" id="flow-music-player">
+                        <div class="flow-music-cover" id="flow-music-cover"></div>
+                        <div class="flow-music-info">
+                            <div class="flow-music-title" id="flow-music-title">未在播放</div>
+                            <div class="flow-music-artist" id="flow-music-artist"></div>
+                        </div>
+                        <div class="flow-music-controls">
+                            <button class="flow-music-ctrl" onclick="window.musicPanel.prev()" title="上一首">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                            </button>
+                            <button class="flow-music-ctrl flow-music-ctrl-play" id="flow-music-play-btn" onclick="window.musicPanel.togglePlay()" title="播放/暂停">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;" id="flow-music-play-icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                            </button>
+                            <button class="flow-music-ctrl" onclick="window.musicPanel.next()" title="下一首">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="flow-sidebar-expand flow-sidebar-expand-left visible" id="flow-expand-left" onclick="window.flowMode.toggleLeftSidebar()" title="展开时长选择">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+            <button class="flow-sidebar-expand flow-sidebar-expand-right" id="flow-expand-right" onclick="window.flowMode.toggleRightSidebar()" title="展开音乐列表">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+        </div>
+    </div>
+
+    <audio id="flow-audio" loop preload="none">
+        <source src="https://cdn.pixabay.com/audio/2022/02/22/audio_d1718ab41b.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- ============================================
+         星轨胶囊舱沉浸层
+         ============================================ -->
+    <div id="capsule-immersive" class="capsule-immersive">
+        <canvas id="capsule-nebula-canvas" class="capsule-nebula-canvas"></canvas>
+
+        <div class="capsule-orbit-track" id="capsule-orbit-track">
+            <div class="capsule-orbit-curve" id="capsule-orbit-curve"></div>
+        </div>
+
+        <div class="capsule-top-bar">
+            <div class="capsule-title"><i data-lucide="layers" class="w-4 h-4"></i> 知识胶囊</div>
+            <div class="capsule-session-info" id="capsule-session-info">已掌握 0 / 0</div>
+            <button class="capsule-close-btn" onclick="window.flashcardUI.exitImmersive()" aria-label="关闭">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-card-stage" id="capsule-card-stage">
+            <div class="capsule-card-container" onclick="window.flashcardUI.flip()">
+                <div class="capsule-card-3d" id="capsule-card-3d">
+                    <div class="capsule-card-face capsule-card-front" id="capsule-card-front">
+                        <div class="capsule-card-hint">点击翻转查看答案</div>
+                        <div class="capsule-card-text" id="capsule-front-text"></div>
+                        <div class="capsule-card-badge" id="capsule-front-badges"></div>
+                    </div>
+                    <div class="capsule-card-face capsule-card-back" id="capsule-card-back">
+                        <div class="capsule-card-label">答案</div>
+                        <div class="capsule-card-text" id="capsule-back-text"></div>
+                        <div class="capsule-card-hint-text" id="capsule-hint-text"></div>
+                        <div class="capsule-card-badge" id="capsule-back-badges"></div>
+                        <div class="capsule-ai-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                            AI 生成
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="capsule-control-bar">
+                <button class="capsule-ctrl-btn" id="capsule-fav-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleFavorite()" title="收藏 (F)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                </button>
+                <button class="capsule-ctrl-btn capsule-ctrl-master" id="capsule-master-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleMastered()" title="标记已掌握 (M)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>已掌握</span>
+                </button>
+                <button class="capsule-ctrl-btn" id="capsule-note-btn" onclick="event.stopPropagation(); window.flashcardUI.toggleNotePanel()" title="笔记 (N)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+            </div>
+
+            <div class="capsule-note-panel collapsed" id="capsule-note-panel">
+                <textarea id="capsule-note-input" placeholder="添加你的学习笔记..." onblur="window.flashcardUI.saveNote(this.value)"></textarea>
+            </div>
+
+            <div class="capsule-nav">
+                <button class="capsule-nav-btn" onclick="window.flashcardUI.prev()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    上一张
+                </button>
+                <span class="capsule-counter" id="capsule-counter">1 / 10</span>
+                <button class="capsule-nav-btn" onclick="window.flashcardUI.next()">
+                    下一张
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="capsule-data-pod collapsed" id="capsule-data-pod">
+            <div class="capsule-data-pod-inner">
+                <div class="capsule-stat-ring">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="stat-ring-bg" cx="50" cy="50" r="42"/>
+                        <circle class="stat-ring-fill" id="capsule-stat-ring-fill" cx="50" cy="50" r="42" stroke-dasharray="264" stroke-dashoffset="264"/>
+                    </svg>
+                    <div class="capsule-stat-center">
+                        <div class="capsule-stat-percent" id="capsule-stat-percent">0%</div>
+                        <div class="capsule-stat-label">掌握率</div>
+                    </div>
+                </div>
+                <div class="capsule-stat-row">
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-today">0</div>
+                        <div class="capsule-stat-label">今日</div>
+                    </div>
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-total">0</div>
+                        <div class="capsule-stat-label">累计</div>
+                    </div>
+                    <div class="capsule-stat-item">
+                        <div class="capsule-stat-num" id="capsule-stat-streak">0</div>
+                        <div class="capsule-stat-label">连续</div>
+                    </div>
+                </div>
+            </div>
+            <button class="capsule-pod-trigger" id="capsule-data-trigger" onclick="window.flashcardUI.toggleDataPod()" aria-label="统计">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-nav-pod collapsed" id="capsule-nav-pod">
+            <div class="capsule-nav-pod-inner">
+                <div class="capsule-nav-pod-header">
+                    <span>胶囊列表</span>
+                    <div class="capsule-nav-pod-filter">
+                        <button class="filter-btn active" data-filter="all" onclick="window.flashcardUI.filterCards('all')">全部</button>
+                        <button class="filter-btn" data-filter="unmastered" onclick="window.flashcardUI.filterCards('unmastered')">未掌握</button>
+                        <button class="filter-btn" data-filter="favorite" onclick="window.flashcardUI.filterCards('favorite')">收藏</button>
+                    </div>
+                </div>
+                <div class="capsule-nav-pod-list" id="capsule-nav-pod-list"></div>
+            </div>
+            <button class="capsule-pod-trigger" id="capsule-nav-trigger" onclick="window.flashcardUI.toggleNavPod()" aria-label="列表">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="capsule-completion hidden" id="capsule-completion">
+            <div class="capsule-completion-stars"></div>
+            <div class="capsule-completion-content">
+                <div class="capsule-completion-icon">🎉</div>
+                <h2>本轮完成！</h2>
+                <p id="capsule-completion-text">已掌握 0 / 0 张胶囊</p>
+                <button class="capsule-completion-btn" onclick="window.flashcardUI.exitImmersive()">返回学习</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lightbox-overlay" class="lightbox-overlay" role="dialog" aria-label="图片预览">
+        <div class="lightbox-backdrop"></div>
+        <div class="lightbox-content">
+            <img id="lightbox-img" class="lightbox-img" src="" alt="放大预览" draggable="false">
+        </div>
+        <button class="lightbox-close" id="lightbox-close-btn" aria-label="关闭预览">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+        <div class="lightbox-hint">拖动移动 · 点击空白或 ESC 关闭</div>
+    </div>
+
+    <button id="left-expand-btn" class="sidebar-expand-btn sidebar-expand-left" onclick="window.sidebarManager.toggleLeft()" aria-label="展开左侧面板" title="展开教研沙盘">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+    <button id="right-expand-btn" class="sidebar-expand-btn sidebar-expand-right" onclick="window.sidebarManager.toggleRight()" aria-label="展开右侧面板" title="展开学习路径">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+
+    <!-- Plant Reward Modal -->
+    <div id="plant-reward-modal" class="crop-modal hidden">
+        <div class="crop-modal-backdrop"></div>
+        <div class="crop-modal-content plant-reward-content">
+            <div class="plant-reward-glow"></div>
+            <div class="plant-reward-icon">🎁</div>
+            <h2 class="plant-reward-title">恭喜你！</h2>
+            <p class="plant-reward-text">通过深度专注，你获得了一株神秘植物种子 🎁</p>
+            <div class="plant-reward-seed-count">
+                <span>当前种子数：</span>
+                <span id="plant-reward-seed-count" class="plant-reward-seeds">1</span>
+            </div>
+            <button class="plant-reward-btn" onclick="goToPlantFarm()">
+                🌱 前往林场种植
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================
+         OpenMAIC风格课程生成全屏覆盖层
+         ============================================ -->
+    <div id="openmaic-overlay" class="openmaic-overlay hidden">
+        <!-- 背景装饰 -->
+        <div class="openmaic-bg-decor">
+            <div class="openmaic-orb openmaic-orb-blue"></div>
+            <div class="openmaic-orb openmaic-orb-purple"></div>
+        </div>
+
+        <!-- 右上角工具栏 -->
+        <div class="openmaic-toolbar">
+            <button class="openmaic-toolbar-btn" id="openmaic-back-course-btn" title="返回聊天">
+                <i data-lucide="message-circle" class="w-4 h-4"></i>
+                <span>返回聊天</span>
+            </button>
+            <button class="openmaic-toolbar-btn" id="openmaic-settings-btn" title="设置">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- 主内容区域 - OpenMAIC风格 -->
+        <div class="openmaic-main" id="openmaic-main">
+            <!-- Logo区域 -->
+            <div class="openmaic-hero">
+                <div class="openmaic-logo">
+                    <i data-lucide="sparkles" class="w-10 h-10"></i>
+                    <span>星识 Star-Learn</span>
+                </div>
+                <p class="openmaic-slogan">AI智能课程生成平台</p>
+            </div>
+
+            <!-- 统一输入卡片 -->
+            <div class="openmaic-input-container">
+                <div class="openmaic-input-card">
+                    <!-- 顶部栏：用户信息 + Agent/语音选择 -->
+                    <div class="openmaic-top-bar">
+                        <div class="openmaic-user-greeting" id="openmaic-user-greeting">
+                            <div class="openmaic-avatar" id="openmaic-avatar">
+                                <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4" alt="avatar">
+                            </div>
+                            <span class="openmaic-username" id="openmaic-username">同学</span>
+                        </div>
+                        <div class="openmaic-agent-bar">
+                            <!-- 自定义下拉菜单：预设教师 -->
+                            <div class="custom-select" id="openmaic-agent-select-wrapper">
+                                <div class="custom-select-trigger">
+                                    <span class="custom-select-value">AI自动生成教师</span>
+                                    <span class="custom-select-arrow">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option" data-value="preset">预设教师</div>
+                                    <div class="custom-select-option active" data-value="auto">AI自动生成教师</div>
+                                </div>
+                            </div>
+                            <!-- 隐藏的原 selects（供其他代码引用） -->
+                            <select id="openmaic-agent-select" style="display:none;">
+                                <option value="preset">预设教师</option>
+                                <option value="auto" selected>AI自动生成教师</option>
+                            </select>
+
+                            <!-- 自定义下拉菜单：音色选择 -->
+                            <div class="custom-select" id="openmaic-voice-select-wrapper">
+                                <div class="custom-select-trigger">
+                                    <span class="custom-select-value">青春少女</span>
+                                    <span class="custom-select-arrow">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div class="custom-select-dropdown">
+                                    <div class="custom-select-option active" data-value="female-shaonv">青春少女</div>
+                                    <div class="custom-select-option" data-value="female-yujie">温柔御姐</div>
+                                    <div class="custom-select-option" data-value="female-danyun">知性女声</div>
+                                    <div class="custom-select-option" data-value="male-qingshu">青涩少年</div>
+                                    <div class="custom-select-option" data-value="male-shaoshuai">磁性男声</div>
+                                </div>
+                            </div>
+                            <!-- 隐藏的原 selects（供其他代码引用） -->
+                            <select id="openmaic-voice-select" style="display:none;">
+                                <option value="female-shaonv" selected>青春少女</option>
+                                <option value="female-yujie">温柔御姐</option>
+                                <option value="female-danyun">知性女声</option>
+                                <option value="male-qingshu">青涩少年</option>
+                                <option value="male-shaoshuai">磁性男声</option>
+                            </select>
+                            <select id="openmaic-teacher-select" style="display:none;">
+                                <!-- 动态填充 -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- AI教师选择区域（移出agent-bar，独立块级布局） -->
+                    <div id="teacher-select-wrapper" class="teacher-select-wrapper">
+                        <button type="button" class="openmaic-label teacher-toggle" id="teacher-toggle-btn" aria-expanded="false" aria-controls="teacher-cards-panel">
+                            <i data-lucide="user-cog" class="w-3.5 h-3.5"></i>
+                            <span class="teacher-toggle-label-text">选择AI教师</span>
+                            <span class="teacher-current-name" id="teacher-current-name">（未选择）</span>
+                            <svg class="teacher-toggle-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="teacher-cards-panel" id="teacher-cards-panel">
+                            <div class="teacher-cards">
+                                <!-- 动态渲染老师卡片 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文本输入区 -->
+                    <textarea id="openmaic-course-input" class="openmaic-textarea" placeholder="描述你想学习的主题，让AI为你生成一堂精彩的课程..." rows="4"></textarea>
+
+                    <!-- 附件预览区域 -->
+                    <div class="openmaic-attachments" id="openmaic-attachments"></div>
+
+                    <!-- 工具栏 -->
+                    <div class="openmaic-toolbar-row">
+                        <div class="openmaic-toolbar-left">
+                            <!-- 媒体设置按钮 -->
+                            <button class="openmaic-media-btn" id="openmaic-media-btn">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                                <span>媒体设置</span>
+                                <span class="media-badge" id="media-badge" style="display:none;">0</span>
+                            </button>
+
+                            <!-- 附件上传按钮 -->
+                            <button class="openmaic-tool-btn" id="openmaic-attach-btn" title="添加附件">
+                                <i data-lucide="paperclip" class="w-4 h-4"></i>
+                            </button>
+                            <input type="file" id="openmaic-file-input" multiple accept=".pdf,.doc,.docx,.txt,.md" style="display:none;">
+
+                            <!-- 语音输入按钮 -->
+                            <button class="openmaic-voice-btn" id="openmaic-voice-btn" title="语音输入">
+                                <span class="voice-icon"><i data-lucide="mic" class="w-4 h-4"></i></span>
+                                <span class="voice-bars" style="display:none;">
+                                    <span></span><span></span><span></span>
+                                </span>
+                            </button>
+
+                            <!-- 分隔线 -->
+                            <div class="openmaic-toolbar-divider"></div>
+
+                            <!-- 功能开关 -->
+                            <button class="openmaic-pill-toggle" id="openmaic-websearch-pill" data-feature="websearch">
+                                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                                <span>网络搜索</span>
+                            </button>
+                            <button class="openmaic-pill-toggle" id="openmaic-pdf-pill" data-feature="pdf">
+                                <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                                <span>PDF解析</span>
+                            </button>
+                            <button class="openmaic-pill-toggle" id="openmaic-interactive-pill" data-feature="interactive">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>深度交互</span>
+                            </button>
+                        </div>
+
+                        <button id="openmaic-enter-btn" class="openmaic-enter-btn">
+                            <span>进入课堂</span>
+                            <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <!-- 媒体设置弹窗 -->
+                    <div class="openmaic-media-popup" id="openmaic-media-popup">
+                        <div class="media-popup-header">
+                            <span class="media-popup-title">媒体生成设置</span>
+                            <button class="media-popup-close" id="openmaic-media-close">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="media-popup-content">
+                            <div class="media-option">
+                                <div class="media-option-info">
+                                    <div class="media-option-icon">
+                                        <i data-lucide="image" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="media-option-text">
+                                        <span class="media-option-label">生成图片</span>
+                                        <span class="media-option-desc">使用AI为课程生成精美插图</span>
+                                    </div>
+                                </div>
+                                <label class="toggle-switch" id="openmaic-image-toggle-label">
+                                    <input type="checkbox" id="openmaic-image-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="media-option">
+                                <div class="media-option-info">
+                                    <div class="media-option-icon video">
+                                        <i data-lucide="video" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="media-option-text">
+                                        <span class="media-option-label">生成视频</span>
+                                        <span class="media-option-desc">使用AI为课程生成动态视频</span>
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="openmaic-video-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="media-provider-info">
+                                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                                <span>当前使用 <strong>Minimax</strong> 媒体生成模型</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最近课堂区域 - 紧凑样式 -->
+            <div class="openmaic-recent-section" id="openmaic-recent-section">
+                <div class="openmaic-recent-trigger">
+                    <div class="openmaic-recent-line"></div>
+                    <button class="openmaic-recent-btn" id="openmaic-recent-toggle">
+                        <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                        <span>最近课堂</span>
+                        <span class="openmaic-recent-count" id="openmaic-recent-count">0</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 openmaic-chevron"></i>
+                    </button>
+                    <div class="openmaic-recent-line"></div>
+                    <button class="openmaic-import-btn" id="openmaic-import-btn">
+                        <i data-lucide="upload" class="w-3 h-3"></i>
+                        <span>导入</span>
+                    </button>
+                    <div class="openmaic-recent-line"></div>
+                </div>
+                <div class="openmaic-recent-content" id="openmaic-recent-content">
+                    <div class="openmaic-recent-grid" id="openmaic-recent-grid">
+                        <!-- 动态生成课程卡片 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部 -->
+        <div class="openmaic-footer">
+            星识 Star-Learn 智能课程生成系统
+        </div>
+
+        <!-- ============================================ -->
+        <!-- Phase 2: 脑暴对话 / 大纲确认 / 9 件套进度  -->
+        <!-- ============================================ -->
+
+        <!-- 1. 脑暴面板 (默认 hidden) -->
+        <div id="xs-bs-panel" class="xs-bs-panel hidden">
+            <div class="xs-bs-header">
+                <div class="xs-bs-progress">
+                    <span id="xs-bs-turn-label">1</span>
+                    <span class="xs-bs-divider">/</span>
+                    <span id="xs-bs-turn-total">3</span>
+                </div>
+                <div class="xs-bs-slot-badge" id="xs-bs-slot-badge">学习目标</div>
+                <button class="xs-bs-close" id="xs-bs-close" title="关闭">&times;</button>
+            </div>
+            <h3 class="xs-bs-question" id="xs-bs-question">问题加载中…</h3>
+            <div class="xs-bs-options" id="xs-bs-options"></div>
+            <div class="xs-bs-custom-row">
+                <input type="text" id="xs-bs-custom" class="xs-bs-custom-input" placeholder="其他想法(可选)…">
+            </div>
+            <div class="xs-bs-actions">
+                <button class="xs-bs-btn xs-bs-skip" id="xs-bs-skip">跳过本题</button>
+                <button class="xs-bs-btn xs-bs-next" id="xs-bs-next">下一题 →</button>
+            </div>
+        </div>
+
+        <!-- 2. 大纲确认面板 -->
+        <div id="xs-confirm-panel" class="xs-confirm-panel hidden">
+            <div class="xs-confirm-header">
+                <h3>确认课程大纲</h3>
+                <div class="xs-confirm-mode">
+                    <span class="xs-confirm-mode-label">模式:</span>
+                    <button class="xs-confirm-toggle" id="xs-confirm-toggle" data-mode="obg">OBG</button>
+                </div>
+            </div>
+            <p class="xs-confirm-rationale" id="xs-confirm-rationale">—</p>
+            <ul class="xs-confirm-scenes" id="xs-confirm-scenes"></ul>
+            <div class="xs-confirm-actions">
+                <button class="xs-bs-btn xs-confirm-back" id="xs-confirm-back">← 重新澄清</button>
+                <button class="xs-bs-btn xs-confirm-go" id="xs-confirm-go">开始生成 9 件套 →</button>
+            </div>
+        </div>
+
+        <!-- 3. 9 件套进度面板 -->
+        <div id="xs-bundle-panel" class="xs-bundle-panel hidden">
+            <h3 class="xs-bundle-title">9 件套课程包生成中…</h3>
+            <div class="xs-bundle-grid" id="xs-bundle-grid">
+                <div class="xs-comp" data-name="outline"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">大纲</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="plan"><span class="xs-comp-icon">📝</span><span class="xs-comp-name">教案</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="ppt"><span class="xs-comp-icon">🎬</span><span class="xs-comp-name">PPT</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="graph"><span class="xs-comp-icon">🕸</span><span class="xs-comp-name">图谱</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="radar"><span class="xs-comp-icon">📊</span><span class="xs-comp-name">雷达</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="project"><span class="xs-comp-icon">🛠</span><span class="xs-comp-name">项目</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="case"><span class="xs-comp-icon">📖</span><span class="xs-comp-name">案例</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="exercises"><span class="xs-comp-icon">✏️</span><span class="xs-comp-name">习题</span><span class="xs-comp-state">待生成</span></div>
+                <div class="xs-comp" data-name="survey"><span class="xs-comp-icon">📋</span><span class="xs-comp-name">问卷</span><span class="xs-comp-state">待生成</span></div>
+            </div>
+            <div class="xs-bundle-actions">
+                <button class="xs-bs-btn xs-bundle-cancel" id="xs-bundle-cancel">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑课程弹窗 (OpenMAIC Glassmorphism) -->
+    <div class="openmaic-modal" id="edit-course-modal">
+        <div class="openmaic-modal-backdrop" id="edit-modal-backdrop"></div>
+        <div class="openmaic-modal-content">
+            <div class="openmaic-modal-header">
+                <div class="openmaic-modal-icon edit-icon">
+                    <i data-lucide="pencil"></i>
+                </div>
+                <div>
+                    <h3 class="openmaic-modal-title">编辑课程</h3>
+                    <p class="openmaic-modal-subtitle">修改课程名称</p>
+                </div>
+                <button class="openmaic-modal-close" id="edit-modal-close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="openmaic-modal-body">
+                <label class="openmaic-modal-label">课程名称</label>
+                <input type="text" class="openmaic-modal-input" id="edit-course-input"
+                       placeholder="请输入课程名称" autocomplete="off">
+            </div>
+            <div class="openmaic-modal-footer">
+                <button class="openmaic-btn openmaic-btn-ghost" id="edit-cancel-btn">取消</button>
+                <button class="openmaic-btn openmaic-btn-primary" id="edit-confirm-btn">
+                    <i data-lucide="check"></i>
+                    保存
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除课程确认弹窗 (OpenMAIC Glassmorphism) -->
+    <div class="openmaic-modal" id="delete-course-modal">
+        <div class="openmaic-modal-backdrop" id="delete-modal-backdrop"></div>
+        <div class="openmaic-modal-content">
+            <div class="openmaic-modal-header">
+                <div class="openmaic-modal-icon danger-icon">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <div>
+                    <h3 class="openmaic-modal-title">删除课程</h3>
+                    <p class="openmaic-modal-subtitle">此操作不可撤销</p>
+                </div>
+                <button class="openmaic-modal-close" id="delete-modal-close">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="openmaic-modal-body">
+                <div class="openmaic-delete-warning">
+                    <i data-lucide="trash-2" class="w-12 h-12"></i>
+                </div>
+                <p class="openmaic-delete-title">确定要删除这个课程吗？</p>
+                <p class="openmaic-delete-desc">课程的所有内容（幻灯片、测验、AI互动数据）将被永久删除，且无法恢复。</p>
+            </div>
+            <div class="openmaic-modal-footer">
+                <button class="openmaic-btn openmaic-btn-ghost" id="delete-cancel-btn">取消</button>
+                <button class="openmaic-btn openmaic-btn-danger" id="delete-confirm-btn">
+                    <i data-lucide="trash-2"></i>
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 渲染老师选择卡片
+        function renderTeacherCards() {
+            const container = document.querySelector('.teacher-cards');
+            if (!container || typeof TEACHERS_CONFIG === 'undefined') return;
+
+            container.innerHTML = TEACHERS_CONFIG.map(teacher => `
+                <div class="teacher-card" data-teacher-id="${teacher.id}" data-teacher-name="${teacher.name}">
+                    <div class="teacher-card-icon">${teacher.icon}</div>
+                    <div class="teacher-card-name">${teacher.name}</div>
+                    <div class="teacher-card-profession">${teacher.profession}</div>
+                </div>
+            `).join('');
+
+            // 绑定点击事件
+            container.querySelectorAll('.teacher-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    container.querySelectorAll('.teacher-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    const select = document.getElementById('openmaic-teacher-select');
+                    if (select) select.value = card.dataset.teacherId;
+
+                    // 同步 trigger 上显示的当前选择
+                    const currentNameEl = document.getElementById('teacher-current-name');
+                    if (currentNameEl) {
+                        currentNameEl.textContent = card.dataset.teacherName || '（未选择）';
+                    }
+
+                    // 选中后自动折叠面板
+                    collapseTeacherPanel();
+                });
+            });
+        }
+
+        // 展开 / 折叠 教师选择面板
+        function expandTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+        }
+        function collapseTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        function toggleTeacherPanel() {
+            const btn = document.getElementById('teacher-toggle-btn');
+            if (!btn) return;
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            if (expanded) collapseTeacherPanel();
+            else expandTeacherPanel();
+        }
+
+        // 初始化老师卡片和切换逻辑
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTeacherCards();
+
+            // 绑定教师面板 toggle
+            const teacherToggleBtn = document.getElementById('teacher-toggle-btn');
+            if (teacherToggleBtn) {
+                teacherToggleBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleTeacherPanel();
+                });
+            }
+            // 点击面板外区域自动折叠
+            document.addEventListener('click', (e) => {
+                const wrapper = document.getElementById('teacher-select-wrapper');
+                if (wrapper && !wrapper.contains(e.target)) {
+                    collapseTeacherPanel();
+                }
+            });
+
+            // 监听agent-mode切换
+            const agentMode = document.getElementById('openmaic-agent-select');
+            const teacherWrapper = document.getElementById('teacher-select-wrapper');
+            if (agentMode && teacherWrapper) {
+                agentMode.addEventListener('change', () => {
+                    if (agentMode.value === 'preset') {
+                        teacherWrapper.classList.add('visible');
+                        expandTeacherPanel();
+                    } else {
+                        teacherWrapper.classList.remove('visible');
+                        collapseTeacherPanel();
+                    }
+                });
+                // 初始状态
+                if (agentMode.value === 'preset') {
+                    teacherWrapper.classList.add('visible');
+                    expandTeacherPanel();
+                } else {
+                    collapseTeacherPanel();
+                }
+            }
+
+            // 创建漂浮粒子背景效果
+            createFloatingParticles();
+        });
+
+        // 漂浮粒子效果
+        function createFloatingParticles() {
+            const bgDecor = document.querySelector('.openmaic-bg-decor');
+            if (!bgDecor) return;
+
+            const particleCount = 20;
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'openmaic-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 15 + 10) + 's';
+                particle.style.animationDelay = (Math.random() * 10) + 's';
+                particle.style.width = (Math.random() * 3 + 2) + 'px';
+                particle.style.height = particle.style.width;
+                particle.style.opacity = Math.random() * 0.3 + 0.1;
+                bgDecor.appendChild(particle);
+            }
+        }
+    </script>
+    <div id="persona-tooltip"></div>
+
+    <!-- 看板娘 -->
+    <div class="app-kanban" id="app-kanban"></div>
+
+    <script src="/js/kanban.js"></script>
+    <script src="/js/mascot-services.js"></script>
+    <script src="/js/mascot-core.js"></script>
+    <script src="/js/mascot-panel.js"></script>
+
+    <!-- Hash-based tab switching -->
+    <script>
+    (function() {
+        function activateTabFromHash() {
+            var hash = location.hash.replace('#', '');
+            if (!hash) return;
+            var tabBtn = document.querySelector('[data-tab="' + hash + '"]');
+            if (tabBtn) tabBtn.click();
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', activateTabFromHash);
+        } else {
+            activateTabFromHash();
+        }
+        window.addEventListener('hashchange', activateTabFromHash);
+    })();
+    </script>
+
+<div id="persona-switcher" class="persona-switcher" hidden>
+  <div class="persona-option" data-persona="patient_tutor">陈默 · 温和耐心</div>
+  <div class="persona-option" data-persona="socratic_questioner">林问 · 哲学思辨</div>
+  <div class="persona-option" data-persona="energetic_lecturer">周燃 · 激情速讲</div>
+  <div class="persona-option" data-persona="expert_mentor">严铮 · 严谨深入</div>
+  <div class="persona-option" data-persona="caring_counselor">苏语 · 情绪陪伴</div>
+</div>
+
+<script src="js/agent-bus.js"></script>
+<script src="js/agent-sse-client.js"></script>
+<script src="js/agent-mock-fallback.js"></script>
+<script src="js/agent-orchestrator.js"></script>
+<script src="js/agent-telemetry-collector.js"></script>
+
+<!-- Phase 1 — AI 问答重塑:首访引导覆盖层 -->
+<div id="xs-onboard-mask" class="xs-onboard-mask" aria-hidden="true">
+  <div class="xs-onboard-card" role="dialog" aria-labelledby="xs-onboard-title" aria-modal="true">
+    <button class="xs-onboard-close" id="xs-onboard-close" aria-label="关闭" title="关闭">×</button>
+    <div class="xs-onboard-progress">
+      <span id="xs-onboard-step">1 / 4</span>
+      <div class="xs-onboard-progress-bar"><div class="xs-onboard-progress-fill" id="xs-onboard-fill" style="width:25%"></div></div>
+    </div>
+    <h2 class="xs-onboard-title" id="xs-onboard-title">欢迎来到星识 🌟</h2>
+    <p class="xs-onboard-hint" id="xs-onboard-hint">让我们先了解你,我会更好地帮你学习。</p>
+    <div class="xs-onboard-options" id="xs-onboard-options"></div>
+    <input class="xs-onboard-custom" id="xs-onboard-custom" type="text" placeholder="其他(可选)" maxlength="60" />
+    <div class="xs-onboard-actions">
+      <button class="xs-onboard-skip" id="xs-onboard-skip">跳过</button>
+      <button class="xs-onboard-next" id="xs-onboard-next" disabled>下一题 →</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/onboarding.js" defer></script>
+
+</body>
+</html>

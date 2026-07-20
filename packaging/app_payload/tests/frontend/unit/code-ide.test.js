@@ -1,0 +1,292 @@
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { CodeIDE } from '../../../js/code-ide.js';
+
+const CSS_PATH = path.resolve(__dirname, '../../../css/code-ide.css');
+
+describe('code-ide.css', () => {
+  let cssText = '';
+
+  beforeAll(() => {
+    cssText = fs.readFileSync(CSS_PATH, 'utf-8');
+    const style = document.createElement('style');
+    style.setAttribute('data-test', 'code-ide');
+    style.textContent = cssText;
+    document.head.appendChild(style);
+  });
+
+  it('活动栏选择器存在', () => {
+    const styleEl = document.querySelector('style[data-test="code-ide"]');
+    expect(styleEl, 'style element must be injected').toBeTruthy();
+    // jsdom does parse the CSS into a CSSStyleSheet on the <style> element
+    const sheet = styleEl.sheet;
+    expect(sheet, 'sheet must be parsed').toBeTruthy();
+    const rules = [...sheet.cssRules].map(r => r.selectorText).filter(Boolean);
+    expect(rules).toContain('.ide-activity-bar');
+    expect(rules).toContain('.ide-activity-icon');
+  });
+});
+
+describe('CodeIDE', () => {
+  beforeEach(() => {
+    // 隔离：清空 DOM 与 localStorage，避免用例间相互污染
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    // 收尾：再次清理，防止监听器/节点残留
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  function buildShell() {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="ide-shell">
+        <aside class="ide-activity-bar">
+          <button class="ide-activity-icon" data-panel="task">T</button>
+          <button class="ide-activity-icon" data-panel="notes">N</button>
+        </aside>
+      </div>
+    `);
+    return document.querySelector('.ide-shell');
+  }
+
+  it('activate 切换活动栏图标激活态', () => {
+    const ide = new CodeIDE(buildShell());
+    ide.activate('task');
+    expect(document.querySelector('[data-panel="task"]').dataset.active).toBe('true');
+    expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('false');
+    ide.activate('notes');
+    expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('true');
+  });
+
+  it('click 活动栏图标触发激活', () => {
+    const ide = new CodeIDE(buildShell());
+    const taskBtn = document.querySelector('[data-panel="task"]');
+    taskBtn.click();
+    expect(taskBtn.dataset.active).toBe('true');
+    expect(ide.activePanel).toBe('task');
+    expect(document.querySelector('[data-panel="notes"]').dataset.active).toBe('false');
+  });
+
+  it('activate 派发 codeide:panel-change CustomEvent', () => {
+    const shell = buildShell();
+    const ide = new CodeIDE(shell);
+    const handler = makeSpy();
+    document.addEventListener('codeide:panel-change', handler);
+    ide.activate('task');
+    expect(handler.calls.length).toBe(1);
+    expect(handler.calls[0].detail).toEqual({ panel: 'task' });
+    document.removeEventListener('codeide:panel-change', handler);
+  });
+
+  it('persistLayout 写入 localStorage', () => {
+    const ide = new CodeIDE(buildShell());
+    ide.activate('task');
+    const raw = localStorage.getItem('code_ide_layout');
+    expect(raw, 'localStorage entry must exist').toBeTruthy();
+    const parsed = JSON.parse(raw);
+    expect(parsed.activePanel).toBe('task');
+  });
+});
+
+describe('CodeIDE resizer', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  it('attachResizer 拖拽时回调传入新宽度', () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="ide-shell">
+        <aside class="ide-activity-bar">x</aside>
+        <div class="ide-stage" style="position:relative">
+          <aside class="ide-coach" style="width:360px"></aside>
+          <div class="ide-resizer" data-target=".ide-coach" style="cursor:ew-resize;position:absolute;right:0;top:0;bottom:0;width:4px"></div>
+        </div>
+      </div>
+    `);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    const resizer = document.querySelector('.ide-resizer');
+    const coach = document.querySelector('.ide-coach');
+    // jsdom 不计算布局，getBoundingClientRect() 始终返回 width:0。
+    // 桩一个渲染宽度，让 attachResizer 的 startWidth 能读到 360。
+    coach.getBoundingClientRect = () => ({ width: 360, height: 0, top: 0, left: 0, right: 360, bottom: 0, x: 0, y: 0 });
+    let captured = null;
+    ide.attachResizer(resizer, 240, 560, (w) => { captured = w; });
+
+    // simulate drag: mousedown -> mousemove -> mouseup
+    resizer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 200 }));
+
+    expect(captured).toBe(460); // 360 + (200-100)
+    expect(coach.style.width).toBe('460px');
+  });
+
+  it('attachResizer 二次调用不重复挂载', () => {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="ide-shell">
+        <aside class="ide-coach" style="width:300px"></aside>
+        <div class="ide-resizer" data-target=".ide-coach" style="width:4px;height:100px"></div>
+      </div>
+    `);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    const resizer = document.querySelector('.ide-resizer');
+    const coach = document.querySelector('.ide-coach');
+    let callCount = 0;
+    ide.attachResizer(resizer, 200, 600, () => { callCount++; });
+    ide.attachResizer(resizer, 200, 600, () => { callCount++; });  // second call should be no-op
+
+    coach.getBoundingClientRect = () => ({ width: 300, height: 100, top: 0, left: 0, right: 304, bottom: 100, x: 0, y: 0 });
+    resizer.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 100 }));
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 150 }));
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 150 }));
+
+    expect(callCount).toBe(1);  // only first attach wired up the callback
+  });
+});
+
+describe('CodeIDE layout persistence', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  it('setPanelWidth / setPanelCollapsed 写入 localStorage', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    ide.setPanelWidth('coach', 420);
+    ide.setPanelCollapsed('coach', true);
+
+    const raw = JSON.parse(localStorage.getItem('code_ide_layout'));
+    expect(raw.panelWidths.coach).toBe(420);
+    expect(raw.panelCollapsed.coach).toBe(true);
+  });
+
+  it('setPanelWidth 忽略 NaN / 负数 / 0', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    ide.setPanelWidth('coach', NaN);
+    ide.setPanelWidth('coach', -10);
+    ide.setPanelWidth('coach', 0);
+    // All three calls are rejected before any persistLayout, so localStorage stays untouched.
+    expect(localStorage.getItem('code_ide_layout')).toBeNull();
+    expect(ide.panelWidths).toBeUndefined();
+  });
+
+  it('setPanelCollapsed 强制转布尔并派发 codeide:panel-collapse 事件', () => {
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    let received = null;
+    document.addEventListener('codeide:panel-collapse', (e) => { received = e.detail; });
+    ide.setPanelCollapsed('notes', 1);  // truthy
+    expect(received).toEqual({ panel: 'notes', collapsed: true });
+    ide.setPanelCollapsed('notes', 0);  // falsy
+    expect(received).toEqual({ panel: 'notes', collapsed: false });
+  });
+
+  it('restoreLayout 同时还原 panelWidths 和 panelCollapsed', () => {
+    localStorage.setItem('code_ide_layout', JSON.stringify({
+      panelWidths: { coach: 380 },
+      panelCollapsed: { notes: true },
+    }));
+    document.body.insertAdjacentHTML('beforeend', `<div class="ide-shell"></div>`);
+    const ide = new CodeIDE(document.querySelector('.ide-shell'));
+    expect(ide.panelWidths).toEqual({ coach: 380 });
+    expect(ide.panelCollapsed).toEqual({ notes: true });
+  });
+});
+
+describe('code.js DOM 兼容 — IDE 骨架 fallback 选择器', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  function buildIdeDom() {
+    document.body.insertAdjacentHTML('beforeend', `
+      <main class="ide-shell">
+        <aside class="ide-activity-bar"></aside>
+        <section class="ide-task-panel">
+          <aside class="brief-panel"></aside>
+        </section>
+        <section class="ide-stage">
+          <div class="output-panel" id="output-panel"></div>
+        </section>
+        <aside class="ide-coach">
+          <div class="assistant-panel"></div>
+        </aside>
+        <footer class="ide-status-bar terminal-bar" id="terminal-bar-footer"></footer>
+      </main>
+    `);
+  }
+
+  it('新选择器命中 IDE 元素', () => {
+    buildIdeDom();
+    expect(document.querySelector('.ide-task-panel')).toBeTruthy();
+    expect(document.querySelector('.ide-coach')).toBeTruthy();
+    expect(document.querySelector('.ide-status-bar')).toBeTruthy();
+    expect(document.querySelector('#output-panel')).toBeTruthy();
+    expect(document.querySelector('.ide-activity-bar')).toBeTruthy();
+  });
+
+  it('fallback 选择器在无新类名时回退到旧选择器', () => {
+    // 仅有旧 DOM（模拟迁移前 HTML），fallback 应命中旧选择器
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="brief-panel"></div>
+      <div class="assistant-panel"></div>
+      <div class="terminal-bar"></div>
+      <div class="output-panel"></div>
+    `);
+    const taskPanel = document.querySelector('.ide-task-panel') || document.querySelector('.brief-panel');
+    const coachPanel = document.querySelector('.ide-coach') || document.querySelector('.assistant-panel');
+    const statusBar = document.querySelector('.ide-status-bar') || document.querySelector('.terminal-bar');
+    const outputPanel = document.querySelector('#output-panel') || document.querySelector('.output-panel');
+    expect(taskPanel).toBeTruthy();
+    expect(coachPanel).toBeTruthy();
+    expect(statusBar).toBeTruthy();
+    expect(outputPanel).toBeTruthy();
+    // activityBar 无 fallback — 不存在的元素返回 null
+    const activityBar = document.querySelector('.ide-activity-bar');
+    expect(activityBar).toBeNull();
+  });
+
+  it('cacheElements 模拟：新 IDE DOM 所有 5 个新元素均解析为非 null', () => {
+    buildIdeDom();
+    const taskPanel = document.querySelector('.ide-task-panel') || document.querySelector('.brief-panel');
+    const coachPanel = document.querySelector('.ide-coach') || document.querySelector('.assistant-panel');
+    const statusBar = document.querySelector('.ide-status-bar') || document.querySelector('.terminal-bar');
+    const outputPanel = document.querySelector('#output-panel') || document.querySelector('.output-panel');
+    const activityBar = document.querySelector('.ide-activity-bar');
+    expect(taskPanel).toBeTruthy();
+    expect(coachPanel).toBeTruthy();
+    expect(statusBar).toBeTruthy();
+    expect(outputPanel).toBeTruthy();
+    expect(activityBar).toBeTruthy();
+  });
+});
+
+// 轻量 helper：构造一个可断言的间谍函数，避免在测试文件里再 import vi
+function makeSpy() {
+  const fn = (event) => {
+    fn.calls.push(event);
+  };
+  fn.calls = [];
+  return fn;
+}

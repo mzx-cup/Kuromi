@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 · 星识 Star-Learn</title>
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/app-base.css">
+  <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/animations.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <script defer src="/js/alpinejs.min.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/http-intercept.js"></script>
+  <script src="/js/pages/login.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/toast.js"></script>
+</head>
+<body data-bg-unified="true" class="app-body auth-page">
+  <main class="auth-stage" x-data="loginPage" x-init="init()">
+
+    <!-- 品牌标志 -->
+    <header class="auth-brand">
+      <div class="auth-brand-mark" aria-hidden="true">SL</div>
+      <h1 class="auth-brand-title gradient-text">星识 Star-Learn</h1>
+      <p class="auth-brand-subtitle">多智能体协同伴学系统 · 教师端</p>
+    </header>
+
+    <!-- 登录卡片 -->
+    <section class="auth-card app-form-card" aria-labelledby="login-card-title">
+      <div class="auth-card-header">
+        <h2 id="login-card-title" class="auth-card-title">欢迎回来</h2>
+        <p class="auth-card-subtitle">登录后开启你的智能学习之旅</p>
+      </div>
+
+      <div class="auth-banner auth-banner--error"
+           x-show="error" x-text="error" x-cloak role="alert"></div>
+      <div class="auth-banner auth-banner--success"
+           x-show="success" x-text="success" x-cloak role="status"></div>
+
+      <form id="login-form" class="auth-form" @submit.prevent="doLogin()" novalidate>
+        <div class="form-group">
+          <label class="app-label" for="login-username">用户名</label>
+          <input id="login-username"
+                 class="app-input"
+                 x-model="form.username"
+                 type="text"
+                 placeholder="输入用户名"
+                 autocomplete="username"
+                 :disabled="loading"
+                 required>
+        </div>
+
+        <div class="form-group">
+          <label class="app-label" for="login-password">密码</label>
+          <div class="auth-password-wrap">
+            <input id="login-password"
+                   class="app-input"
+                   x-model="form.password"
+                   :type="showPassword ? 'text' : 'password'"
+                   placeholder="输入密码"
+                   autocomplete="current-password"
+                   :disabled="loading"
+                   required>
+            <button type="button"
+                    class="auth-password-toggle"
+                    @click="togglePassword()"
+                    :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                    tabindex="-1">
+              <svg x-show="!showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg x-show="showPassword" x-cloak xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit"
+                class="app-btn-primary app-btn-block auth-submit"
+                :disabled="loading"
+                :aria-busy="loading">
+          <span class="auth-submit-label" x-text="loading ? '登录中…' : '登 录'">登 录</span>
+          <span class="auth-submit-spinner" x-show="loading" x-cloak aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <!-- 快速演示登录 -->
+      <div class="auth-quick">
+        <div class="auth-quick-label">
+          <span>快速演示登录</span>
+        </div>
+        <div class="auth-quick-grid">
+          <button type="button"
+                  class="auth-quick-btn"
+                  @click="quickLogin('teacher')"
+                  :disabled="loading">
+            <span class="auth-quick-emoji" aria-hidden="true">⭐</span>
+            <span class="auth-quick-text">教师</span>
+          </button>
+          <button type="button"
+                  class="auth-quick-btn"
+                  @click="quickLogin('student')"
+                  :disabled="loading">
+            <span class="auth-quick-emoji" aria-hidden="true">🎓</span>
+            <span class="auth-quick-text">学生</span>
+          </button>
+          <button type="button"
+                  class="auth-quick-btn"
+                  @click="quickLogin('admin')"
+                  :disabled="loading">
+            <span class="auth-quick-emoji" aria-hidden="true">🛡️</span>
+            <span class="auth-quick-text">管理员</span>
+          </button>
+        </div>
+        <p class="auth-quick-hint">演示账号统一使用密码 <code>123456</code></p>
+      </div>
+    </section>
+
+    <p class="auth-footer">
+      还没有账号？<a href="/register.html" class="app-btn-link">注册新账号</a>
+    </p>
+  </main>
+</body>
+</html>

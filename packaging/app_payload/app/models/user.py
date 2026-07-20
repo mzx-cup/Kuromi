@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.models.base import Base
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    username: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    nickname: Mapped[str] = mapped_column(String(128), default="")
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    preferred_language: Mapped[str] = mapped_column(String(16), default="zh-CN")
+    avatar_url: Mapped[str] = mapped_column(String(512), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class StudentProfile(Base):
+    __tablename__ = "student_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    learning_style: Mapped[str] = mapped_column(String(32), default="pragmatic")
+    cognitive_level: Mapped[str] = mapped_column(String(32), default="basic")
+    learning_progress: Mapped[float] = mapped_column(Float, default=0.0)
+    learning_goals: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    interaction_count: Mapped[int] = mapped_column(Integer, default=0)
+    socratic_pass_rate: Mapped[float] = mapped_column(Float, default=0.0)
+    code_practice_time: Mapped[int] = mapped_column(Integer, default=0)
+    preferred_persona: Mapped[Optional[str]] = mapped_column(
+        String(32), default=None, nullable=True,
+        comment="学生偏好的教学风格(可选，为空则由系统根据画像自动选择)"
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class LoginRecord(Base):
+    """New SQLAlchemy model for login audit trail."""
+    __tablename__ = "user_login_records"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(String(64), ForeignKey("users.id"), nullable=False)
+    ip_address: Mapped[str] = mapped_column(String(64))
+    user_agent: Mapped[str] = mapped_column(String(512))
+    login_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Profile(Base):
+    """Mirrors db.py 'user_profile' table for migration compatibility."""
+    __tablename__ = "user_profile"
+    user_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    preferred_language: Mapped[str] = mapped_column(String(16), default="zh-CN")
+    theme: Mapped[str] = mapped_column(String(32), default="dark")

@@ -1,0 +1,165 @@
+/* ============================================================
+   App Base — 全局页面基础样式
+   用途：为所有非 AI 问答页面提供统一的基础视觉层。
+   规则：
+     1. 只使用 tokens.css 变量，禁止硬编码颜色
+     2. 特异性尽量低，不覆盖页面专有样式
+     3. 与 teacher.css / hub.css / index.css 共存不冲突
+   ============================================================ */
+
+/* ---------- 1. 全局 reset 与基础 ---------- */
+html {
+  color-scheme: var(--_color-scheme, light);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
+  font-size: var(--text-base, 15px);
+  line-height: 1.6;
+  color: var(--text-body, #475569);
+  background: var(--surface-page, #f8f7f5);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 选中文本高亮 */
+::selection {
+  background: var(--accent-bg, rgba(249,115,22,0.12));
+  color: var(--text-heading, #1c1917);
+}
+
+/* ---------- 2. 统一滚动条 ---------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted, #78756e);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-body, #475569); }
+
+/* ---------- 3. 壁纸背景层 ---------- */
+/* 注：旧的 .global-bg-layer / .global-bg-video 已迁移到 theme-bg.css
+   由 #theme-bg 统一容器接管。旧选择器在 theme-bg.css 第 7 节强制隐藏。*/
+
+/* ---------- 4. 主题设置按钮（页面已有时使用） ---------- */
+.theme-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--surface-glass, rgba(255,255,255,0.45));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--text-body, #475569);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out, cubic-bezier(0,0,0.2,1));
+  box-shadow: var(--shadow-sm);
+}
+.theme-settings-btn:hover {
+  background: var(--surface-hover, rgba(255,255,255,0.6));
+  transform: scale(1.08);
+  box-shadow: var(--shadow-md);
+}
+.theme-settings-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- 5. 自动浮动主题按钮（theme.js 自动创建） ---------- */
+#app-theme-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9998;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--border-glass, rgba(255,255,255,0.25));
+  background: var(--surface-glass, rgba(255,255,255,0.45));
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  color: var(--text-body, #475569);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.3s var(--ease-out, cubic-bezier(0,0,0.2,1));
+}
+#app-theme-fab:hover {
+  transform: scale(1.1) rotate(15deg);
+  box-shadow: var(--shadow-lg), inset 0 1px 0 var(--border-glass);
+}
+#app-theme-fab:active { transform: scale(0.95); }
+#app-theme-fab svg {
+  width: 22px;
+  height: 22px;
+  color: var(--brand-500, #f97316);
+}
+
+/* ---------- 6. 通用页面容器 ---------- */
+.app-page {
+  min-height: 100vh;
+  background: var(--surface-page, #f8f7f5);
+}
+
+/* ---------- 7. 工具类兼容 ---------- */
+.text-heading { color: var(--text-heading, #1c1917); }
+.text-body    { color: var(--text-body, #475569); }
+.text-muted   { color: var(--text-muted, #78756e); }
+.bg-card      { background: var(--bg-card, var(--surface-card, #ffffff)); }
+.border-glass { border-color: var(--border-glass, #e7e5e0); }
+
+/* ---------- 8. A11y & utility layer ---------- */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+/* Hide scrollbar */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Focus visible ring for keyboard a11y */
+:focus-visible {
+  outline: 2px solid var(--brand-400);
+  outline-offset: 2px;
+}
+
+/* Text truncation */
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Grid utilities */
+.app-container { max-width: 1400px; margin: 0 auto; padding: 0 var(--space-gutter); }
+.app-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap-md); }
+.app-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap-md); }
+.app-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap-md); }
+@media (max-width: 768px) {
+  .app-grid-2, .app-grid-3, .app-grid-4 { grid-template-columns: 1fr; }
+}
+
+/* Flex utilities */
+.app-flex-row { display: flex; flex-direction: row; }
+.app-flex-col { display: flex; flex-direction: column; }
+.app-gap-xs { gap: var(--gap-xs); } .app-gap-sm { gap: var(--gap-sm); }
+.app-gap-md { gap: var(--gap-md); } .app-gap-lg { gap: var(--gap-lg); }
+.app-gap-xl { gap: var(--gap-xl); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

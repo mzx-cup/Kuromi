@@ -1,0 +1,745 @@
+/* 灵犀·动态概念拆解仪 样式 */
+
+.concept-analyzer-page,
+.concept-analyzer-page * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+input, textarea, select {
+    font-size: 100%;
+}
+
+.concept-analyzer-page {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
+
+.cyber-font {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* 赛博朋克扫描线骨架屏 */
+.skeleton-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(168, 85, 247, 0.08) 50%,
+        transparent 100%
+    );
+    animation: cyber-scan 2s ease-in-out infinite;
+}
+
+@keyframes cyber-scan {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.skeleton-block {
+    background: linear-gradient(
+        90deg,
+        rgba(255,255,255,0.03) 0%,
+        rgba(168, 85, 247, 0.1) 50%,
+        rgba(255,255,255,0.03) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+}
+
+.code-fragment {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(168, 85, 247, 0.4);
+    animation: code-glitch 0.3s ease-in-out infinite;
+    white-space: nowrap;
+}
+
+@keyframes code-glitch {
+    0%, 100% { opacity: 0.3; transform: translateX(0); }
+    50% { opacity: 0.6; transform: translateX(2px); }
+}
+
+/* 打字机效果 */
+.typewriter {
+    overflow: hidden;
+    border-right: 2px solid rgba(168, 85, 247, 0.8);
+    animation: blink-caret 0.8s step-end infinite;
+}
+
+@keyframes blink-caret {
+    50% { border-color: transparent; }
+}
+
+.typewriter-text {
+    display: inline;
+}
+
+/* 节点发光效果 */
+.node-glow {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.node-glow.active {
+    border-color: rgba(168, 85, 247, 0.9);
+    box-shadow:
+        0 0 20px rgba(168, 85, 247, 0.5),
+        0 0 40px rgba(168, 85, 247, 0.3),
+        inset 0 0 20px rgba(168, 85, 247, 0.1);
+}
+
+.node-glow.active .node-inner {
+    background: rgba(168, 85, 247, 0.2);
+}
+
+.node-glow.synced {
+    border-color: rgba(59, 130, 246, 0.9);
+    box-shadow:
+        0 0 20px rgba(59, 130, 246, 0.5),
+        0 0 40px rgba(59, 130, 246, 0.3);
+}
+
+/* 连接线流动 */
+.connection-line {
+    stroke-dasharray: 8 4;
+    animation: dash-flow 1s linear infinite;
+}
+
+@keyframes dash-flow {
+    to { stroke-dashoffset: -12; }
+}
+
+.connection-line.active {
+    stroke: rgba(168, 85, 247, 0.8);
+    filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.8));
+}
+
+/* 脉冲环 */
+.pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(168, 85, 247, 0.6);
+    animation: pulse-expand 1.5s ease-out infinite;
+    opacity: 0;
+}
+
+@keyframes pulse-expand {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* 进度条样式 */
+.scrubber-track {
+    background: linear-gradient(90deg,
+        rgba(168, 85, 247, 0.2) 0%,
+        rgba(168, 85, 247, 0.1) 100%
+    );
+    height: 6px;
+    border-radius: 3px;
+}
+
+.scrubber-fill {
+    background: linear-gradient(90deg, #a855f7, #3b82f6);
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.scrubber-thumb {
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.scrubber-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* 按钮样式 */
+.control-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.4);
+    transform: translateY(-2px);
+}
+
+.control-btn:active {
+    transform: translateY(0);
+}
+
+.control-btn.primary {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(59, 130, 246, 0.3));
+    border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.control-btn.primary.playing {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(59, 130, 246, 0.5));
+}
+
+/* 旋转加载 */
+.spin-once {
+    animation: spin-360 1s linear infinite;
+}
+
+@keyframes spin-360 {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 毛玻璃弹窗 */
+.glass-modal {
+    background: var(--surface-glass);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--border-glass);
+}
+
+/* 关键词高亮 */
+.keyword {
+    color: #a855f7;
+    font-weight: 500;
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+.keyword.blue {
+    color: #3b82f6;
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.keyword.green {
+    color: #10b981;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+/* 步骤指示器 */
+.step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--surface-card);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.step-dot:hover {
+    background: rgba(168, 85, 247, 0.5);
+}
+
+.step-dot.active {
+    background: #a855f7;
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
+}
+
+.step-dot.completed {
+    background: rgba(168, 85, 247, 0.5);
+}
+
+/* 滑入动画 */
+.slide-up-enter {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 高亮文字动画 */
+.highlight-flash {
+    animation: flashHighlight 0.6s ease-out;
+}
+
+@keyframes flashHighlight {
+    0% { background: rgba(168, 85, 247, 0.3); }
+    100% { background: transparent; }
+}
+
+/* 分类标签样式 */
+.category-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background: var(--surface-glass);
+    border: 1px solid var(--border-glass);
+    color: #9ca3af;
+}
+
+.category-tab:hover {
+    background: rgba(168, 85, 247, 0.1);
+    border-color: rgba(168, 85, 247, 0.3);
+    color: #d1d5db;
+}
+
+.category-tab.active {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.5);
+    color: #a855f7;
+}
+
+/* 概念选择器 */
+#concept-selector {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+#concept-selector option {
+    background: #1e1e2e;
+    color: white;
+    padding: 8px;
+}
+
+/* 节点过渡动画 */
+.node-glow {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.node-glow.active {
+    border-color: rgba(168, 85, 247, 0.9);
+    box-shadow:
+        0 0 20px rgba(168, 85, 247, 0.5),
+        0 0 40px rgba(168, 85, 247, 0.3),
+        inset 0 0 20px rgba(168, 85, 247, 0.1);
+    transform: scale(1.05);
+}
+
+.node-glow.active .node-inner {
+    background: rgba(168, 85, 247, 0.2);
+    transform: scale(1.1);
+}
+
+.node-glow.synced {
+    border-color: rgba(59, 130, 246, 0.9);
+    box-shadow:
+        0 0 20px rgba(59, 130, 246, 0.5),
+        0 0 40px rgba(59, 130, 246, 0.3);
+}
+
+.node-glow.synced .node-inner {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+/* 键盘快捷键样式 */
+kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+}
+
+/* 数据包入场动画 */
+#packet-syn,
+#packet-synack,
+#packet-ack,
+#packet-fin,
+#packet-query,
+#packet-result,
+#packet-root,
+#packet-tld,
+#packet-auth,
+#packet-compare,
+#packet-narrow,
+#packet-search,
+#packet-partition,
+#packet-recurse,
+#packet-merge,
+#packet-chain,
+#packet-probe,
+#packet-rehash,
+#packet-check,
+#packet-isolate,
+#packet-commit,
+#packet-split,
+#packet-divide,
+#packet-range,
+#packet-share,
+#packet-context,
+#packet-comm,
+#packet-map,
+#packet-swap,
+#packet-tlb,
+#packet-dns,
+#packet-request,
+#packet-response {
+    animation: packetAppear 0.3s ease-out forwards;
+}
+
+@keyframes packetAppear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* 毛玻璃效果增强 */
+.glass-modal {
+    background: var(--surface-card);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--border-glass);
+    box-shadow:
+        0 0 60px rgba(168, 85, 247, 0.1),
+        0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* 专家解读区域滚动条 */
+#expert-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#expert-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#expert-content::-webkit-scrollbar-thumb {
+    background: rgba(168, 85, 247, 0.3);
+    border-radius: 3px;
+}
+
+#expert-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(168, 85, 247, 0.5);
+}
+
+/* Comprehensive Responsive */
+@media (min-width: 1920px) {
+    .control-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .control-btn.primary {
+        width: 56px;
+        height: 56px;
+    }
+
+    .scrubber-track {
+        height: 8px;
+    }
+
+    .scrubber-thumb {
+        width: 20px;
+        height: 20px;
+    }
+
+    .category-tab {
+        padding: 10px 20px;
+        font-size: 15px;
+    }
+}
+
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .control-btn {
+        width: 44px;
+        height: 44px;
+    }
+
+    .control-btn.primary {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+    .control-btn {
+        width: 42px;
+        height: 42px;
+    }
+
+    .control-btn.primary {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+    .control-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .control-btn.primary {
+        width: 48px;
+        height: 48px;
+    }
+
+    .category-tab {
+        padding: 7px 14px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1023px) {
+    .control-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .control-btn.primary {
+        width: 46px;
+        height: 46px;
+    }
+
+    .category-tab {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .scrubber-track {
+        height: 5px;
+    }
+
+    .scrubber-thumb {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+    .control-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .control-btn.primary {
+        width: 44px;
+        height: 44px;
+    }
+
+    .category-tab {
+        padding: 6px 10px;
+        font-size: 11px;
+        gap: 4px;
+    }
+
+    .scrubber-track {
+        height: 5px;
+    }
+
+    .scrubber-thumb {
+        width: 14px;
+        height: 14px;
+    }
+
+    .step-dot {
+        width: 7px;
+        height: 7px;
+    }
+}
+
+@media (min-width: 640px) and (max-width: 767px) {
+    .control-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+    }
+
+    .control-btn.primary {
+        width: 42px;
+        height: 42px;
+    }
+
+    .category-tab {
+        padding: 5px 10px;
+        font-size: 11px;
+        gap: 4px;
+        border-radius: 8px;
+    }
+
+    .scrubber-track {
+        height: 4px;
+    }
+
+    .scrubber-thumb {
+        width: 12px;
+        height: 12px;
+    }
+
+    .step-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .code-fragment {
+        font-size: 8px;
+    }
+}
+
+@media (min-width: 480px) and (max-width: 639px) {
+    .control-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+
+    .control-btn.primary {
+        width: 38px;
+        height: 38px;
+    }
+
+    .category-tab {
+        padding: 4px 8px;
+        font-size: 10px;
+        gap: 3px;
+        border-radius: 6px;
+    }
+
+    .scrubber-track {
+        height: 4px;
+    }
+
+    .scrubber-thumb {
+        width: 10px;
+        height: 10px;
+    }
+
+    .step-dot {
+        width: 5px;
+        height: 5px;
+    }
+
+    .code-fragment {
+        font-size: 7px;
+    }
+}
+
+@media (max-width: 479px) {
+    .control-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+    }
+
+    .control-btn.primary {
+        width: 34px;
+        height: 34px;
+    }
+
+    .category-tab {
+        padding: 3px 6px;
+        font-size: 9px;
+        gap: 2px;
+        border-radius: 5px;
+    }
+
+    .scrubber-track {
+        height: 3px;
+    }
+
+    .scrubber-thumb {
+        width: 8px;
+        height: 8px;
+    }
+
+    .step-dot {
+        width: 4px;
+        height: 4px;
+    }
+
+    .code-fragment {
+        font-size: 6px;
+    }
+
+    kbd {
+        font-size: 9px;
+    }
+}
+
+@media (max-width: 374px) {
+    .control-btn {
+        width: 24px;
+        height: 24px;
+        border-radius: 5px;
+    }
+
+    .control-btn.primary {
+        width: 30px;
+        height: 30px;
+    }
+
+    .category-tab {
+        padding: 2px 5px;
+        font-size: 8px;
+        border-radius: 4px;
+    }
+
+    .scrubber-track {
+        height: 2px;
+    }
+
+    .scrubber-thumb {
+        width: 6px;
+        height: 6px;
+    }
+
+    .step-dot {
+        width: 3px;
+        height: 3px;
+    }
+
+    .code-fragment {
+        display: none;
+    }
+
+    kbd {
+        font-size: 8px;
+    }
+}
