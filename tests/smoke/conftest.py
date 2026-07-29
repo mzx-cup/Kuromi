@@ -13,6 +13,8 @@ import time
 import httpx
 import pytest
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def _find_free_port() -> int:
     with socket.socket() as s:
@@ -31,17 +33,22 @@ def base_url():
     # raises when the JSON fallback is disabled. This is a known transitional
     # state of the cutover; it does not affect ORM writes.
     env.setdefault("DUAL_WRITE_LEGACY", "true")
-    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".pytest_cache", "smoke")
+    log_dir = os.path.join(PROJECT_ROOT, ".pytest_cache", "smoke")
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, f"server-{port}.log")
     log_file = open(log_path, "wb")
-    proc = subprocess.Popen(
-        ["python", "start_server.py"],
-        env=env,
-        stdout=log_file,
-        stderr=subprocess.STDOUT,
-        cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-    )
+    proc: subprocess.Popen | None = None
+    try:
+        proc = subprocess.Popen(
+            ["python", "start_server.py"],
+            env=env,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
+            cwd=PROJECT_ROOT,
+        )
+    except Exception:
+        log_file.close()
+        raise
     url = f"http://127.0.0.1:{port}"
     deadline = time.time() + 30
     last_err: Exception | None = None
@@ -64,16 +71,23 @@ def base_url():
                 stderr_out = f.read(2000).decode("utf-8", errors="replace")
         except Exception:
             pass
-        raise RuntimeError(
-            f"Server failed to start in 30s on {url}; last_err={last_err}; log={stderr_out[:500]}"
+        # Chain the underlying error when available, otherwise suppress context.
+        msg = (
+            f"Server failed to start in 30s on {url}; "
+            f"last_err={last_err}; log={stderr_out[:500]}"
         )
+        if last_err is not None:
+            raise RuntimeError(msg) from last_err
+        raise RuntimeError(msg) from None
     yield url
-    proc.terminate()
     try:
-        proc.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-    log_file.close()
+        proc.terminate()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+    finally:
+        log_file.close()
 
 
 @pytest.fixture
