@@ -8,7 +8,8 @@ import json
 import logging
 import time
 import uuid
-from typing import Any
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -20,6 +21,53 @@ from app.schemas.agent_orchestration import PipelineRequest
 from app.services.agent_log_adapter import agent_log_to_envelope
 from app.services.portrait_aggregator import aggregate_portrait_snapshot
 from state import LearningPortrait
+
+
+# ---- profile_updated payload helpers (M1.1 / #7) ----
+
+async def _load_user_portrait(student_id: str) -> LearningPortrait:
+    """从 CapabilityRepository 加载学生真实画像 (失败时回退 LearningPortrait()).
+
+    M1.1 / #7: 修复 line 103 传空 LearningPortrait() 导致 radar 全 0 的 bug.
+    """
+    if not student_id:
+        return LearningPortrait()
+    try:
+        from app.core.repository_factory import get_repository_for_user
+        from app.services.course_brainstorm import (
+            _capability_to_learning_portrait,
+            _portrait_to_learning_portrait,
+        )
+        repository = get_repository_for_user(student_id, repository_type="capability")
+        profile = await repository.aggregate_profile(student_id)
+        if isinstance(profile, dict) and profile:
+            portrait_dict = _capability_to_learning_portrait(profile)
+            portrait = _portrait_to_learning_portrait(portrait_dict)
+            if portrait is not None:
+                return portrait
+    except Exception as exc:
+        logging.warning(
+            "_load_user_portrait failed for student_id=%s: %s; fallback to empty portrait.",
+            student_id, exc,
+        )
+    return LearningPortrait()
+
+
+def _build_profile_updated_payload(
+    user_id: str, portrait: LearningPortrait
+) -> dict[str, Any]:
+    """构造 profile_updated SSE 事件载荷（避免传空 portrait）.
+
+    与 aggregate_portrait_snapshot 输出的 radar/panel 一致, 前端 agent-sse-client
+    按 radar 6 维渲染雷达图、按 panel 4 卡渲染画像卡.
+    """
+    snap = aggregate_portrait_snapshot(portrait)
+    return {
+        "user_id": user_id,
+        "radar": snap["radar"],
+        "panel": snap["panel"],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @router.get("/api/agents/catalog")
@@ -92,20 +140,19 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
     trace_id = req.trace_id or str(uuid.uuid4())
     queue: asyncio.Queue = asyncio.Queue()
 
+    # 预加载学生真实画像（避免 line 103 传空 LearningPortrait() 导致 radar 全 0）
+    real_portrait: LearningPortrait = await _load_user_portrait(req.student_id)
+
     async def on_step(log: AgentStepLog) -> None:
         env = agent_log_to_envelope(log, trace_id=trace_id)
         await queue.put(("agent_step", env))
         # 关键节点（画像/评估/规划）追加 profile_updated 事件
         if log.agent_role in ("画像分析", "评估", "路径规划"):
-            # 注: plan 用 StudentState + profile=LearningPortrait, 实际
-            # StudentState.profile 是 LearningProfile(legacy), LearningPortrait 是独立模型.
-            # aggregator v2 直接接受 LearningPortrait 参数 (Task 3 deviation).
-            snap = aggregate_portrait_snapshot(LearningPortrait())
-            await queue.put(("profile_updated", {
-                "trace_id": trace_id,
-                "radar": snap["radar"],
-                "panel": snap["panel"],
-            }))
+            # 注: 使用闭包捕获的 real_portrait（已从 CapabilityRepository 预加载）,
+            # 不再传空 LearningPortrait(), radar/panel 反映真实画像数据.
+            payload = _build_profile_updated_payload(req.student_id, real_portrait)
+            payload["trace_id"] = trace_id  # 保持与 SSE envelope 一致
+            await queue.put(("profile_updated", payload))
 
     async def event_gen():
         yield _sse_format("heartbeat", {
