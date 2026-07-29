@@ -8849,7 +8849,6 @@ def load_daily_route_db(user_id: int, route_date: str):
 def guest_login(request: Request):
     """游客快速登录 - 生成临时账号"""
     ip_address, user_agent = get_login_request_meta(request)
-    import uuid as _uuid
     guest_id = _uuid.uuid4().hex[:8]
     guest_username = f"guest_{guest_id}"
     guest_password = hashlib.md5(guest_username.encode()).hexdigest()
