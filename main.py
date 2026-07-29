@@ -95,6 +95,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.exception(f"[Startup] seed failed: {e}")
     try:
+        from app.services.demo_seeder import seed_demo_if_missing
+        result = await seed_demo_if_missing()
+        logger.info(f"[Startup] demo content: {result}")
+    except Exception as e:
+        logger.exception(f"[Startup] demo seeder failed: {e}")
+    try:
         from app.core.health_worker import HealthWorker
         from app.core.config import kb_settings
         health_worker = HealthWorker(interval_seconds=kb_settings.health_check_interval_s)
@@ -356,6 +362,13 @@ try:
     app.include_router(seed_media_router)
 except ImportError:
     print("[main] Seed Media 模块不可用，跳过")
+
+# ---- Classroom API (demo classroom session retrieval) ----
+try:
+    from app.api.classroom import router as classroom_router
+    app.include_router(classroom_router)
+except ImportError as e:
+    logger.warning(f"[main] classroom router not loaded: {e}")
 
 # ---- KB API (L1 内容层 ingest 端点) ----
 from app.api.kb import router as kb_router
@@ -8836,9 +8849,8 @@ def load_daily_route_db(user_id: int, route_date: str):
 def guest_login(request: Request):
     """游客快速登录 - 生成临时账号"""
     ip_address, user_agent = get_login_request_meta(request)
-    import random
-    import string
-    guest_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    import uuid as _uuid
+    guest_id = _uuid.uuid4().hex[:8]
     guest_username = f"guest_{guest_id}"
     guest_password = hashlib.md5(guest_username.encode()).hexdigest()
     avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={guest_username}&backgroundColor=b6e3f4"
@@ -8855,6 +8867,7 @@ def guest_login(request: Request):
     return {
         "success": True,
         "userId": user_id,
+        "user_id": user_id,
         "username": guest_username,
         "nickname": f"游客_{guest_id[:4]}",
         "avatar": avatar,
