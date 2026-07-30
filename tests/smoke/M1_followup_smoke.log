@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.3, pluggy-1.6.0 -- C:\Users\ZWC\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\ZWC\Downloads\Kuromi-main\Kuromi-main
+configfile: pytest.ini
+plugins: anyio-4.13.0, langsmith-0.10.2, asyncio-1.4.0, cov-7.1.0, timeout-2.4.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+timeout: 300.0s
+timeout method: thread
+timeout func_only: False
+collecting ... collected 10 items
+
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_01_register_login_flow PASSED [ 10%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_02_dashboard_summary PASSED [ 20%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_03_v2_chat_socratic PASSED [ 30%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_04_course_brainstorm PASSED [ 40%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_05_course_bundle_stream PASSED [ 50%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_06_learning_path_with_evidence PASSED [ 60%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_07_teacher_ai_suggestions PASSED [ 70%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_08_agent_orchestration_catalog PASSED [ 80%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_09_kb_ingest_qdrant PASSED [ 90%]
+tests/smoke/test_e2e_apis.py::TestCoreAPIs::test_10_safety_jailbreak_block PASSED [100%]
+
+======================= 10 passed in 132.84s (0:02:12) ========================

@@ -201,7 +201,7 @@ class StudentState(BaseModel):
 
 
 class ChatRequestV2(BaseModel):
-    student_id: str = ""
+    student_id: Union[int, str] = ""
     course_id: str = "bigdata"
     user_input: str = ""
     context_id: str = ""
@@ -210,6 +210,12 @@ class ChatRequestV2(BaseModel):
     interaction_count: int = 0
     code_practice_time: int = 0
     socratic_pass_rate: float = 0.0
+
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def _coerce_student_id(cls, v: Any) -> Any:
+        # /api/login/guest returns an int userId; accept it and normalise to str.
+        return str(v) if v is not None else v
 
 
 class ChatResponseV2(BaseModel):
@@ -230,7 +236,7 @@ class ChatResponseV2(BaseModel):
 
 
 class StreamChatRequest(BaseModel):
-    student_id: str = ""
+    student_id: Union[int, str] = ""
     course_id: str = "bigdata"
     user_input: str = Field(..., min_length=1)
     context_id: str = ""
@@ -247,6 +253,12 @@ class StreamChatRequest(BaseModel):
     difficulty_pref: int = Field(default=3, ge=1, le=5, description="Agent 控制塔难度偏好 1-5")
     strategy: str = Field(default="auto", description="Agent 控制塔教学策略")
     injected_knowledge: list[str] = Field(default_factory=list, description="Agent 控制塔注入知识标签")
+
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def _coerce_student_id(cls, v: Any) -> Any:
+        # /api/login/guest returns an int userId; accept it and normalise to str.
+        return str(v) if v is not None else v
 
     @field_validator("user_input", mode="after")
     @classmethod
@@ -633,7 +645,7 @@ class CourseData(BaseModel):
 
 class CourseGenerationRequest(BaseModel):
     """课程生成请求"""
-    student_id: str = ""
+    student_id: Union[int, str] = ""
     requirement: str = Field(..., min_length=1)
     enable_web_search: bool = True
     enable_image: bool = True
@@ -666,6 +678,12 @@ class CourseGenerationRequest(BaseModel):
     outline_override: dict[str, Any] = Field(default_factory=dict)
     """    用户在大纲确认面板编辑后覆盖的 outline {title, description, scenes[]}
     """
+
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def _coerce_student_id(cls, v: Any) -> Any:
+        # /api/login/guest returns an int userId; accept it and normalise to str.
+        return str(v) if v is not None else v
 
 
 class CourseGenerationSession(BaseModel):

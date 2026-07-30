@@ -9,9 +9,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ============================================================
@@ -238,7 +238,13 @@ class CourseBundle(BaseModel):
 
 class BrainstormStartRequest(BaseModel):
     requirement: str = Field(..., min_length=1)
-    student_id: str = ""
+    student_id: Union[int, str] = ""
+
+    @field_validator("student_id", mode="before")
+    @classmethod
+    def _coerce_student_id(cls, v: Any) -> Any:
+        # /api/login/guest returns an int userId; accept it and normalise to str.
+        return str(v) if v is not None else v
 
 
 class BrainstormStartResponse(BaseModel):
