@@ -89,6 +89,15 @@ async def lifespan(app: FastAPI):
         await init_db()
     except Exception as e:
         logger.exception(f"[Startup] init_db failed: {e}")
+    # M2 KB hardening: hydrate the in-memory _COUNTER from the DB so a
+    # restart does not regenerate already-persisted KB-CON-XXXX ids.
+    try:
+        from app.repositories.orm.knowledge_node import SessionFactory
+        from app.models.knowledge_node import init_counter_from_db
+        init_counter_from_db(SessionFactory)
+        logger.info("[Startup] KB _COUNTER initialised")
+    except Exception as e:
+        logger.exception(f"[Startup] init_counter_from_db failed: {e}")
     try:
         from app.services.course_seeder import seed_courses_if_empty
         await seed_courses_if_empty()

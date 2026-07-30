@@ -15,22 +15,65 @@ callers should import it directly (``from app.models.knowledge_node
 import KnowledgeNode, make_node_id``) rather than from
 ``app.models.knowledge`` to avoid the SM2 collision.
 """
+import logging
 from datetime import datetime, timedelta
 
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import String, Integer, Float, DateTime, JSON, Text
+from sqlalchemy import Integer, Float, DateTime, JSON, String, Text, text
+from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.models.base import Base
 from app.services.kb.source_ref import SourceRef
 
+logger = logging.getLogger("starlearn.knowledge_node")
 
+# In-memory counter for monotonic KB-CON-XXXX IDs.
+# Initialised lazily from the DB at startup (init_counter_from_db)
+# so service restarts don't collide with already-persisted rows.
 _COUNTER = {"v": 0}
+_COUNTER_INITIALIZED = {"done": False}
 
 
 def make_node_id(subject: str, title: str, chunk_index: int = 0) -> str:
-    """Stable monotonic ID per session, e.g. KB-CON-0001."""
+    """Stable monotonic ID per session, e.g. KB-CON-0001.
+
+    NOTE: ``subject`` / ``title`` / ``chunk_index`` are accepted for
+    forward-compatibility with hashed-id plans; today's ID is purely a
+    monotonic counter that must be initialised from the DB at startup
+    to avoid UNIQUE-constraint collisions on restart.
+    """
     _COUNTER["v"] += 1
     return f"KB-CON-{_COUNTER['v']:04d}"
+
+
+def init_counter_from_db(session_factory) -> int:
+    """Initialise ``_COUNTER`` from the maximum persisted ``KB-CON-NNNN``.
+
+    Call once at process startup (see ``main.py`` lifespan hook) so a
+    freshly-started server does not regenerate IDs that already exist
+    in the ``knowledge_node`` table.
+
+    ``session_factory`` is any SQLAlchemy sessionmaker whose ``()``
+    returns a ``Session`` (sync or async-context-manager-compatible).
+    Idempotent: subsequent calls are no-ops.
+    """
+    if _COUNTER_INITIALIZED["done"]:
+        return _COUNTER["v"]
+    try:
+        with session_factory() as session:
+            row = session.execute(
+                text(
+                    "SELECT MAX(CAST(SUBSTR(id, 8) AS INTEGER)) "
+                    "FROM knowledge_node WHERE id LIKE 'KB-CON-%'"
+                )
+            ).fetchone()
+            max_v = row[0] if row and row[0] is not None else 0
+            _COUNTER["v"] = int(max_v)
+            _COUNTER_INITIALIZED["done"] = True
+            logger.info(f"KB _COUNTER initialized from DB: max_v={_COUNTER['v']}")
+            return _COUNTER["v"]
+    except Exception as exc:
+        logger.warning(f"Failed to init KB _COUNTER from DB: {exc}")
+        return _COUNTER["v"]
 
 
 class KnowledgeNode(Base):
