@@ -1,342 +1,342 @@
-# Star-Learn Competition Audit and Remediation Design
+# 星识 AI 教育平台竞赛审计与整改设计
 
-Date: 2026-07-30
-Status: Approved in brainstorming review
-Priority: competition/demo > engineering portfolio > production maturity
+日期：2026-07-30
+状态：已通过头脑风暴评审
+优先级：比赛与答辩 > 工程作品集 > 生产成熟度
 
-## 1. Objective
+## 1. 目标
 
-Star-Learn is an AI education platform covering learner profiles, AI tutoring, Socratic teaching, adaptive learning paths, courses, classrooms, knowledge retrieval, long-term memory, multi-agent orchestration, teacher workflows, and dashboards.
+星识（Star-Learn）是一个 AI 教育平台，覆盖学习画像、AI 辅导、苏格拉底式教学、自适应学习路径、课程、课堂、知识检索、长期记忆、多智能体编排、教师工作流和数据看板等能力。
 
-The goal is not to add more features. With more than one month available, the project will be narrowed into a reliable, evidence-based competition entry that supports a live networked demonstration and recorded fallback. The presentation is at least 15 minutes. The narrative priority is:
+本轮目标不是继续增加功能，而是在一个月以上的准备周期内，将项目收敛为一套可靠、有证据支撑的竞赛作品。作品以现场联网实机演示为主，以预先录制内容为兜底，答辩时间为 15 分钟以上。叙事优先级如下：
 
-1. The student's personalized learning loop.
-2. Multi-agent technical differentiation.
-3. Platform completeness across student and teacher workflows.
+1. 学生个性化学习闭环。
+2. 多智能体技术差异化。
+3. 学生端与教师端的平台完整性。
 
-The selected strategy is competition-oriented incremental convergence. Keep the FastAPI modular monolith and native HTML/CSS/JavaScript frontend. Do not migrate frontend frameworks or split microservices. Freeze one demonstration path, remove reliability and security blockers, then improve experience, data consistency, and technical communication.
+采用“比赛导向的渐进收敛”策略：保留 FastAPI 模块化单体和原生 HTML/CSS/JavaScript 前端，不迁移前端框架，不拆分微服务。先冻结唯一主演示链，再消除可靠性与安全阻断项，随后改善体验、数据一致性和技术表达。
 
-## 2. Audit Scope and Evidence
+## 2. 审计范围与证据
 
-### 2.1 Scope
+### 2.1 审计范围
 
-The audit covers product value, student and teacher workflows, UX, API boundaries, tutor orchestration, agents, repositories, persistence, external AI services, security, testing, CI, deployment, documentation, and repository hygiene.
+本次审计覆盖产品价值、学生与教师工作流、用户体验、API 边界、教学编排、智能体、Repository、数据持久化、外部 AI 服务、安全、测试、CI、部署、文档和仓库治理。
 
-### 2.2 Verified facts
+### 2.2 已验证事实
 
-- `main.py` is approximately 8,896 lines, with about 306 registered or mounted API routes across `main.py` and `app/api`.
-- `db.py` is approximately 5,832 lines; `agents.py` is approximately 1,476 lines.
-- Large frontend files include `css/index.css` at about 11,541 lines, `js/index.js` at about 10,416 lines, `css/classroom.css` at about 8,800 lines, and `js/classroom.js` at about 7,770 lines.
-- Tests cover backend unit, contract, integration, security, performance, red-team, and smoke concerns, plus Vitest, Playwright, accessibility, and visual regression on the frontend.
-- CI currently runs E2E through `npm run test:e2e || echo ...`, so an E2E failure does not fail that step.
-- Security infrastructure includes centralized CORS/CSRF handling, request-size limits, security headers, rate limiting, and trace middleware.
-- `app/api/auth.py` has a fallback JWT secret; security configuration enables development mode by default; multiple authentication and password-compatibility paths coexist.
-- Python execution uses a blacklist plus subprocess timeout. Its own documentation states that it is not suitable for untrusted multi-tenant code.
-- Git tracks about 11,698 files, including approximately 9,718 embedded Python runtime files, 226 `node_modules` files, and 47 audio artifacts. Git pack size is about 234 MB.
-- The working tree contains extensive user changes. This design does not modify or revert them.
+- `main.py` 约 8,896 行；`main.py` 与 `app/api` 注册或挂载的 API 路由约 306 个。
+- `db.py` 约 5,832 行；`agents.py` 约 1,476 行。
+- 大型前端文件包括：`css/index.css` 约 11,541 行，`js/index.js` 约 10,416 行，`css/classroom.css` 约 8,800 行，`js/classroom.js` 约 7,770 行。
+- 测试覆盖后端单元测试、契约测试、集成测试、安全测试、性能测试、红队测试和冒烟测试；前端包含 Vitest、Playwright、无障碍测试和视觉回归测试。
+- CI 当前通过 `npm run test:e2e || echo ...` 运行端到端测试，因此 E2E 失败不会导致该步骤失败。
+- 安全基础设施已经包含集中式 CORS/CSRF 处理、请求体大小限制、安全响应头、限流和 trace 中间件。
+- `app/api/auth.py` 存在兜底 JWT 密钥；安全配置默认启用开发模式；多个认证入口和密码兼容路径并存。
+- Python 代码执行采用黑名单加子进程超时方案，其自身文档也明确说明该方案不适用于多租户不可信代码。
+- Git 跟踪约 11,698 个文件，其中约 9,718 个是嵌入式 Python 运行时文件，226 个位于 `node_modules`，47 个是音频产物。Git pack 约 234 MB。
+- 当前工作区存在大量用户修改。本设计不修改或回退这些内容。
 
-### 2.3 Test evidence limits
+### 2.3 测试证据限制
 
-A broad backend test run excluding slow, AI, CV, performance, and E2E tests did not complete within 120 seconds. The first confirmed cause of the many setup errors was denial of access to the user temporary directory in the restricted execution environment. These setup errors cannot be attributed to the project. A narrower run passed its first 24 tests and then encountered the same environment limitation.
+一次范围较广的后端测试排除了慢测、AI、CV、性能和 E2E 测试，但在 120 秒内未完成。大量 setup error 的首个可确认原因是受限执行环境拒绝访问用户临时目录，不能将这些错误归因于项目。缩小范围后，首批 24 项测试通过，随后再次遇到同一环境权限限制。
 
-Frontend Vitest could not load its config because esbuild was denied access while traversing parent directories in the restricted environment. Therefore, this audit does not claim that all backend or frontend tests pass. It also does not count these sandbox permission failures as project defects. A complete baseline must be collected on a normal development machine and in CI.
+前端 Vitest 未能加载配置，原因是受限环境禁止 esbuild 遍历上级目录。因此，本次审计不能声称全部后端或前端测试已经通过，也不会将这些沙箱权限问题计算为项目缺陷。比赛前必须在正常开发机和 CI 中重新采集完整基线。
 
-## 3. Current Assessment
+## 3. 当前评价
 
-### 3.1 Weighting
+### 3.1 评分权重
 
-Competition and presentation quality account for 65%:
+比赛与答辩质量占 65%：
 
-| Dimension | Weight |
+| 维度 | 权重 |
 |---|---:|
-| Educational problem and user value | 15% |
-| Personalized learning loop | 15% |
-| AI and multi-agent differentiation | 12% |
-| Live demo reliability | 12% |
-| Product experience and visual consistency | 6% |
-| Delivery potential and clarity | 5% |
+| 教育痛点与用户价值 | 15% |
+| 个性化学习闭环 | 15% |
+| AI 与多智能体差异化 | 12% |
+| 现场演示可靠性 | 12% |
+| 产品体验与视觉一致性 | 6% |
+| 落地潜力与表达清晰度 | 5% |
 
-Engineering portfolio quality accounts for 35%:
+工程作品集质量占 35%：
 
-| Dimension | Weight |
+| 维度 | 权重 |
 |---|---:|
-| Architecture and maintainability | 8% |
-| Data consistency and evolution | 6% |
-| Security and authorization | 7% |
-| Test and delivery credibility | 6% |
-| Observability, performance, reliability | 5% |
-| Documentation and repository hygiene | 3% |
+| 架构边界与可维护性 | 8% |
+| 数据一致性与演进能力 | 6% |
+| 安全与权限控制 | 7% |
+| 测试与交付可信度 | 6% |
+| 可观测性、性能与可靠性 | 5% |
+| 文档与仓库治理 | 3% |
 
-### 3.2 Baseline estimate
+### 3.2 基线估分
 
-| Area | Estimate |
+| 项目 | 估分 |
 |---|---:|
-| Competition potential | 7.4/10 |
-| Product completeness | 6.8/10 |
-| Technical differentiation | 8.2/10 |
-| Live demo reliability | 5.8/10 |
-| Engineering portfolio quality | 6.3/10 |
-| Production maturity | 4.5/10 |
-| Weighted overall score | 6.9/10 |
+| 比赛竞争力 | 7.4/10 |
+| 产品完成度 | 6.8/10 |
+| 技术创新表达 | 8.2/10 |
+| 现场演示可靠性 | 5.8/10 |
+| 工程作品集质量 | 6.3/10 |
+| 生产成熟度 | 4.5/10 |
+| 加权综合评分 | 6.9/10 |
 
-These are static-audit and limited-runtime estimates, not formal benchmark results. Completing P0 and P1 should raise the competition score above 8.5/10.
+以上分数来自静态审计和有限运行验证，不是正式基准测试结果。完成 P0 和 P1 后，比赛维度目标应达到 8.5/10 以上。
 
-### 3.3 Strengths
+### 3.3 主要优势
 
-- The conceptual product covers a complete student-teacher-course-classroom landscape.
-- AI work goes beyond chat and includes memory, Socratic strategy, supervision, proactive tutoring, and anti-hallucination mechanisms.
-- Test categories show awareness of contracts, security, regression, accessibility, and visual quality.
-- Design and implementation records are substantial, with recent fixes to authentication, knowledge retrieval, and smoke flows.
-- The native frontend has extensive custom design and many demonstrable scenarios.
+- 产品概念覆盖学生、教师、课程和课堂，整体版图完整。
+- AI 能力不只停留在聊天，还涉及记忆、苏格拉底策略、监督、主动辅导和反幻觉机制。
+- 测试类型较丰富，说明项目已经关注接口契约、安全、回归、无障碍和视觉质量。
+- 设计与实施记录较多，近期提交持续修复认证、知识检索和冒烟链路。
+- 原生前端有大量定制设计和可演示场景，具有视觉辨识度。
 
-### 3.4 Critical gaps
+### 3.4 关键缺口
 
-- Product scope is too broad, and the educational loop is not yet the sole narrative center.
-- Oversized entry files mix application assembly, routing, business behavior, compatibility, and data access.
-- ORM, legacy database access, sync and async access, local JSON, and multiple database paths coexist without a sufficiently clear source of truth.
-- Authentication entry points, identity derivation, role assignment, and environment defaults require consolidation.
-- The current code executor is not a security boundary for untrusted code.
-- CI can report success despite E2E failure.
-- Dependencies, runtimes, and generated media are committed, increasing repository size and delivery friction.
-- Documentation and executable configuration show signs of drift.
+- 产品范围过宽，教育闭环尚未成为唯一叙事中心。
+- 超大入口文件混合应用装配、路由、业务行为、兼容逻辑和数据访问，变更风险高。
+- ORM、旧数据库访问、同步与异步访问、本地 JSON 和多条数据库路径并存，权威数据源不够清楚。
+- 认证入口、身份推导、角色分配和环境默认值需要统一。
+- 当前代码执行器不能作为不可信代码的安全边界。
+- CI 可以在 E2E 失败时继续显示成功。
+- 依赖、运行时和生成媒体被提交，增加仓库体积和交付摩擦。
+- 文档与可执行配置存在漂移迹象。
 
-## 4. Product Narrative and Demo Path
+## 4. 产品叙事与演示主链
 
-The presentation must prove more than "the AI can chat." It must show that the system maintains a changing learner state, adapts teaching decisions from evidence, and writes each learning event back into the next student and teacher decision.
+答辩必须证明的不只是“AI 能聊天”，而是系统能够维护持续变化的学习状态，根据证据调整教学决策，并将每次学习事件回写为学生和教师的下一步决策依据。
 
-Three claims must recur throughout the presentation:
+答辩中需要反复证明三个命题：
 
-1. The system understands longitudinal learner state, not only the current message.
-2. Teaching strategy changes because learning evidence changes, not because of a fixed prompt.
-3. Every learning action updates data that affects the next student and teacher action.
+1. 系统理解学生持续变化的学习状态，而不只处理当前一句消息。
+2. 教学策略会因为学习证据变化，而不是依赖固定 Prompt。
+3. 每次学习行为都会更新数据，并影响学生和教师的下一步行动。
 
-The fixed live path is:
+固定的现场演示链为：
 
 ```text
-Sign in with a seeded demo account
--> inspect the existing learner profile
--> answer a diagnostic question or ask for help
--> identify a weak concept and show the evidence
--> conduct a short Socratic tutoring sequence
--> generate or adjust the personalized learning path
--> complete a micro-exercise
--> show changed mastery, profile, and recommendation
--> open the teacher view and show an intervention recommendation
+使用预置演示账号登录
+→ 查看已有学习画像
+→ 回答诊断题或提出学习问题
+→ 识别薄弱知识点并展示判断依据
+→ 进行一段简短的苏格拉底式辅导
+→ 生成或调整个性化学习路径
+→ 完成一个微型练习
+→ 展示掌握度、画像和推荐的变化
+→ 打开教师端，展示干预建议
 ```
 
-The agent orchestration console is a technical explanation insert, not the main product surface. The teacher view proves that learner evidence feeds teaching decisions; it does not compete with the student story.
+智能体编排控制台只作为技术解释插曲，不作为主产品入口。教师端用于证明学习证据能够反馈到教学决策，不与学生端争夺主叙事。
 
-## 5. Target Architecture Boundaries
+## 5. 目标架构边界
 
-The target remains a modular monolith with six clear boundaries.
+目标架构保持模块化单体，并建立六个清晰边界。
 
-### 5.1 Experience layer
+### 5.1 体验层
 
-The student experience owns diagnosis, tutoring, course learning, exercises, and feedback. The teacher experience owns learner insight and intervention. The competition build exposes a fixed entry and coherent navigation, while hiding incomplete or unrelated pages.
+学生端负责诊断、辅导、课程学习、练习和反馈；教师端负责学生洞察和干预。比赛版提供固定入口与连贯导航，并隐藏未完成或与主链无关的页面。
 
-### 5.2 API layer
+### 5.2 API 层
 
-`main.py` becomes application assembly over time. Demo-path routes move into `app/api/`, with explicit request models, authentication dependencies, and response contracts. Legacy routes remain only as compatibility adapters and receive no new behavior.
+`main.py` 逐步退化为应用装配入口。主演示链路由迁移到 `app/api/`，并显式定义请求模型、认证依赖和响应契约。旧路由只作为兼容适配器保留，不再承载新行为。
 
-### 5.3 Tutor orchestration layer
+### 5.3 教学编排层
 
-Tutor Engine is the only entry for the demo teaching process. It performs context aggregation, intent classification, Socratic strategy selection, agent dispatch, output validation, and response composition. Frontend pages, `main.py`, teacher services, and agents must not maintain conflicting teaching decision logic.
+Tutor Engine 是主演示教学流程的唯一入口，负责上下文聚合、意图识别、苏格拉底策略选择、智能体调度、输出校验和响应合成。前端页面、`main.py`、教师服务和智能体不得分别维护相互冲突的教学决策逻辑。
 
-### 5.4 Intelligent capability layer
+### 5.4 智能能力层
 
-Profiler, Planner, Socratic, Recommend, Critic, and Audit each own one decision category. Agents communicate with structured inputs and outputs. Each run records rationale, duration, provider, trace ID, and fallback state.
+Profiler、Planner、Socratic、Recommend、Critic 和 Audit 各自只负责一种决策。智能体通过结构化输入输出通信，每次执行记录决策依据、耗时、提供商、trace ID 和降级状态。
 
-### 5.5 Data and memory layer
+### 5.5 数据与记忆层
 
-Repository interfaces are the only demo-path data boundary, with ORM as the target implementation. Legacy `db.py` remains for migration compatibility. Profile, progress, knowledge nodes, conversation memory, learning paths, and teacher insights are associated with one verified user identity.
+Repository 接口是主演示链唯一的数据访问边界，ORM 是目标实现。旧 `db.py` 只承担迁移兼容。画像、进度、知识节点、会话记忆、学习路径和教师洞察必须与同一个经过验证的用户身份关联。
 
-### 5.6 External service layer
+### 5.6 外部服务层
 
-LLM, TTS, ASR, Bilibili, Qdrant, search, and media generation use provider adapters. Each adapter normalizes timeouts, limited retry, short-circuit behavior, caching, errors, and demonstration fallback.
+LLM、TTS、ASR、Bilibili、Qdrant、搜索和媒体生成统一通过 Provider/Adapter 接入。每个适配器统一处理超时、有限重试、短路、缓存、错误归一化和演示降级。
 
-## 6. Reliability and Fallback
+## 6. 可靠性与降级
 
-### 6.1 Four levels of protection
+### 6.1 四层保障
 
-1. **Real call:** use real LLM, retrieval, and learner state on the primary path. Record time to first token, total latency, provider, and trace ID.
-2. **Automatic fallback:** retry an LLM timeout once, then use a backup model or cache. Fall back from Qdrant to structured retrieval. Fall back from TTS/ASR to text.
-3. **Seeded demonstration state:** fixed accounts have resettable profiles, weak concepts, courses, paths, and teacher insights. Fallback output is explicitly tagged internally as `fallback`.
-4. **Human fallback:** prepare short recordings and screenshots for every critical step. Switch after approximately eight seconds of uninterrupted waiting.
+1. **真实调用层：** 主链使用真实 LLM、知识检索和学生状态；记录首 Token 时间、总耗时、提供商和 trace ID。
+2. **自动降级层：** LLM 超时只快速重试一次，再切换备用模型或缓存；Qdrant 不可用时回退结构化检索；TTS/ASR 失败时回退文字。
+3. **预置演示层：** 固定账号拥有可重置的画像、薄弱知识点、课程、路径和教师洞察。降级结果在内部明确标记为 `fallback`。
+4. **人工兜底层：** 每个关键步骤准备短录屏和截图。连续等待约 8 秒时切换录屏，避免答辩叙事中断。
 
-### 6.2 Reliability acceptance criteria
+### 6.2 可靠性验收标准
 
-- At least 95% success across 20 consecutive full demo runs.
-- Visible feedback within three seconds.
-- The core student loop completes within six minutes.
-- Failure of a non-core external service cannot break the loop.
-- A one-command reset reproduces the expected account and data state.
-- Every failure is traceable to API, agent, data, or provider through a trace ID.
+- 连续完整运行主演示链 20 次，成功率不低于 95%。
+- 3 秒内出现可见反馈。
+- 核心学生闭环在 6 分钟内完成。
+- 非核心外部服务失败不能中断主链。
+- 一键重置后能够复现预期账号和数据状态。
+- 每次失败都能通过 trace ID 定位到 API、智能体、数据层或外部服务层。
 
-## 7. Security Design
+## 7. 安全设计
 
-The following are P0 for the competition build:
+以下项目属于比赛版 P0：
 
-- Refuse startup outside development when a strong random `JWT_SECRET` is not configured; remove the fallback secret.
-- Make `/api/auth/*` the only authentication entry. Legacy login endpoints only delegate for compatibility.
-- Do not allow public registration to select `teacher` or `admin`; privileged roles are created through controlled administration or seeding.
-- Enable demo accounts only through an explicit switch and bind them to a predefined dataset.
-- Derive user identity from a verified JWT on all user-data endpoints; never trust a path or body `user_id` for authorization.
-- Disable arbitrary code execution in the competition environment. If execution must be demonstrated, use a separate container with read-only filesystem, network isolation, and CPU, memory, process, and time limits.
-- Do not skip CSRF origin checks by default in the competition environment.
-- Never log passwords, tokens, API keys, or prompts containing complete sensitive learner data.
-- Add regression tests for authentication bypass, horizontal privilege escalation, role escalation, and malicious code execution.
+- 非开发环境未配置强随机 `JWT_SECRET` 时拒绝启动，移除兜底密钥。
+- 将 `/api/auth/*` 作为唯一认证入口，旧登录接口仅做兼容转发。
+- 公开注册不得选择 `teacher` 或 `admin`；高权限角色只能通过受控管理流程或种子数据创建。
+- 演示账号只能通过显式开关启用，并绑定预定义数据集。
+- 所有用户数据接口从已验证 JWT 推导用户身份，不能信任路径或请求体中的 `user_id` 进行授权。
+- 比赛环境关闭任意代码执行。若必须展示代码运行，应使用独立容器、只读文件系统、网络隔离，以及 CPU、内存、进程数和执行时间限制。
+- 比赛环境默认不得跳过 CSRF Origin 检查。
+- 日志不得记录密码、Token、API Key 或含完整敏感学生信息的 Prompt。
+- 增加认证绕过、水平越权、角色提升和恶意代码执行回归测试。
 
-## 8. Testing and Delivery
+## 8. 测试与交付设计
 
-Tests prioritize the live path over superficial coverage metrics.
+测试优先覆盖主演示链，而不是追求表面覆盖率。
 
-### 8.1 Required tests
+### 8.1 必需测试
 
-- One happy-path smoke test against the real application server and an isolated database.
-- Fallback tests for LLM timeout, SSE interruption, retrieval failure, and database write failure.
-- Security tests for login, cross-user access, role escalation, and malicious code.
-- Contract tests for profile update, path adjustment, mastery change, and teacher-dashboard synchronization.
-- Visual checks at the presentation laptop resolution, backup laptop resolution, and a critical mobile viewport.
-- Startup, health, reset, and external dependency checks.
+- 一条针对真实应用服务器和独立数据库的 happy-path 冒烟测试。
+- LLM 超时、SSE 中断、知识检索失败和数据库写入失败四类降级测试。
+- 登录、跨用户访问、角色提升和恶意代码四类安全测试。
+- 画像更新、路径调整、掌握度变化和教师看板同步的契约测试。
+- 在答辩笔记本分辨率、备用笔记本分辨率和关键移动视口上执行视觉检查。
+- 启动、健康检查、数据重置和外部依赖检查。
 
-### 8.2 CI rules
+### 8.2 CI 规则
 
-- Remove E2E failure swallowing. A core-path failure blocks merge.
-- Use isolated temporary databases; tests never modify live demo data.
-- Slow, AI, and external media suites may run separately but must report clearly.
-- Reports distinguish pass, fail, skip, and external-service fallback.
-- Retain the `agents.py` growth guard and add "no new business logic" evolution constraints for `main.py` and `db.py`.
+- 移除 E2E 失败吞噬逻辑，主链失败必须阻断合并。
+- 使用独立临时数据库，测试不得修改现场演示数据。
+- 慢测、AI 和外部媒体测试可以分开运行，但必须输出清晰报告。
+- 报告必须区分通过、失败、跳过和外部服务降级。
+- 保留 `agents.py` 增长门禁，并为 `main.py` 和 `db.py` 增加“不新增业务逻辑”的演进约束。
 
-## 9. Competition Scope Decisions
+## 9. 比赛版范围决策
 
-### 9.1 Keep and polish
+### 9.1 重点保留并打磨
 
-- Authentication and seeded demo accounts.
-- Learner profile and weak-point diagnosis.
-- AI tutor and Socratic teaching.
-- Personalized learning path.
-- Micro-exercise and mastery update.
-- Agent rationale and execution trace.
-- Teacher insight and intervention recommendation.
-- Course content and knowledge citations.
+- 认证与预置演示账号。
+- 学习画像与薄弱点诊断。
+- AI 导师与苏格拉底式教学。
+- 个性化学习路径。
+- 微型练习与掌握度更新。
+- 智能体决策依据与执行轨迹。
+- 教师端洞察与干预建议。
+- 课程内容与知识引用。
 
-### 9.2 Keep as supporting evidence
+### 9.2 保留为辅助证据
 
-- TTS, ASR, and Bilibili import.
-- PPT and course generation.
-- Data dashboard.
-- Long-term memory and knowledge graph.
-- Mascot and growth systems.
-- Agent orchestration console.
+- TTS、ASR 和 Bilibili 导入。
+- PPT 与课程生成。
+- 数据看板。
+- 长期记忆与知识图谱。
+- 吉祥物与成长系统。
+- 智能体编排控制台。
 
-### 9.3 Degrade automatically
+### 9.3 自动降级
 
-- TTS/ASR to text.
-- Vector retrieval to structured retrieval.
-- Video generation to pre-generated media.
-- External search to the local knowledge base.
-- Secondary-agent failure to base Tutor Engine policy.
+- TTS/ASR 回退文字。
+- 向量检索回退结构化检索。
+- 视频生成回退预生成媒体。
+- 外部搜索回退本地知识库。
+- 次要智能体失败时回退 Tutor Engine 基础策略。
 
-### 9.4 Hide or disable
+### 9.4 隐藏或关闭
 
-- Arbitrary code execution without strong isolation.
-- Incomplete pages or pages with fabricated/empty data.
-- Duplicate authentication entry points.
-- Empty dashboards, placeholder actions, and unverifiable AI output.
-- Long-running live video generation.
-- Experimental pages unrelated to the main learning loop.
+- 没有强隔离的任意代码执行。
+- 未完成或展示虚假、空数据的页面。
+- 重复认证入口。
+- 空看板、占位操作和无法验证的 AI 输出。
+- 耗时较长的现场视频生成。
+- 与个性化学习主链无关的实验页面。
 
-## 10. Remediation Roadmap
+## 10. 整改路线图
 
-### 10.1 P0: Week 1, eliminate demo failure modes
+### 10.1 P0：第 1 周，消除演示翻车风险
 
-- Freeze the demo path, account, and resettable data snapshot.
-- Unify identity derivation and fix role escalation and cross-user access.
-- Enforce competition security configuration and disable unsafe execution.
-- Fix false-green CI and create a real demo smoke test.
-- Add timeouts and fallbacks to LLM, retrieval, and media calls.
-- Remove 404s, empty states, console errors, and data mismatches from the demo path.
-- Provide one-command start, reset, and health checks.
-- Run and record 20 consecutive demonstrations.
+- 冻结演示主链、账号和可重置数据快照。
+- 统一身份推导，修复角色提升和跨用户访问。
+- 强制比赛安全配置，关闭不安全代码执行。
+- 修复 CI 假绿，建立真实主演示冒烟测试。
+- 为 LLM、知识检索和媒体调用增加超时与降级。
+- 清除主链上的 404、空状态、控制台错误和数据错位。
+- 提供一键启动、一键重置和一键健康检查。
+- 连续运行并记录 20 次完整演示。
 
-### 10.2 P1: Weeks 2-3, improve competition strength
+### 10.2 P1：第 2 至 3 周，提升比赛竞争力
 
-- Converge the student loop into consistent navigation and visual hierarchy.
-- Visualize profile changes, recommendation rationale, and path changes.
-- Explain why agents decide, not merely which agent ran.
-- Unify frontend API calls, loading, error, and fallback states.
-- Move demo routes into the appropriate `app/api/` modules.
-- Route demo persistence through repositories.
-- Complete contract, security, fallback, and visual tests for the live path.
-- Produce the script, architecture diagram, data-flow diagram, recordings, and technical Q&A.
+- 将学生闭环收敛到一致的导航和视觉层级。
+- 可视化画像变化、推荐依据和路径调整。
+- 解释智能体为何作出决策，而不只展示智能体名称。
+- 统一前端 API 调用、加载、错误和降级状态。
+- 将主演示路由迁移到对应的 `app/api/` 模块。
+- 主演示数据持久化统一经过 Repository。
+- 完成主链契约、安全、降级和视觉测试。
+- 制作答辩稿、架构图、数据流图、录屏和技术问答材料。
 
-### 10.3 P2: Week 4 and later, strengthen the engineering portfolio
+### 10.3 P2：第 4 周及以后，增强工程作品集质量
 
-- Continue decomposing `main.py`, `db.py`, and oversized frontend files.
-- Converge on ORM and Alembic; retire JSON dual-write and old-table compatibility incrementally.
-- Remove tracked runtimes, dependencies, audio, logs, databases, and backups; retain reproducible build scripts.
-- Enforce formatting, static checks, dependency audit, and meaningful coverage gates.
-- Maintain ADRs, module ownership, deployment runbooks, and failure-drill evidence.
-- Validate cross-browser behavior, weak networks, concurrency, and long-running stability.
+- 持续分解 `main.py`、`db.py` 和超大前端文件。
+- 收敛到 ORM 与 Alembic，逐步退出 JSON 双写和旧表兼容。
+- 从 Git 跟踪中移除运行时、依赖、音频、日志、数据库和备份，保留可复现构建脚本。
+- 强制格式化、静态检查、依赖审计和有意义的覆盖率门槛。
+- 维护 ADR、模块责任说明、部署手册和故障演练证据。
+- 验证跨浏览器、弱网、并发和长时间运行稳定性。
 
-## 11. Presentation Plan: 15-18 Minutes
+## 11. 15 至 18 分钟答辩方案
 
-| Time | Content | Evidence |
+| 时间 | 内容 | 证明目标 |
 |---|---|---|
-| 0:00-1:30 | Educational problem, user, core claim | Not a generic chat wrapper |
-| 1:30-3:00 | Learner profile and weakness | Persistent student state |
-| 3:00-7:30 | AI tutor and Socratic teaching | Adaptive teaching behavior |
-| 7:30-10:00 | Exercise changes profile and path | Closed learning loop |
-| 10:00-11:30 | Teacher insight and intervention | Data returns to educators |
-| 11:30-14:00 | Agents, memory, knowledge, supervision | Technical differentiation serves pedagogy |
-| 14:00-15:30 | Security, explainability, fallback, tests | Credible and reliable delivery |
-| 15:30-17:00 | Metrics, deployment scenario, roadmap | Practical potential and boundaries |
-| Remaining | Q&A or backup demonstration | Presentation resilience |
+| 0:00–1:30 | 教育痛点、目标用户、核心主张 | 不是通用聊天套壳 |
+| 1:30–3:00 | 学习画像与薄弱点 | 系统具有持续学生状态 |
+| 3:00–7:30 | AI 导师与苏格拉底式教学 | 教学行为能够自适应 |
+| 7:30–10:00 | 练习改变画像与路径 | 形成完整学习闭环 |
+| 10:00–11:30 | 教师洞察与干预建议 | 数据能够反馈教师 |
+| 11:30–14:00 | 智能体、记忆、知识和监督 | 技术创新服务教育目标 |
+| 14:00–15:30 | 安全、可解释性、降级和测试 | 交付可信且可稳定演示 |
+| 15:30–17:00 | 指标、落地场景和路线图 | 说明实际潜力与边界 |
+| 剩余时间 | 问答或备用演示 | 保证答辩弹性 |
 
-Lead with educational value, prove it through the product, and use architecture to support technical questions. Architecture terminology cannot replace observable user outcomes.
+答辩应先讲教育价值，再用产品证明，最后用架构回答技术问题。架构术语不能代替用户可观察的结果。
 
-## 12. Technical Q&A Preparation
+## 12. 技术问答准备
 
-Prepare evidence-based answers for at least these questions:
+至少准备以下问题的证据化回答：
 
-- How are agents different from a conventional prompt chain?
-- Which events update the learner profile, and how is error accumulation controlled?
-- Why did the learning path change, and can the rationale be reproduced?
-- What belongs in long-term memory, the relational database, and the vector store?
-- How are hallucination, prompt injection, and malicious input handled?
-- Can the teaching loop finish when an external model fails?
-- How is student data isolated between teachers and users?
-- How is code execution isolated, and why is the current implementation disabled?
-- What concurrency can the system support, and where are the bottlenecks?
-- Why not split microservices or migrate the frontend now?
-- Which features are real-time capabilities and which are fallback demonstrations?
-- How does CI prove that the main path has not regressed?
+- 智能体与普通 Prompt 链有什么区别？
+- 哪些事件会更新学习画像，如何控制错误累积？
+- 学习路径为什么改变，决策依据能否复现？
+- 长期记忆、关系数据库和向量库分别保存什么？
+- 如何处理模型幻觉、提示词注入和恶意输入？
+- 外部模型失败时，教学闭环能否完成？
+- 教师和用户之间如何隔离学生数据？
+- 代码执行如何隔离，为什么比赛版关闭当前实现？
+- 系统能支持多少并发，瓶颈在哪里？
+- 为什么现在不拆微服务或迁移前端框架？
+- 哪些功能是实时真实能力，哪些是降级演示？
+- CI 如何证明主演示链没有发生回归？
 
-Answers should point to traces, tests, before/after data, or module boundaries rather than concepts alone.
+回答应指向 trace、测试、数据前后变化或模块边界，而不能只讲概念。
 
-## 13. Definition of Done
+## 13. 完成定义
 
-Competition remediation is complete only when:
+只有同时满足以下条件，比赛整改才算完成：
 
-- The fixed path connects the student experience to the teacher experience.
-- Learning state visibly changes before and after the exercise.
-- Twenty runs meet the reliability target, with timing and failure categories recorded.
-- Core security checks pass: no fallback secret, privileged self-registration, or horizontal privilege escalation.
-- Unsafe code execution is disabled or replaced by strong isolation.
-- Core CI cannot swallow failures and does not touch demo data.
-- External service failures have automatic and recorded-video fallback.
-- Demo accounts reset in one command and dependencies pass a preflight health check.
-- The 15-18 minute script, recordings, architecture diagram, and Q&A have been rehearsed.
-- Documentation distinguishes real capability, fallback capability, and future plans without overstating production maturity.
+- 固定演示链能够从学生端贯通教师端。
+- 练习前后的学习状态发生可见变化。
+- 20 次运行达到可靠性目标，并记录耗时和失败分类。
+- 核心安全检查通过：不存在兜底密钥、高权限自注册和水平越权。
+- 不安全代码执行已关闭，或已由强隔离方案替代。
+- 核心 CI 不会吞掉失败，也不会接触演示数据。
+- 外部服务失败具有自动降级和录屏兜底。
+- 演示账号能够一键重置，外部依赖能够通过预检确认。
+- 15 至 18 分钟答辩稿、录屏、架构图和技术问答已经完成彩排。
+- 文档明确区分真实能力、降级能力和后续计划，不夸大生产成熟度。
 
-## 14. Explicit Non-Goals
+## 14. 明确不做
 
-- No React, Vue, or other frontend framework migration.
-- No microservice split.
-- No production-grade completion of every page.
-- No long-running live video generation during the presentation.
-- No use of coverage percentage as a substitute for demo-path validation.
-- No complete deletion of all legacy APIs or persistence compatibility before the competition.
-- No new features unrelated to the personalized learning loop.
+- 不迁移 React、Vue 或其他前端框架。
+- 不拆分微服务。
+- 不将所有页面补齐到生产级。
+- 不在答辩现场执行耗时较长的视频生成。
+- 不用覆盖率百分比代替主演示链验证。
+- 不在比赛前彻底删除所有旧 API 或数据兼容逻辑。
+- 不增加与个性化学习闭环无关的新功能。
 
-These constraints protect delivery certainty and match the agreed priority of competition success first and engineering portfolio quality second.
+这些约束用于保护交付确定性，并符合“比赛成功优先、工程作品集质量次之”的既定目标。
