@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#0EA5E9"/>
+  <text x="60" y="180" fill="#FFFFFF" font-family="sans-serif" font-size="84" font-weight="900">A = UΣVᵀ</text>
+  <text x="60" y="260" fill="#FFFFFF" font-family="sans-serif" font-size="28">奇异值分解 (SVD)</text>
+  <g transform="translate(620, 280)" stroke="#FFFFFF" fill="none" stroke-width="2">
+    <circle r="50"/>
+    <ellipse rx="60" ry="22" transform="rotate(35)"/>
+  </g>
+  <text x="50" y="400" fill="#FFFFFF" font-family="sans-serif" font-size="32" font-weight="700">线性代数精讲</text>
+</svg>

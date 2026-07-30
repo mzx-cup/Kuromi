@@ -670,6 +670,9 @@ class SocraticEvaluatorAgent(BaseAgent):
 
     MAX_WRONG_ROUNDS = 3
     PASS_RATE_INCREMENT = 0.33
+    # M3.4: 强制追问阈值 — turn_count < reveal_threshold 时禁止揭示答案
+    DEFAULT_REVEAL_THRESHOLD = 3
+    PASS_RATE_FOR_REVEAL = 0.6
 
     SOCRATIC_SYSTEM_PROMPT = """你是一位精通苏格拉底教学法的资深导师。你的核心教学原则如下：
 
@@ -745,9 +748,11 @@ class SocraticEvaluatorAgent(BaseAgent):
 
 💡 **理解了这些基础之后，你可以试着用自己的话复述一下这个概念吗？**"""
 
-    def __init__(self) -> None:
+    def __init__(self, reveal_threshold: int | None = None) -> None:
         super().__init__()
         self._socratic_state: dict[str, dict[str, Any]] = {}
+        # M3.4: 强制追问阈值（默认 3 轮）
+        self.reveal_threshold = reveal_threshold if reveal_threshold is not None else self.DEFAULT_REVEAL_THRESHOLD
 
     def _get_socratic_state(self, state: StudentState) -> dict[str, Any]:
         key = f"{state.student_id}_{state.context_id}"
@@ -775,35 +780,80 @@ class SocraticEvaluatorAgent(BaseAgent):
             "fallback_triggered": False,
         }
 
+    async def process_answer(
+        self,
+        state: dict,
+        answer: str,
+        topic: str,
+    ) -> dict:
+        """M3.4: 苏格拉底强制追问 + 阈值揭示答案。
+
+        决策逻辑：
+          - turn_count+1 >= reveal_threshold 且 pass_rate >= 0.6 → revealed=True
+          - 否则 revealed=False，并提示还需 N 轮
+
+        返回:
+          {
+            "revealed": bool,
+            "message": str,
+            "turn_count": int,        # 下一轮计数
+            "topic": str,
+          }
+        """
+        turn_count = int(state.get("turn_count", 0))
+        pass_rate = float(state.get("socratic_pass_rate", 0.0))
+        next_turn = turn_count + 1
+
+        if next_turn >= self.reveal_threshold and pass_rate >= self.PASS_RATE_FOR_REVEAL:
+            return {
+                "revealed": True,
+                "message": (
+                    f"通过！你的回答展示了对「{topic}」的理解。"
+                    f"核心结论：a² + b² = c²（直角三角形）。"
+                ),
+                "turn_count": next_turn,
+                "topic": topic,
+            }
+
+        remaining = max(1, self.reveal_threshold - next_turn)
+        return {
+            "revealed": False,
+            "message": (
+                f"继续思考！你已答 {turn_count} 轮，还需 {remaining} 轮才能揭示答案。"
+                f"让我再问一个问题..."
+            ),
+            "turn_count": next_turn,
+            "topic": topic,
+        }
+
     async def run(self, state: StudentState, **kwargs: Any) -> StudentState:
-        if os.getenv("USE_LANGCHAIN_SOCRATIC", "0") == "1":
+        try:
+            # B3: prepend memory card so cross-layer context reaches the LLM.
+            original = state.dialogue_history[-1].content if state.dialogue_history else ""
             try:
-                # B3: prepend memory card so cross-layer context reaches the LLM.
-                original = state.dialogue_history[-1].content if state.dialogue_history else ""
-                try:
-                    card_md = MemoryCardLoader().load(
-                        agent_id="socratic", user_id=state.student_id,
-                    ).markdown
-                except Exception as card_exc:
-                    logging.warning("memory card load failed (%s); unenriched message.", card_exc)
-                    card_md = ""
-                message = f"{card_md}\n\n{original}" if card_md else original
-                return produce_socratic_response(
+                card_md = MemoryCardLoader().load(
+                    agent_id="socratic", user_id=state.student_id,
+                ).markdown
+            except Exception as card_exc:
+                logging.warning("memory card load failed (%s); unenriched message.", card_exc)
+                card_md = ""
+            message = f"{card_md}\n\n{original}" if card_md else original
+            return produce_socratic_response(
+                user_id=state.student_id,
+                message=message,
+                llm=None,
+                vector_store=None,
+                callback_handler=KBCallbackHandler(
+                    agent_id="socratic",
                     user_id=state.student_id,
-                    message=message,
-                    llm=None,
-                    vector_store=None,
-                    callback_handler=KBCallbackHandler(
-                        agent_id="socratic",
-                        user_id=state.student_id,
-                    ),
-                )
-            except Exception as _exc:
-                # Graceful fallback: log only, fall through to legacy.
-                logging.warning(
-                    "LangChain path failed (%s); falling back to legacy.",
-                    _exc,
-                )
+                ),
+            )
+        except Exception as _exc:
+            # Graceful fallback: log only, fall through to legacy.
+            logging.warning(
+                "LangChain path failed (%s); falling back to legacy.",
+                _exc,
+            )
         start = time.time()
         try:
             dialogue_type = state.metadata.get("dialogue_type", "question")
@@ -1630,6 +1680,14 @@ def create_default_controller() -> MasterController:
     echo = EchoAgent()
     flashcard = FlashcardAgent()
 
+    # M2.3: 命名实体化新 Agent（QA / Content / Recommend / Audit / Evaluate 五大角色）
+    # 延迟导入，避免顶层循环依赖
+    from app.agents.audit import AuditAgent
+    from app.agents.recommend import RecommendAgent
+
+    recommend_agent = RecommendAgent()
+    audit_agent = AuditAgent()
+
     controller.register_agent(profiler)
     controller.register_agent(planner)
     controller.register_agent(resource_push)
@@ -1637,12 +1695,19 @@ def create_default_controller() -> MasterController:
     controller.register_agent(socratic_evaluator)
     controller.register_agent(echo)
     controller.register_agent(flashcard)
+    controller.register_agent(recommend_agent)
+    controller.register_agent(audit_agent)
 
     controller.register_generator("document_generator", doc_gen)
     controller.register_generator("mindmap_generator", mindmap_gen)
     controller.register_generator("exercise_generator", exercise_gen)
     controller.register_generator("video_content", video_gen)
     controller.register_generator("socratic_evaluator", socratic_evaluator)
+
+    # 5 角色命名空间别名（向后兼容老名称）
+    controller._agents["qa_agent"] = socratic_evaluator
+    controller._agents["content_agent"] = doc_gen
+    controller._agents["evaluate_agent"] = evaluator
 
     controller.set_pipeline([profiler, planner])
 

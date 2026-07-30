@@ -396,6 +396,7 @@
       return;
     }
 
+    // 优先复用 B 站字幕 (成功则保留; 失败/为空依然请求 AI 内容以保证"非空")
     fetch('/api/bilibili/subtitles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -409,11 +410,58 @@
           subtitleData = [];
         }
         renderSubtitles(subtitleData);
+        // 触发 AI 讲义侧栏同步: 后端会发现无字幕, 用课程标题也能凑一份讲义
+        syncTranscriptFallback(bvid);
       })
       .catch(function () {
         subtitleData = [];
         renderSubtitles(subtitleData);
+        syncTranscriptFallback(bvid);
       });
+  }
+
+  /**
+   * 当 B 站字幕为空时, 主动重抓一次内容端点, 让后端用课程标题 + 章节标题生成
+   * "占位讲义", 避免讲解 tab 完全空白. 拿到的内容写入 transcript 面板, 但不会
+   * 覆盖已有真实内容.
+   */
+  function syncTranscriptFallback(bvid) {
+    var transcriptEl = document.getElementById('cl-transcript-content');
+    if (!transcriptEl) return;
+    // 已经有讲义了 (transcript 节点不含 -empty) 就不再请求
+    if (transcriptEl.querySelector('h4, p, ol, ul') &&
+        !transcriptEl.querySelector('.cl-transcript-empty')) {
+      return;
+    }
+    // 用 bvid 找到当前选中的 sub.id, 直接重抓
+    if (!currentSubId()) return;
+    fetch('/api/courses/courses/' + encodeURIComponent(courseId) +
+          '/subchapters/' + encodeURIComponent(currentSubId()) + '/content')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (res) {
+        if (!res || !res.data) return;
+        var d = res.data;
+        if (d.transcript) {
+          var note = d.note
+            ? '<div class="cl-transcript-empty" style="margin-bottom:10px">' + escapeHtml(d.note) + '</div>'
+            : '';
+          transcriptEl.innerHTML = note + d.transcript;
+        }
+        // 概念 / 练习 / 导图也顺手补齐
+        if ((d.concepts || []).length) renderConcepts(d.concepts);
+        if ((d.exercises || []).length) {
+          currentExercises = d.exercises;
+          renderExercises(currentExercises);
+        }
+        if (d.mindMap) {
+          currentMindMap = d.mindMap;
+          var mmPanel = document.querySelector('.cl-step-panel[data-panel="mindmap"]');
+          if (mmPanel && mmPanel.classList.contains('active')) {
+            requestAnimationFrame(function () { renderMindMap(currentMindMap); });
+          }
+        }
+      })
+      .catch(function () { /* ignore */ });
   }
 
   function renderSubtitles(list) {
@@ -466,23 +514,39 @@
       .then(function (res) {
         var data = (res && res.data) || {};
 
-        var transcriptEl = document.getElementById('cl-transcript-content');
-        if (data.transcript) {
-          transcriptEl.innerHTML = data.transcript;
-        } else {
-          transcriptEl.innerHTML = '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
-        }
-
         currentMindMap   = data.mindMap || null;
         currentExercises = data.exercises || [];
 
+        // 1. 写讲义 (并显示缓存命中/失败提示)
+        var transcriptEl = document.getElementById('cl-transcript-content');
+        if (data.transcript) {
+          var note = data.note
+            ? '<div class="cl-transcript-empty" style="margin-bottom:10px">' + escapeHtml(data.note) + '</div>'
+            : '';
+          transcriptEl.innerHTML = note + data.transcript;
+        } else {
+          transcriptEl.innerHTML =
+            '<div class="cl-transcript-empty">该小节暂无 AI 讲义' +
+            (data.note ? ' — ' + escapeHtml(data.note) : ' (稍后再试或确认字幕是否可用)') +
+            '</div>';
+        }
+
+        // 2. 概念 / 练习 立即渲染
         renderConcepts(data.concepts || []);
-        renderMindMap(currentMindMap);
         renderExercises(currentExercises);
+
+        // 3. 思维导图: 等用户真的切到思维导步骤再渲染 (尺寸才准)
+        //    但若当前已经在该步骤, 立即重渲染一次
+        var mmPanel = document.querySelector('.cl-step-panel[data-panel="mindmap"]');
+        if (mmPanel && mmPanel.classList.contains('active') && currentMindMap) {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () { renderMindMap(currentMindMap); });
+          });
+        }
       })
       .catch(function () {
         document.getElementById('cl-transcript-content').innerHTML =
-          '<div class="cl-transcript-empty">暂无 AI 讲义</div>';
+          '<div class="cl-transcript-empty">课程内容加载失败, 请稍后重试</div>';
         currentMindMap   = null;
         currentExercises = [];
         renderConcepts([]);
@@ -562,10 +626,16 @@
     });
 
     // 思维导图需要按当前可见视口尺寸重渲染
+    // 视口尺寸在父面板切换瞬间才稳定, 等两帧再读
     if (stepName === 'mindmap' && currentMindMap) {
-      // 等 DOM 真正可见后取尺寸, 再渲染
       requestAnimationFrame(function () {
-        renderMindMap(currentMindMap);
+        requestAnimationFrame(function () {
+          var viewport = document.getElementById('cl-mindmap-viewport');
+          if (viewport && viewport.clientHeight < 40) {
+            viewport.style.minHeight = '320px';
+          }
+          renderMindMap(currentMindMap);
+        });
       });
     }
 
@@ -667,21 +737,32 @@
   function renderMindMap(data) {
     currentMindMap = data;  // 保存供后续重渲染
     var stage = document.getElementById('cl-mindmap-stage');
+    var viewport = document.getElementById('cl-mindmap-viewport');
     mindmapZoom = 1; mindmapOffsetX = 0; mindmapOffsetY = 0;
 
-    if (!data) {
-      stage.innerHTML = '<div class="cl-empty-card"><p>暂无思维导图</p></div>';
+    if (!data || !data.name) {
+      stage.innerHTML =
+        '<div class="cl-empty-card">' +
+        '<p>该小节暂未生成思维导图</p>' +
+        '<p style="font-size:12px;color:var(--cl-text-faint);margin-top:6px">' +
+        'AI 将基于字幕/讲义自动梳理, 请确认本节是否有可用的字幕或文字稿' +
+        '</p></div>';
       return;
     }
 
     // 递归布局: 根节点居中, 子节点左右展开
     // 用视口实际尺寸作为画布, 这样节点就一定落在可见区域
-    var stage = document.getElementById('cl-mindmap-stage');
-    var viewport = document.getElementById('cl-mindmap-viewport');
+    // 视口在 display:none 时尺寸为 0, 必须先用 CSS min 兜底再读尺寸
+    if (viewport) {
+      // 强制让视口"可测量": 临时给它一个最小高度, 即使父面板还没激活
+      if (viewport.clientHeight === 0) {
+        viewport.style.minHeight = '320px';
+      }
+    }
     var vw = (viewport ? viewport.clientWidth : 800) || 800;
-    var vh = (viewport ? viewport.clientHeight : 360) || 360;
-    var W = vw;
-    var H = vh;
+    var vh = (viewport ? viewport.clientHeight : 320) || 320;
+    var W = Math.max(640, vw);
+    var H = Math.max(320, vh);
     var root = data;
     var nodes = [];
     var lines = [];
@@ -1170,12 +1251,70 @@
   }
 
   /* ===================== AI 视频生成 ===================== */
+
+  /**
+   * 拼一段真实基于"本节"的 prompt: 课程/章节标题 + B 站字幕 + AI 概念.
+   * 若 subtitleData / currentExercises / concepts 都为空, 至少会带上课程+章节标题,
+   * 不会像以前那样只拼一行 "制作一个教学视频" 的水 prompt.
+   */
+  function buildAIVideoPrompt() {
+    var ch = chapters[currentChapterIdx];
+    var sub = ch && ch.children[currentSubIdx];
+    if (!sub) return null;
+
+    var lines = [];
+    lines.push(
+      '【课程】' + ((course && course.title) || '未命名课程') +
+      (course && course.author_name ? '（作者: ' + course.author_name + '）' : '')
+    );
+    lines.push('【本节主题】' + (sub.title || '本节') +
+      ' (B站视频 ' + (sub.bvid || '?') + ' P' + (sub.page || 1) + ', 时长 ' +
+      formatDuration(sub.duration) + ')');
+    if (ch && ch.title && ch.title !== sub.title) {
+      lines.push('【所属章节】' + ch.title);
+    }
+
+    // 1. 优先取字幕
+    var subTexts = (subtitleData || []).map(function (s) {
+      return (s.content || '').trim();
+    }).filter(Boolean);
+    if (subTexts.length) {
+      lines.push('【本节字幕要点】');
+      // 取首尾关键句, 中段采样, 单条不超过 30 字
+      var sample = subTexts.length <= 8
+        ? subTexts
+        : subTexts.slice(0, 4).concat(subTexts.slice(Math.floor(subTexts.length / 2) - 2,
+                                                      Math.floor(subTexts.length / 2) + 2))
+                  .concat(subTexts.slice(-4));
+      lines.push(sample.map(function (t, i) { return (i + 1) + '. ' + t.slice(0, 80); }).join('\n'));
+    }
+
+    // 2. 再补 AI 生成的关键概念 (从后端)
+    var conceptEls = document.querySelectorAll('#cl-concepts-grid .cl-concept-term');
+    if (conceptEls.length) {
+      lines.push('【关键概念】' +
+        Array.from(conceptEls).slice(0, 6)
+          .map(function (e) { return e.textContent.trim(); }).join('、'));
+    }
+
+    // 3. 任务指令
+    lines.push('');
+    lines.push(
+      '请基于以上真实内容生成一段 30 秒以内的教学讲解视频。'
+      + '画面: 教师在教室白板前逐条讲解字幕要点, 概念部分用英文/中文标注.'
+      + '语速偏慢, 面向中学生, 不出现与课程无关的画面.'
+    );
+
+    return lines.join('\n');
+  }
+
   function generateAIVideo() {
     var ch = chapters[currentChapterIdx];
     var sub = ch && ch.children[currentSubIdx];
     if (!sub) { showToast('请先选择章节', 'error'); return; }
 
-    var prompt = '制作一个关于"' + (course ? course.title : '') + ' · ' + sub.title + '"的教学讲解视频, 面向学生, 语言简洁易懂。';
+    var prompt = buildAIVideoPrompt();
+    if (!prompt) return;
 
     var btn = document.getElementById('cl-ai-gen-btn');
     var progress = document.getElementById('cl-ai-progress');
@@ -1186,6 +1325,7 @@
     errorEl.style.display = 'none';
     player.style.display = 'none';
     progress.style.display = 'flex';
+    updateAIProgressText('正在提交 AI 讲解任务...');
 
     fetch('/api/seed/video', {
       method: 'POST',
@@ -1378,6 +1518,19 @@
       if (e.target.closest('input, textarea')) return;
       if (e.key === 'ArrowLeft') navigatePrev();
       else if (e.key === 'ArrowRight') navigateNext();
+    });
+
+    // 窗口尺寸变化: 重渲染当前可见的思维导图, 让节点不会被裁出视口
+    var mmResizeT;
+    window.addEventListener('resize', function () {
+      if (!currentMindMap) return;
+      var mmPanel = document.querySelector('.cl-step-panel[data-panel="mindmap"]');
+      if (!mmPanel || !mmPanel.classList.contains('active')) return;
+      clearTimeout(mmResizeT);
+      mmResizeT = setTimeout(function () {
+        // 保留当前缩放与偏移, 只重排
+        renderMindMap(currentMindMap);
+      }, 180);
     });
   }
 

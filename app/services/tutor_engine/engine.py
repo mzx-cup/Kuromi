@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from typing import Any, AsyncIterator, Optional
 
 from app.core.trace import finish_span, start_span
@@ -40,6 +41,11 @@ from app.services.tutor_engine.models import (
 
 logger = logging.getLogger("starlearn.tutor_engine")
 
+# M3.2: 接入正式 JailbreakDetector（M2 阶段为内联正则，已替换）
+from app.services.safety.jailbreak_detector import JailbreakDetector
+
+_JAILBREAK_BLOCK_THRESHOLD = 0.7
+
 
 class TutorDecisionEngine:
     """
@@ -53,9 +59,12 @@ class TutorDecisionEngine:
         self,
         context_aggregator: Optional[ContextAggregator] = None,
         action_ledger: Optional[ActionLedger] = None,
+        jailbreak_detector: Optional[JailbreakDetector] = None,
     ):
         self.aggregator = context_aggregator or ContextAggregator()
         self.ledger = action_ledger or ActionLedger()
+        # M3.2: 越狱检测器（默认 L0 正则）
+        self._jailbreak_detector = jailbreak_detector or JailbreakDetector(level="L0")
 
         # 各子引擎（懒加载/可注入）
         self._hallucination_guard: Optional[Any] = None
@@ -267,3 +276,87 @@ class TutorDecisionEngine:
             context=EventContext(),
         )
         return await self.decide(event)
+
+    # ------------------------------------------------------------------
+    # M2.5: 模式路由 + 越狱拦截（接入 /api/v2/chat）
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _decision_engine_enabled() -> bool:
+        return os.environ.get("ENABLE_DECISION_ENGINE", "false").lower() == "true"
+
+    async def route(self, user_id: str, message: str, mode: str) -> dict:
+        """根据用户输入 + 模式，决定走哪个 Agent（M2.5）。
+
+        返回: {"agent": <agent_name>, "next_step": <step>}
+
+        当 ENABLE_DECISION_ENGINE != "true" 时，回退到 legacy_socratic
+        （保持对调用方的向后兼容）。
+        """
+        if not self._decision_engine_enabled():
+            return {"agent": "legacy_socratic", "next_step": "ask_question"}
+
+        mode_map = {
+            "socratic": ("qa_agent", "ask_question"),
+            "qa": ("qa_agent", "ask_question"),
+            "recommend": ("recommend_agent", "generate_recommendation"),
+            "audit": ("audit_agent", "check_output"),
+            "evaluate": ("evaluate_agent", "evaluate_answer"),
+        }
+        agent, next_step = mode_map.get(mode, ("qa_agent", "ask_question"))
+        return {"agent": agent, "next_step": next_step}
+
+    async def process_chat_request(
+        self,
+        user_id: str,
+        message: str,
+        mode: str,
+    ) -> dict:
+        """主入口（M2.5）：先越狱检测 → 再路由到对应 Agent。
+
+        返回:
+          - blocked=False 时: {"blocked": False, "agent": ..., "next_step": ...}
+          - blocked=True 时:  {"blocked": True, "reason": "jailbreak_detected", "pattern": ...}
+        """
+        # L0 越狱检测（接入正式 JailbreakDetector）
+        jb_result = await self._jailbreak_detector.scan(message)
+        if jb_result.risk_score >= _JAILBREAK_BLOCK_THRESHOLD:
+            logger.warning(
+                f"[TutorDecisionEngine] jailbreak blocked user={user_id} "
+                f"pattern={jb_result.pattern} matched={jb_result.matched_text!r}"
+            )
+            return {
+                "blocked": True,
+                "reason": "jailbreak_detected",
+                "pattern": jb_result.pattern,
+                "agent": None,
+                "next_step": None,
+            }
+
+        decision = await self.route(user_id=user_id, message=message, mode=mode)
+        return {
+            "blocked": False,
+            "reason": None,
+            "agent": decision["agent"],
+            "next_step": decision["next_step"],
+        }
+
+    @staticmethod
+    def _scan_jailbreak(text: str) -> tuple[float, str, str]:
+        """兼容旧 API 的薄包装（不推荐使用）。"""
+        import warnings
+
+        warnings.warn(
+            "TutorDecisionEngine._scan_jailbreak is deprecated; "
+            "use self._jailbreak_detector.scan(text) instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        import asyncio
+
+        async def _go():
+            detector = JailbreakDetector(level="L0")
+            result = await detector.scan(text)
+            return result.risk_score, result.pattern, result.matched_text
+
+        return asyncio.get_event_loop().run_until_complete(_go())

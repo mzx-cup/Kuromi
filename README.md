@@ -45,6 +45,30 @@ cp config/.env.example config/.env
 # 4. 初始化数据库（默认 SQLite，无需额外依赖）
 python Navicat/setup_database.py
 
+### 预置 Demo 内容
+
+首次启动后，应用会自动从 `storage/seed/demo/` 加载演示内容，无需任何手动操作：
+
+- **多个演示课程**（目前 5 门：Python / Web 前端 / 数据结构与算法 / AI 导论 / 线性代数），每门含完整富文本讲义 + 思维导图
+- **多个演示课堂**（对应每门课程的 PPT），所有用户（含未登录）都能直接打开
+
+所有用户可见 🎁 DEMO 课程，课堂页显示"演示课堂"横幅。
+
+### 修改 / 升级 Demo 内容
+
+1. 编辑 `storage/seed/demo/*.json`
+2. 在 `manifest.json` 里 bump `demo_version`（如 `2.0.0` → `2.0.1`）
+3. 下次启动自动替换 demo 内容；用户私有数据完全不受影响
+
+```bash
+# 手动重置（不依赖启动）
+python scripts/seed_demo.py --reset
+# 查看当前状态
+python scripts/seed_demo.py --check
+```
+
+详见 [storage/seed/demo/README.md](storage/seed/demo/README.md)。
+
 # 5. 启动服务
 python main.py
 # 或：python start_server.py

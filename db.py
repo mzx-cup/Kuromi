@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
@@ -189,6 +190,23 @@ def get_user_by_username(username):
 
 
 def create_user(username, hashed_password, avatar='', nickname=''):
+    """创建用户并返回 user_id。
+
+    HIGH-2 fix (2026-07-30): 必须返回 str user_id 以对齐 ORM User.id String(64)。
+
+    行为：
+      - SQL 路径（legacy db.py）：INSERT 后用 cursor.lastrowid，coerce 为 str
+      - JSON fallback：用 uuid.uuid4().hex 生成 str id（不再用 len+1）
+
+    Args:
+        username: 用户名
+        hashed_password: 已哈希密码
+        avatar: 头像 URL（可选）
+        nickname: 昵称（可选）
+
+    Returns:
+        str: user_id（始终为字符串）
+    """
     with get_db() as conn:
         if conn is not None:
             try:
@@ -206,13 +224,15 @@ def create_user(username, hashed_password, avatar='', nickname=''):
                 else:
                     user_id = cursor.lastrowid
                 cursor.close()
-                return user_id
+                # HIGH-2 fix: coerce 到 str 以对齐 ORM User.id
+                return str(user_id) if user_id is not None else None
             except Exception as e:
                 print(f"数据库插入失败: {e}")
 
         # JSON fallback
+        # HIGH-2 fix: 用 uuid 生成 str id（不再用 len+1 产生 int）
         storage = load_local_storage()
-        user_id = len(storage.get('users', [])) + 1
+        user_id = uuid.uuid4().hex
         new_user = {
             'id': user_id, 'username': username, 'password': hashed_password,
             'avatar': avatar, 'nickname': nickname, 'current_task': '大数据导论',

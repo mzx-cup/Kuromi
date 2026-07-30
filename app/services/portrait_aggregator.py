@@ -188,3 +188,59 @@ def aggregate_portrait_snapshot(
         },
         "last_synced": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ── M3.7: 实时微画像事件流 ─────────────────────────────────
+
+# 答题时间阈值（秒）
+LONG_ANSWER_THRESHOLD_SECONDS = 120  # 超过 2 分钟
+FAST_ANSWER_THRESHOLD_SECONDS = 10  # 小于 10 秒（可能瞎猜）
+
+
+def update_micro_portrait(
+    user_id: str,
+    event_type: str,
+    event_data: dict,
+) -> dict:
+    """根据实时事件微调画像权重（M3.7）。
+
+    支持的事件类型：
+      - quiz_answer: 答题事件，event_data 包含 correct / time_spent
+      - video_watch / chat_message / page_view: 占位（中性 delta）
+
+    返回 delta dict，包含：
+      - knowledge_mastery: 知识掌握度变化（-1.0 ~ +1.0）
+      - focus_level: 专注度变化（-1.0 ~ +1.0）
+      - event_count_delta: 事件计数增量（固定为 1）
+      - last_event_at: 事件时间戳
+    """
+    delta = {
+        "knowledge_mastery": 0.0,
+        "focus_level": 0.0,
+        "event_count_delta": 1,
+        "last_event_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if event_type == "quiz_answer":
+        is_correct = bool(event_data.get("correct"))
+        time_spent = int(event_data.get("time_spent", 0))
+
+        if is_correct:
+            delta["knowledge_mastery"] = +0.05
+        else:
+            delta["knowledge_mastery"] = -0.03
+
+        # focus_level 调整
+        if time_spent > LONG_ANSWER_THRESHOLD_SECONDS:
+            # 超长答题：分心 / 卡壳
+            delta["focus_level"] = -0.05
+        elif 0 < time_spent < FAST_ANSWER_THRESHOLD_SECONDS:
+            # 过快答题：可能是瞎猜
+            delta["focus_level"] = -0.03
+        # 其他情况：focus 不变
+
+    elif event_type in ("video_watch", "chat_message", "page_view"):
+        # 中性事件：不调整 mastery / focus，仅记录
+        pass
+
+    return delta

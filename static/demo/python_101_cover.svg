@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#3776AB"/>
+  <text x="50" y="100" fill="#FFD43B" font-family="sans-serif" font-size="48" font-weight="800">Python</text>
+  <text x="50" y="160" fill="#FFFFFF" font-family="sans-serif" font-size="32">编程入门</text>
+  <text x="50" y="380" fill="#FFFFFF" font-family="monospace" font-size="20">print("Hello, Star-Learn!")</text>
+</svg>

@@ -6,7 +6,13 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client(monkeypatch):
-    """Provide TestClient with a stubbed engine to avoid real LLM calls."""
+    """Provide TestClient with a stubbed engine to avoid real LLM calls.
+
+    MEDIUM-4 fix: force engine path (MASCOT_USE_MINIMAX_DIRECT=0) so we get
+    ``proactive_action`` events instead of the MiniMax direct-path ``action`` events.
+    """
+    monkeypatch.setenv("MASCOT_USE_MINIMAX_DIRECT", "0")
+
     from app.services.tutor_engine.models import (
         ResponseEnvelope, ProactiveAction, ActionType, MessagePriority
     )
@@ -25,6 +31,8 @@ def client(monkeypatch):
             )
 
     import app.api.mascot as mascot_module
+    # 强制使用 engine 路径
+    monkeypatch.setattr(mascot_module, "_USE_MINIMAX_DIRECT", False)
     monkeypatch.setattr(mascot_module, "_mascot_adapter", StubAdapter())
 
     from main import app

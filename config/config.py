@@ -49,6 +49,42 @@ class Settings(BaseSettings):
     kling_access_key: str = Field(default="", description="可灵Kling Access Key")
     kling_secret_key: str = Field(default="", description="可灵Kling Secret Key")
 
+    # ── B 站字幕获取 (用于课程学习页) ──
+    bili_cookie: str = Field(
+        default="",
+        description=(
+            "B 站登录 cookie (整段), 用于解锁 CC/AI 字幕. "
+            "填法: 登录 https://www.bilibili.com 后, 从 DevTools Application → Cookies → "
+            "把 SESSDATA / bili_jct / buvid3 等字段按 'name=value; name=value' 拼起来粘到这里."
+        ),
+    )
+    bili_assistant_openai_base_url: str = Field(
+        default="",
+        description=(
+            "OpenAI 兼容的 Whisper 端点 (本地 faster-whisper 服务或 OpenAI Whisper API). "
+            "留空则退化为仅靠 B 站字幕, 此项不影响 B 站字幕优先获取."
+        ),
+    )
+    bili_assistant_openai_api_key: str = Field(
+        default="",
+        description="上面对应 Whisper 服务的 API Key; 本地 faster-whisper 设为任意非空字符串即可.",
+    )
+    bili_assistant_ytdlp_path: str = Field(
+        default="",
+        description="yt-dlp 可执行文件路径; 留空时自动查 PATH 中的 yt-dlp.",
+    )
+    bili_assistant_ffmpeg_path: str = Field(
+        default="",
+        description="ffmpeg 可执行文件路径; yt-dlp 转码/切片时需要.",
+    )
+    bili_assistant_enabled: bool = Field(
+        default=False,
+        description=(
+            "是否启用 yt-dlp+Whisper 兜底字幕获取. 关闭时即便配了上面的字段, "
+            "也不会下载视频/转写音频, 避免带宽/费用浪费."
+        ),
+    )
+
     # Use app-specific env names so a global DEBUG variable does not override us.
     debug: bool = Field(
         default=False,

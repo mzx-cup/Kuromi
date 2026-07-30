@@ -1161,3 +1161,21 @@
   .cc-subject-empty { flex-direction: column; align-items: flex-start; }
   .cc-quick-import span { display: none; }
 }
+
+/* DEMO badge for demo courses */
+.cc-course-demo-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ff8a00 0%, #e52e71 100%);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+}
+
+.cc-course.cc-course-demo {
+    border: 1px solid rgba(229, 46, 113, 0.18);
+}

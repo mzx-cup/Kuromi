@@ -72,3 +72,127 @@ def audit_intent_route(student_id: str, intent: str) -> None:
         "student_id": str(student_id)[:64],
         "intent": intent,
     })
+
+
+# ============================================================
+# 扩展:Agent 决策审计(v2.0 P0 全链路可审计日志)
+# ============================================================
+
+def audit_agent_decision(
+    student_id: str,
+    agent_id: str,
+    action: str,
+    *,
+    trace_id: str | None = None,
+    input_summary: str | None = None,
+    output_summary: str | None = None,
+    reasoning: str | None = None,
+    knowledge_sources: list[str] | None = None,
+    confidence: float | None = None,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    """记录单个 Agent 的决策过程(v2.0 全链路可审计日志补全).
+
+    Args:
+        student_id: 学生 ID(截断到 64 字符)
+        agent_id: Agent 标识(echo / profiler / planner / evaluator ...)
+        action: 决策动作(recommend / grade / push / generate ...)
+        trace_id: 链路追踪 ID
+        input_summary: 输入摘要(**不存原文**,只存摘要)
+        output_summary: 输出摘要(**不存原文**)
+        reasoning: 决策理由(让审计者能复盘"为什么这么决策")
+        knowledge_sources: 引用的知识源 ID 列表(如 KB 节点 ID)
+        confidence: 置信度 0-1(可选)
+        extra: 其它需要留痕的字段
+    """
+    record: dict[str, Any] = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "agent_decision",
+        "student_id": str(student_id)[:64],
+        "agent_id": str(agent_id)[:64],
+        "action": str(action)[:128],
+    }
+    if trace_id:
+        record["trace_id"] = str(trace_id)[:64]
+    if input_summary is not None:
+        record["input_summary"] = (input_summary or "")[:200]
+    if output_summary is not None:
+        record["output_summary"] = (output_summary or "")[:200]
+    if reasoning is not None:
+        record["reasoning"] = (reasoning or "")[:500]
+    if knowledge_sources:
+        # 只保留 ID,不存原文
+        record["knowledge_sources"] = [str(s)[:64] for s in knowledge_sources[:20]]
+    if confidence is not None:
+        try:
+            c = float(confidence)
+            if 0.0 <= c <= 1.0:
+                record["confidence"] = round(c, 3)
+        except (TypeError, ValueError):
+            pass
+    if extra:
+        # extra 限定大小,避免审计日志爆炸
+        record["extra"] = {str(k)[:32]: str(v)[:200] for k, v in extra.items()}
+    _append(record)
+
+
+def audit_pipeline_complete(
+    student_id: str,
+    trace_id: str,
+    agents_run: list[str],
+    *,
+    duration_ms: int | None = None,
+    status: str = "complete",
+    error: str | None = None,
+) -> None:
+    """记录一次完整流水线执行(用于回溯沙箱的数据源)."""
+    record: dict[str, Any] = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "pipeline_complete",
+        "student_id": str(student_id)[:64],
+        "trace_id": str(trace_id)[:64],
+        "agents_run": [str(a)[:64] for a in agents_run[:32]],
+        "status": str(status)[:32],
+    }
+    if duration_ms is not None:
+        try:
+            record["duration_ms"] = int(duration_ms)
+        except (TypeError, ValueError):
+            pass
+    if error:
+        record["error"] = str(error)[:300]
+    _append(record)
+
+
+def audit_jailbreak_attempt(
+    student_id: str,
+    pattern_matched: str,
+    snippet: str,
+    *,
+    classifier_intent: str | None = None,
+    classifier_confidence: float | None = None,
+) -> None:
+    """记录越狱/注入尝试(用于安全审计 + 越狱样本积累).
+
+    Args:
+        student_id: 学生 ID
+        pattern_matched: 命中的规则 code(PROMPT_INJECTION / DESTRUCTIVE / ...)
+        snippet: 输入片段(已截断)
+        classifier_intent: 意图分类器的判定(normal / injection / role_escape / overreach)
+        classifier_confidence: 意图分类器置信度
+    """
+    record: dict[str, Any] = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "kind": "jailbreak_attempt",
+        "student_id": str(student_id)[:64],
+        "pattern_matched": str(pattern_matched)[:64],
+        "snippet": (snippet or "")[:200],
+    }
+    if classifier_intent:
+        record["classifier_intent"] = str(classifier_intent)[:32]
+    if classifier_confidence is not None:
+        try:
+            record["classifier_confidence"] = round(float(classifier_confidence), 3)
+        except (TypeError, ValueError):
+            pass
+    _append(record)

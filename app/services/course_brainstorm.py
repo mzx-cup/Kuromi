@@ -20,6 +20,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Optional
 
 from app.core.repository_factory import get_repository_for_user
@@ -73,18 +74,86 @@ class BrainstormState:
 BRAINSTORM_STORE: dict[str, BrainstormState] = {}
 STORE_LOCK = asyncio.Lock()
 
+# M3.8: JSONL 持久化路径（跨重启恢复 session）
+_PERSIST_FILE = Path("/tmp/starlearn_brainstorm.jsonl")
+
 
 async def _save(state: BrainstormState) -> None:
+    """保存 BrainstormState 到内存 + JSONL 文件。
+
+    双写策略：
+      - 内存 dict 提供 O(1) 查询（热路径）
+      - JSONL 文件持久化（冷路径），重启后由 _rehydrate 加载回来
+    """
+    import dataclasses
+
     async with STORE_LOCK:
         BRAINSTORM_STORE[state.brainstorm_id] = state
 
+    # 异步写入 JSONL（best-effort，不阻断主流程）
+    # 注意：lock 字段（asyncio.Lock）不可序列化，需排除
+    try:
+        _PERSIST_FILE.parent.mkdir(parents=True, exist_ok=True)
+        snapshot = {
+            k: v for k, v in dataclasses.asdict(state).items() if k != "lock"
+        }
+        with _PERSIST_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(snapshot, ensure_ascii=False) + "\n")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"[course_brainstorm] persist failed: {exc}")
+
 
 async def _load(brainstorm_id: str) -> BrainstormState:
+    """从内存加载 BrainstormState；不存在则尝试从 JSONL 恢复。"""
     async with STORE_LOCK:
         st = BRAINSTORM_STORE.get(brainstorm_id)
-    if st is None:
+    if st is not None:
+        return st
+    # 内存未命中：尝试从持久化文件恢复
+    rehydrated = await _rehydrate(brainstorm_id=brainstorm_id)
+    if rehydrated is None:
         raise KeyError(f"brainstorm_id={brainstorm_id} 不存在或已过期")
-    return st
+    return rehydrated
+
+
+async def _rehydrate(
+    brainstorm_id: str | None = None,
+) -> BrainstormState | None:
+    """从 JSONL 文件恢复 session。
+
+    Args:
+        brainstorm_id: 如果指定，只恢复该 id；否则恢复全部
+
+    Returns:
+        - 当指定 brainstorm_id 时，返回该 session 或 None
+        - 当不指定时，恢复全部到 BRAINSTORM_STORE，返回 None
+    """
+    import dataclasses
+
+    if not _PERSIST_FILE.exists():
+        return None
+
+    try:
+        recovered: BrainstormState | None = None
+        with _PERSIST_FILE.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    # 重建时 lock 必须重新创建
+                    data.pop("lock", None)
+                    state = BrainstormState(**data)
+                except Exception:
+                    continue
+                BRAINSTORM_STORE[state.brainstorm_id] = state
+                if brainstorm_id and state.brainstorm_id == brainstorm_id:
+                    recovered = state
+        return recovered
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"[course_brainstorm] rehydrate failed: {exc}")
+        return None
 
 
 # ============================================================

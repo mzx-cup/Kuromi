@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent 编排控制台（M2.6）</title>
+  <style>
+    .role-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .role-tabs button {
+      padding: 6px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .role-tabs button.active {
+      background: #4f46e5;
+      color: #fff;
+      border-color: #4f46e5;
+    }
+    .agent-run-stream {
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+    }
+    .agent-run-row {
+      display: flex;
+      gap: 12px;
+      padding: 6px 0;
+      border-bottom: 1px dashed #eee;
+    }
+    .agent-run-row .agent-name {
+      font-weight: 600;
+      color: #4f46e5;
+      min-width: 140px;
+    }
+    .agent-run-row .step {
+      color: #6b7280;
+      min-width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Agent 编排控制台</h1>
+  <p>5 角色命名空间（M2）：QA / Content / Recommend / Audit / Evaluate</p>
+
+  <!-- 5 角色 Tab (data-testid for testing) -->
+  <div class="role-tabs" data-testid="five-role-tabs">
+    <button data-role="qa_agent" class="active">问答 Agent</button>
+    <button data-role="content_agent">内容 Agent</button>
+    <button data-role="recommend_agent">推荐 Agent</button>
+    <button data-role="audit_agent">审核 Agent</button>
+    <button data-role="evaluate_agent">评估 Agent</button>
+  </div>
+
+  <!-- agent_run SSE 流可视化容器 -->
+  <div id="agent-run-stream" class="agent-run-stream"></div>
+
+  <script type="module" src="/js/agent-orchestration.js"></script>
+  <script>
+    // 演示：当 5 角色 Tab 被点击时，把当前角色写入 agent-run-stream
+    import('/js/agent-orchestration.js').then(({ getAgentTabs, renderAgentRunStream }) => {
+      const tabs = getAgentTabs();
+      const stream = document.getElementById('agent-run-stream');
+      const tabContainer = document.querySelector('[data-testid="five-role-tabs"]');
+      tabContainer.addEventListener('click', (e) => {
+        const role = e.target.dataset.role;
+        if (!role) return;
+        // 切 active 样式
+        tabContainer.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+        e.target.classList.add('active');
+        // 追加一条 agent_run 事件
+        const html = renderAgentRunStream([
+          { agent: role, step: 'run', timestamp: new Date().toISOString() },
+        ]);
+        stream.insertAdjacentHTML('beforeend', html);
+      });
+    });
+  </script>
+</body>
+</html>

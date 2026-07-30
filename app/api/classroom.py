@@ -3,12 +3,18 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import select
 
+from app.core.database import get_sessionmaker
 from app.core.sse import sse_done, sse_event
+from app.models.classroom import ClassroomSession
 
 logger = logging.getLogger("starlearn.classroom")
+
+router = APIRouter(prefix="/api/classroom", tags=["classroom"])
 
 
 class StreamRequest(BaseModel):
@@ -85,3 +91,33 @@ async def classroom_stream(req: StreamRequest):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/sessions/{session_id}")
+async def get_classroom_session(session_id: str, include_demo: bool = True):
+    """Fetch a ClassroomSession by id. Demo sessions (is_demo=TRUE) are loaded
+    if include_demo is True (default). Returns a JSON envelope matching the
+    standard {code, data} shape used elsewhere."""
+    sm = get_sessionmaker()
+    async with sm() as session:
+        stmt = select(ClassroomSession).where(ClassroomSession.id == session_id)
+        if not include_demo:
+            stmt = stmt.where(ClassroomSession.is_demo.is_(False))
+        row = (await session.execute(stmt)).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Classroom session not found")
+    return {
+        "code": 200,
+        "data": {
+            "id": row.id,
+            "course_id": row.course_id,
+            "title": (row.course_data or {}).get("title") if isinstance(row.course_data, dict) else "",
+            "teacher_persona": row.teacher_persona,
+            "status": row.status,
+            "slides": row.slides,
+            "is_demo": bool(getattr(row, "is_demo", False)),
+            "demo_version": getattr(row, "demo_version", "") or "",
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+        },
+    }
+

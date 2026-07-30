@@ -25,9 +25,9 @@ async def _get_session():
 # Subject
 # ---------------------------------------------------------------------------
 
-async def list_subjects() -> list[Subject]:
+async def list_subjects(include_demo: bool = True) -> list[Subject]:
     async with get_sessionmaker()() as session:
-        result = await session.execute(
+        stmt = (
             select(Subject)
             .options(
                 selectinload(Subject.courses)
@@ -36,6 +36,9 @@ async def list_subjects() -> list[Subject]:
             )
             .order_by(Subject.sort_order)
         )
+        if not include_demo:
+            stmt = stmt.where(Subject.is_demo.is_(False))
+        result = await session.execute(stmt)
         return result.scalars().all()
 
 
@@ -225,3 +228,16 @@ async def delete_subchapter(subchapter_id: str) -> bool:
         )
         await session.commit()
         return result.rowcount > 0
+
+
+async def get_subchapter(subchapter_id: str) -> SubChapter | None:
+    """Fetch a single subchapter with its parent chapter + course preloaded."""
+    async with get_sessionmaker()() as session:
+        result = await session.execute(
+            select(SubChapter)
+            .where(SubChapter.id == subchapter_id)
+            .options(
+                selectinload(SubChapter.chapter).selectinload(Chapter.course)
+            )
+        )
+        return result.scalar_one_or_none()

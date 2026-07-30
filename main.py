@@ -3719,6 +3719,28 @@ def get_controller() -> MasterController:
 @app.post("/api/v2/chat")
 async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends(get_controller)):
     try:
+        # === M2.5: TutorDecisionEngine 路由 + 越狱拦截 ===
+        # 当 ENABLE_DECISION_ENGINE=true 时启用；否则走原链路
+        import os as _os
+        if _os.environ.get("ENABLE_DECISION_ENGINE", "false").lower() == "true":
+            try:
+                from app.services.tutor_engine.engine import TutorDecisionEngine
+                _engine = TutorDecisionEngine()
+                _decision = await _engine.process_chat_request(
+                    user_id=str(request.student_id or ""),
+                    message=request.user_input or "",
+                    mode=request.mode or "socratic",
+                )
+                if _decision.get("blocked"):
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"input_blocked: {_decision.get('reason')}",
+                    )
+            except HTTPException:
+                raise
+            except Exception as _e:
+                logger.warning(f"[chat_v2] decision engine skip: {_e}")
+
         state = build_state_from_request(
             student_id=request.student_id,
             course_id=request.course_id,
@@ -3730,6 +3752,13 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
             code_practice_time=request.code_practice_time,
             socratic_pass_rate=request.socratic_pass_rate,
         )
+
+        # M2.5: 把决策写到 state.metadata，供下游 Agent 读取
+        if _os.environ.get("ENABLE_DECISION_ENGINE", "false").lower() == "true":
+            try:
+                state.metadata["decision"] = _decision  # type: ignore[name-defined]
+            except NameError:
+                pass
 
         state = await controller.execute(state)
 

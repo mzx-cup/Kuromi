@@ -6,6 +6,10 @@ from fastapi.testclient import TestClient
 
 @pytest.fixture
 def client_with_proactive(monkeypatch):
+    """Fixture that forces the engine path so we get proactive_action events."""
+    # MEDIUM-4 fix: 强制走 engine 路径，否则默认 MiniMax 直连发的是 action 事件
+    monkeypatch.setenv("MASCOT_USE_MINIMAX_DIRECT", "0")
+
     from app.services.tutor_engine.models import (
         ResponseEnvelope, ProactiveAction, ActionType, MessagePriority
     )
@@ -29,6 +33,8 @@ def client_with_proactive(monkeypatch):
             )
 
     import app.api.mascot as m
+    # 强制使用 engine 路径（默认是 MiniMax 直连）
+    monkeypatch.setattr(m, "_USE_MINIMAX_DIRECT", False)
     monkeypatch.setattr(m, "_mascot_adapter", StubAdapter())
     from main import app
     return TestClient(app)

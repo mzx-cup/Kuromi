@@ -32,25 +32,26 @@ def _persist_to_db(node: KnowledgeNode) -> bool:
 
 
 def _persist_to_qdrant(node: KnowledgeNode) -> bool:
-    """Qdrant upsert wiring — M2 hardening.
+    """Qdrant upsert wiring — M2 hardening + HIGH-1 fix.
 
     Writes the node into the ``knowledge_nodes`` collection using the
     singleton Qdrant client (master → replica failover is handled
     inside ``QdrantClientSingleton.get()``). Failures are logged and
-    swallowed so the SQL store remains the source of truth; a future
-    fallback-queue worker can replay missed upserts from the DB.
+    enqueued to the fallback queue (MEDIUM-3 fix) so the SQL store
+    remains the source of truth and a worker can replay later.
+
+    HIGH-1 fix (2026-07-30): use deterministic non-zero hash-based
+    embeddings instead of zero vectors, so cosine similarity in the
+    citation retriever actually returns meaningful scores.
     """
     try:
         client = QdrantClientSingleton.get()
-        # Lazy vector/payload from the node. We don't run embeddings
-        # here — that lives in embeddings.py / citation_retriever.py —
-        # so we use a deterministic zero vector + the node metadata
-        # as the payload. Real embedding wiring is a separate task.
-        try:
-            vector_dim = len(node.content) and 384  # placeholder dim
-        except Exception:
-            vector_dim = 384
-        vector = [0.0] * vector_dim
+        # HIGH-1 fix: 用确定性非零 embedding 替换零向量占位
+        from app.services.kb.deterministic_embedder import hash_embed
+
+        # 把标题和内容拼起来做 embedding
+        embed_text = f"{node.title} {node.content}".strip()
+        vector = hash_embed(embed_text)
         payload = {
             "id": node.id,
             "subject": node.subject,
@@ -70,6 +71,18 @@ def _persist_to_qdrant(node: KnowledgeNode) -> bool:
         return True
     except Exception as exc:
         logger.warning(f"Qdrant upsert failed for {node.id}: {exc}")
+        # MEDIUM-3 fix: 入 fallback queue（best-effort）
+        try:
+            from app.services.kb.fallback_queue import enqueue_kb_fallback
+
+            enqueue_kb_fallback(
+                node_id=node.id,
+                subject=node.subject,
+                title=node.title,
+                content=node.content,
+            )
+        except Exception as fb_exc:  # noqa: BLE001
+            logger.warning(f"Fallback queue enqueue failed: {fb_exc}")
         return False
 
 

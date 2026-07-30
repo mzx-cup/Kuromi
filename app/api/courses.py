@@ -30,6 +30,7 @@ from app.services.course_service import (
     update_subject,
     delete_subject,
     get_course,
+    get_subchapter,
     create_course,
     update_course,
     delete_course,
@@ -38,6 +39,7 @@ from app.services.course_import import (
     import_bilibili_video,
     import_bilibili_playlist,
 )
+from app.services.course_learn_content import get_subchapter_content
 
 logger = logging.getLogger("starlearn.courses_api")
 router = APIRouter(prefix="/api/courses")
@@ -109,6 +111,8 @@ def _subject_to_dict(subject) -> dict[str, Any]:
         "icon": subject.icon,
         "visible": subject.visible,
         "sort_order": subject.sort_order,
+        "is_demo": bool(getattr(subject, "is_demo", False)),
+        "demo_version": getattr(subject, "demo_version", "") or "",
         "courses": [_course_to_dict(c) for c in subject.courses],
     }
 
@@ -129,6 +133,8 @@ def _course_to_dict(course) -> dict[str, Any]:
         "visible": course.visible,
         "sort_order": course.sort_order,
         "status": course.status,
+        "is_demo": bool(getattr(course, "is_demo", False)),
+        "demo_version": getattr(course, "demo_version", "") or "",
         "chapters": [_chapter_to_dict(ch) for ch in getattr(course, "chapters", [])],
     }
 
@@ -140,6 +146,8 @@ def _chapter_to_dict(chapter) -> dict[str, Any]:
         "title": chapter.title,
         "description": chapter.description,
         "sort_order": chapter.sort_order,
+        "lecture": getattr(chapter, "lecture", None),
+        "mindmap": getattr(chapter, "mindmap", None),
         "subchapters": [_subchapter_to_dict(sc) for sc in getattr(chapter, "subchapters", [])],
     }
 
@@ -162,9 +170,9 @@ def _subchapter_to_dict(sc) -> dict[str, Any]:
 # ── routes: subjects ──
 
 @router.get("/subjects")
-async def list_subjects_api():
+async def list_subjects_api(include_demo: bool = True):
     try:
-        subjects = await list_subjects()
+        subjects = await list_subjects(include_demo=include_demo)
         return {"code": 200, "data": [_subject_to_dict(s) for s in subjects]}
     except Exception as e:
         err_str = str(e).lower()
@@ -229,12 +237,45 @@ async def delete_course_api(course_id: str):
 
 
 @router.get("/courses/{course_id}/subchapters/{subchapter_id}/content")
-async def get_subchapter_content(course_id: str, subchapter_id: str):
-    """Return empty learning content for a subchapter.
-    AI-generated transcript/concepts/mindMap/exercises are not available for
-    seeder-imported courses — this endpoint returns an empty skeleton so the
-    frontend can degrade gracefully instead of 404-ing."""
-    return {"code": 200, "data": {"transcript": "", "concepts": [], "mindMap": None, "exercises": []}}
+async def get_subchapter_content(course_id: str, subchapter_id: str, refresh: bool = False):
+    """Return AI-generated learning content (transcript / concepts / mindMap /
+    exercises) for a subchapter.
+
+    Strategy:
+      1. If the subchapter already has a `transcript` field populated
+         (e.g., demo seeder, manually entered), it's used as the source text.
+      2. Otherwise we try to fetch B站 subtitles for the subchapter's bvid.
+      3. If neither is available we return an empty skeleton with a `note`
+         explaining why; the frontend can show a meaningful empty state.
+
+    Generated content is cached in-process so the same subchapter can be
+    requested repeatedly without burning tokens.
+    """
+    course = await get_course(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="课程不存在")
+    subchapter = await get_subchapter(subchapter_id)
+    if not subchapter:
+        raise HTTPException(status_code=404, detail="章节不存在")
+
+    content = await get_subchapter_content_for(
+        course=course,
+        subchapter=subchapter,
+        force_refresh=refresh,
+    )
+    return {"code": 200, "data": content}
+
+
+async def get_subchapter_content_for(*, course, subchapter, force_refresh: bool = False) -> dict:
+    """Adapter that resolves the parent chapter before calling the service."""
+    from app.services.course_learn_content import get_subchapter_content as _impl
+    chapter = getattr(subchapter, "chapter", None)
+    return await _impl(
+        course=course,
+        chapter=chapter,
+        subchapter=subchapter,
+        force_refresh=force_refresh,
+    )
 
 
 # ── routes: import ──

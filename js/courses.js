@@ -111,7 +111,8 @@
                   totalLessons: c.total_lessons || 0,
                   totalDuration: c.total_duration || 0,
                   progress: c.progress || 0,
-                  visible: c.visible !== false
+                  visible: c.visible !== false,
+                  isDemo: !!c.is_demo
                 };
               })
             };
@@ -314,6 +315,7 @@
     var bvidShort = course.bvid ? course.bvid.replace(/^BV/, '') : '';
     var bvidHtml = bvidShort ? '<span class="cc-course-bvid">BV' + escapeHtml(bvidShort.slice(0, 6)) + '</span>' : '';
     var noVideoBadge = !hasBvid ? '<span class="cc-course-no-video-badge">暂无视频</span>' : '';
+    var demoBadge = course.isDemo ? '<span class="cc-course-demo-badge" title="演示课程，所有用户共享">🎁 DEMO</span>' : '';
 
     var coverClass = 'cc-course-cover ' + escapeHtml(parentSlug) + (!hasBvid ? ' no-video' : '');
 
@@ -328,15 +330,16 @@
       : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>';
 
     return (
-      '<div class="cc-course' + (!hasBvid ? ' no-video' : '') + '" data-course-id="' + escapeHtml(course.id) + '">' +
+      '<div class="cc-course' + (!hasBvid ? ' no-video' : '') + (course.isDemo ? ' cc-course-demo' : '') + '" data-course-id="' + escapeHtml(course.id) + '">' +
         '<div class="' + coverClass + '">' +
           bvidHtml +
           pillHtml +
+          demoBadge +
           noVideoBadge +
           '<div class="cc-course-cover-icon">' + subjectIcon(parentSlug) + '</div>' +
         '</div>' +
         '<div class="cc-course-body">' +
-          '<h4 class="cc-course-title">' + escapeHtml(course.title) + '</h4>' +
+          '<h4 class="cc-course-title">' + escapeHtml(course.title) + demoBadge + '</h4>' +
           descHtml +
           '<div class="cc-course-meta">' +
             '<span class="cc-course-meta-item">' +

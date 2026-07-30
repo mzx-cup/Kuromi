@@ -352,6 +352,14 @@
                 }
 
                 this.courseData.tts_audio_urls = this.courseData.tts_audio_urls || {};
+                // Show DEMO banner if this is a shared demo classroom session
+                if (this.courseData.is_demo === true || this.courseData.isDemo === true) {
+                    const banner = document.getElementById('demo-classroom-banner');
+                    if (banner) banner.style.display = 'flex';
+                } else {
+                    const banner = document.getElementById('demo-classroom-banner');
+                    if (banner) banner.style.display = 'none';
+                }
                 // 保存courseId用于后台轮询
                 this.courseId = this.courseData.courseId || this.courseData.metadata?.session_id || sessionStorage.getItem('courseId') || null;
 

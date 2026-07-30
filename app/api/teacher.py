@@ -10,11 +10,76 @@ import logging
 from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 logger = logging.getLogger("starlearn.teacher")
 
 router = APIRouter(prefix="/api/teacher")
+
+
+# ─────────────────────────────────────────────
+# M4.1: AI 教学建议（教师 workbench）
+# ─────────────────────────────────────────────
+
+@router.get("/ai-suggestions")
+def get_ai_suggestions(
+    teacher_id: str | None = Header(None, alias="X-Teacher-Id"),
+    limit: int = Query(10, ge=1, le=50),
+) -> dict[str, Any]:
+    # FastAPI 直接调用时 Query 可能保留为对象；强制转 int
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = 10
+    """获取 AI 给教师的干预建议列表（M4.1 / #5 part 1）。
+
+    占位实现：返回 mock 数据（实际接 RuleEngine + ProfilerAgent）。
+    每条 suggestion 包含：
+      - id          : 唯一标识
+      - student_id  : 目标学生
+      - type        : 类型（low_engagement / deadline / weakness）
+      - priority    : high / medium / low
+      - payload     : 详情
+      - status      : pending / acted / dismissed
+    """
+    items = [
+        {
+            "id": f"sg_{i}",
+            "student_id": f"s_{i}",
+            "type": ["low_engagement", "weakness", "deadline"][i % 3],
+            "priority": ["high", "medium", "low"][i % 3],
+            "payload": {
+                "message": f"学生 s_{i} 需要关注",
+                "topic": "勾股定理" if i % 2 == 0 else "一元二次方程",
+            },
+            "status": "pending",
+        }
+        for i in range(min(limit, 3))
+    ]
+    return {"suggestions": items, "teacher_id": teacher_id, "total": len(items)}
+
+
+@router.post("/suggestion/{suggestion_id}/act")
+def act_on_suggestion(
+    suggestion_id: str,
+    payload: dict[str, Any],
+    teacher_id: str | None = Header(None, alias="X-Teacher-Id"),
+) -> dict[str, Any]:
+    """教师对 AI 建议一键下发 / 修改 / 取消（M4.1）。
+
+    Args:
+        suggestion_id: 建议 ID
+        payload: {action: send_to_student|edit|cancel, message?: str}
+        teacher_id: 教师 ID（来自 X-Teacher-Id header）
+    """
+    action = payload.get("action", "send_to_student")
+    return {
+        "suggestion_id": suggestion_id,
+        "action": action,
+        "acted_at": datetime.utcnow().isoformat(),
+        "teacher_id": teacher_id,
+        "status": "delivered" if action == "send_to_student" else action,
+    }
 
 # ─────────────────────────────────────────────
 # Dashboard
