@@ -285,6 +285,19 @@
         </div>
       </div>
 
+      <!-- P0 比赛模式: 班级实时观察 (Task 17) -->
+      <h2 style="font-size:16px;margin:24px 0 12px;color:var(--cp-text-primary);font-weight:var(--font-bold)">班级实时观察</h2>
+      <div class="class-card app-content-card prism" id="classroom-observation-card">
+        <div class="prism-corner prism-corner-tr"><div class="prism-layer"></div></div>
+        <div class="class-card-header">
+          <h3>观察事件流</h3>
+          <span class="status-badge status-badge-published">实时</span>
+        </div>
+        <div id="observation-list" class="observation-list">
+          <div class="observation-row placeholder">正在拉取观察事件…</div>
+        </div>
+      </div>
+
       <!-- My Classes -->
       <h2 style="font-size:16px;margin:24px 0 12px;color:var(--cp-text-primary);font-weight:var(--font-bold)">我的班级</h2>
       <div class="class-grid">
@@ -307,5 +320,25 @@
       </div>
     </main>
   </div>
+
+  <!-- P0 比赛模式: 班级观察轮询 (Task 17) -->
+  <script type="module">
+    import { loadAndRenderObservations } from '/js/teacher-dashboard.js';
+    function startObservationPolling() {
+      // 首次立即拉, 之后每 5s 一次
+      loadAndRenderObservations('#observation-list');
+      setInterval(function() { loadAndRenderObservations('#observation-list'); }, 5000);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startObservationPolling);
+    } else {
+      startObservationPolling();
+    }
+  </script>
+
+  <!-- 缺口4:必须补 alpine + auth + pages/teacher-dashboard,否则整个教师端 UI 在线不可用 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+  <script src="/js/auth.js"></script>
+  <script type="module" src="/js/pages/teacher-dashboard.js"></script>
 </body>
 </html>

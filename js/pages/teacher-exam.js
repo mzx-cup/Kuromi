@@ -29,6 +29,14 @@ document.addEventListener('alpine:init', () => {
     gradingResults: [],
     gradingIndex: 0,
     gradingScores: {},
+    gradingComments: {},     // 缺口4:教师评语 {result_id: comment}
+    // 缺口4:4 维评分维度的元数据(label/color)
+    dimList: [
+      { key: 'knowledge_score',  label: '知识', color: '#3b82f6' },
+      { key: 'ability_score',    label: '能力', color: '#22c55e' },
+      { key: 'process_score',    label: '过程', color: '#f59e0b' },
+      { key: 'innovation_score', label: '创新', color: '#a855f7' },
+    ],
 
     // Result state
     resultExam: null,
@@ -235,7 +243,24 @@ document.addEventListener('alpine:init', () => {
         });
         const data = await res.json();
         if (data.success) {
-          this.gradingResults[this.gradingIndex] = { ...r, ai_score: data.ai_score, ai_comment: data.ai_comment };
+          // 缺口4:把 4 维评分塞进 currentGrading,前端柱状图即时渲染
+          const dims = data.dimensions || {};
+          this.gradingResults[this.gradingIndex] = {
+            ...r,
+            ai_score: data.ai_score,
+            ai_comment: data.ai_comment,
+            knowledge_score:  dims.knowledge  ?? r.knowledge_score  ?? 0,
+            ability_score:    dims.ability    ?? r.ability_score    ?? 0,
+            process_score:    dims.process    ?? r.process_score    ?? 0,
+            innovation_score: dims.innovation ?? r.innovation_score ?? 0,
+            max_score: r.max_score || 100,
+            arbitration: data.arbitration,
+          };
+          // 仲裁触发 → toast 提示
+          if (data.arbitration && data.arbitration.triggered) {
+            this.success = `AI 评分分歧过大,已触发仲裁 (std=${data.arbitration.std?.toFixed(1)})`;
+            setTimeout(() => { this.success = ''; }, 4000);
+          }
         } else { this.error = data.detail || 'AI预批改失败'; }
       } catch (_) { this.error = 'AI预批改请求失败'; }
       finally { this.loading = false; }
@@ -254,10 +279,28 @@ document.addEventListener('alpine:init', () => {
         const res = await fetch(`/api/teacher/exam/${this.gradingExam.id}/grade`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ result_id: r.id, final_score: parseFloat(score) }),
+          body: JSON.stringify({
+            result_id: r.id,
+            final_score: parseFloat(score),
+            teacher_comment: this.gradingComments[r.id] || '',
+            rubric: r.rubric || [],
+            is_final: true,
+          }),
         });
         const data = await res.json();
         if (data.success) {
+          // 更新本地缓存(让结果表立即反映 override_count / graded_by)
+          if (data.result) {
+            this.gradingResults[this.gradingIndex] = {
+              ...r,
+              score: data.result.score,
+              teacher_comment: data.result.teacher_comment,
+              override_count: data.result.override_count,
+              graded_by: data.result.graded_by,
+              graded_by_user_id: data.result.graded_by_user_id,
+              graded_at: data.result.graded_at,
+            };
+          }
           if (this.gradingIndex < this.gradingResults.length - 1) {
             this.gradingIndex++;
           } else {
@@ -268,6 +311,16 @@ document.addEventListener('alpine:init', () => {
         } else { this.error = data.detail || '保存分数失败'; }
       } catch (_) { this.error = '保存失败'; }
       finally { this.loading = false; }
+    },
+
+    // 缺口4:偏差(教师分 - AI 分)
+    calcDelta() {
+      const r = this.currentGrading;
+      if (!r) return 0;
+      const teacherScore = parseFloat(this.gradingScores[r.id]);
+      if (isNaN(teacherScore)) return 0;
+      const aiScore = parseFloat(r.ai_score ?? r.score ?? 0);
+      return teacherScore - aiScore;
     },
 
     prevGrading() { if (this.gradingIndex > 0) this.gradingIndex--; },
