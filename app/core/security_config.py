@@ -111,6 +111,12 @@ class SecurityConfig:
     # Dev mode — skip CSRF Origin check
     dev_mode: bool = field(default_factory=lambda: _env_bool("SECURITY_DEV_MODE", True))
 
+    # P0 Task 4: 比赛模式 (P0 期间默认 False, 比赛现场必须显式设为 "1").
+    competition_mode: bool = field(default_factory=lambda: _env_bool("STARLEARN_COMPETITION", False))
+
+    # P0 Task 4: 严格 CSRF — 开启后无论 dev_mode 如何都强制校验 Origin.
+    csrf_strict: bool = field(default_factory=lambda: _env_bool("STARLEARN_CSRF_STRICT", False))
+
 
 # Singleton — initialized at first access
 _security_config: SecurityConfig | None = None

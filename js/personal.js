@@ -1913,3 +1913,92 @@ document.addEventListener('visibilitychange', function() {
         }
     }
 });
+
+// ============================================
+// P0 比赛模式: 掌握度变化 + 推荐理由 卡片 (Task 16)
+// 渲染失败不抛错, 始终显示 placeholder.
+// ============================================
+async function loadMasteryDiff(userId) {
+    const root = document.getElementById('mastery-diff-list');
+    if (!root) return;
+    try {
+        const r = await fetch(`/api/profile/${userId}/mastery-diff`);
+        if (!r.ok) {
+            root.innerHTML = '<div class="mastery-row placeholder">暂无变化数据</div>';
+            return;
+        }
+        const data = await r.json();
+        const items = data.items || [];
+        if (!items.length) {
+            root.innerHTML = '<div class="mastery-row placeholder">暂无变化数据, 先去学一轮试试</div>';
+            return;
+        }
+        root.innerHTML = '';
+        items.forEach(function(item) {
+            const row = document.createElement('div');
+            row.className = 'mastery-row';
+            const before = (item.before || 0).toFixed(2);
+            const after = (item.after || 0).toFixed(2);
+            const cls = (item.after || 0) >= (item.before || 0) ? 'up' : 'down';
+            row.innerHTML =
+                `<span class="name">${item.concept || '?'}</span>` +
+                `<span class="before">${before}</span>` +
+                `<span class="arrow">→</span>` +
+                `<span class="after ${cls}">${after}</span>`;
+            root.appendChild(row);
+        });
+    } catch (err) {
+        // 网络/解析失败, 不抛错, 仅占位
+        if (root) root.innerHTML = '<div class="mastery-row placeholder">加载失败</div>';
+    }
+}
+
+async function loadRecommendReason(userId) {
+    const root = document.getElementById('recommend-reason-list');
+    if (!root) return;
+    try {
+        const r = await fetch(`/api/profile/${userId}/recommendations`);
+        if (!r.ok) {
+            root.innerHTML = '<div class="reason-row placeholder">暂无推荐</div>';
+            return;
+        }
+        const data = await r.json();
+        const recs = data.recommendations || [];
+        if (!recs.length) {
+            root.innerHTML = '<div class="reason-row placeholder">暂无推荐, 继续学习后将出现</div>';
+            return;
+        }
+        root.innerHTML = '';
+        recs.forEach(function(item) {
+            const row = document.createElement('div');
+            row.className = 'reason-row';
+            row.innerHTML =
+                `<strong>${item.title || '推荐'}</strong>` +
+                `<p>${item.reason || ''}</p>` +
+                `<small>${item.evidence || ''}</small>`;
+            root.appendChild(row);
+        });
+    } catch (err) {
+        if (root) root.innerHTML = '<div class="reason-row placeholder">加载失败</div>';
+    }
+}
+
+function initMasteryAndRecommendCards() {
+    const userId = (typeof StarData !== 'undefined' && StarData.getUserId)
+        ? StarData.getUserId()
+        : null;
+    if (!userId) return;
+    // 首次加载
+    loadMasteryDiff(userId);
+    loadRecommendReason(userId);
+    // 绑定按钮
+    const btnDiff = document.getElementById('refresh-mastery-diff-btn');
+    if (btnDiff) btnDiff.addEventListener('click', function() { loadMasteryDiff(userId); });
+    const btnRec = document.getElementById('refresh-recommend-btn');
+    if (btnRec) btnRec.addEventListener('click', function() { loadRecommendReason(userId); });
+}
+
+// 挂到 DOMContentLoaded 上 (init() 之后), 不依赖具体位置.
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initMasteryAndRecommendCards, 0);
+});

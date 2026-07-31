@@ -37,8 +37,10 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         config = get_security_config()
 
-        # Dev mode bypass (developer convenience)
-        if config.dev_mode:
+        # P0 Task 4: 比赛模式或 csrf_strict 开启时, 强制校验 Origin,
+        # 即便 dev_mode=True 也跳不过. 这保证比赛现场不会因 dev 模式被绕过.
+        bypass_allowed = config.dev_mode and not config.csrf_strict and not config.competition_mode
+        if bypass_allowed:
             return await call_next(request)
 
         # Only check state-changing methods

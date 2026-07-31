@@ -2,9 +2,14 @@
 """Manual demo content management CLI.
 
 Usage:
-    python scripts/seed_demo.py --check     # print current demo_version vs manifest
-    python scripts/seed_demo.py --reset     # drop + re-insert from JSON
-    python scripts/seed_demo.py --dump      # export current DB demo rows to JSON
+    python scripts/seed_demo.py --check             # print current demo_version vs manifest
+    python scripts/seed_demo.py --reset             # drop + re-insert from JSON
+    python scripts/seed_demo.py --reset --json      # drop + re-insert, output machine-readable JSON
+    python scripts/seed_demo.py --dump              # export current DB demo rows to JSON
+    python scripts/seed_demo.py --version           # print manifest version only (always JSON)
+
+P0 (Task 9) 新增: --json 选项, 与 --reset 联用输出 {"version": ..., "counts": ...},
+                 供验收脚本断言 version/counts 在两次 reset 之间一致.
 """
 from __future__ import annotations
 
@@ -25,7 +30,7 @@ from app.services import demo_seeder
 from app.services.demo_seeder import DEMO_DIR
 
 
-async def cmd_check() -> int:
+async def cmd_check(as_json: bool = False) -> int:
     await init_db()
     cur = await demo_seeder._current_demo_version()
     try:
@@ -33,20 +38,57 @@ async def cmd_check() -> int:
     except FileNotFoundError:
         manifest = {}
     target = manifest.get("demo_version", "(no manifest)")
-    print(f"current:  {cur or '(none)'}")
-    print(f"manifest: {target}")
-    print(f"status:   {'up-to-date' if cur == target else 'NEEDS SEED'}")
+    if as_json:
+        print(json.dumps(
+            {"current": cur, "manifest": target,
+             "up_to_date": cur == target and target != "(no manifest)"},
+            ensure_ascii=False,
+        ))
+    else:
+        print(f"current:  {cur or '(none)'}")
+        print(f"manifest: {target}")
+        print(f"status:   {'up-to-date' if cur == target else 'NEEDS SEED'}")
     return 0
 
 
-async def cmd_reset() -> int:
+async def cmd_reset(as_json: bool = False) -> int:
     await init_db()
     cur = await demo_seeder._current_demo_version()
+
+    # 读取 manifest 中的目标版本 (与 _drop_all_demo_rows 内部使用一致)
+    try:
+        manifest = json.loads((DEMO_DIR / "manifest.json").read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        manifest = {}
+    target_version = manifest.get("demo_version", "0.0.0")
+
+    dropped = 0
     if cur is not None:
         dropped = await demo_seeder._drop_all_demo_rows()
-        print(f"dropped {dropped} old course(s) at version {cur}")
-    result = await demo_seeder._insert_demo_payload(await demo_seeder._current_demo_version() or "0.0.0")
-    print(f"re-inserted: {result}")
+    result = await demo_seeder._insert_demo_payload(target_version)
+
+    if as_json:
+        # result 可能是 {status, version, inserted/dropped} 或其他形状; 归一化 counts.
+        counts: dict[str, int] = {}
+        if isinstance(result, dict):
+            for key in ("courses", "chapters", "subchapters", "classrooms"):
+                v = result.get(key)
+                if isinstance(v, list):
+                    counts[key] = len(v)
+                elif isinstance(v, int):
+                    counts[key] = v
+            # 兼容 demo_seeder 既有返回值
+            if not counts and "inserted" in result and isinstance(result["inserted"], dict):
+                counts = {k: len(v) if isinstance(v, list) else 0
+                          for k, v in result["inserted"].items()}
+        print(json.dumps(
+            {"version": target_version, "dropped": dropped, "counts": counts},
+            ensure_ascii=False,
+        ))
+    else:
+        if dropped:
+            print(f"dropped {dropped} old course(s) at version {cur}")
+        print(f"re-inserted: {result}")
     return 0
 
 
@@ -80,20 +122,35 @@ async def cmd_dump() -> int:
     return 0
 
 
+async def cmd_version() -> int:
+    """仅输出 manifest 的 demo_version, 始终 JSON 格式."""
+    try:
+        manifest = json.loads((DEMO_DIR / "manifest.json").read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        manifest = {}
+    print(json.dumps({"version": manifest.get("demo_version", "(no manifest)")}, ensure_ascii=False))
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="Manage demo content")
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--check", action="store_true", help="Check current demo version vs manifest")
     g.add_argument("--reset", action="store_true", help="Force re-insert demo from JSON files")
     g.add_argument("--dump", action="store_true", help="Dump current DB demo rows")
+    g.add_argument("--version", action="store_true", help="Print manifest demo_version (always JSON)")
+    p.add_argument("--json", action="store_true",
+                   help="Machine-readable JSON output (with --check or --reset)")
     args = p.parse_args()
 
     if args.check:
-        return asyncio.run(cmd_check())
+        return asyncio.run(cmd_check(as_json=args.json))
     if args.reset:
-        return asyncio.run(cmd_reset())
+        return asyncio.run(cmd_reset(as_json=args.json))
     if args.dump:
         return asyncio.run(cmd_dump())
+    if args.version:
+        return asyncio.run(cmd_version())
     return 1
 
 

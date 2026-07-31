@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 from dataclasses import dataclass
 
@@ -53,9 +54,19 @@ class SandboxExecutor:
         """在子进程中执行 Python 代码。
 
         安全检查顺序：
+          0. 比赛模式短路 (P0 Task 5): STARLEARN_COMPETITION=1 时直接拒绝,
+             避免不可信代码在演示现场被执行.
           1. 黑名单 import 检测（前置）
           2. subprocess 执行 + 超时
         """
+        # P0 Task 5: 比赛模式短路, 直接拒绝 (不进入 subprocess).
+        if os.environ.get("STARLEARN_COMPETITION") == "1":
+            return ExecutionResult(
+                success=False,
+                stdout="",
+                stderr="",
+                error="competition_mode_disabled",
+            )
         # L1: 黑名单 import 检测
         blocked, mod = self._detect_blocked_import(code)
         if blocked:

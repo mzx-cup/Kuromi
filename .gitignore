@@ -74,3 +74,25 @@ output/
 
 # E2E screenshots directory (keep folder, ignore PNGs)
 tests/frontend/e2e/__screenshots__/*.png
+
+# ==========================================
+# 8. 比赛/演示运行产物 (Competition Artifacts) — P0 Task 11
+# 注意: git 把行内 # 视为 pattern 一部分, 故全部独立成行.
+# ==========================================
+# 媒体生成 (TTS/ASR/Bilibili) 临时音频
+audio/
+# 演示打包产物
+packaging/
+# superpowers 运行时数据
+.superpowers/data/
+# 演示主链运行日志与产物
+demo-results/
+# 性能压测产物
+perf-results/
+# 数据库一致性校验产物
+verify-dd-out/
+# agent 沙箱 worktree (用户已有未提交改动)
+.claude/worktrees/
+# codex 缓存
+.codex/
+

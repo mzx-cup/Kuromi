@@ -383,6 +383,20 @@ except ImportError as e:
 from app.api.kb import router as kb_router
 app.include_router(kb_router)
 
+# ---- Health API (P0 比赛模式标准化健康检查) ----
+try:
+    from app.api.health import router as health_router
+    app.include_router(health_router)
+except Exception as _e:  # noqa: BLE001
+    logger.warning(f"[main] health router not loaded: {_e}")
+
+# ---- Demo Path API (P0 Task 12: 暴露 live_demo_path HTTP 端点) ----
+try:
+    from app.api.demo_path import router as demo_path_router
+    app.include_router(demo_path_router)
+except Exception as _e:  # noqa: BLE001
+    logger.warning(f"[main] demo_path router not loaded: {_e}")
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):

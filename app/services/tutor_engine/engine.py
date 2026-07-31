@@ -311,13 +311,21 @@ class TutorDecisionEngine:
         user_id: str,
         message: str,
         mode: str,
+        trace_id: str | None = None,
     ) -> dict:
         """主入口（M2.5）：先越狱检测 → 再路由到对应 Agent。
 
+        P1 Task 14: 新增 ``trace_id`` 可选入参, 自动在返回 dict 中回传 ``trace_id``,
+        便于调用方 (app/services/demo_runner/live_path.py) 串联全链路 trace.
+
         返回:
-          - blocked=False 时: {"blocked": False, "agent": ..., "next_step": ...}
-          - blocked=True 时:  {"blocked": True, "reason": "jailbreak_detected", "pattern": ...}
+          - blocked=False 时: {"blocked": False, "agent": ..., "next_step": ..., "trace_id": ...}
+          - blocked=True 时:  {"blocked": True, "reason": "jailbreak_detected", "pattern": ..., "trace_id": ...}
         """
+        # P1 Task 14: 若调用方未传 trace_id, 自动生成 ag_<10hex>, 与 AgentEnvelope 同格式.
+        import uuid as _uuid
+        tid = trace_id or f"ag_{_uuid.uuid4().hex[:10]}"
+
         # L0 越狱检测（接入正式 JailbreakDetector）
         jb_result = await self._jailbreak_detector.scan(message)
         if jb_result.risk_score >= _JAILBREAK_BLOCK_THRESHOLD:
@@ -331,6 +339,7 @@ class TutorDecisionEngine:
                 "pattern": jb_result.pattern,
                 "agent": None,
                 "next_step": None,
+                "trace_id": tid,
             }
 
         decision = await self.route(user_id=user_id, message=message, mode=mode)
@@ -339,6 +348,7 @@ class TutorDecisionEngine:
             "reason": None,
             "agent": decision["agent"],
             "next_step": decision["next_step"],
+            "trace_id": tid,
         }
 
     @staticmethod

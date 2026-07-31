@@ -4,6 +4,10 @@ Auth API — 用户认证 (登录/注册/获取当前用户)
 POST /api/auth/login    — 登录，返回 JWT token + 用户信息
 POST /api/auth/register — 注册新用户
 GET  /api/auth/me       — 获取当前用户信息（需 Bearer token）
+
+P0 Task 2: 启动期严格校验 JWT_SECRET, 缺/弱/占位值都会 RuntimeError.
+    比赛现场必须通过 `bash scripts/start_competition.sh` 启动, 脚本会自动
+    生成 48 字节随机 JWT_SECRET, 不会因人工失误使用硬编码 fallback.
 """
 
 import logging
@@ -22,8 +26,45 @@ logger = logging.getLogger("starlearn.auth")
 
 router = APIRouter(prefix="/api/auth")
 
-# JWT 密钥 — 生产环境应通过环境变量配置
-JWT_SECRET = os.environ.get("JWT_SECRET", "starlearn-jwt-secret-key-2026")
+# ============================================================
+# P0 Task 2: 启动期严格校验 JWT_SECRET
+#   - 缺: RuntimeError (指引用 `secrets.token_urlsafe(48)` 生成)
+#   - 弱 (长度 < 32): RuntimeError
+#   - 占位 (含 "change-me" / "dev-" 前缀 / 与历史 fallback 同值): RuntimeError
+# ============================================================
+
+_MIN_SECRET_LEN = 32
+
+# 历史 fallback 字符串, 比赛版必须拒绝. 保留常量便于测试断言.
+_LEGACY_FALLBACKS: frozenset[str] = frozenset({
+    "starlearn-jwt-secret-key-2026",
+})
+
+
+def _resolve_jwt_secret() -> str:
+    """启动期解析 JWT_SECRET, 违规即抛 RuntimeError."""
+    secret = os.environ.get("JWT_SECRET", "").strip()
+    if not secret:
+        raise RuntimeError(
+            "JWT_SECRET environment variable is required. "
+            "Generate one with: python -c 'import secrets; print(secrets.token_urlsafe(48))' "
+            "or use `bash scripts/start_competition.sh` which sets it automatically."
+        )
+    if len(secret) < _MIN_SECRET_LEN:
+        raise RuntimeError(
+            f"JWT_SECRET is too short (got {len(secret)}, need >= {_MIN_SECRET_LEN})."
+        )
+    if secret in _LEGACY_FALLBACKS:
+        raise RuntimeError(
+            f"JWT_SECRET is the legacy fallback value; this is unsafe for production."
+        )
+    if secret == "change-me" or secret.startswith("dev-"):
+        raise RuntimeError("JWT_SECRET appears to be a development placeholder.")
+    return secret
+
+
+# 模块导入时即校验, 启动失败更早暴露 (比赛现场绝不容忍弱密钥).
+JWT_SECRET = _resolve_jwt_secret()
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_HOURS = 72
 
@@ -204,7 +245,10 @@ class RegisterRequest(BaseModel):
     password: str
     confirmPassword: str = ""
     display_name: str = ""
-    role: str = "teacher"
+    # P0 Task 3 后续: 默认值必须是 student, 避免新注册用户自动获教师权限.
+    # 配合下面 register() 里的 assert_self_register_role_allowed() 守卫,
+    # 比赛模式仅 student 可自注册, teacher/admin 角色只能由 seed 脚本创建.
+    role: str = "student"
 
 
 class UserInfo(BaseModel):
@@ -322,8 +366,16 @@ def register(body: RegisterRequest):
         raise HTTPException(status_code=400, detail="密码至少6位")
     if body.confirmPassword and body.password != body.confirmPassword:
         raise HTTPException(status_code=400, detail="两次密码输入不一致")
-    if body.role not in ("teacher", "student", "admin"):
-        raise HTTPException(status_code=400, detail="无效的角色")
+
+    # P0 Task 3 后续: 比赛模式只允许 student 自注册, teacher/admin 必须由 seed 创建.
+    # 角色白名单由 app.services.audit.registration_guard 集中维护.
+    from app.services.audit.registration_guard import assert_self_register_role_allowed
+    try:
+        body.role = assert_self_register_role_allowed(body.role)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    # 历史: 之前会接受任意 ("teacher", "student", "admin"), 现在由 assert_self_register_role_allowed 收口.
 
     # 检查用户名是否已存在
     repo = get_repository_for_user(body.username, repository_type="user")
@@ -414,3 +466,116 @@ def get_me(request: Request):
         }
 
     return {"user": _user_to_response(user)}
+
+
+# ============================================================
+# P1 Task 21: 用户隔离守卫 — require_user_or_teacher
+#
+# 目的:
+#   学生 A 不能读学生 B 的画像/掌握度/推荐; 教师可读任意学生.
+#   用作 FastAPI Depends, 透明注入到需要跨用户隔离的路由.
+#
+# 用法:
+#   from app.api.auth import require_user_or_teacher
+#
+#   @router.get("/api/profile/{user_id}/mastery-diff")
+#   async def mastery_diff(
+#       user_id: str,
+#       token: dict = Depends(lambda user_id: require_user_or_teacher(user_id)),
+#   ):
+#       ...
+#
+#   或更简洁 (FastAPI 0.95+):
+#   async def mastery_diff(
+#       user_id: str,
+#       request: Request,
+#   ):
+#       require_user_or_teacher(user_id, request)  # 内部 raise, 不会 return
+#
+# 返回:
+#   成功 → 解码后的 JWT payload (含 uid/username/role/iat/exp)
+# 失败:
+#   无 Bearer  → 401 "需要登录"
+#   令牌无效  → 401 "无效令牌"
+#   越权      → 403 "无权访问该用户数据"
+# ============================================================
+
+
+def require_user_or_teacher(target_user_id: str, request: Request) -> dict:
+    """FastAPI 路由依赖: 验证请求者是 target_user_id 本人, 或是教师/管理员.
+
+    Args:
+        target_user_id: 路径参数中要访问的用户 ID.
+        request: FastAPI Request 对象, 用于读 Authorization 头.
+
+    Returns:
+        解码后的 JWT payload 字典 (含 uid/username/role/iat/exp).
+
+    Raises:
+        HTTPException: 401 (无/失效令牌) 或 403 (学生越权读他人).
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="需要登录")
+
+    token = auth_header[len("Bearer "):].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="需要登录")
+
+    try:
+        payload = decode_jwt(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="令牌已过期, 请重新登录")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="无效的认证令牌")
+
+    # token 中的 uid/username 任一即可作为身份标识
+    token_uid = str(payload.get("uid") or "")
+    token_username = str(payload.get("username") or "")
+    token_role = str(payload.get("role") or "student")
+
+    if not token_uid and not token_username:
+        raise HTTPException(status_code=401, detail="令牌数据无效")
+
+    # 教师/管理员可读任意学生
+    if token_role in ("teacher", "admin"):
+        return payload
+
+    # 学生只能读自己: uid 或 username 之一匹配即放行
+    if token_uid and token_uid == str(target_user_id):
+        return payload
+    if token_username and token_username == str(target_user_id):
+        return payload
+
+    raise HTTPException(status_code=403, detail="无权访问该用户数据")
+
+
+def require_teacher(request: Request) -> dict:
+    """FastAPI 路由依赖: 仅允许教师/管理员访问.
+
+    Returns:
+        解码后的 JWT payload.
+
+    Raises:
+        HTTPException: 401 (无/失效令牌) 或 403 (非教师角色).
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="需要登录")
+
+    token = auth_header[len("Bearer "):].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="需要登录")
+
+    try:
+        payload = decode_jwt(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="令牌已过期, 请重新登录")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="无效的认证令牌")
+
+    role = str(payload.get("role") or "student")
+    if role not in ("teacher", "admin"):
+        raise HTTPException(status_code=403, detail="需要教师权限")
+
+    return payload

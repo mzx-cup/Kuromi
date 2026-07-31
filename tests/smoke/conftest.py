@@ -2,7 +2,8 @@
 """Smoke test fixtures: spin up the FastAPI server in a subprocess and expose a base URL.
 
 Notes:
-- Uses /api/login/guest as the readiness probe because /api/health is not implemented.
+- P0 Task 10: 改用 /api/health 作为 readiness probe (P0 Task 7 实现).
+  /api/health 不依赖 DB, 启动判定更稳定, 也不会因双写状态影响 smoke 测试.
 - Uses the STARLEARN_PORT env var (now honored by start_server.py) to pick a free port.
 """
 import os
@@ -27,11 +28,7 @@ def base_url():
     port = _find_free_port()
     env = os.environ.copy()
     env["STARLEARN_PORT"] = str(port)
-    # Re-enable the legacy JSON fallback in db.record_login_event so login
-    # round-trips succeed under the current xingshi.db state. Without this,
-    # /api/login returns 500 because the helper that records the login event
-    # raises when the JSON fallback is disabled. This is a known transitional
-    # state of the cutover; it does not affect ORM writes.
+    # 保留 DUAL_WRITE_LEGACY 设置, 部分旧路由 (/api/login 等) 仍依赖.
     env.setdefault("DUAL_WRITE_LEGACY", "true")
     log_dir = os.path.join(PROJECT_ROOT, ".pytest_cache", "smoke")
     os.makedirs(log_dir, exist_ok=True)
@@ -54,8 +51,9 @@ def base_url():
     last_err: Exception | None = None
     while time.time() < deadline:
         try:
-            # /api/health is not implemented; use /api/login/guest as readiness probe.
-            r = httpx.post(f"{url}/api/login/guest", timeout=2)
+            # P0 Task 10: 用 /api/health 替代 /api/login/guest 作为 readiness 探针.
+            # /api/health 由 P0 Task 7 新增, 不依赖 DB / 业务路由.
+            r = httpx.get(f"{url}/api/health", timeout=2)
             if r.status_code == 200:
                 break
             last_err = RuntimeError(f"status={r.status_code}")

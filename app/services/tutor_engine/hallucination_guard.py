@@ -323,7 +323,15 @@ class HallucinationGuard:
             return True, f"不支持的语言: {lang}"
 
     async def _run_python_sandbox(self, code: str) -> Tuple[bool, str]:
-        """Python 受限执行"""
+        """Python 受限执行.
+
+        P0 Task 5: 比赛模式 (STARLEARN_COMPETITION=1) 下直接短路,
+        返回 (True, "competition_mode_disabled"), 避免现场执行不可信代码.
+        """
+        import os
+        if os.environ.get("STARLEARN_COMPETITION") == "1":
+            return True, "competition_mode_disabled"
+
         import io
         import sys
         from contextlib import redirect_stdout, redirect_stderr

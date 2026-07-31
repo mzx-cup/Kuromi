@@ -48,3 +48,46 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+// ============================================================
+// P0 比赛模式: 班级实时观察 (Task 17)
+// 前端每 5s 拉一次, 渲染观察事件流.
+// 失败 fallback: 永远不抛错, 始终显示占位.
+// ============================================================
+
+export function renderObservationRow(item) {
+  const level = escapeHtml(item.level || 'info');
+  const sid = escapeHtml(item.student_id || '');
+  const ev = escapeHtml(item.event || '');
+  const ts = escapeHtml(item.ts || '');
+  return `<div class="observation-row level-${level}">
+    <span class="student">${sid}</span>
+    <span class="event">${ev}</span>
+    <span class="ts">${ts}</span>
+  </div>`;
+}
+
+export function renderObservationsList(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return '<div class="observation-row placeholder">暂无观察事件</div>';
+  }
+  return items.map(renderObservationRow).join('');
+}
+
+export async function loadAndRenderObservations(rootSelector) {
+  const root = typeof rootSelector === 'string'
+    ? document.querySelector(rootSelector)
+    : rootSelector;
+  if (!root) return;
+  try {
+    const r = await fetch('/api/teacher/dashboard/observation');
+    if (!r.ok) {
+      root.innerHTML = '<div class="observation-row placeholder">暂无观察事件</div>';
+      return;
+    }
+    const data = await r.json();
+    root.innerHTML = renderObservationsList(data.observations || []);
+  } catch (err) {
+    root.innerHTML = '<div class="observation-row placeholder">加载失败</div>';
+  }
+}

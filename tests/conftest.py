@@ -23,6 +23,14 @@ from tests.fixtures.seed_data import (
 # 显式移除该 flag 来验证 raise 路径。
 os.environ.setdefault("DUAL_WRITE_LEGACY", "true")
 
+# P0 Task 2: 启动期严格校验 JWT_SECRET, 缺/弱/占位值会 RuntimeError.
+# 这里 setdefault 一个 48 字节随机值, 仅用于本地 pytest 套件.
+# 生产/比赛模式必须显式注入 (scripts/start_competition.sh 自动生成).
+os.environ.setdefault(
+    "JWT_SECRET",
+    "test-only-jwt-secret-do-not-use-in-production-aaaaaaaaaaaaaaaaaaaaaaaa",  # 60 字节, 满足 >= 32
+)
+
 
 @pytest.fixture(autouse=True, scope="session")
 def _ensure_supervision_tables():

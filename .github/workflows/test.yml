@@ -113,7 +113,8 @@ jobs:
           sleep 5
 
       - name: Run Playwright E2E tests
-        run: npm run test:e2e || echo "E2E tests completed (check report for details)"
+        # P0 Task 10: 移除 || echo 假绿灯, 失败必须阻塞合并.
+        run: npm run test:e2e
 
       - name: Upload Playwright screenshots
         uses: actions/upload-artifact@v4
