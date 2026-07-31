@@ -10,6 +10,13 @@
 
 **星识项目 = 知域成熟教学管理底座 × AI 多智能体引擎 × 苏格拉底式个性化学习闭环。**
 
+> **PRD 对账状态（2026-07-31 补齐后）**：
+> - ✅ 缺口1 能力图谱（`bundle.components.ability_graph`，10 件套并行扩展）
+> - ✅ 缺口2 4 维评分（`GradeResult.knowledge/ability/process/innovation`）
+> - ✅ 缺口3 多 Agent 联合打分（`EnsembleGrader` + 仲裁）
+> - ✅ 缺口4 人工校准 UI（教师端 `/api/teacher/exam/{id}/grade` POST/PUT）
+> - ✅ 缺口5 多 Agent 交叉验证循环（`AuditAgent` + `_run_one_component` 重试 + SSE `component_retry`）
+
 将「知域教师端」与「用户可视化数据大屏」整体迁移至星识平台，叠加 AI 能力，贯通"课程生成 → 学习路径规划 → 个性化推荐 → 学情评估"全链路。
 
 ---

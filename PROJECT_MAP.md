@@ -210,6 +210,26 @@
 
 ### 6.3 后端课程 API
 
+| 能力图谱 + 4 维评分 + 联合打分（缺口 1/2/3 补齐）
+
+| 层级 | 文件 | 职责 |
+|------|------|------|
+| Schema | `app/services/course_schemas.py` `AbilityGraphArtifact` | 能力图谱 Pydantic（节点=Bloom + 边=依赖/强化/迁移） |
+| 工厂 | `app/services/course_bundle.py` `_gen_ability_graph` | 并行扩展（不进 COMPONENT_NAMES，10 件套兼容） |
+| Prompt | `prompts.py` `ability_graph` | LLM 模板：Bloom 6 层 + 关系 3 类型 |
+| 4 维评分 | `app/services/teacher/grading.py` `GradeResult` | `knowledge/ability/process/innovation` + confidence |
+| 雷达扩展 | `app/services/course_schemas.py` `RadarArtifact` | 加 `process` + `innovation` 2 维（向后兼容老 6 维） |
+| 联合打分 | `app/services/teacher/ensemble_grading.py` `EnsembleGrader` | 加权平均 + 标准差>25% 触发 Judge 仲裁 |
+| Judge | 同上 `_default_judge_appeal` | LLM 仲裁（失败 fallback 中位数） |
+| ORM | `app/models/classroom.py` `QuizRecord` | 新增 12 列（ai_score/4 维/teacher_comment/override_count/graded_by/graded_at） |
+| DDL | `db.py` `_ensure_quiz_records_table` | SQLite/MySQL 双套 ALTER TABLE（重复列忽略） |
+| 交叉验证 | `app/services/course_bundle.py` `_run_one_component` | 每件生成后过 AuditAgent，risk=high 自动重试 ≤2 轮 |
+| SSE 事件 | 同上 `generate_bundle` | 新增 `component_retry` 事件 |
+| 教师端 Stub | `app/api/teacher.py` `grade_exam` POST + `override_grade` PUT | 缺口4：真实接 EnsembleGrader + 4 维落库 + 审计日志 |
+| 教师端 UI | `html/teacher-exam.html` `grading-panel` | 4 维柱状图 + 教师评语 textarea + 偏差提示 |
+| 教师端 JS | `js/pages/teacher-exam.js` `confirmGrade` | 传 teacher_comment + rubric + is_final |
+| 教师端 script | 6 个 teacher-*.html | 必须补 alpine + auth.js + pages/teacher-*.js |
+
 | 后端 API | `app/api/courses.py:164` `@router.get("/subjects")` | 获取学科列表（含嵌套课程） |
 | 后端 API | `app/api/courses.py:170` `@router.post("/subjects")` | 创建学科 |
 | 后端 API | `app/api/courses.py:176` `@router.patch("/subjects/{id}")` | 更新学科 |
