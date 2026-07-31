@@ -1694,7 +1694,7 @@ def bump_memory_access(memory_id):
 # ============================================================
 
 def _ensure_quiz_records_table(conn):
-    """自动创建 quiz_records 表"""
+    """自动创建 quiz_records 表,缺口2 + 缺口4 增量 ALTER(忽略 Duplicate column 错误)."""
     try:
         cursor = conn.cursor()
         if _is_sqlite(conn):
@@ -1732,6 +1732,46 @@ def _ensure_quiz_records_table(conn):
                     INDEX idx_qr_classroom (classroom_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
+
+        # ---- 缺口2 + 缺口4:增量加列(ADD COLUMN 失败 → 重复列 → 忽略)----
+        extra_columns_sqlite = [
+            "ALTER TABLE quiz_records ADD COLUMN ai_score REAL",
+            "ALTER TABLE quiz_records ADD COLUMN ai_comment TEXT DEFAULT ''",
+            "ALTER TABLE quiz_records ADD COLUMN knowledge_score REAL",
+            "ALTER TABLE quiz_records ADD COLUMN ability_score REAL",
+            "ALTER TABLE quiz_records ADD COLUMN process_score REAL",
+            "ALTER TABLE quiz_records ADD COLUMN innovation_score REAL",
+            "ALTER TABLE quiz_records ADD COLUMN teacher_comment TEXT DEFAULT ''",
+            "ALTER TABLE quiz_records ADD COLUMN rubric TEXT",
+            "ALTER TABLE quiz_records ADD COLUMN override_count INTEGER DEFAULT 0",
+            "ALTER TABLE quiz_records ADD COLUMN graded_by TEXT DEFAULT 'auto'",
+            "ALTER TABLE quiz_records ADD COLUMN graded_by_user_id TEXT",
+            "ALTER TABLE quiz_records ADD COLUMN graded_at TEXT",
+        ]
+        extra_columns_mysql = [
+            "ALTER TABLE quiz_records ADD COLUMN ai_score FLOAT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN ai_comment TEXT DEFAULT ''",
+            "ALTER TABLE quiz_records ADD COLUMN knowledge_score FLOAT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN ability_score FLOAT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN process_score FLOAT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN innovation_score FLOAT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN teacher_comment TEXT DEFAULT ''",
+            "ALTER TABLE quiz_records ADD COLUMN rubric JSON DEFAULT NULL",
+            "ALTER TABLE quiz_records ADD COLUMN override_count INT DEFAULT 0",
+            "ALTER TABLE quiz_records ADD COLUMN graded_by VARCHAR(16) DEFAULT 'auto'",
+            "ALTER TABLE quiz_records ADD COLUMN graded_by_user_id VARCHAR(64) NULL",
+            "ALTER TABLE quiz_records ADD COLUMN graded_at DATETIME NULL",
+        ]
+        extras = extra_columns_sqlite if _is_sqlite(conn) else extra_columns_mysql
+        for ddl in extras:
+            try:
+                cursor.execute(ddl)
+            except Exception as col_err:
+                # Duplicate column name (1060 MySQL / "duplicate column" SQLite) → 跳过
+                msg = str(col_err).lower()
+                if "duplicate" not in msg and "already exists" not in msg:
+                    print(f"[_ensure_quiz_records_table] ADD COLUMN 异常（非重复）: {col_err}")
+                # 重复列忽略,继续
         conn.commit()
         cursor.close()
     except Exception as e:

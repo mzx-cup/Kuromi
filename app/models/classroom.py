@@ -88,6 +88,24 @@ class QuizRecord(Base):
     correct: Mapped[bool] = mapped_column(Boolean, default=False)
     max_score: Mapped[float] = mapped_column(Float, default=100.0)
 
+    # ---- 缺口2 + 缺口4 扩展(完全 additive,nullable + default 友好)----
+    # AI 预评分(后端 EnsembleGrader 写入)
+    ai_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ai_comment: Mapped[str] = mapped_column(Text, default="")
+    # 4 维评分(缺口2)
+    knowledge_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    ability_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    process_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    innovation_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # 人工校准(缺口4)
+    teacher_comment: Mapped[str] = mapped_column(Text, default="")
+    rubric: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    override_count: Mapped[int] = mapped_column(Integer, default=0)
+    # auto | teacher | modified
+    graded_by: Mapped[str] = mapped_column(String(16), default="auto")
+    graded_by_user_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    graded_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
 
 class AgentTurnRecord(Base):
     __tablename__ = "agent_turn_records"

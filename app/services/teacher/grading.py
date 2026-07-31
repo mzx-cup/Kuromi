@@ -27,15 +27,27 @@ logger = logging.getLogger("starlearn.grading")
 
 @dataclass
 class GradeResult:
-    """评分结果"""
+    """评分结果(缺口2:扩展为 4 维 — 知识/能力/过程/创新)"""
     is_correct: bool
-    score: float            # 得分 (0 ~ total_points)
+    score: float            # 综合分 = 4 维加权(默认 w_k=0.4 w_a=0.3 w_p=0.2 w_i=0.1)
     total_points: float     # 满分
     feedback: str           # 个性化反馈文本
     correct_answer: str = ""       # 标准答案（简答题）/ 正确选项（选择题）
     key_points_hit: list[str] = field(default_factory=list)   # 命中的知识点
     key_points_missed: list[str] = field(default_factory=list)  # 遗漏的知识点
     raw_llm_response: str = ""    # LLM 原始响应（调试用）
+
+    # ---- 缺口2:4 维评分(对齐 PRD §4.2.6) ----
+    knowledge_dimension: float = 0.0      # 知识覆盖度(0~total_points)
+    ability_dimension: float = 0.0        # 能力迁移度
+    process_dimension: float = 0.0        # 过程完整性
+    innovation_dimension: float = 0.0     # 创新独到性
+    dimension_weights: dict[str, float] = field(default_factory=lambda: {
+        "knowledge": 0.4, "ability": 0.3, "process": 0.2, "innovation": 0.1,
+    })
+    confidence: float = 1.0               # 4 维一致性(1 - std/满分),供 EnsembleGrader 仲裁用
+    arbitration_triggered: bool = False   # 标记是否经多源仲裁
+    arbitration_notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -46,7 +58,30 @@ class GradeResult:
             "correct_answer": self.correct_answer,
             "key_points_hit": self.key_points_hit,
             "key_points_missed": self.key_points_missed,
+            "dimensions": {
+                "knowledge": self.knowledge_dimension,
+                "ability": self.ability_dimension,
+                "process": self.process_dimension,
+                "innovation": self.innovation_dimension,
+            },
+            "dimension_weights": self.dimension_weights,
+            "confidence": self.confidence,
+            "arbitration_triggered": self.arbitration_triggered,
         }
+
+    @staticmethod
+    def compute_weighted_score(
+        knowledge: float, ability: float, process: float, innovation: float,
+        weights: dict[str, float] | None = None,
+    ) -> float:
+        """按默认权重 4 维 → 综合分(缺口2 + 缺口3 共用工具)."""
+        w = weights or {"knowledge": 0.4, "ability": 0.3, "process": 0.2, "innovation": 0.1}
+        return (
+            knowledge * w["knowledge"]
+            + ability * w["ability"]
+            + process * w["process"]
+            + innovation * w["innovation"]
+        )
 
 
 # =============================================================================
@@ -60,11 +95,16 @@ SHORT_ANSWER_SYSTEM_PROMPT = """你是一位专业的教育评估专家。请根
 2. 部分正确应给予部分分数，不要全有或全无
 3. 评语要个性化、有建设性，帮助学生理解不足之处
 4. 如果学生答错了，评语中应温和地指出正确方向
+5. (缺口2)按"知识 / 能力 / 过程 / 创新"四维独立打分，每维 0~满分；综合分(score)由这 4 维按权重(0.4/0.3/0.2/0.1)自动算出,你也可以直接给 score
 
 【必须输出纯JSON格式，不要包含其他内容】
 {
   "is_correct": true/false,
-  "score": <数字, 0到满分>,
+  "score": <数字, 0到满分, 综合分>,
+  "knowledge_dimension":  <0~满分, 知识覆盖度>,
+  "ability_dimension":    <0~满分, 能力迁移度>,
+  "process_dimension":    <0~满分, 过程完整性>,
+  "innovation_dimension": <0~满分, 创新独到性>,
   "feedback": "<个性化评语, 1-3句话, 先肯定再指出不足>",
   "key_points_hit": ["<学生命中的知识点1>", "<知识点2>"],
   "key_points_missed": ["<学生遗漏的知识点1>", "<知识点2>"]
@@ -247,7 +287,7 @@ class Grader:
             )
 
     def _parse_response(self, raw: str, total_points: float, qtype: str) -> GradeResult:
-        """解析 LLM 返回的 JSON，带容错回退"""
+        """解析 LLM 返回的 JSON,带容错回退. 缺口2:支持 4 维评分字段."""
         try:
             # 尝试提取 JSON 块
             json_match = re.search(r'\{[\s\S]*\}', raw.strip())
@@ -257,15 +297,51 @@ class Grader:
                 raise ValueError("No JSON found in LLM response")
 
             is_correct = bool(data.get("is_correct", False))
-            score = float(data.get("score", 0))
-            score = max(0.0, min(total_points, score))  # clamp
             feedback = str(data.get("feedback", ""))
+
+            # ---- 缺口2:解析 4 维评分 ----
+            # 兼容老 JSON(无 dimensions 字段):score 全填到 knowledge_dimension
+            knowledge = float(data.get("knowledge_dimension", data.get("score", 0)))
+            ability = float(data.get("ability_dimension", 0))
+            process = float(data.get("process_dimension", 0))
+            innovation = float(data.get("innovation_dimension", 0))
+
+            if qtype == "choice":
+                # 选择题无 4 维语义,4 维都等于 score
+                llm_score = float(data.get("score", 0))
+                score = max(0.0, min(total_points, llm_score))
+                knowledge = ability = process = innovation = score
+            else:
+                # 简答题:综合分 = 4 维加权
+                # clamp 每维
+                knowledge = max(0.0, min(total_points, knowledge))
+                ability = max(0.0, min(total_points, ability))
+                process = max(0.0, min(total_points, process))
+                innovation = max(0.0, min(total_points, innovation))
+                score = GradeResult.compute_weighted_score(
+                    knowledge, ability, process, innovation,
+                )
+
+            # 计算 confidence = 1 - 4 维标准差 / 满分(仲裁输入)
+            if total_points > 0 and qtype == "short_answer":
+                mean_dim = (knowledge + ability + process + innovation) / 4
+                variance = ((knowledge - mean_dim) ** 2 + (ability - mean_dim) ** 2
+                           + (process - mean_dim) ** 2 + (innovation - mean_dim) ** 2) / 4
+                std = variance ** 0.5
+                confidence = max(0.0, 1.0 - std / total_points)
+            else:
+                confidence = 1.0
 
             result = GradeResult(
                 is_correct=is_correct,
                 score=score,
                 total_points=total_points,
                 feedback=feedback,
+                knowledge_dimension=knowledge,
+                ability_dimension=ability,
+                process_dimension=process,
+                innovation_dimension=innovation,
+                confidence=confidence,
                 raw_llm_response=raw,
             )
 
@@ -280,7 +356,7 @@ class Grader:
 
         except (json.JSONDecodeError, ValueError, KeyError) as e:
             logger.warning("Failed to parse grading JSON: %s, raw=%s", e, raw[:200])
-            # 回退：给一半分 + 通用评语
+            # 回退:给一半分 + 通用评语
             fallback_score = total_points * 0.5
             return GradeResult(
                 is_correct=False,
