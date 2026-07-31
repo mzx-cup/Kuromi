@@ -100,17 +100,76 @@ class KnowledgeGraphArtifact(ArtifactBase):
 
 
 # ============================================================
-# 5. 雷达 (radar) — 课前 6 维初始值
+# 4b. 能力图谱 (ability_graph) — 区别于"知识地图"的能力维度
+# 缺口1:PRD §4.2.2 要求"知识图谱 + 能力图谱"双图,这里补充独立结构。
+# 注:不进 COMPONENT_NAMES,仅在 _component_dispatcher 中挂载,
+#    不破坏现有 is_complete/ready_components 的 len==9 断言。
+# ============================================================
+
+class Competency(BaseModel):
+    """单个能力节点。"""
+    id: str = Field(..., min_length=1, description="kebab-case id,如 problem-decomposition")
+    name: str = Field(..., min_length=1, description="如'问题分解能力'")
+    category: str = "认知"                    # 认知 / 技能 / 素养
+    bloom_level: int = Field(default=1, ge=1, le=6)  # Bloom 1~6
+    target_level: float = Field(default=0.8, ge=0.0, le=1.0)
+    description: str = ""
+    related_scene_ids: list[str] = Field(default_factory=list)
+
+
+class CompetencyEdge(BaseModel):
+    """能力间关系(与 GraphEdge 同形,relation 语义不同)。"""
+    from_id: str = Field(alias="from", description="源能力 id")
+    to_id: str = Field(alias="to", description="目标能力 id")
+    relation: str = "prerequisite"           # prerequisite / reinforce / transfer
+
+    model_config = {"populate_by_name": True}
+
+
+class AbilityGraphArtifact(ArtifactBase):
+    """能力图谱(节点=能力,边=依赖/强化/迁移)。"""
+    competencies: list[Competency] = Field(default_factory=list)
+    edges: list[CompetencyEdge] = Field(default_factory=list)
+    blooms_distribution: dict[str, int] = Field(default_factory=dict)
+    """    {"bloom1": n1, "bloom2": n2, ..., "bloom6": n6} 各 Bloom 层能力数 """
+    graph_view: dict[str, list] = Field(default_factory=dict)
+    """    同 KnowledgeGraphArtifact 的 {nodes, edges},前端零成本复用
+            由 _gen_ability_graph 从 competencies/edges 自动衍生 """
+
+    def graph_view_for_frontend(self) -> dict[str, list]:
+        """生成与 KnowledgeGraphArtifact 同形的 graph_view,便于前端直接渲染。"""
+        return {
+            "nodes": [
+                {"id": c.id, "label": c.name, "layer": c.bloom_level}
+                for c in self.competencies
+            ],
+            "edges": [
+                {"from": e.from_id, "to": e.to_id, "label": e.relation}
+                for e in self.edges
+            ],
+        }
+
+
+# ============================================================
+# 5. 雷达 (radar) — 课前 6 维初始值(扩展为 8 维)
 # ============================================================
 
 class RadarArtifact(ArtifactBase):
-    """6 维课前雷达,数值 0~100. 复用 LearningPortrait 字段名."""
+    """课前雷达,数值 0~100. 复用 LearningPortrait 字段名.
+
+    缺口2:在原 6 维基础上扩展 2 维 — `process`(学习过程投入度) +
+    `innovation`(创新思维表现),对齐 PRD §4.2.6 评分四维。
+    老代码读 6 维仍可工作(新字段有默认值)。
+    """
     knowledge_mastery: float = 0.0
     code_skill: float = 0.0
     cognitive_level: float = 0.0
     learning_goal: float = 0.0
     weakness: float = 0.0
     focus_level: float = 0.0
+    # ---- 新增 2 维(向后兼容,老读取只读 6 维)----
+    process: float = 0.0                     # 学习过程投入度
+    innovation: float = 0.0                  # 创新思维表现
     # 若有画像,会从 LearningPortrait 聚合,本字段是 LLM 估的"完成本课程后预期值"
     post_course_estimate: dict[str, float] = Field(default_factory=dict)
 

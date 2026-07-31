@@ -23,6 +23,7 @@ from typing import Any, AsyncGenerator, Optional
 
 from app.services.course_schemas import (
     COMPONENT_NAMES,
+    AbilityGraphArtifact,
     CaseStudyArtifact,
     CourseBundle,
     ExerciseArtifact,
@@ -380,6 +381,42 @@ async def _gen_graph(ctx: dict, _outline: dict[str, Any]) -> dict:
         return _fallback_payload("graph", str(e))
 
 
+async def _gen_ability_graph(ctx: dict, _outline: dict[str, Any]) -> dict:
+    """缺口1:能力图谱生成(不进 COMPONENT_NAMES,仅挂载在 dispatcher 中)。
+
+    复用脑暴槽位 slot_goal 和画像 learning_goals,让 LLM 输出更对齐用户需求。
+    自动从 competencies + edges 衍生 graph_view,供前端 graph 组件直接渲染。
+    """
+    variables = {
+        "course_title": ctx["course_title"],
+        "scenes_json": ctx["scenes_json"],
+        "obg_pbl_mode": ctx["obg_pbl_mode"],
+        "slot_goal": ctx.get("slot_goal", "") or "(未填)",
+        "learning_goals": ctx.get("learning_goals", "") or "(画像未提供)",
+    }
+    try:
+        instance = await llm_json("ability_graph", variables, AbilityGraphArtifact)
+        d = instance.model_dump()
+        # 自动衍生 graph_view(同 KnowledgeGraph 形状)
+        d["graph_view"] = {
+            "nodes": [
+                {"id": c["id"], "label": c["name"], "layer": c.get("bloom_level", 1)}
+                for c in d.get("competencies", []) if isinstance(c, dict)
+            ],
+            "edges": [
+                {"from": e.get("from_id", e.get("from")),
+                 "to":   e.get("to_id",   e.get("to")),
+                 "label": e.get("relation", "")}
+                for e in d.get("edges", []) if isinstance(e, dict)
+            ],
+        }
+        d["status"] = "ok"
+        return d
+    except LLMJsonError as e:
+        logger.warning(f"[course_bundle] ability_graph fallback: {e}")
+        return _fallback_payload("ability_graph", str(e))
+
+
 async def _gen_radar(ctx: dict, _outline: dict[str, Any], portrait: Optional[LearningPortrait]) -> dict:
     """雷达 = 画像聚合 + LLM 估"完成本课程后预期"."""
     pre = _aggregate_radar(portrait)
@@ -523,6 +560,7 @@ def _component_dispatcher(
         "plan":      lambda: _gen_plan(ctx, outline),
         "ppt":       lambda: _gen_ppt(ctx, outline),
         "graph":     lambda: _gen_graph(ctx, outline),
+        "ability_graph": lambda: _gen_ability_graph(ctx, outline),  # 缺口1:并行扩展,不入 COMPONENT_NAMES
         "radar":     lambda: _gen_radar(ctx, outline, portrait),
         "project":   lambda: _gen_project(ctx, outline),
         "case":      lambda: _gen_case(ctx, outline),
@@ -535,15 +573,66 @@ async def _run_one_component(
     name: str,
     coro_factory,
     sem: asyncio.Semaphore,
+    audit_agent: Optional[Any] = None,
+    max_retries: int = 2,
 ) -> tuple[str, dict]:
-    """跑 1 件,返回 (name, payload). 任何异常 → fallback."""
+    """跑 1 件,返回 (name, payload). 任何异常 → fallback.
+
+    缺口5:加 audit_agent 参数 → 生成后过 AuditAgent;
+    risk=high 时自动重生成,最多 max_retries 轮。
+    """
     async with sem:
-        try:
-            payload = await coro_factory()
+        last_err: Optional[str] = None
+        for attempt in range(max_retries + 1):
+            try:
+                payload = await coro_factory()
+            except Exception as e:
+                logger.warning(f"[course_bundle] {name} attempt {attempt+1} 异常: {e}")
+                last_err = str(e)
+                payload = _fallback_payload(name, last_err)
+
+            # 审核(仅 status=ok 时检查)
+            if payload.get("status") == "ok" and audit_agent is not None:
+                try:
+                    import json as _json
+                    text = _json.dumps(payload, ensure_ascii=False)[:2000]
+                    result = await audit_agent.run(
+                        user_id="course-bundle",
+                        input_text="",
+                        output_text=text,
+                    )
+                    if getattr(result, "risk_level", None) == "high":
+                        logger.info(
+                            f"[course_bundle] {name} attempt {attempt+1} 被拒: "
+                            f"{getattr(result, 'reason', '?')}"
+                        )
+                        if attempt < max_retries:
+                            continue  # 重试
+                        payload["audit_rejected"] = True
+                        payload["audit_reason"] = getattr(result, "reason", "unknown")
+                    else:
+                        payload["audit_risk"] = getattr(result, "risk_level", "low")
+                        payload["audit_jailbreak_score"] = getattr(result, "jailbreak_score", 0.0)
+                except Exception as audit_err:
+                    # 审核失败不应阻塞主流程,记录告警
+                    logger.warning(f"[course_bundle] {name} audit 异常(忽略): {audit_err}")
             return name, payload
-        except Exception as e:
-            logger.exception(f"[course_bundle] {name} 顶层异常: {e}")
-            return name, _fallback_payload(name, f"未捕获: {e}")
+
+        # 全部重试仍失败
+        payload["status"] = "fallback"
+        payload["audit_rejected"] = True
+        payload["audit_reason"] = f"经 {max_retries+1} 轮仍被拒: {last_err or 'unknown'}"
+        return name, payload
+
+
+def _get_audit_agent() -> Optional[Any]:
+    """懒加载 AuditAgent(避免 import 期循环依赖)."""
+    try:
+        from app.agents.audit import AuditAgent
+        return AuditAgent()
+    except Exception as e:
+        logger.warning(f"[course_bundle] AuditAgent 加载失败: {e}; 关闭审核循环")
+        return None
 
 
 # ============================================================
@@ -556,13 +645,25 @@ async def generate_bundle_sync(
     portrait: Optional[LearningPortrait] = None,
     enabled_components: Optional[list[str]] = None,
 ) -> CourseBundle:
-    """9 件一次性跑完,返回 CourseBundle(测试/手工用)."""
+    """9 件一次性跑完,返回 CourseBundle(测试/手工用).
+
+    缺口1:缺省时跑 COMPONENT_NAMES(9 件) + dispatcher 中并行扩展的额外件(如 ability_graph)。
+    """
     ctx = build_bundle_context(outline, slots, portrait)
     factories = _component_dispatcher(ctx, outline, portrait)
-    names = enabled_components or list(COMPONENT_NAMES)
+    if enabled_components is None or len(enabled_components) == 0:
+        # 9 件套 + dispatcher 中所有额外件(如 ability_graph)
+        names = list(COMPONENT_NAMES) + [
+            k for k in factories if k not in COMPONENT_NAMES
+        ]
+    else:
+        names = [n for n in enabled_components if n in factories]
     sem = asyncio.Semaphore(BUNDLE_CONCURRENCY)
 
-    tasks = [_run_one_component(n, factories[n], sem) for n in names if n in factories]
+    tasks = [
+        _run_one_component(n, factories[n], sem, audit_agent=_get_audit_agent())
+        for n in names if n in factories
+    ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     components: dict[str, dict] = {}
@@ -594,21 +695,34 @@ async def generate_bundle(
 ) -> AsyncGenerator[dict, None]:
     """9 件 SSE 事件流,每件完成吐 1 个 component_ready:{name}.
 
+    缺口1:缺省时跑 COMPONENT_NAMES(9 件) + dispatcher 中并行扩展的额外件(如 ability_graph)。
+    缺口5:每件生成后过 AuditAgent 审核,risk=high 自动重试;产生 component_retry 事件。
+
     Yields:
         {"type": "component_start", "name": ...}      # 开始
+        {"type": "component_retry", "name": ..., "reason": ..., "attempts": N}  # 审核重试
         {"type": "component_ready", "name": ..., "payload": ...}  # 完成
         {"type": "bundle_complete", "bundle": CourseBundle.model_dump()}  # 全部完成
     """
     ctx = build_bundle_context(outline, slots, portrait)
     factories = _component_dispatcher(ctx, outline, portrait)
-    names = [n for n in (enabled_components or list(COMPONENT_NAMES)) if n in factories]
+    if enabled_components is None or len(enabled_components) == 0:
+        # 9 件套 + dispatcher 中所有额外件
+        names = list(COMPONENT_NAMES) + [
+            k for k in factories if k not in COMPONENT_NAMES
+        ]
+    else:
+        names = [n for n in enabled_components if n in factories]
     sem = asyncio.Semaphore(BUNDLE_CONCURRENCY)
+    audit_agent = _get_audit_agent()
 
     # 启动所有任务,但 await 时逐件让出
     tasks: dict[str, asyncio.Task] = {}
     for n in names:
         yield {"type": "component_start", "name": n}
-        tasks[n] = asyncio.create_task(_run_one_component(n, factories[n], sem))
+        tasks[n] = asyncio.create_task(
+            _run_one_component(n, factories[n], sem, audit_agent=audit_agent)
+        )
 
     components: dict[str, dict] = {}
     # asyncio.as_completed 让第一件完成即让出
@@ -621,6 +735,15 @@ async def generate_bundle(
             continue
         name, payload = raw
         components[name] = payload
+        # 缺口5:若 audit_rejected,先吐 component_retry 事件,前端 toast 提示
+        if payload.get("audit_rejected"):
+            yield {
+                "type": "component_retry",
+                "name": name,
+                "reason": payload.get("audit_reason", ""),
+                "attempts": payload.get("audit_attempts", 2),
+                "payload": payload,
+            }
         yield {
             "type": "component_ready",
             "name": name,

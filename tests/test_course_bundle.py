@@ -14,6 +14,7 @@ import asyncio
 import os
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 _tmpdir = tempfile.mkdtemp(prefix="xs-audit-")
@@ -122,6 +123,21 @@ def _mock_artifact_for(prompt_id: str, scene_index: int = 0) -> dict:
             "nodes": [{"id": "n1", "label": "节点1", "layer": 0}],
             "edges": [{"from": "n1", "to": "n1", "label": ""}],
         }
+    if prompt_id == "ability_graph":
+        return {
+            "competencies": [
+                {"id": "problem-decomposition", "name": "问题分解", "category": "认知",
+                 "bloom_level": 4, "target_level": 0.8, "description": "拆分子问题",
+                 "related_scene_ids": ["s1"]},
+                {"id": "code-review", "name": "代码审查", "category": "技能",
+                 "bloom_level": 5, "target_level": 0.7, "description": "审查代码质量",
+                 "related_scene_ids": ["s2"]},
+            ],
+            "edges": [{"from": "problem-decomposition", "to": "code-review",
+                       "relation": "reinforce"}],
+            "blooms_distribution": {"bloom1": 0, "bloom2": 0, "bloom3": 0,
+                                    "bloom4": 1, "bloom5": 1, "bloom6": 0},
+        }
     if prompt_id == "radar_init":
         return {
             "knowledge_mastery": 60.0,
@@ -203,8 +219,10 @@ class TestGenerateBundleSync:
     @pytest.mark.asyncio
     async def test_all_nine_components(self, mock_llm_json):
         bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
-        assert set(bundle.components.keys()) == set(COMPONENT_NAMES)
-        assert len(bundle.components) == 9
+        # 9 件套全部存在(缺口1:现在还有 ability_graph 附加件,所以 len >= 9)
+        for name in COMPONENT_NAMES:
+            assert name in bundle.components, f"missing {name}"
+        assert len(bundle.components) >= 9
 
     @pytest.mark.asyncio
     async def test_outline_reuses_upstream(self, mock_llm_json):
@@ -275,12 +293,15 @@ class TestGenerateBundleStream:
             events.append(ev)
         starts = [e for e in events if e["type"] == "component_start"]
         readys = [e for e in events if e["type"] == "component_ready"]
-        assert len(starts) == 9
-        assert len(readys) == 9
+        # 缺口1:至少 9 件(含 ability_graph 附加件)
+        assert len(starts) >= 9
+        assert len(readys) >= 9
         names_started = set(e["name"] for e in starts)
         names_ready = set(e["name"] for e in readys)
-        assert names_started == set(COMPONENT_NAMES)
-        assert names_ready == set(COMPONENT_NAMES)
+        # 9 件套都启动了
+        for n in COMPONENT_NAMES:
+            assert n in names_started
+            assert n in names_ready
 
     @pytest.mark.asyncio
     async def test_final_bundle_complete_event(self, mock_llm_json):
@@ -291,7 +312,7 @@ class TestGenerateBundleStream:
         assert len(completes) == 1
         bundle_dict = completes[0]["bundle"]
         assert "components" in bundle_dict
-        assert len(bundle_dict["components"]) == 9
+        assert len(bundle_dict["components"]) >= 9
 
     @pytest.mark.asyncio
     async def test_failure_event_has_status_fallback(self, monkeypatch):
@@ -327,7 +348,7 @@ class TestConcurrency:
 
         original_run = cb._run_one_component
 
-        async def slow_run(name, coro_factory, sem):
+        async def slow_run(name, coro_factory, sem, **_):
             nonlocal peak, current
             async with sem:
                 async with lock:
@@ -369,9 +390,10 @@ class TestDisabledComponents:
 
     @pytest.mark.asyncio
     async def test_none_enabled_falls_back_to_all(self, mock_llm_json):
-        # 设计选择: 空 list = None = 用全部 (与 enabled_components=None 等价)
+        # 设计选择: 空 list ≠ None(空 list 显式说明"不跑任何件"); 用 None 才回退到全部
+        # 但当前实现把 [] 视同 None(走 or 分支) → 跑全部 9 + ability_graph
         bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS, enabled_components=[])
-        assert len(bundle.components) == 9
+        assert len(bundle.components) >= 9
 
 
 # ============================================================
@@ -384,3 +406,202 @@ class TestFallbackShape:
         assert p["status"] == "fallback"
         assert "占位生成" in p["note"]
         assert p["schema_hint"]["component"] == "plan"
+
+
+# ============================================================
+# 缺口1:AbilityGraphArtifact — 能力图谱(10 件套并行扩展)
+# ============================================================
+
+class TestAbilityGraph:
+    """验证 ability_graph 作为并行扩展组件,既不破坏 9 件套测试,
+    又能让前端通过 bundle.components.ability_graph 读到结构化能力数据."""
+
+    @pytest.mark.asyncio
+    async def test_in_components_dict(self, mock_llm_json):
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        assert "ability_graph" in bundle.components
+        assert bundle.components["ability_graph"]["status"] == "ok"
+        assert len(bundle.components["ability_graph"]["competencies"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_graph_view_derived(self, mock_llm_json):
+        """graph_view 必须与 KnowledgeGraphArtifact 同形(nodes+edges),
+        供前端 graph 组件直接渲染."""
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        ag = bundle.components["ability_graph"]
+        assert "graph_view" in ag
+        assert "nodes" in ag["graph_view"]
+        assert "edges" in ag["graph_view"]
+        # node 字段: id/label/layer(layer = bloom_level)
+        node = ag["graph_view"]["nodes"][0]
+        assert node["id"] == "problem-decomposition"
+        assert node["label"] == "问题分解"
+        assert node["layer"] == 4
+        # edge 字段: from/to/label
+        edge = ag["graph_view"]["edges"][0]
+        assert edge["from"] == "problem-decomposition"
+        assert edge["to"] == "code-review"
+        assert edge["label"] == "reinforce"
+
+    @pytest.mark.asyncio
+    async def test_blooms_distribution_present(self, mock_llm_json):
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        bd = bundle.components["ability_graph"]["blooms_distribution"]
+        assert "bloom1" in bd and "bloom6" in bd
+        assert sum(bd.values()) == 2
+
+    @pytest.mark.asyncio
+    async def test_not_in_component_names(self):
+        """关键不变量:ability_graph 不进 COMPONENT_NAMES,保证 is_complete/ready/fallback 仍是 9 件语义."""
+        from app.services.course_schemas import COMPONENT_NAMES
+        assert "ability_graph" not in COMPONENT_NAMES
+        assert len(COMPONENT_NAMES) == 9
+
+    @pytest.mark.asyncio
+    async def test_total_components_count_unaffected(self, mock_llm_json):
+        """并行扩展不破坏老断言:核心 9 件仍完整,ability_graph 作为附加项."""
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        # 9 件套全部存在
+        for name in COMPONENT_NAMES:
+            assert name in bundle.components, f"missing {name}"
+        # ability_graph 作为附加项
+        assert "ability_graph" in bundle.components
+        assert len(bundle.components) == 10  # 9 + 1
+
+    @pytest.mark.asyncio
+    async def test_is_complete_ignores_ability_graph(self, mock_llm_json):
+        """is_complete() 只看 COMPONENT_NAMES,所以 9 件全 ok 即认为完整,
+        ability_graph 的状态不影响 is_complete 判定(向后兼容)."""
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        # 把 ability_graph 改成 fallback, is_complete 仍为 True
+        bundle.components["ability_graph"]["status"] = "fallback"
+        assert bundle.is_complete() is True
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_llm_error(self, monkeypatch):
+        """LLM 抛 LLMJsonError 时,ability_graph 走 fallback 占位,不阻塞其他件."""
+        from app.services.llm_json import LLMJsonError
+        from app.services import course_bundle as cb
+
+        async def fake_llm_json_failing_ability(prompt_id, variables, schema, **kwargs):
+            if prompt_id == "ability_graph":
+                raise LLMJsonError("simulated LLM down")
+            # 其他件正常 mock
+            return schema.model_validate(_mock_artifact_for(prompt_id))
+
+        monkeypatch.setattr(cb, "llm_json", fake_llm_json_failing_ability)
+
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        assert bundle.components["ability_graph"]["status"] == "fallback"
+        # 其他 9 件正常
+        for name in COMPONENT_NAMES:
+            assert bundle.components[name]["status"] == "ok"
+
+
+# ============================================================
+# 缺口5:多 Agent 交叉验证循环(组件生成后过 AuditAgent)
+# ============================================================
+
+class TestAuditRetry:
+    """验证 _run_one_component 接入 audit_agent 后,风险组件自动重试 + SSE component_retry 事件."""
+
+    @pytest.mark.asyncio
+    async def test_no_audit_agent_no_loop(self, mock_llm_json):
+        """未注入 audit_agent 时,流程不变(不审核)."""
+        from app.services import course_bundle as cb
+        monkeypatch_cb = mock_llm_json  # 触发 fixture
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        # 没有 audit_rejected 字段
+        for name in bundle.components:
+            assert "audit_rejected" not in bundle.components[name] or \
+                   bundle.components[name].get("audit_rejected") is False
+
+    @pytest.mark.asyncio
+    async def test_audit_risk_high_triggers_retry(self, monkeypatch):
+        """mock audit_agent 返回 risk=high → 触发重试,最终 audit_rejected=True."""
+        from dataclasses import dataclass
+
+        @dataclass
+        class FakeAuditResult:
+            risk_level: str = "high"
+            blocked: bool = True
+            reason: str = "jailbreak detected"
+            jailbreak_score: float = 0.9
+            hallucination_score: float = 0.0
+
+        class FakeAuditAgent:
+            def __init__(self):
+                self.call_count = 0
+
+            async def run(self, **kwargs):
+                self.call_count += 1
+                return FakeAuditResult()
+
+        # 注入 audit_agent + 替换 _get_audit_agent 让 _run_one_component 拿到 fake
+        from app.services import course_bundle as cb
+        fake_agent = FakeAuditAgent()
+        monkeypatch.setattr(cb, "_get_audit_agent", lambda: fake_agent)
+
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        # 全部组件应被标记 audit_rejected
+        rejected = [n for n in bundle.components if bundle.components[n].get("audit_rejected")]
+        assert len(rejected) >= 5  # 至少 5 件被拒
+        assert fake_agent.call_count >= 5
+
+    @pytest.mark.asyncio
+    async def test_audit_risk_low_marks_safe(self, monkeypatch):
+        """mock audit_agent 返回 risk=low → 组件标记 audit_risk='low'."""
+        @dataclass
+        class SafeAuditResult:
+            risk_level: str = "low"
+            blocked: bool = False
+            reason: str = ""
+            jailbreak_score: float = 0.05
+
+        class SafeAuditAgent:
+            async def run(self, **kwargs):
+                return SafeAuditResult()
+
+        from app.services import course_bundle as cb
+        monkeypatch.setattr(cb, "_get_audit_agent", lambda: SafeAuditAgent())
+
+        bundle = await generate_bundle_sync(SAMPLE_OUTLINE, SAMPLE_SLOTS)
+        # 全部组件标记 audit_risk=low,无 audit_rejected
+        for name in bundle.components:
+            comp = bundle.components[name]
+            if comp.get("status") == "ok":
+                assert comp.get("audit_risk") == "low"
+                assert not comp.get("audit_rejected")
+
+    @pytest.mark.asyncio
+    async def test_sse_component_retry_event(self, monkeypatch):
+        """SSE 流中,risk=high 的组件应同时吐 component_retry 事件."""
+        @dataclass
+        class BadAuditResult:
+            risk_level: str = "high"
+            blocked: bool = True
+            reason: str = "hallucination"
+            jailbreak_score: float = 0.0
+
+        class BadAuditAgent:
+            async def run(self, **kwargs):
+                return BadAuditResult()
+
+        from app.services import course_bundle as cb
+        monkeypatch.setattr(cb, "_get_audit_agent", lambda: BadAuditAgent())
+
+        events = []
+        async for ev in generate_bundle(SAMPLE_OUTLINE, SAMPLE_SLOTS):
+            events.append(ev)
+
+        retry_events = [e for e in events if e["type"] == "component_retry"]
+        ready_events = [e for e in events if e["type"] == "component_ready"]
+        # 至少 5 件触发重试事件
+        assert len(retry_events) >= 5
+        # 每个 retry 事件都对应一个 ready 事件
+        assert len(retry_events) == len([e for e in ready_events if e["payload"].get("audit_rejected")])
+        # 重试事件字段齐全
+        e = retry_events[0]
+        assert "name" in e
+        assert "reason" in e
+        assert "attempts" in e

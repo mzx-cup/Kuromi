@@ -1195,12 +1195,53 @@ OBG/PBL 模式:{obg_pbl_mode}
   ]
 }}""",
 
-    "radar_init": """你是学习评估师。基于以下课程,给学员一份"完成本课程后预期雷达",6 维,每维 0~100。
+    "ability_graph": """你是能力建模师。基于以下课程大纲,输出一份"能力图谱",列出学生学完本课程应习得的能力。
 
 课程标题:{course_title}
 OBG/PBL 模式:{obg_pbl_mode}
 学习目标:{learning_goals}
-知识基础:{knowledge_base}
+脑暴目标:{slot_goal}
+大纲:
+{scenes_json}
+
+节点 competencies 要求:
+  - id: kebab-case 英文短串,如 problem-decomposition / code-review
+  - name: 中文短名(≤6 字),如"问题分解能力"
+  - category ∈ {{认知, 技能, 素养}}
+  - bloom_level ∈ 1~6 (1记忆 2理解 3应用 4分析 5评价 6创造)
+  - target_level: 期望达成度 0~1
+  - description: 一句话定义
+  - related_scene_ids: 关联的大纲 scene id 列表
+  - 总能力数 5~15 个,bloom 各层至少有 1 项
+
+边 edges 要求:
+  - from / to 引用 competencies 中的 id
+  - relation ∈ {{prerequisite, reinforce, transfer}}
+  - 边数 5~20 条
+
+blooms_distribution: 6 个 key(bloom1~bloom6),value 是该层能力数
+
+输出严格按以下 JSON:
+
+{{
+  "competencies": [
+    {{
+      "id": "problem-decomposition",
+      "name": "问题分解能力",
+      "category": "认知",
+      "bloom_level": 4,
+      "target_level": 0.8,
+      "description": "将复杂问题拆分为可独立解决的子问题",
+      "related_scene_ids": ["s1", "s3"]
+    }}
+  ],
+  "edges": [
+    {{"from": "problem-decomposition", "to": "code-review", "relation": "reinforce"}}
+  ],
+  "blooms_distribution": {{"bloom1": 1, "bloom2": 2, "bloom3": 3, "bloom4": 2, "bloom5": 1, "bloom6": 1}}
+}}""",
+
+    "radar_init": """你是学习评估师。基于以下课程,给学员一份"完成本课程后预期雷达",6 维,每维 0~100。
 
 6 维:
   - knowledge_mastery  知识掌握(0~100,反映对该领域的熟悉度)
