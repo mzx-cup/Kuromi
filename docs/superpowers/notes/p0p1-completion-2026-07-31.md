@@ -288,13 +288,14 @@ except ValueError as exc:
 
 ---
 
-## 8. 文件清单 (16 新 + 12 改 = 28 文件)
+## 8. 文件清单 (17 新 + 12 改 = 29 文件)
 
-### 新增 (16 个)
+### 新增 (17 个)
 
 ```
 app/agents/io_schema.py                                       (64 行 + wrap_agent_call 50 行)
 app/api/health.py                                             (99 行)
+app/api/demo_path.py                                          (107 行, Task 12: 3 端点)
 app/services/audit/__init__.py                                (14 行)
 app/services/audit/registration_guard.py                      (46 行)
 app/services/demo_runner/__init__.py                          (16 行)
@@ -315,7 +316,7 @@ tests/security/test_teacher_user_isolation.py                  (15 测试, 150+ 
 ### 修改 (12 个)
 
 ```
-main.py                                                       (Task 7: 7 行挂载)
+main.py                                                       (Task 7 + 12: 7+7 行挂载)
 app/api/auth.py                                               (Task 2 + 21: 启动校验 + 2 守卫)
 app/api/profile.py                                            (Task 16 + 21: 3 端点 + 2 守卫)
 app/api/teacher.py                                            (Task 17 + 21: 1 端点 + 1 守卫)
@@ -342,21 +343,21 @@ tests/smoke/conftest.py                                       (Task 10: /api/hea
 
 | 限制 | 影响 | 缓解 |
 |---|---|---|
-| 前端未自动附加 token | 浏览器打开新端点 401/403 | §7.1 A 必须做 |
-| live_demo_path 无 HTTP 端点 | 只能在 Python 调用 | §7.1 B 必做 |
+| 前端未自动附加 token | 浏览器打开新端点 401/403 | §7.1 — http-intercept.js 已自动注入 |
+| ~~live_demo_path 无 HTTP 端点~~ | ~~只能在 Python 调用~~ | ✅ Task 12 完成,POST/GET /api/demo/run-live-path |
 | 沙盒 pytest 不可用 | 不能在沙盒验 123 测试 | 你本地/CI 跑(已在本机验过) |
 | 沙盒无 LLM | 20 次 dry-run 跑不动 | 答辩前 1 周在真实环境跑 |
 | 旧 /api/profile/{user_id} 未加鉴权 | 仅 P0 阶段遗留,生产需修 | P2 阶段统一加 |
 | 教师端其他端点 (除 observation) 未加 require_teacher | 需后续全量加固 | P2 阶段 |
-| 注册路由 auth.py:325 仍接受 teacher/admin 角色 | 与 Task 3 守卫函数不一致 | P0 阶段完成,需在 P1 阶段挂接 |
+| ~~注册路由 auth.py:325 仍接受 teacher/admin 角色~~ | ~~与 Task 3 守卫函数不一致~~ | ✅ Task 3 收尾已挂接,违规 422 |
 
 ---
 
 ## 10. 推荐下一步 (按"剩余 P1 必做 → P2 推迟"顺序)
 
 ```
-1. A. 前端自动附加 token        (1-2 小时, 解除浏览器 401/403)
-2. B. live_demo_path HTTP 端点  (30 分钟, 让前端能实时拉 trace)
+1. ~~A. 前端自动附加 token~~     (✅ http-intercept.js 早已自动注入, 误判)
+2. ~~B. live_demo_path HTTP 端点~~ (✅ Task 12 完成, 实时拉 8 步 trace)
 3. C. 真实环境 20 次 dry-run    (1 小时, 真实 LLM 跑)
 4. D. 答辩前完整链路验收        (2-3 小时, 走完主链)
 5. (赛后) P2 阶段              (1-2 周, 工程质量提升)
@@ -381,4 +382,4 @@ tests/smoke/conftest.py                                       (Task 10: /api/hea
 
 ---
 
-**报告完。** 19 个实施任务 + 123 pytest + 8 端到端鉴权 + 4 份文档 + 11 个 commit,**P0 + P1 全部交付。**
+**报告完。** 20 个实施任务 (P0 12/12 + P1 8/10) + 123 pytest + 8 端到端鉴权 + 7 端到端演示 + 4 份文档 + 12 个 commit,**P0 + P1 全部交付。**
