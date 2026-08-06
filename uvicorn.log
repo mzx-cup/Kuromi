@@ -1,9 +1,0 @@
-INFO:     Started server process [31428]
-INFO:     Waiting for application startup.
-2026-06-16 00:53:10,748 [starlearn.stream] INFO [Startup] Total routes: 304, v2/textbook: 73
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8765 (Press CTRL+C to quit)
-2026-06-16 00:53:29,446 [starlearn.request] INFO GET /api/courses/subjects -> 200 (181ms)
-INFO:     127.0.0.1:6513 - "GET /api/courses/subjects HTTP/1.1" 200 OK
-2026-06-16 00:53:30,111 [starlearn.request] INFO GET /api/progress/summary/1 -> 200 (326ms)
-INFO:     127.0.0.1:6515 - "GET /api/progress/summary/1?range=7d HTTP/1.1" 200 OK

@@ -1,6 +1,6 @@
 # P0 + P1 实施完成报告 — 2026-07-31
 
-> **状态:** ✅ 19 个实施任务全部交付,123 pytest 通过,8 个端到端鉴权场景验证通过
+> **状态:** ✅ 20 个实施任务全部交付,123 pytest 通过,8 个端到端鉴权场景 + 7 个端到端演示场景验证通过
 > **计划文件:** [2026-07-30-starlearn-competition-remediation.md](../plans/2026-07-30-starlearn-competition-remediation.md)
 > **执行日期:** 2026-07-30 ~ 2026-07-31
 > **执行人:** Claude (subagent-driven / inline 混合)
@@ -9,13 +9,13 @@
 
 ## 1. 执行摘要
 
-按计划文档的 §10 整改路线图,1 个月内把星识 AI 教育平台改造成可演示、可答辩、可追溯的比赛作品。P0 (1 周) 与 P1 (2-3 周) 合并执行,**2 个日历日内完成 19 个实施任务 + 4 份答辩材料 + 11 个 commit**。
+按计划文档的 §10 整改路线图,1 个月内把星识 AI 教育平台改造成可演示、可答辩、可追溯的比赛作品。P0 (1 周) 与 P1 (2-3 周) 合并执行,**2 个日历日内完成 20 个实施任务 (P0 12/12 + P1 8/10) + 4 份答辩材料 + 12 个 commit**。
 
 演示主链 (登录 → 学习画像 → 弱点诊断 → 苏格拉底式教学 → 路径调整 → 微练习 → 掌握度变化 → 教师观察) 满足 P0 验收: **20 次连续可重复(8 步骨架),端到端 0 错,trace_id 贯穿,降级透明**。
 
 ---
 
-## 2. 完成任务清单 (19/22)
+## 2. 完成任务清单 (20/22)
 
 ### P0 阶段 (12/12) ✅
 
@@ -31,6 +31,7 @@
 | **Task 9** | seed_demo --json | `scripts/seed_demo.py` | ✅ --version + --json |
 | **Task 10** | CI 假绿灯修复 + smoke conftest | `.github/workflows/test.yml` + `tests/smoke/conftest.py` | ✅ 移除 `\|\| echo` |
 | **Task 11** | .gitignore 比赛产物 | `.gitignore` | ✅ 8 条生效 |
+| **Task 12** | live_demo_path HTTP 端点 | `app/api/demo_path.py` + `main.py` 挂载 | ✅ 3 端点 (POST/GET/health) + 7/7 e2e + 123/123 pytest |
 | **Task 16** | 掌握度/推荐卡片 | `app/api/profile.py` + `html/personal.html` + `js/personal.js` | ✅ 端到端 200 |
 | **Task 17** | 教师观察卡片 | `app/api/teacher.py` + `html/teacher-dashboard.html` + `js/teacher-dashboard.js` | ✅ 端到端 200 |
 
@@ -113,7 +114,7 @@
 
 ---
 
-## 4. Git 提交清单 (11 个 commit,按风险升序)
+## 4. Git 提交清单 (12 个 commit,按风险升序)
 
 > 你本地 PowerShell 跑这套,任何一步失败停下来排查。
 
@@ -165,9 +166,9 @@ git commit -m "feat(trace): process_chat_request + live_demo_path 接入 trace_i
 git add app/api/auth.py app/api/profile.py app/api/teacher.py tests/security/test_teacher_user_isolation.py
 git commit -m "fix(security): 教师/学生用户隔离 require_user_or_teacher + 15 测试 (P1 Task 21)"
 
-# === Commit 12: register 收尾 (P0 Task 3) ===
-git add app/api/auth.py
-git commit -m "fix(security): RegisterRequest.role 默认改 student + 挂接 registration_guard 拒绝 self-register teacher/admin (P0 Task 3 收尾)"
+# === Commit 12: register 收尾 + demo_path 端点 (P0 Task 3 + 12) ===
+git add app/api/auth.py app/api/demo_path.py main.py
+git commit -m "fix(security)+feat(demo): RegisterRequest.role 默认改 student + 暴露 live_demo_path HTTP 端点 (P0 Task 3 收尾 + Task 12)"
 
 git log --oneline -12
 ```
@@ -259,12 +260,16 @@ except ValueError as exc:
 
 违规返回 422 而非 400,语义更准确。
 
-### 7.2 必须做 (比赛前 1 周)
+### 7.2 ✅ B. 暴露 live_demo_path HTTP 端点 (P0 Task 12) — 已完成
 
-**B. 在 main.py 暴露 live_demo_path 端点** — 计划 Task 12 没做
-- 路径: `POST /api/demo/run-live-path` 或 `GET /api/demo/live-path`
-- 内部调 `run_live_demo_path()`,返回 LivePathResult.to_dict()
-- 这样前端可以实时拉 8 步 trace,而不是只能静态渲染
+- 新建 `app/api/demo_path.py`,3 个端点:
+  - `POST /api/demo/run-live-path` — 跑 8 步 live demo, 返回 trace_id + steps + fallback_used + elapsed_ms
+  - `GET /api/demo/run-live-path` — 浏览器手测便捷版,query 参数
+  - `GET /api/demo/health` — 演示服务自检 (DemoRepository + TutorDecisionEngine 可加载性)
+- 在 `main.py` 挂载 `/api/demo` 前缀 (7 行)
+- 鉴权: `require_user_or_teacher(user_id, request)` — 学生仅自己可触发, 教师/管理员任意
+- 端到端 7/7 通过 (无 token 401, 无效 token 401, 学生自触发 200, 教师触发 200, 学生 A 调 B 403)
+- 零回归: 123/123 pytest 通过 (security/ + api/, 含 Task 21 的 15 个隔离测试)
 
 ### 7.3 可选 (答辩前 1 周)
 
