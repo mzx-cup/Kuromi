@@ -36,11 +36,16 @@ dist/
 storage/state_storage/
 storage/task_storage/
 .worktrees/
+# 已迁移到 xingshi_v2.db 的遗留 JSON 存储 (SLICE_STATUS 阶段 2.3)
+# 保留在磁盘作为只读归档, 不再纳入版本控制
+local_storage.json
+local_storage.json.pre-migration.bak
 
 # 忽略临时 JSON，但强制保留项目核心的包管理配置！
 *.json
 !package.json
 !package-lock.json
+!tsconfig.json
 
 
 # ==========================================
