@@ -99,8 +99,8 @@ async function loadProgressSummary(range) {
     renderLoadingState();
 
     const userId = getCurrentUserId();
-    if (!userId) {
-        renderLoginRequired();
+    if (!userId || window.StarDemoData?.isForced?.()) {
+        renderDemoProgress(rangeKey);
         return;
     }
 
@@ -109,6 +109,12 @@ async function loadProgressSummary(range) {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         if (!data.success) throw new Error(data.detail || 'load progress failed');
+
+        // 真实数据为空时自动填充演示假数据，便于预览页面效果
+        if (isEmptySummary(data.summary)) {
+            renderDemoProgress(rangeKey);
+            return;
+        }
 
         // 保存上一期数据用于计算 delta
         window.__progressPrev = window.__progressCurrent || {};
@@ -119,17 +125,33 @@ async function loadProgressSummary(range) {
         if (window.toast?.error) {
             window.toast.error('学习数据加载失败');
         }
-        renderProgressSummary({
-            total_hours: 0,
-            completed_courses: 0,
-            current_streak: 0,
-            avg_daily_hours: 0,
-            weekly_activity: [],
-            course_progress: [],
-            timeline: [],
-            radar: null,
-        }, {});
+        renderDemoProgress(rangeKey);
     }
+}
+
+/** 判断真实数据是否为空（四项核心指标全部无数据） */
+function isEmptySummary(summary) {
+    if (!summary) return true;
+    const hasHours = Number(summary.total_hours) > 0;
+    const hasCourses = Number(summary.completed_courses) > 0;
+    const hasProgress = Array.isArray(summary.course_progress) && summary.course_progress.length > 0;
+    const hasActivity = Array.isArray(summary.weekly_activity)
+        && summary.weekly_activity.some(d => Number(d.hours) > 0);
+    return !hasHours && !hasCourses && !hasProgress && !hasActivity;
+}
+
+/** 渲染演示假数据（见 demo-data.js） */
+function renderDemoProgress(rangeKey) {
+    const demo = window.StarDemoData?.getProgressSummary?.(rangeKey);
+    if (!demo) {
+        renderLoginRequired();
+        return;
+    }
+    window.__progressPrev = {};
+    window.__progressCurrent = demo;
+    renderProgressSummary(demo, {});
+    window.StarDemoData.showBadge();
+    console.info('[progress] 当前展示演示数据（未登录 / 无真实数据 / ?demo=1）');
 }
 
 function renderLoginRequired() {

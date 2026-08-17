@@ -11,3 +11,4 @@
 {"ts": "2026-08-10T06:08:57.852856+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
 {"ts": "2026-08-10T06:09:36.802019+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
 {"ts": "2026-08-10T07:32:36.391495+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-08-17T13:05:22.546185+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}

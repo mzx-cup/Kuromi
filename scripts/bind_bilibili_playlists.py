@@ -84,6 +84,16 @@ MODIFIER_TOKENS = (
     "深度解析", "零基础", "速成课", "速成", "高清", "全集", "合集",
     "入门", "基础", "教程", "实战", "精讲", "精通", "核心",
     "从零", "快速", "一节课", "一集", "学习", "课",
+    "掌握", "求职", "编程", "我想",
+)
+
+# 单独一个词容易撞到同名内容的关键词（如 Rust 游戏、Go 围棋）
+# 搜索时补 "编程" 强制偏向编程内容
+AMBIGUOUS_LANG = {"rust", "go", "golang", "c", "r"}
+
+# 编程语境词 — 歧义词命中后还必须带上这些词之一，才算「编程内容」
+PROGRAMMING_CONTEXT_RE = re.compile(
+    r"(编程|教程|语言|入门|开发|实战|精通|基础|零基础|进阶|学习|讲解|程序员|代码)"
 )
 MODIFIER_RE = re.compile("|".join(MODIFIER_TOKENS))
 PLACEHOLDER_TITLES = {
@@ -138,7 +148,17 @@ def _fetch_candidates(keyword: str) -> list[dict]:
     return candidates
 
 
-def _pick_top_playlist(candidates: list[dict]) -> dict | None:
+def _keyword_match(kw: str, text: str) -> bool:
+    """关键词是否命中标题（纯 ASCII 短词按整词匹配，防 'C' 撞上一切）。"""
+    if not text:
+        return False
+    if kw.isascii() and len(kw) <= 2:
+        return re.search(rf"(?i)(?<![a-z0-9]){re.escape(kw)}(?![a-z0-9])", text) is not None
+    return kw.lower() in text.lower()
+
+
+def _pick_top_playlist(candidates: list[dict], keyword: str,
+                       require_context: bool = False) -> dict | None:
     """从候选列表里挑出「播放量最高且属于合集」的视频。
 
     判定合集：
@@ -146,6 +166,9 @@ def _pick_top_playlist(candidates: list[dict]) -> dict | None:
       - 否则检查 ``playCount`` 是否 ≥ 1k 且 ``authorName`` 与最高播放候选相同
         （兜底 — B 站搜索结果可能不直接给 ugc_season，但同 UP 主的多视频合集
         也算合集）。
+
+    相关性：候选标题/合集名必须命中关键词，否则视为同名撞车（如 Rust 游戏）。
+    ``require_context=True`` 时还必须带编程语境词（排除 Rust 生存游戏等）。
     """
     if not candidates:
         return None
@@ -155,6 +178,14 @@ def _pick_top_playlist(candidates: list[dict]) -> dict | None:
         candidates, key=lambda c: int(c.get("playCount") or 0), reverse=True,
     )
 
+    def relevant(title: str) -> bool:
+        if not _keyword_match(keyword, title):
+            return False
+        if require_context and not PROGRAMMING_CONTEXT_RE.search(title):
+            return False
+        return True
+
+    parsed = []  # 收集解析成功且标题命中的候选
     for cand in sorted_cands[:TOP_N_PARSE]:  # 最多查前 N 个，限流 + 控制耗时
         bvid = cand.get("bvid", "")
         if not bvid:
@@ -168,32 +199,35 @@ def _pick_top_playlist(candidates: list[dict]) -> dict | None:
         if not info:
             continue
 
-        ugc_id = info.get("ugcSeasonId")
-        ugc_title = info.get("ugcSeasonTitle", "")
-        ugc_count = info.get("ugcSeasonCount", 0)
+        # 相关性：标题或合集名必须命中关键词（+ 可选编程语境）
+        if not (relevant(info.get("title", ""))
+                or relevant(info.get("ugcSeasonTitle", ""))):
+            continue
 
-        # 命中条件：属于合集（ugc_season）→ 这是「课程合集」最直接的标志
+        parsed.append((cand, info))
+
+    # 优先合集，其次单视频（都经过相关性过滤）
+    for cand, info in parsed:
+        ugc_id = info.get("ugcSeasonId")
+        ugc_count = info.get("ugcSeasonCount", 0)
         if ugc_id and ugc_count and ugc_count >= 2:
             return {
-                "bvid": info.get("bvid", bvid),
+                "bvid": info.get("bvid", cand.get("bvid", "")),
                 "playCount": int(cand.get("playCount") or 0),
                 "title": info.get("title", ""),
                 "author": info.get("authorName", ""),
                 "cover": info.get("coverUrl", ""),
                 "ugc_season_id": ugc_id,
-                "ugc_season_title": ugc_title,
+                "ugc_season_title": info.get("ugcSeasonTitle", ""),
                 "ugc_season_count": ugc_count,
                 "ugc_season_mid": info.get("ugcSeasonMid"),
             }
 
-    # 兜底：没找到 ugc_season 时，取播放量最高的那条作为单视频代表
-    top = sorted_cands[0]
-    bvid = top.get("bvid", "")
-    info = parse_video(f"https://www.bilibili.com/video/{bvid}") if bvid else None
-    if not info:
+    if not parsed:
         return None
+    top, info = parsed[0]
     return {
-        "bvid": info.get("bvid", bvid),
+        "bvid": info.get("bvid", top.get("bvid", "")),
         "playCount": int(top.get("playCount") or 0),
         "title": info.get("title", ""),
         "author": info.get("authorName", ""),
@@ -256,15 +290,24 @@ def bind_one(
     if not keyword:
         return f"[FAIL] {course_id} | {title[:30]}... | 标题噪声/LLM 中间输出"
 
-    query = f"{keyword}{SEARCH_KEYWORD_SUFFIX}"
-    logger.info("[%s] 搜索: %s", course_id, query)
-    cands = _fetch_candidates(query)
-    if not cands:
-        return f"[FAIL] {course_id} | {title} | 搜索 '{query}' 无结果"
+    # 歧义词（Rust 游戏 / Go 围棋）优先搜「编程」，并要求候选带编程语境词
+    ambiguous = keyword.lower() in AMBIGUOUS_LANG
+    queries = [f"{keyword}{SEARCH_KEYWORD_SUFFIX}"]
+    if ambiguous:
+        queries.insert(0, f"{keyword} 编程")
 
-    best = _pick_top_playlist(cands)
+    best = None
+    for query in queries:
+        logger.info("[%s] 搜索: %s", course_id, query)
+        cands = _fetch_candidates(query)
+        if not cands:
+            continue
+        best = _pick_top_playlist(cands, keyword, require_context=ambiguous)
+        if best:
+            break
+
     if not best:
-        return f"[FAIL] {course_id} | {title} | 未解析到合集"
+        return f"[FAIL] {course_id} | {title} | 未解析到相关合集"
 
     bvid = best["bvid"]
     playlist_url = _build_playlist_url(best)

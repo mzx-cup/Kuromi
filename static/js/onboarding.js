@@ -291,6 +291,8 @@
   function renderStep() {
     const q = QUESTIONS[stepIndex];
     if (!q) return;
+    // 问卷 DOM 仅存在于 hub 页面（index.html），其他页面静默跳过
+    if (!titleEl() || !hintEl() || !stepEl() || !fillEl() || !optsEl()) return;
     titleEl().textContent = q.title;
     hintEl().textContent = q.hint;
     stepEl().textContent = `${stepIndex + 1} / ${QUESTIONS.length}`;
@@ -484,6 +486,8 @@
   // ---- 入口:首访判定 ----
   window.xsOnboardInit = async function () {
     if (parseInt(localStorage.getItem(QA_LS_KEY) || '0', 10) >= QA_VERSION) return;
+    // 问卷 DOM 仅存在于 hub 页面（index.html），其他页面静默跳过
+    if (!titleEl() || !maskEl()) return;
     const userId = getCurrentUserId();
     if (userId) {
       try {

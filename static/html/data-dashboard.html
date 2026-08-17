@@ -21,6 +21,7 @@
     <script src="/js/http-intercept.js"></script>
     <script src="/js/theme.js"></script>
     <script src="/js/toast.js"></script>
+    <script src="/js/demo-data.js"></script>
 </head>
 <body data-bg-unified="true" class="app-body hub-body">
     
@@ -329,6 +330,14 @@
         var panelsInitialized = {};
         var currentRange = '30d';
         var learningData = null;
+        var demoMode = false; // 演示数据模式（本地假数据，不请求后端）
+
+        function getCurrentUserId() {
+            try {
+                var u = JSON.parse(localStorage.getItem('starlearn_user') || 'null');
+                return u && u.id ? String(u.id) : null;
+            } catch (e) { return null; }
+        }
 
         // ============== Token helpers ==============
         function readVar(name) {
@@ -480,9 +489,37 @@
             };
         }
 
+        function isEmptyLearningData(data) {
+            if (!data) return true;
+            if (data.totalHours || data.totalMinutes) return false;
+            if (Object.keys(data.dailyMinutes || {}).length) return false;
+            if ((data.courses || []).length) return false;
+            if ((data.history || []).length) return false;
+            if (data.radar && data.radar.dimensions && data.radar.dimensions.length) return false;
+            if (data.focus) return false;
+            return true;
+        }
+
+        function applyDemoData() {
+            demoMode = true;
+            if (window.StarDemoData && StarDemoData.showBadge) StarDemoData.showBadge();
+            console.info('[data-dashboard] 当前展示演示数据（未登录 / 无真实数据 / ?demo=1）');
+            return (window.StarDemoData && StarDemoData.getDashboardData)
+                ? StarDemoData.getDashboardData(currentRange)
+                : {};
+        }
+
         function loadLearningData() {
+            // 未登录或强制演示：直接用本地假数据，不请求后端
+            if (!getCurrentUserId() || (window.StarDemoData && StarDemoData.isForced && StarDemoData.isForced())) {
+                return Promise.resolve(applyDemoData());
+            }
             return loadLearningDataFromBackend().catch(function() {
                 return loadLearningDataFromLocalStorage();
+            }).then(function(data) {
+                if (isEmptyLearningData(data)) return applyDemoData();
+                demoMode = false;
+                return data;
             });
         }
 
@@ -1115,8 +1152,9 @@
             panel.dataset.loaded = 'true';
 
             renderFlowRealtime();
-            // poll API every 30s while tab is visible
+            // poll API every 30s while tab is visible（演示模式不轮询后端）
             setInterval(function() {
+                if (demoMode) return;
                 fetch('/api/datacenter/dashboard/summary?range=' + currentRange)
                     .then(function(r) { return r.json(); })
                     .then(function(data) {
@@ -1130,6 +1168,15 @@
 
             // fetch flow-meter.html for the main waveform
             var loading = document.getElementById('flow-loading');
+            if (demoMode) {
+                // flow-meter 模块会轮询真实接口，演示模式用静态占位示意
+                if (loading) {
+                    loading.outerHTML = '<div style="display:flex;align-items:center;justify-content:center;'
+                        + 'min-height:360px;padding:24px;color:var(--text-muted);font-size:13px;text-align:center;">'
+                        + '💜 演示模式 · 心流波形为示意数据（登录并开启学习会话后可查看真实波形）</div>';
+                }
+                return;
+            }
             fetch('/flow-meter.html')
                 .then(function(r) { return r.text(); })
                 .then(function(html) {

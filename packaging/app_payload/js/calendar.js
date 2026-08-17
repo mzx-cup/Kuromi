@@ -18,6 +18,7 @@
     let checkedInToday = false;
     let reminderIndex = 0;
     let isLoading = false;
+    let demoMode = false; // 演示假数据模式：仅本地操作，不请求后端
 
     // ---------- 工具 ----------
     const WEEKDAY_LABELS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -109,9 +110,13 @@
         if (isLoading) return;
         isLoading = true;
         const userId = getCurrentUserId();
-        if (!userId) {
+        if (!userId || window.StarDemoData?.isForced?.()) {
             isLoading = false;
-            renderLoginRequired();
+            demoMode = true;
+            applyCalendarDemo();
+            refreshAll();
+            window.StarDemoData?.showBadge?.();
+            console.info('[calendar] 当前展示演示数据（未登录 / ?demo=1）');
             return;
         }
         try {
@@ -127,11 +132,40 @@
         } finally {
             isLoading = false;
         }
+
+        // 真实数据为空时自动填充演示假数据，便于预览页面效果
+        if (isEmptyCalendarData()) {
+            demoMode = true;
+            applyCalendarDemo();
+            refreshAll();
+            window.StarDemoData?.showBadge?.();
+            return;
+        }
+
         // 兜底：把 eventsData 扁平化为 days 数据，便于 heatmap
         enrichCalendarFromEvents();
         // 接入真实学习时长数据
         await loadStudyHeatmap();
         refreshAll();
+    }
+
+    /** 判断真实数据是否为空（无事件且无每日数据） */
+    function isEmptyCalendarData() {
+        const hasEvents = Object.keys(eventsData || {}).length > 0;
+        const hasDays = Object.keys(calendarData?.days || {}).length > 0;
+        return !hasEvents && !hasDays;
+    }
+
+    /** 填充演示假数据（见 demo-data.js） */
+    function applyCalendarDemo() {
+        const payload = window.StarDemoData?.getCalendarPayload?.();
+        if (!payload) {
+            renderLoginRequired();
+            return;
+        }
+        eventsData = payload.eventsData || {};
+        calendarData = payload.calendarData || { days: {}, month_summary: {}, upcoming: [] };
+        enrichCalendarFromEvents();
     }
 
     async function loadStudyHeatmap() {
@@ -622,6 +656,15 @@
         };
         eventsData[date].push(event);
 
+        if (demoMode) {
+            showToast('计划已添加 ✨（演示模式，仅本地生效）', 'success');
+            enrichCalendarFromEvents();
+            refreshAll();
+            form.reset();
+            closeFn();
+            return;
+        }
+
         try {
             const response = await fetch('/api/calendar-events/save', {
                 method: 'POST',
@@ -646,13 +689,15 @@
         const arr = eventsData[dateStr];
         if (!arr || !arr[idx]) return;
         arr[idx].done = !arr[idx].done;
-        try {
-            await fetch('/api/calendar-events/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: getCurrentUserId(), eventsData })
-            });
-        } catch (e) { console.warn('同步失败:', e); }
+        if (!demoMode) {
+            try {
+                await fetch('/api/calendar-events/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: getCurrentUserId(), eventsData })
+                });
+            } catch (e) { console.warn('同步失败:', e); }
+        }
         enrichCalendarFromEvents();
         refreshAll();
         const wasDone = arr[idx].done;
@@ -669,13 +714,15 @@
         }
         // 全部标记为 done
         items.forEach(it => { it.done = true; });
-        try {
-            await fetch('/api/calendar-events/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: getCurrentUserId(), eventsData })
-            });
-        } catch (e) { console.warn('打卡同步失败:', e); }
+        if (!demoMode) {
+            try {
+                await fetch('/api/calendar-events/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: getCurrentUserId(), eventsData })
+                });
+            } catch (e) { console.warn('打卡同步失败:', e); }
+        }
         checkedInToday = true;
         enrichCalendarFromEvents();
         refreshAll();

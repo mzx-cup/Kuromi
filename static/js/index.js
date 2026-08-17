@@ -2156,6 +2156,41 @@ const DynamicThemeManager = {
     }
 };
 
+// ===== v4 统一主题系统 与 旧主题视觉层 桥接 =====
+// v4 预设 → 旧下拉面板里视觉/动效最接近的旧主题 ID
+const V4_TO_LEGACY_THEME = {
+    'dawn': 'sunset',
+    'forest': 'forest',
+    'sakura': 'sakura-falling',
+    'midnight': 'starry-night',
+    'nebula': 'lunar-halo',
+    'cyber': 'flowing-aurora'
+};
+
+// 依据 v4 主题状态同步旧视觉层（下拉高亮、动态特效、CodeMirror、旧 localStorage 键）。
+// 注意：不修改 data-theme —— v4 系统（theme.js）是 data-theme 的唯一拥有者。
+function syncLegacyThemeLayer() {
+    const st = window.StarTheme;
+    if (!st || !st.getState) return;
+    const s = st.getState();
+    if (!s || !s.theme) return;
+    const legacyId = V4_TO_LEGACY_THEME[s.theme] || s.theme;
+    localStorage.setItem('starlearn_theme', legacyId);
+    document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.theme === legacyId);
+    });
+    if (DynamicThemeManager._isDynamicTheme(legacyId)) {
+        DynamicThemeManager.activate(legacyId, true);
+    } else {
+        DynamicThemeManager.deactivate();
+    }
+    if (codeEditor) {
+        const isLight = st.isLightMode ? st.isLightMode() : true;
+        codeEditor.setOption('theme', isLight ? 'default' : 'dracula');
+    }
+}
+window.addEventListener('starlearn:theme-applied', syncLegacyThemeLayer);
+
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('starlearn_theme', theme);
@@ -2164,7 +2199,7 @@ function setTheme(theme) {
     document.querySelectorAll('.theme-option').forEach(opt => {
         opt.classList.toggle('active', opt.dataset.theme === theme);
     });
-    const lightThemes = new Set(['sakura-falling']);
+    const lightThemes = new Set(['ocean', 'forest', 'sunset', 'sakura-falling']);
     const isLightTheme = lightThemes.has(theme);
     document.body.classList.toggle('light-theme', isLightTheme);
     if (codeEditor) {
@@ -2179,6 +2214,17 @@ function setTheme(theme) {
     setTimeout(renderRadarChart, 100);
     const themePanel = document.getElementById('theme-panel');
     if (themePanel) themePanel.classList.remove('show');
+
+    // 同步到 v4 统一主题系统：写入 starlearn_theme_v4 并防抖 POST /api/user/theme/sync，
+    // 其他页面（settings.html 等）从服务端加载时即可看到同一主题。
+    if (window.StarTheme) {
+        try {
+            window.StarTheme.adoptTheme(theme);
+            window.StarTheme.applyAll(); // 统一 body 明暗类与背景层
+        } catch (e) {
+            console.warn('[Theme bridge] v4 adopt failed:', e);
+        }
+    }
 }
 
 function goToPersonal() {
@@ -7680,8 +7726,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         sendButton.addEventListener('click', () => handleSendStream());
     }
 
-    const savedTheme = localStorage.getItem('starlearn_theme') || 'ocean';
-    setTheme(savedTheme);
+    // 主题恢复：v4 统一主题系统（theme.js）为权威。
+    // - 已有 v4 状态：由 v4 驱动 data-theme，这里只同步旧视觉层（下拉高亮/动效/CodeMirror）
+    // - 只有旧键：走旧路径并自动迁移进 v4（setTheme 内部 adoptTheme + 服务端同步）
+    // - 都没有：保持 v4 默认 dawn，等待 loadFromServer / 用户操作，不写入默认值
+    const v4ThemeState = (() => {
+        try { return localStorage.getItem('starlearn_theme_v4'); } catch (e) { return null; }
+    })();
+    const savedLegacyTheme = (() => {
+        try { return localStorage.getItem('starlearn_theme'); } catch (e) { return null; }
+    })();
+    if (window.StarTheme && v4ThemeState) {
+        syncLegacyThemeLayer();
+    } else if (savedLegacyTheme) {
+        setTheme(savedLegacyTheme);
+    } else if (codeEditor) {
+        codeEditor.setOption('theme', 'default');
+    }
     DynamicThemeManager.init();
 
     const savedUser = JSON.parse(localStorage.getItem('starlearn_user') || 'null');

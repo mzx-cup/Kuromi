@@ -421,12 +421,14 @@
     background: var(--info);
     flex-shrink: 0;
 }
-.day-event-dot.study  { background: var(--brand-500); }
-.day-event-dot.review { background: var(--success); }
-.day-event-dot.exam   { background: var(--danger); }
-.day-event-dot.python { background: var(--warning); }
-.day-event-dot.ai     { background: var(--brand-400); }
-.day-event-dot.web    { background: var(--info); }
+.day-event-dot.study     { background: var(--brand-500); }
+.day-event-dot.review    { background: var(--success); }
+.day-event-dot.exam      { background: var(--danger); }
+.day-event-dot.python    { background: var(--warning); }
+.day-event-dot.ai        { background: var(--brand-400); }
+.day-event-dot.web       { background: var(--info); }
+.day-event-dot.algorithm { background: #8b5cf6; }
+.day-event-dot.database  { background: #14b8a6; }
 .day-event-more {
     font-size: 9px;
     color: var(--text-muted);
@@ -936,12 +938,14 @@
     font-size: 10px;
     font-weight: var(--font-semibold);
 }
-.event-tag.python  { background: var(--warning-bg); color: var(--warning); }
-.event-tag.ai      { background: var(--accent-bg);  color: var(--brand-500); }
-.event-tag.web     { background: var(--info-bg);    color: var(--info); }
-.event-tag.study   { background: var(--accent-bg);  color: var(--brand-500); }
-.event-tag.review  { background: var(--success-bg); color: var(--success); }
-.event-tag.exam    { background: var(--danger-bg);  color: var(--danger); }
+.event-tag.python    { background: var(--warning-bg); color: var(--warning); }
+.event-tag.ai        { background: var(--accent-bg);  color: var(--brand-500); }
+.event-tag.web       { background: var(--info-bg);    color: var(--info); }
+.event-tag.study     { background: var(--accent-bg);  color: var(--brand-500); }
+.event-tag.review    { background: var(--success-bg); color: var(--success); }
+.event-tag.exam      { background: var(--danger-bg);  color: var(--danger); }
+.event-tag.algorithm { background: rgba(139, 92, 246, .15); color: #a78bfa; }
+.event-tag.database  { background: rgba(20, 184, 166, .15); color: #2dd4bf; }
 .event-duration {
     font-size: 10px;
     color: var(--text-muted);

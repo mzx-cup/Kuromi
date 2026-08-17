@@ -27,7 +27,7 @@
     'cyber':    { name: '赛博', mode: 'dark',  brand: '#3dd9e0' }
   };
 
-  // ===== 旧主题 ID → 新主题（向后兼容） =====
+  // ===== 旧主题 ID → 新主题（仅用于明暗模式推断，不再改写视觉主题） =====
   var LEGACY_THEME_MAP = {
     'warm-morning':    'dawn',
     'ocean-glass':     'dawn',
@@ -42,6 +42,12 @@
     'ocean-glass-dark':'nebula',
     'star-vault':      'nebula',
     'neon-cyber':      'cyber'
+  };
+
+  // ===== v1 旧主题 ID 的明暗模式（index.html 旧下拉面板用） =====
+  var LEGACY_MODE = {
+    'ocean': 'light', 'forest': 'light', 'sunset': 'light', 'sakura-falling': 'light',
+    'starry-night': 'dark', 'lunar-halo': 'dark', 'flowing-aurora': 'dark'
   };
 
   // ===== 壁纸资源 =====
@@ -123,9 +129,9 @@
   }
 
   function migrateState(s) {
-    var theme = resolveThemeId(s.theme) || s.theme;
+    var theme = s.theme || 'dawn';
     return {
-      mode: s.mode || (PRESETS[theme] ? PRESETS[theme].mode : 'light'),
+      mode: s.mode || getModeForTheme(theme),
       theme: theme,
       wallpaperId: s.wallpaperId || (s.wallpaper && s.wallpaper.id) || 'default',
       brightness: numOr(s.brightness !== undefined ? s.brightness : (s.wallpaper && s.wallpaper.brightness), 100),
@@ -174,7 +180,20 @@
         return { name: customThemes[i].name, mode: customThemes[i].mode, brand: customThemes[i].brand || '#888' };
       }
     }
-    return { name: themeId, mode: 'light', brand: '#888' };
+    return { name: themeId, mode: getModeForTheme(themeId), brand: '#888' };
+  }
+
+  // 推断主题的明暗模式：预设 → 旧 ID 映射 → v1 旧 ID → 自定义主题 → 默认亮色
+  function getModeForTheme(themeId) {
+    if (!themeId) return 'light';
+    if (PRESETS[themeId]) return PRESETS[themeId].mode;
+    var resolved = resolveThemeId(themeId);
+    if (resolved && PRESETS[resolved]) return PRESETS[resolved].mode;
+    if (LEGACY_MODE[themeId]) return LEGACY_MODE[themeId];
+    for (var i = 0; i < customThemes.length; i++) {
+      if (customThemes[i].id === themeId) return customThemes[i].mode;
+    }
+    return 'light';
   }
 
   function getThemesForMode(mode) {
@@ -192,16 +211,18 @@
 
   // ===== 应用主题 =====
   function applyTheme(themeId) {
-    var resolved = resolveThemeId(themeId) || 'dawn';
-    state.theme = resolved;
-    state.mode = getThemeInfo(resolved).mode;
+    // 保留原始主题 ID（含旧主题 ID），旧 ID 视觉由 tokens.css / 页面旧样式层继续渲染；
+    // LEGACY_THEME_MAP 仅用于明暗模式推断，不再改写主题本身。
+    if (!themeId) themeId = 'dawn';
+    state.theme = themeId;
+    state.mode = getModeForTheme(themeId);
 
     // crossfade flag
     var root = document.documentElement;
     root.setAttribute('data-theme-transitioning', 'true');
     setTimeout(function () { root.removeAttribute('data-theme-transitioning'); }, 500);
 
-    root.setAttribute('data-theme', resolved);
+    root.setAttribute('data-theme', themeId);
     if (document.body) {
       document.body.classList.toggle('light-theme', state.mode === 'light');
       document.body.classList.toggle('dark-theme',  state.mode === 'dark');
@@ -211,13 +232,20 @@
     // 自定义主题：把 primitives 写到 :root
     var custom = null;
     for (var i = 0; i < customThemes.length; i++) {
-      if (customThemes[i].id === resolved) { custom = customThemes[i]; break; }
+      if (customThemes[i].id === themeId) { custom = customThemes[i]; break; }
     }
     if (custom && custom.primitives) {
       applyCustomPrimitives(custom.primitives);
     } else {
       clearCustomPrimitives();
     }
+
+    // 通知页面旧主题层（如 index.html 的旧下拉面板 / 动态特效），保持两套 UI 一致
+    try {
+      window.dispatchEvent(new CustomEvent('starlearn:theme-applied', {
+        detail: { theme: state.theme, mode: state.mode }
+      }));
+    } catch (e) {}
   }
 
   function applyCustomPrimitives(prim) {
@@ -249,6 +277,15 @@
 
   function setTheme(themeId) {
     applyTheme(themeId);
+    saveState();
+  }
+
+  // 旧页面（如 index.html 旧下拉面板）已有自己的视觉层：
+  // 只把主题 ID 纳入 v4 状态并持久化/同步到服务器，不重新应用视觉
+  function adoptTheme(themeId) {
+    if (!themeId) return;
+    state.theme = themeId;
+    state.mode = getModeForTheme(themeId);
     saveState();
   }
 
@@ -461,10 +498,15 @@
   function getUserId() {
     if (window.Auth && window.Auth.me && window.Auth.me.id) return window.Auth.me.id;
     if (window.__currentUserId) return window.__currentUserId;
-    try {
-      var u = JSON.parse(localStorage.getItem('xs_user') || 'null');
-      if (u && u.id) return u.id;
-    } catch (e) {}
+    // index.html 未加载 auth.js，只能从 localStorage 兜底读用户 ID：
+    // xs_user / sp_user（auth.js 写入）/ starlearn_user（login.js 写入）均为 {id, ...}
+    var keys = ['xs_user', 'sp_user', 'starlearn_user'];
+    for (var i = 0; i < keys.length; i++) {
+      try {
+        var u = JSON.parse(localStorage.getItem(keys[i]) || 'null');
+        if (u && u.id) return u.id;
+      } catch (e) {}
+    }
     return null;
   }
 
@@ -815,6 +857,7 @@
     getCustomThemes: function () { return customThemes.slice(); },
     setMode: setMode,
     setTheme: setTheme,
+    adoptTheme: adoptTheme,
     toggleMode: toggleMode,
     isLightMode: isLightMode,
     getThemesForMode: getThemesForMode,
