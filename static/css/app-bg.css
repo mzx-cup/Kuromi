@@ -43,7 +43,11 @@
 [data-theme="ocean-glass-dark"] .app-bg-layer,
 [data-theme="pink-dark"] .app-bg-layer,
 [data-theme="deep-ocean"] .app-bg-layer,
-[data-theme="star-vault"] .app-bg-layer {
+[data-theme="star-vault"] .app-bg-layer,
+[data-theme="midnight"] .app-bg-layer,
+[data-theme="nebula"] .app-bg-layer,
+[data-theme="lunar-halo"] .app-bg-layer,
+[data-theme="flowing-aurora"] .app-bg-layer {
   background: #040816;
 }
 
@@ -79,7 +83,11 @@
 [data-theme="ocean-glass-dark"] .app-bg-stars,
 [data-theme="pink-dark"] .app-bg-stars,
 [data-theme="deep-ocean"] .app-bg-stars,
-[data-theme="star-vault"] .app-bg-stars {
+[data-theme="star-vault"] .app-bg-stars,
+[data-theme="midnight"] .app-bg-stars,
+[data-theme="nebula"] .app-bg-stars,
+[data-theme="lunar-halo"] .app-bg-stars,
+[data-theme="flowing-aurora"] .app-bg-stars {
   opacity: 1;
   animation: app-bg-twinkle 4s ease-in-out infinite alternate;
 }
@@ -107,7 +115,11 @@
 [data-theme="ocean-glass-dark"] .app-bg-nebula,
 [data-theme="pink-dark"] .app-bg-nebula,
 [data-theme="deep-ocean"] .app-bg-nebula,
-[data-theme="star-vault"] .app-bg-nebula {
+[data-theme="star-vault"] .app-bg-nebula,
+[data-theme="midnight"] .app-bg-nebula,
+[data-theme="nebula"] .app-bg-nebula,
+[data-theme="lunar-halo"] .app-bg-nebula,
+[data-theme="flowing-aurora"] .app-bg-nebula {
   opacity: 1;
 }
 
@@ -160,9 +172,17 @@
 }
 
 /* 暗色主题 body 文字适配 */
-[data-theme$="night"] .app-body,
-[data-theme$="dark"] .app-body,
-[data-theme="neon-cyber"] .app-body {
+[data-theme="study-night"] .app-body,
+[data-theme="starry-night"] .app-body,
+[data-theme="neon-cyber"] .app-body,
+[data-theme="ocean-glass-dark"] .app-body,
+[data-theme="pink-dark"] .app-body,
+[data-theme="deep-ocean"] .app-body,
+[data-theme="star-vault"] .app-body,
+[data-theme="midnight"] .app-body,
+[data-theme="nebula"] .app-body,
+[data-theme="lunar-halo"] .app-body,
+[data-theme="flowing-aurora"] .app-body {
   color: var(--cp-text-secondary, var(--text-body, #94a3b8));
 }
 

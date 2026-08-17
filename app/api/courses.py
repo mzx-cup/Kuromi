@@ -104,6 +104,15 @@ class ImportPlaylistRequest(BaseModel):
 # ── helpers ──
 
 def _subject_to_dict(subject) -> dict[str, Any]:
+    # Sort courses: those with bvid/playlist_url first, then by sort_order
+    sorted_courses = sorted(subject.courses, key=lambda c: (
+        # Has video (bvid or playlist_url) sorts before no video
+        (not bool(c.bvid or c.playlist_url)),
+        # Then by sort_order ascending
+        c.sort_order or 0,
+        # Then by title for stability
+        c.title or "",
+    ))
     return {
         "id": subject.id,
         "name": subject.name,
@@ -113,7 +122,7 @@ def _subject_to_dict(subject) -> dict[str, Any]:
         "sort_order": subject.sort_order,
         "is_demo": bool(getattr(subject, "is_demo", False)),
         "demo_version": getattr(subject, "demo_version", "") or "",
-        "courses": [_course_to_dict(c) for c in subject.courses],
+        "courses": [_course_to_dict(c) for c in sorted_courses],
     }
 
 

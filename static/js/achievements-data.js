@@ -684,3 +684,119 @@ const ACHIEVEMENT_ICONS = {
 // 导出
 window.ACHIEVEMENTS = ACHIEVEMENTS;
 window.ACHIEVEMENT_ICONS = ACHIEVEMENT_ICONS;
+
+// ==========================================================================
+// 演示用假数据（仅 __DEMO__=true 时生效）
+// 解锁状态：已解锁的徽章，键为成就 id，值为 { unlockedAt }
+// 累计统计：满足成就条件的当前值（用于显示未解锁徽章的进度）
+// ==========================================================================
+(function () {
+    // localhost 下自动启用演示模式，可通过 ?demo=0 关闭
+    if (typeof window.__DEMO__ === 'undefined') {
+        window.__DEMO__ = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    }
+    if (!window.__DEMO__) return;
+
+    const DEMO_USER = { id: 'demo_user_001', name: '星云游客' };
+    const NOW = Date.now();
+    const d = (offsetDays) => NOW - offsetDays * 86_400_000;
+
+    // 累计统计（对应 achievements-data.js 中各成就的 condition）
+    window.__DEMO_STATS__ = {
+        study_count:      47,       // → 学习新手(10)✓ 学习达人(50)✗
+        study_minutes:     723,      // → 初识门径(60)✓ 渐入佳境(600)✗
+        streak_days:       12,       // → 三连击(3)✓ 周常达人(7)✓ 双周坚持(14)✗
+        algo_count:        23,       // → 算法入门(1)✓ 算法学徒(10)✓ 算法高手(50)✗
+        algo_streak:       5,       // → 连胜达人(10)✗
+        daily_goal_complete: 3,
+        pet_adopt:         1,
+        pet_feed:          34,       // → 爱心喂养(10)✓ 贴心主人(100)✗
+        pet_play:          17,      // → 快乐伙伴(50)✗
+        pet_intimacy:      65,      // → 亲密无间(80)✗
+        pet_unlock:        3,       // → 星友收藏家(5)✗
+        plant_count:       7,       // → 播种希望(1)✓ 绿手指(10)✗
+        harvest_count:    14,       // → 初获丰收(5)✓ 丰收达人(20)✗
+        game_play:         8,       // → 游戏新手(1)✓ 游戏达人(50)✗
+        game_high_score:  380,     // → 高分选手(500)✗
+        game_max_combo:    7,
+        // 各课程完成标记（course_xxx 使用）
+        course_python:     1,
+        course_c:          1,
+        course_bigdata:    1,
+        course_python_adv: 0,
+        course_cpp:        0,
+        course_hadoop:     0,
+        course_spark:      0,
+        course_algorithm:  0,
+        course_os:         0,
+    };
+
+    // 已解锁徽章（unlockedAt 为毫秒时间戳）
+    window.__DEMO_UNLOCKED__ = {
+        // 学习基础
+        first_study:   { unlockedAt: d(120) },
+        study_10:      { unlockedAt: d(115) },
+        study_50:      { unlockedAt: d(30) },
+        time_1h:       { unlockedAt: d(110) },
+        time_10h:      { unlockedAt: d(25) },
+        daily_goal:    { unlockedAt: d(90) },
+        // 连续学习
+        streak_3:      { unlockedAt: d(60) },
+        streak_7:      { unlockedAt: d(55) },
+        streak_14:     { unlockedAt: d(48) },
+        // 算法挑战
+        algo_first:    { unlockedAt: d(100) },
+        algo_10:       { unlockedAt: d(85) },
+        algo_50:       { unlockedAt: d(20) },
+        algo_streak_10:{ unlockedAt: d(15) },
+        algo_perfect:  { unlockedAt: d(18) },
+        // 课程证书
+        course_python: { unlockedAt: d(95) },
+        course_c:      { unlockedAt: d(88) },
+        course_bigdata:{ unlockedAt: d(60) },
+        // 星友互动
+        pet_adopt:     { unlockedAt: d(80) },
+        pet_feed_10:   { unlockedAt: d(65) },
+        pet_play_50:   { unlockedAt: d(35) },  // 实际 stats 只有 17，但演示用
+        // 植物林场
+        plant_first:   { unlockedAt: d(75) },
+        plant_10:      { unlockedAt: d(40) },
+        harvest_5:     { unlockedAt: d(38) },
+        harvest_20:    { unlockedAt: d(12) },
+        // 小游戏
+        game_first:     { unlockedAt: d(70) },
+        game_50:       { unlockedAt: d(10) },
+        // 大师成就
+        knowledge_master:{ unlockedAt: d(5) },
+        explore_all:   { unlockedAt: d(3) },
+    };
+
+    // 自动写入 localStorage 模拟已登录
+    localStorage.setItem('starlearn_user', JSON.stringify(DEMO_USER));
+
+    // 拦截 fetch，统一返回演示数据
+    const _fetch = window.fetch.bind(window);
+    window.fetch = function (url, opts) {
+        if (typeof url !== 'string') return _fetch(url, opts);
+        const userId = DEMO_USER.id;
+
+        if (url.includes('/api/achievements/load/' + userId)) {
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ success: true, achievementsData: window.__DEMO_UNLOCKED__ }),
+            });
+        }
+        if (url.includes('/api/stats/load/' + userId)) {
+            return Promise.resolve({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ success: true, statsData: window.__DEMO_STATS__ }),
+            });
+        }
+        return _fetch(url, opts);
+    };
+
+    console.info('[DEMO] 星云陈列室演示数据已加载，解锁徽章',
+        Object.keys(window.__DEMO_UNLOCKED__).length + '/' + ACHIEVEMENTS.length);
+})();

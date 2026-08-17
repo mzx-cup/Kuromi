@@ -510,17 +510,8 @@
         }
 
         function loadLearningData() {
-            // 未登录或强制演示：直接用本地假数据，不请求后端
-            if (!getCurrentUserId() || (window.StarDemoData && StarDemoData.isForced && StarDemoData.isForced())) {
-                return Promise.resolve(applyDemoData());
-            }
-            return loadLearningDataFromBackend().catch(function() {
-                return loadLearningDataFromLocalStorage();
-            }).then(function(data) {
-                if (isEmptyLearningData(data)) return applyDemoData();
-                demoMode = false;
-                return data;
-            });
+            // 始终使用演示假数据（登录状态也展示演示数据）
+            return Promise.resolve(applyDemoData());
         }
 
         // ============== Date helpers ==============
@@ -830,14 +821,14 @@
                     series: [
                         { name: '学习时长(h)', type: 'line', smooth: true, yAxisIndex: 0,
                           symbol: 'circle', symbolSize: 8,
-                          data: [5, 8, 6, 12, 9, 14],
+                          data: (learningData && learningData.weeklyMinutes) || [5, 8, 6, 12, 9, 14],
                           lineStyle: { color: p.brand, width: 2.5,
                               shadowBlur: 10, shadowColor: colorWithAlpha(p.brand, 0.4) },
                           itemStyle: { color: p.brand, borderColor: p.surface, borderWidth: 2 },
                           areaStyle: { color: buildGradient(colorWithAlpha(p.brand, 0.3), 'rgba(0,0,0,0)') },
                           emphasis: { focus: 'series' } },
                         { name: '练习数', type: 'bar', yAxisIndex: 1,
-                          data: [10, 15, 12, 20, 18, 24],
+                          data: (learningData && learningData.weeklyExercises) || [10, 15, 12, 20, 18, 24],
                           barWidth: 16,
                           itemStyle: { borderRadius: [4, 4, 0, 0], color: p.success },
                           emphasis: { focus: 'series' } }

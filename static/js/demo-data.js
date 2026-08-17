@@ -250,9 +250,38 @@
         return dailyMinutes;
     }
 
+    /**
+     * 从 dailyMinutes 聚合出近 6 周的周数据。
+     * 每周从周一开始（getDay()+6）%7===0 为周一。
+     * 返回 { hours: number[6], exercises: number[6] }
+     */
+    function buildWeeklyData(dailyMinutes) {
+        // 收集近 6×7=42 天的数据
+        const weekHours = [0, 0, 0, 0, 0, 0];
+        const weekExercises = [0, 0, 0, 0, 0, 0];
+        for (let off = -41; off <= 0; off++) {
+            const d = new Date(Date.now() + off * DAY_MS);
+            const dow = (d.getDay() + 6) % 7; // Mon=0, Sun=6
+            const weekIdx = Math.floor((41 + off) / 7); // 0=最老周, 5=最近周
+            if (weekIdx >= 0 && weekIdx < 6) {
+                const iso = isoAt(off);
+                const mins = dailyMinutes[iso] || 0;
+                weekHours[weekIdx] += mins / 60; // 转小时
+                // 练习数：从 daily 分钟数推算（每 10 分钟约 1 题）
+                weekExercises[weekIdx] += Math.round((mins / 10) * (0.8 + ((off * 9301 + 49297) % 233280) / 233280 * 0.4));
+            }
+        }
+        // 保留 1 位小数
+        return {
+            hours: weekHours.map(v => Math.round(v * 10) / 10),
+            exercises: weekExercises.map(v => Math.round(v)),
+        };
+    }
+
     function getDashboardData(range) {
         const base = DASH_RANGE[range] || DASH_RANGE['30d'];
         const dailyMinutes = buildDailyMinutes();
+        const weeklyData = buildWeeklyData(dailyMinutes);
         let totalMinutes = 0;
         Object.keys(dailyMinutes).forEach(function (k) { totalMinutes += dailyMinutes[k]; });
         return {
@@ -265,12 +294,126 @@
             exercises: base.exercises,
             dailyMinutes: dailyMinutes,
             hourlyMinutes: {},
+            weeklyMinutes: weeklyData.hours,
+            weeklyExercises: weeklyData.exercises,
             evaluation: { dimensions: DASH_DIMENSIONS },
             focus: { score: 87, summary: { focusMinutes: 42, studyMinutes: 65, pageSwitches: 3 } },
             history: DASH_TIMELINE,
             radar: { dimensions: DASH_DIMENSIONS, thisMonth: [], lastMonth: [] },
             goalRings: {},
             heatmap: null,
+        };
+    }
+
+    /* ============================================================
+       4. 心流共振仪 (flow-meter.html)
+       ------------------------------------------------------------
+       返回 FocusAnalysis 模块消费的 analysis 数据结构：
+       { score, today, deepRatio, trend, timeline, timeOfDay, tips }
+       以及 getRealtimeState() 返回的实时状态对象。
+       ============================================================ */
+
+    function isoAtTime(offsetDays, hour, minute, second) {
+        var d = new Date(Date.now() + offsetDays * DAY_MS);
+        d.setHours(hour, minute, second || 0, 0);
+        return d.toISOString();
+    }
+
+    /** 生成 timeline 数据（最近 N 条记录，每隔 ~2 分钟一条） */
+    function buildTimeline(count) {
+        var entries = [];
+        var types = ['deep', 'deep', 'deep', 'shallow', 'shallow', 'warning'];
+        for (var i = count - 1; i >= 0; i--) {
+            var offMin = i * 2.3;
+            var d = new Date(Date.now() - offMin * 60000);
+            var h = d.getHours();
+            // 夜间分数偏低
+            var base = (h >= 22 || h < 6) ? 55 : 75;
+            var score = Math.round(base + Math.sin(i * 1.7) * 18 + Math.cos(i * 0.9) * 12);
+            score = Math.max(20, Math.min(98, score));
+            var r = (i * 9301 + 49297) % 233280 / 233280;
+            var type = types[Math.floor(r * types.length)];
+            entries.push({
+                timestamp: d.toISOString(),
+                score: score,
+                type: type
+            });
+        }
+        return entries;
+    }
+
+    /** 时段分布数据 */
+    function buildTimeOfDay() {
+        return {
+            morning:    { sessions: 3, score: 78 },
+            afternoon:  { sessions: 5, score: 85 },
+            evening:    { sessions: 4, score: 72 },
+            night:      { sessions: 2, score: 58 }
+        };
+    }
+
+    /** 专注建议 */
+    function buildTips() {
+        return [
+            { type: 'good', text: '下午 14:00–16:00 是你的黄金专注时段，建议安排高难度任务' },
+            { type: 'info', text: '本周深度专注率比上周提升了 12%，继续保持 ✨' },
+            { type: 'warn', text: '近 3 次会话平均分心次数偏高，尝试使用「勿扰模式」' }
+        ];
+    }
+
+    function getFlowMeterData() {
+        var now = new Date();
+        var h = now.getHours();
+
+        // 今日数据
+        var todayFirst = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 12, 0);
+
+        // 心流指数根据时间段浮动
+        var scoreBase = (h >= 10 && h <= 12) ? 86 : (h >= 14 && h <= 17) ? 82 : (h >= 19 && h <= 22) ? 74 : 65;
+
+        return {
+            success: true,
+            score: scoreBase,
+            today: {
+                firstSessionTime: todayFirst.toISOString(),
+                focusRatio: 72,
+                studyMinutes: 65,
+                focusMinutes: 47
+            },
+            deepRatio: 68,
+            trend: {
+                direction: 'up',
+                change: 8,
+                previousPeriodScore: 74,
+                currentPeriodScore: 82
+            },
+            timeline: buildTimeline(30),
+            timeOfDay: buildTimeOfDay(),
+            tips: buildTips()
+        };
+    }
+
+    function getFlowMeterRealtimeState() {
+        var now = new Date();
+        var h = now.getHours();
+        // 模拟不同时间段处于不同状态
+        var state;
+        if (h >= 10 && h <= 12) {
+            state = 'focused';
+        } else if (h >= 14 && h <= 16) {
+            state = 'lightly';
+        } else if (h >= 22 || h < 6) {
+            state = 'distracted';
+        } else {
+            state = 'focused';
+        }
+        return {
+            state: state,
+            switchFrequency: 1,
+            lastActivitySec: 32,
+            confidence: 0.88,
+            isHidden: false,
+            timestamp: Date.now()
         };
     }
 
@@ -283,5 +426,7 @@
         getProgressSummary,
         getCalendarPayload,
         getDashboardData,
+        getFlowMeterData,
+        getFlowMeterRealtimeState,
     };
 })();

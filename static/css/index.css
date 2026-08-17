@@ -286,7 +286,14 @@
 [data-theme="study-night"],
 [data-theme="starry-night"],
 [data-theme="pink-dark"],
-[data-theme="ocean-glass-dark"] {
+[data-theme="ocean-glass-dark"],
+[data-theme="midnight"],
+[data-theme="nebula"],
+[data-theme="cyber"],
+[data-theme="deep-ocean"],
+[data-theme="star-vault"],
+[data-theme="lunar-halo"],
+[data-theme="flowing-aurora"] {
     /* Text: light end of neutral scale → white-ish on dark bg */
     --text-heading:     var(--neutral-50);
     --text-body:        var(--neutral-200);
@@ -7250,6 +7257,11 @@ body.light-theme .path-tree-empty {
 
 [data-theme="flowing-aurora"] .path-tree-node {
     text-shadow: 0 0 8px rgba(45,212,191,0.15);
+}
+
+[data-theme="midnight"] .path-tree-node,
+[data-theme="nebula"] .path-tree-node {
+    text-shadow: 0 0 6px rgba(148,163,184,0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {

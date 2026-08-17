@@ -43,7 +43,10 @@
 [data-theme="forest-light"]    .theme-bg-color,
 [data-theme="sakura-whisper"]  .theme-bg-color,
 [data-theme="twilight-glow"]   .theme-bg-color,
-[data-theme="bamboo-grove"]    .theme-bg-color {
+[data-theme="bamboo-grove"]    .theme-bg-color,
+[data-theme="ocean"]   .theme-bg-color,
+[data-theme="sunset"]  .theme-bg-color,
+[data-theme="sakura-falling"] .theme-bg-color {
     background:
         radial-gradient(ellipse at 15% 25%, color-mix(in oklch, var(--brand-200), transparent 70%) 0%, transparent 50%),
         radial-gradient(ellipse at 85% 75%, color-mix(in oklch, var(--info),       transparent 85%) 0%, transparent 50%),
@@ -61,7 +64,9 @@
 [data-theme="pink-dark"]    .theme-bg-color,
 [data-theme="deep-ocean"]   .theme-bg-color,
 [data-theme="ocean-glass-dark"] .theme-bg-color,
-[data-theme="star-vault"]   .theme-bg-color {
+[data-theme="star-vault"]   .theme-bg-color,
+[data-theme="lunar-halo"]   .theme-bg-color,
+[data-theme="flowing-aurora"] .theme-bg-color {
     background:
         radial-gradient(ellipse at 25% 30%, color-mix(in oklch, var(--info),     transparent 80%) 0%, transparent 55%),
         radial-gradient(ellipse at 70% 60%, color-mix(in oklch, var(--brand-400), transparent 82%) 0%, transparent 50%),
@@ -80,7 +85,9 @@
 [data-theme="pink-dark"]    .theme-bg-color::before,
 [data-theme="deep-ocean"]   .theme-bg-color::before,
 [data-theme="ocean-glass-dark"] .theme-bg-color::before,
-[data-theme="star-vault"]   .theme-bg-color::before {
+[data-theme="star-vault"]   .theme-bg-color::before,
+[data-theme="lunar-halo"]   .theme-bg-color::before,
+[data-theme="flowing-aurora"] .theme-bg-color::before {
     content: '';
     position: absolute;
     inset: 0;

@@ -2193,7 +2193,7 @@ window.addEventListener('starlearn:theme-applied', syncLegacyThemeLayer);
 
 function setTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('starlearn_theme', theme);
+    try { localStorage.setItem('starlearn_theme', theme); } catch (e) {}
     // 同步到服务端数据库
     if (window.StarData) StarData.setTheme(theme);
     document.querySelectorAll('.theme-option').forEach(opt => {

@@ -19,12 +19,19 @@
 
   // ===== 预设主题 =====
   var PRESETS = {
-    'dawn':     { name: '晨曦', mode: 'light', brand: '#f08a3e' },
-    'forest':   { name: '森野', mode: 'light', brand: '#3aa056' },
-    'sakura':   { name: '樱语', mode: 'light', brand: '#e85d8a' },
-    'midnight': { name: '子夜', mode: 'dark',  brand: '#f5b65a' },
-    'nebula':   { name: '星云', mode: 'dark',  brand: '#a98cef' },
-    'cyber':    { name: '赛博', mode: 'dark',  brand: '#3dd9e0' }
+    'dawn':             { name: '晨曦',   mode: 'light', brand: '#f08a3e' },
+    'forest':           { name: '森野',   mode: 'light', brand: '#3aa056' },
+    'sakura':           { name: '樱语',   mode: 'light', brand: '#e85d8a' },
+    'midnight':         { name: '子夜',   mode: 'dark',  brand: '#f5b65a' },
+    'nebula':           { name: '星云',   mode: 'dark',  brand: '#a98cef' },
+    'cyber':            { name: '赛博',   mode: 'dark',  brand: '#3dd9e0' },
+    // 旧主题 ID（index.html 下拉面板直接调用 setTheme('ocean') 等）
+    'ocean':            { name: '星海蓝', mode: 'light', brand: '#2563eb' },
+    'sunset':           { name: '暮光橙', mode: 'light', brand: '#d97706' },
+    'sakura-falling':   { name: '烂漫樱花', mode: 'light', brand: '#f9a8d4' },
+    'starry-night':     { name: '浩瀚星空', mode: 'dark',  brand: '#3b82f6' },
+    'lunar-halo':       { name: '皎月流光', mode: 'dark',  brand: '#94a3b8' },
+    'flowing-aurora':   { name: '极光之影', mode: 'dark',  brand: '#2dd4bf' }
   };
 
   // ===== 旧主题 ID → 新主题（仅用于明暗模式推断，不再改写视觉主题） =====

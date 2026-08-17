@@ -151,6 +151,60 @@
     --_color-scheme: dark;
 }
 
+/* ---- index.html 旧下拉面板直接调用的主题 ---- */
+[data-theme="ocean"],
+[data-theme="ocean-glass"] {
+    --_brand-h: 220;           --_brand-c: 0.16;       --_brand-l: 55%;
+    --_success-h: 168;         --_success-c: 0.14;     --_success-l: 48%;
+    --_warning-h: 38;          --_warning-c: 0.17;     --_warning-l: 65%;
+    --_danger-h: 12;           --_danger-c: 0.20;      --_danger-l: 52%;
+    --_info-h: 210;            --_info-c: 0.14;        --_info-l: 56%;
+    --_neutral-h: 220;          --_neutral-c: 0.012;
+    --_shadow-strength: 0.06;  --_surface-saturation: 0.025;
+    --_color-scheme: light;
+}
+[data-theme="sunset"] {
+    --_brand-h: 28;            --_brand-c: 0.20;       --_brand-l: 58%;
+    --_success-h: 145;         --_success-c: 0.14;     --_success-l: 52%;
+    --_warning-h: 45;          --_warning-c: 0.18;     --_warning-l: 65%;
+    --_danger-h: 12;           --_danger-c: 0.22;      --_danger-l: 54%;
+    --_info-h: 200;            --_info-c: 0.13;        --_info-l: 55%;
+    --_neutral-h: 28;           --_neutral-c: 0.012;
+    --_shadow-strength: 0.06;  --_surface-saturation: 0.025;
+    --_color-scheme: light;
+}
+[data-theme="sakura-falling"],
+[data-theme="sakura-whisper"] {
+    --_brand-h: 342;           --_brand-c: 0.16;       --_brand-l: 68%;
+    --_success-h: 148;         --_success-c: 0.12;     --_success-l: 52%;
+    --_warning-h: 36;          --_warning-c: 0.15;     --_warning-l: 62%;
+    --_danger-h: 352;          --_danger-c: 0.18;      --_danger-l: 52%;
+    --_info-h: 275;            --_info-c: 0.12;        --_info-l: 58%;
+    --_neutral-h: 345;          --_neutral-c: 0.010;
+    --_shadow-strength: 0.04;  --_surface-saturation: 0.02;
+    --_color-scheme: light;
+}
+[data-theme="lunar-halo"] {
+    --_brand-h: 230;           --_brand-c: 0.08;       --_brand-l: 72%;
+    --_success-h: 160;         --_success-c: 0.10;     --_success-l: 58%;
+    --_warning-h: 50;          --_warning-c: 0.12;     --_warning-l: 68%;
+    --_danger-h: 10;           --_danger-c: 0.16;      --_danger-l: 55%;
+    --_info-h: 220;            --_info-c: 0.10;        --_info-l: 65%;
+    --_neutral-h: 230;          --_neutral-c: 0.010;
+    --_shadow-strength: 0.28;  --_surface-saturation: 0.01;
+    --_color-scheme: dark;
+}
+[data-theme="flowing-aurora"] {
+    --_brand-h: 175;           --_brand-c: 0.18;       --_brand-l: 62%;
+    --_success-h: 165;         --_success-c: 0.15;     --_success-l: 56%;
+    --_warning-h: 85;          --_warning-c: 0.14;     --_warning-l: 62%;
+    --_danger-h: 320;          --_danger-c: 0.16;      --_danger-l: 52%;
+    --_info-h: 240;            --_info-c: 0.12;        --_info-l: 60%;
+    --_neutral-h: 220;          --_neutral-c: 0.012;
+    --_shadow-strength: 0.28;  --_surface-saturation: 0.02;
+    --_color-scheme: dark;
+}
+
 
 /* ============================================================
    LAYER 2 — 生成色阶（全局计算）
@@ -227,7 +281,9 @@
 [data-theme="deep-ocean"],
 [data-theme="ocean-glass-dark"],
 [data-theme="star-vault"],
-[data-theme="neon-cyber"] {
+[data-theme="neon-cyber"],
+[data-theme="lunar-halo"],
+[data-theme="flowing-aurora"] {
     --surface-page:    oklch(14% var(--_neutral-c) var(--_neutral-h));
     --surface-card:    color-mix(in oklch, oklch(20% var(--_neutral-c) var(--_neutral-h)), transparent 25%);
     --surface-hover:   color-mix(in oklch, oklch(26% var(--_neutral-c) var(--_neutral-h)), transparent 15%);
@@ -261,8 +317,11 @@
 
     /* 文字色（亮色基线） */
     --text-heading:     var(--neutral-900);
+    --text-primary:     var(--neutral-800);
     --text-body:        var(--neutral-700);
+    --text-secondary:    var(--neutral-600);
     --text-muted:       var(--neutral-500);
+    --text-tertiary:    var(--neutral-400);
     --text-placeholder: var(--neutral-400);
     --text-link:        var(--brand-600);
     --text-on-brand:    #ffffff;
@@ -555,10 +614,15 @@
 [data-theme="deep-ocean"],
 [data-theme="ocean-glass-dark"],
 [data-theme="star-vault"],
-[data-theme="neon-cyber"] {
+[data-theme="neon-cyber"],
+[data-theme="lunar-halo"],
+[data-theme="flowing-aurora"] {
     --text-heading:     var(--neutral-50);
+    --text-primary:     var(--neutral-100);
     --text-body:        var(--neutral-200);
+    --text-secondary:   var(--neutral-300);
     --text-muted:       var(--neutral-400);
+    --text-tertiary:    var(--neutral-500);
     --text-placeholder: var(--neutral-500);
     --text-link:        var(--brand-300);
     --text-on-brand:    oklch(14% var(--_neutral-c) var(--_neutral-h));

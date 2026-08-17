@@ -197,8 +197,34 @@
     <script src="/js/mascot-panel.js"></script>
 
     <script src="/js/data-layer.js"></script>
+    <script src="/js/demo-data.js"></script>
     <script src="/js/focus-sync.js"></script>
     <script src="/js/focus-analysis.js"></script>
+
+    <!-- Demo data interceptor: mock fetch for /api/focus/analysis/ -->
+    <script>
+    (function() {
+        'use strict';
+        if (!window.StarDemoData || !window.StarDemoData.isForced()) return;
+
+        window.StarDemoData.showBadge();
+
+        var _origFetch = window.fetch;
+        window.fetch = function(input, init) {
+            var url = typeof input === 'string' ? input : input.url || '';
+            if (url.indexOf('/api/focus/analysis/') !== -1) {
+                var demoData = window.StarDemoData.getFlowMeterData();
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: function() { return Promise.resolve(demoData); }
+                });
+            }
+            return _origFetch.apply(this, arguments);
+        };
+    })();
+    </script>
+
     <script src="/js/flow-meter.js"></script>
 
     <script>
