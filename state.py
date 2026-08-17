@@ -190,11 +190,17 @@ class StudentState(BaseModel):
     def to_persist_dict(self) -> dict[str, Any]:
         return self.model_dump(mode="json")
 
+    @field_validator("source_links", mode="before")
+    @classmethod
+    def _coerce_source_links(cls, v):
+        # 与 ``ChatResponseV2._coerce_source_links`` 共享规整逻辑
+        return _coerce_source_links(v)
+
     @classmethod
     def from_persist_dict(cls, data: dict[str, Any]) -> StudentState:
         # Fix legacy data where source_links might be a list instead of dict
         if "source_links" in data and not isinstance(data["source_links"], dict):
-            data["source_links"] = {}
+            data["source_links"] = _coerce_source_links(data["source_links"])
         if "sources" in data and not isinstance(data["sources"], list):
             data["sources"] = []
         return cls.model_validate(data)
@@ -233,6 +239,38 @@ class ChatResponseV2(BaseModel):
     emotion: EmotionState = Field(default_factory=EmotionState)
     evaluation: dict[str, Any] = Field(default_factory=dict)
     context_id: str = ""
+
+    @field_validator("source_links", mode="before")
+    @classmethod
+    def _coerce_source_links(cls, v):
+        """兼容历史数据:旧实现有时把 ``source_links`` 写成 ``list[str]`` 或
+        ``list[dict]``,这里统一规整为 ``dict[str, str]``. ``StudentState``
+        已经有 ``from_persist_dict`` 处理持久化路径,但直接构造 (例如测试中)
+        仍可能传 list → 用 ``field_validator(mode='before')`` 在 Pydantic
+        校验阶段就把脏数据打平。"""
+        return _coerce_source_links(v)
+
+
+def _coerce_source_links(v):
+    """把历史脏数据 (list / None / 非 dict) 规整为 ``dict[str, str]``."""
+    if v is None:
+        return {}
+    if isinstance(v, dict):
+        # 强转一次 key/val 到 str,避免混入 int 等
+        return {str(k): str(val) for k, val in v.items()}
+    if isinstance(v, list):
+        out: dict[str, str] = {}
+        for item in v:
+            if isinstance(item, dict):
+                key = item.get("url") or item.get("title") or item.get("name")
+                val = item.get("title") or item.get("url") or item.get("name") or ""
+                if key:
+                    out[str(key)] = str(val)
+            elif isinstance(item, str):
+                out[f"link_{len(out)}"] = item
+        return out
+    # 任何其它类型都安全回退为 {}
+    return {}
 
 
 class StreamChatRequest(BaseModel):

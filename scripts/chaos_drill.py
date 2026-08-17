@@ -17,7 +17,7 @@ Scenarios:
                                   agent loop still spins up within
                                   the configured budget.
 
-The output is a JSON report written to ``perf-results/chaos-<ts>.json``
+The output is a JSON report written to ``artifacts/perf/chaos-<ts>.json``
 with one ``ScenarioResult`` per scenario. The script exits:
 
   0 — every scenario either passed or was SKIPPED
@@ -26,7 +26,7 @@ with one ``ScenarioResult`` per scenario. The script exits:
 Usage::
 
   python scripts/chaos_drill.py
-  python scripts/chaos_drill.py --out perf-results/chaos.json
+  python scripts/chaos_drill.py --out artifacts/perf/chaos.json
   python scripts/chaos_drill.py --scenario kill_qdrant_30s
 """
 from __future__ import annotations
@@ -299,7 +299,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--out",
-        default="perf-results/chaos-{ts}.json",
+        default="artifacts/perf/chaos-{ts}.json",
         help="Output path. '{ts}' is replaced with YYYYMMDD-HHMMSS.",
     )
     parser.add_argument(

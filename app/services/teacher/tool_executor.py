@@ -177,7 +177,7 @@ class ToolExecutor:
 
     async def _handle_generate_outline(self, args: dict) -> dict:
         """课程大纲生成 — 复用现有 course_generator.py"""
-        from course_generator import generate_course_outline
+        from libs.course import generate_course_outline
         return await generate_course_outline(
             topic=args["topic"],
             student_level=args.get("student_level", "beginner"),

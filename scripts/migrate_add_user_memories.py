@@ -4,7 +4,7 @@ import os
 import sqlite3
 
 # 直接指定数据库路径
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "xingshi.db")
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage", "xingshi.db")
 
 
 def migrate():

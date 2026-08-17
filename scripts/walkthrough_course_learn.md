@@ -8,7 +8,7 @@
 
 ```bash
 # 后端
-python start_server.py   # 默认端口 (8000?), 详见 .env
+python scripts/start_server.py   # 默认端口 (8000?), 详见 config/.env
 # 前端直接打开 (已经是静态 HTML)
 #   http://localhost:8000/course-learn.html?courseId=demo_python_101
 ```

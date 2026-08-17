@@ -7,10 +7,20 @@ Provides read/write methods against the db.py tables
 can swap implementations behind the
 :class:`app.repositories.base.ChatRepository` Protocol.
 
-NOTE: the ``messages`` table uses the new ``msg_metadata`` column name
-(not the legacy ``metadata``). Production data must be migrated with
-``scripts/migrate_messages_metadata.py`` before this repository is
-considered safe to read.
+设计要点：
+  - ``messages``: 直接 SQLite 连接,因为生产 MySQL 上的 messages 表用的是
+    ``msg_metadata`` 列名(不是 ``metadata``);直接拿 ``db.get_db()`` 给的
+    MySQL 连接会因为列名不匹配而报错。生产数据迁移见
+    ``scripts/migrate_messages_metadata.py``。``db_path`` 显式传入时(test
+    fixture 注入)使用该路径。
+  - ``user_memories``: 当构造时显式传入 ``db_path``(test fixture)时,直接
+    连该 SQLite 文件,这是测试所需的能力。否则走 ``db.get_db()`` 让生产
+    MySQL / SQLite 都能工作,与 ORM 路径对齐。同时**自动探测列名**,对老
+    schema(只有 ``user_id, memory_type, content, importance,
+    source_conversation_id, created_at, last_accessed``)与新 schema(完整
+    超集含 ``source``/``confidence``/``access_count``/``confirmed``)都兼容。
+  - 返回的 dict 包含超集字段 ``source``/``confidence``/``access_count``/
+    ``confirmed``,让 ``memory_retriever`` 评分能拿到完整信息。
 """
 from __future__ import annotations
 
@@ -23,15 +33,17 @@ import db
 
 class DbPyChatRepository:
     def __init__(self, db_path: str = None):
-        # Absolute path from ``db.py`` so legacy reads follow the same
-        # SQLite file the rest of the project uses, regardless of CWD.
-        import db as _db
-        self.db_path = db_path or _db.SQLITE_PATH
+        # 当 ``db_path`` 显式传入(test fixture)时记下来;``self._conn()`` 会用它。
+        # 否则保留为 ``None``,记忆方法会用 ``db.get_db()`` 跟随当前生效后端。
+        self.db_path = db_path
 
     def _conn(self):
-        return sqlite3.connect(self.db_path)
+        # 旧 messages 方法用的:永远连 self.db_path;若未设置则退回 db.SQLITE_PATH
+        # (保持向后兼容)。
+        import db as _db
+        return sqlite3.connect(self.db_path or _db.SQLITE_PATH)
 
-    # ── messages ──
+    # ── messages ──  (留 SQLite,不走 get_db())
 
     def save_message(self, user_id, message: dict) -> int:
         conn = self._conn()
@@ -77,93 +89,359 @@ class DbPyChatRepository:
         finally:
             conn.close()
 
-    # ── memories ──
+    # ── memories ──  (db_path 显式 → 直连;否则走 db.get_db())
+
+    def _memory_connection(self):
+        """选择记忆操作的连接来源。
+
+        - ``self.db_path`` 显式传入(test fixture)→ 返回 (``"sqlite"``,
+          ``sqlite3.connect(self.db_path)``)
+        - 否则 → 用 ``db.get_db()`` 跟随当前生效后端(MySQL / SQLite / JSON)
+
+        返回 ``(backend_kind, conn_or_ctx)``。``conn_or_ctx`` 可以是直接的
+        sqlite3.Connection,或一个 ``db.get_db()`` 返回的 context manager。
+        为统一接口,这里直接返回连接对象,并把 ``db.get_db()`` 的生命周期
+        由 ``_memory_conn_iter`` 负责进入/退出。
+        """
+        if self.db_path is not None:
+            return "sqlite", sqlite3.connect(self.db_path)
+        # 否则进入 db.get_db() 上下文;调用方应使用 _memory_conn_iter
+        return "auto", None
+
+    def _memory_conn_iter(self):
+        """根据 ``self.db_path`` 是否显式,选择正确的连接上下文。
+
+        产出 ``(backend_kind, conn)``;调用方负责 ``conn.close()`` 或依赖
+        ``db.get_db()`` 自动 close。
+        """
+        if self.db_path is not None:
+            conn = sqlite3.connect(self.db_path)
+            try:
+                yield "sqlite", conn
+            finally:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+            return
+        # 默认走 db.get_db(),跟随当前生效后端
+        with db.get_db() as conn:
+            yield ("auto", conn)
+
+    @staticmethod
+    def _existing_cols(conn) -> set:
+        """探测 ``user_memories`` 已有列名(SQLite/MySQL 通用)。"""
+        try:
+            if db._is_sqlite(conn):  # noqa: SLF001
+                cur = conn.cursor()
+                try:
+                    cur.execute("PRAGMA table_info(user_memories)")
+                    return {row[1] for row in cur.fetchall()}
+                finally:
+                    try:
+                        cur.close()
+                    except Exception:
+                        pass
+            else:
+                cur = conn.cursor()
+                try:
+                    cur.execute(
+                        "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_memories'"
+                    )
+                    return {row[0] for row in cur.fetchall()}
+                finally:
+                    try:
+                        cur.close()
+                    except Exception:
+                        pass
+        except Exception:
+            return set()
 
     def save_memory(self, user_id, memory: dict) -> int:
-        conn = self._conn()
+        """保存一条用户记忆。
+
+        id 由数据库自动分配(自增 INTEGER / BIGINT)。``memory.get("id")``
+        如果是整数会被用作显式 PK;否则忽略。
+
+        自动适配 schema:如果表里没有 ``source`` / ``confidence`` /
+        ``access_count`` / ``confirmed`` / ``updated_at`` 列(老 schema 或
+        简化的 test fixture),只 INSERT 已存在的列。
+        """
+        explicit_id = memory.get("id")
+        use_explicit = False
+        if explicit_id is not None:
+            try:
+                explicit_id = int(explicit_id)
+                use_explicit = True
+            except (TypeError, ValueError):
+                use_explicit = False
+
+        for _backend, conn in self._memory_conn_iter():
+            if conn is None:
+                # JSON 回退
+                return self._save_memory_json(user_id, memory)
+            try:
+                # 确保表存在;只在没有时建(不会重复补列,因为 _ensure_user_memories_table
+                # 内部已经幂等)。在 ``self.db_path`` 显式注入的 test 场景下,
+                # 表已经存在,这一步几乎是 no-op。
+                db._ensure_user_memories_table(conn)  # noqa: SLF001
+
+                cols_avail = self._existing_cols(conn)
+                if not cols_avail:
+                    # 表都不存在 → JSON 回退
+                    return self._save_memory_json(user_id, memory)
+
+                now = datetime.now().isoformat(sep=" ", timespec="seconds")
+                placeholder = "?" if db._is_sqlite(conn) else "%s"  # noqa: SLF001
+
+                # 列定义(标准超集);过滤掉实际不存在的列
+                spec = [
+                    ("user_id",                str(user_id)),
+                    ("memory_type",            memory.get("memory_type", "fact")),
+                    ("content",                memory.get("content", "")),
+                    ("importance",             memory.get("importance", 1)),
+                    ("source_conversation_id", memory.get("source_conversation_id")),
+                    ("source",                 memory.get("source", "auto")),
+                    ("confidence",             float(memory.get("confidence", 1.0))),
+                    ("created_at",             now),
+                    ("updated_at",             now),
+                    ("last_accessed",          None),
+                    ("access_count",           memory.get("access_count", 1)),
+                    ("confirmed",              int(memory.get("confirmed", 0))),
+                ]
+                cols = []
+                values = []
+                if use_explicit and "id" in cols_avail:
+                    cols.append("id")
+                    values.append(explicit_id)
+                for col, val in spec:
+                    if col in cols_avail:
+                        cols.append(col)
+                        values.append(val)
+
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        f"INSERT INTO user_memories ({', '.join(cols)}) "
+                        f"VALUES ({', '.join([placeholder] * len(cols))})",
+                        values,
+                    )
+                    conn.commit()
+                    new_id = cursor.lastrowid
+                    return new_id if new_id is not None else explicit_id or 0
+                finally:
+                    try:
+                        cursor.close()
+                    except Exception:
+                        pass
+            except Exception:
+                # 任何 schema/类型不匹配 → JSON 回退
+                return self._save_memory_json(user_id, memory)
+        return self._save_memory_json(user_id, memory)
+
+    def _save_memory_json(self, user_id, memory: dict) -> int:
+        """JSON 本地存储回退路径(与 db.py:save_user_memory 同语义)."""
         try:
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO user_memories
-                (user_id, memory_type, content, importance, source_conversation_id, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (
-                user_id,
-                memory.get("memory_type", "fact"),
-                memory.get("content", ""),
-                memory.get("importance", 1),
-                memory.get("source_conversation_id"),
-                datetime.now().isoformat(),
-            ))
-            conn.commit()
-            return cur.lastrowid
-        finally:
-            conn.close()
+            storage = db.load_local_storage()
+            if "user_memories" not in storage:
+                storage["user_memories"] = []
+            now = datetime.now().isoformat(sep=" ", timespec="seconds")
+            new_id = max(
+                [m.get("id", 0) for m in storage["user_memories"] if isinstance(m.get("id"), int)],
+                default=0,
+            ) + 1
+            storage["user_memories"].append({
+                "id": new_id,
+                "user_id": str(user_id),
+                "memory_type": memory.get("memory_type", "fact"),
+                "content": memory.get("content", ""),
+                "importance": memory.get("importance", 1),
+                "source_conversation_id": memory.get("source_conversation_id"),
+                "source": memory.get("source", "auto"),
+                "confidence": float(memory.get("confidence", 1.0)),
+                "created_at": now,
+                "updated_at": now,
+                "last_accessed": None,
+                "access_count": memory.get("access_count", 1),
+                "confirmed": int(memory.get("confirmed", 0)),
+            })
+            db.save_local_storage(storage)
+            return new_id
+        except Exception:
+            return 0
 
     def get_memories(self, user_id, memory_type: str | None = None, limit: int = 20) -> list:
-        conn = self._conn()
+        """获取用户记忆列表(超集字段,老 schema 也能跑)。
+
+        返回字段: ``id`` / ``user_id`` / ``memory_type`` / ``content`` /
+        ``importance`` / ``source_conversation_id`` / ``source`` /
+        ``confidence`` / ``created_at`` / ``updated_at`` / ``last_accessed`` /
+        ``access_count`` / ``confirmed``。
+        """
+        for _backend, conn in self._memory_conn_iter():
+            if conn is None:
+                return self._get_memories_json(user_id, memory_type, limit)
+            try:
+                db._ensure_user_memories_table(conn)  # noqa: SLF001
+                cols_avail = self._existing_cols(conn)
+                if not cols_avail:
+                    return self._get_memories_json(user_id, memory_type, limit)
+
+                # 列名 → 顺序索引;查询时按可用列拼 SELECT
+                preferred = [
+                    "id", "user_id", "memory_type", "content",
+                    "importance", "source_conversation_id",
+                    "source", "confidence",
+                    "created_at", "updated_at", "last_accessed",
+                    "access_count", "confirmed",
+                ]
+                select_cols = [c for c in preferred if c in cols_avail]
+                if "id" not in select_cols:
+                    select_cols.insert(0, "id")
+
+                placeholder = "?" if db._is_sqlite(conn) else "%s"  # noqa: SLF001
+                where_parts = [f"user_id = {placeholder}"]
+                params: list = [str(user_id)]
+                if memory_type is not None and "memory_type" in cols_avail:
+                    where_parts.append(f"memory_type = {placeholder}")
+                    params.append(memory_type)
+
+                order_col = "importance" if "importance" in cols_avail else (
+                    "updated_at" if "updated_at" in cols_avail else "id"
+                )
+                sql = (
+                    f"SELECT {', '.join(select_cols)} FROM user_memories "
+                    f"WHERE {' AND '.join(where_parts)} "
+                    f"ORDER BY {order_col} DESC LIMIT {placeholder}"
+                )
+                params.append(limit)
+
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(sql, params)
+                    rows = cursor.fetchall()
+                finally:
+                    try:
+                        cursor.close()
+                    except Exception:
+                        pass
+
+                # 标准化为 dict 列表
+                out: list = []
+                for row in rows:
+                    if isinstance(row, dict):
+                        d = dict(row)
+                    else:
+                        d = dict(zip(select_cols, row))
+                    # 默认值填充分
+                    out.append({
+                        "id": d.get("id"),
+                        "user_id": d.get("user_id", str(user_id)),
+                        "memory_type": d.get("memory_type") or "fact",
+                        "content": d.get("content") or "",
+                        "importance": d.get("importance") if d.get("importance") is not None else 1,
+                        "source_conversation_id": d.get("source_conversation_id"),
+                        "source": d.get("source") or "auto",
+                        "confidence": float(d["confidence"]) if d.get("confidence") is not None else 1.0,
+                        "created_at": d.get("created_at"),
+                        "updated_at": d.get("updated_at"),
+                        "last_accessed": d.get("last_accessed"),
+                        "access_count": d.get("access_count") if d.get("access_count") is not None else 1,
+                        "confirmed": int(d["confirmed"]) if d.get("confirmed") is not None else 0,
+                    })
+                return out
+            except Exception:
+                return self._get_memories_json(user_id, memory_type, limit)
+        return self._get_memories_json(user_id, memory_type, limit)
+
+    def _get_memories_json(self, user_id, memory_type, limit) -> list:
+        """JSON 本地存储回退路径."""
         try:
-            cur = conn.cursor()
+            storage = db.load_local_storage()
+            memories = [m for m in storage.get("user_memories", []) if m.get("user_id") == str(user_id)]
             if memory_type is not None:
-                cur.execute("""
-                    SELECT id, memory_type, content, importance, source_conversation_id,
-                           created_at, last_accessed
-                    FROM user_memories
-                    WHERE user_id = ? AND memory_type = ?
-                    ORDER BY importance DESC, created_at DESC
-                    LIMIT ?
-                """, (user_id, memory_type, limit))
-            else:
-                cur.execute("""
-                    SELECT id, memory_type, content, importance, source_conversation_id,
-                           created_at, last_accessed
-                    FROM user_memories
-                    WHERE user_id = ?
-                    ORDER BY importance DESC, created_at DESC
-                    LIMIT ?
-                """, (user_id, limit))
-            return [
-                {
-                    "id": r[0],
-                    "memory_type": r[1],
-                    "content": r[2],
-                    "importance": r[3],
-                    "source_conversation_id": r[4],
-                    "created_at": r[5],
-                    "last_accessed": r[6],
-                }
-                for r in cur.fetchall()
-            ]
-        finally:
-            conn.close()
-
-    def update_memory(self, memory_id: int, updates: dict) -> None:
-        assignments = []
-        values = []
-        if "content" in updates:
-            assignments.append("content = ?")
-            values.append(updates["content"])
-        if "importance" in updates:
-            assignments.append("importance = ?")
-            values.append(updates["importance"])
-        if not assignments:
-            return
-
-        conn = self._conn()
-        try:
-            conn.execute(
-                f"UPDATE user_memories SET {', '.join(assignments)} WHERE id = ?",
-                (*values, memory_id),
+                memories = [m for m in memories if m.get("memory_type") == memory_type]
+            memories.sort(
+                key=lambda m: (m.get("importance") or 1, m.get("updated_at") or m.get("created_at") or ""),
+                reverse=True,
             )
-            conn.commit()
-        finally:
-            conn.close()
+            return memories[:limit]
+        except Exception:
+            return []
 
-    def confirm_memory(self, memory_id: int, confirmed: bool = True) -> None:
+    def update_memory(self, memory_id, updates: dict) -> None:
+        """更新已有记忆的 content / importance / confidence / source.
+
+        自动适配 schema:不存在的列会被跳过。
+        """
+        for _backend, conn in self._memory_conn_iter():
+            if conn is None:
+                return self._update_memory_json(memory_id, updates)
+
+            try:
+                db._ensure_user_memories_table(conn)  # noqa: SLF001
+                cols_avail = self._existing_cols(conn)
+                if not cols_avail:
+                    return self._update_memory_json(memory_id, updates)
+
+                placeholder = "?" if db._is_sqlite(conn) else "%s"  # noqa: SLF001
+                assignments = []
+                values: list = []
+                field_map = {
+                    "content":    updates.get("content"),
+                    "importance": updates.get("importance"),
+                    "confidence": updates.get("confidence"),
+                    "source":     updates.get("source"),
+                }
+                for col, val in field_map.items():
+                    if val is None or col not in cols_avail:
+                        continue
+                    assignments.append(f"{col} = {placeholder}")
+                    values.append(val)
+                if not assignments:
+                    return
+
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        f"UPDATE user_memories SET {', '.join(assignments)} WHERE id = {placeholder}",
+                        (*values, memory_id),
+                    )
+                    conn.commit()
+                    return
+                finally:
+                    try:
+                        cursor.close()
+                    except Exception:
+                        pass
+            except Exception:
+                return self._update_memory_json(memory_id, updates)
+        return self._update_memory_json(memory_id, updates)
+
+    def _update_memory_json(self, memory_id, updates: dict) -> None:
+        try:
+            storage = db.load_local_storage()
+            for m in storage.get("user_memories", []):
+                if m.get("id") == memory_id:
+                    if "content" in updates:
+                        m["content"] = updates["content"]
+                    if "importance" in updates:
+                        m["importance"] = updates["importance"]
+                    if "confidence" in updates:
+                        m["confidence"] = updates["confidence"]
+                    if "source" in updates:
+                        m["source"] = updates["source"]
+                    db.save_local_storage(storage)
+                    break
+        except Exception:
+            pass
+
+    def confirm_memory(self, memory_id, confirmed: bool = True) -> None:
         db.confirm_user_memory(memory_id, confirmed)
 
-    def delete_memory(self, memory_id: int) -> None:
+    def delete_memory(self, memory_id) -> None:
         db.delete_user_memory(memory_id)
 
-    def bump_memory_access(self, memory_id: int) -> None:
+    def bump_memory_access(self, memory_id) -> None:
         db.bump_memory_access(memory_id)

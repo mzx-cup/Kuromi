@@ -7,3 +7,7 @@
 {"ts": "2026-07-19T10:52:36.691554+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}
 {"ts": "2026-07-19T11:10:53.431443+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}
 {"ts": "2026-07-19T12:05:51.306749+00:00", "kind": "intent_route", "student_id": "3", "intent": "course_generate"}
+{"ts": "2026-08-10T06:07:48.083752+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-08-10T06:08:57.852856+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-08-10T06:09:36.802019+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}
+{"ts": "2026-08-10T07:32:36.391495+00:00", "kind": "intent_route", "student_id": "4", "intent": "socratic_qa"}

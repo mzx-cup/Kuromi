@@ -46,7 +46,7 @@ class MiniMaxTTSProvider(BaseTTSProvider):
         复用现有 media_generation.py 的 generate_tts() 逻辑，
         并从 extra_info 提取 word_count/audio_length 生成估计的字级时间戳。
         """
-        from media_generation import generate_tts
+        from libs.media import generate_tts
 
         # 调用 MiniMax API 并获取 extra_info
         audio_bytes, extra_info = await self._generate_with_extra(text, config)

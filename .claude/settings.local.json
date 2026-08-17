@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "*",
       "Bash(python main.py)",
       "Bash(curl -s http://127.0.0.1:8000/assessment.html)",
       "Bash(curl -s -X POST http://127.0.0.1:8000/api/assessment/submit -H \"Content-Type: application/json\" -d '{\"assessment\":{\"knowledgeBase\":\"beginner\",\"codeSkill\":\"basic\",\"learningGoal\":\"exam\",\"cognitiveStyle\":\"visual\",\"studyTime\":\"moderate\",\"focusLevel\":\"medium\"}}')",
@@ -61,7 +60,9 @@
       "Bash(grep -n '#[0-9a-fA-F]\\\\{3,8\\\\}' css/hub.css)",
       "Bash(grep *)",
       "Bash(taskkill //PID 9352 //F)",
-      "Bash(C:/Users/ZWC/AppData/Local/Programs/Python/Python314/python.exe main.py)"
+      "Bash(C:/Users/ZWC/AppData/Local/Programs/Python/Python314/python.exe main.py)",
+      "Bash(mktemp -d)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)"
     ]
   }
 }

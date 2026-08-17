@@ -20,14 +20,16 @@ MYSQL_CONFIG = {
 }
 
 # SQLite 数据库路径
-SQLITE_PATH = os.environ.get('SQLITE_PATH', os.path.join(BASE_DIR, 'xingshi.db'))
+_DEFAULT_SQLITE_PATH = os.path.join(BASE_DIR, 'storage', 'xingshi.db')
+SQLITE_PATH = os.environ.get('SQLITE_PATH', _DEFAULT_SQLITE_PATH)
 
 # 后端类型: 'mysql', 'sqlite', 'json'
 DB_BACKEND = os.environ.get('STARLEARN_DB_BACKEND', 'auto')
 _initialized = False
 _effective_backend = None
 
-LOCAL_STORAGE_PATH = os.environ.get('LOCAL_STORAGE_PATH', os.path.join(BASE_DIR, 'local_storage.json'))
+_DEFAULT_LOCAL_STORAGE_PATH = os.path.join(BASE_DIR, 'storage', 'local_storage.json')
+LOCAL_STORAGE_PATH = os.environ.get('LOCAL_STORAGE_PATH', _DEFAULT_LOCAL_STORAGE_PATH)
 
 
 def _detect_backend():
@@ -71,35 +73,71 @@ def _detect_backend():
     return 'json'
 
 
+def _open_mysql():
+    """建立 MySQL 连接。失败返回 None（并打印原因）。"""
+    try:
+        import pymysql
+        return pymysql.connect(**MYSQL_CONFIG)
+    except Exception as e:
+        print(f"MySQL 连接失败: {e}, 尝试 SQLite...")
+        return None
+
+
+def _open_sqlite():
+    """建立 SQLite 连接。失败返回 None（并打印原因）。"""
+    try:
+        import sqlite3
+        conn = sqlite3.connect(SQLITE_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+    except Exception as e:
+        print(f"SQLite 连接失败: {e}, 使用本地存储")
+        return None
+
+
 @contextmanager
 def get_db():
-    """获取数据库连接上下文，自动选择 MySQL / SQLite / JSON fallback"""
+    """获取数据库连接上下文，自动选择 MySQL / SQLite / JSON fallback。
+
+    重要：本函数必须**恰好 yield 一次**。
+
+    早期实现把"连接失败降级"和"把连接交给调用方"混在同一个 try 里，写成了
+    三段 ``try: yield ... except: <继续往下再 yield>``。这违反了
+    ``@contextmanager`` 的契约 —— 当 ``with`` 块内部抛异常时，
+    ``__exit__`` 会调用 ``gen.throw(exc)`` 把异常送回生成器，而生成器必须就此
+    停止；旧代码却用 ``except Exception`` 把**调用方的**异常吞掉，然后继续执行
+    到下一个 ``yield``，于是 CPython 抛出
+
+        RuntimeError: generator didn't stop after throw()
+
+    真正的异常被这条晦涩的报错完全掩盖（例如 load_local_storage() 的
+    Phase 2.3 RuntimeError 会被打印成 "MySQL 连接失败: ..."，极具误导性）。
+
+    现在：降级只发生在**建立连接**阶段（_open_mysql / _open_sqlite 内部自己
+    兜异常并返回 None），yield 只出现一次且不被任何 except 包裹，调用方的异常
+    原样向上传播。
+    """
     backend = _detect_backend()
+
     conn = None
-    cursor = None
-
     if backend == 'mysql':
-        try:
-            import pymysql
-            conn = pymysql.connect(**MYSQL_CONFIG)
-            yield conn
-            return
-        except Exception as e:
-            print(f"MySQL 连接失败: {e}, 尝试 SQLite...")
+        conn = _open_mysql()
+    if conn is None and backend in ('mysql', 'sqlite'):
+        conn = _open_sqlite()
 
-    if backend == 'sqlite' or (backend == 'mysql' and conn is None):
-        try:
-            import sqlite3
-            conn = sqlite3.connect(SQLITE_PATH)
-            conn.row_factory = sqlite3.Row
-            conn.execute("PRAGMA foreign_keys = ON")
-            yield conn
-            return
-        except Exception as e:
-            print(f"SQLite 连接失败: {e}, 使用本地存储")
+    if conn is None:
+        # 最终 fallback: JSON 文件（调用方负责在 conn is None 时走 JSON 分支）
+        yield None
+        return
 
-    # 最终 fallback: JSON 文件
-    yield None
+    try:
+        yield conn
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 def _check_dual_write_for_json_fallback(operation: str) -> None:
@@ -979,30 +1017,29 @@ def _ensure_learning_path_nodes_table(conn):
 
 def _migrate_learning_path_nodes_add_goal_evidence(conn):
     """兼容旧表：补齐 goal_evidence_json / goal_evidence_validated / goal_generated_at 三列。
+
+    使用 ``_ensure_table_columns`` 实现"先探测再 ALTER"，**不依赖**
+    ``ADD COLUMN IF NOT EXISTS`` —— 该语法在 MySQL 5.7 / 8.0(<8.0.29)
+    会抛 ``1064 Syntax error``，老 SQLite (<3.35) 也支持得很晚。
+
     失败仅打日志，不阻塞主流程。
     """
+    if conn is None:
+        return
     new_cols = [
-        ("goal_evidence_json", "TEXT" if _is_sqlite(conn) else "JSON"),
-        ("goal_evidence_validated", "INTEGER DEFAULT 0" if _is_sqlite(conn) else "TINYINT DEFAULT 0"),
-        ("goal_generated_at", "TEXT" if _is_sqlite(conn) else "DATETIME"),
+        {"name": "goal_evidence_json",   "type": "TEXT" if _is_sqlite(conn) else "JSON"},
+        {"name": "goal_evidence_validated", "type": "INTEGER DEFAULT 0" if _is_sqlite(conn) else "TINYINT DEFAULT 0"},
+        {"name": "goal_generated_at",    "type": "TEXT" if _is_sqlite(conn) else "DATETIME"},
     ]
-    for col_name, col_type in new_cols:
-        try:
-            cursor = conn.cursor()
-            if _is_sqlite(conn):
-                # SQLite 3.35+ 支持 IF NOT EXISTS；旧版本会抛错，已被 except 兜住
-                cursor.execute(f"ALTER TABLE learning_path_nodes ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
-            else:
-                # MySQL 8 也支持 IF NOT EXISTS
-                cursor.execute(f"ALTER TABLE learning_path_nodes ADD COLUMN IF NOT EXISTS {col_name} {col_type}")
-            cursor.close()
-        except Exception as e:
-            # 极旧 DB（不支持 IF NOT EXISTS）时，捕获"列已存在"错误并忽略
-            msg = str(e).lower()
-            if 'duplicate column' in msg or 'already exists' in msg or 'no such column' in msg:
-                pass
-            else:
-                print(f"[_migrate_learning_path_nodes_add_goal_evidence] {col_name} 迁移失败: {e}")
+    try:
+        _ensure_table_columns(
+            conn,
+            "learning_path_nodes",
+            new_cols,
+            log_prefix="[_migrate_learning_path_nodes_add_goal_evidence]",
+        )
+    except Exception as e:
+        print(f"[_migrate_learning_path_nodes_add_goal_evidence] 迁移失败: {e}")
 
 
 def get_learning_path_nodes(user_id):
@@ -1353,74 +1390,230 @@ def save_learning_path(user_id, path_json, reasoning=None, data_sources=None, co
 # ============================================================
 
 def _ensure_user_memories_table(conn):
-    """自动创建 user_memories 表（如果不存在）。"""
+    """自动创建 / 幂等迁移 user_memories 表到规范超集 schema.
+
+    规范 schema（与 ``tests/repositories/test_chat_repo_memory.py`` 中
+    ``legacy_db`` fixture 对齐，与 ORM 路径 ``app/models/chat.py:UserMemory``
+    一致）::
+
+        id                          INTEGER / BIGINT AUTO_INCREMENT PK
+        user_id                     NOT NULL
+        memory_type                 DEFAULT 'fact'
+        content                     TEXT NOT NULL
+        importance                  INT DEFAULT 1               (新加)
+        source_conversation_id      TEXT / VARCHAR(64)          (新加)
+        source                      TEXT / VARCHAR(64)
+        confidence                  FLOAT DEFAULT 1.0
+        created_at                  TIMESTAMP / TEXT
+        updated_at                  TIMESTAMP / TEXT
+        last_accessed               TIMESTAMP / TEXT NULL
+        access_count                INT DEFAULT 1
+        confirmed                   INT DEFAULT 0
+        deleted_at                  TIMESTAMP / TEXT NULL       (新加，保留)
+
+    旧版本 ``id TEXT PRIMARY KEY`` (SQLite) / ``id VARCHAR(64) PRIMARY KEY`` (MySQL)
+    强制调用方传 uuid 字符串，但 ORM 路径用 ``Integer autoincrement``，两边
+    类型不一致会让 ``memory_extractor`` 写出来的记忆永远拿不回来。
+
+    迁移策略：
+      - 表不存在 → 直接 CREATE 新 schema
+      - 表存在但 ``importance`` 列缺失（说明仍是旧版本） → 若 ``id`` 是 INTEGER/BIGINT
+        自增，则用 ``_ensure_table_columns`` 补齐缺失列；若 ``id`` 仍是
+        TEXT/VARCHAR 且表为空，直接 DROP + CREATE；若非空则只补列（保守）
+      - 表存在且 ``importance`` 已有 → 只需补可能缺失的 ``deleted_at``
+    """
+    if conn is None:
+        return
+    cursor = None
     try:
         cursor = conn.cursor()
-        if _is_sqlite(conn):
+        is_sqlite = _is_sqlite(conn)
+        existing_cols = _existing_columns(conn, "user_memories")
+
+        def _sqlite_create():
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_memories (
-                    id TEXT PRIMARY KEY,
+                CREATE TABLE user_memories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id TEXT NOT NULL,
                     memory_type TEXT NOT NULL DEFAULT 'fact',
                     content TEXT NOT NULL,
+                    importance INTEGER DEFAULT 1,
+                    source_conversation_id TEXT,
                     source TEXT,
                     confidence REAL DEFAULT 1.0,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                     last_accessed TEXT,
                     access_count INTEGER DEFAULT 1,
-                    confirmed INTEGER DEFAULT 0
+                    confirmed INTEGER DEFAULT 0,
+                    deleted_at TEXT
                 )
             """)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_memories_user_id ON user_memories (user_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_memories_type ON user_memories (memory_type)")
-        else:
-            import pymysql
+            cursor.execute("CREATE INDEX idx_user_memories_user_id ON user_memories (user_id)")
+            cursor.execute("CREATE INDEX idx_user_memories_type ON user_memories (memory_type)")
+
+        def _mysql_create():
+            import pymysql  # noqa: F401  仅用于触发导入检查
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS user_memories (
-                    id VARCHAR(64) NOT NULL PRIMARY KEY,
+                CREATE TABLE user_memories (
+                    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
                     user_id VARCHAR(64) NOT NULL,
-                    memory_type VARCHAR(20) NOT NULL DEFAULT 'fact',
+                    memory_type VARCHAR(32) DEFAULT 'fact',
                     content TEXT NOT NULL,
-                    source TEXT,
+                    importance INT DEFAULT 1,
+                    source_conversation_id VARCHAR(64),
+                    source VARCHAR(64),
                     confidence FLOAT DEFAULT 1.0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     last_accessed TIMESTAMP NULL DEFAULT NULL,
                     access_count INT DEFAULT 1,
                     confirmed TINYINT DEFAULT 0,
+                    deleted_at TIMESTAMP NULL DEFAULT NULL,
                     INDEX idx_user_memories_user_id (user_id),
                     INDEX idx_user_memories_type (memory_type)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
-        conn.commit()
-        cursor.close()
+
+        if not existing_cols:
+            # 表不存在 → CREATE
+            if is_sqlite:
+                _sqlite_create()
+            else:
+                _mysql_create()
+        elif "importance" not in existing_cols:
+            # 旧 schema：补齐缺失列（必要时 DROP + CREATE 空表）
+            if is_sqlite:
+                cursor.execute(
+                    "SELECT type FROM pragma_table_info('user_memories') WHERE name='id'"
+                )
+            else:
+                cursor.execute(
+                    "SELECT DATA_TYPE FROM information_schema.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_memories' "
+                    "AND COLUMN_NAME = 'id'"
+                )
+            row = cursor.fetchone()
+            id_type = (row[0] or "").upper() if row else ""
+            autoincrement_types = ("INTEGER", "BIGINT", "INT")
+
+            cursor.execute("SELECT COUNT(*) FROM user_memories")
+            cnt_row = cursor.fetchone()
+            n = cnt_row[0] if cnt_row else 0
+
+            if id_type in autoincrement_types:
+                # 已经是自增 PK，只需补列
+                if is_sqlite:
+                    _ensure_table_columns(conn, "user_memories", [
+                        {"name": "importance", "type": "INTEGER DEFAULT 1"},
+                        {"name": "source_conversation_id", "type": "TEXT"},
+                        {"name": "updated_at", "type": "TEXT DEFAULT CURRENT_TIMESTAMP"},
+                        {"name": "deleted_at", "type": "TEXT"},
+                    ], log_prefix="[user_memories]")
+                else:
+                    _ensure_table_columns(conn, "user_memories", [
+                        {"name": "importance", "type": "INT DEFAULT 1"},
+                        {"name": "source_conversation_id", "type": "VARCHAR(64)"},
+                        {"name": "updated_at", "type": "TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"},
+                        {"name": "deleted_at", "type": "TIMESTAMP NULL DEFAULT NULL"},
+                    ], log_prefix="[user_memories]")
+            elif n == 0:
+                # 旧 PK 且空表 → 重建
+                cursor.execute("DROP TABLE user_memories")
+                if is_sqlite:
+                    _sqlite_create()
+                else:
+                    _mysql_create()
+            else:
+                # 旧 PK 但有数据 → 保守补列（不动 PK；上层需要时可手动迁移）
+                if is_sqlite:
+                    _ensure_table_columns(conn, "user_memories", [
+                        {"name": "importance", "type": "INTEGER DEFAULT 1"},
+                        {"name": "source_conversation_id", "type": "TEXT"},
+                        {"name": "updated_at", "type": "TEXT DEFAULT CURRENT_TIMESTAMP"},
+                        {"name": "deleted_at", "type": "TEXT"},
+                    ], log_prefix="[user_memories]")
+                else:
+                    _ensure_table_columns(conn, "user_memories", [
+                        {"name": "importance", "type": "INT DEFAULT 1"},
+                        {"name": "source_conversation_id", "type": "VARCHAR(64)"},
+                        {"name": "updated_at", "type": "TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"},
+                        {"name": "deleted_at", "type": "TIMESTAMP NULL DEFAULT NULL"},
+                    ], log_prefix="[user_memories]")
+        else:
+            # 已有 importance（新 schema）；只需补可能缺失的 deleted_at
+            if is_sqlite:
+                _ensure_table_columns(conn, "user_memories", [
+                    {"name": "deleted_at", "type": "TEXT"},
+                ], log_prefix="[user_memories]")
+            else:
+                _ensure_table_columns(conn, "user_memories", [
+                    {"name": "deleted_at", "type": "TIMESTAMP NULL DEFAULT NULL"},
+                ], log_prefix="[user_memories]")
+
+        try:
+            conn.commit()
+        except Exception:
+            pass
     except Exception as e:
-        print(f"[_ensure_user_memories_table] 建表失败（可能已存在）: {e}")
+        print(f"[_ensure_user_memories_table] 建表/迁移失败: {e}")
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        except Exception:
+            pass
 
 
 def save_user_memory(memory_id, user_id, memory_type, content, source=None, confidence=0.8):
-    """保存单条用户记忆。数据库不可用时回退到本地 JSON。"""
+    """保存单条用户记忆。数据库不可用时回退到本地 JSON。
+
+    新 ``user_memories`` schema 的 id 是 ``INTEGER AUTO_INCREMENT``，所以
+    传入字符串 ``memory_id`` 会被忽略（让数据库自动分配）。只有当 ``memory_id``
+    是整数时才用它作为显式 PK —— 旧 uuid 字符串调用方应当被改成不传 memory_id。
+    """
     from datetime import datetime
     now = datetime.now().isoformat(sep=' ', timespec='seconds')
     db_ok = False
+    # 兼容：只接受 int 作为显式 id；None / 空串 / 字符串都走 auto-increment
+    use_explicit_id = False
+    if memory_id is not None:
+        try:
+            memory_id = int(memory_id)
+            use_explicit_id = True
+        except (TypeError, ValueError):
+            use_explicit_id = False
     with get_db() as conn:
         if conn is not None:
             try:
                 _ensure_user_memories_table(conn)
                 cursor = conn.cursor()
                 if _is_sqlite(conn):
-                    cursor.execute(
-                        """INSERT INTO user_memories
-                           (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)""",
-                        (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                    if use_explicit_id:
+                        cursor.execute(
+                            """INSERT INTO user_memories
+                               (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0)""",
+                            (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                    else:
+                        cursor.execute(
+                            """INSERT INTO user_memories
+                               (user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0)""",
+                            (str(user_id), memory_type, content, source or 'auto', confidence, now, now))
                 else:
-                    cursor.execute(
-                        """INSERT INTO user_memories
-                           (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1, 0)""",
-                        (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                    if use_explicit_id:
+                        cursor.execute(
+                            """INSERT INTO user_memories
+                               (id, user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1, 0)""",
+                            (memory_id, str(user_id), memory_type, content, source or 'auto', confidence, now, now))
+                    else:
+                        cursor.execute(
+                            """INSERT INTO user_memories
+                               (user_id, memory_type, content, source, confidence, created_at, updated_at, access_count, confirmed)
+                               VALUES (%s, %s, %s, %s, %s, %s, %s, 1, 0)""",
+                            (str(user_id), memory_type, content, source or 'auto', confidence, now, now))
                 conn.commit()
                 cursor.close()
                 db_ok = True
@@ -1694,10 +1887,22 @@ def bump_memory_access(memory_id):
 # ============================================================
 
 def _ensure_quiz_records_table(conn):
-    """自动创建 quiz_records 表,缺口2 + 缺口4 增量 ALTER(忽略 Duplicate column 错误)."""
+    """自动创建 quiz_records 表 + 幂等补齐缺失列（替代缺口2/缺口4 的裸 ALTER）。
+
+    旧实现两条 ``ALTER TABLE quiz_records ADD COLUMN ai_comment TEXT DEFAULT ''``
+    会在 MySQL 上抛 ``1101 BLOB/TEXT/JSON can't have a default value``。
+
+    新实现走 ``_ensure_table_columns``，并把 MySQL DDL 中的 ``TEXT DEFAULT ''``
+    改成 ``TEXT NULL``、``JSON DEFAULT NULL`` 改成 ``JSON NULL``，所有
+    TEXT/JSON 列不带字面量 DEFAULT —— Python 端 INSERT 时显式传值即可。
+    """
+    if conn is None:
+        return
+    cursor = None
     try:
         cursor = conn.cursor()
-        if _is_sqlite(conn):
+        is_sqlite = _is_sqlite(conn)
+        if is_sqlite:
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS quiz_records (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1715,7 +1920,7 @@ def _ensure_quiz_records_table(conn):
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_qr_student ON quiz_records (student_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_qr_classroom ON quiz_records (classroom_id)")
         else:
-            import pymysql
+            import pymysql  # noqa: F401
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS quiz_records (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1725,57 +1930,66 @@ def _ensure_quiz_records_table(conn):
                     score FLOAT DEFAULT 0.0,
                     total INT DEFAULT 0,
                     passed TINYINT DEFAULT 0,
-                    answers JSON DEFAULT NULL,
-                    feedback JSON DEFAULT NULL,
+                    answers JSON NULL,
+                    feedback JSON NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     INDEX idx_qr_student (student_id),
                     INDEX idx_qr_classroom (classroom_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """)
 
-        # ---- 缺口2 + 缺口4:增量加列(ADD COLUMN 失败 → 重复列 → 忽略)----
+        # 缺口2 + 缺口4: 增量加列. 注意: TEXT/JSON 列不带字面量 DEFAULT,
+        # 否则 MySQL 会抛 1101 (can't have a default value).
         extra_columns_sqlite = [
-            "ALTER TABLE quiz_records ADD COLUMN ai_score REAL",
-            "ALTER TABLE quiz_records ADD COLUMN ai_comment TEXT DEFAULT ''",
-            "ALTER TABLE quiz_records ADD COLUMN knowledge_score REAL",
-            "ALTER TABLE quiz_records ADD COLUMN ability_score REAL",
-            "ALTER TABLE quiz_records ADD COLUMN process_score REAL",
-            "ALTER TABLE quiz_records ADD COLUMN innovation_score REAL",
-            "ALTER TABLE quiz_records ADD COLUMN teacher_comment TEXT DEFAULT ''",
-            "ALTER TABLE quiz_records ADD COLUMN rubric TEXT",
-            "ALTER TABLE quiz_records ADD COLUMN override_count INTEGER DEFAULT 0",
-            "ALTER TABLE quiz_records ADD COLUMN graded_by TEXT DEFAULT 'auto'",
-            "ALTER TABLE quiz_records ADD COLUMN graded_by_user_id TEXT",
-            "ALTER TABLE quiz_records ADD COLUMN graded_at TEXT",
+            {"name": "ai_score",            "type": "REAL"},
+            {"name": "ai_comment",          "type": "TEXT DEFAULT ''"},
+            {"name": "knowledge_score",     "type": "REAL"},
+            {"name": "ability_score",       "type": "REAL"},
+            {"name": "process_score",       "type": "REAL"},
+            {"name": "innovation_score",    "type": "REAL"},
+            {"name": "teacher_comment",     "type": "TEXT DEFAULT ''"},
+            {"name": "rubric",              "type": "TEXT"},
+            {"name": "override_count",      "type": "INTEGER DEFAULT 0"},
+            {"name": "graded_by",           "type": "TEXT DEFAULT 'auto'"},
+            {"name": "graded_by_user_id",   "type": "TEXT"},
+            {"name": "graded_at",           "type": "TEXT"},
         ]
         extra_columns_mysql = [
-            "ALTER TABLE quiz_records ADD COLUMN ai_score FLOAT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN ai_comment TEXT DEFAULT ''",
-            "ALTER TABLE quiz_records ADD COLUMN knowledge_score FLOAT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN ability_score FLOAT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN process_score FLOAT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN innovation_score FLOAT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN teacher_comment TEXT DEFAULT ''",
-            "ALTER TABLE quiz_records ADD COLUMN rubric JSON DEFAULT NULL",
-            "ALTER TABLE quiz_records ADD COLUMN override_count INT DEFAULT 0",
-            "ALTER TABLE quiz_records ADD COLUMN graded_by VARCHAR(16) DEFAULT 'auto'",
-            "ALTER TABLE quiz_records ADD COLUMN graded_by_user_id VARCHAR(64) NULL",
-            "ALTER TABLE quiz_records ADD COLUMN graded_at DATETIME NULL",
+            {"name": "ai_score",            "type": "FLOAT NULL"},
+            {"name": "ai_comment",          "type": "TEXT NULL"},
+            {"name": "knowledge_score",     "type": "FLOAT NULL"},
+            {"name": "ability_score",       "type": "FLOAT NULL"},
+            {"name": "process_score",       "type": "FLOAT NULL"},
+            {"name": "innovation_score",    "type": "FLOAT NULL"},
+            {"name": "teacher_comment",     "type": "TEXT NULL"},
+            {"name": "rubric",              "type": "JSON NULL"},
+            {"name": "override_count",      "type": "INT DEFAULT 0"},
+            {"name": "graded_by",           "type": "VARCHAR(16) DEFAULT 'auto'"},
+            {"name": "graded_by_user_id",   "type": "VARCHAR(64) NULL"},
+            {"name": "graded_at",           "type": "DATETIME NULL"},
         ]
-        extras = extra_columns_sqlite if _is_sqlite(conn) else extra_columns_mysql
-        for ddl in extras:
-            try:
-                cursor.execute(ddl)
-            except Exception as col_err:
-                # Duplicate column name (1060 MySQL / "duplicate column" SQLite) → 跳过
-                msg = str(col_err).lower()
-                if "duplicate" not in msg and "already exists" not in msg:
-                    print(f"[_ensure_quiz_records_table] ADD COLUMN 异常（非重复）: {col_err}")
-                # 重复列忽略,继续
-        conn.commit()
-        cursor.close()
+        extras = extra_columns_sqlite if is_sqlite else extra_columns_mysql
+        try:
+            _ensure_table_columns(
+                conn,
+                "quiz_records",
+                extras,
+                log_prefix="[_ensure_quiz_records_table]",
+            )
+        except Exception as e:
+            print(f"[_ensure_quiz_records_table] 补列失败: {e}")
+        try:
+            conn.commit()
+        except Exception:
+            pass
     except Exception as e:
         print(f"[_ensure_quiz_records_table] 建表失败（可能已存在）: {e}")
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        except Exception:
+            pass
 
 
 def _ensure_classroom_sessions_table(conn):
@@ -5955,6 +6169,105 @@ def _is_mysql(conn):
         return isinstance(conn, pymysql.connections.Connection)
     except ImportError:
         return False
+
+
+def _existing_columns(conn, table_name: str) -> set:
+    """返回表已有的列名集合。
+
+    - SQLite: ``PRAGMA table_info(<table>)``
+    - MySQL:  ``information_schema.COLUMNS``（不带 ``IF NOT EXISTS``）
+
+    表不存在或探测失败时返回**空集合**（让调用方按"全部需要补"处理，
+    后续 DDL 会因为表不存在而抛错 —— 通常是正确的失败语义）。
+    """
+    if conn is None:
+        return set()
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        if _is_sqlite(conn):
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            # PRAGMA table_info 返回: cid, name, type, notnull, dflt_value, pk
+            return {row[1] for row in cursor.fetchall()}
+        else:
+            cursor.execute(
+                "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
+                (table_name,),
+            )
+            return {row[0] for row in cursor.fetchall()}
+    except Exception:
+        return set()
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        except Exception:
+            pass
+
+
+def _ensure_table_columns(
+    conn,
+    table_name: str,
+    columns: list[dict],
+    log_prefix: str = "",
+) -> None:
+    """幂等补列：先查已有列再 ``ADD COLUMN``。
+
+    替代 ``ALTER TABLE ... ADD COLUMN IF NOT EXISTS`` —— 该语法在
+    **MySQL 5.7 / 8.0(<8.0.29)** 中不存在，会抛 ``1064``；在 SQLite 中
+    也只有 3.35+ 才支持（旧项目要求兼容更老的环境）。
+
+    ``columns`` 形如::
+
+        [
+            {"name": "goal_evidence_json",   "type": "TEXT"},
+            {"name": "goal_evidence_validated", "type": "INTEGER DEFAULT 0"},
+            {"name": "goal_generated_at",    "type": "TIMESTAMP NULL"},
+        ]
+
+    类型字符串直接拼到 ``ADD COLUMN`` 后面 —— 调用方负责传入合法的
+    SQLite / MySQL DDL 片段。``TEXT``/``BLOB``/``JSON`` 等类型请使用
+    ``NULL`` 默认值或省略 DEFAULT（MySQL 不允许它们带字面量 DEFAULT）。
+    """
+    if conn is None:
+        return
+    if not columns:
+        return
+
+    existing = _existing_columns(conn, table_name)
+    if not existing:
+        # 表本身不存在；让后续 CREATE TABLE / 自然报错去处理，这里不强加
+        return
+
+    cursor = None
+    try:
+        cursor = conn.cursor()
+        for col in columns:
+            name = col["name"]
+            spec = col["type"]
+            if name in existing:
+                continue
+            sql = f"ALTER TABLE {table_name} ADD COLUMN {name} {spec}"
+            try:
+                cursor.execute(sql)
+                if log_prefix:
+                    print(f"{log_prefix} 已补列 {table_name}.{name} ({spec})")
+            except Exception as e:
+                # 已经在另一进程补过了 / 类型不兼容：只记录，不让启动崩
+                if log_prefix:
+                    print(f"{log_prefix} 补列 {table_name}.{name} 失败: {e}")
+        try:
+            conn.commit()
+        except Exception:
+            # SQLite 上 commit 失败多因已自动提交；忽略
+            pass
+    finally:
+        try:
+            if cursor is not None:
+                cursor.close()
+        except Exception:
+            pass
 
 
 def get_backend_name():

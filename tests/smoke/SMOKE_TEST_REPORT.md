@@ -4,7 +4,7 @@
 
 **pytest 结果**: `10 passed in 28.63s`（`pytest tests/smoke/test_e2e_apis.py -v -m smoke --timeout=180`）
 
-前置条件：已释放 `xingshi.db` 上的 SQLite 锁（残留的 `python start_server.py`，PID 24028），
+前置条件：已释放 `xingshi.db` 上的 SQLite 锁（残留的 `python scripts/start_server.py`，PID 24028），
 并启动 Qdrant v1.9.0（`docker compose -f docker-compose.dev.yml up -d qdrant-master`，`/healthz` 通过）。
 
 > **重要**：10/10 "PASS" 指断言通过，不等于接口返回 200。M1 阶段的断言

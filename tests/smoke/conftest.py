@@ -4,7 +4,7 @@
 Notes:
 - P0 Task 10: 改用 /api/health 作为 readiness probe (P0 Task 7 实现).
   /api/health 不依赖 DB, 启动判定更稳定, 也不会因双写状态影响 smoke 测试.
-- Uses the STARLEARN_PORT env var (now honored by start_server.py) to pick a free port.
+- Uses the STARLEARN_PORT env var (now honored by scripts/start_server.py) to pick a free port.
 """
 import os
 import socket
@@ -37,7 +37,7 @@ def base_url():
     proc: subprocess.Popen | None = None
     try:
         proc = subprocess.Popen(
-            ["python", "start_server.py"],
+            ["python", "scripts/start_server.py"],
             env=env,
             stdout=log_file,
             stderr=subprocess.STDOUT,

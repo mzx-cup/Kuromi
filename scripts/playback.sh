@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # scripts/playback.sh
-# 录像回放 (从 demo-results/competition-YYYYMMDD/ 拉取)
+# 录像回放 (从 artifacts/demo/competition-YYYYMMDD/ 拉取)
 #
 # 用法:
-#   bash scripts/playback.sh demo-results/competition-20260730
+#   bash scripts/playback.sh artifacts/demo/competition-20260730
 #
 # 行为:
 #   1. 校验 session 目录存在

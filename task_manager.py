@@ -115,12 +115,23 @@ class TaskStateManager:
         with database.get_db() as conn:
             if conn:
                 try:
-                    cursor = conn.cursor(database.pymysql.cursors.DictCursor)
+                    # ``db.py`` 不在模块顶层导入 pymysql(所有导入都在函数内),
+                    # 所以 ``database.pymysql`` 永远是 ``AttributeError``.
+                    # 而且 sqlite3 的 ``Connection.cursor()`` 不接受参数.
+                    # 用 backend-aware cursor 选择 — 与 ``db._get_video_cursor``
+                    # 保持一致.
+                    if database._is_sqlite(conn):  # noqa: SLF001
+                        cursor = conn.cursor()
+                    else:
+                        import pymysql  # 局部导入,与 db.py 其他位置一致
+                        cursor = conn.cursor(pymysql.cursors.DictCursor)
                     cursor.execute(
                         "SELECT context_id, state_json FROM async_task_state WHERE overall_status IN ('pending', 'running')"
                     )
                     rows = cursor.fetchall()
                     cursor.close()
+                    # MySQL pymysql.DictCursor 返回 dict, sqlite3.Row 也支持
+                    # 键访问 (row["col"]) — 统一当作 dict 即可.
                     for row in rows:
                         try:
                             state_data = json.loads(row["state_json"])

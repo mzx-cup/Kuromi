@@ -580,7 +580,7 @@ class CourseGenerator:
 
                             # V2 slides: generate images for each content item with image_prompt
                             if enable_image and new_v2:
-                                from media_generation import generate_image
+                                from libs.media import generate_image
                                 for sv2 in new_v2:
                                     for item in sv2.content:
                                         if item.image_prompt and not item.image_url:
@@ -808,7 +808,7 @@ class CourseGenerator:
 
                         async def _gen_one(task: dict) -> dict[str, Any]:
                             try:
-                                from media_generation import generate_video
+                                from libs.media import generate_video
                                 url = await generate_video(prompt=task["prompt"])
                                 task["item"].video_url = url
                                 logger.info(f"[video] generated for slide '{task['slide'].title[:30]}': {url[:80]}")
@@ -2147,7 +2147,7 @@ class CourseGenerator:
         """为每张幻灯片生成配图（串行调用MiniMax image-01）
         返回: (更新后的slides列表, 事件列表)
         """
-        from media_generation import generate_image
+        from libs.media import generate_image
 
         updated: list[Slide] = []
         events: list[dict] = []
@@ -2186,7 +2186,7 @@ class CourseGenerator:
 
     async def _generate_images_v2(self, slides_v2: list[SlideV2]) -> list[dict]:
         """为V2幻灯片补生成配图（处理那些没有image_url但有image_prompt的content items）"""
-        from media_generation import generate_image
+        from libs.media import generate_image
 
         events: list[dict] = []
         total_items = 0
@@ -2222,7 +2222,7 @@ class CourseGenerator:
         """为每张幻灯片生成教师语音（串行调用MiniMax TTS）
         返回: (更新后的slides列表, 事件列表, audio_urls映射)
         """
-        from media_generation import generate_tts
+        from libs.media import generate_tts
 
         updated: list[Slide] = []
         events: list[dict] = []

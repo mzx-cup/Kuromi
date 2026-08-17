@@ -32,7 +32,7 @@ def main() -> int:
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     log = open(log_path, "wb")
     proc = subprocess.Popen(
-        [sys.executable, "start_server.py"],
+        [sys.executable, "scripts/start_server.py"],
         env=env, stdout=log, stderr=subprocess.STDOUT, cwd=PROJECT_ROOT,
     )
     url = f"http://127.0.0.1:{port}"

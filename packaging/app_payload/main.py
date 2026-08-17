@@ -89,11 +89,26 @@ async def lifespan(app: FastAPI):
         await init_db()
     except Exception as e:
         logger.exception(f"[Startup] init_db failed: {e}")
+    # M2 KB hardening: hydrate the in-memory _COUNTER from the DB so a
+    # restart does not regenerate already-persisted KB-CON-XXXX ids.
+    try:
+        from app.repositories.orm.knowledge_node import SessionFactory
+        from app.models.knowledge_node import init_counter_from_db
+        init_counter_from_db(SessionFactory)
+        logger.info("[Startup] KB _COUNTER initialised")
+    except Exception as e:
+        logger.exception(f"[Startup] init_counter_from_db failed: {e}")
     try:
         from app.services.course_seeder import seed_courses_if_empty
         await seed_courses_if_empty()
     except Exception as e:
         logger.exception(f"[Startup] seed failed: {e}")
+    try:
+        from app.services.demo_seeder import seed_demo_if_missing
+        result = await seed_demo_if_missing()
+        logger.info(f"[Startup] demo content: {result}")
+    except Exception as e:
+        logger.exception(f"[Startup] demo seeder failed: {e}")
     try:
         from app.core.health_worker import HealthWorker
         from app.core.config import kb_settings
@@ -357,9 +372,30 @@ try:
 except ImportError:
     print("[main] Seed Media 模块不可用，跳过")
 
+# ---- Classroom API (demo classroom session retrieval) ----
+try:
+    from app.api.classroom import router as classroom_router
+    app.include_router(classroom_router)
+except ImportError as e:
+    logger.warning(f"[main] classroom router not loaded: {e}")
+
 # ---- KB API (L1 内容层 ingest 端点) ----
 from app.api.kb import router as kb_router
 app.include_router(kb_router)
+
+# ---- Health API (P0 比赛模式标准化健康检查) ----
+try:
+    from app.api.health import router as health_router
+    app.include_router(health_router)
+except Exception as _e:  # noqa: BLE001
+    logger.warning(f"[main] health router not loaded: {_e}")
+
+# ---- Demo Path API (P0 Task 12: 暴露 live_demo_path HTTP 端点) ----
+try:
+    from app.api.demo_path import router as demo_path_router
+    app.include_router(demo_path_router)
+except Exception as _e:  # noqa: BLE001
+    logger.warning(f"[main] demo_path router not loaded: {_e}")
 
 
 @app.middleware("http")
@@ -3697,6 +3733,28 @@ def get_controller() -> MasterController:
 @app.post("/api/v2/chat")
 async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends(get_controller)):
     try:
+        # === M2.5: TutorDecisionEngine 路由 + 越狱拦截 ===
+        # 当 ENABLE_DECISION_ENGINE=true 时启用；否则走原链路
+        import os as _os
+        if _os.environ.get("ENABLE_DECISION_ENGINE", "false").lower() == "true":
+            try:
+                from app.services.tutor_engine.engine import TutorDecisionEngine
+                _engine = TutorDecisionEngine()
+                _decision = await _engine.process_chat_request(
+                    user_id=str(request.student_id or ""),
+                    message=request.user_input or "",
+                    mode=request.mode or "socratic",
+                )
+                if _decision.get("blocked"):
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"input_blocked: {_decision.get('reason')}",
+                    )
+            except HTTPException:
+                raise
+            except Exception as _e:
+                logger.warning(f"[chat_v2] decision engine skip: {_e}")
+
         state = build_state_from_request(
             student_id=request.student_id,
             course_id=request.course_id,
@@ -3708,6 +3766,13 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
             code_practice_time=request.code_practice_time,
             socratic_pass_rate=request.socratic_pass_rate,
         )
+
+        # M2.5: 把决策写到 state.metadata，供下游 Agent 读取
+        if _os.environ.get("ENABLE_DECISION_ENGINE", "false").lower() == "true":
+            try:
+                state.metadata["decision"] = _decision  # type: ignore[name-defined]
+            except NameError:
+                pass
 
         state = await controller.execute(state)
 
@@ -8289,9 +8354,99 @@ def record_focus(request: FocusRecordRequest):
         database.save_user_focus_history(request.userId, history)
         analysis = _compute_focus_analysis(history, "7d")
         analysis["success"] = True
+
+        # [Slice-7] ORM dual-write: mirror the just-recorded chunk into the new
+        # normalized focus_sessions / focus_events / user_focus_history tables.
+        # Fire-and-forget so a slow ORM write never blocks the API response.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from datetime import date as _date
+
+                _sm = int(request.studyMinutes or 0)
+                _fm = int(request.focusMinutes or 0)
+                _ps = int(request.pageSwitches or 0)
+                _completed = bool(request.completedFocus)
+                _source = (request.source or "flow-meter")[:64]
+                _ts_iso = request.timestamp or datetime.now().isoformat()
+
+                # Per-record flow score uses the same formula as
+                # _compute_focus_analysis (line 8201) so values line up across
+                # legacy and ORM backends.
+                _ratio = _fm / max(1, _sm)
+                _flow_score = min(100, int(_ratio * 100))
+                _today = _date.today()
+
+                # Note: the ORM focus repo is designed against a *sync* Session
+                # (mirroring the test fixture at tests/repositories/test_focus_repo.py).
+                # We open a sync engine against the same SQLite DB rather than
+                # passing an AsyncSession, which would make query()/flush() fail.
+                from sqlalchemy import create_engine as _create_engine
+                from sqlalchemy.orm import sessionmaker as _sessionmaker
+                from app.core.config import DATABASE_URL as _DB_URL
+                _sync_url = _DB_URL.replace("sqlite+aiosqlite://", "sqlite://", 1)
+                _sync_engine = _create_engine(_sync_url, connect_args={"timeout": 5})
+                _SyncSession = _sessionmaker(bind=_sync_engine, expire_on_commit=False)
+
+                async def _orm_focus_write():
+                    with _SyncSession() as session:
+                        orm_repo = SqlAlchemyFocusRepository(session)
+                        sid = orm_repo.start_session(
+                            user_id=str(request.userId),
+                            planned_minutes=_sm,
+                            subject=_source,
+                        )
+                        orm_repo.record_event(
+                            session_id=sid,
+                            event_type="record",
+                            flow_score=_flow_score,
+                            metadata={
+                                "studyMinutes": _sm,
+                                "focusMinutes": _fm,
+                                "pageSwitches": _ps,
+                                "completedFocus": _completed,
+                                "source": _source,
+                                "timestamp": _ts_iso,
+                            },
+                        )
+                        orm_repo.end_session(
+                            session_id=sid,
+                            duration_minutes=_sm,
+                            completed=_completed,
+                        )
+                        orm_repo.upsert_user_focus_history(
+                            user_id=str(request.userId),
+                            focus_date=_today,
+                            added_focus_minutes=_fm,
+                            added_session=True,
+                            new_flow_score=_flow_score,
+                        )
+                        session.commit()
+                    _sync_engine.dispose()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_focus(_orm_focus_write))
+                else:
+                    asyncio.run(_orm_focus_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm focus record failed: {e}")
+
         return {"success": True, "focusSummary": analysis}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"记录专注历史失败: {str(e)}")
+
+
+async def _safe_orm_focus(coro_factory):
+    """Run an ORM focus-write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm focus record failed: {e}")
 
 
 @app.get("/api/focus/analysis/{user_id}")
@@ -8836,9 +8991,7 @@ def load_daily_route_db(user_id: int, route_date: str):
 def guest_login(request: Request):
     """游客快速登录 - 生成临时账号"""
     ip_address, user_agent = get_login_request_meta(request)
-    import random
-    import string
-    guest_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    guest_id = _uuid.uuid4().hex[:8]
     guest_username = f"guest_{guest_id}"
     guest_password = hashlib.md5(guest_username.encode()).hexdigest()
     avatar = f"https://api.dicebear.com/7.x/adventurer/svg?seed={guest_username}&backgroundColor=b6e3f4"
@@ -8855,6 +9008,7 @@ def guest_login(request: Request):
     return {
         "success": True,
         "userId": user_id,
+        "user_id": user_id,
         "username": guest_username,
         "nickname": f"游客_{guest_id[:4]}",
         "avatar": avatar,

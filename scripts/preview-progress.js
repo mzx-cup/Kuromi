@@ -51,7 +51,7 @@ const path = require('path');
   // 等待数据动画
   await page.waitForTimeout(1500);
 
-  const outDir = path.resolve(__dirname, '..', 'demo-results', 'progress-rebuild');
+  const outDir = path.resolve(__dirname, '..', 'artifacts', 'demo', 'progress-rebuild');
   fs.mkdirSync(outDir, { recursive: true });
 
   const file1 = path.join(outDir, 'progress-light.png');

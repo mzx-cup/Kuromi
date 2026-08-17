@@ -201,7 +201,7 @@ async def generate_video(
     if not settings.kling_access_key or not settings.kling_secret_key:
         raise RuntimeError("可灵API密钥未配置，请检查config/.env中的KLING_ACCESS_KEY和KLING_SECRET_KEY")
 
-    from kling_api import generate_video_text
+    from libs.kling_api import generate_video_text
     return await generate_video_text(
         prompt=prompt,
         duration=duration,

@@ -104,3 +104,44 @@ class SqlAlchemyFocusRepository:
             }
             for e in events
         ]
+
+    # ── user_focus_history upsert (daily aggregate) ──
+
+    def upsert_user_focus_history(
+        self,
+        user_id: str,
+        focus_date,
+        added_focus_minutes: int,
+        added_session: bool,
+        new_flow_score: float,
+    ) -> None:
+        """Increment today's aggregate row. Idempotent w.r.t. concurrent flushes
+        because we read-then-write within the same session."""
+        from sqlalchemy import func
+
+        row = (
+            self.session.query(UserFocusHistory)
+            .filter_by(user_id=user_id, focus_date=focus_date)
+            .first()
+        )
+        if row is None:
+            row = UserFocusHistory(
+                user_id=user_id,
+                focus_date=focus_date,
+                total_focus_minutes=int(added_focus_minutes),
+                sessions_count=1 if added_session else 0,
+                avg_flow_score=float(new_flow_score),
+                deep_focus_minutes=int(added_focus_minutes) if new_flow_score >= 75 else 0,
+            )
+            self.session.add(row)
+        else:
+            # weighted average: combine existing avg with the new sample
+            old_n = max(1, row.sessions_count)
+            old_avg = float(row.avg_flow_score or 0)
+            if added_session:
+                row.sessions_count = old_n + 1
+                row.avg_flow_score = (old_avg * old_n + float(new_flow_score)) / (old_n + 1)
+            row.total_focus_minutes = int(row.total_focus_minutes or 0) + int(added_focus_minutes)
+            if new_flow_score >= 75:
+                row.deep_focus_minutes = int(row.deep_focus_minutes or 0) + int(added_focus_minutes)
+        self.session.flush()

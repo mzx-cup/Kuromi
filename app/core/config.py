@@ -29,7 +29,7 @@ class AppConfig(BaseSettings):
     app_debug: bool = Field(default=False, validation_alias="APP_DEBUG")
 
     model_config = {
-        "env_file": ".env",
+        "env_file": str(_BASE_DIR / "config" / ".env"),
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
         "extra": "ignore",
@@ -63,7 +63,7 @@ class KBSettings(BaseSettings):
     dual_write_legacy: bool = True
 
     model_config = {
-        "env_file": ".env",
+        "env_file": str(_BASE_DIR / "config" / ".env"),
         "env_prefix": "KB_",
         "extra": "ignore",
     }

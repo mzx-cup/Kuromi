@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os as _os
 import time
 import logging
 import heapq
@@ -7,6 +8,11 @@ from datetime import datetime, timedelta
 from typing import Optional
 from pydantic import BaseModel, Field
 from enum import IntEnum
+
+_LOCAL_STORAGE = _os.environ.get(
+    "LOCAL_STORAGE_PATH",
+    _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "storage", "local_storage.json"),
+)
 
 logger = logging.getLogger("starlearn.proactive")
 if not logger.handlers:
@@ -373,7 +379,7 @@ class ProactiveTutor:
     def _fallback_stale_query(self, student_id: str) -> list[dict]:
         import json as _json
         try:
-            with open("local_storage.json", "r", encoding="utf-8") as f:
+            with open(_LOCAL_STORAGE, "r", encoding="utf-8") as f:
                 data = _json.load(f)
             # local_storage.json 中 learning_records 是 list，每个元素含 user_id
             records = data.get("learning_records", [])

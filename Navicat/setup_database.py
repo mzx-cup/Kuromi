@@ -100,6 +100,7 @@ MYSQL_TABLES = [
         last_grade_record TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -121,6 +122,8 @@ MYSQL_TABLES = [
         eval_json LONGTEXT,
         record_date DATE NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         UNIQUE KEY uq_eval_user_date (user_id, record_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -134,7 +137,9 @@ MYSQL_TABLES = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL UNIQUE,
         preferences_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -150,6 +155,7 @@ MYSQL_TABLES = [
         garden_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -165,6 +171,7 @@ MYSQL_TABLES = [
         pet_game_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -179,6 +186,7 @@ MYSQL_TABLES = [
         achievements_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -193,6 +201,7 @@ MYSQL_TABLES = [
         stats_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -206,7 +215,9 @@ MYSQL_TABLES = [
         user_id INT NOT NULL UNIQUE,
         notifications_json LONGTEXT,
         last_update_time BIGINT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -225,6 +236,7 @@ MYSQL_TABLES = [
         hub_theme VARCHAR(50) DEFAULT 'light',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -239,6 +251,7 @@ MYSQL_TABLES = [
         coding_state_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -251,20 +264,74 @@ MYSQL_TABLES = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL UNIQUE,
         weather_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
     # ──────────────────────────────────────────────────────
-    # 14. user_focus_history - 专注历史
+    # 14. user_focus_history - 专注历史 (含归一化字段，供 db.py 双路径写入)
     # ──────────────────────────────────────────────────────
     """
     CREATE TABLE IF NOT EXISTS user_focus_history (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL UNIQUE,
+        focus_date DATE DEFAULT NULL,
+        total_focus_minutes INT DEFAULT 0,
+        sessions_count INT DEFAULT 0,
+        avg_flow_score FLOAT DEFAULT 0.0,
+        deep_focus_minutes INT DEFAULT 0,
         focus_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_ufh_user_date (user_id, focus_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 14.1 focus_sessions - 单次专注会话 (供 DbPyFocusRepository / SqlAlchemyFocusRepository)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS focus_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        started_at DATETIME DEFAULT NULL,
+        ended_at DATETIME DEFAULT NULL,
+        duration_minutes INT DEFAULT 0,
+        planned_minutes INT DEFAULT 0,
+        completed TINYINT DEFAULT 0,
+        subject VARCHAR(64) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_fs_user (user_id),
+        INDEX idx_fs_user_time (user_id, started_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 14.2 focus_events - 会话内事件 (切屏/分心/状态切换等)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS focus_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        session_id INT NOT NULL,
+        user_id INT NOT NULL,
+        event_type VARCHAR(64) DEFAULT 'start',
+        timestamp DATETIME DEFAULT NULL,
+        flow_score FLOAT DEFAULT 0.0,
+        metadata_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        INDEX idx_fe_session (session_id),
+        INDEX idx_fe_user_time (user_id, timestamp),
+        INDEX idx_fe_type (event_type),
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -277,7 +344,9 @@ MYSQL_TABLES = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL UNIQUE,
         eco_data_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
@@ -290,37 +359,30 @@ MYSQL_TABLES = [
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL UNIQUE,
         projects_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
     # ──────────────────────────────────────────────────────
-    # 17. user_calendar_events - 日历事件
-    # ──────────────────────────────────────────────────────
-    """
-    CREATE TABLE IF NOT EXISTS user_calendar_events (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE,
-        events_json LONGTEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    """,
-
-    # ──────────────────────────────────────────────────────
-    # 18. daily_routes - 每日学习路线
+    # 17. daily_routes - 每日学习路线 (路线头，任务项在 daily_route_tasks)
     # ──────────────────────────────────────────────────────
     """
     CREATE TABLE IF NOT EXISTS daily_routes (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
         route_date DATE NOT NULL,
-        tasks_json LONGTEXT,
-        completed_json LONGTEXT,
+        title VARCHAR(255) DEFAULT '',
+        summary TEXT,
         generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        total_estimated_minutes INT DEFAULT 0,
+        total_actual_minutes INT DEFAULT 0,
+        completion_rate FLOAT DEFAULT 0.0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         UNIQUE KEY uq_user_date (user_id, route_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -343,11 +405,14 @@ MYSQL_TABLES = [
         first_studied_at TIMESTAMP NULL,
         last_studied_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         sm2_data_json TEXT,
         stats_json TEXT,
         position_x REAL DEFAULT 0,
         position_y REAL DEFAULT 0,
-        INDEX idx_user_id (user_id)
+        INDEX idx_user_id (user_id),
+        INDEX idx_kn_user_time (user_id, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
@@ -364,7 +429,11 @@ MYSQL_TABLES = [
         quality INT DEFAULT 0,
         response_time REAL DEFAULT 0,
         sm2_result_json TEXT,
-        INDEX idx_user_node (user_id, node_id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        INDEX idx_user_node (user_id, node_id),
+        INDEX idx_rr_user_time (user_id, review_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
@@ -379,10 +448,12 @@ MYSQL_TABLES = [
         event_type VARCHAR(100) NOT NULL,
         event_data TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_student (student_id),
         INDEX idx_context (context_id),
         INDEX idx_event (event_type),
-        INDEX idx_created (created_at)
+        INDEX idx_created (created_at),
+        INDEX idx_telemetry_student_time (student_id, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
@@ -400,6 +471,8 @@ MYSQL_TABLES = [
         subject VARCHAR(100) DEFAULT '',
         node_id VARCHAR(255) DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         INDEX idx_user_date (user_id, session_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -421,7 +494,10 @@ MYSQL_TABLES = [
         end_date DATE,
         is_active TINYINT DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_lg_user_active (user_id, is_active)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
@@ -436,6 +512,8 @@ MYSQL_TABLES = [
         daily_minutes TEXT,
         hourly_distribution TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         UNIQUE KEY uq_user_week (user_id, week_start_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -454,9 +532,11 @@ MYSQL_TABLES = [
         full_data LONGTEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         INDEX idx_user_id (user_id),
-        INDEX idx_created_at (created_at)
+        INDEX idx_created_at (created_at),
+        INDEX idx_cr_user_time (user_id, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
@@ -501,6 +581,7 @@ MYSQL_TABLES = [
         last_reviewed_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         UNIQUE KEY uq_user_card (user_id, card_hash)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -523,6 +604,8 @@ MYSQL_TABLES = [
         duration_seconds INT DEFAULT 0,
         session_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         INDEX idx_user_date (user_id, session_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -541,6 +624,7 @@ MYSQL_TABLES = [
         message_type VARCHAR(20) NOT NULL DEFAULT 'text',
         metadata LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         deleted_at TIMESTAMP NULL DEFAULT NULL,
         INDEX idx_messages_session_time (session_id, created_at),
         INDEX idx_messages_student_time (student_id, created_at),
@@ -561,7 +645,9 @@ MYSQL_TABLES = [
         key_facts LONGTEXT,
         message_count INT NOT NULL DEFAULT 0,
         last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         INDEX idx_conversation_summaries_student_id (student_id),
         INDEX idx_conversation_summaries_last_message_at (last_message_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -580,6 +666,7 @@ MYSQL_TABLES = [
         confidence FLOAT DEFAULT 1.0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         last_accessed TIMESTAMP NULL DEFAULT NULL,
         access_count INT DEFAULT 1,
         confirmed TINYINT DEFAULT 0,
@@ -608,6 +695,7 @@ MYSQL_TABLES = [
         teacher_persona VARCHAR(32) NOT NULL DEFAULT 'expert_mentor',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         `slides` JSON DEFAULT NULL,
         `is_demo` TINYINT DEFAULT 0,
         `demo_version` VARCHAR(16) DEFAULT '',
@@ -631,47 +719,16 @@ MYSQL_TABLES = [
         answers JSON DEFAULT NULL,
         feedback JSON DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         INDEX idx_qr_student (student_id),
-        INDEX idx_qr_classroom (classroom_id)
+        INDEX idx_qr_classroom (classroom_id),
+        INDEX idx_qr_student_time (student_id, created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
     # ──────────────────────────────────────────────────────
-    # 34. agent_turn_records - 智能体对话轮次
-    # ──────────────────────────────────────────────────────
-    """
-    CREATE TABLE IF NOT EXISTS agent_turn_records (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        classroom_id VARCHAR(64) NOT NULL,
-        agent_id VARCHAR(64) NOT NULL,
-        agent_role VARCHAR(64) NOT NULL,
-        turn_index INT NOT NULL,
-        content TEXT NOT NULL,
-        actions JSON DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_atr_classroom (classroom_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    """,
-
-    # ──────────────────────────────────────────────────────
-    # 35. subjects (legacy mirror — was missing from MYSQL_TABLES)
-    # ──────────────────────────────────────────────────────
-    """
-    CREATE TABLE IF NOT EXISTS subjects (
-        id VARCHAR(64) PRIMARY KEY,
-        name VARCHAR(128) NOT NULL,
-        slug VARCHAR(64) NOT NULL UNIQUE,
-        icon VARCHAR(32) DEFAULT 'default',
-        visible TINYINT DEFAULT 1,
-        sort_order INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_demo TINYINT DEFAULT 0,
-        demo_version VARCHAR(16) DEFAULT ''
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    """,
-
-    # ──────────────────────────────────────────────────────
-    # 36. courses (legacy mirror)
+    # 34. courses (legacy mirror — kept for backward compat with classroom_records)
     # ──────────────────────────────────────────────────────
     """
     CREATE TABLE IF NOT EXISTS courses (
@@ -695,54 +752,72 @@ MYSQL_TABLES = [
         status VARCHAR(32) DEFAULT 'draft',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        is_demo TINYINT DEFAULT 0,
-        demo_version VARCHAR(16) DEFAULT ''
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    """,
-
-    # ──────────────────────────────────────────────────────
-    # 37. chapters (legacy mirror — adds lecture + mindmap)
-    # ──────────────────────────────────────────────────────
-    """
-    CREATE TABLE IF NOT EXISTS chapters (
-        id VARCHAR(64) PRIMARY KEY,
-        course_id VARCHAR(64) NOT NULL,
-        title VARCHAR(256) NOT NULL,
-        description TEXT,
-        sort_order INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
         is_demo TINYINT DEFAULT 0,
         demo_version VARCHAR(16) DEFAULT '',
-        lecture JSON,
-        mindmap JSON
+        INDEX idx_courses_student (student_id),
+        INDEX idx_courses_subject (subject_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 
     # ──────────────────────────────────────────────────────
-    # 38. subchapters (legacy mirror)
+    # 35. calendar_events - 规范化日历事件 (替代 user_calendar_events.events_json)
     # ──────────────────────────────────────────────────────
     """
-    CREATE TABLE IF NOT EXISTS subchapters (
-        id VARCHAR(64) PRIMARY KEY,
-        chapter_id VARCHAR(64) NOT NULL,
-        title VARCHAR(256) NOT NULL,
+    CREATE TABLE IF NOT EXISTS calendar_events (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
         description TEXT,
-        bvid VARCHAR(32) DEFAULT '',
-        cid INT DEFAULT 0,
-        page INT DEFAULT 1,
-        duration INT DEFAULT 0,
-        type VARCHAR(32) DEFAULT 'video',
-        completed TINYINT DEFAULT 0,
-        transcript TEXT,
-        sort_order INT DEFAULT 0,
+        location VARCHAR(255) DEFAULT '',
+        start_at DATETIME NOT NULL,
+        end_at DATETIME DEFAULT NULL,
+        all_day TINYINT DEFAULT 0,
+        color VARCHAR(20) DEFAULT '',
+        recurrence_rule VARCHAR(255) DEFAULT '',
+        reminder_minutes INT DEFAULT 0,
+        source VARCHAR(50) DEFAULT 'manual',
+        external_id VARCHAR(255) DEFAULT '',
+        payload_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        is_demo TINYINT DEFAULT 0,
-        demo_version VARCHAR(16) DEFAULT ''
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        INDEX idx_ce_user_time (user_id, start_at),
+        INDEX idx_ce_user_deleted (user_id, deleted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    """,
+
+    # ──────────────────────────────────────────────────────
+    # 36. daily_route_tasks - 每日路线任务项 (替代 daily_routes.tasks_json + completed_json)
+    # ──────────────────────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS daily_route_tasks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        route_date DATE NOT NULL,
+        task_key VARCHAR(64) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        task_type VARCHAR(50) DEFAULT 'study',
+        sort_order INT DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'pending',
+        completed_at TIMESTAMP NULL DEFAULT NULL,
+        estimated_minutes INT DEFAULT 0,
+        actual_minutes INT DEFAULT 0,
+        node_id VARCHAR(255) DEFAULT '',
+        payload_json LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL DEFAULT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY uq_drt_user_date_key (user_id, route_date, task_key),
+        INDEX idx_drt_user_date (user_id, route_date),
+        INDEX idx_drt_user_status (user_id, status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
 ]
 
-# 表名列表（用于日志输出）
+# 表名列表（用于日志输出）— 与 MYSQL_TABLES 1:1 对齐
 TABLE_NAMES = [
     "user",
     "learning_records",
@@ -759,9 +834,10 @@ TABLE_NAMES = [
     "user_coding_state",
     "user_weather_cache",
     "user_focus_history",
+    "focus_sessions",
+    "focus_events",
     "user_eco_data",
     "user_projects",
-    "user_calendar_events",
     "daily_routes",
     "knowledge_nodes",
     "review_records",
@@ -778,15 +854,26 @@ TABLE_NAMES = [
     "user_memories",
     "classroom_sessions",
     "quiz_records",
-    "agent_turn_records",
+    "courses",
+    "calendar_events",
+    "daily_route_tasks",
 ]
 
-TABLE_NAMES.extend([
+# 死表（保留在 DEAD_TABLE_NAMES 中供迁移期清理使用）
+DEAD_TABLE_NAMES = [
+    "agent_turn_records",
     "subjects",
-    "courses",
     "chapters",
     "subchapters",
-])
+    "user_calendar_events",
+    "user_calendar_events_legacy",
+]
+
+# 启动时自检：建表 SQL 与表名列表必须 1:1 对齐
+assert len(MYSQL_TABLES) == len(TABLE_NAMES), (
+    f"MYSQL_TABLES ({len(MYSQL_TABLES)}) 与 TABLE_NAMES ({len(TABLE_NAMES)}) 数量不一致；"
+    f"请检查新增/删除表时是否同步更新两份列表"
+)
 
 
 # ============================================================
@@ -851,6 +938,9 @@ def mysql_to_sqlite(sql):
     sql = sql.replace("FLOAT DEFAULT 0.0", "REAL DEFAULT 0.0")
     sql = sql.replace("FLOAT", "REAL")
     sql = sql.replace("DATE NOT NULL", "TEXT NOT NULL")
+    sql = sql.replace("DATETIME NOT NULL", "TEXT NOT NULL")
+    sql = sql.replace("DATETIME DEFAULT NULL", "TEXT")
+    sql = sql.replace("DATETIME", "TEXT")
     sql = re.sub(r'VARCHAR\s*\(\d+\)', 'TEXT', sql)
 
     # 清理：移除行尾多余逗号（SQLite 不允许尾随逗号）
@@ -924,6 +1014,108 @@ def ensure_user_columns(cursor, conn):
             print(f"  [WARN] 添加 user.{col_name} 失败: {e}")
 
 
+def ensure_focus_history_columns(cursor, conn):
+    """为已有的 user_focus_history 表补加归一化字段（兼容只含 focus_json 的旧版表）。
+
+    旧版 user_focus_history 只存 focus_json LONGTEXT，但 db.py 的 save_user_focus_history
+    在 SQLite 路径上需要写入归一化字段 (focus_date / total_focus_minutes / ...)。
+    """
+    new_columns = [
+        ("focus_date", "DATE DEFAULT NULL"),
+        ("total_focus_minutes", "INT DEFAULT 0"),
+        ("sessions_count", "INT DEFAULT 0"),
+        ("avg_flow_score", "FLOAT DEFAULT 0.0"),
+        ("deep_focus_minutes", "INT DEFAULT 0"),
+    ]
+    # 先确认表存在
+    try:
+        cursor.execute("SHOW TABLES LIKE 'user_focus_history'")
+        if not cursor.fetchone():
+            return  # 表不存在时由 CREATE TABLE 处理
+    except Exception as e:
+        print(f"  [WARN] 检查 user_focus_history 表存在失败: {e}")
+        return
+    for col_name, col_def in new_columns:
+        try:
+            cursor.execute(f"SHOW COLUMNS FROM user_focus_history LIKE '{col_name}'")
+            if not cursor.fetchone():
+                cursor.execute(f"ALTER TABLE user_focus_history ADD COLUMN {col_name} {col_def}")
+                conn.commit()
+                print(f"  [OK] user_focus_history.{col_name} 字段已添加")
+        except Exception as e:
+            print(f"  [WARN] 添加 user_focus_history.{col_name} 失败: {e}")
+
+
+def ensure_focus_history_columns_sqlite(cursor):
+    """SQLite 版：为已有的 user_focus_history 表补加归一化字段。
+
+    使用 PRAGMA table_info 检查列是否存在；SQLite 的 ALTER TABLE ADD COLUMN 支持默认值，
+    不会重建表，所以与已有数据兼容。
+    """
+    new_columns = [
+        ("focus_date", "TEXT"),
+        ("total_focus_minutes", "INTEGER DEFAULT 0"),
+        ("sessions_count", "INTEGER DEFAULT 0"),
+        ("avg_flow_score", "REAL DEFAULT 0.0"),
+        ("deep_focus_minutes", "INTEGER DEFAULT 0"),
+    ]
+    # 检查表是否存在
+    try:
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='user_focus_history'"
+        )
+        if not cursor.fetchone():
+            return
+    except Exception as e:
+        print(f"  [WARN] 检查 user_focus_history 表存在失败: {e}")
+        return
+    # 读取已有列
+    cursor.execute("PRAGMA table_info(user_focus_history)")
+    existing = {row[1] for row in cursor.fetchall()}
+    for col_name, col_def in new_columns:
+        if col_name in existing:
+            continue
+        try:
+            cursor.execute(f"ALTER TABLE user_focus_history ADD COLUMN {col_name} {col_def}")
+            print(f"  [OK] user_focus_history.{col_name} 字段已添加")
+        except Exception as e:
+            print(f"  [WARN] 添加 user_focus_history.{col_name} 失败: {e}")
+
+
+def ensure_dead_table_cleanup(cursor, conn):
+    """MySQL 版：清理死表（agent_turn_records / subjects / chapters / subchapters）。
+
+    幂等操作：表不存在时直接跳过，重复运行无副作用。
+    """
+    for table_name in DEAD_TABLE_NAMES:
+        try:
+            cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+            if cursor.fetchone():
+                cursor.execute(f"DROP TABLE IF EXISTS `{table_name}`")
+                conn.commit()
+                print(f"  [OK] 死表清理: {table_name}")
+        except Exception as e:
+            print(f"  [WARN] 死表 {table_name} 清理失败: {e}")
+
+
+def ensure_dead_table_cleanup_sqlite(cursor):
+    """SQLite 版：清理死表（agent_turn_records / subjects / chapters / subchapters）。
+
+    幂等操作：表不存在时直接跳过，重复运行无副作用。
+    """
+    for table_name in DEAD_TABLE_NAMES:
+        try:
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
+            )
+            if cursor.fetchone():
+                cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+                print(f"  [OK] 死表清理: {table_name}")
+        except Exception as e:
+            print(f"  [WARN] 死表 {table_name} 清理失败: {e}")
+
+
 def fix_foreign_keys(cursor, conn):
     """修复旧表的外键约束，确保所有外键都有 ON DELETE CASCADE"""
     # 查找所有引用 user(id) 的外键
@@ -990,6 +1182,12 @@ def setup_mysql():
 
         # 确保 user 表有新增字段（兼容旧表）
         ensure_user_columns(cursor, conn)
+
+        # 确保 user_focus_history 有归一化字段（兼容旧版 JSON-blob 表）
+        ensure_focus_history_columns(cursor, conn)
+
+        # 清理死表（agent_turn_records / subjects / chapters / subchapters）
+        ensure_dead_table_cleanup(cursor, conn)
         print()
 
         # 修复旧表外键约束
@@ -1054,6 +1252,13 @@ def setup_sqlite():
 
     # 开启 WAL 模式提高并发
     cursor.execute("PRAGMA journal_mode = WAL")
+
+    # 兼容旧版 user_focus_history (只含 focus_json) — 补加归一化列
+    ensure_focus_history_columns_sqlite(cursor)
+
+    # 清理死表（agent_turn_records / subjects / chapters / subchapters）
+    ensure_dead_table_cleanup_sqlite(cursor)
+    print()
 
     success_count = 0
     for i, sql in enumerate(MYSQL_TABLES):

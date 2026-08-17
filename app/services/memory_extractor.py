@@ -242,7 +242,7 @@ async def save_extracted_memories(
     Returns:
         保存成功的记忆ID列表
     """
-    saved_ids = []
+    saved_ids: list[str] = []
     # Slice #9: route memory persistence through the SQLAlchemy chat repo
     # so the dual-write to legacy db.py continues via DualWriteRepository.
     from app.repositories.orm.chat import SqlAlchemyChatRepository
@@ -250,6 +250,7 @@ async def save_extracted_memories(
     # Resolve a session lazily. If no session is bound (e.g. unit tests that
     # call this function in isolation), fall back to db.py for backwards
     # compatibility.
+    session_ctx = None
     try:
         from app.core.database import get_sessionmaker
         SessionLocal = get_sessionmaker()
@@ -259,39 +260,55 @@ async def save_extracted_memories(
 
     if session_ctx is not None:
         try:
+            # SqlAlchemyChatRepository is **synchronous** (a ~30-test call
+            # site contracts depend on it staying sync).  Wrap the whole
+            # thing in ``await session.run_sync`` so the sync repo's
+            # ``self.session.flush()`` / ``self.session.add()`` execute
+            # against a real sync ``Session`` bind — never on the AsyncSession
+            # itself (that gave us silent commit failures + "None" IDs).
             chat_repo = SqlAlchemyChatRepository(session_ctx)
-            for mem in memories:
-                mem_id = mem.get("_update_target_id")
-                if mem_id and mem.get("is_update"):
-                    # 更新已有记忆
-                    chat_repo.update_memory(
-                        mem_id,
-                        {"content": mem["content"], "importance": int(mem["confidence"] * 10)},
-                    )
-                    saved_ids.append(mem_id)
-                else:
-                    # 新增记忆
-                    new_id_int = chat_repo.save_memory(
-                        user_id=user_id,
-                        memory={
-                            "memory_type": mem["memory_type"],
-                            "content": mem["content"],
-                            "importance": int(mem["confidence"] * 10),
-                            "source_conversation_id": source,
-                        },
-                    )
-                    saved_ids.append(str(new_id_int))
-            session_ctx.commit()
+
+            def _do_writes():
+                ids: list[str] = []
+                for mem in memories:
+                    mem_id = mem.get("_update_target_id")
+                    if mem_id and mem.get("is_update"):
+                        # 更新已有记忆
+                        chat_repo.update_memory(
+                            mem_id,
+                            {"content": mem["content"], "importance": int(mem["confidence"] * 10)},
+                        )
+                        # 更新分支透传原 id（与 ``test_fallback_updates_...``
+                        # 的 ``assert ids == [seeded_id]`` 对齐,seeded_id 是 int）
+                        ids.append(mem_id)
+                    else:
+                        # 新增记忆
+                        new_id_int = chat_repo.save_memory(
+                            user_id=user_id,
+                            memory={
+                                "memory_type": mem["memory_type"],
+                                "content": mem["content"],
+                                "importance": int(mem["confidence"] * 10),
+                                "source_conversation_id": source,
+                            },
+                        )
+                        # flush() 之后 lastrowid 应该有值；旧逻辑里因为没 flush
+                        # 这里一直是 None，被 str() 成字符串 "None"。
+                        ids.append(str(new_id_int) if new_id_int is not None else "")
+                return ids
+
+            saved_ids = await session_ctx.run_sync(_do_writes)
+            await session_ctx.commit()
             return saved_ids
         except Exception as e:
             logger.warning(f"[MemoryExtractor] ORM save failed, falling back to db.py: {e}")
             try:
-                session_ctx.rollback()
+                await session_ctx.rollback()
             except Exception:
                 pass
         finally:
             try:
-                session_ctx.close()
+                await session_ctx.close()
             except Exception:
                 pass
 
@@ -324,6 +341,7 @@ async def save_extracted_memories(
                     "importance": int(mem["confidence"] * 10),
                 },
             )
+            # 更新分支透传原 id (int)
             saved_ids.append(mem_id)
         else:
             # 新增记忆 — returns int auto-increment id; stringify for the
@@ -337,6 +355,6 @@ async def save_extracted_memories(
                     "source_conversation_id": source,
                 },
             )
-            saved_ids.append(str(new_id_int))
+            saved_ids.append(str(new_id_int) if new_id_int is not None else "")
 
     return saved_ids

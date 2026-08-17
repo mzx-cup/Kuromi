@@ -22,7 +22,7 @@ import base64
 from urllib.parse import quote
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "config", ".env"))
 
 import db as database
 import pymysql
@@ -73,12 +73,12 @@ from app.services.tutor_engine.pipeline_gate import (
 from app.services import audit_log
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-HTML_DIR = os.path.join(BASE_DIR, "html")
-CSS_DIR = os.path.join(BASE_DIR, "css")
-JS_DIR = os.path.join(BASE_DIR, "js")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+HTML_DIR = os.path.join(STATIC_DIR, "html")
+CSS_DIR = os.path.join(STATIC_DIR, "css")
+JS_DIR = os.path.join(STATIC_DIR, "js")
 STORAGE_DIR = os.path.join(BASE_DIR, "storage")
-VIDEO_DIR = os.path.join(BASE_DIR, "video")
+VIDEO_DIR = os.path.join(STATIC_DIR, "video")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -3336,9 +3336,18 @@ def multi_agent_workflow(request: ChatRequest):
 
                     async def _orm_chat_msg_write():
                         SessionLocal = _gsc()
-                        async with SessionLocal()() as session:
-                            orm_repo = _Ocr(session)
-                            orm_repo.save_message(user_id_str, msg_payload)
+                        # 注意: ``SessionLocal`` 已经是 ``async_sessionmaker``,
+                        # ``SessionLocal()`` 直接返回 AsyncSession 上下文,
+                        # 不需要再 ``()`` 一次(旧代码 ``SessionLocal()()``
+                        # 会得到 TypeError,导致 dual-write 静默失败).
+                        async with SessionLocal() as session:
+                            # SqlAlchemyChatRepository.save_message 是 sync 方法,
+                            # 必须在 ``run_sync`` 里跑,否则 ``flush()`` 在
+                            # AsyncSession 上是 no-op.
+                            def _do_write():
+                                orm_repo = _Ocr(session)
+                                orm_repo.save_message(user_id_str, msg_payload)
+                            await session.run_sync(_do_write)
                             await session.commit()
 
                     try:
@@ -3849,9 +3858,12 @@ async def chat_stream_v2(request: Request, body: StreamChatRequest):
 
                 async def _orm_chat_msg_write_v2s():
                     SessionLocal = _gsc_v2s()
-                    async with SessionLocal()() as session:
-                        orm_repo = _OcrV2S(session)
-                        orm_repo.save_message(user_id_str, msg_payload)
+                    # 与上面 v2-strict 路径同改: 单 ``()`` 调用 + run_sync
+                    async with SessionLocal() as session:
+                        def _do_write():
+                            orm_repo = _OcrV2S(session)
+                            orm_repo.save_message(user_id_str, msg_payload)
+                        await session.run_sync(_do_write)
                         await session.commit()
 
                 try:
@@ -8354,9 +8366,99 @@ def record_focus(request: FocusRecordRequest):
         database.save_user_focus_history(request.userId, history)
         analysis = _compute_focus_analysis(history, "7d")
         analysis["success"] = True
+
+        # [Slice-7] ORM dual-write: mirror the just-recorded chunk into the new
+        # normalized focus_sessions / focus_events / user_focus_history tables.
+        # Fire-and-forget so a slow ORM write never blocks the API response.
+        try:
+            from app.core.feature_flags import is_dual_write_enabled
+            if is_dual_write_enabled():
+                import asyncio
+                from datetime import date as _date
+
+                _sm = int(request.studyMinutes or 0)
+                _fm = int(request.focusMinutes or 0)
+                _ps = int(request.pageSwitches or 0)
+                _completed = bool(request.completedFocus)
+                _source = (request.source or "flow-meter")[:64]
+                _ts_iso = request.timestamp or datetime.now().isoformat()
+
+                # Per-record flow score uses the same formula as
+                # _compute_focus_analysis (line 8201) so values line up across
+                # legacy and ORM backends.
+                _ratio = _fm / max(1, _sm)
+                _flow_score = min(100, int(_ratio * 100))
+                _today = _date.today()
+
+                # Note: the ORM focus repo is designed against a *sync* Session
+                # (mirroring the test fixture at tests/repositories/test_focus_repo.py).
+                # We open a sync engine against the same SQLite DB rather than
+                # passing an AsyncSession, which would make query()/flush() fail.
+                from sqlalchemy import create_engine as _create_engine
+                from sqlalchemy.orm import sessionmaker as _sessionmaker
+                from app.core.config import DATABASE_URL as _DB_URL
+                _sync_url = _DB_URL.replace("sqlite+aiosqlite://", "sqlite://", 1)
+                _sync_engine = _create_engine(_sync_url, connect_args={"timeout": 5})
+                _SyncSession = _sessionmaker(bind=_sync_engine, expire_on_commit=False)
+
+                async def _orm_focus_write():
+                    with _SyncSession() as session:
+                        orm_repo = SqlAlchemyFocusRepository(session)
+                        sid = orm_repo.start_session(
+                            user_id=str(request.userId),
+                            planned_minutes=_sm,
+                            subject=_source,
+                        )
+                        orm_repo.record_event(
+                            session_id=sid,
+                            event_type="record",
+                            flow_score=_flow_score,
+                            metadata={
+                                "studyMinutes": _sm,
+                                "focusMinutes": _fm,
+                                "pageSwitches": _ps,
+                                "completedFocus": _completed,
+                                "source": _source,
+                                "timestamp": _ts_iso,
+                            },
+                        )
+                        orm_repo.end_session(
+                            session_id=sid,
+                            duration_minutes=_sm,
+                            completed=_completed,
+                        )
+                        orm_repo.upsert_user_focus_history(
+                            user_id=str(request.userId),
+                            focus_date=_today,
+                            added_focus_minutes=_fm,
+                            added_session=True,
+                            new_flow_score=_flow_score,
+                        )
+                        session.commit()
+                    _sync_engine.dispose()
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop is not None:
+                    loop.create_task(_safe_orm_focus(_orm_focus_write))
+                else:
+                    asyncio.run(_orm_focus_write())
+        except Exception as e:
+            logger.warning(f"[dual-write] orm focus record failed: {e}")
+
         return {"success": True, "focusSummary": analysis}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"记录专注历史失败: {str(e)}")
+
+
+async def _safe_orm_focus(coro_factory):
+    """Run an ORM focus-write coroutine, logging any failure."""
+    try:
+        await coro_factory()
+    except Exception as e:
+        logger.warning(f"[dual-write] orm focus record failed: {e}")
 
 
 @app.get("/api/focus/analysis/{user_id}")
@@ -9190,7 +9292,7 @@ async def export_course_pptx(data: dict[str, Any] = {}):
     接收前端传过来的 CourseData JSON，返回 .pptx 文件
     """
     try:
-        from pptx_export import PPTXExporter
+        from libs.pptx import PPTXExporter
         course_data = CourseData(**data)
 
         # 如果 slides_v2 为空但 bundle 里有 ppt slides, 注入到 slides_v2
@@ -9706,7 +9808,7 @@ async def course_discussion_stream(request: Request):
 @app.post("/api/v2/generate/image")
 async def generate_image_api(request: GenerateImageRequest):
     """调用 MiniMax image-01 生成图片"""
-    from media_generation import generate_image
+    from libs.media import generate_image
     try:
         url = await generate_image(request.prompt, request.aspect_ratio)
         return GenerateImageResponse(url=url)
@@ -9717,7 +9819,7 @@ async def generate_image_api(request: GenerateImageRequest):
 @app.post("/api/v2/generate/tts")
 async def generate_tts_api(request: GenerateTTSRequest):
     """调用 MiniMax speech-02 TTS 生成语音，保存为MP3文件"""
-    from media_generation import generate_tts
+    from libs.media import generate_tts
     import uuid
     try:
         audio_bytes = await generate_tts(request.text, request.voice_id, request.speed)
@@ -9911,7 +10013,7 @@ async def delete_course(course_id: str):
 @app.post("/api/v2/course/generate/agent-team")
 async def generate_agent_team(data: dict[str, Any] = {}):
     """生成AI教师团队（自动模式）"""
-    from course_generator import get_course_generator
+    from libs.course import get_course_generator
     from llm_stream import call_llm_async
     from prompts import build_prompt
 
@@ -9936,7 +10038,7 @@ async def generate_agent_team(data: dict[str, Any] = {}):
 @app.post("/api/v2/course/quiz/grade")
 async def grade_quiz(data: dict[str, Any] = {}):
     """批改Quiz答案"""
-    from course_generator import get_course_generator
+    from libs.course import get_course_generator
 
     generator = get_course_generator()
     questions = data.get("questions", [])
@@ -9956,7 +10058,7 @@ async def grade_quiz(data: dict[str, Any] = {}):
 @app.post("/api/v2/course/complete")
 async def complete_course(data: dict[str, Any] = {}):
     """课堂完成总结"""
-    from course_generator import CourseGenerator
+    from libs.course import CourseGenerator
     from prompts import build_prompt
 
     course_id = data.get("course_id", "")
@@ -10018,7 +10120,7 @@ async def complete_course(data: dict[str, Any] = {}):
                 prompt,
                 temperature=0.5,
             )
-            from course_generator import CourseGenerator
+            from libs.course import CourseGenerator
             llm_data = CourseGenerator._extract_json(llm_raw)
             if isinstance(llm_data, dict):
                 if llm_data.get("summary"):
@@ -10051,7 +10153,7 @@ async def complete_course(data: dict[str, Any] = {}):
 @app.post("/api/v2/generate/video")
 async def generate_video_endpoint(data: dict[str, Any] = {}):
     """视频生成（MiniMax video-01）"""
-    from media_generation import generate_video
+    from libs.media import generate_video
 
     prompt = data.get("prompt", "")
     if not prompt:

@@ -20,7 +20,7 @@ async function waitAuth(page, timeout = 5000) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
 
-  const outDir = path.resolve(__dirname, '..', 'demo-results', 'login-rebuild');
+  const outDir = path.resolve(__dirname, '..', 'artifacts', 'demo', 'login-rebuild');
   fs.mkdirSync(outDir, { recursive: true });
 
   // ───────── 拦截 /api/auth/* ─────────

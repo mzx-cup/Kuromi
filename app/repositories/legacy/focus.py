@@ -117,13 +117,20 @@ class DbPyFocusRepository:
         try:
             cur = conn.cursor()
             cur.execute(
+                "SELECT user_id FROM focus_sessions WHERE id = ?",
+                (session_id,),
+            )
+            row = cur.fetchone()
+            user_id = row[0] if row else None
+            cur.execute(
                 """
                 INSERT INTO focus_events
-                (session_id, event_type, timestamp, flow_score, metadata)
-                VALUES (?, ?, ?, ?, ?)
+                (session_id, user_id, event_type, timestamp, flow_score, metadata_json)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     session_id,
+                    user_id,
                     event_type,
                     datetime.now().isoformat(),
                     flow_score,
@@ -140,9 +147,9 @@ class DbPyFocusRepository:
             cur = conn.cursor()
             cur.execute(
                 """
-                SELECT id, event_type, timestamp, flow_score, metadata
+                SELECT id, event_type, timestamp, flow_score, metadata_json
                 FROM focus_events
-                WHERE session_id = ?
+                WHERE session_id = ? AND deleted_at IS NULL
                 ORDER BY timestamp
                 """,
                 (session_id,),
