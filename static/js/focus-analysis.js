@@ -78,7 +78,6 @@
 
     function fetchAnalysis() {
         var userId = getUserId();
-        if (!userId) return Promise.resolve(null);
 
         return fetch('/api/focus/analysis/' + userId + '?range=7d')
             .then(function (r) {
