@@ -475,12 +475,37 @@
                         <defs>
                             <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stop-color="#60a5fa"/>
-                                <stop offset="50%" stop-color="#a78bfa"/>
+                                <stop offset="40%" stop-color="#818cf8"/>
                                 <stop offset="100%" stop-color="#fbbf24"/>
                             </linearGradient>
+                            <linearGradient id="logoInnerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#ffffff"/>
+                                <stop offset="100%" stop-color="#e0e7ff"/>
+                            </linearGradient>
+                            <filter id="logoGlow" x="-60%" y="-60%" width="220%" height="220%">
+                                <feGaussianBlur stdDeviation="2" result="blur"/>
+                                <feMerge>
+                                    <feMergeNode in="blur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
                         </defs>
-                        <path d="M20 4L23 15L34 15L25 22L28 34L20 27L12 34L15 22L6 15L17 15Z" fill="url(#logoGradient)"/>
-                        <circle cx="20" cy="20" r="4" fill="white" opacity="0.92"/>
+                        <!-- 外层微光圆环 -->
+                        <circle cx="20" cy="20" r="17" fill="none" stroke="url(#logoGradient)" stroke-width="0.8" opacity="0.35"/>
+                        <!-- 主星形 — 棱晶光泽感 -->
+                        <g filter="url(#logoGlow)">
+                            <path d="M20 3L23.5 14L35 14L26 22L29 33L20 26L11 33L14 22L5 14L16.5 14Z" fill="url(#logoGradient)"/>
+                        </g>
+                        <!-- 内层小星，增加层次 -->
+                        <path d="M20 10L21.5 16L28 16L22.5 20L24.5 27L20 23L15.5 27L17.5 20L12 16L18.5 16Z" fill="url(#logoInnerGrad)" opacity="0.7"/>
+                        <!-- 中心高光点 -->
+                        <circle cx="20" cy="20" r="2.2" fill="white" opacity="0.95"/>
+                        <!-- 右上角星芒 -->
+                        <g opacity="0.6">
+                            <line x1="28" y1="6" x2="30" y2="4" stroke="#fbbf24" stroke-width="1.2" stroke-linecap="round"/>
+                            <line x1="30" y1="8" x2="32.5" y2="7" stroke="#a78bfa" stroke-width="1" stroke-linecap="round"/>
+                            <line x1="31" y1="11" x2="33.5" y2="11" stroke="#818cf8" stroke-width="0.8" stroke-linecap="round"/>
+                        </g>
                     </svg>
                 </span>
                 <span class="hub-nav-brand-text">

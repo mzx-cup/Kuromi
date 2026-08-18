@@ -46,13 +46,13 @@
 }
 
 .cc-nav-inner {
-  max-width: 1280px;
+  width: 100%;
   height: 100%;
-  margin: 0 auto;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-sizing: border-box;
 }
 
 .cc-nav-left,
@@ -115,39 +115,97 @@
   border-color: var(--cc-border-strong);
 }
 
+/* ---- 三栏布局 ---- */
+.cc-layout {
+  display: flex;
+  flex: 1;
+  min-height: calc(100vh - 60px);
+  overflow-x: hidden;
+}
+
+/* ---- 左侧面板 ---- */
+.cc-left-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-right: 1px solid var(--cc-border);
+  padding: 24px 0;
+}
+
+.cc-left-inner {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* ---- 主体容器 ---- */
 .cc-main {
+  flex: 1;
   min-height: calc(100vh - 60px);
-  padding: 32px 0 80px;
+  padding: 24px 0 80px;
 }
 
 .cc-container {
-  max-width: 1280px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 24px;
 }
 
+/* ---- 右侧面板 ---- */
+.cc-right-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 1px solid var(--cc-border);
+  padding: 24px 0;
+}
+
+.cc-right-inner {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- 面板通用标题 ---- */
+.cc-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--cc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 12px;
+}
+
+.cc-panel-title svg {
+  color: var(--cc-accent);
+}
+
 /* ---- 学习总览 ---- */
 .cc-overview {
-  margin-bottom: 36px;
+  margin-bottom: 0;
 }
 
 .cc-overview-head {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .cc-overview-title {
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--cc-text);
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
 .cc-overview-sub {
-  font-size: 13px;
+  font-size: 11px;
   color: var(--cc-text-muted);
   margin: 0;
 }
@@ -155,13 +213,13 @@
 .cc-quick-import {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 9px;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 8px;
   border: 1px solid rgba(167, 139, 250, 0.3);
   background: rgba(167, 139, 250, 0.1);
   color: var(--cc-accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -173,18 +231,328 @@
   transform: translateY(-1px);
 }
 
+/* ---- 快速操作 ---- */
+.cc-quick-actions {
+  padding-top: 4px;
+}
+
+.cc-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cc-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--cc-border);
+  background: var(--cc-bg-card);
+  color: var(--cc-text-muted);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.cc-action-btn:hover {
+  background: var(--cc-bg-card-hover);
+  color: var(--cc-text);
+  border-color: var(--cc-border-strong);
+  transform: translateX(2px);
+}
+
+.cc-action-btn svg {
+  flex-shrink: 0;
+  color: var(--cc-accent);
+}
+
+/* ---- 最近学习 ---- */
+.cc-recent-learn {
+  padding-top: 4px;
+}
+
+.cc-recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-recent-empty {
+  padding: 20px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cc-text-faint);
+  border-radius: 10px;
+  background: var(--cc-bg-card);
+  border: 1px dashed var(--cc-border-strong);
+}
+
+.cc-recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cc-recent-item:hover {
+  background: var(--cc-bg-card-hover);
+  border-color: var(--cc-border-strong);
+  transform: translateX(2px);
+}
+
+.cc-recent-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1e40af 0%, #4f46e5 60%, #1e1b4b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cc-recent-thumb svg {
+  width: 18px;
+  height: 18px;
+  color: rgba(255,255,255,0.8);
+}
+
+.cc-recent-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-recent-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cc-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 0 2px;
+}
+
+.cc-recent-time {
+  font-size: 11px;
+  color: var(--cc-text-faint);
+}
+
+/* ---- 学习技巧 ---- */
+.cc-tips {
+  padding-top: 4px;
+}
+
+.cc-tip-card {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.cc-tip-card:hover {
+  background: var(--cc-bg-card-hover);
+  border-color: var(--cc-border-strong);
+}
+
+.cc-tip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(167, 139, 250, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cc-accent);
+}
+
+.cc-tip-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-tip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cc-text);
+  margin: 0 0 4px;
+}
+
+.cc-tip-desc {
+  font-size: 11px;
+  color: var(--cc-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ---- 快捷链接 ---- */
+.cc-shortcuts {
+  padding-top: 4px;
+}
+
+.cc-shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cc-shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: transparent;
+  text-decoration: none;
+  color: var(--cc-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.cc-shortcut-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--cc-accent);
+  border-radius: 0 3px 3px 0;
+  transition: height 0.2s;
+}
+
+.cc-shortcut-item:hover {
+  background: var(--cc-bg-card);
+  color: var(--cc-text);
+  transform: translateX(2px);
+}
+
+.cc-shortcut-item:hover::before {
+  height: 60%;
+}
+
+.cc-shortcut-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cc-accent);
+}
+
+.cc-shortcut-text {
+  flex: 1;
+}
+
+.cc-shortcut-arrow {
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s;
+  color: var(--cc-text-faint);
+}
+
+.cc-shortcut-item:hover .cc-shortcut-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ---- 知识图谱入口 ---- */
+.cc-graph-entry {
+  padding-top: 4px;
+}
+
+.cc-graph-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(96, 165, 250, 0.08));
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  text-decoration: none;
+  transition: all 0.25s;
+}
+
+.cc-graph-card:hover {
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.15), rgba(96, 165, 250, 0.15));
+  border-color: rgba(167, 139, 250, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(167, 139, 250, 0.15);
+}
+
+.cc-graph-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--cc-accent);
+}
+
+.cc-graph-content {
+  flex: 1;
+}
+
+.cc-graph-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cc-text);
+  margin: 0 0 2px;
+}
+
+.cc-graph-desc {
+  font-size: 11px;
+  color: var(--cc-text-muted);
+  margin: 0;
+}
+
+.cc-graph-arrow {
+  color: var(--cc-accent);
+  opacity: 0.6;
+}
+
+/* ---- 统计卡片 ---- */
 .cc-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
 .cc-stat-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
-  border-radius: 14px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
   background: var(--cc-bg-card);
   border: 1px solid var(--cc-border);
   transition: all 0.2s;
@@ -197,9 +565,9 @@
 }
 
 .cc-stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,25 +576,30 @@
   flex-shrink: 0;
 }
 
-.cc-stat-card[data-key="courses"]  .cc-stat-icon { background: rgba(96, 165, 250, 0.12);  color: var(--cc-accent-2); }
+.cc-stat-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cc-stat-card[data-key="courses"] .cc-stat-icon { background: rgba(96, 165, 250, 0.12);  color: var(--cc-accent-2); }
 .cc-stat-card[data-key="lessons"]  .cc-stat-icon { background: rgba(251, 146, 60, 0.12);  color: var(--cc-orange); }
 .cc-stat-card[data-key="progress"] .cc-stat-icon { background: rgba(52, 211, 153, 0.12);  color: var(--cc-success); }
 
 .cc-stat-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .cc-stat-value {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--cc-text);
   line-height: 1.1;
 }
 
 .cc-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--cc-text-muted);
 }
 
@@ -1142,11 +1515,18 @@
 }
 
 /* ---- 响应式 ---- */
+@media (max-width: 1300px) {
+  .cc-right-panel { width: 220px; }
+  .cc-left-panel { width: 240px; }
+}
+
 @media (max-width: 1100px) {
-  .cc-stats { grid-template-columns: repeat(2, 1fr); }
+  .cc-left-panel { display: none; }
+  .cc-right-panel { width: 200px; }
 }
 
 @media (max-width: 900px) {
+  .cc-right-panel { display: none; }
   .cc-courses-grid { grid-template-columns: repeat(2, 1fr); }
   .cc-nav-inner,
   .cc-container { padding-left: 16px; padding-right: 16px; }

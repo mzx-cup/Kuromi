@@ -315,14 +315,14 @@ body[data-theme="star-vault"].hub-body .hub-right-panel {
 }
 .notification-badge-count {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 16px;
-    height: 16px;
-    padding: 0 4px;
-    line-height: 16px;
+    top: 2px;
+    right: 2px;
+    min-width: 10px;
+    height: 10px;
+    padding: 0 2px;
+    line-height: 10px;
     text-align: center;
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     background: var(--chrome-danger);
     color: #fff;

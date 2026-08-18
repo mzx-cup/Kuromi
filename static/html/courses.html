@@ -55,24 +55,18 @@
         </div>
     </nav>
 
-    <!-- 主体 -->
-    <main class="cc-main">
-        <div class="cc-container">
+    <!-- 三栏布局容器 -->
+    <div class="cc-layout">
 
+    <!-- 左侧面板 -->
+    <aside class="cc-left-panel" aria-label="学习概览">
+        <div class="cc-left-inner">
             <!-- 学习概览 -->
             <section class="cc-overview" aria-label="学习总览">
                 <div class="cc-overview-head">
                     <div>
                         <h2 class="cc-overview-title">我的学习</h2>
-                        <p class="cc-overview-sub">所有已添加的课程,按学科归类整理</p>
-                    </div>
-                    <div class="cc-overview-actions">
-                        <button class="cc-quick-import" id="cc-quick-import" type="button">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                            <span>快速导入</span>
-                        </button>
+                        <p class="cc-overview-sub">课程统计概览</p>
                     </div>
                 </div>
                 <div class="cc-stats" id="cc-stats">
@@ -124,6 +118,57 @@
                 </div>
             </section>
 
+            <!-- 快速操作 -->
+            <section class="cc-quick-actions" aria-label="快速操作">
+                <h3 class="cc-panel-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    快速操作
+                </h3>
+                <div class="cc-action-list">
+                    <button class="cc-action-btn" id="cc-quick-import" type="button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>导入 B 站课程</span>
+                    </button>
+                    <a href="/progress.html" class="cc-action-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>学习进度</span>
+                    </a>
+                    <a href="/calendar.html" class="cc-action-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <span>学习日历</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- 最近学习 -->
+            <section class="cc-recent-learn" aria-label="最近学习">
+                <h3 class="cc-panel-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14" stroke-linecap="round"/>
+                    </svg>
+                    最近学习
+                </h3>
+                <div class="cc-recent-list" id="cc-recent-list">
+                    <div class="cc-recent-empty">
+                        <span>暂无最近学习记录</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </aside>
+
+    <!-- 主体 -->
+    <main class="cc-main">
+        <div class="cc-container">
+
             <!-- 学科 + 课程 主体 -->
             <section class="cc-body" id="cc-body" aria-live="polite">
                 <div class="cc-loading">
@@ -134,6 +179,120 @@
 
         </div>
     </main>
+
+    <!-- 右侧面板 -->
+    <aside class="cc-right-panel" aria-label="学习助手">
+        <div class="cc-right-inner">
+            <!-- 学习技巧 -->
+            <section class="cc-tips" aria-label="学习技巧">
+                <h3 class="cc-panel-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                    </svg>
+                    学习技巧
+                </h3>
+                <div class="cc-tip-card">
+                    <div class="cc-tip-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                        </svg>
+                    </div>
+                    <div class="cc-tip-content">
+                        <p class="cc-tip-title">番茄工作法</p>
+                        <p class="cc-tip-desc">每学习 25 分钟，休息 5 分钟，提高专注力</p>
+                    </div>
+                </div>
+                <div class="cc-tip-card">
+                    <div class="cc-tip-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                        </svg>
+                    </div>
+                    <div class="cc-tip-content">
+                        <p class="cc-tip-title">主动回忆</p>
+                        <p class="cc-tip-desc">看完视频后试着用自己的话复述内容</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 快捷链接 -->
+            <section class="cc-shortcuts" aria-label="快捷链接">
+                <h3 class="cc-panel-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                    </svg>
+                    快捷链接
+                </h3>
+                <div class="cc-shortcut-list">
+                    <a href="/index.html" class="cc-shortcut-item">
+                        <span class="cc-shortcut-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                            </svg>
+                        </span>
+                        <span class="cc-shortcut-text">AI 问答</span>
+                        <svg class="cc-shortcut-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                    <a href="/socratic-ai.html" class="cc-shortcut-item">
+                        <span class="cc-shortcut-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                        </span>
+                        <span class="cc-shortcut-text">苏格拉底问答</span>
+                        <svg class="cc-shortcut-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                    <a href="/code.html" class="cc-shortcut-item">
+                        <span class="cc-shortcut-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                            </svg>
+                        </span>
+                        <span class="cc-shortcut-text">代码工坊</span>
+                        <svg class="cc-shortcut-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                    <a href="/data-dashboard.html" class="cc-shortcut-item">
+                        <span class="cc-shortcut-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                            </svg>
+                        </span>
+                        <span class="cc-shortcut-text">学习数据分析</span>
+                        <svg class="cc-shortcut-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </a>
+                </div>
+            </section>
+
+            <!-- 知识图谱入口 -->
+            <section class="cc-graph-entry" aria-label="知识图谱">
+                <a href="/data-dashboard.html#graph" class="cc-graph-card">
+                    <div class="cc-graph-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.636 5.636l2.121 2.121m8.486 8.486l2.121 2.121M5.636 18.364l2.121-2.121m8.486-8.486l2.121-2.121"/>
+                        </svg>
+                    </div>
+                    <div class="cc-graph-content">
+                        <p class="cc-graph-title">知识图谱</p>
+                        <p class="cc-graph-desc">可视化你的知识结构</p>
+                    </div>
+                    <svg class="cc-graph-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </a>
+            </section>
+        </div>
+    </aside>
+
+    </div><!-- end cc-layout -->
 
     <!-- 编辑课程弹窗 -->
     <div class="cc-modal" id="cc-edit-modal" hidden>

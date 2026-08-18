@@ -166,9 +166,56 @@
     el = document.getElementById('cc-stat-progress'); if (el) el.textContent = formatPercent(avg);
   }
 
+  /* ===================== 最近学习 ===================== */
+  function renderRecent() {
+    var container = document.getElementById('cc-recent-list');
+    if (!container) return;
+
+    // 收集所有有进度的课程
+    var recentCourses = [];
+    state.subjects.forEach(function (s) {
+      s.courses.forEach(function (c) {
+        if (c.visible !== false && c.progress && c.progress > 0 && c.bvid) {
+          recentCourses.push({
+            id: c.id,
+            title: c.title,
+            progress: c.progress,
+            slug: s.slug
+          });
+        }
+      });
+    });
+
+    if (recentCourses.length === 0) {
+      container.innerHTML = '<div class="cc-recent-empty"><span>暂无最近学习记录</span></div>';
+      return;
+    }
+
+    // 按进度排序，取前5个
+    recentCourses.sort(function (a, b) { return b.progress - a.progress; });
+    recentCourses = recentCourses.slice(0, 5);
+
+    var html = recentCourses.map(function (c) {
+      return (
+        '<a href="/course-learn.html?courseId=' + encodeURIComponent(c.id) + '" class="cc-recent-item" data-course-id="' + escapeHtml(c.id) + '">' +
+          '<div class="cc-recent-thumb ' + escapeHtml(c.slug) + '">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>' +
+          '</div>' +
+          '<div class="cc-recent-info">' +
+            '<p class="cc-recent-title">' + escapeHtml(c.title) + '</p>' +
+            '<span class="cc-recent-time">进度 ' + c.progress + '%</span>' +
+          '</div>' +
+        '</a>'
+      );
+    }).join('');
+
+    container.innerHTML = html;
+  }
+
   /* ===================== 主体渲染 ===================== */
   function render() {
     renderStats();
+    renderRecent();
     renderBody();
   }
 

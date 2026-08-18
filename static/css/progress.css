@@ -5,8 +5,6 @@
 
 /* ---------- 1. 页面容器 ---------- */
 .progress-page {
-    max-width: 1400px;
-    margin: 0 auto;
     padding: calc(64px + var(--space-lg)) var(--space-lg) var(--space-2xl);
     position: relative;
     z-index: 1;

@@ -49,8 +49,6 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--gap-md);
-    max-width: 1440px;
-    margin: 0 auto;
 }
 
 .nav-back {
@@ -133,8 +131,6 @@
         "cal    side"
         "upcoming side";
     gap: 20px;
-    max-width: 1440px;
-    margin: 0 auto;
 }
 
 .kpi-strip { grid-area: kpi; }
