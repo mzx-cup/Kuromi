@@ -197,8 +197,87 @@
     <script src="/js/mascot-panel.js"></script>
 
     <script src="/js/data-layer.js"></script>
+    <script src="/js/demo-data.js"></script>
     <script src="/js/focus-sync.js"></script>
     <script src="/js/focus-analysis.js"></script>
+
+    <!-- Demo data interceptor: mock fetch for /api/focus/analysis/ -->
+    <script>
+    (function() {
+        'use strict';
+        if (!window.StarDemoData) return;
+
+        // 心流共振仪定位为演示页：与 data-dashboard.html 一致，
+        // 始终展示演示数据（便于演示 / 截图 / 测试，无需登录或 ?demo=1）。
+        window.StarDemoData.showBadge();
+        console.info('[flow-meter] 当前展示演示数据（始终启用）');
+
+        var _origFetch = window.fetch;
+        window.fetch = function(input, init) {
+            var url = typeof input === 'string' ? input : (input && input.url) || '';
+            if (url.indexOf('/api/focus/analysis/') !== -1) {
+                var demoData = window.StarDemoData.getFlowMeterData();
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: function() { return Promise.resolve(demoData); }
+                });
+            }
+            return _origFetch.apply(this, arguments);
+        };
+
+        // 覆盖 FocusAnalysis.getRealtimeState()，返回演示用实时状态
+        function installRealtimeHook() {
+            if (!window.FocusAnalysis || !window.FocusAnalysis.getRealtimeState) return false;
+            var demo = window.StarDemoData;
+            var lastTick = 0;
+            var lastState = null;
+            window.FocusAnalysis.getRealtimeState = function () {
+                var now = Date.now();
+                if (!lastState || now - lastTick > 4000) {
+                    lastState = demo.getFlowMeterRealtimeState();
+                    lastTick = now;
+                } else {
+                    // 4 秒内小幅抖动置信度，避免指示器僵死
+                    lastState.confidence = Math.round(
+                        Math.max(0.3, Math.min(0.99, lastState.confidence + (Math.random() - 0.5) * 0.04)) * 100
+                    ) / 100;
+                    lastState.lastActivitySec = Math.max(0, lastState.lastActivitySec + Math.floor((Math.random() - 0.5) * 6));
+                    lastState.timestamp = now;
+                }
+                return lastState;
+            };
+            // 同时让原生 _detectRealtimeState 失效：在 demo 模式下让 _realtime 保持演示值
+            if (window.FocusAnalysis._emit) {
+                var origEmit = window.FocusAnalysis._emit;
+                window.FocusAnalysis._emit = function (event, payload) {
+                    if (event === 'realtime-changed') {
+                        return origEmit.call(this, event, window.FocusAnalysis.getRealtimeState());
+                    }
+                    return origEmit.apply(this, arguments);
+                };
+            }
+            return true;
+        }
+
+        // FocusAnalysis 可能在 demo-data.js 之后才就绪，轮询挂载
+        var _hookRetry = 0;
+        function tryHook() {
+            if (installRealtimeHook()) return;
+            if (++_hookRetry > 40) return;
+            setTimeout(tryHook, 100);
+        }
+        tryHook();
+
+        // 立即主动触发一次状态变化事件，让 UI 不用等下一个轮询周期
+        setTimeout(function () {
+            if (window.FocusAnalysis && window.FocusAnalysis._emit) {
+                window.FocusAnalysis._emit('realtime-changed', window.FocusAnalysis.getRealtimeState());
+            }
+        }, 300);
+    })();
+    </script>
+
     <script src="/js/flow-meter.js"></script>
 
     <script>

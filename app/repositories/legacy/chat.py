@@ -161,21 +161,29 @@ class DbPyChatRepository:
     def save_memory(self, user_id, memory: dict) -> int:
         """保存一条用户记忆。
 
-        id 由数据库自动分配(自增 INTEGER / BIGINT)。``memory.get("id")``
-        如果是整数会被用作显式 PK;否则忽略。
+        id 处理策略：
+          - 若 ``memory.get("id")`` 是整数：当 schema 是 BIGINT/INT 自增 PK 时使用
+          - 若 ``memory.get("id")`` 是字符串（UUID）：当 schema 是 VARCHAR PK 时使用
+          - 否则探测 ``id`` 列的类型：VARCHAR/TEXT → 生成 UUID；BIGINT/INT → 依赖
+            ``AUTO_INCREMENT``（lastrowid）
 
         自动适配 schema:如果表里没有 ``source`` / ``confidence`` /
         ``access_count`` / ``confirmed`` / ``updated_at`` 列(老 schema 或
         简化的 test fixture),只 INSERT 已存在的列。
         """
+        import uuid as _uuid
+
         explicit_id = memory.get("id")
-        use_explicit = False
+        explicit_str_id = None  # 用于 VARCHAR 类型的字符串 PK
+        explicit_int_id = None  # 用于 BIGINT/INT 类型的整型 PK
         if explicit_id is not None:
+            # 优先尝试整型
             try:
-                explicit_id = int(explicit_id)
-                use_explicit = True
+                explicit_int_id = int(explicit_id)
             except (TypeError, ValueError):
-                use_explicit = False
+                # 非整数 → 当字符串 PK 用（如果传过来的本来就是 str）
+                if isinstance(explicit_id, str) and explicit_id:
+                    explicit_str_id = explicit_id
 
         for _backend, conn in self._memory_conn_iter():
             if conn is None:
@@ -191,6 +199,58 @@ class DbPyChatRepository:
                 if not cols_avail:
                     # 表都不存在 → JSON 回退
                     return self._save_memory_json(user_id, memory)
+
+                # 探测 id 列类型,决定是否需要生成 UUID
+                id_col_type = ""
+                try:
+                    if db._is_sqlite(conn):  # noqa: SLF001
+                        cur = conn.cursor()
+                        try:
+                            cur.execute("PRAGMA table_info(user_memories)")
+                            for r in cur.fetchall():
+                                if r[1] == "id":
+                                    id_col_type = (r[2] or "").upper()
+                                    break
+                        finally:
+                            try:
+                                cur.close()
+                            except Exception:
+                                pass
+                    else:
+                        cur = conn.cursor()
+                        try:
+                            cur.execute(
+                                "SELECT DATA_TYPE FROM information_schema.COLUMNS "
+                                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='user_memories' "
+                                "AND COLUMN_NAME='id'"
+                            )
+                            row = cur.fetchone()
+                            if row:
+                                id_col_type = (row[0] or "").upper()
+                        finally:
+                            try:
+                                cur.close()
+                            except Exception:
+                                pass
+                except Exception:
+                    id_col_type = ""
+
+                varchar_like = any(
+                    t in id_col_type
+                    for t in ("VARCHAR", "CHAR", "TEXT", "UUID")
+                )
+                int_like = any(t in id_col_type for t in ("INT", "BIGINT"))
+
+                # 根据 id 列类型决定显式 id：VARCHAR → 字符串 UUID；BIGINT → 整数
+                # 缺省情况下：探测失败 → 走 UUID 路径（最安全的兼容）
+                generated_str_id = f"mem_{_uuid.uuid4().hex[:16]}"
+                if varchar_like:
+                    use_id_value = explicit_str_id or generated_str_id
+                elif int_like:
+                    use_id_value = explicit_int_id  # 依赖 AUTO_INCREMENT 时为 None
+                else:
+                    # 未知类型 → 优先用字符串 UUID（更安全）
+                    use_id_value = explicit_str_id or generated_str_id
 
                 now = datetime.now().isoformat(sep=" ", timespec="seconds")
                 placeholder = "?" if db._is_sqlite(conn) else "%s"  # noqa: SLF001
@@ -212,9 +272,9 @@ class DbPyChatRepository:
                 ]
                 cols = []
                 values = []
-                if use_explicit and "id" in cols_avail:
+                if "id" in cols_avail and use_id_value is not None:
                     cols.append("id")
-                    values.append(explicit_id)
+                    values.append(use_id_value)
                 for col, val in spec:
                     if col in cols_avail:
                         cols.append(col)
@@ -229,14 +289,21 @@ class DbPyChatRepository:
                     )
                     conn.commit()
                     new_id = cursor.lastrowid
-                    return new_id if new_id is not None else explicit_id or 0
+                    # 优先级：lastrowid（自增 INT）> use_id_value（UUID 字符串）>
+                    # explicit_int_id > 0
+                    if new_id is not None and new_id > 0:
+                        return new_id
+                    if use_id_value is not None:
+                        return use_id_value
+                    return explicit_int_id or 0
                 finally:
                     try:
                         cursor.close()
                     except Exception:
                         pass
-            except Exception:
+            except Exception as e:
                 # 任何 schema/类型不匹配 → JSON 回退
+                print(f"[DbPyChatRepository.save_memory] SQL 保存失败,回退到 JSON: {e}")
                 return self._save_memory_json(user_id, memory)
         return self._save_memory_json(user_id, memory)
 

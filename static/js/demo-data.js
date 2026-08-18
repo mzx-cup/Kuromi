@@ -361,6 +361,36 @@
         ];
     }
 
+    /** 构造近期 7 天历史样本（驱动「本周均值」KPI 计算） */
+    function buildRecentHistory() {
+        var entries = [];
+        var types = ['deep', 'deep', 'shallow', 'warning'];
+        for (var off = 6; off >= 0; off--) {
+            // 每天约 8 条样本，覆盖上午/下午/傍晚
+            var hours = [9, 11, 14, 16, 19, 21, 22, 23];
+            for (var k = 0; k < hours.length; k++) {
+                var d = new Date(Date.now() - off * DAY_MS);
+                d.setHours(hours[k], Math.floor(((off * 31 + hours[k]) % 60)), 0, 0);
+                var hour = d.getHours();
+                var base = (hour >= 22 || hour < 6) ? 55
+                         : (hour >= 10 && hour <= 12) ? 85
+                         : (hour >= 14 && hour <= 17) ? 82
+                         : (hour >= 19 && hour <= 21) ? 74 : 68;
+                var seed = (off * 9301 + hours[k] * 49297) % 233280;
+                var r = seed / 233280;
+                var score = Math.round(base + Math.sin(off + k) * 12 + (r - 0.5) * 18);
+                score = Math.max(20, Math.min(98, score));
+                var type = types[Math.floor(r * types.length)];
+                entries.push({
+                    timestamp: d.toISOString(),
+                    score: score,
+                    type: type
+                });
+            }
+        }
+        return entries;
+    }
+
     function getFlowMeterData() {
         var now = new Date();
         var h = now.getHours();
@@ -389,7 +419,8 @@
             },
             timeline: buildTimeline(30),
             timeOfDay: buildTimeOfDay(),
-            tips: buildTips()
+            tips: buildTips(),
+            recentHistory: buildRecentHistory()
         };
     }
 
@@ -398,22 +429,126 @@
         var h = now.getHours();
         // 模拟不同时间段处于不同状态
         var state;
+        var confidence;
         if (h >= 10 && h <= 12) {
             state = 'focused';
+            confidence = 0.94;
         } else if (h >= 14 && h <= 16) {
             state = 'lightly';
+            confidence = 0.78;
+        } else if (h >= 19 && h <= 22) {
+            state = 'focused';
+            confidence = 0.86;
         } else if (h >= 22 || h < 6) {
             state = 'distracted';
+            confidence = 0.92;
         } else {
             state = 'focused';
+            confidence = 0.82;
         }
+        // 每秒调用时微调置信度，让指示器有轻微「呼吸」
+        var phase = (Date.now() / 4000) % 1;
+        var jitter = (phase - 0.5) * 0.08;
         return {
             state: state,
-            switchFrequency: 1,
-            lastActivitySec: 32,
-            confidence: 0.88,
+            switchFrequency: state === 'focused' ? 0 : (state === 'lightly' ? 2 : 5),
+            lastActivitySec: state === 'focused' ? 18 : (state === 'lightly' ? 42 : 95),
+            confidence: Math.round((confidence + jitter) * 100) / 100,
             isHidden: false,
             timestamp: Date.now()
+        };
+    }
+
+    /* ============================================================
+       5. 学习生态页 — 林场 / 植物图鉴 (plant.html)
+       ------------------------------------------------------------
+       返回 plant.js 消费的 plantState 结构：
+       { seeds, ownedPlants, slots, lastUpdate }
+       以及一个演示天气对象用于温度/天气 tip。
+       已解锁图鉴比例约 24/80，让右上角角标 / 收集页有内容可看。
+       ============================================================ */
+
+    // 已解锁的 24 个植物 ID（含若干稀有/精良变体，传说保留 1 个提升惊喜）
+    const PLANT_OWNED_IDS = [
+        'carrot', 'tomato', 'corn', 'cabbage', 'cucumber', 'pepper',
+        'broccoli', 'pumpkin', 'strawberry', 'apple', 'pear', 'peach',
+        'cherry', 'grape', 'orange', 'mango',
+        'coffee', 'tea', 'lavender', 'tulip', 'sakura', 'relic_flower',
+        'rainbow_rose', 'origin_flower'
+    ];
+
+    // 槽位 1：已成熟，等待收获（揭晓稀有度）
+    // 槽位 2：成长期
+    // 槽位 3：空槽位
+    function getPlantEcosystemData() {
+        const now = Date.now();
+
+        // 槽位 1 — 已成熟（stage=3，剩余时间 0），神秘阶段已揭晓
+        const slot1 = {
+            plantId: 'sakura',
+            plantName: '🌸 樱花树',
+            plantEmoji: '🌸',
+            plantRarity: 'rare',
+            stage: 3,
+            remainingTime: 0,
+            water: 78,
+            nutrient: 65,
+            lastUpdate: now
+        };
+
+        // 槽位 2 — 处于成长期（stage=2），剩余约 38 分钟
+        const slot2GrowMinutes = 38;
+        const slot2 = {
+            plantId: 'rainbow_rose',
+            plantName: '🌈 彩虹玫瑰',
+            plantEmoji: '🌈',
+            plantRarity: 'fine',
+            stage: 2,
+            remainingTime: slot2GrowMinutes * 60,
+            water: 84,
+            nutrient: 72,
+            lastUpdate: now
+        };
+
+        // 槽位 3 — 空槽位
+        const slot3 = { plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: now };
+
+        // 已拥有植物（去重，按解锁顺序构造若干时间戳与变体）
+        const ownedPlants = PLANT_OWNED_IDS.map((id, idx) => {
+            // 已拥有越多越早解锁
+            const obtainedAt = now - (PLANT_OWNED_IDS.length - idx) * 2 * DAY_MS;
+            // 解锁次数与变体
+            const variants = { normal: { count: 1 + (idx % 4), firstObtained: obtainedAt } };
+            if (idx % 7 === 0) {
+                variants['异色'] = { count: 1, firstObtained: obtainedAt + DAY_MS };
+            }
+            if (idx % 11 === 0) {
+                variants['炫彩'] = { count: 1, firstObtained: obtainedAt + 2 * DAY_MS };
+            }
+            if (id === 'origin_flower') {
+                variants['异色炫彩'] = { count: 1, firstObtained: obtainedAt };
+            }
+            // 仅存 id 与元数据：渲染时由 plant.js 从 PLANT_DATA 查表补齐 name/emoji/rarity
+            return {
+                id: id,
+                obtainedAt: obtainedAt,
+                harvestCount: variants.normal.count,
+                variants: variants
+            };
+        });
+
+        return {
+            seeds: 18,
+            ownedPlants: ownedPlants,
+            slots: [slot1, slot2, slot3],
+            lastUpdate: now,
+            weather: {
+                currentWeather: 'cloudy',
+                temperature: 22,
+                city: '演示城市 · 上海',
+                lastUpdate: now,
+                '保温罩': false
+            }
         };
     }
 
@@ -428,5 +563,6 @@
         getDashboardData,
         getFlowMeterData,
         getFlowMeterRealtimeState,
+        getPlantEcosystemData,
     };
 })();

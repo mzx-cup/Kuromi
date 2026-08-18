@@ -591,27 +591,29 @@ document.addEventListener('alpine:init', () => {
           text, history, window.MascotContext?.pageContext,
           { signal: this.abortController.signal, model: this.currentAiModel }
         )) {
-          if (chunk.type === 'text' || chunk.event === 'text_delta') {
+          // streamChat 把 SSE 事件名挂在 chunk.__event，兼容旧 chunk.event 命名。
+          const eventType = chunk.__event || chunk.event;
+          if (eventType === 'text_delta' || chunk.type === 'text') {
             const content = chunk.content || (chunk.data && chunk.data.content) || '';
             assistantMsg.content += content;
             assistantMsg.typing = false;
             this.scrollToBottom();
-          } else if (chunk.type === 'command' || chunk.event === 'command') {
+          } else if (eventType === 'command' || chunk.type === 'command') {
             const data = chunk.data || chunk;
             this.handleCommand(data.tag, data.content);
-          } else if (chunk.type === 'link' || chunk.event === 'link') {
+          } else if (eventType === 'link' || chunk.type === 'link') {
             const data = chunk.data || chunk;
             assistantMsg.links = assistantMsg.links || [];
             assistantMsg.links.push(data);
-          } else if (chunk.type === 'action' || chunk.event === 'action') {
+          } else if (eventType === 'action' || chunk.type === 'action') {
             const data = chunk.data || chunk;
             if (data.type === 'proactive') {
               assistantMsg.actions = assistantMsg.actions || [];
               assistantMsg.actions.push(data);
             }
-          } else if (chunk.type === 'done' || chunk.event === 'done') {
+          } else if (eventType === 'done' || chunk.type === 'done') {
             // 流正常结束
-          } else if (chunk.type === 'error' || chunk.event === 'error') {
+          } else if (eventType === 'error' || chunk.type === 'error') {
             const data = chunk.data || chunk;
             assistantMsg.content = '抱歉，出了点问题: ' + (data.message || data.content || '未知错误');
             assistantMsg.typing = false;

@@ -34,7 +34,7 @@ def _course_progress_repo(user_id):
 # ── Pydantic Models ──
 
 class GenerateLearningPathRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     forceRefresh: bool = False  # 强制刷新，忽略缓存
     goal: Optional[str] = None  # 用户自定义学习目标（Tab 3 任务编排输入）
     difficulty_pref: int = Field(default=3, ge=1, le=5, description="Agent 控制塔难度偏好 1-5")
@@ -89,12 +89,12 @@ class NodeUpdateItem(BaseModel):
 
 
 class BatchUpdateNodesRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     nodes: list[NodeUpdateItem]
 
 
 class EvaluateNodesRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     node_ids: list[str] | None = None  # None 表示评估所有节点
 
 
@@ -317,7 +317,7 @@ def _validate_and_ground_learning_goals(path: list[dict], analytics: dict) -> di
     }
 
 
-def _merge_node_states_into_path(user_id: int, path: list[dict]) -> list[dict]:
+def _merge_node_states_into_path(user_id: str, path: list[dict]) -> list[dict]:
     """将节点追踪表中的状态融合到路径中（节点表优先）。"""
     nodes_map = {}
     course_progress_repo = _course_progress_repo(user_id)
@@ -691,7 +691,7 @@ def _build_user_prompt(analytics: dict, goal: Optional[str] = None,
 
 # ── 核心生成逻辑（可被外部调用） ──
 
-async def generate_path_for_user(user_id: int, force_refresh: bool = False, goal: Optional[str] = None,
+async def generate_path_for_user(user_id: str, force_refresh: bool = False, goal: Optional[str] = None,
                                   difficulty_pref: int = 3, strategy: str = "auto",
                                   injected_knowledge: Optional[list[str]] = None) -> GenerateLearningPathResponse:
     """
@@ -849,7 +849,7 @@ async def generate_learning_path(request: GenerateLearningPathRequest):
 
 
 @router.get("/current/{user_id}", response_model=GenerateLearningPathResponse)
-async def get_current_learning_path(user_id: int):
+async def get_current_learning_path(user_id: str):
     """
     获取学生当前保存的学习路径（不触发 LLM 生成）。
     返回的路径已融合节点追踪表中的最新状态。
@@ -946,7 +946,7 @@ async def update_learning_path_nodes(request: BatchUpdateNodesRequest):
 
 
 @router.get("/nodes/{user_id}", response_model=NodeStateResponse)
-async def get_learning_path_nodes(user_id: int):
+async def get_learning_path_nodes(user_id: str):
     """获取学生的所有知识点节点状态。"""
     course_progress_repo = _course_progress_repo(user_id)
     nodes = course_progress_repo.get_learning_path_nodes(user_id)
