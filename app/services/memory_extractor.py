@@ -268,7 +268,7 @@ async def save_extracted_memories(
             # itself (that gave us silent commit failures + "None" IDs).
             chat_repo = SqlAlchemyChatRepository(session_ctx)
 
-            def _do_writes():
+            def _do_writes(session):
                 ids: list[str] = []
                 for mem in memories:
                     mem_id = mem.get("_update_target_id")

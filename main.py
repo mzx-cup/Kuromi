@@ -4245,22 +4245,28 @@ async def chat_stream_v2(request: Request, body: StreamChatRequest):
                 from db import get_user_memories
 
                 await push_agent_log("memory", "正在分析对话中的用户新特征...")
+                logger.info(f"[Memory] student_id={student_id}, session_id={session_id}")
                 all_memories = get_user_memories(student_id)
+                logger.info(f"[Memory] 已加载 {len(all_memories)} 条已有记忆")
                 recent_history = chat_history[-6:] + [
                     {"role": "user", "content": body.user_input},
                     {"role": "assistant", "content": ai_response},
                 ]
+                logger.info(f"[Memory] 准备提取记忆，对话历史 {len(recent_history)} 条")
                 new_memories = await extract_memories_from_conversation(
                     str(student_id), recent_history, existing_memories=all_memories
                 )
+                logger.info(f"[Memory] LLM 提取了 {len(new_memories)} 条记忆")
                 if new_memories:
                     type_names = {"background": "背景", "preference": "偏好", "knowledge": "知识", "interest": "兴趣", "goal": "目标", "emotion": "情感", "fact": "事实"}
                     for mem in new_memories:
                         label = type_names.get(mem.get("memory_type", "fact"), "特征")
                         await push_agent_log("memory", f"发现新特征：[{label}] {mem.get('content', '')}")
                     deduped = deduplicate_memories(new_memories, all_memories)
+                    logger.info(f"[Memory] 去重后 {len(deduped)} 条需要保存")
                     if deduped:
                         saved = await save_extracted_memories(str(student_id), deduped)
+                        logger.info(f"[Memory] 保存结果: {saved}")
                         await push_agent_log("memory", f"已记住 {len(saved)} 条新特征，下次会主动引用")
                     else:
                         await push_agent_log("memory", "新特征与已有记忆重复，无需重复记录")
@@ -4268,7 +4274,7 @@ async def chat_stream_v2(request: Request, body: StreamChatRequest):
                     await push_agent_log("memory", "本次对话未发现新的用户特征")
             except Exception as mem_e:
                 await push_agent_log("memory", f"记忆分析失败（非阻塞）: {mem_e}")
-                logger.warning(f"[MemoryExtractor] 流式聊天记忆提取失败: {mem_e}")
+                logger.warning(f"[MemoryExtractor] 流式聊天记忆提取失败: {mem_e}", exc_info=True)
 
             # ===== 苏格拉底交互确认点判断 =====
             socratic_checkpoint = False
