@@ -4673,6 +4673,8 @@ let _towerInitialized = false;
 // 新 renderTowerLog() 写 #tower-terminal, 数据源为 window.agentBus 的 agent_step / error 事件。
 let towerLogs = [];                      // in-memory mirror of all rendered log envelopes (for cap & replay)
 const TOWER_LOG_MAX = 200;               // cap to prevent DOM bloat
+let _towerRenderPending = false;         // 节流标记: 防止高频事件导致 renderTowerFlow 过度执行
+const TOWER_RENDER_INTERVAL = 80;        // ms: 至少每 80ms 重渲一次
 
 // === Task 22: 雷达图 (LearningPortrait 6 维) — 数据源切换 ===
 // 旧 renderRadarChart() 仍写 #radar-chart, 但数据源从 mapProfileToScore() (legacy Chinese-label 映射)
@@ -5031,6 +5033,19 @@ function _towerFlattenAgents() {
 }
 
 /**
+ * 节流调度: 把 renderTowerFlow 的执行节奏限制在每 TOWER_RENDER_INTERVAL ms 一次。
+ * 避免高频 agent_step 事件导致频繁 innerHTML 重写造成卡顿。
+ */
+function scheduleTowerRender() {
+    if (_towerRenderPending) return;
+    _towerRenderPending = true;
+    setTimeout(() => {
+        _towerRenderPending = false;
+        renderTowerFlow();
+    }, TOWER_RENDER_INTERVAL);
+}
+
+/**
  * 渲染 #tower-flow. 使用 .flow-node / .is-busy / .is-success / .is-failed 类。
  * data-agent 属性是关键 hook, 下游 (Task 26 E2E / Task 21 logs) 会用。
  */
@@ -5160,6 +5175,11 @@ function subscribeToAgentBus() {
     const bus = window.agentBus;
     if (!bus || typeof bus.subscribe !== 'function') {
         // agentBus 还没加载 (脚本顺序), 留待下次 init 重试
+        // 延迟重试: 等 agent-bus.js 脚本执行完成后再次尝试
+        setTimeout(() => {
+            _towerBusSubscribed = false; // 重置以便重试
+            subscribeToAgentBus();
+        }, 100);
         return;
     }
     _towerBusSubscribed = true;
@@ -5171,7 +5191,7 @@ function subscribeToAgentBus() {
         if (status === 'success') towerAgentStatus[agentId] = 'success';
         else if (status === 'failed' || status === 'error') towerAgentStatus[agentId] = 'failed';
         else towerAgentStatus[agentId] = 'busy';
-        renderTowerFlow();
+        scheduleTowerRender();
         // 同步把这一步推到 #tower-terminal 日志流
         if (typeof renderTowerLog === 'function') renderTowerLog(envelope);
         // 评估智能体跑成功 -> 渲染报告抽屉 + 自动展开
@@ -5189,7 +5209,7 @@ function subscribeToAgentBus() {
         for (const a of agentCatalog.agents) {
             if (towerAgentStatus[a.id] !== 'failed') towerAgentStatus[a.id] = 'success';
         }
-        renderTowerFlow();
+        scheduleTowerRender();
         // 流水线跑完自动触发学习路径刷新 (跳过 30s 防抖)
         _pathLastRefreshedAt = 0;
         schedulePathRefresh('pipeline');
@@ -5197,7 +5217,7 @@ function subscribeToAgentBus() {
 
     bus.subscribe('error', (err) => {
         if (err && err.agent) towerAgentStatus[err.agent] = 'failed';
-        renderTowerFlow();
+        scheduleTowerRender();
         // fatal error 额外推一条合成日志进 terminal
         if (err && err.fatal && typeof renderTowerLog === 'function') {
             renderTowerLog({
