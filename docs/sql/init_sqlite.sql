@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS user (
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS learning_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
     interaction_count INTEGER DEFAULT 0,
     code_practice_time INTEGER DEFAULT 0,
     socratic_pass_rate REAL DEFAULT 0.0,

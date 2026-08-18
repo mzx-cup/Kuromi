@@ -268,7 +268,12 @@ async def save_extracted_memories(
             # itself (that gave us silent commit failures + "None" IDs).
             chat_repo = SqlAlchemyChatRepository(session_ctx)
 
-            def _do_writes():
+            def _do_writes(sync_session):
+                """``session.run_sync`` 会把 sync ``Session`` 作为位置参数传进来。
+
+                与 ``chat_repo.session``（已经绑定的 session）保持一致，使用闭包
+                里的 session 而不是参数里的，避免双绑定造成的状态分裂。
+                """
                 ids: list[str] = []
                 for mem in memories:
                     mem_id = mem.get("_update_target_id")
@@ -299,7 +304,24 @@ async def save_extracted_memories(
 
             saved_ids = await session_ctx.run_sync(_do_writes)
             await session_ctx.commit()
-            return saved_ids
+            # 如果 ORM 路径所有 ID 都为空（说明 ``AsyncSession.flush`` 没被 await,
+            # ``mem.id`` 一直是 None），落到 legacy 路径重试。
+            non_empty_ids = [sid for sid in (saved_ids or []) if sid]
+            if not non_empty_ids and saved_ids:
+                logger.warning(
+                    "[MemoryExtractor] ORM save returned empty IDs "
+                    "(AsyncSession.flush not awaited on sync repo); "
+                    "falling back to legacy path"
+                )
+                # 清空 ORM 路径留下的空字符串 id,避免 legacy 追加后调用方拿到
+                # 列表里混着空字符串 + UUID 字符串的脏数据。
+                saved_ids = []
+                try:
+                    await session_ctx.rollback()
+                except Exception:
+                    pass
+            else:
+                return saved_ids
         except Exception as e:
             logger.warning(f"[MemoryExtractor] ORM save failed, falling back to db.py: {e}")
             try:

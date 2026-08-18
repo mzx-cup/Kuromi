@@ -653,7 +653,7 @@ def _ensure_user_evaluations_table(conn):
     if _is_sqlite(conn):
         cursor.execute("""CREATE TABLE IF NOT EXISTS user_evaluations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
+            user_id TEXT NOT NULL,
             interaction_count INTEGER DEFAULT 0,
             socratic_pass_rate REAL DEFAULT 0.0,
             difficulty_level TEXT DEFAULT 'basic',
@@ -671,7 +671,7 @@ def _ensure_user_evaluations_table(conn):
         import pymysql
         cursor.execute("""CREATE TABLE IF NOT EXISTS user_evaluations (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
+            user_id VARCHAR(64) NOT NULL,
             interaction_count INT DEFAULT 0,
             socratic_pass_rate FLOAT DEFAULT 0.0,
             difficulty_level VARCHAR(20) DEFAULT 'basic',
@@ -4728,6 +4728,13 @@ def save_user_calendar_events(user_id, events_data):
 # ============================================================
 
 def get_daily_route(user_id, route_date):
+    """读取今日学习路线。
+
+    NOTE: 历史上 SQL 路径结束后（即使 row=None）会继续走 JSON fallback，
+    但 Phase 2.3 起 JSON fallback 在 DUAL_WRITE_LEGACY=false（生产默认）下
+    会抛 RuntimeError，导致"无数据 → 也抛异常"。这里改成 SQL 路径走完直接
+    return，不再触发 JSON fallback。
+    """
     with get_db() as conn:
         if conn is not None:
             try:
@@ -4744,28 +4751,44 @@ def get_daily_route(user_id, route_date):
                         (user_id, route_date))
                 row = cursor.fetchone()
                 cursor.close()
-                if row:
-                    if not isinstance(row, dict):
-                        row = dict(row)
-                    for field in ('tasks_json', 'completed_json'):
-                        val = row.get(field)
-                        if isinstance(val, str):
-                            try:
-                                row[field] = json.loads(val)
-                            except Exception:
-                                pass
-                    return row
+                if not row:
+                    return None
+                if not isinstance(row, dict):
+                    row = dict(row)
+                for field in ('tasks_json', 'completed_json'):
+                    val = row.get(field)
+                    if isinstance(val, str):
+                        try:
+                            row[field] = json.loads(val)
+                        except Exception:
+                            pass
+                return row
             except Exception as e:
                 print(f"数据库查询失败: {e}")
-
-        storage = load_local_storage()
-        for route in storage.get('daily_routes', []):
-            if route.get('user_id') == user_id and route.get('route_date') == route_date:
-                return route
+                # SQL 异常时仍尝试 JSON fallback（仅 dev 模式可用）
+                if is_dual_write_enabled():
+                    storage = load_local_storage()
+                    for route in storage.get('daily_routes', []):
+                        if route.get('user_id') == user_id and route.get('route_date') == route_date:
+                            return route
+                return None
+        # conn is None: JSON fallback (dev only)
+        if is_dual_write_enabled():
+            storage = load_local_storage()
+            for route in storage.get('daily_routes', []):
+                if route.get('user_id') == user_id and route.get('route_date') == route_date:
+                    return route
         return None
 
 
 def save_daily_route(user_id, route_date, tasks, completed=None):
+    """保存今日学习路线。
+
+    NOTE: 历史上 SQL 路径结束后即使成功也会继续走 JSON fallback，
+    但 Phase 2.3 起 JSON fallback 在 DUAL_WRITE_LEGACY=false（生产默认）下
+    会抛 RuntimeError。这里改成 SQL 路径成功后直接 return；JSON fallback
+    仅在 DUAL_WRITE_LEGACY=true（dev）或 SQL 失败时触发。
+    """
     tasks_json = json.dumps(tasks, ensure_ascii=False) if not isinstance(tasks, str) else tasks
     completed_json = json.dumps(completed or [], ensure_ascii=False)
     with get_db() as conn:
@@ -4789,10 +4812,31 @@ def save_daily_route(user_id, route_date, tasks, completed=None):
                          tasks_json, completed_json))
                 conn.commit()
                 cursor.close()
-                return
+                return  # SQL 成功直接返回，不再触发 JSON fallback
             except Exception as e:
                 print(f"数据库保存失败: {e}")
+                # SQL 失败时尝试 JSON fallback (仅 dev)
+                if not is_dual_write_enabled():
+                    return
+                storage = load_local_storage()
+                for route in storage.get('daily_routes', []):
+                    if route.get('user_id') == user_id and route.get('route_date') == route_date:
+                        route['tasks_json'] = tasks_json
+                        if completed is not None:
+                            route['completed_json'] = completed_json
+                        save_local_storage(storage)
+                        return
+                storage['daily_routes'].append({
+                    'id': len(storage.get('daily_routes', [])) + 1,
+                    'user_id': user_id, 'route_date': route_date,
+                    'tasks_json': tasks_json, 'completed_json': completed_json,
+                })
+                save_local_storage(storage)
+                return
 
+        # conn is None: JSON fallback (dev only)
+        if not is_dual_write_enabled():
+            return
         storage = load_local_storage()
         for route in storage.get('daily_routes', []):
             if route.get('user_id') == user_id and route.get('route_date') == route_date:

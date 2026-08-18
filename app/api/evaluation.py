@@ -22,7 +22,7 @@ router = APIRouter(prefix="/evaluation", tags=["evaluation"])
 
 
 class UpdateEvaluationRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     interactionCount: int | None = None
     socraticPassRate: float | None = None
     difficultyLevel: str | None = None
@@ -143,7 +143,7 @@ def update_evaluation(request: UpdateEvaluationRequest):
 
 
 @router.get("/{user_id}")
-def get_evaluation(user_id: int):
+def get_evaluation(user_id: str):
     """获取用户当前评估指标（合并今日 user_evaluations + learning_records）"""
     try:
         repository = get_repository_for_user(
@@ -212,7 +212,7 @@ def get_evaluation(user_id: int):
 
 
 @router.get("/history/{user_id}")
-def get_evaluation_history(user_id: int, days: int = 30):
+def get_evaluation_history(user_id: str, days: int = 30):
     """获取用户最近 N 天的评估指标历史"""
     try:
         repository = get_repository_for_user(

@@ -1106,12 +1106,22 @@ function openWeatherSettings() {
 }
 const PLANT_SLOTS = 3;
 
+// ============================================================
+// 演示数据相关常量：演示数据存放在独立 key，避免污染真实数据
+// ============================================================
+const PLANT_REAL_STORAGE_KEY = 'starlearn_plants';
+const PLANT_DEMO_STORAGE_KEY = 'starlearn_plant_demo_state';
+const PLANT_DEMO_FLAG_KEY = 'starlearn_plant_demo_mode';
+
 let plantState = {
     seeds: 0,
     ownedPlants: [], // [{id, name, emoji, rarity}]
     slots: [],
     lastUpdate: Date.now()
 };
+
+// 当前是否为演示模式
+let plantDemoMode = false;
 
 let selectedSlotIndex = 0;
 
@@ -1128,7 +1138,96 @@ function randomPickPlant() {
     return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+/**
+ * 判断当前是否进入演示模式
+ *  - URL ?demo=0 → 强制关闭演示（不论任何环境）
+ *  - URL ?demo=1 或 localStorage.starlearn_demo_mode='1'（来自 demo-data.js）
+ *  - 或上次会话明确进入了演示模式（PLANT_DEMO_FLAG_KEY === '1'）
+ *  - 或本地没有真实植物数据（无论登录与否都填充演示数据，避免空白态）
+ *  - 或 localStorage 被浏览器策略阻止（Edge Tracking Prevention 等）→ 兜底走演示
+ *  - 或位于 localhost / 127.0.0.1 开发环境 → 与 achievements-data.js 保持一致自动演示
+ *
+ * 设计意图：演示数据是「未种植任何植物时的占位展示」。
+ *  - 未登录访问 → 看到演示数据
+ *  - 已登录但从未种过植物 → 也看到演示数据（先看到完整生态）
+ *  - 已登录且有真实植物数据 → 看真实数据，不再走演示分支
+ *  - localhost 永远演示（与星云陈列室一致），可用 ?demo=0 关闭
+ */
+function isPlantDemoMode() {
+    // URL 参数最先判断
+    try {
+        if (typeof location !== 'undefined' && location.search) {
+            const qs = new URLSearchParams(location.search);
+            if (qs.get('demo') === '0') return false; // 显式关闭
+            if (qs.get('demo') === '1') return true;  // 显式开启
+        }
+    } catch (e) { /* ignore */ }
+
+    // 开发环境（localhost / 127.0.0.1 / 0.0.0.0）一律走演示模式，与星云陈列室保持一致
+    try {
+        if (typeof location !== 'undefined') {
+            const host = (location.hostname || '').toLowerCase();
+            if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') {
+                return true;
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    try {
+        if (window.StarDemoData?.isForced?.()) return true;
+        if (localStorage.getItem(PLANT_DEMO_FLAG_KEY) === '1') return true;
+        // 本地没有任何真实植物数据 → 进入演示模式（无论是否登录）
+        const hasRealData = !!localStorage.getItem(PLANT_REAL_STORAGE_KEY);
+        if (!hasRealData) return true;
+        return false;
+    } catch (e) {
+        // localStorage 被浏览器策略阻止（Edge Tracking Prevention、隐私模式、跨域等）
+        // 视为「无真实数据」，进入演示模式，避免空白态
+        try { console.warn('[plant] localStorage 不可用，进入演示模式:', e?.name || e); } catch (_) { /* ignore */ }
+        return true;
+    }
+}
+
+/** 把演示数据填进 plantState，并打上 demo 标记 */
+function loadDemoPlantState() {
+    const demo = window.StarDemoData?.getPlantEcosystemData?.();
+    if (demo) {
+        plantState = {
+            seeds: demo.seeds || 0,
+            ownedPlants: Array.isArray(demo.ownedPlants) ? demo.ownedPlants : [],
+            slots: Array.isArray(demo.slots) ? demo.slots : [],
+            lastUpdate: demo.lastUpdate || Date.now()
+        };
+        // 兜底：保证槽位数组长度
+        while (plantState.slots.length < PLANT_SLOTS) {
+            plantState.slots.push({ plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() });
+        }
+        // 应用演示天气（避免在没有定位权限时出现「定位中」）
+        if (demo.weather) {
+            try { Object.assign(weatherState, demo.weather); } catch (e) { /* ignore */ }
+        }
+        try { localStorage.setItem(PLANT_DEMO_STORAGE_KEY, JSON.stringify(plantState)); } catch (e) { /* ignore */ }
+        try { localStorage.setItem(PLANT_DEMO_FLAG_KEY, '1'); } catch (e) { /* ignore */ }
+    } else {
+        plantState = {
+            seeds: 0,
+            ownedPlants: [],
+            slots: [],
+            lastUpdate: Date.now()
+        };
+        for (let i = 0; i < PLANT_SLOTS; i++) {
+            plantState.slots.push({ plantId: null, stage: 0, remainingTime: 0, water: 0, nutrient: 0, lastUpdate: Date.now() });
+        }
+    }
+    plantDemoMode = true;
+    try {
+        if (window.StarDemoData?.showBadge) window.StarDemoData.showBadge();
+        console.info('[plant] 当前展示演示数据（未登录 / 无真实数据 / ?demo=1）');
+    } catch (e) { /* ignore */ }
+}
+
 function init() {
+    plantDemoMode = isPlantDemoMode();
     loadPlantState();
     renderSeedCount();
     renderPlantCollection();
@@ -1137,12 +1236,19 @@ function init() {
     startGrowthTimer();
     // 启动装饰性落叶/花瓣粒子
     startDecorativeParticles();
-    // 初始化天气系统（异步）
-    initWeather().then(() => {
-        console.log('Weather initialized:', weatherState);
-    }).catch(e => {
-        console.error('Weather init failed:', e);
-    });
+    // 初始化天气系统（异步）；演示模式下跳过定位，使用演示天气
+    if (plantDemoMode) {
+        try {
+            updateWeatherDisplay();
+            if (typeof updateWeatherGrowthTip === 'function') updateWeatherGrowthTip();
+        } catch (e) { /* ignore */ }
+    } else {
+        initWeather().then(() => {
+            console.log('Weather initialized:', weatherState);
+        }).catch(e => {
+            console.error('Weather init failed:', e);
+        });
+    }
 }
 
 // ============================================================
@@ -1233,7 +1339,18 @@ function triggerHarvestEffect(isMini) {
 }
 
 function loadPlantState() {
-    const saved = localStorage.getItem('starlearn_plants');
+    // 演示模式：使用演示数据（demo-data.js），不读取真实 localStorage
+    if (plantDemoMode) {
+        loadDemoPlantState();
+        return;
+    }
+    // 退出演示模式时清理 demo 标记
+    try {
+        localStorage.removeItem(PLANT_DEMO_FLAG_KEY);
+        localStorage.removeItem(PLANT_DEMO_STORAGE_KEY);
+    } catch (e) { /* ignore */ }
+
+    const saved = localStorage.getItem(PLANT_REAL_STORAGE_KEY);
     if (saved) {
         const parsed = JSON.parse(saved);
         // 兼容旧格式：如果存在 currentPlant 字段，则把它放到第一个槽
@@ -1314,9 +1431,15 @@ function savePlantState() {
         legacy.nutrient = firstSlot.nutrient;
     }
     const toSave = { ...plantState, ...legacy };
-    localStorage.setItem('starlearn_plants', JSON.stringify(toSave));
-    // 同步到服务端数据库
-    if (window.StarData) StarData.setPlants(toSave, plantState.seeds);
+    if (plantDemoMode) {
+        // 演示模式：仅写到 demo 专用 key，避免污染真实数据
+        try { localStorage.setItem(PLANT_DEMO_STORAGE_KEY, JSON.stringify(toSave)); } catch (e) { /* ignore */ }
+        try { localStorage.setItem(PLANT_DEMO_FLAG_KEY, '1'); } catch (e) { /* ignore */ }
+    } else {
+        localStorage.setItem(PLANT_REAL_STORAGE_KEY, JSON.stringify(toSave));
+        // 同步到服务端数据库
+        if (window.StarData) StarData.setPlants(toSave, plantState.seeds);
+    }
     // 广播自定义事件，通知其他页面（如个人中心）
     window.dispatchEvent(new CustomEvent('plantStateUpdated', { detail: toSave }));
 }
@@ -1325,10 +1448,10 @@ function renderSeedCount() {
     // 更新导航栏种子数
     const navEl = document.getElementById('seed-count-nav');
     if (navEl) navEl.textContent = plantState.seeds;
-    // 同步到 localStorage
+    // 同步到 localStorage（演示模式也写同一个 key，便于顶部导航栏一致显示）
     localStorage.setItem('starlearn_seeds', String(plantState.seeds));
-    // 同步到服务端数据库
-    if (window.StarData) StarData.setSeeds(plantState.seeds);
+    // 演示模式下不调用服务端同步
+    if (!plantDemoMode && window.StarData) StarData.setSeeds(plantState.seeds);
 }
 
 function renderPlantCollection() {
@@ -1621,10 +1744,16 @@ function plantSeed() {
     renderCurrentPlant();
     showTip(`🌱 在槽位 ${targetIdx+1} 播下神秘种子！浇水或施肥可加速成长~`);
 
-    // 同步到个人中心
-    try { localStorage.setItem('starlearn_plants', JSON.stringify(plantState)); } catch(e) {}
-    // 同步到服务端数据库
-    if (window.StarData) StarData.setPlants(plantState, plantState.seeds);
+    // 演示模式：仅写到 demo 专用 key；否则写到真实 key + 服务端
+    if (plantDemoMode) {
+        try {
+            localStorage.setItem(PLANT_DEMO_STORAGE_KEY, JSON.stringify(plantState));
+            localStorage.setItem(PLANT_DEMO_FLAG_KEY, '1');
+        } catch (e) { /* ignore */ }
+    } else {
+        try { localStorage.setItem(PLANT_REAL_STORAGE_KEY, JSON.stringify(plantState)); } catch (e) {}
+        if (window.StarData) StarData.setPlants(plantState, plantState.seeds);
+    }
 }
 
 function renderPlantPots() {

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -1913,7 +1913,7 @@ def delete_user_account(request: DeleteAccountRequest):
         raise HTTPException(status_code=500, detail=f"账户注销失败: {str(e)}")
 
 class SaveProgressRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id (e.g. "demo_user_001") 与 int 都行
     evaluation: dict = {}
     currentPath: list = []
     profile: dict = {}
@@ -2012,7 +2012,7 @@ def save_user_progress(request: SaveProgressRequest):
         raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
 
 class LoadProgressRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
 
 class AssessmentRequest(BaseModel):
     assessment: dict
@@ -2734,7 +2734,7 @@ def get_voice_list():
 # ============================================================
 
 class PortraitUpdateRequest(BaseModel):
-    user_id: int
+    user_id: str | int  # 接受 string demo id 与 int 都行
     source: str = "socratic"  # socratic, code, chat, index, other
     interaction_data: dict[str, Any] = Field(default_factory=dict)
 
@@ -2784,7 +2784,7 @@ def update_portrait(request: PortraitUpdateRequest):
 
 
 @app.get("/api/profile/portrait/{user_id}")
-def get_portrait(user_id: int):
+def get_portrait(user_id: str):
     """获取学生的6维画像"""
     try:
         portrait = database.get_student_portrait(user_id)
@@ -3210,7 +3210,7 @@ def load_user_progress(request: LoadProgressRequest):
         raise HTTPException(status_code=500, detail=f"加载失败: {str(e)}")
 
 @app.get("/api/progress/summary/{user_id}")
-def get_progress_summary(user_id: int, range: str = "month"):
+def get_progress_summary(user_id: str, range: str = "month"):
     """前端 progress.js 调用的学习进度汇总接口。"""
     try:
         range_str = range  # avoid shadowing builtin `range` further down
@@ -6454,19 +6454,18 @@ def generate_daily_route(request: DailyRouteRequest):
 
 
 def save_daily_route_cache(user_id, cache_data):
-    """保存今日航线缓存"""
-    storage = database.load_local_storage()
-    if 'daily_routes' not in storage:
-        storage['daily_routes'] = []
-    # 移除同一天的数据
-    today_key = datetime.now().strftime("%Y-%m-%d")
-    storage['daily_routes'] = [r for r in storage['daily_routes'] if r.get('date') != today_key]
-    # 添加新数据
-    cache_data['user_id'] = user_id
-    storage['daily_routes'].append(cache_data)
-    # 只保留最近30天的数据
-    storage['daily_routes'] = storage['daily_routes'][-30:]
-    database.save_local_storage(storage)
+    """保存今日航线缓存（持久化到 daily_routes 表）。
+
+    NOTE: 之前用 load_local_storage/save_local_storage 写 JSON，但
+    Phase 2.3 起 JSON fallback 在 DUAL_WRITE_LEGACY=false（生产环境
+    默认）下会抛 RuntimeError，导致 generate/complete/status 静默失败。
+    这里改走 db.save_daily_route —— 走 SQL 路径，不受 dual-write 收口
+    影响；dev 环境（DUAL_WRITE_LEGACY=true）会自动回退到 JSON。
+    """
+    today_key = cache_data.get('date') or datetime.now().strftime("%Y-%m-%d")
+    tasks = cache_data.get('tasks') or []
+    completed = cache_data.get('completed') or []
+    database.save_daily_route(user_id, today_key, tasks, completed=completed)
 
 
 @app.post("/api/daily-route/complete")
@@ -6481,74 +6480,71 @@ async def complete_daily_task(request: dict):
         return {"success": False, "error": "参数错误"}
 
     today_key = datetime.now().strftime("%Y-%m-%d")
-    storage = database.load_local_storage()
 
-    # 查找今日航线
-    daily_routes = storage.get('daily_routes', [])
-    today_route = None
-    for route in reversed(daily_routes):
-        if route.get('user_id') == user_id and route.get('date') == today_key:
-            today_route = route
-            break
+    # 走 db.get_daily_route —— SQL 路径不受 JSON fallback 收口影响
+    try:
+        today_route = database.get_daily_route(user_id, today_key)
+    except Exception as e:
+        print(f"[complete_daily_task] get_daily_route failed: {e}")
+        return {"success": False, "error": f"查询航线失败: {e}"}
 
     if not today_route:
         return {"success": False, "error": "今日航线未生成"}
 
-    # 标记完成
-    if task_id not in today_route.get('completed', []):
-        if 'completed' not in today_route:
-            today_route['completed'] = []
-        today_route['completed'].append(task_id)
+    # 兼容 JSON/ORM 两种 schema：统一字段名
+    tasks = today_route.get('tasks_json')
+    if tasks is None:
+        tasks = today_route.get('tasks', [])
+    completed = today_route.get('completed_json')
+    if completed is None:
+        completed = today_route.get('completed', [])
 
-    # 更新存储
-    storage['daily_routes'] = daily_routes
-    database.save_local_storage(storage)
+    if task_id not in completed:
+        completed.append(task_id)
+
+    try:
+        database.save_daily_route(user_id, today_key, tasks, completed=completed)
+    except Exception as e:
+        print(f"[complete_daily_task] save_daily_route failed: {e}")
+        return {"success": False, "error": f"保存失败: {e}"}
 
     # 获取任务信息用于通知
-    task = next((t for t in today_route.get('tasks', []) if t.get('id') == task_id), None)
+    task = next((t for t in (tasks or []) if str(t.get('id')) == str(task_id)), None)
 
     # 异步触发学习路径刷新（任务完成意味着学情变化）
     _safe_trigger_learning_path_refresh(user_id, "daily_task_complete")
 
     return {
         "success": True,
-        "completedCount": len(today_route.get('completed', [])),
-        "totalCount": len(today_route.get('tasks', [])),
+        "completedCount": len(completed),
+        "totalCount": len(tasks or []),
         "task": task
     }
 
 
 @app.get("/api/daily-route/status")
-async def get_daily_route_status(userId: int):
+async def get_daily_route_status(userId: str | int = Query(None)):
     """
     获取今日航线状态
     """
     if not userId:
         return {"success": False, "error": "用户未登录"}
 
-    # [Slice-3] ORM read path is opt-in. The daily-route status is
-    # currently only sourced from legacy storage to preserve the
-    # response shape end-to-end (no ORM model for daily_routes in M3).
-
+    # 走 db.get_daily_route —— SQL 路径不受 JSON fallback 收口影响
+    # （dev 模式下 DUAL_WRITE_LEGACY=true 自动回退到 JSON）
     today_key = datetime.now().strftime("%Y-%m-%d")
     try:
-        storage = database.load_local_storage()
-    except RuntimeError:
-        # DUAL_WRITE_LEGACY=false in production — no JSON fallback available
+        today_route = database.get_daily_route(userId, today_key)
+    except Exception as e:
+        print(f"[get_daily_route_status] get_daily_route failed: {e}")
         return {
-            "success": True,
+            "success": False,
+            "error": f"查询航线失败: {e}",
             "generated": False,
             "tasks": [],
             "completed": [],
-            "progress": 0
+            "progress": 0,
         }
-
-    daily_routes = storage.get('daily_routes', [])
-    today_route = None
-    for route in reversed(daily_routes):
-        if route.get('user_id') == userId and route.get('date') == today_key:
-            today_route = route
-            break
 
     if not today_route:
         return {
@@ -6559,8 +6555,14 @@ async def get_daily_route_status(userId: int):
             "progress": 0
         }
 
-    completed = today_route.get('completed', [])
-    tasks = today_route.get('tasks', [])
+    # 兼容 db.py 的两种 schema：SQL 路径返回 tasks_json/completed_json
+    # （JSON fallback 也返回 tasks_json/completed_json，详见 db.save_daily_route）
+    tasks = today_route.get('tasks_json')
+    if tasks is None:
+        tasks = today_route.get('tasks', [])
+    completed = today_route.get('completed_json')
+    if completed is None:
+        completed = today_route.get('completed', [])
     progress = len(completed) / len(tasks) * 100 if tasks else 0
 
     return {
@@ -6569,7 +6571,7 @@ async def get_daily_route_status(userId: int):
         "tasks": tasks,
         "completed": completed,
         "progress": progress,
-        "date": today_route.get('date')
+        "date": today_route.get('route_date') or today_route.get('date')
     }
 
 
@@ -7142,7 +7144,7 @@ def save_stats(request: StatsSaveRequest):
 
 
 @app.get("/api/stats/load/{user_id}")
-def load_stats(user_id: int):
+def load_stats(user_id: str):
     # [Slice-3] ORM read path for user stats. The legacy user_stats table
     # stores a stats_json blob; the ORM model has the same name but a
     # different shape. We keep the legacy path active to preserve the
@@ -7157,12 +7159,12 @@ def load_stats(user_id: int):
 # ── 学习驾驶舱实时分析 ──
 
 class CockpitAnalysisRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     minutes: Optional[int] = 1  # 本次学习分钟数
     hour: Optional[int] = None  # 当前小时 (0-23)
 
 @app.get("/api/cockpit/analysis/{user_id}")
-async def get_cockpit_analysis(user_id: int):
+async def get_cockpit_analysis(user_id: str):
     """
     返回全息"智理"学习驾驶舱所需的所有实时分析数据
     包括：思维深度、概念掌握、专注度、学习动能、交互统计等
@@ -7606,7 +7608,7 @@ def get_total_study_time(user_id: int, start_date: str = None, end_date: str = N
 
 
 @app.get("/api/goals/{user_id}")
-def get_goals(user_id: int, active_only: bool = True):
+def get_goals(user_id: str, active_only: bool = True):
     """获取学习目标"""
     # [Slice-3] ORM read path for goals. The LearningGoal ORM model
     # exists but legacy returns goal_type/start_date/end_date/is_active
@@ -7707,7 +7709,7 @@ def delete_goal(goal_id: int):
 
 
 @app.get("/api/stats/overview/{user_id}")
-def get_stats_overview(user_id: int):
+def get_stats_overview(user_id: str):
     """获取学习概览数据"""
     # [Slice-3] ORM read path: when this user is in the ORM read percentage,
     # serve overview from the new SQLAlchemy backend. Shadow failures fall back.
@@ -7810,7 +7812,7 @@ def get_stats_overview(user_id: int):
 
 
 @app.get("/api/stats/heatmap/{user_id}")
-def get_heatmap_data(user_id: int, weeks: int = 4):
+def get_heatmap_data(user_id: str, weeks: int = 4):
     """获取热力图数据"""
     # [Slice-3] ORM read path for heatmap. Shadow failures fall back.
     try:
@@ -7862,7 +7864,7 @@ def get_heatmap_data(user_id: int, weeks: int = 4):
 
 
 @app.get("/api/stats/mastery/{user_id}")
-def get_mastery_data(user_id: int):
+def get_mastery_data(user_id: str):
     """获取知识点掌握度"""
     # [Slice-3] ORM read path for mastery. Shadow failures fall back.
     try:
@@ -7896,7 +7898,7 @@ def get_mastery_data(user_id: int):
 
 
 @app.get("/api/stats/trend/{user_id}")
-def get_trend_data(user_id: int, days: int = 7):
+def get_trend_data(user_id: str, days: int = 7):
     """获取学习趋势数据"""
     # [Slice-3] ORM read path for trend. Shadow failures fall back.
     try:
@@ -8112,7 +8114,7 @@ def save_focus(request: FocusSaveRequest):
 
 
 @app.get("/api/focus/load/{user_id}")
-def load_focus(user_id: int):
+def load_focus(user_id: str):
     """[Slice-7] ORM read path: when this user is in the ORM read percentage,
     serve focus history from the new SQLAlchemy backend. Shadow failures fall
     back to the legacy ``db.py`` read.
@@ -8148,7 +8150,7 @@ def load_focus(user_id: int):
 
 
 class FocusRecordRequest(BaseModel):
-    userId: int
+    userId: str | int  # 接受 string demo id 与 int 都行
     studyMinutes: int = 0
     focusMinutes: int = 0
     pageSwitches: int = 0
@@ -8158,7 +8160,7 @@ class FocusRecordRequest(BaseModel):
 
 
 class FocusQuizRequest(BaseModel):
-    user_id: int
+    user_id: str | int  # 接受 string demo id 与 int 都行
     topics: list[str] = []
     context: str = ""
     course_id: str = "bigdata"
@@ -8462,7 +8464,7 @@ async def _safe_orm_focus(coro_factory):
 
 
 @app.get("/api/focus/analysis/{user_id}")
-def get_focus_analysis(user_id: int, range: str = "7d"):
+def get_focus_analysis(user_id: str, range: str = "7d"):
     """返回多角度心流分析数据，供 hub 页和 flow-meter 页共用。
 
     [Slice-7] ORM read path: when this user is in the ORM read percentage,
@@ -8620,7 +8622,7 @@ def load_eco(user_id: int):
 # ── 知识节点 ──
 
 @app.get("/api/knowledge/nodes/{user_id}")
-def get_nodes(user_id: int, active: bool = False):
+def get_nodes(user_id: str, active: bool = False):
     """获取用户的知识节点
     - active=true: 只返回已激活的节点（根据学习记录过滤）
     - active=false: 返回所有节点
@@ -8731,7 +8733,7 @@ def submit_review(request: Request):
 
 
 @app.get("/api/knowledge/pending/{user_id}")
-def get_pending(user_id: int):
+def get_pending(user_id: str):
     """获取需要复习的节点列表"""
     # [Slice-6] ORM read path: when this user is in the ORM read percentage,
     # serve pending reviews from the new SQLAlchemy backend. Shadow failures
@@ -8758,7 +8760,7 @@ def get_pending(user_id: int):
 
 
 @app.get("/api/knowledge/records/{user_id}")
-def get_records(user_id: int, node_id: str = None):
+def get_records(user_id: str, node_id: str = None):
     """获取复习记录"""
     # [Slice-6] ORM read path: only when no node_id filter is supplied; the
     # node-scoped query still goes through legacy db.py. Shadow failures fall back.
@@ -8986,7 +8988,7 @@ def save_daily_route_db(request: DailyRouteSaveRequest):
 
 
 @app.get("/api/daily-route/load-db/{user_id}/{route_date}")
-def load_daily_route_db(user_id: int, route_date: str):
+def load_daily_route_db(user_id: str, route_date: str):
     try:
         route = database.get_daily_route(user_id, route_date)
         if route:

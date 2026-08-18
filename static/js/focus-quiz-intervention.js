@@ -76,7 +76,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        user_id: parseInt(userId, 10),
+        user_id: String(userId),  // 后端接受 string demo id 与 int
         topics: topics.length ? topics : ['当前学习内容'],
         context: context,
         course_id: (

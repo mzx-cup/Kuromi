@@ -1873,7 +1873,7 @@ async function saveEvaluationToServer() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userId: parseInt(currentUser.id),
+                userId: String(currentUser.id),  // 后端接受 string demo id 与 int
                 interactionCount: evaluation.interactionCount,
                 socraticPassRate: evaluation.socraticPassRate,
                 difficultyLevel: evaluation.difficultyLevel,
@@ -6646,7 +6646,7 @@ async function markPathNodeComplete(idx) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: parseInt(currentUser.id),
+                    userId: String(currentUser.id),  // 后端接受 string demo id 与 int
                     nodes: [{
                         node_id: nodeId,
                         status: 'completed',
@@ -7312,7 +7312,7 @@ async function saveProgress() {
     if (!currentUser || !currentUser.id) return;
     try {
         const body = {
-            userId: parseInt(currentUser.id),
+            userId: String(currentUser.id),  // 后端接受 string demo id (如 demo_user_001) 与 int
             evaluation: evaluation,
             profile: profile
             // 注意：不再保存 currentPath。
@@ -7431,7 +7431,7 @@ async function loadProgress() {
         const res = await fetch(LOAD_PROGRESS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: parseInt(currentUser.id) })
+            body: JSON.stringify({ userId: String(currentUser.id) })  // 后端接受 string 与 int
         });
         const data = await res.json();
         if (data.success) {
@@ -7617,7 +7617,7 @@ async function refreshNodeState(nodeId, source) {
         await fetch(`${API_BASE}/api/learning-path/nodes/evaluate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: parseInt(currentUser.id), node_ids: [nodeId] })
+            body: JSON.stringify({ userId: String(currentUser.id), node_ids: [nodeId] })  // 后端接受 string 与 int
         });
         // 再拉取该节点的最新状态
         const res = await fetch(`${API_BASE}/api/learning-path/nodes/${currentUser.id}`);

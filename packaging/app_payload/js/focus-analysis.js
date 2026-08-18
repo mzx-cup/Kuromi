@@ -261,6 +261,7 @@
         getRealtimeState: getRealtimeState,
         on: on,
         off: off,
-        _detectRealtimeState: _detectRealtimeState  // exposed for testing
+        _detectRealtimeState: _detectRealtimeState,  // exposed for testing
+        _emit: _emit  // exposed for demo-mode interceptor
     };
 })();

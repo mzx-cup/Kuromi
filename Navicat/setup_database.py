@@ -57,7 +57,7 @@ MYSQL_TABLES = [
     """
     CREATE TABLE IF NOT EXISTS learning_records (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
+        user_id VARCHAR(64) NOT NULL,
         interaction_count INT DEFAULT 0,
         code_practice_time INT DEFAULT 0,
         socratic_pass_rate FLOAT DEFAULT 0.0,
@@ -65,7 +65,6 @@ MYSQL_TABLES = [
         profile_json LONGTEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
         UNIQUE KEY uq_lr_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     """,
