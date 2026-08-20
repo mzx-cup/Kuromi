@@ -63,6 +63,7 @@ MYSQL_TABLES = [
         socratic_pass_rate FLOAT DEFAULT 0.0,
         difficulty_level VARCHAR(20) DEFAULT 'basic',
         profile_json LONGTEXT,
+        subject VARCHAR(64) NOT NULL DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uq_lr_user (user_id)
@@ -93,7 +94,7 @@ MYSQL_TABLES = [
     """
     CREATE TABLE IF NOT EXISTS user_profile (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL UNIQUE,
+        user_id VARCHAR(64) NOT NULL UNIQUE,
         profile_json LONGTEXT,
         evaluation_json LONGTEXT,
         last_grade_record TEXT,

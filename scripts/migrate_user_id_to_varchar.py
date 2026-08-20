@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-迁移 user_evaluations / learning_records.user_id 从 INT 改为 VARCHAR(64)
+迁移 user_evaluations / learning_records / user_profile.user_id 从 INT 改为 VARCHAR(64)
 
 背景：前端 demo 用户 ID 是字符串如 "demo_user_001"，无法写入 INT 列。
-这两张表的 user_id 仅作记录用途，与 user.id 的 FK 强约束反而阻止了 demo 用户的写入。
+这三张表的 user_id 仅作记录用途，与 user.id 的 FK 强约束反而阻止了 demo 用户的写入。
 迁移步骤：
   1) 去掉指向 user.id 的 FK（demo 用户本来就不在 user 表）
   2) 列类型 INT → VARCHAR(64)（现有整数记录会自动转换为字符串，无损）
@@ -14,12 +14,16 @@
 
 from __future__ import annotations
 
+import os
 import sys
+
+# 允许从 scripts/ 子目录直接执行
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import db
 
 
-TARGET_TABLES = ["user_evaluations", "learning_records"]
+TARGET_TABLES = ["user_evaluations", "learning_records", "user_profile"]
 TARGET_COLUMN = "user_id"
 NEW_TYPE = "VARCHAR(64)"
 

@@ -1591,7 +1591,20 @@ const DEFAULT_USER = {
     avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=starlearn&backgroundColor=b6e3f4',
     currentTask: '大数据导论'
 };
-let currentUser = Object.assign({}, DEFAULT_USER, JSON.parse(localStorage.getItem('starlearn_user') || 'null') || {});
+let currentUser = (function () {
+    const fallback = Object.assign(
+        { id: 'demo_user_001', name: '星云游客' },
+        DEFAULT_USER
+    );
+    try {
+        const raw = localStorage.getItem('starlearn_user');
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return Object.assign({}, DEFAULT_USER, parsed || {});
+    } catch (_) {
+        return fallback;
+    }
+})();
 
 // 评估数据映射到画像显示
 const assessmentToProfileMap = {
@@ -7550,7 +7563,7 @@ async function refreshLearningPath(force = false) {
         const res = await fetch(LEARNING_PATH_GENERATE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: parseInt(user.id), forceRefresh: force })
+            body: JSON.stringify({ userId: String(user.id), forceRefresh: force })
         });
         if (!res.ok) {
             console.warn('[LearningPath] 刷新失败:', res.status);

@@ -2405,24 +2405,40 @@ def save_user_profile(user_id, profile_json, evaluation_json, last_grade_record=
                 cursor.close()
                 return
             except Exception as e:
+                # 1366 (Incorrect integer value) 通常意味着 user_profile.user_id 仍是 INT。
+                # 提示运维运行: python scripts/migrate_user_id_to_varchar.py
                 print(f"数据库保存失败: {e}")
+                if '1366' in str(e) or 'Incorrect integer' in str(e):
+                    print(
+                        "[save_user_profile] 提示: user_profile.user_id 仍为 INT，"
+                        "请运行 `python scripts/migrate_user_id_to_varchar.py` 将其迁为 VARCHAR(64)。"
+                    )
 
-        storage = load_local_storage()
-        for profile in storage.get('user_profiles', []):
-            if profile.get('user_id') == user_id:
-                profile['profile_json'] = profile_json
-                profile['evaluation_json'] = evaluation_json
-                if last_grade_record:
-                    profile['last_grade_record'] = last_grade_record
-                save_local_storage(storage)
-                return
-        storage['user_profiles'].append({
-            'id': len(storage.get('user_profiles', [])) + 1,
-            'user_id': user_id, 'profile_json': profile_json,
-            'evaluation_json': evaluation_json, 'last_grade_record': last_grade_record,
-            'updated_at': 'local',
-        })
-        save_local_storage(storage)
+        # Fallback: 优先尝试内存缓存写入，避免 Phase 2.3 关闭 load_local_storage 时
+        # 把单次请求直接变成 500。失败也不抛错，让上层 /api/progress/save 仍能 200。
+        try:
+            storage = load_local_storage()
+        except Exception as e:
+            print(f"[save_user_profile] fallback 加载本地存储失败（已降级跳过）: {e}")
+            return
+        try:
+            for profile in storage.get('user_profiles', []):
+                if profile.get('user_id') == user_id:
+                    profile['profile_json'] = profile_json
+                    profile['evaluation_json'] = evaluation_json
+                    if last_grade_record:
+                        profile['last_grade_record'] = last_grade_record
+                    save_local_storage(storage)
+                    return
+            storage['user_profiles'].append({
+                'id': len(storage.get('user_profiles', [])) + 1,
+                'user_id': user_id, 'profile_json': profile_json,
+                'evaluation_json': evaluation_json, 'last_grade_record': last_grade_record,
+                'updated_at': 'local',
+            })
+            save_local_storage(storage)
+        except Exception as e:
+            print(f"[save_user_profile] fallback 保存失败（已降级跳过）: {e}")
 
 
 def get_user_profile(user_id):

@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS learning_records (
     socratic_pass_rate REAL DEFAULT 0.0,
     difficulty_level TEXT DEFAULT 'basic',
     profile_json TEXT,
+    subject TEXT NOT NULL DEFAULT '',
     created_at TEXT DEFAULT (datetime('now','localtime')),
     updated_at TEXT DEFAULT (datetime('now','localtime'))
 );
