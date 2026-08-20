@@ -134,6 +134,16 @@ def _sse_format(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {payload}\n\n"
 
 
+# 与 main.py 聊天流的 _AGENT_DISPLAY 保持一致:
+# 前端 (index.js TOWER_PRODUCT_DISPLAY / product_ready 订阅) 按这些字段渲染产物卡片
+_AGENT_DISPLAY = {
+    "document_generator": ("📄", "文档生成", "document"),
+    "mindmap_generator": ("🧠", "导图生成", "mindmap"),
+    "exercise_generator": ("✏️", "题库生成", "exercise"),
+    "video_content": ("🎬", "视频推荐", "video"),
+}
+
+
 @router.post("/api/agents/execute")
 async def execute_pipeline(req: PipelineRequest, request: Request):
     """启动流水线，返回 SSE 流（前端 agent-sse-client 订阅）."""
@@ -153,6 +163,25 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
             payload = _build_profile_updated_payload(req.student_id, real_portrait)
             payload["trace_id"] = trace_id  # 保持与 SSE envelope 一致
             await queue.put(("profile_updated", payload))
+
+    async def on_product(agent_name: str, payload: dict[str, Any]) -> None:
+        """generator 产物实时推送: 单独启动控制塔时, 产物同样要冒泡到聊天框.
+
+        MasterController.execute 并行跑 4 个 generator, 谁先完成谁先回调,
+        前端 runBackendPipeline 把 product_ready 路由到 agentBus -> 聊天框.
+        """
+        icon, label, content_type = _AGENT_DISPLAY.get(
+            agent_name, ("✨", agent_name, "text")
+        )
+        await queue.put(("product_ready", {
+            "agent_id": agent_name,
+            "agent_label": label,
+            "agent_icon": icon,
+            "content_type": content_type,
+            "payload": payload,
+            "ts": int(time.time() * 1000),
+            "trace_id": trace_id,
+        }))
 
     async def event_gen():
         yield _sse_format("heartbeat", {
@@ -183,7 +212,9 @@ async def execute_pipeline(req: PipelineRequest, request: Request):
             started_at = int(time.time() * 1000)
             agents_run: list[str] = []  # TODO: append from on_step callback when populating per-agent timing
             try:
-                await controller.execute(state, on_step_complete=on_step)
+                await controller.execute(
+                    state, on_step_complete=on_step, on_product=on_product,
+                )
                 # Note: agent_role / agent_name is recorded via on_step callback, but for
                 # simplicity we just track that pipeline completed. Future tasks can extend
                 # to capture per-agent timing.

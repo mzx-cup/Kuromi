@@ -5,7 +5,7 @@
 - build_outline_summary / build_bundle_context 纯函数
 - generate_bundle_sync: 9 件全跑 / 单件失败不影响整体 / 全局 fallback
 - generate_bundle (SSE): 9 个 component_ready 事件 + bundle_complete
-- Semaphore(3) 并发上限 (通过 _run_one_component mock 验证)
+- Semaphore(6) 并发上限 (通过 _run_one_component mock 验证)
 - disabled component 不出现在结果中
 """
 from __future__ import annotations
@@ -330,17 +330,17 @@ class TestGenerateBundleStream:
 
 
 # ============================================================
-# Semaphore(3) 并发上限
+# Semaphore 并发上限 (提速后 3→6)
 # ============================================================
 
 class TestConcurrency:
     @pytest.mark.asyncio
-    async def test_semaphore_value_is_3(self):
-        assert BUNDLE_CONCURRENCY == 3
+    async def test_semaphore_value_is_6(self):
+        assert BUNDLE_CONCURRENCY == 6
 
     @pytest.mark.asyncio
-    async def test_peak_concurrent_le_3(self, monkeypatch):
-        """通过 mock 记录 _run_one_component 内部, 验证 sem=3 真的限制了并发."""
+    async def test_peak_concurrent_le_6(self, monkeypatch):
+        """通过 mock 记录 _run_one_component 内部, 验证 sem 真的限制了并发."""
         from app.services import course_bundle as cb
         peak = 0
         current = 0
@@ -367,8 +367,8 @@ class TestConcurrency:
             SAMPLE_OUTLINE, SAMPLE_SLOTS,
             enabled_components=["plan", "graph", "radar", "project", "case", "exercises", "survey"],
         )
-        # 7 件 LLM 件, sem=3, peak 应为 3
-        assert peak <= 3
+        # 7 件 LLM 件, sem=6, peak 不应超过 6
+        assert peak <= 6
         assert peak >= 2  # 至少有 2 件在跑才能验证并发
         # 7 件都应返回
         assert len(bundle.components) == 7

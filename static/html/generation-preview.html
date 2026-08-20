@@ -140,6 +140,8 @@
             </div>
             <div class="xs-bundle-actions">
                 <button class="xs-bs-btn xs-bundle-cancel" id="xs-bundle-cancel" hidden>取消生成</button>
+                <button class="xs-bs-btn xs-bs-next" id="xs-bundle-preview-btn" hidden
+                    onclick="window.xsBundlePreview && window.xsBundlePreview.reopenFromSession()">预览 9 件套内容</button>
             </div>
         </section>
 
@@ -162,7 +164,9 @@
         </section>
     </div>
 
-    <script src="/js/brainstorm.js?v=1"></script>
+    <script src="/js/openmaic-slide-player.js?v=1"></script>
+    <script src="/js/bundle-preview.js?v=1"></script>
+    <script src="/js/brainstorm.js?v=2"></script>
     <script src="/js/generation-preview.js?v=2"></script>
 </body>
 </html>

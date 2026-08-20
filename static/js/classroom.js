@@ -252,10 +252,21 @@
             this.loadData();
 
             // 兜底: 当 sessionStorage 没有数据时, 从 URL ?course_id= 取, 调 GET /api/v2/classroom/{id} 拉取
+            // sessionStorage 只在同一标签页存活 (关标签/新标签/重开浏览器即清空),
+            // 所以再加一层: URL 与 sessionStorage 都没有时, 从 localStorage.courseHistory
+            // 取最近一次课程自动恢复 —— 保证直接打开 classroom.html 也能看到上次生成的 PPT
             if (!this.courseData) {
-                const cid = (new URLSearchParams(location.search)).get('course_id')
+                let cid = (new URLSearchParams(location.search)).get('course_id')
                     || sessionStorage.getItem('courseId')
                     || null;
+                let fromHistory = false;
+                if (!cid) {
+                    try {
+                        const h = JSON.parse(localStorage.getItem('courseHistory') || '[]');
+                        const last = (Array.isArray(h) ? h : []).find(c => c && c.courseId);
+                        if (last) { cid = last.courseId; fromHistory = true; }
+                    } catch (e) { /* history 损坏则忽略 */ }
+                }
                 if (cid) {
                     try {
                         const r = await fetch('/api/v2/classroom/' + encodeURIComponent(cid), {
@@ -272,12 +283,18 @@
                                 if (!this.courseData.courseId) this.courseData.courseId = cid;
                                 this.courseId = this.courseData.courseId;
                                 try { sessionStorage.setItem('classroomData', JSON.stringify(this.courseData)); } catch (e) {}
+                                // 闭环: 写回 courseId, 本标签页内刷新不再依赖 history 兜底
+                                try { sessionStorage.setItem('courseId', this.courseId); } catch (e) {}
+                                if (fromHistory) {
+                                    console.log('[classroom] 已从课程历史恢复最近课程:', this.courseId);
+                                }
                             }
-                        } else if (r.status === 404) {
+                        } else if (r.status === 404 && !fromHistory) {
                             alert('课堂数据不存在或已被删除 (course_id: ' + cid + '), 正在返回首页...');
                             window.location.href = '/index.html';
                             return;
                         }
+                        // fromHistory 且 404: 历史条目已失效, 落到下方"未找到课堂数据"统一处理
                     } catch (e) {
                         console.warn('[classroom] Fallback fetch failed:', e);
                     }
@@ -1558,6 +1575,27 @@
 
             _getRenderer(layoutType) {
                 const renderers = {
+                    // 基础布局 (此前未注册, 全部静默降级为 spotlight-focus)
+                    'title-only': this._renderTitleOnly.bind(this),
+                    'two-column': this._renderTwoColumn.bind(this),
+                    'grid-cards': this._renderGridCards.bind(this),
+                    'header-content': this._renderHeaderContent.bind(this),
+                    'timeline-steps': this._renderTimelineSteps.bind(this),
+                    'comparison': this._renderComparison.bind(this),
+                    'fullwidth-banner': this._renderFullwidthBanner.bind(this),
+                    'three-column-cards': this._renderThreeColumnCards.bind(this),
+                    'asymmetric-split': this._renderAsymmetricSplit.bind(this),
+                    'numbered-list': this._renderNumberedList.bind(this),
+                    'hero-center': this._renderHeroCenter.bind(this),
+                    'left-sidebar': this._renderLeftSidebar.bind(this),
+                    'tabbed-content': this._renderTabbedContent.bind(this),
+                    'horizontal-scroll': this._renderHorizontalScroll.bind(this),
+                    // 教育布局
+                    'edu-welcome': this._renderEduWelcome.bind(this),
+                    'edu-definition': this._renderEduDefinition.bind(this),
+                    'edu-keypoints': this._renderEduKeypoints.bind(this),
+                    'edu-example': this._renderEduExample.bind(this),
+                    'edu-summary': this._renderEduSummary.bind(this),
                     // 11种文字布局
                     'spotlight-focus': this._renderSpotlightFocus.bind(this),
                     'kinetic-type': this._renderKineticType.bind(this),
@@ -1577,7 +1615,18 @@
                     'media-showcase': this._renderMediaShowcase.bind(this),
                     'video-lecture': this._renderVideoLecture.bind(this),
                 };
-                return renderers[layoutType] || this._renderSpotlightFocus.bind(this);
+                // OpenMAIC 代码类布局 → 映射到卡片渲染器近似呈现
+                // (code-showcase/concept-code 是"左文右码", edu-example 结构一致;
+                //  terminal-style 的"深色头部+终端"由 dark-header 承载)
+                const layoutAliases = {
+                    'code-showcase': 'edu-example',
+                    'concept-code': 'edu-example',
+                    'terminal-style': 'dark-header',
+                    'api-doc': 'two-column',
+                    'step-by-step': 'timeline-steps',
+                };
+                const resolved = layoutAliases[layoutType] || layoutType;
+                return renderers[resolved] || this._renderSpotlightFocus.bind(this);
             },
 
             _renderTitleOnly(slide) {

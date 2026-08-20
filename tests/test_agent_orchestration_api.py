@@ -68,7 +68,7 @@ class TestExecuteApi:
         """
 
         class FakeController:
-            async def execute(self, state, on_step_complete=None):
+            async def execute(self, state, on_step_complete=None, on_product=None):
                 if on_step_complete:
                     log1 = AgentStepLog(
                         agent_name="profiler", agent_role="画像分析",
@@ -97,6 +97,48 @@ class TestExecuteApi:
         assert "agent_step" in seen_events
         assert "heartbeat" in seen_events
 
+    def test_execute_emits_product_ready_event(self, monkeypatch):
+        """单独启动控制塔时, generator 产物应通过 product_ready SSE 实时冒泡.
+
+        前端 runBackendPipeline 把 product_ready 路由到 agentBus,
+        由 bus.subscribe('product_ready') 把产物卡片推到聊天框.
+        """
+
+        class FakeController:
+            async def execute(self, state, on_step_complete=None, on_product=None):
+                if on_product:
+                    await on_product(
+                        "document_generator",
+                        {"text_content": "## 牛顿第二定律", "content_type": "document"},
+                    )
+
+        monkeypatch.setattr(ao_module, "create_default_controller", FakeController)
+
+        client = TestClient(app)
+        product_payload = None
+        with client.stream(
+            "POST", "/api/agents/execute",
+            json={"student_id": "u1", "user_input": "hi"},
+        ) as r:
+            assert r.status_code == 200
+            import json as _json
+            current_event = None
+            for line in r.iter_lines():
+                if line.startswith("event:"):
+                    current_event = line.split(":", 1)[1].strip()
+                elif line.startswith("data:") and current_event == "product_ready":
+                    product_payload = _json.loads(line.split(":", 1)[1].strip())
+                    break
+
+        assert product_payload is not None, "product_ready event not emitted"
+        assert product_payload["agent_id"] == "document_generator"
+        assert product_payload["agent_label"] == "文档生成"
+        assert product_payload["agent_icon"] == "📄"
+        assert product_payload["content_type"] == "document"
+        assert product_payload["payload"]["text_content"] == "## 牛顿第二定律"
+        assert isinstance(product_payload["ts"], int)
+        assert product_payload["trace_id"]
+
 
 class TestStatusApi:
     def test_status_404_for_unknown_trace(self):
@@ -109,7 +151,7 @@ class TestStatusApi:
     def test_status_200_for_known_trace_after_execute(self, monkeypatch):
         """执行 execute 后,status 端点应能查到 trace."""
         class FakeController:
-            async def execute(self, state, on_step_complete=None):
+            async def execute(self, state, on_step_complete=None, on_product=None):
                 # 立即返回 → run_controller 的 finally 会写入 _PIPELINE_STATUS
                 return
 

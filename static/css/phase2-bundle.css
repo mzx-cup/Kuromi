@@ -1212,3 +1212,377 @@
     0%, 100% { transform: translate(0, 0); }
     50%      { transform: translate(-40px, 20px); }
 }
+
+/* =====================================================
+ * 11. 9 件套预览面板 (bundle-preview.js)
+ * ===================================================== */
+
+.xsvp-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(10, 15, 28, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    opacity: 0; transition: opacity 0.18s ease;
+    padding: 24px;
+}
+.xsvp-overlay.xsvp-visible { opacity: 1; }
+
+.xsvp-panel {
+    width: min(1180px, 100%); height: min(820px, calc(100vh - 48px));
+    display: flex; flex-direction: column;
+    background: linear-gradient(160deg, rgba(15, 23, 42, 0.97), rgba(30, 41, 59, 0.95));
+    border: 1px solid var(--openmaic-glass-border-strong);
+    border-radius: 20px;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    overflow: hidden;
+    transform: translateY(12px) scale(0.985); transition: transform 0.18s ease;
+}
+.xsvp-overlay.xsvp-visible .xsvp-panel { transform: none; }
+
+.xsvp-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 18px 24px;
+    border-bottom: 1px solid var(--openmaic-glass-border-strong);
+    background: rgba(255, 255, 255, 0.02);
+}
+.xsvp-title { font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: -0.2px; }
+.xsvp-sub { margin-top: 3px; font-size: 12.5px; color: var(--openmaic-text-body, #cbd5e1); }
+.xsvp-head-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.xsvp-btn {
+    padding: 9px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.15s ease; white-space: nowrap;
+}
+.xsvp-btn-primary {
+    background: linear-gradient(135deg, var(--openmaic-amber-500), var(--openmaic-amber-400));
+    color: #ffffff;
+    box-shadow: 0 4px 14px color-mix(in oklch, var(--openmaic-amber-500), transparent 55%);
+}
+.xsvp-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px color-mix(in oklch, var(--openmaic-amber-500), transparent 45%); }
+.xsvp-btn-ghost {
+    background: rgba(255, 255, 255, 0.06); color: var(--openmaic-text-body, #cbd5e1);
+    border: 1px solid var(--openmaic-glass-border-strong);
+}
+.xsvp-btn-ghost:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+
+.xsvp-icon-btn {
+    width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 9px; border: 1px solid var(--openmaic-glass-border-strong);
+    background: rgba(255, 255, 255, 0.05); color: var(--openmaic-text-body, #cbd5e1);
+    font-size: 16px; cursor: pointer; transition: all 0.15s ease; line-height: 1;
+}
+.xsvp-icon-btn:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+
+.xsvp-body { flex: 1; display: flex; min-height: 0; }
+
+.xsvp-nav {
+    width: 172px; flex-shrink: 0; padding: 14px 10px;
+    border-right: 1px solid var(--openmaic-glass-border-strong);
+    overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+}
+.xsvp-tab {
+    display: flex; align-items: center; gap: 9px; width: 100%;
+    padding: 10px 12px; border-radius: 10px; border: none; cursor: pointer;
+    background: transparent; color: var(--openmaic-text-body, #cbd5e1);
+    font-size: 13.5px; font-weight: 500; text-align: left;
+    transition: all 0.14s ease;
+}
+.xsvp-tab:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); color: #ffffff; }
+.xsvp-tab-active {
+    background: color-mix(in oklch, var(--openmaic-amber-500), transparent 84%);
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--openmaic-amber-500), transparent 60%);
+}
+.xsvp-tab-missing { opacity: 0.38; cursor: not-allowed; }
+.xsvp-tab-icon { font-size: 16px; }
+.xsvp-tab-label { flex: 1; }
+.xsvp-tab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14); flex-shrink: 0;
+}
+.xsvp-tab-dot-on { background: var(--openmaic-emerald-400); box-shadow: 0 0 8px rgba(52, 211, 153, 0.7); }
+
+.xsvp-main { flex: 1; overflow-y: auto; padding: 22px 26px 34px; min-width: 0; }
+.xsvp-main::-webkit-scrollbar, .xsvp-nav::-webkit-scrollbar { width: 8px; }
+.xsvp-main::-webkit-scrollbar-thumb, .xsvp-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12); border-radius: 4px;
+}
+
+.xsvp-comp-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; gap: 12px;
+}
+.xsvp-comp-head h2 { margin: 0; font-size: 18px; font-weight: 700; color: #ffffff; }
+.xsvp-note {
+    padding: 10px 14px; margin-bottom: 14px; border-radius: 10px;
+    background: color-mix(in oklch, var(--openmaic-amber-500), transparent 88%);
+    border: 1px solid color-mix(in oklch, var(--openmaic-amber-500), transparent 70%);
+    color: var(--openmaic-amber-200); font-size: 13px;
+}
+.xsvp-empty {
+    padding: 60px 20px; text-align: center; color: var(--openmaic-text-placeholder, #94a3b8);
+    font-size: 14.5px;
+}
+.xsvp-meta { font-size: 12.5px; color: var(--openmaic-text-body, #cbd5e1); margin-bottom: 14px; }
+.xsvp-big-title { margin: 4px 0 16px; font-size: 20px; color: #ffffff; }
+.xsvp-sec-title { margin: 26px 0 12px; font-size: 15px; color: #ffffff; font-weight: 700; }
+.xsvp-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
+    background: color-mix(in oklch, var(--openmaic-cyan-500), transparent 82%);
+    color: var(--openmaic-cyan-300); border: 1px solid var(--openmaic-cyan-border);
+    font-weight: 600;
+}
+.xsvp-badge-soft { background: rgba(255, 255, 255, 0.07); color: var(--openmaic-text-body, #cbd5e1); border-color: var(--openmaic-glass-border-strong); }
+
+/* ---- 大纲 / 里程碑列表 ---- */
+.xsvp-outline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.xsvp-outline-item {
+    padding: 14px 16px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--openmaic-glass-border-strong);
+    transition: border 0.15s ease, background 0.15s ease;
+}
+.xsvp-outline-item:hover { background: rgba(255, 255, 255, 0.06); }
+.xsvp-outline-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.xsvp-outline-num {
+    width: 26px; height: 26px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 12.5px; font-weight: 700; color: #ffffff;
+    background: linear-gradient(135deg, var(--openmaic-amber-500), var(--openmaic-amber-600));
+}
+.xsvp-outline-title { font-size: 14.5px; font-weight: 600; color: #ffffff; }
+.xsvp-outline-desc { margin: 8px 0 0 36px; font-size: 13px; line-height: 1.7; color: var(--openmaic-text-body, #cbd5e1); }
+.xsvp-kps { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 36px; }
+.xsvp-kp {
+    font-size: 12px; padding: 3px 10px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05); border: 1px solid var(--openmaic-glass-border-strong);
+    color: var(--openmaic-text-body, #cbd5e1);
+}
+.xsvp-kp-line { margin: 6px 0 0 36px; font-size: 12.5px; color: var(--openmaic-text-body, #cbd5e1); }
+
+/* ---- 教案 ---- */
+.xsvp-plans { display: flex; flex-direction: column; gap: 10px; }
+.xsvp-plan {
+    border-radius: 12px; background: rgba(255, 255, 255, 0.035);
+    border: 1px solid var(--openmaic-glass-border-strong); overflow: hidden;
+}
+.xsvp-plan summary {
+    padding: 13px 16px; cursor: pointer; font-size: 14px; font-weight: 600; color: #ffffff;
+    list-style: none; display: flex; align-items: center; gap: 10px;
+}
+.xsvp-plan summary::before { content: "▸"; color: var(--openmaic-amber-400); transition: transform 0.15s ease; }
+.xsvp-plan[open] summary::before { transform: rotate(90deg); }
+.xsvp-plan-body { padding: 4px 16px 16px 34px; }
+.xsvp-plan-row { margin: 10px 0; }
+.xsvp-plan-row h4 { margin: 0 0 6px; font-size: 12.5px; color: var(--openmaic-cyan-300); font-weight: 600; letter-spacing: 0.4px; }
+.xsvp-plan-row ul, .xsvp-list { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.8; color: var(--openmaic-text-body, #cbd5e1); }
+.xsvp-obj li::marker { color: var(--openmaic-amber-400); }
+.xsvp-blackboard { margin-top: 4px; }
+
+/* ---- 能力条 / 项目 / 案例通用 ---- */
+.xsvp-abilities { display: flex; flex-direction: column; gap: 10px; }
+.xsvp-ability {
+    padding: 13px 16px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035); border: 1px solid var(--openmaic-glass-border-strong);
+}
+.xsvp-ability-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.xsvp-ability-name { font-size: 14px; font-weight: 600; color: #ffffff; }
+.xsvp-ability-bar {
+    position: relative; height: 8px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07); overflow: visible;
+}
+.xsvp-ability-bar span {
+    position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px;
+    background: linear-gradient(90deg, var(--openmaic-cyan-500), var(--openmaic-violet-500));
+    transition: width 0.4s ease;
+}
+.xsvp-ability-bar i {
+    position: absolute; right: 0; top: -20px; font-style: normal;
+    font-size: 11.5px; color: var(--openmaic-text-body, #cbd5e1); font-weight: 600;
+}
+.xsvp-block-label { margin: 16px 0; }
+.xsvp-block-label h4 { margin: 0 0 7px; font-size: 12.5px; color: var(--openmaic-cyan-300); font-weight: 600; letter-spacing: 0.4px; }
+.xsvp-block-label p { margin: 0; font-size: 13.5px; line-height: 1.8; color: var(--openmaic-text-body, #cbd5e1); }
+.xsvp-story {
+    padding: 18px 20px; border-radius: 12px; font-size: 14px; line-height: 2;
+    color: var(--openmaic-text-body, #cbd5e1);
+    background: rgba(255, 255, 255, 0.035); border: 1px solid var(--openmaic-glass-border-strong);
+}
+
+/* ---- 习题 / 问卷 ---- */
+.xsvp-quiz, .xsvp-survey-sec { display: flex; flex-direction: column; gap: 12px; }
+.xsvp-question {
+    padding: 14px 16px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.035); border: 1px solid var(--openmaic-glass-border-strong);
+}
+.xsvp-q-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.xsvp-q-stem { flex: 1; font-size: 14px; color: #ffffff; line-height: 1.65; font-weight: 500; min-width: 200px; }
+.xsvp-opts { list-style: none; margin: 10px 0 0 36px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.xsvp-opt {
+    display: flex; gap: 9px; align-items: baseline; padding: 7px 12px; border-radius: 9px;
+    font-size: 13px; color: var(--openmaic-text-body, #cbd5e1);
+    background: rgba(255, 255, 255, 0.03); border: 1px solid transparent;
+}
+.xsvp-opt:hover { border-color: var(--openmaic-glass-border-strong); }
+.xsvp-opt-key {
+    width: 20px; height: 20px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 6px; font-size: 11px; font-weight: 700;
+    background: rgba(255, 255, 255, 0.08); color: var(--openmaic-amber-300);
+}
+.xsvp-reveal { margin: 10px 0 0 36px; font-size: 12px; padding: 6px 12px; }
+.xsvp-answer {
+    display: none; margin: 10px 0 0 36px; padding: 10px 13px; border-radius: 9px;
+    font-size: 13px; line-height: 1.7; color: var(--openmaic-emerald-300);
+    background: var(--openmaic-emerald-bg); border: 1px solid var(--openmaic-emerald-border);
+}
+.xsvp-answer-show { display: block; }
+.xsvp-rubric { margin-top: 5px; color: var(--openmaic-text-body, #cbd5e1); font-size: 12.5px; }
+.xsvp-survey-qs { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 12px; }
+.xsvp-survey-qs li { list-style: decimal; }
+.xsvp-json {
+    margin: 0; padding: 16px; border-radius: 12px; font-size: 12px; line-height: 1.65;
+    color: var(--openmaic-cyan-300); background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--openmaic-glass-border-strong); overflow-x: auto;
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+/* ---- 图谱 ---- */
+.xsvp-graph-wrap { background: rgba(0, 0, 0, 0.22); border-radius: 14px; padding: 12px; border: 1px solid var(--openmaic-glass-border-strong); }
+.xsvp-graph-svg { width: 100%; height: auto; display: block; }
+.xsvp-graph-edge { fill: none; stroke: rgba(148, 163, 184, 0.45); stroke-width: 1.6; }
+.xsvp-graph-arrow { fill: rgba(148, 163, 184, 0.65); }
+.xsvp-graph-elabel { fill: #94a3b8; font-size: 11px; }
+.xsvp-graph-node rect { fill: rgba(30, 41, 59, 0.9); stroke-width: 1.5; }
+.xsvp-graph-node text { fill: #e2e8f0; font-size: 13px; font-weight: 600; }
+.xsvp-graph-layer0 rect { stroke: var(--openmaic-amber-400); filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35)); }
+.xsvp-graph-layer1 rect { stroke: var(--openmaic-cyan-400); }
+.xsvp-graph-layer2 rect { stroke: var(--openmaic-violet-400); }
+.xsvp-graph-legend {
+    display: flex; align-items: center; gap: 7px; justify-content: flex-end;
+    font-size: 12px; color: var(--openmaic-text-body, #cbd5e1); margin-top: 8px;
+}
+.xsvp-lg { width: 12px; height: 12px; border-radius: 4px; margin-left: 10px; }
+.xsvp-lg0 { background: var(--openmaic-amber-400); }
+.xsvp-lg1 { background: var(--openmaic-cyan-400); }
+.xsvp-lg2 { background: var(--openmaic-violet-400); }
+
+/* ---- 雷达 ---- */
+.xsvp-radar-wrap {
+    display: flex; justify-content: center; padding: 12px;
+    background: rgba(0, 0, 0, 0.22); border-radius: 14px; border: 1px solid var(--openmaic-glass-border-strong);
+}
+.xsvp-radar-svg { width: min(440px, 100%); height: auto; }
+.xsvp-radar-grid { fill: none; stroke: rgba(148, 163, 184, 0.18); stroke-width: 1; }
+.xsvp-radar-axis { stroke: rgba(148, 163, 184, 0.25); stroke-width: 1; }
+.xsvp-radar-label { fill: var(--openmaic-text-body, #cbd5e1); font-size: 12.5px; font-weight: 600; }
+.xsvp-radar-poly {
+    fill: color-mix(in oklch, var(--openmaic-cyan-500), transparent 72%);
+    stroke: var(--openmaic-cyan-400); stroke-width: 2;
+    filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.35));
+}
+.xsvp-radar-dot { fill: var(--openmaic-cyan-300); }
+
+/* ---- PPT 轮播 ---- */
+.xsvp-ppt { display: flex; flex-direction: column; gap: 12px; }
+.xsvp-slide-stage {
+    position: relative; width: 100%; aspect-ratio: 16 / 9;
+    border-radius: 14px; overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--openmaic-glass-border-strong);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+.xsvp-slide-ctrl { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.xsvp-slide-count { font-size: 13px; color: var(--openmaic-text-body, #cbd5e1); font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
+.xsvp-slide-thumbs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.xsvp-thumb {
+    max-width: 132px; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+    font-size: 11.5px; color: var(--openmaic-text-body, #cbd5e1);
+    background: rgba(255, 255, 255, 0.04); border: 1px solid var(--openmaic-glass-border-strong);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: all 0.14s ease;
+}
+.xsvp-thumb:hover { color: #ffffff; background: rgba(255, 255, 255, 0.1); }
+.xsvp-thumb-active {
+    color: #ffffff; border-color: color-mix(in oklch, var(--openmaic-amber-500), transparent 40%);
+    background: color-mix(in oklch, var(--openmaic-amber-500), transparent 82%);
+}
+
+/* ---- 卡片格式幻灯片 (轻量渲染, 白底仿幻灯片) ---- */
+.xsvp-card-slide {
+    position: absolute; inset: 0; padding: 40px 48px;
+    display: flex; flex-direction: column; justify-content: center; gap: 18px;
+    background:
+        radial-gradient(1200px 500px at 85% -10%, color-mix(in srgb, var(--xc-accent) 10%, transparent), transparent 60%),
+        radial-gradient(900px 420px at -5% 110%, color-mix(in srgb, var(--xc-accent) 7%, transparent), transparent 55%),
+        #ffffff;
+    color: #1e293b; overflow: hidden;
+}
+.xsvp-card-slide .xc-accent-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 10px;
+    background: linear-gradient(180deg, var(--xc-accent), color-mix(in srgb, var(--xc-accent) 55%, #ffffff));
+}
+.xsvp-card-slide .xc-scene-tag {
+    position: absolute; top: 22px; right: 28px;
+    font-size: 12px; font-weight: 600; color: color-mix(in srgb, var(--xc-accent) 80%, #334155);
+    padding: 4px 12px; border-radius: 999px;
+    background: color-mix(in srgb, var(--xc-accent) 10%, #ffffff);
+}
+.xsvp-card-slide .xc-title {
+    margin: 0; font-size: clamp(22px, 3.4vw, 34px); font-weight: 800; letter-spacing: -0.5px;
+    color: #0f172a; line-height: 1.25;
+}
+.xsvp-card-slide .xc-layout-tag {
+    position: absolute; bottom: 14px; right: 24px;
+    font-size: 10.5px; color: #94a3b8; font-family: ui-monospace, Consolas, monospace;
+}
+.xc-empty { font-size: 14px; color: #94a3b8; }
+.xc-multi { display: grid; gap: 14px; }
+.xc-cols-row { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.xc-cols-2 { grid-template-columns: 1fr 1fr; }
+.xc-block {
+    padding: 16px 18px; border-radius: 12px;
+    background: color-mix(in srgb, var(--xc-accent) 5%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--xc-accent) 22%, #ffffff);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+.xc-block-wide { padding: 20px 24px; }
+.xc-block .xc-sub { margin: 0 0 9px; font-size: 15px; font-weight: 700; color: color-mix(in srgb, var(--xc-accent) 85%, #0f172a); }
+.xc-bullets { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.8; color: #334155; }
+.xc-bullets li { margin: 3px 0; }
+.xc-bullets li::marker { color: var(--xc-accent); }
+.xc-code {
+    margin: 10px 0 0; padding: 12px 14px; border-radius: 9px; overflow: auto;
+    background: #0f172a; color: #e2e8f0;
+    font-size: 12px; line-height: 1.6; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+/* ---- OpenMAIC element 幻灯片播放器 (预览专用几何: 画布 1000x562.5, JS transform 缩放).
+       仅作用于预览舞台, 不影响 classroom 的同名元素 ---- */
+#xsvp-slide-stage .openmaic-player,
+#xsvp-slide-stage .openmaic-stage-shell { position: absolute; inset: 0; overflow: hidden; }
+#xsvp-slide-stage .openmaic-slide-canvas {
+    position: absolute; top: 0; left: 0;
+    width: 1000px; height: 562.5px; transform-origin: 0 0;
+    overflow: hidden; background: #ffffff;
+}
+#xsvp-slide-stage .openmaic-slide-accent {
+    position: absolute; left: 0; top: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, var(--openmaic-amber-500), var(--openmaic-cyan-500), var(--openmaic-violet-500));
+    opacity: 0.85; z-index: 1; pointer-events: none;
+}
+#xsvp-slide-stage .openmaic-effect-layer { position: absolute; inset: 0; pointer-events: none; z-index: 50; }
+
+/* ---- 响应式 ---- */
+@media (max-width: 860px) {
+    .xsvp-overlay { padding: 10px; }
+    .xsvp-panel { height: calc(100vh - 20px); }
+    .xsvp-body { flex-direction: column; }
+    .xsvp-nav {
+        width: 100%; flex-direction: row; border-right: none; border-bottom: 1px solid var(--openmaic-glass-border-strong);
+        overflow-x: auto; padding: 10px;
+    }
+    .xsvp-tab { width: auto; flex-shrink: 0; }
+    .xsvp-tab-label { max-width: 72px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .xsvp-main { padding: 16px 14px 28px; }
+    .xsvp-card-slide { padding: 22px 24px; }
+    .xc-cols-2 { grid-template-columns: 1fr; }
+}

@@ -1114,6 +1114,15 @@ class SocraticEvaluatorAgent(BaseAgent):
 
 
 class MasterController:
+    # generator.name -> 实际写入 state.metadata 的产物键
+    # (各 GeneratorAgent 写的是 document_output / mindmap_output / ... 而非 {name}_output)
+    _GENERATOR_OUTPUT_KEYS = {
+        "document_generator": "document_output",
+        "mindmap_generator": "mindmap_output",
+        "exercise_generator": "exercise_output",
+        "video_content": "video_output",
+    }
+
     def __init__(self) -> None:
         self._agents: dict[str, BaseAgent] = {}
         self._pipeline: list[BaseAgent] = []
@@ -1229,7 +1238,10 @@ class MasterController:
                             pass
                     last_log_idx = len(state.workflow_logs)
                 if on_product:
-                    payload = state.metadata.get(f"{gen.name}_output")
+                    output_key = self._GENERATOR_OUTPUT_KEYS.get(
+                        gen.name, f"{gen.name}_output"
+                    )
+                    payload = state.metadata.get(output_key)
                     if payload:
                         try:
                             await on_product(gen.name, payload)

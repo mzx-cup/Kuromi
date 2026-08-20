@@ -467,6 +467,8 @@
             let buf = '';
             const seen = new Set();
             let finalBundle = null;
+            // 增量收集: 每件 payload 到手即落草稿, 流中断也不丢已生成内容
+            const partialComponents = {};
 
             while (true) {
                 const { value, done } = await reader.read();
@@ -489,6 +491,14 @@
                             const label = status === 'fallback' ? '占位生成' : '已生成';
                             _setComponentState(name, status, label);
                             seen.add(name);
+                            // 每件 ready 立刻写草稿 + 推预览, 无需等 bundle_complete
+                            if (ev.data.payload) {
+                                partialComponents[name] = ev.data.payload;
+                                _writeBundleDraft(partialComponents);
+                                if (window.xsBundlePreview && typeof window.xsBundlePreview.pushComponent === 'function') {
+                                    try { window.xsBundlePreview.pushComponent(name, ev.data.payload); } catch (e2) { /* 预览失败不影响生成 */ }
+                                }
+                            }
                         }
                     } else if (ev.event === 'bundle_complete') {
                         finalBundle = (ev.data && ev.data.bundle) || ev.data;
@@ -523,6 +533,17 @@
                     }
                     alert('保存课程失败: ' + e.message + '\n请检查网络后刷新重试');
                 }
+            } else if (Object.keys(partialComponents).length) {
+                // 流中断兜底: bundle_complete 没到, 但已有组件到手 —— 拼部分 bundle 照常保存
+                console.warn('[xsStartBundle] bundle_complete 未收到, 用已到达的 '
+                    + Object.keys(partialComponents).length + ' 件保存部分课程');
+                finalBundle = {
+                    components: partialComponents,
+                    partial: true,
+                    obg_pbl_mode: _state.obg_pbl_mode || 'obg',
+                    obg_pbl_rationale: '',
+                    brainstorm: { slots: _state.slots, mode: _state.obg_pbl_mode || 'obg' },
+                };
             } else {
                 console.warn('[xsStartBundle] bundle_complete 未收到, 9 件套生成可能不完整');
                 const titleEl = _$('xs-bundle-title');
@@ -698,8 +719,35 @@
         // 3) 也保留 xs_course_bundle 给潜在外部 hook
         try { sessionStorage.setItem('xs_course_bundle', JSON.stringify(bundle)); } catch (e) { /* ignore quota */ }
 
-        // 4) 跳到 classroom, 携带 courseId 参数
-        window.location.href = 'classroom.html?course_id=' + encodeURIComponent(result.course_id);
+        // 4) 不再直接跳转 —— 先打开预览面板让用户看到全部生成内容,
+        //    预览面板内提供「进入课堂」按钮跳 classroom
+        const classroomUrl = 'classroom.html?course_id=' + encodeURIComponent(result.course_id);
+        const titleEl = _$('xs-bundle-title');
+        if (titleEl) {
+            titleEl.textContent = (bundle.partial ? '部分 ' : '') + '9 件套已生成并保存 ✓ 点击预览各件内容,「进入课堂」开始学习';
+            titleEl.style.color = '';
+        }
+        if (window.xsBundlePreview && typeof window.xsBundlePreview.open === 'function') {
+            try { window.xsBundlePreview.open(courseData, { classroomUrl: classroomUrl }); } catch (e) { /* 预览失败则退回跳转 */ }
+            // 常驻「预览 9 件套内容」按钮, 关掉面板也能再看
+            const previewBtn = _$('xs-bundle-preview-btn');
+            if (previewBtn) previewBtn.hidden = false;
+        } else {
+            // 兜底: 预览脚本未加载, 保持旧行为直接进课堂
+            window.location.href = classroomUrl;
+        }
+    }
+
+    // 把已到达的组件写进 sessionStorage 草稿 (每次 ready 覆写一次)
+    function _writeBundleDraft(components) {
+        try {
+            sessionStorage.setItem('xs_bundle_draft', JSON.stringify({
+                brainstorm_id: _state.id || '',
+                saved_at: new Date().toISOString(),
+                outline: _state.outline || null,
+                components: components,
+            }));
+        } catch (e) { /* ignore quota */ }
     }
 
     function _parseSseEvent(raw) {

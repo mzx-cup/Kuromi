@@ -196,9 +196,18 @@ class MiniMaxPPTProvider:
 5. 代码左侧预留 4-8px 内边距，模拟编辑器效果
 6. 长代码要截断或折叠，确保在视口内完整显示
 
+## 元素 ID 命名规范（CRITICAL — 下游解析依赖）
+内容元素必须按卡片分组命名，格式为 `card-{N}-*`（N 从 1 开始递增）：
+- 卡片背景 shape: `"id": "card-1-bg"`
+- 卡片标题 text: `"id": "card-1-title"`
+- 卡片正文 text: `"id": "card-1-content"`
+- 卡片内代码块: `"id": "card-1-code"`
+- 卡片内图片: `"id": "card-1-image"`
+页面级装饰元素（背景、分隔线）可用 `bg-*` / `deco-*` 前缀。
+
 ## 输出要求
 1. 只输出JSON格式的幻灯片数据，不要任何解释
-2. 每个元素必须有唯一的ID
+2. 每个元素必须有唯一的ID，且遵循上述 card-N 命名规范
 3. 确保元素坐标在 [0, 1000] x [0, 562.5] 范围内
 4. 元素不重叠、不溢出视口
 5. 保持深色科技风格，配色克制专业
@@ -566,11 +575,16 @@ class MiniMaxPPTProvider:
         user_prompt: str,
         retry_count: int = 2,
     ) -> str:
-        """调用 MiniMax API，带重试机制"""
+        """调用 MiniMax API，带重试机制.
+
+        复用模块级 AsyncClient (连接池 + TLS 会话复用),
+        避免逐 slide 新建客户端的握手开销 (9 件套 PPT 一次生成 ~10 个场景并发调用).
+        """
         last_error = None
 
         for attempt in range(retry_count):
             try:
+                client = _get_shared_client()
                 url = f"{settings.minimax_api_url}/chat/completions"
                 headers = {
                     "Authorization": f"Bearer {settings.minimax_api_key}",
@@ -587,28 +601,27 @@ class MiniMaxPPTProvider:
                     "max_tokens": 8192,
                 }
 
-                async with httpx.AsyncClient(timeout=45.0) as client:
-                    response = await client.post(url, headers=headers, json=payload)
+                response = await client.post(url, headers=headers, json=payload)
 
-                    if response.status_code != 200:
-                        raise RuntimeError(
-                            f"MiniMax API error HTTP {response.status_code}: {response.text[:500]}"
-                        )
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"MiniMax API error HTTP {response.status_code}: {response.text[:500]}"
+                    )
 
-                    data = response.json()
-                    choices = data.get("choices", [])
-                    if not choices:
-                        raise RuntimeError("No choices returned from MiniMax API")
+                data = response.json()
+                choices = data.get("choices", [])
+                if not choices:
+                    raise RuntimeError("No choices returned from MiniMax API")
 
-                    content = choices[0].get("message", {}).get("content", "")
+                content = choices[0].get("message", {}).get("content", "")
 
-                    if not content or not content.strip():
-                        logger.warning(f"MiniMax returned empty content, attempt {attempt + 1}/{retry_count}")
-                        last_error = "Empty response from MiniMax API"
-                        await asyncio.sleep(1)
-                        continue
+                if not content or not content.strip():
+                    logger.warning(f"MiniMax returned empty content, attempt {attempt + 1}/{retry_count}")
+                    last_error = "Empty response from MiniMax API"
+                    await asyncio.sleep(1)
+                    continue
 
-                    return content
+                return content
 
             except json.JSONDecodeError as e:
                 last_error = f"JSON decode error: {e}"
@@ -850,6 +863,26 @@ class MiniMaxPPTProvider:
 # ============================================================================
 
 _provider = None
+# 共享 AsyncClient: 连接池复用, 逐 slide 调用省去 TLS 握手 (~100-300ms/次)
+_shared_client: httpx.AsyncClient | None = None
+
+
+def _get_shared_client() -> httpx.AsyncClient:
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(connect=10.0, read=45.0, write=10.0, pool=10.0),
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+    return _shared_client
+
+
+async def close_shared_client() -> None:
+    """应用关停时释放连接池(测试用; 常驻进程可不调)."""
+    global _shared_client
+    if _shared_client is not None and not _shared_client.is_closed:
+        await _shared_client.aclose()
+    _shared_client = None
 
 
 def get_ppt_provider() -> MiniMaxPPTProvider:

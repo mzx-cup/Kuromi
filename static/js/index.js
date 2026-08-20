@@ -4338,7 +4338,7 @@ function renderProductCard(product, msgTimestamp) {
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
                     <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.85);color:#fff;font-size:11px;font-weight:600;">${icon} ${escapeHtml(label)}</span>
                 </div>
-                <div class="mermaid-placeholder" data-mermaid-src="${escapeHtml(code)}" id="${mermaidId}" style="background:#fff;border-radius:10px;padding:12px;max-height:380px;overflow:auto;">${escapeHtml(code)}</div>
+                <div class="mermaid-placeholder mindmap-canvas" data-mermaid-src="${escapeHtml(code)}" id="${mermaidId}" style="background:#f8fafc;color:#1f2937;border-radius:10px;padding:12px;max-height:380px;overflow:auto;">${escapeHtml(code)}</div>
             </div>
         `;
     }
@@ -4375,6 +4375,17 @@ function renderProductCard(product, msgTimestamp) {
     // 兜底
     const fallback = String(payload.text_content || '').trim();
     return `<div class="product-card" style="${cardBaseStyle}"><div style="color:#374151;">${escapeHtml(fallback)}</div></div>`;
+}
+
+/**
+ * 移除聊天容器里残留的 .stream-bubble (流式结束 / 出错 / 请求失败时调用),
+ * 让随后的 renderMessages 全量渲染接管显示。
+ */
+function removeStreamBubble() {
+    const container = document.getElementById('chat-container');
+    if (!container) return;
+    const bubble = container.querySelector('.stream-bubble');
+    if (bubble) bubble.remove();
 }
 
 async function renderMessages() {
@@ -4487,7 +4498,10 @@ async function renderMessages() {
         }
     });
 
-    if (streamBubble && isTypewriting) {
+    // 流式气泡兜底: 控制塔产物推送 (product_ready) 等事件会在流式进行中触发全量重渲,
+    // 此时不能丢掉 .stream-bubble — isTypewriting 在 chunk 间隙会短暂为 false,
+    // 用它做条件会让正在输出的回答"消失"到 done 才回来。只要气泡还在就挂回容器末尾。
+    if (streamBubble) {
         container.appendChild(streamBubble);
     }
 
@@ -7360,12 +7374,8 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                         messages[currentAssistantIdx]._memoryRefs = event.memory_refs;
                     }
                     // Remove stream-bubble and re-render all messages to show final content
-                    const container = document.getElementById('chat-container');
-                    if (container) {
-                        const streamBubble = container.querySelector('.stream-bubble');
-                        if (streamBubble) streamBubble.remove();
-                        renderMessages();
-                    }
+                    removeStreamBubble();
+                    renderMessages();
                 } else if (event.type === 'complete') {
                     // 合并队列中剩余的内容，避免打字机队列被清空导致内容丢失
                     const remainingText = typewriterQueue.join('');
@@ -7461,6 +7471,8 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     }
 
                     updateSandboxStatus('完成', 'bg-green-100 text-green-600');
+                    // 全量渲染前移除流式气泡 (renderMessages 现在会把还存在的气泡挂回去)
+                    removeStreamBubble();
                     renderMessages();
 
                     // 更新学生画像
@@ -7480,12 +7492,24 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                     renderSandboxLog(logEntry, false);
                     updateSandboxStatus('错误', 'bg-red-100 text-red-600');
 
+                    // 出错: 合并打字机队列剩余内容, 停掉打字机, 移除流式气泡后全量渲染
+                    const remainingText = typewriterQueue.join('');
+                    if (remainingText) {
+                        currentAssistantContent += remainingText;
+                    }
+                    typewriterQueue = [];
+                    isTypewriting = false;
+                    if (typewriterTimer) { clearTimeout(typewriterTimer); typewriterTimer = null; }
+                    if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length) {
+                        messages[currentAssistantIdx].content = currentAssistantContent;
+                    }
                     if (!currentAssistantContent) {
                         if (currentAssistantIdx >= 0) {
                             messages[currentAssistantIdx].content = `抱歉，智能体处理失败：${event.message || '未知错误'}。请稍后重试。`;
                         }
-                        renderMessages();
                     }
+                    removeStreamBubble();
+                    renderMessages();
                 }
             }
         }
@@ -7513,12 +7537,17 @@ async function handleSendStream(forcedMessage = null, options = {}) {
             userMsg = `请求失败：${errMsg}。请稍后重试。`;
         }
 
+        // 请求失败: 部分内容已由打字机同步进 messages, 移除流式气泡后全量渲染接管
+        if (currentAssistantIdx >= 0 && currentAssistantIdx < messages.length && currentAssistantContent) {
+            messages[currentAssistantIdx].content = currentAssistantContent;
+        }
         if (!currentAssistantContent) {
             if (currentAssistantIdx >= 0) {
                 messages[currentAssistantIdx].content = userMsg;
             }
-            renderMessages();
         }
+        removeStreamBubble();
+        renderMessages();
     } finally {
         setInputDisabled(false);
         if (sendButton) sendButton.disabled = false;

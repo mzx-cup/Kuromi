@@ -856,6 +856,14 @@ body, .text-auto {
 }
 .mermaid-container:hover { box-shadow: var(--shadow-lg); transform: translateY(-2px); }
 
+/* 控制塔导图卡片画布: 固定浅底深字, 与主题解耦.
+   mermaid htmlLabels 的节点/连线标签是 foreignObject 里的 HTML, 会继承页面文字色,
+   暗色主题下 --text-primary 近白, 浅色画布上会看不见, 故显式压成深色.
+   渲染后 mermaid-placeholder 类会被移除, 用稳定的 mindmap-canvas 锚定. */
+.mindmap-canvas { background: #f8fafc; color: #1f2937; }
+.mindmap-canvas * { color: #1f2937; }
+.mindmap-canvas svg text, .mindmap-canvas svg .edgeLabel { fill: #1f2937; }
+
 .mermaid-error, #mermaid-error, div.mermaid-error, span.mermaid-error, [class*="mermaid-error"],
 .mermaid-syntax-error, .mermaidErrorMessage, .mermaidError, [id*="error"][id*="mermaid"],
 .mermaid-error-container, .mermaid-error-message, .syntax-error {

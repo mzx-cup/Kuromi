@@ -5,7 +5,7 @@
   1. 接收 1 份 CourseOutline 候选 + 脑暴上下文(槽位 / 画像),并行 9 件 LLM 真生成
   2. 复用 `llm_json` 通用解析器(build_prompt + retry + Pydantic 校验)
   3. 每件独立 try/except,失败返回 fallback JSON,不阻塞整体
-  4. Semaphore(3) 限并发,SSE AsyncGenerator 逐件吐 component_ready 事件
+  4. Semaphore(6) 限并发,SSE AsyncGenerator 逐件吐 component_ready 事件
 
 公共 context: outline_summary(标题 + 3 行摘要) 作为每件 prompt 的前置注入,
 避免每件重复读完整大纲.
@@ -41,8 +41,10 @@ from state import LearningPortrait
 
 logger = logging.getLogger("starlearn.course_bundle")
 
-# 并发上限: 与 libs/course.py:333 对齐
-BUNDLE_CONCURRENCY = 3
+# 并发上限: 9 件套 + 扩展件约 10 个组件, 6 并发 2 波跑完 (原 3 并发要 4 波)
+BUNDLE_CONCURRENCY = 6
+# PPT 逐场景生成独立并发 (PPT 是单组件内部再开 N 个场景任务, 不占外层槽位)
+PPT_SCENE_CONCURRENCY = 6
 
 
 # ============================================================
@@ -118,9 +120,11 @@ async def _gen_outline(ctx: dict, _outline: dict[str, Any]) -> dict:
 
 async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
     """对每个 scene 并行生成 slides — 混合策略:
-    - 60% 走 MiniMax PPT provider → OpenMAIC 格式 (elements/background/theme)
-    - 40% 走 LLM slide_content_v2 → 卡片格式
+    - 80% 走 MiniMax PPT provider → OpenMAIC 格式 (elements/background/theme)
+    - 其余走 LLM slide_content_v2 → 卡片格式
     **后端硬约束**: 每张幻灯片强制指定 layout + style, 覆盖 LLM/Provider 的随机选择, 保证多样性.
+    **课程级主题**: 同一门课固定 1 套设计风格 (由课程标题哈希决定),
+    避免整套 PPT 在 8 种风格间跳变导致配色割裂; 视觉多样性由 layout 轮换提供.
     """
     import random as _random
     scenes = _outline.get("scenes", []) or []
@@ -130,37 +134,50 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
 
     all_slides: list[dict] = []
     slide_titles: list[str] = []
-    sem = asyncio.Semaphore(BUNDLE_CONCURRENCY)
-    minimax_ratio = 0.6  # 60% MiniMax, 40% LLM
+    sem = asyncio.Semaphore(PPT_SCENE_CONCURRENCY)
+    minimax_ratio = 0.8  # 80% MiniMax (OpenMAIC 精美格式), 失败自动回退 LLM
 
     # 强制轮换池 — 与 minimax.STYLE_THEMES 保持同步
     DESIGN_STYLES = [
         "dark-tech", "modern", "minimal", "professional",
         "ocean-glass", "sunset-warm", "forest-green", "midnight-violet",
     ]
-    LAYOUT_POOL = [
+    # 卡片格式(slides_v2 content)前端真正注册的布局 — OpenMAIC 专属布局
+    # (terminal-style/api-doc 等)对卡片渲染无意义, 会静默降级成 spotlight-focus
+    CARD_LAYOUT_POOL = [
+        "edu-welcome", "header-content", "two-column", "grid-cards",
+        "spotlight-focus", "isometric-cards", "dark-header", "quote-wall",
+        "info-graphic", "stair-step", "kinetic-type", "gradient-split",
+        "circle-radial", "edu-definition", "edu-example", "edu-summary",
+        "title-only",
+    ]
+    # OpenMAIC 元素格式幻灯片的布局池 (provider 自由设计元素)
+    ELEMENT_LAYOUT_POOL = [
         "title-only", "header-content", "two-column", "code-showcase",
         "terminal-style", "concept-code", "api-doc", "step-by-step",
         "grid-cards", "comparison", "spotlight-focus", "kinetic-type",
         "isometric-cards", "orbit-ring", "gradient-split", "dark-header",
         "circle-radial", "stair-step", "quote-wall", "info-graphic",
-        "edu-welcome", "edu-definition", "edu-example", "edu-summary",
     ]
     STYLE_TO_COLOR = {
         "dark-tech": "blue", "modern": "yellow", "minimal": "green",
         "professional": "purple", "ocean-glass": "cyan", "sunset-warm": "orange",
-        "forest-green": "emerald", "midnight-violet": "violet",
+        "forest-green": "green", "midnight-violet": "purple",
     }
 
-    def _pick_style_for_index(idx: int, total: int) -> str:
-        """均匀分布风格, 用质数步长避免连续相同"""
-        n = len(DESIGN_STYLES)
-        return DESIGN_STYLES[(idx * 7) % n]
+    # 课程级基础风格: 课程标题哈希 → 稳定选择, 重生成不漂移
+    _course_key = f"{ctx.get('course_title', '')}|{len(scenes)}"
+    _base_style = DESIGN_STYLES[sum(ord(c) for c in _course_key) % len(DESIGN_STYLES)]
+    logger.info(f"[course_bundle] ppt 课程级主题: {_base_style}")
 
-    def _pick_layout_for_index(idx: int, total: int) -> str:
+    def _pick_style_for_index(idx: int, total: int) -> str:
+        """整套课程统一风格 (视觉连贯), 不再逐页轮换"""
+        return _base_style
+
+    def _pick_layout_for_index(idx: int, total: int, pool: list[str] | None = None) -> str:
         """均匀分布布局, 用质数步长"""
-        n = len(LAYOUT_POOL)
-        return LAYOUT_POOL[(idx * 11) % n]
+        p = pool or CARD_LAYOUT_POOL
+        return p[(idx * 11) % len(p)]
 
     # ---- MiniMax 路径 ----
     async def _minimax_slide(scene: dict, idx: int) -> tuple[int, list[dict]]:
@@ -169,10 +186,10 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
             scene_desc = scene.get("description", "")
             key_points = scene.get("key_points", [])
             forced_style = _pick_style_for_index(idx, len(scenes))
-            forced_layout = _pick_layout_for_index(idx, len(scenes))
+            forced_layout = _pick_layout_for_index(idx, len(scenes), ELEMENT_LAYOUT_POOL)
             forced_color = STYLE_TO_COLOR.get(forced_style, "blue")
             try:
-                from app.services.ppt.minimax import get_ppt_provider
+                from app.services.ppt.minimax import STYLE_THEMES as _MM_THEMES, get_ppt_provider
                 from app.services.ppt.types import PPTGenerationRequest
                 provider = get_ppt_provider()
                 # 从 key_points 构造 content items
@@ -197,8 +214,13 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
                     slide["layoutType"] = forced_layout
                     slide["layout_type"] = forced_layout
                     # theme 必须是 dict (SlideV2.theme: Optional[dict]), 不能是字符串
-                    # 同时保留 _theme 字符串供前端快速读取
-                    slide["theme"] = {"name": forced_style, "primary": "#1E40AF"}
+                    # primary 用该风格真实 accent 色, 而非硬编码蓝
+                    mm_theme = _MM_THEMES.get(forced_style, {})
+                    slide["theme"] = {
+                        "name": forced_style,
+                        "primary": mm_theme.get("accent", "#1E40AF"),
+                        "background": mm_theme.get("bg", "#0F172A"),
+                    }
                     slide["_theme"] = forced_style
                     slide["_color_hint"] = forced_color
                     slide["_scene_title"] = scene_title
@@ -264,7 +286,7 @@ async def _gen_ppt(ctx: dict, _outline: dict[str, Any]) -> dict:
                 "next_outline_title": next_title or "(无, 本场景为末节)",
                 "pdf_text": "",
                 "web_search_context": "",
-                "available_layouts": ", ".join(LAYOUT_POOL),
+                "available_layouts": ", ".join(CARD_LAYOUT_POOL),
                 "_hint_color": forced_color,
                 "_hint_layout": forced_layout,
                 "_hint_style": forced_style,
