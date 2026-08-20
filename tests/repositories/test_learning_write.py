@@ -104,7 +104,12 @@ class TestRecordSession:
         assert result["study_days"] == 1
 
     def test_legacy_record_session_creates_learning_record(self, legacy_db):
-        """Verify a learning_records row was also inserted (for mastery)."""
+        """Verify a study_sessions row was inserted (mastery aggregates from it).
+
+        真实 schema 修复：record_session 只写 study_sessions —— 旧版本
+        还往 learning_records(activity_type, minutes) 写行，但那些列在
+        真实库中不存在（learning_records 是学习画像表），写入必失败。
+        """
         repo = DbPyLearningRepository(legacy_db)
         repo.record_session(
             1,
@@ -117,12 +122,13 @@ class TestRecordSession:
         conn = sqlite3.connect(legacy_db)
         cur = conn.cursor()
         cur.execute(
-            "SELECT COUNT(*) FROM learning_records WHERE user_id = ? AND subject = ?",
+            "SELECT COUNT(*), COALESCE(SUM(duration_minutes), 0) FROM study_sessions WHERE user_id = ? AND subject = ?",
             (1, "physics"),
         )
-        n = cur.fetchone()[0]
+        n, minutes = cur.fetchone()
         conn.close()
         assert n == 1
+        assert minutes == 20
 
 
 class TestGoals:

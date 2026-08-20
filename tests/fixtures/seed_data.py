@@ -1,6 +1,19 @@
 """Seed data generators for dual-backend testing.
 
 Provides consistent data across legacy db.py schema and ORM schema.
+
+真实 schema 修复（split-brain 整改的一部分）：``init_legacy_schema`` 不再
+手写"想象中的"表结构，而是重放 **生产 layer-1 SQLite 库
+（storage/xingshi.db）的真实 DDL**（见 ``real_legacy_schema.sql``，
+从真实库 sqlite_master 导出）。此前 fixture 里的
+``user_preferences(user_id, key, value)`` / ``user_themes`` /
+``knowledge_reviews`` 等表在真实引擎中并不存在，导致测试永远在验证
+一个假想世界 —— repo 对真实库"查找不到数据"的问题被测试完全掩盖。
+
+ORM(v2) 侧的 course_progress / learning_paths 等归一化表由
+``init_orm_course_tables`` 单独建（它们的数据家是 xingshi_v2.db，
+与 layer-1 的 user_evaluations / learning_path 是**同名不同形**的表，
+不能混在同一个 fixture 文件里创建）。
 """
 from __future__ import annotations
 
@@ -9,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import json
 
+_SCHEMA_DIR = Path(__file__).parent
 
 # Canonical seed dataset
 SEED_USERS = [
@@ -27,461 +41,74 @@ def _days_ago(n: int) -> str:
 
 
 def init_legacy_schema(db_path: str) -> None:
-    """Create db.py-style tables for testing."""
+    """Create the REAL layer-1 schema (replayed from storage/xingshi.db DDL)."""
     conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
+    try:
+        conn.executescript((_SCHEMA_DIR / "real_legacy_schema.sql").read_text(encoding="utf-8"))
+        conn.commit()
+    finally:
+        conn.close()
 
-    # db.py 'user' table (INT PK)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username VARCHAR(128) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
-            preferred_language VARCHAR(16) DEFAULT 'zh-CN'
-        )
-    """)
 
-    # db.py 'user_profile' table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_profile (
-            user_id INTEGER PRIMARY KEY,
-            preferred_language VARCHAR(16),
-            theme VARCHAR(32)
-        )
-    """)
+# ORM(v2) 归一化表的建表 DDL —— 镜像 ORM ``create_all`` 在 xingshi_v2.db
+# 里生成的形状（state_json 列名、无 UNIQUE(user_id, course_id)）。
+_ORM_COURSE_DDL = """
+CREATE TABLE IF NOT EXISTS course_progress (
+    id INTEGER NOT NULL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    course_id VARCHAR(64) NOT NULL,
+    progress_percent FLOAT NOT NULL,
+    completed_at DATETIME,
+    last_accessed DATETIME NOT NULL,
+    state_json JSON NOT NULL
+);
+CREATE TABLE IF NOT EXISTS learning_paths (
+    id INTEGER NOT NULL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    name VARCHAR(256),
+    description TEXT,
+    status VARCHAR(32),
+    created_at DATETIME
+);
+CREATE TABLE IF NOT EXISTS learning_path_nodes (
+    id INTEGER NOT NULL PRIMARY KEY,
+    path_id INTEGER NOT NULL,
+    course_id VARCHAR(64),
+    title VARCHAR(256),
+    order_index INTEGER,
+    completed INTEGER
+);
+CREATE TABLE IF NOT EXISTS user_evaluations (
+    id INTEGER NOT NULL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    subject VARCHAR(64),
+    score FLOAT,
+    max_score FLOAT,
+    notes TEXT,
+    evaluated_at DATETIME
+);
+CREATE TABLE IF NOT EXISTS course_deadlines (
+    id INTEGER NOT NULL PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    course_id VARCHAR(64) NOT NULL,
+    title VARCHAR(256) NOT NULL,
+    deadline DATE NOT NULL
+);
+"""
 
-    # db.py 'user_login_records' table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_login_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            ip VARCHAR(64),
-            user_agent VARCHAR(512),
-            login_at TEXT
-        )
-    """)
 
-    # db.py 'user_preferences' table
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_preferences (
-            user_id INTEGER NOT NULL,
-            key VARCHAR(128) NOT NULL,
-            value TEXT,
-            updated_at TEXT,
-            PRIMARY KEY (user_id, key)
-        )
-    """)
+def init_orm_course_tables(db_path: str) -> None:
+    """Create the ORM(v2)-shaped course tables on a test SQLite file.
 
-    # M2: legacy schema additions for settings + theme KV mirrors
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            setting_key VARCHAR(128) NOT NULL,
-            setting_value TEXT,
-            updated_at TEXT,
-            UNIQUE(user_id, setting_key)
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_themes (
-            user_id INTEGER PRIMARY KEY,
-            theme VARCHAR(32) DEFAULT 'dark',
-            accent_color VARCHAR(16) DEFAULT '#7c3aed',
-            updated_at TEXT
-        )
-    """)
-
-    # M3: legacy schema additions for learning statistics
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS study_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            subject VARCHAR(64),
-            duration_minutes INTEGER DEFAULT 0,
-            session_date TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS learning_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            activity_type VARCHAR(64) DEFAULT 'study',
-            subject VARCHAR(64),
-            minutes INTEGER DEFAULT 0,
-            metadata TEXT,
-            recorded_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_stats (
-            user_id INTEGER PRIMARY KEY,
-            total_minutes INTEGER DEFAULT 0,
-            streak_days INTEGER DEFAULT 0,
-            completed_courses INTEGER DEFAULT 0,
-            last_active TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS learning_goals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            title VARCHAR(256),
-            target_value REAL DEFAULT 0,
-            current_value REAL DEFAULT 0,
-            unit VARCHAR(32) DEFAULT 'minutes',
-            deadline TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS weekly_summary (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            week_start TEXT,
-            total_minutes INTEGER DEFAULT 0,
-            subjects TEXT
-        )
-    """)
-
-    # M5: legacy schema additions for course progress + learning paths
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS course_progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id VARCHAR(64) NOT NULL,
-            progress_percent REAL DEFAULT 0,
-            completed_at TEXT,
-            last_accessed TEXT,
-            state TEXT,
-            UNIQUE(user_id, course_id)
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS learning_paths (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name VARCHAR(256),
-            description TEXT,
-            status VARCHAR(32) DEFAULT 'active',
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS learning_path_nodes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            path_id INTEGER NOT NULL,
-            course_id VARCHAR(64),
-            title VARCHAR(256),
-            order_index INTEGER DEFAULT 0,
-            completed INTEGER DEFAULT 0
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_evaluations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            subject VARCHAR(64),
-            score REAL DEFAULT 0,
-            max_score REAL DEFAULT 100,
-            notes TEXT,
-            evaluated_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS course_generation_status (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id VARCHAR(64) NOT NULL,
-            status VARCHAR(32) DEFAULT 'pending',
-            progress_percent REAL DEFAULT 0,
-            error_message TEXT,
-            started_at TEXT,
-            completed_at TEXT
-        )
-    """)
-
-    # M6: legacy schema additions for knowledge graph + SM2 reviews
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_nodes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            name VARCHAR(256) NOT NULL,
-            subject VARCHAR(64),
-            description TEXT,
-            mastery REAL DEFAULT 0,
-            importance INTEGER DEFAULT 1,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_relations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            source_node_id INTEGER NOT NULL,
-            target_node_id INTEGER NOT NULL,
-            relation_type VARCHAR(64) DEFAULT 'related',
-            weight REAL DEFAULT 1.0
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            node_id INTEGER NOT NULL,
-            ease_factor REAL DEFAULT 2.5,
-            interval_days INTEGER DEFAULT 1,
-            repetitions INTEGER DEFAULT 0,
-            next_review_date TEXT,
-            last_reviewed_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            node_id INTEGER NOT NULL,
-            action VARCHAR(64) DEFAULT 'view',
-            quality INTEGER DEFAULT 0,
-            notes TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS knowledge_pending (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            node_id INTEGER NOT NULL,
-            due_date TEXT,
-            priority INTEGER DEFAULT 0
-        )
-    """)
-
-    # Slice-11: review history + course deadlines
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS review_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            node_id INTEGER NOT NULL,
-            next_review_date TEXT,
-            reviewed_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS course_deadlines (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id VARCHAR(64) NOT NULL,
-            title VARCHAR(256) DEFAULT '',
-            deadline TEXT NOT NULL
-        )
-    """)
-
-    # M7: legacy schema additions for focus session tracking
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS focus_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            started_at TEXT,
-            ended_at TEXT,
-            duration_minutes INTEGER DEFAULT 0,
-            planned_minutes INTEGER DEFAULT 0,
-            completed INTEGER DEFAULT 0,
-            subject VARCHAR(64)
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS focus_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER NOT NULL,
-            event_type VARCHAR(64) DEFAULT 'start',
-            timestamp TEXT,
-            flow_score REAL DEFAULT 0,
-            metadata TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_focus_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            focus_date TEXT,
-            total_focus_minutes INTEGER DEFAULT 0,
-            sessions_count INTEGER DEFAULT 0,
-            avg_flow_score REAL DEFAULT 0,
-            deep_focus_minutes INTEGER DEFAULT 0
-        )
-    """)
-
-    # M8: legacy schema additions for gamification (garden/pet/achievements/eco)
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_garden (
-            user_id INTEGER PRIMARY KEY,
-            plants TEXT,
-            last_watered TEXT,
-            growth_points INTEGER DEFAULT 0
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_pet (
-            user_id INTEGER PRIMARY KEY,
-            name VARCHAR(64) DEFAULT 'Pixel',
-            level INTEGER DEFAULT 1,
-            happiness REAL DEFAULT 50.0,
-            hunger REAL DEFAULT 50.0,
-            energy REAL DEFAULT 100.0,
-            last_fed TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_achievements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            achievement_id VARCHAR(64) NOT NULL,
-            title VARCHAR(256),
-            description TEXT,
-            unlocked_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_eco_data (
-            user_id INTEGER PRIMARY KEY,
-            eco_points INTEGER DEFAULT 0,
-            co2_saved_kg REAL DEFAULT 0,
-            trees_planted INTEGER DEFAULT 0,
-            level VARCHAR(32) DEFAULT 'Seedling',
-            updated_at TEXT
-        )
-    """)
-
-    # M9: legacy schema additions for chat (messages / summaries / agent turns / memories).
-    # NOTE: messages table uses `msg_metadata` (not `metadata`) from the start so the
-    # rename migration script has nothing to do in the test environment
-    # (it remains idempotent for already-migrated production databases).
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            role VARCHAR(32) DEFAULT 'user',
-            content TEXT,
-            msg_metadata TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS conversation_summaries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            conversation_id TEXT NOT NULL,
-            summary TEXT,
-            key_facts TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS agent_turn_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            agent_id TEXT NOT NULL,
-            turn_number INTEGER DEFAULT 0,
-            user_input TEXT,
-            agent_output TEXT,
-            tool_calls TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS user_memories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            memory_type VARCHAR(32) DEFAULT 'fact',
-            content TEXT,
-            importance INTEGER DEFAULT 1,
-            source_conversation_id TEXT,
-            created_at TEXT,
-            last_accessed TEXT
-        )
-    """)
-
-    # M10: legacy schema additions for classroom sessions, quiz records,
-    # and classroom agent turns. Mirrors the schema used by
-    # ``app.repositories.legacy.classroom.DbPyClassroomRepository``.
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS classroom_sessions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id TEXT,
-            started_at TEXT,
-            ended_at TEXT,
-            current_slide INTEGER DEFAULT 0,
-            status VARCHAR(32) DEFAULT 'active',
-            teacher_mode INTEGER DEFAULT 0
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS quiz_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER,
-            user_id INTEGER NOT NULL,
-            question TEXT,
-            answer TEXT,
-            correct INTEGER DEFAULT 0,
-            score REAL DEFAULT 0,
-            max_score REAL DEFAULT 100,
-            passed INTEGER DEFAULT 0,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS classroom_agent_turns (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id INTEGER NOT NULL,
-            agent_id TEXT NOT NULL,
-            turn_number INTEGER DEFAULT 0,
-            user_input TEXT,
-            agent_output TEXT,
-            created_at TEXT
-        )
-    """)
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS classroom_records (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id TEXT,
-            session_id INTEGER,
-            action VARCHAR(64),
-            details TEXT,
-            created_at TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
+    供 ``DbPyCourseProgressRepository(db_path=...)`` 的归一化方法使用
+    （生产路径经 ``orm_conn`` 连 xingshi_v2.db，那里由 ORM create_all 建表）。
+    """
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.executescript(_ORM_COURSE_DDL)
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def init_orm_schema(db_path: str) -> None:
@@ -511,7 +138,7 @@ def init_orm_schema(db_path: str) -> None:
 
 
 def populate_legacy(db_path: str, users: list = None) -> None:
-    """Populate legacy db.py tables with seed data."""
+    """Populate legacy db.py tables with seed data (real user table cols)."""
     users = users or SEED_USERS
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()

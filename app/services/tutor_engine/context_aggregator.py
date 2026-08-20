@@ -195,7 +195,7 @@ class ContextAggregator:
     # ------------------------------------------------------------------
 
     async def _fetch_rag(self, event: TutorEvent, rich: RichContext) -> None:
-        """RAG 教材检索"""
+        """RAG 教材检索（legacy 关键词 + 语义增强合并）"""
         question = event.get_question_text()
         if not question:
             return
@@ -209,10 +209,35 @@ class ContextAggregator:
             context_text, sources, source_links = await asyncio.to_thread(
                 self._rag, keywords
             )
+
+            # 语义增强：真 embedding top-k 命中合并进 legacy 结果（去重）。
+            # 降级条件（非语义 embedder / Qdrant down）下返回 []，零影响。
+            semantic_hits = await asyncio.to_thread(self._semantic_rag, question)
+            added_texts: list[str] = []
+            for hit in semantic_hits:
+                src = hit.get("source") or hit.get("title") or ""
+                if not src or src in sources:
+                    continue
+                sources.append(src)
+                source_links[src] = hit.get("deep_link", "")
+                added_texts.append(f"[Doc_Ref: {src}]\n{hit.get('content', '')}")
+                rich.rag_results.append(RAGResult(
+                    source_id=src,
+                    content=hit.get("content", "")[:500],
+                    source_title=src,
+                    deep_link=hit.get("deep_link", ""),
+                    relevance_score=float(hit.get("score", 0.5)),
+                ))
+
+            if added_texts:
+                context_text = (context_text + "\n\n" + "\n\n".join(added_texts)) if context_text else "\n\n".join(added_texts)
+
             rich.rag_context_text = context_text
 
             # 将 sources 转换为 RAGResult
             for src in sources:
+                if any(r.source_id == src for r in rich.rag_results):
+                    continue  # 语义路径已带 relevance_score，不覆盖
                 deep_link = source_links.get(src, "")
                 rich.rag_results.append(RAGResult(
                     source_id=src,
@@ -222,9 +247,19 @@ class ContextAggregator:
                     relevance_score=0.8,  # 简化评分
                 ))
 
-            logger.info(f"[ContextAggregator] RAG 检索到 {len(sources)} 条教材引用")
+            logger.info(f"[ContextAggregator] RAG 检索到 {len(sources)} 条教材引用 (语义补充 {len(added_texts)})")
         except Exception as e:
             logger.warning(f"[ContextAggregator] RAG 失败: {e}")
+
+    @staticmethod
+    def _semantic_rag(question: str, top_k: int = 3) -> list[dict]:
+        """语义 KB 检索（可被测试 monkeypatch）。任何失败返回 []。"""
+        try:
+            from app.services.kb.semantic_kb import get_semantic_kb
+            return get_semantic_kb().search(question, top_k=top_k)
+        except Exception as e:
+            logger.info(f"[ContextAggregator] 语义RAG不可用: {e}")
+            return []
 
     # ------------------------------------------------------------------
     # 灰度切流: LangChain 检索路径 (S2.4)

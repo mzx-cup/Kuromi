@@ -1,234 +1,160 @@
 """db.py wrapper for gamification (garden/pet/achievements/eco).
 
-Provides read/write methods against the db.py tables
-``user_garden``, ``user_pet``, ``user_achievements`` and
-``user_eco_data`` while M8 gradually shifts the read path to
-SQLAlchemy.
-
-Only storage operations are exposed here; the gamification formula
-itself continues to live in higher-level services.
+全量委托 db.py 正式函数（双引擎 + 真实 schema：user_garden.seeds +
+garden_json、user_pet.pet_json/pet_game_json、user_achievements.
+achievements_json、user_eco_data.eco_data_json）。旧版本对这些表写的
+归一化列（plants/last_watered/growth_points、name/level/happiness...、
+eco_points/co2_saved_kg/...）只存在于测试 fixture 的想象 schema，
+真实库全是 JSON blob。
 """
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime
+
+import db
+from app.repositories.legacy._conn import legacy_scope
+
+_GARDEN_DEFAULTS = {"plants": {}, "last_watered": None, "growth_points": 0}
+
+_PET_DEFAULTS = {
+    "name": "Pixel",
+    "level": 1,
+    "happiness": 50.0,
+    "hunger": 50.0,
+    "energy": 100.0,
+    "last_fed": None,
+}
+
+_ECO_DEFAULTS = {
+    "eco_points": 0,
+    "co2_saved_kg": 0.0,
+    "trees_planted": 0,
+    "level": "Seedling",
+}
+
+
+def _as_dict(value) -> dict:
+    if isinstance(value, dict):
+        return dict(value)
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return dict(parsed) if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, TypeError):
+            return {}
+    return {}
 
 
 class DbPyGamificationRepository:
     def __init__(self, db_path: str = None):
-        # Use the absolute path from db.py so legacy reads open the same
-        # SQLite file the rest of the project uses (CWD-agnostic).
-        import db as _db
-        self.db_path = db_path or _db.SQLITE_PATH
-
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
+        # 保留参数兼容旧调用/测试；委托 db.py 后连接由生效后端决定
+        # （legacy_scope 保证测试的 db_path 对委托调用同样生效）。
+        self.db_path = db_path
 
     # ── user_garden ──
 
     def get_garden(self, user_id) -> dict:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT plants, last_watered, growth_points FROM user_garden WHERE user_id = ?",
-                (user_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                return {"plants": {}, "last_watered": None, "growth_points": 0}
-            try:
-                plants = json.loads(row[0]) if row[0] else {}
-            except (json.JSONDecodeError, TypeError):
-                plants = {}
-            return {
-                "plants": plants,
-                "last_watered": row[1],
-                "growth_points": row[2] or 0,
-            }
-        finally:
-            conn.close()
+        with legacy_scope(self.db_path):
+            result = db.get_user_garden(user_id) or {}
+        garden_data = _as_dict(result.get("garden_data"))
+        out = dict(_GARDEN_DEFAULTS)
+        out.update(garden_data)
+        return out
 
     def save_garden(self, user_id, garden_data: dict) -> None:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO user_garden (user_id, plants, last_watered, growth_points)
-                   VALUES (?, ?, ?, ?)
-                   ON CONFLICT(user_id) DO UPDATE SET
-                       plants = excluded.plants,
-                       last_watered = excluded.last_watered,
-                       growth_points = excluded.growth_points""",
-                (
-                    user_id,
-                    json.dumps(garden_data.get("plants", {}), ensure_ascii=False),
-                    garden_data.get("last_watered"),
-                    garden_data.get("growth_points", 0),
-                ),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        # 保留现有 seeds（契约形状里没有它，不能写丢）
+        with legacy_scope(self.db_path):
+            current = db.get_user_garden(user_id) or {}
+        seeds = current.get("seeds") or 0
+        out = dict(_GARDEN_DEFAULTS)
+        out.update(garden_data or {})
+        with legacy_scope(self.db_path):
+            db.save_user_garden(user_id, seeds, out)
 
     # ── user_pet ──
 
     def get_pet(self, user_id) -> dict:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT name, level, happiness, hunger, energy, last_fed FROM user_pet WHERE user_id = ?",
-                (user_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                return {
-                    "name": "Pixel",
-                    "level": 1,
-                    "happiness": 50.0,
-                    "hunger": 50.0,
-                    "energy": 100.0,
-                    "last_fed": None,
-                }
-            return {
-                "name": row[0],
-                "level": row[1],
-                "happiness": row[2],
-                "hunger": row[3],
-                "energy": row[4],
-                "last_fed": row[5],
-            }
-        finally:
-            conn.close()
+        with legacy_scope(self.db_path):
+            result = db.get_user_pet(user_id) or {}
+        out = dict(_PET_DEFAULTS)
+        out.update(_as_dict(result.get("pet")))
+        return out
 
     def save_pet(self, user_id, pet_data: dict) -> None:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO user_pet (user_id, name, level, happiness, hunger, energy, last_fed)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(user_id) DO UPDATE SET
-                       name = excluded.name,
-                       level = excluded.level,
-                       happiness = excluded.happiness,
-                       hunger = excluded.hunger,
-                       energy = excluded.energy,
-                       last_fed = excluded.last_fed""",
-                (
-                    user_id,
-                    pet_data.get("name", "Pixel"),
-                    pet_data.get("level", 1),
-                    pet_data.get("happiness", 50.0),
-                    pet_data.get("hunger", 50.0),
-                    pet_data.get("energy", 100.0),
-                    pet_data.get("last_fed"),
-                ),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        # save_user_pet 无条件写两个 json 列（None → '{}'），先读回
+        # pet_game 再一并传回，避免把游戏进度清空。
+        with legacy_scope(self.db_path):
+            current = db.get_user_pet(user_id) or {}
+        pet_game = _as_dict(current.get("pet_game"))
+        out = dict(_PET_DEFAULTS)
+        out.update(pet_data or {})
+        with legacy_scope(self.db_path):
+            db.save_user_pet(user_id, out, pet_game)
 
     # ── user_achievements ──
 
+    @staticmethod
+    def _achievements_list(raw) -> list:
+        """achievements_json 兼容映射：list 直取，dict 取常见键。"""
+        if isinstance(raw, list):
+            return raw
+        if isinstance(raw, dict):
+            for key in ("achievements", "unlocked", "list", "items"):
+                val = raw.get(key)
+                if isinstance(val, list):
+                    return val
+            if raw:
+                # 单个成就对象的形状 → 包成列表
+                if "achievement_id" in raw or "title" in raw:
+                    return [raw]
+        return []
+
     def get_achievements(self, user_id) -> list:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """SELECT id, achievement_id, title, description, unlocked_at
-                   FROM user_achievements
-                   WHERE user_id = ?
-                   ORDER BY unlocked_at DESC""",
-                (user_id,),
-            )
-            return [
-                {
-                    "id": r[0],
-                    "achievement_id": r[1],
-                    "title": r[2],
-                    "description": r[3],
-                    "unlocked_at": r[4],
-                }
-                for r in cur.fetchall()
-            ]
-        finally:
-            conn.close()
+        with legacy_scope(self.db_path):
+            raw = db.get_user_achievements(user_id)
+        achievements = self._achievements_list(raw)
+        out = []
+        for i, item in enumerate(achievements):
+            if isinstance(item, str):
+                item = {"achievement_id": item}
+            if not isinstance(item, dict):
+                continue
+            out.append({
+                "id": item.get("id", i + 1),
+                "achievement_id": item.get("achievement_id", item.get("id", "")),
+                "title": item.get("title", ""),
+                "description": item.get("description", ""),
+                "unlocked_at": item.get("unlocked_at"),
+            })
+        return out
 
     def save_achievement(self, user_id, achievement: dict) -> int:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO user_achievements
-                   (user_id, achievement_id, title, description, unlocked_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (
-                    user_id,
-                    achievement.get("achievement_id", ""),
-                    achievement.get("title", ""),
-                    achievement.get("description", ""),
-                    achievement.get("unlocked_at") or datetime.now().isoformat(),
-                ),
-            )
-            conn.commit()
-            return cur.lastrowid
-        finally:
-            conn.close()
+        with legacy_scope(self.db_path):
+            raw = db.get_user_achievements(user_id)
+        achievements = self._achievements_list(raw)
+        achievements.append({
+            "achievement_id": achievement.get("achievement_id", ""),
+            "title": achievement.get("title", ""),
+            "description": achievement.get("description", ""),
+            "unlocked_at": achievement.get("unlocked_at") or datetime.now().isoformat(),
+        })
+        with legacy_scope(self.db_path):
+            db.save_user_achievements(user_id, achievements)
+        return len(achievements)
 
     # ── user_eco_data ──
 
     def get_eco(self, user_id) -> dict:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """SELECT eco_points, co2_saved_kg, trees_planted, level
-                   FROM user_eco_data WHERE user_id = ?""",
-                (user_id,),
-            )
-            row = cur.fetchone()
-            if not row:
-                return {
-                    "eco_points": 0,
-                    "co2_saved_kg": 0.0,
-                    "trees_planted": 0,
-                    "level": "Seedling",
-                }
-            return {
-                "eco_points": row[0] or 0,
-                "co2_saved_kg": row[1] or 0.0,
-                "trees_planted": row[2] or 0,
-                "level": row[3] or "Seedling",
-            }
-        finally:
-            conn.close()
+        out = dict(_ECO_DEFAULTS)
+        with legacy_scope(self.db_path):
+            out.update(_as_dict(db.get_user_eco_data(user_id)))
+        return out
 
     def save_eco(self, user_id, eco_data: dict) -> None:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """INSERT INTO user_eco_data
-                   (user_id, eco_points, co2_saved_kg, trees_planted, level, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(user_id) DO UPDATE SET
-                       eco_points = excluded.eco_points,
-                       co2_saved_kg = excluded.co2_saved_kg,
-                       trees_planted = excluded.trees_planted,
-                       level = excluded.level,
-                       updated_at = excluded.updated_at""",
-                (
-                    user_id,
-                    eco_data.get("eco_points", 0),
-                    eco_data.get("co2_saved_kg", 0.0),
-                    eco_data.get("trees_planted", 0),
-                    eco_data.get("level", "Seedling"),
-                    datetime.now().isoformat(),
-                ),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        current = dict(_ECO_DEFAULTS)
+        with legacy_scope(self.db_path):
+            current.update(_as_dict(db.get_user_eco_data(user_id)))
+        current.update(eco_data or {})
+        with legacy_scope(self.db_path):
+            db.save_user_eco_data(user_id, current)

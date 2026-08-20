@@ -1,135 +1,136 @@
 """db.py wrapper for capability profile.
 
-Aggregates 6 user capability dimensions from db.py tables:
-  - knowledge_base: from study_sessions (subject → minutes)
-  - code_skill: from learning_records (subject where activity_type='code')
-  - cognitive_style: from learning_records.metadata (preferred_modality)
-  - focus_level: from study_sessions (avg session duration, streak)
-  - learning_goals: from learning_goals table
-  - weakness: from learning_records (subjects with low avg minutes)
+聚合 6 个能力维度，全部取自**真实** layer-1 schema：
+  - knowledge_base: study_sessions（subject → minutes，schema 真实）
+  - code_skill: learning_records.code_practice_time（画像表真实列）
+  - cognitive_style: learning_records.profile_json（画像表真实列）
+  - focus_level: study_sessions（avg duration + streak，schema 真实）
+  - learning_goals: learning_goals（真实表）
+  - weakness: study_sessions AVG(duration_minutes) by subject
+
+旧版本的 code_skill / cognitive_style / weakness 查询的是
+``learning_records(activity_type, minutes, metadata)`` —— 这些列只存在于
+测试 fixture 的想象 schema，两个真实引擎都没有（learning_records 实为
+学习画像表）。修复后画像维度改用画像表真实列。
 """
 from __future__ import annotations
 
 import json
-import sqlite3
-from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import Optional
+
+import db
+from app.repositories.legacy._conn import legacy_conn, legacy_scope, ph
+
+
+def _as_date(raw) -> date | None:
+    """session_date 兼容：SQLite TEXT / MySQL date 对象 → date。"""
+    if raw is None:
+        return None
+    if isinstance(raw, datetime):
+        return raw.date()
+    if isinstance(raw, date):
+        return raw
+    try:
+        return datetime.fromisoformat(str(raw)).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _streak_from_dates(rows) -> int:
+    """从 DESC 排列的 session_date 行计算连续打卡天数。"""
+    streak = 0
+    today = date.today()
+    for i, row in enumerate(rows):
+        sd = _as_date(row[0])
+        if sd is None:
+            break
+        if sd == today - timedelta(days=i):
+            streak += 1
+        else:
+            break
+    return streak
 
 
 class DbPyCapabilityRepository:
     def __init__(self, db_path: str = None):
-        # Use the absolute path from db.py so legacy reads open the same
-        # SQLite file the rest of the project uses (CWD-agnostic).
-        import db as _db
-        self.db_path = db_path or _db.SQLITE_PATH
-
-    def _conn(self):
-        return sqlite3.connect(self.db_path)
+        # 测试隔离用（显式 SQLite 文件）；生产为 None → 跟随生效后端。
+        self.db_path = db_path
 
     async def get_knowledge_base(self, user_id: str) -> dict:
-        conn = self._conn()
-        try:
+        with legacy_conn(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
-                """
+                f"""
                 SELECT subject, SUM(duration_minutes) AS total
                 FROM study_sessions
-                WHERE user_id = ?
+                WHERE user_id = {ph(conn)}
                 GROUP BY subject
                 """,
                 (user_id,),
             )
             rows = cur.fetchall()
             return {subject: min(1.0, total / 600.0) for subject, total in rows if subject}
-        finally:
-            conn.close()
 
     async def get_code_skill(self, user_id: str) -> dict:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT subject, SUM(minutes) AS total
-                FROM learning_records
-                WHERE user_id = ? AND activity_type = 'code'
-                GROUP BY subject
-                """,
-                (user_id,),
-            )
-            rows = cur.fetchall()
-            return {subject: min(1.0, total / 300.0) for subject, total in rows if subject}
-        finally:
-            conn.close()
+        """代码能力：画像表 code_practice_time → 0-1（300 分钟封顶）。"""
+        with legacy_scope(self.db_path):
+            record = db.get_learning_record(user_id)
+        minutes = 0
+        if record:
+            try:
+                minutes = int(record.get("code_practice_time") or 0)
+            except (TypeError, ValueError):
+                minutes = 0
+        return {"code": min(1.0, minutes / 300.0)}
 
     async def get_cognitive_style(self, user_id: str) -> dict:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT metadata FROM learning_records
-                WHERE user_id = ? AND metadata IS NOT NULL
-                ORDER BY recorded_at DESC LIMIT 20
-                """,
-                (user_id,),
-            )
-            modalities = []
-            for (meta_str,) in cur.fetchall():
-                try:
-                    meta = json.loads(meta_str)
-                    if "modality" in meta:
-                        modalities.append(meta["modality"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            preferred = max(set(modalities), key=modalities.count) if modalities else "visual"
-            return {"preferred_modality": preferred, "depth": "deep"}
-        finally:
-            conn.close()
+        """认知风格：画像表 profile_json 里的 modality/depth。"""
+        preferred, depth = "visual", "deep"
+        with legacy_scope(self.db_path):
+            record = db.get_learning_record(user_id)
+        if record:
+            try:
+                profile = json.loads(record.get("profile_json") or "{}")
+            except (json.JSONDecodeError, TypeError):
+                profile = {}
+            if isinstance(profile, dict):
+                modality = profile.get("modality") or profile.get("preferred_modality")
+                if isinstance(modality, str) and modality:
+                    preferred = modality
+                if isinstance(profile.get("depth"), str) and profile["depth"]:
+                    depth = profile["depth"]
+        return {"preferred_modality": preferred, "depth": depth}
 
     async def get_focus_level(self, user_id: str) -> dict:
-        conn = self._conn()
-        try:
+        with legacy_conn(self.db_path) as conn:
             cur = conn.cursor()
+            p = ph(conn)
             cur.execute(
-                """
-                SELECT AVG(duration_minutes) FROM study_sessions WHERE user_id = ?
-                """,
+                f"SELECT AVG(duration_minutes) FROM study_sessions WHERE user_id = {p}",
                 (user_id,),
             )
             avg = cur.fetchone()[0] or 0
             cur.execute(
-                """
+                f"""
                 SELECT DISTINCT session_date FROM study_sessions
-                WHERE user_id = ? ORDER BY session_date DESC LIMIT 30
+                WHERE user_id = {p} ORDER BY session_date DESC LIMIT 30
                 """,
                 (user_id,),
             )
-            dates = [row[0] for row in cur.fetchall()]
-            streak = 0
-            today = date.today()
-            for i, d in enumerate(dates):
-                try:
-                    sd = datetime.fromisoformat(d).date() if isinstance(d, str) else d
-                    if sd == today - timedelta(days=i):
-                        streak += 1
-                    else:
-                        break
-                except (ValueError, TypeError):
-                    break
+            streak = _streak_from_dates(cur.fetchall())
             return {"avg_session_minutes": int(avg), "streak_days": streak}
-        finally:
-            conn.close()
 
     async def get_learning_goals(self, user_id: str) -> list:
-        conn = self._conn()
-        try:
+        """真实 learning_goals 没有 deadline 列，用 end_date 承担该语义。"""
+        with legacy_conn(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
-                """
-                SELECT id, title, target_value, current_value, unit, deadline
-                FROM learning_goals WHERE user_id = ? AND deadline IS NOT NULL
+                f"""
+                SELECT id, title, target_value, current_value, unit, end_date
+                FROM learning_goals
+                WHERE user_id = {ph(conn)}
+                  AND is_active = 1
+                  AND end_date IS NOT NULL AND end_date != ''
                 """,
                 (user_id,),
             )
@@ -142,20 +143,18 @@ class DbPyCapabilityRepository:
                     "title": row[1],
                     "progress": min(1.0, progress),
                     "unit": row[4],
-                    "deadline": row[5],
+                    "deadline": str(row[5]) if row[5] is not None else None,
                 })
             return goals
-        finally:
-            conn.close()
 
     async def get_weakness(self, user_id: str) -> list:
-        conn = self._conn()
-        try:
+        """薄弱科目：study_sessions 按科目 AVG(时长)， mastery < 0.4 视为薄弱。"""
+        with legacy_conn(self.db_path) as conn:
             cur = conn.cursor()
             cur.execute(
-                """
-                SELECT subject, AVG(minutes) FROM learning_records
-                WHERE user_id = ? GROUP BY subject
+                f"""
+                SELECT subject, AVG(duration_minutes) FROM study_sessions
+                WHERE user_id = {ph(conn)} GROUP BY subject
                 """,
                 (user_id,),
             )
@@ -165,8 +164,6 @@ class DbPyCapabilityRepository:
                 if mastery < 0.4:
                     weakness.append({"subject": subject, "mastery": mastery})
             return weakness
-        finally:
-            conn.close()
 
     async def aggregate_profile(self, user_id: str) -> dict:
         return {

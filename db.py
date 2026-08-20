@@ -31,6 +31,32 @@ _effective_backend = None
 _DEFAULT_LOCAL_STORAGE_PATH = os.path.join(BASE_DIR, 'storage', 'local_storage.json')
 LOCAL_STORAGE_PATH = os.environ.get('LOCAL_STORAGE_PATH', _DEFAULT_LOCAL_STORAGE_PATH)
 
+# 最近一次 _open_mysql / _open_sqlite 的失败原因（供 BackendUnavailable
+# 附加诊断信息）。key: 'mysql' / 'sqlite'。
+_last_open_error = {}
+
+
+class BackendUnavailable(RuntimeError):
+    """生效数据库后端不可用。
+
+    取代旧的"MySQL 连不上就静默写 SQLite"per-call 降级：那种跨引擎降级
+    会让同一进程的不同功能把数据写进两个引擎，事后无法对账 —— 这正是
+    "不同功能读写不同数据库、查找不到数据"的根因。现在生效后端连不上
+    时显式抛错，由调用方处理（通常表现为 500 + 明确日志）。
+    """
+
+    def __init__(self, backend: str, reason: str = ''):
+        self.backend = backend
+        self.reason = reason
+        super().__init__(
+            f"Database backend '{backend}' is unavailable"
+            + (f": {reason}" if reason else '')
+            + f". STARLEARN_DB_BACKEND={DB_BACKEND!r}; refusing to silently "
+            f"fall back to another engine (split-brain guard). Fix the "
+            f"connection, or point STARLEARN_DB_BACKEND at a working backend "
+            f"and restart."
+        )
+
 
 def _detect_backend():
     """自动检测可用的数据库后端：MySQL > SQLite > JSON"""
@@ -74,17 +100,18 @@ def _detect_backend():
 
 
 def _open_mysql():
-    """建立 MySQL 连接。失败返回 None（并打印原因）。"""
+    """建立 MySQL 连接。失败返回 None（记录原因供 BackendUnavailable 使用）。"""
     try:
         import pymysql
         return pymysql.connect(**MYSQL_CONFIG)
     except Exception as e:
-        print(f"MySQL 连接失败: {e}, 尝试 SQLite...")
+        _last_open_error['mysql'] = str(e)
+        print(f"MySQL 连接失败: {e}")
         return None
 
 
 def _open_sqlite():
-    """建立 SQLite 连接。失败返回 None（并打印原因）。"""
+    """建立 SQLite 连接。失败返回 None（记录原因供 BackendUnavailable 使用）。"""
     try:
         import sqlite3
         conn = sqlite3.connect(SQLITE_PATH)
@@ -92,44 +119,44 @@ def _open_sqlite():
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
     except Exception as e:
-        print(f"SQLite 连接失败: {e}, 使用本地存储")
+        _last_open_error['sqlite'] = str(e)
+        print(f"SQLite 连接失败: {e}")
         return None
 
 
 @contextmanager
 def get_db():
-    """获取数据库连接上下文，自动选择 MySQL / SQLite / JSON fallback。
+    """获取数据库连接上下文（由生效后端决定，MySQL / SQLite / JSON）。
 
     重要：本函数必须**恰好 yield 一次**。
 
-    早期实现把"连接失败降级"和"把连接交给调用方"混在同一个 try 里，写成了
-    三段 ``try: yield ... except: <继续往下再 yield>``。这违反了
-    ``@contextmanager`` 的契约 —— 当 ``with`` 块内部抛异常时，
-    ``__exit__`` 会调用 ``gen.throw(exc)`` 把异常送回生成器，而生成器必须就此
-    停止；旧代码却用 ``except Exception`` 把**调用方的**异常吞掉，然后继续执行
-    到下一个 ``yield``，于是 CPython 抛出
+    一致性保证（split-brain 修复）：不再做"连接失败就静默换引擎"的
+    per-call 降级 —— 那会让一部分调用写 MySQL、另一部分写 SQLite，
+    事后无法对账（这正是"数据查不到"问题的根因之一）。现在：
 
-        RuntimeError: generator didn't stop after throw()
+    - 生效后端为 mysql / sqlite 时，连接失败直接抛 ``BackendUnavailable``，
+      错误在调用点显式暴露；想换后端请改 ``STARLEARN_DB_BACKEND`` 并重启;
+    - 生效后端为 json 时 yield None（调用方走 JSON 分支，受
+      ``_check_dual_write_for_json_fallback`` 门禁约束）。
 
-    真正的异常被这条晦涩的报错完全掩盖（例如 load_local_storage() 的
-    Phase 2.3 RuntimeError 会被打印成 "MySQL 连接失败: ..."，极具误导性）。
-
-    现在：降级只发生在**建立连接**阶段（_open_mysql / _open_sqlite 内部自己
-    兜异常并返回 None），yield 只出现一次且不被任何 except 包裹，调用方的异常
-    原样向上传播。
+    早期实现还曾把"连接失败降级"和"把连接交给调用方"混在同一个 try 里，
+    导致调用方异常被吞掉后生成器继续 yield，CPython 抛出晦涩的
+    ``RuntimeError: generator didn't stop after throw()``。现在 yield
+    只出现一次且不被任何 except 包裹，调用方的异常原样向上传播。
     """
     backend = _detect_backend()
 
-    conn = None
-    if backend == 'mysql':
-        conn = _open_mysql()
-    if conn is None and backend in ('mysql', 'sqlite'):
-        conn = _open_sqlite()
-
-    if conn is None:
+    if backend == 'json':
         # 最终 fallback: JSON 文件（调用方负责在 conn is None 时走 JSON 分支）
         yield None
         return
+
+    conn = _open_mysql() if backend == 'mysql' else _open_sqlite()
+    if conn is None:
+        raise BackendUnavailable(
+            backend,
+            _last_open_error.get(backend) or 'connection failed (see log above)',
+        )
 
     try:
         yield conn
@@ -138,6 +165,94 @@ def get_db():
             conn.close()
         except Exception:
             pass
+
+
+def open_effective_connection():
+    """打开一个**生效后端**的裸连接（无跨引擎降级、无 JSON 回退）。
+
+    供 legacy 仓库等需要自行管理连接生命周期的调用方使用。连接失败抛
+    ``BackendUnavailable`` —— 与 ``get_db()`` 的一致性语义相同，只是
+    不是 contextmanager、不 yield None。
+    """
+    backend = _detect_backend()
+    if backend == 'mysql':
+        conn = _open_mysql()
+        if conn is None:
+            raise BackendUnavailable('mysql', _last_open_error.get('mysql', ''))
+        return conn
+    if backend == 'sqlite':
+        conn = _open_sqlite()
+        if conn is None:
+            raise BackendUnavailable('sqlite', _last_open_error.get('sqlite', ''))
+        return conn
+    raise BackendUnavailable(
+        backend or 'json',
+        'effective backend is JSON; no SQL connection is available',
+    )
+
+
+def verify_backend_consistency() -> dict:
+    """启动期数据库一致性校验（fail loudly，供 main.py lifespan 调用）。
+
+    - 生效后端必须真的能连上并执行 ``SELECT 1``，否则抛
+      ``BackendUnavailable`` —— 进程拒绝带着坏配置启动，而不是运行期
+      悄悄把数据写散;
+    - ``STARLEARN_DB_BACKEND=auto`` 时打印告警并说明探测结果（auto 会在
+      MySQL / SQLite 之间"猜"，是历史数据分裂的来源，生产应显式钉死）;
+    - 打印 layer-1（本模块）与 ORM 层（DATABASE_URL）各自使用的引擎，
+      双引擎组合只告警不阻断（迁移期允许，但操作者必须看见）。
+
+    返回摘要 dict（便于测试断言与日志采集）。
+    """
+    backend = _detect_backend()
+
+    if DB_BACKEND == 'auto':
+        print(
+            "[db] WARNING: STARLEARN_DB_BACKEND=auto —— 自动探测选中 "
+            f"'{backend}'。auto 会在引擎间猜测，是历史数据分裂的来源；"
+            "请在 config/.env 显式设置 STARLEARN_DB_BACKEND=sqlite 或 mysql。"
+        )
+
+    info = {
+        'configured_backend': DB_BACKEND,
+        'effective_backend': backend,
+        'sqlite_path': SQLITE_PATH,
+        'connectivity': 'ok',
+    }
+
+    conn = open_effective_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT 1')
+        cur.fetchone()
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    # ORM 层引擎对比（只告警，不阻断 —— 迁移期两层可以暂用不同引擎）
+    try:
+        from app.core.config import DATABASE_URL as _orm_url
+        info['orm_database_url'] = _orm_url
+        _orm_base = _orm_url.split(':', 1)[0].split('+')[0]
+        info['orm_engine'] = _orm_base
+        _layer1 = 'mysql' if backend == 'mysql' else 'sqlite'
+        if _orm_base != _layer1:
+            print(
+                f"[db] WARNING: layer-1 后端 = '{_layer1}'，"
+                f"ORM(DATABASE_URL) 引擎 = '{_orm_base}' —— 两层使用不同"
+                "引擎。迁移期允许，但请确认这是有意为之，否则数据会分散"
+                "在两个引擎里。"
+            )
+    except Exception as e:  # noqa: BLE001
+        info['orm_database_url'] = f'<unavailable: {e}>'
+
+    print(
+        f"[db] backend consistency OK: layer-1={backend} "
+        f"(sqlite={SQLITE_PATH})，连接探测通过。"
+    )
+    return info
 
 
 def _check_dual_write_for_json_fallback(operation: str) -> None:
@@ -4913,13 +5028,22 @@ def get_user_daily_routes(user_id, limit=30):
 # ============================================================
 
 def save_study_session(user_id, session_data):
-    """保存学习时段记录"""
+    """保存学习时段记录（双引擎方言：SQLite '?' / MySQL '%s'）。
+
+    修复：旧实现无条件使用 %s 占位符和 DictCursor，SQLite 生效后端下
+    每次写入都静默失败（"保存学习时段失败"），导致学习时长在 SQLite
+    部署下丢失 —— split-brain 的又一个实例。
+    """
     with get_db() as conn:
         if conn is not None:
             try:
-                cursor = conn.cursor()
-                import pymysql
-                cursor = conn.cursor(pymysql.cursors.DictCursor)
+                is_sql = _is_sqlite(conn)
+                ph = '?' if is_sql else '%s'
+                if is_sql:
+                    cursor = conn.cursor()
+                else:
+                    import pymysql
+                    cursor = conn.cursor(pymysql.cursors.DictCursor)
 
                 # 尝试更新已存在的记录（同一用户、同一日期、同一科目）
                 session_date = session_data.get('session_date')
@@ -4929,28 +5053,29 @@ def save_study_session(user_id, session_data):
                 duration = session_data.get('duration_minutes', 0)
                 node_id = session_data.get('node_id', '')
 
-                cursor.execute("""
+                cursor.execute(f"""
                     SELECT id FROM study_sessions
-                    WHERE user_id = %s AND session_date = %s AND subject = %s
+                    WHERE user_id = {ph} AND session_date = {ph} AND subject = {ph}
                     LIMIT 1
                 """, (user_id, session_date, subject))
 
                 existing = cursor.fetchone()
 
                 if existing:
+                    existing_id = existing['id'] if isinstance(existing, dict) else existing[0]
                     # 更新已有记录，累加时长
-                    cursor.execute("""
+                    cursor.execute(f"""
                         UPDATE study_sessions
-                        SET duration_minutes = duration_minutes + %s,
-                            end_time = %s
-                        WHERE id = %s
-                    """, (duration, end_time, existing['id']))
+                        SET duration_minutes = duration_minutes + {ph},
+                            end_time = {ph}
+                        WHERE id = {ph}
+                    """, (duration, end_time, existing_id))
                 else:
                     # 新增记录
-                    cursor.execute("""
+                    cursor.execute(f"""
                         INSERT INTO study_sessions
                         (user_id, session_date, duration_minutes, start_time, end_time, subject, node_id)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        VALUES ({ph}, {ph}, {ph}, {ph}, {ph}, {ph}, {ph})
                     """, (user_id, session_date, duration, start_time, end_time, subject, node_id))
 
                 conn.commit()

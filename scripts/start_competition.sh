@@ -19,6 +19,10 @@ if [[ -z "${JWT_SECRET:-}" ]]; then
 fi
 export STARLEARN_COMPETITION=1
 export STARLEARN_CSRF_STRICT=1
+# Split-brain 整改：比赛模式钉死单一后端（默认 sqlite，与 config/.env 一致），
+# 避免 auto 探测到本机 MySQL 后把数据写散到两个引擎。要切 MySQL 显式传
+# STARLEARN_DB_BACKEND=mysql。
+export STARLEARN_DB_BACKEND="${STARLEARN_DB_BACKEND:-sqlite}"
 export STARLEARN_ALLOWED_ORIGINS="${STARLEARN_ALLOWED_ORIGINS:-http://localhost:8000,http://127.0.0.1:8000}"
 
 PORT="${STARLEARN_PORT:-8000}"

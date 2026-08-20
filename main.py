@@ -84,6 +84,16 @@ VIDEO_DIR = os.path.join(STATIC_DIR, "video")
 async def lifespan(app: FastAPI):
     """管理应用启动/关闭的生命周期事件。"""
     # Startup
+    # Split-brain 整改：启动期校验数据库后端一致性 —— 生效后端必须能
+    # 真的连上（SELECT 1），否则拒绝启动（fail loudly），防止进程带着
+    # 坏配置运行、把数据悄悄写散到多个引擎。
+    try:
+        import db as _db
+        _consistency = _db.verify_backend_consistency()
+        logger.info(f"[Startup] backend consistency: {_consistency}")
+    except Exception as e:
+        logger.exception(f"[Startup] backend consistency FAILED: {e}")
+        raise
     try:
         from app.core.database import init_db
         await init_db()

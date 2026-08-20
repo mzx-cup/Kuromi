@@ -8,11 +8,11 @@ can swap implementations behind the
 :class:`app.repositories.base.ChatRepository` Protocol.
 
 设计要点：
-  - ``messages``: 直接 SQLite 连接,因为生产 MySQL 上的 messages 表用的是
-    ``msg_metadata`` 列名(不是 ``metadata``);直接拿 ``db.get_db()`` 给的
-    MySQL 连接会因为列名不匹配而报错。生产数据迁移见
-    ``scripts/migrate_messages_metadata.py``。``db_path`` 显式传入时(test
-    fixture 注入)使用该路径。
+  - ``messages``: 委托 db.py 正式函数（``save_message`` /
+    ``get_recent_messages_summary``）。真实 schema 是
+    ``(session_id, student_id, role, content, message_type, metadata)``；
+    旧版本直连 SQLite 写 ``(user_id, ..., msg_metadata)`` 想象列 ——
+    真实表没有这些列，且生产 MySQL 生效时读不到 SQLite 的写入。
   - ``user_memories``: 当构造时显式传入 ``db_path``(test fixture)时,直接
     连该 SQLite 文件,这是测试所需的能力。否则走 ``db.get_db()`` 让生产
     MySQL / SQLite 都能工作,与 ORM 路径对齐。同时**自动探测列名**,对老
@@ -37,57 +37,36 @@ class DbPyChatRepository:
         # 否则保留为 ``None``,记忆方法会用 ``db.get_db()`` 跟随当前生效后端。
         self.db_path = db_path
 
-    def _conn(self):
-        # 旧 messages 方法用的:永远连 self.db_path;若未设置则退回 db.SQLITE_PATH
-        # (保持向后兼容)。
-        import db as _db
-        return sqlite3.connect(self.db_path or _db.SQLITE_PATH)
-
-    # ── messages ──  (留 SQLite,不走 get_db())
+    # ── messages ──  (委托 db.py 正式函数，跟随生效后端)
 
     def save_message(self, user_id, message: dict) -> int:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute("""
-                INSERT INTO messages (user_id, role, content, msg_metadata, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                user_id,
+        from app.repositories.legacy._conn import legacy_scope
+        with legacy_scope(self.db_path):
+            msg_id = db.save_message(
+                message.get("session_id", "default"),
+                str(user_id),
                 message.get("role", "user"),
                 message.get("content", ""),
-                json.dumps(message.get("metadata", {}), ensure_ascii=False),
-                datetime.now().isoformat(),
-            ))
-            conn.commit()
-            return cur.lastrowid
-        finally:
-            conn.close()
+                message.get("message_type", "text"),
+                message.get("metadata") or {},
+            )
+        return msg_id if isinstance(msg_id, str) else 0
 
     def get_history(self, user_id, limit: int = 50) -> list:
-        conn = self._conn()
-        try:
-            cur = conn.cursor()
-            cur.execute("""
-                SELECT id, role, content, msg_metadata, created_at
-                FROM messages
-                WHERE user_id = ?
-                ORDER BY created_at DESC
-                LIMIT ?
-            """, (user_id, limit))
-            rows = [
-                {
-                    "id": r[0],
-                    "role": r[1],
-                    "content": r[2],
-                    "metadata": json.loads(r[3]) if r[3] else {},
-                    "created_at": r[4],
-                }
-                for r in cur.fetchall()
-            ][::-1]  # reverse to chronological order
-            return rows
-        finally:
-            conn.close()
+        from app.repositories.legacy._conn import legacy_scope
+        with legacy_scope(self.db_path):
+            rows = db.get_recent_messages_summary(user_id, limit) or []
+        rows = rows[::-1]  # reverse to chronological order
+        return [
+            {
+                "id": r.get("id", i),
+                "role": r.get("role", "user"),
+                "content": r.get("content", ""),
+                "metadata": r.get("metadata") or {},
+                "created_at": str(r.get("created_at")) if r.get("created_at") is not None else None,
+            }
+            for i, r in enumerate(rows)
+        ]
 
     # ── memories ──  (db_path 显式 → 直连;否则走 db.get_db())
 
