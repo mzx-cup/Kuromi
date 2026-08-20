@@ -4312,8 +4312,8 @@ function renderProductCard(product, msgTimestamp) {
     if (ct === 'exercise') {
         const md = String(payload.text_content || '').trim();
         let html = '';
-        try { html = window.marked ? marked.parse(md) : escapeHtml(md); }
-        catch (e) { html = escapeHtml(md); }
+        try { html = window.marked ? marked.parse(md) : escapeHtml(stripMarkdownSymbols(md)); }
+        catch (e) { html = escapeHtml(stripMarkdownSymbols(md)); }
         return `
             <div class="product-card product-exercise" style="${cardBaseStyle}">
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -4395,11 +4395,11 @@ async function renderMessages() {
                 if (window.marked) {
                     htmlContent = marked.parse(processedContent);
                 } else {
-                    htmlContent = escapeHtml(processedContent);
+                    htmlContent = escapeHtml(stripMarkdownSymbols(processedContent));
                 }
             } catch (e) {
                 console.warn('[renderMessages] marked.parse error:', e);
-                htmlContent = escapeHtml(processedContent);
+                htmlContent = escapeHtml(stripMarkdownSymbols(processedContent));
             }
             htmlContent = processDocRefs(htmlContent);
             htmlContent = htmlContent.replace(
@@ -4709,6 +4709,21 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * marked 库不可用（如离线）时的兜底：清除常见 Markdown 符号，避免 ### ** 等原样显示。
+ * 保守处理：只移除标题井号、加粗/斜体/删除线定界符、行内代码反引号和代码围栏，不动单个 * 或 _。
+ */
+function stripMarkdownSymbols(text) {
+    if (!text) return '';
+    return text
+        .replace(/```[^\n]*\n?/g, '')          // 代码围栏（``` 或 ```lang）
+        .replace(/^#{1,6}\s+/gm, '')            // 标题井号 ###
+        .replace(/\*\*([^*]+)\*\*/g, '$1')      // 加粗 **text**
+        .replace(/__([^_]+)__/g, '$1')          // 加粗 __text__
+        .replace(/~~([^~]+)~~/g, '$1')          // 删除线 ~~text~~
+        .replace(/`([^`\n]+)`/g, '$1');         // 行内代码 `text`
 }
 
 function extractTaskFromContent(fullText) {
@@ -6499,14 +6514,16 @@ function renderStreamingMessage() {
 
     const { reasoning, finalContent } = extractThinkContent(currentAssistantContent);
     const processedContent = preprocessContent(finalContent);
-    let htmlContent = processedContent;
+    let htmlContent = '';
     try {
         if (window.marked) {
             htmlContent = marked.parse(processedContent);
+        } else {
+            htmlContent = escapeHtml(stripMarkdownSymbols(processedContent));
         }
     } catch (e) {
         console.warn('[renderStreamingMessage] marked.parse error:', e);
-        htmlContent = escapeHtml(processedContent);
+        htmlContent = escapeHtml(stripMarkdownSymbols(processedContent));
     }
     htmlContent = processDocRefs(htmlContent);
     htmlContent = htmlContent.replace(
