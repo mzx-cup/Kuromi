@@ -82,7 +82,8 @@ class MascotChatRequest(BaseModel):
     page_context: str = Field(default="", description="当前页面上下文")
     conversation_history: list[dict] = Field(default_factory=list, description="对话历史")
     persona: str = Field(default="mascot", description="角色设定")
-    model: str = Field(default="MiniMax-Text-01", description="AI 模型名称")
+    # 留空时由 settings.minimax_model_name 兜底,避免前端硬编码模型名漂移
+    model: str = Field(default="", description="AI 模型名称（留空则用 .env 中 MINIMAX_MODEL_NAME）")
     temperature: float = Field(default=0.8, ge=0.0, le=2.0, description="生成温度")
 
 
@@ -237,7 +238,22 @@ async def _mascot_direct_event_stream(req: MascotChatRequest, service):
       * ``req.conversation_history``（前端 js/mascot-services.js 已截到 20 条）；
       * ``req.model``（默认 ``settings.minimax_model_name``）；
       * ``req.temperature``（默认 ``MASCOT_DEFAULT_TEMPERATURE``）。
+
+    流式平滑：上游 MiniMax chunk 间隔通常 700~1000ms / 30~50 字一坨，
+    前端打字机 12ms/2 字匀速消化时会被这种"卡一下、涌一波"打断体感。
+    这里在 SSE 出口加 60ms / 4-char 帧缓冲（人眼 16fps 流畅阈值），
+    让前端收到连续均匀的小包，体感像真人打字。
+
+    思考过滤：MiniMax 系列推理模型可能输出 ``<think>...</think>`` 块；
+    即便请求端已声明关闭 thinking，也兜底切掉，避免污染对话历史 / memory /
+    link 关键词提取。
     """
+    import time
+
+    # 平滑参数
+    FLUSH_INTERVAL_S = float(os.getenv("MASCOT_SSE_FLUSH_INTERVAL", "0.06"))
+    FLUSH_MIN_CHARS = int(os.getenv("MASCOT_SSE_FLUSH_MIN_CHARS", "4"))
+
     assistant_message = ""
 
     # 1) 拉取上下文（page_context / user_profile / today_stats）。
@@ -253,7 +269,71 @@ async def _mascot_direct_event_stream(req: MascotChatRequest, service):
         logger.debug(f"[mascot] today_stats 拉取失败: {e}")
         today_stats = ""
 
-    # 2) 调用 MiniMax 大模型 API（流式）。
+    # 2) 调用 MiniMax 大模型 API（流式）+ SSE 帧缓冲 + 思考块过滤。
+    text_buffer = ""
+    last_flush = time.monotonic()
+    # 跨 chunk 思考块状态机: pending / in_thinking / after
+    think_state = "pending"
+    think_open = "<think>"
+    think_close = "</think>"
+    # 给 assistant_message 用的"未闭合尾巴":状态机处理期间临时挂住
+    think_tail_pending = False
+
+    def _consume_think(text: str) -> str:
+        """跨 chunk 思考块过滤(同步版,共享状态机)。
+
+        状态机:
+          pending     — 等待 <think> 开始
+          in_thinking — 在 <think> 块内,看到内容就丢弃直到 </think>
+          after       — 已经出过 thinking 块,后续全是正文
+        """
+        nonlocal think_state
+        out_parts: list[str] = []
+        i = 0
+        while i < len(text):
+            if think_state == "pending":
+                idx = text.find(think_open, i)
+                if idx == -1:
+                    out_parts.append(text[i:])
+                    i = len(text)
+                else:
+                    out_parts.append(text[i:idx])
+                    i = idx + len(think_open)
+                    think_state = "in_thinking"
+            elif think_state == "in_thinking":
+                idx = text.find(think_close, i)
+                if idx == -1:
+                    # 整段在 thinking 里,丢掉
+                    i = len(text)
+                else:
+                    i = idx + len(think_close)
+                    think_state = "after"
+            else:  # after
+                out_parts.append(text[i:])
+                i = len(text)
+        return "".join(out_parts)
+
+    async def _flush_text_buffer():
+        """把累计的文本按帧 flush 给前端。
+
+        主动节流:text_buffer 可能是上游一次性送来的 30~50 字,直接吐会让
+        前端"瞬间蹦一波、卡 750ms"。这里切成 ~FLUSH_MIN_CHARS 字的小份,
+        每份之间 sleep FLUSH_INTERVAL_S,把"上游一坨"摊平成"匀速小包"。
+        """
+        nonlocal text_buffer, last_flush
+        if not text_buffer:
+            return
+        clean = text_buffer
+        text_buffer = ""
+        last_flush = time.monotonic()
+        # 按字符切片,每批 ~FLUSH_MIN_CHARS 字
+        for i in range(0, len(clean), FLUSH_MIN_CHARS):
+            piece = clean[i:i + FLUSH_MIN_CHARS]
+            yield {"event": "text_delta", "data": {"content": piece}}
+            # 切片之间让前端有节奏地收到,但不引入额外大幅延迟
+            if i + FLUSH_MIN_CHARS < len(clean):
+                await asyncio.sleep(FLUSH_INTERVAL_S)
+
     try:
         async for chunk in service.stream_chat(
             user_message=req.message,
@@ -267,12 +347,33 @@ async def _mascot_direct_event_stream(req: MascotChatRequest, service):
         ):
             if not chunk:
                 continue
-            assistant_message += chunk
-            yield {"event": "text_delta", "data": {"content": chunk}}
+            # 关键:让状态机只推进一次。assistant_message 累计 = 状态机喂完整段文本。
+            # 而 text_buffer 只装"过滤后的增量",不重复消费 chunk。
+            new_clean = _consume_think(assistant_message + chunk)
+            if new_clean.startswith(assistant_message):
+                delta = new_clean[len(assistant_message):]
+            else:
+                # 极少见:assistant_message 末尾碰巧有未闭合的 <think>,
+                # 状态机吞掉了新内容,delta 视为空。
+                delta = ""
+            assistant_message = new_clean
+            text_buffer += delta
+
+            now = time.monotonic()
+            if len(text_buffer) >= FLUSH_MIN_CHARS or (now - last_flush) >= FLUSH_INTERVAL_S:
+                async for ev in _flush_text_buffer():
+                    yield ev
     except Exception as e:
         logger.error(f"[mascot] MiniMax 直连流式回答失败: {e}")
+        # 出错前先把缓冲里可能的内容吐完(过滤掉思考)
+        async for ev in _flush_text_buffer():
+            yield ev
         yield {"event": "error", "data": {"message": str(e)}}
         return
+
+    # 流结束:刷掉残余缓冲
+    async for ev in _flush_text_buffer():
+        yield ev
 
     # 3) 命令提取（保留原有 UX 行为）。
     for cmd_event in _emit_commands(assistant_message):
@@ -582,10 +683,11 @@ async def list_ai_models():
     """返回小星可用的 AI 大模型列表"""
     from config import settings
 
+    primary_model = settings.minimax_model_name
     models = [
         {
-            "id": "MiniMax-Text-01",
-            "name": "MiniMax-Text-01",
+            "id": primary_model,
+            "name": primary_model,
             "provider": "MiniMax",
             "description": "通用大语言模型，擅长学习辅导、代码生成、概念讲解",
             "default": True,
@@ -610,7 +712,7 @@ async def list_ai_models():
         "success": True,
         "data": {
             "models": models,
-            "default_model": "MiniMax-Text-01",
+            "default_model": primary_model,
             "minimax_available": bool(settings.minimax_api_key),
         },
     }

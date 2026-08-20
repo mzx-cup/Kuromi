@@ -21,3 +21,7 @@
 {"ts": "2026-08-20T04:24:18.298835+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
 {"ts": "2026-08-20T06:07:58.135142+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
 {"ts": "2026-08-20T06:14:22.909631+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-20T06:51:38.923092+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-20T07:22:51.395598+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-20T07:31:46.439354+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-20T07:46:11.991068+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
