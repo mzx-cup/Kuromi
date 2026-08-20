@@ -4162,6 +4162,221 @@ function renderMemoryBanner(memoryRefs) {
     `;
 }
 
+/**
+ * 渲染"文档生成智能体"产物的折叠卡片。
+ * - 默认折叠态: 标题 + 前 3 行预览 + "展开完整文档" 按钮
+ * - 展开态: 完整 Markdown + "复制全文 / 导出 .md" 操作
+ */
+function renderDocumentCard(doc, msgTimestamp) {
+    if (!doc || !doc.text_content) return '';
+    const fullMarkdown = String(doc.text_content || '').trim();
+    const cardId = `doc-card-${msgTimestamp || Date.now()}`;
+    const collapseId = `${cardId}-collapse`;
+    const expandedId = `${cardId}-expanded`;
+
+    // 提取文档标题: 第一处 "## xxx"
+    const titleMatch = fullMarkdown.match(/^##\s+(.+?)\s*$/m);
+    const title = titleMatch ? titleMatch[1].trim() : '知识文档';
+
+    // 预览: 跳过首个 ## 标题, 取之后 3 行非空内容 (去掉 markdown 标记)
+    const lines = fullMarkdown.split('\n');
+    let previewLines = [];
+    let skippedTitle = false;
+    for (const ln of lines) {
+        const t = ln.trim();
+        if (!skippedTitle && /^##\s+/.test(t)) { skippedTitle = true; continue; }
+        if (skippedTitle && t) previewLines.push(t.replace(/^#+\s*/, '').replace(/^[-*]\s+/, ''));
+        if (previewLines.length >= 3) break;
+    }
+    const previewText = previewLines.join(' · ') || '（点击展开查看完整文档）';
+
+    // 完整 Markdown -> HTML (复用 marked)
+    let fullHtml = '';
+    try {
+        if (window.marked) {
+            fullHtml = marked.parse(fullMarkdown);
+        } else {
+            fullHtml = fullMarkdown.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+        }
+    } catch (e) {
+        fullHtml = fullMarkdown.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    }
+
+    const cardStyle = [
+        'margin-top:14px',
+        'border:1px solid rgba(99,102,241,0.35)',
+        'border-radius:14px',
+        'background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(168,85,247,0.08))',
+        'overflow:hidden',
+        'font-size:13px'
+    ].join(';');
+
+    const headerStyle = [
+        'display:flex', 'align-items:center', 'gap:8px',
+        'padding:10px 14px',
+        'background:linear-gradient(90deg,rgba(99,102,241,0.18),rgba(168,85,247,0.18))',
+        'border-bottom:1px solid rgba(99,102,241,0.25)',
+        'cursor:pointer', 'user-select:none'
+    ].join(';');
+
+    const badgeStyle = [
+        'display:inline-flex', 'align-items:center', 'gap:4px',
+        'padding:2px 8px', 'border-radius:999px',
+        'background:rgba(99,102,241,0.85)', 'color:#fff',
+        'font-size:11px', 'font-weight:600'
+    ].join(';');
+
+    return `
+        <div class="doc-card" data-card-id="${cardId}" style="${cardStyle}">
+            <div class="doc-card-header" onclick="(function(){
+                var c=document.getElementById('${collapseId}'),
+                    e=document.getElementById('${expandedId}'),
+                    arr=document.querySelector('[data-card-id=\\'${cardId}\\'] .doc-card-arrow');
+                if(!c||!e)return;
+                var open=e.style.display!=='none';
+                e.style.display=open?'none':'block';
+                c.style.display=open?'flex':'none';
+                if(arr) arr.textContent=open?'▼':'▲';
+            })()" style="${headerStyle}">
+                <span style="${badgeStyle}">📄 文档生成</span>
+                <span style="font-weight:600;color:#312e81;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
+                <span style="color:#6b7280;font-size:11px;">${fullMarkdown.length} 字</span>
+                <span class="doc-card-arrow" style="color:#4f46e5;font-size:12px;">▼</span>
+            </div>
+            <div id="${collapseId}" class="doc-card-collapse" style="padding:10px 14px;color:#475569;line-height:1.6;">
+                ${escapeHtml(previewText)}
+            </div>
+            <div id="${expandedId}" class="doc-card-expanded" style="display:none;padding:12px 16px;border-top:1px dashed rgba(99,102,241,0.3);">
+                <div class="doc-card-actions" style="display:flex;gap:8px;margin-bottom:10px;">
+                    <button onclick="(function(btn){
+                        var card=btn.closest('.doc-card-expanded');
+                        var src=card.querySelector('.doc-card-md').dataset.raw;
+                        navigator.clipboard.writeText(src).then(function(){
+                            var o=btn.textContent;btn.textContent='✓ 已复制';
+                            setTimeout(function(){btn.textContent=o;},1500);
+                        }).catch(function(){btn.textContent='复制失败';});
+                    })(this)" style="padding:4px 10px;border-radius:8px;border:1px solid rgba(99,102,241,0.4);background:rgba(99,102,241,0.08);color:#4338ca;font-size:12px;cursor:pointer;">📋 复制全文</button>
+                    <button onclick="(function(btn){
+                        var card=btn.closest('.doc-card-expanded');
+                        var src=card.querySelector('.doc-card-md').dataset.raw;
+                        var t=document.createElement('a');
+                        var blob=new Blob([src],{type:'text/markdown;charset=utf-8'});
+                        t.href=URL.createObjectURL(blob);
+                        t.download='knowledge-${msgTimestamp || Date.now()}.md';
+                        document.body.appendChild(t);t.click();
+                        setTimeout(function(){URL.revokeObjectURL(t.href);t.remove();},200);
+                    })(this)" style="padding:4px 10px;border-radius:8px;border:1px solid rgba(168,85,247,0.4);background:rgba(168,85,247,0.08);color:#7c3aed;font-size:12px;cursor:pointer;">⬇ 导出 .md</button>
+                    <button onclick="(function(btn){
+                        var card=btn.closest('.doc-card-expanded');
+                        var c=document.getElementById('${collapseId}'),
+                            e=document.getElementById('${expandedId}'),
+                            arr=document.querySelector('[data-card-id=\\'${cardId}\\'] .doc-card-arrow');
+                        c.style.display='flex';e.style.display='none';
+                        if(arr) arr.textContent='▼';
+                    })(this)" style="padding:4px 10px;border-radius:8px;border:1px solid rgba(107,114,128,0.4);background:rgba(107,114,128,0.08);color:#4b5563;font-size:12px;cursor:pointer;">收起</button>
+                </div>
+                <div class="doc-card-md prose prose-sm max-w-none" data-raw="${escapeHtml(fullMarkdown)}">${fullHtml}</div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * 把后端 SSE product_ready 事件中的产物渲染成一张卡片气泡.
+ * - document: 复用 renderDocumentCard
+ * - exercise: 题库 Markdown 折叠卡
+ * - mindmap:  Mermaid SVG 渲染
+ * - video:    视频链接列表
+ */
+function renderProductCard(product, msgTimestamp) {
+    if (!product) return '';
+    const ct = product.content_type || 'text';
+    const icon = product.agent_icon || '✨';
+    const label = product.agent_label || '生成器';
+    const payload = product.payload || {};
+    const cardBaseStyle = [
+        'margin-top:10px',
+        'border:1px solid rgba(99,102,241,0.3)',
+        'border-radius:14px',
+        'background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.06))',
+        'padding:12px 14px',
+        'font-size:13px'
+    ].join(';');
+
+    // ====== document: 复用 Markdown 折叠卡 ======
+    if (ct === 'document') {
+        return renderDocumentCard(payload, msgTimestamp);
+    }
+
+    // ====== exercise: 题库 ======
+    if (ct === 'exercise') {
+        const md = String(payload.text_content || '').trim();
+        let html = '';
+        try { html = window.marked ? marked.parse(md) : escapeHtml(md); }
+        catch (e) { html = escapeHtml(md); }
+        return `
+            <div class="product-card product-exercise" style="${cardBaseStyle}">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(245,158,11,0.85);color:#fff;font-size:11px;font-weight:600;">${icon} ${escapeHtml(label)}</span>
+                    <span style="color:#6b7280;font-size:11px;">${md.length} 字</span>
+                </div>
+                <div class="prose prose-sm max-w-none break-words">${html}</div>
+            </div>
+        `;
+    }
+
+    // ====== mindmap: mermaid ======
+    if (ct === 'mindmap') {
+        const md = String(payload.text_content || '').trim();
+        // 提取 mermaid 代码块
+        let code = md;
+        const m = md.match(/```(?:mermaid)?\s*([\s\S]*?)```/);
+        if (m) code = m[1].trim();
+        const mermaidId = `mermaid-product-${msgTimestamp || Date.now()}`;
+        return `
+            <div class="product-card product-mindmap" style="${cardBaseStyle}">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(34,197,94,0.85);color:#fff;font-size:11px;font-weight:600;">${icon} ${escapeHtml(label)}</span>
+                </div>
+                <div class="mermaid-placeholder" data-mermaid-src="${escapeHtml(code)}" id="${mermaidId}" style="background:#fff;border-radius:10px;padding:12px;max-height:380px;overflow:auto;">${escapeHtml(code)}</div>
+            </div>
+        `;
+    }
+
+    // ====== video: 资源链接列表 ======
+    if (ct === 'video') {
+        const resources = Array.isArray(payload.resources) ? payload.resources : [];
+        const items = resources.map((r, i) => {
+            const url = escapeHtml(r.url || '#');
+            const title = escapeHtml(r.title || `视频资源 ${i + 1}`);
+            const desc = escapeHtml(r.description || '');
+            return `
+                <a href="${url}" target="_blank" rel="noopener noreferrer"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:8px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);text-decoration:none;color:inherit;transition:all 0.15s;">
+                    <span style="font-size:24px;">🎬</span>
+                    <span style="flex:1;min-width:0;">
+                        <div style="font-weight:600;color:#991b1b;margin-bottom:2px;">${title}</div>
+                        <div style="font-size:11px;color:#6b7280;">${desc}</div>
+                    </span>
+                    <span style="color:#ef4444;font-size:12px;">▶ 播放</span>
+                </a>`;
+        }).join('');
+        return `
+            <div class="product-card product-video" style="${cardBaseStyle}">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,0.85);color:#fff;font-size:11px;font-weight:600;">${icon} ${escapeHtml(label)}</span>
+                    <span style="color:#6b7280;font-size:11px;">${resources.length} 个视频</span>
+                </div>
+                <div>${items || '<div style="color:#9ca3af;">暂无可推荐视频</div>'}</div>
+            </div>
+        `;
+    }
+
+    // 兜底
+    const fallback = String(payload.text_content || '').trim();
+    return `<div class="product-card" style="${cardBaseStyle}"><div style="color:#374151;">${escapeHtml(fallback)}</div></div>`;
+}
+
 async function renderMessages() {
     const container = document.getElementById('chat-container');
     if (!container) return;
@@ -4236,6 +4451,8 @@ async function renderMessages() {
                 <div class="msg-bubble p-4 rounded-2xl ${msg.role === 'user' ? 'msg-bubble-user rounded-tr-none' : 'msg-bubble-bot rounded-tl-none'} w-full min-w-0 overflow-x-visible ${isProactive ? 'msg-bubble--proactive' : ''}">
                     ${thinkBlockHtml}
                     <div class="prose prose-sm max-w-none break-words whitespace-pre-wrap">${htmlContent}</div>
+                    ${msg.role !== 'user' && msg._isProduct && msg._product ? renderProductCard(msg._product, msg._timestamp) : ''}
+                    ${msg.role !== 'user' && msg._isDocument && msg._documentOutput ? renderDocumentCard(msg._documentOutput, msg._timestamp) : ''}
                     ${hasLinks ? `<div class="message-links" id="${linksContainerId}"></div>` : ''}
                     ${hasActions ? `<div class="message-actions" id="actions-${msg._timestamp || ''}"></div>` : ''}
                     ${msg._socraticCheckpoint ? `<div class="socratic-checkpoint"><span class="checkpoint-label">💭 ${msg._checkpointTopic ? '「' + escapeHtml(msg._checkpointTopic) + '」' : '这部分'}理解了吗？</span><div class="checkpoint-actions"><button class="checkpoint-btn checkpoint-yes" onclick="confirmUnderstanding(true, '${msg._timestamp || ''}')">✓ 理解了</button><button class="checkpoint-btn checkpoint-no" onclick="confirmUnderstanding(false, '${msg._timestamp || ''}')">✗ 不太懂</button></div></div>` : ''}
@@ -5208,6 +5425,40 @@ function subscribeToAgentBus() {
         schedulePathRefresh('pipeline');
     });
 
+    // ====== 实时产物推送 (product_ready) ======
+    // 来源 1: 控制塔启动后端流水线 (runBackendPipeline) SSE 解析后 emit
+    // 来源 2: 控制塔 mock 流水线 (runMockPipeline) 4 个 generator 完成时 emit
+    // 行为:   把产物卡片气泡插到聊天框
+    bus.subscribe('product_ready', (env) => {
+        if (!env || !env.agent_id) return;
+        const product = env;
+        const msgTs = product.ts || Date.now();
+        try {
+            if (Array.isArray(messages)) {
+                messages.push({
+                    role: 'assistant',
+                    content: '',
+                    socratic: false,
+                    _persona: currentPersona,
+                    _agentId: product.agent_id || 'generator',
+                    _agentName: product.agent_label || '生成器',
+                    _timestamp: msgTs,
+                    _isProduct: true,
+                    _product: {
+                        agent_id: product.agent_id,
+                        agent_label: product.agent_label,
+                        agent_icon: product.agent_icon,
+                        content_type: product.content_type,
+                        payload: product.payload,
+                    },
+                });
+                if (typeof renderMessages === 'function') renderMessages();
+            }
+        } catch (e) {
+            console.warn('[product_ready] push failed:', e);
+        }
+    });
+
     bus.subscribe('error', (err) => {
         if (err && err.agent) towerAgentStatus[err.agent] = 'failed';
         renderTowerFlow();
@@ -5344,9 +5595,91 @@ const TOWER_MOCK_STEPS = [
     { id: 'evaluator',          label: '评估' },
 ];
 
+// === Task #50: 控制塔单独启动后, 4 个 generator 的产物也要推到聊天框 ===
+// 与 main.py 的 _AGENT_DISPLAY 一一对应, 字段名 / 颜色 / 图标保持一致
+const TOWER_PRODUCT_DISPLAY = {
+    document_generator: { icon: '📄', label: '文档生成', content_type: 'document' },
+    mindmap_generator:  { icon: '🧠', label: '导图生成', content_type: 'mindmap' },
+    exercise_generator: { icon: '✏️', label: '题库生成', content_type: 'exercise' },
+    video_content:      { icon: '🎬', label: '视频推荐', content_type: 'video' },
+};
+
+// 4 个 generator 的 mock 产物 (后端失败时也能让用户看到卡片)
+function _synthesizeProductPayload(agentId) {
+    const ts = Date.now();
+    if (agentId === 'document_generator') {
+        return {
+            text_content: [
+                '## 知识文档（演示）',
+                '',
+                '本节课我们重点讨论**牛顿第二定律**及其应用。',
+                '',
+                '### 核心概念',
+                '- 力、加速度与质量的关系：F = m·a',
+                '- 合外力方向决定加速度方向',
+                '- 单位制的统一（国际单位制）',
+                '',
+                '### 典型例题',
+                '> 质量 2 kg 的物体受到 10 N 水平推力, 求加速度。',
+                '> a = F / m = 10 / 2 = 5 m/s²',
+            ].join('\n'),
+        };
+    }
+    if (agentId === 'exercise_generator') {
+        return {
+            text_content: [
+                '**巩固练习（演示）**',
+                '',
+                '1. 一个质量为 5 kg 的物体在水平面上受到 20 N 的拉力, 摩擦系数 μ = 0.2, 求加速度。',
+                '2. 解释为什么在太空中物体会处于失重状态。',
+                '3. 用牛顿第二定律推导自由落体加速度的表达式。',
+                '',
+                '> 💡 提示: 自由落体忽略空气阻力时, 加速度恒为 g ≈ 9.8 m/s²',
+            ].join('\n'),
+        };
+    }
+    if (agentId === 'mindmap_generator') {
+        const code = [
+            'graph TD',
+            '  A[牛顿第二定律] --> B[定义]',
+            '  A --> C[公式 F=ma]',
+            '  A --> D[应用场景]',
+            '  B --> B1[力是加速度的原因]',
+            '  C --> C1[国际单位]',
+            '  C --> C2[矢量方向]',
+            '  D --> D1[匀加速直线运动]',
+            '  D --> D2[抛体运动]',
+            '  D --> D3[圆周运动近似]',
+        ].join('\n');
+        return { text_content: '```mermaid\n' + code + '\n```' };
+    }
+    if (agentId === 'video_content') {
+        return {
+            resources: [
+                {
+                    url: 'https://www.bilibili.com/video/BV1qV411g7q6',
+                    title: '10 分钟搞定牛顿第二定律',
+                    description: 'B 站 UP 主物理李老师出品, 配合图像化讲解',
+                },
+                {
+                    url: 'https://www.bilibili.com/video/BV1uT4y1P7BY',
+                    title: '高一物理: 从受力分析到牛顿定律',
+                    description: '30 分钟完整讲解, 适合初学者',
+                },
+                {
+                    url: 'https://www.youtube.com/watch?v=ZMOsagtBAVI',
+                    title: 'MIT 8.01 Lecture: Newton\'s Second Law',
+                    description: 'MIT 公开课节选, 英文讲解',
+                },
+            ],
+        };
+    }
+    return { text_content: '(演示产物)' };
+}
+
 /**
- * Task #49: 后端失败 / 不可达时跑 8 步 mock 流水线, 让 flow-node / #tower-terminal 有内容展示。
- * 走 agentBus 与真流水线一致: agent_step (busy -> success) + profile_updated + pipeline_complete。
+ * Task #49: 后端失败 / 不可达时跑 9 步 mock 流水线, 让 flow-node / #tower-terminal 有内容展示。
+ * 走 agentBus 与真流水线一致: agent_step (busy -> success) + profile_updated + pipeline_complete + product_ready。
  */
 async function runMockPipeline() {
     const bus = window.agentBus;
@@ -5391,6 +5724,19 @@ async function runMockPipeline() {
                     current_goal:    { label: '应对考试', progress_pct: 35 },
                     emotion_state:   { label: 'calm' },
                 },
+            });
+        }
+        // 在 4 个 generator 跑完成后 emit product_ready, 把产物推到聊天框
+        if (TOWER_PRODUCT_DISPLAY[step.id]) {
+            const disp = TOWER_PRODUCT_DISPLAY[step.id];
+            bus.emit('product_ready', {
+                agent_id: step.id,
+                agent_label: disp.label,
+                agent_icon: disp.icon,
+                content_type: disp.content_type,
+                payload: _synthesizeProductPayload(step.id),
+                ts: Date.now(),
+                trace_id: traceId,
             });
         }
     }
@@ -5468,6 +5814,10 @@ async function runBackendPipeline() {
                     bus.emit('profile_updated', env.data);
                 } else if (env.event === 'pipeline_complete') {
                     bus.emit('pipeline_complete', env.data);
+                } else if (env.event === 'product_ready') {
+                    // 单独启动控制台后, 后端 generator 跑完也会 emit product_ready
+                    // 路由到 bus, 由 bus.subscribe('product_ready') 统一推到聊天框
+                    bus.emit('product_ready', env.data);
                 } else if (env.event === 'error') {
                     bus.emit('error', env.data);
                 } else if (env.event === 'heartbeat') {
@@ -6887,6 +7237,30 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                 } else if (event.type === 'content_chunk') {
                     console.log('[SSE] content_chunk received:', event.content?.substring(0, 50), '...');
                     startTypewriter(event.content || '');
+                } else if (event.type === 'product_ready') {
+                    // ===== 实时产物推送 =====
+                    // 后端 generator 跑完一个, 立刻把产物推到聊天框. 4 个并行, 谁先完成谁先冒泡.
+                    const product = event;
+                    const msgTs = product.ts || Date.now();
+                    messages.push({
+                        role: 'assistant',
+                        content: '',
+                        socratic: false,
+                        _persona: currentPersona,
+                        _agentId: product.agent_id || 'generator',
+                        _agentName: product.agent_label || '生成器',
+                        _timestamp: msgTs,
+                        _isProduct: true,
+                        _product: {
+                            agent_id: product.agent_id,
+                            agent_label: product.agent_label,
+                            agent_icon: product.agent_icon,
+                            content_type: product.content_type,
+                            payload: product.payload,
+                        },
+                    });
+                    renderMessages();
+                    try { if (window.lucide) lucide.createIcons(); } catch (e) {}
                 } else if (event.type === 'proactive_question') {
                     // Phase 1 — L2 主动追问气泡(渲染到 chat 容器顶部)
                     if (typeof window.xsRenderProactive === 'function') {
@@ -7037,6 +7411,11 @@ async function handleSendStream(forcedMessage = null, options = {}) {
                         // 支持被动回答中的快捷操作
                         if (data.actions && data.actions.length > 0) {
                             messages[currentAssistantIdx]._actions = data.actions;
+                        }
+                        // 文档生成智能体的产物: 挂到消息上, 由 renderMessages 渲染成可折叠卡片
+                        if (data.isDocument && data.documentOutput) {
+                            messages[currentAssistantIdx]._documentOutput = data.documentOutput;
+                            messages[currentAssistantIdx]._isDocument = true;
                         }
                     }
 

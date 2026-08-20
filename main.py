@@ -3804,6 +3804,10 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
 
         new_path = [node.model_dump(mode="json") for node in state.current_path]
 
+        # 取出文档生成智能体的完整产物, 供前端做"知识文档卡片"
+        doc_data = state.metadata.get("document_output")
+        is_doc = bool(doc_data and isinstance(doc_data, dict) and doc_data.get("text_content"))
+
         return ChatResponseV2(
             success=True,
             content=final_content,
@@ -3819,6 +3823,8 @@ async def chat_v2(request: ChatRequestV2, controller: MasterController = Depends
             emotion=state.emotion,
             evaluation=evaluation,
             context_id=state.context_id,
+            document_output=doc_data,
+            is_document=is_doc,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"工作流执行失败: {str(e)}")
@@ -4232,7 +4238,31 @@ async def chat_stream_v2(request: Request, body: StreamChatRequest):
 
             await push_agent_log("resource_dispatcher", "正在分发异步资源生成任务...")
 
-            await dispatch_resource_tasks(state, state.context_id, controller)
+            # ===== 实时推送: 把每个 generator 的产物实时推到聊天框 =====
+            # 包装器: 兼容 controller._generator_agents 中未注册 video_content 的情况
+            _AGENT_DISPLAY = {
+                "document_generator": ("📄", "文档生成", "document"),
+                "mindmap_generator": ("🧠", "导图生成", "mindmap"),
+                "exercise_generator": ("✏️", "题库生成", "exercise"),
+                "video_content": ("🎬", "视频推荐", "video"),
+            }
+
+            async def _on_product(agent_name: str, payload: dict) -> None:
+                if disconnected.is_set():
+                    return
+                icon, label, content_type = _AGENT_DISPLAY.get(agent_name, ("✨", agent_name, "text"))
+                # 把产物推到事件队列, 前端监听后插入新 AI 气泡
+                await event_queue.put({
+                    "type": "product_ready",
+                    "agent_id": agent_name,
+                    "agent_label": label,
+                    "agent_icon": icon,
+                    "content_type": content_type,
+                    "payload": payload,
+                    "ts": int(time.time() * 1000),
+                })
+
+            product_task = await dispatch_resource_tasks(state, state.context_id, controller, on_product=_on_product)
 
             await push_agent_log("resource_dispatcher", "思维导图/视频/练习已进入后台生成，可通过轮询接口查询进度")
 
@@ -4309,13 +4339,22 @@ async def chat_stream_v2(request: Request, body: StreamChatRequest):
                 "contextId": state.context_id,
                 "resourceTaskId": state.context_id,
                 "links": recommended_links,
+                "documentOutput": state.metadata.get("document_output"),
+                "isDocument": bool(state.metadata.get("document_output")),
                 "sessionId": session_id,
                 "socraticCheckpoint": socratic_checkpoint,
                 "checkpointTopic": checkpoint_topic,
                 "triggerMemoryRefresh": True,
             })
 
-            logger.info(f"Stream workflow completed: student={body.student_id}, strategy={dispatch_strategy}")
+            # ===== 等待所有 generator 产物推送完毕 =====
+            # product_task 期间, 每个 generator 完成后会通过 _on_product 把 product_ready 推入 event_queue
+            # 这里 await 是为了保证: 所有产品事件都先于 SSE 关闭信号 (None) 被前端消费
+            try:
+                await product_task
+                logger.info(f"Stream workflow completed: student={body.student_id}, strategy={dispatch_strategy}")
+            except Exception as e:
+                logger.warning(f"[stream] product_task 异常(非阻塞): {e}")
 
         except Exception as e:
             logger.error(f"Stream workflow error: student={body.student_id}, error={str(e)}", exc_info=True)

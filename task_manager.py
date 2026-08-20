@@ -71,6 +71,7 @@ RESOURCE_AGENTS = {
     "document_generator": "知识文档生成",
     "mindmap_generator": "思维导图生成",
     "exercise_generator": "实操练习生成",
+    "video_content": "视频内容推荐",
 }
 
 MAX_RETRIES = 2
@@ -444,8 +445,14 @@ async def dispatch_resource_tasks(
     state: "StudentState",
     context_id: str,
     controller: Any,
+    on_product: "Optional[Any]" = None,   # async def cb(agent_name: str, payload: dict) -> None
 ) -> None:
-    from agents import DocumentGeneratorAgent, MindmapGeneratorAgent, ExerciseGeneratorAgent
+    """在后台异步运行资源生成 (document / mindmap / exercise / video)。
+
+    每个 generator 完成后, 调用 on_product 回调 (若提供), 用于实时把产物推给前端。
+    4 个 generator 现在使用 asyncio.gather 并行, 谁先完成谁先回调, 体验上呈"逐个跳出"。
+    """
+    from agents import DocumentGeneratorAgent, MindmapGeneratorAgent, ExerciseGeneratorAgent, VideoContentAgent
 
     manager = get_task_manager()
 
@@ -472,38 +479,40 @@ async def dispatch_resource_tasks(
                 agent = MindmapGeneratorAgent()
             elif agent_name == "exercise_generator":
                 agent = ExerciseGeneratorAgent()
+            elif agent_name == "video_content":
+                agent = VideoContentAgent()
         agents_to_run.append(agent)
 
-    await manager.update_subtask(context_id, list(RESOURCE_AGENTS.keys())[0], status=TaskStatus.RUNNING, progress=10)
+    # 初始状态: 全部标记为 RUNNING
+    for agent in agents_to_run:
+        await manager.update_subtask(
+            context_id, agent.name,
+            status=TaskStatus.RUNNING, progress=10,
+        )
 
     async def run_all():
-        for i, agent in enumerate(agents_to_run):
-            try:
-                await manager.update_subtask(
-                    context_id, agent.name,
-                    status=TaskStatus.RUNNING, progress=10,
-                )
+        # 输出键映射 (video_content 没有特殊映射, 用 _output 后缀)
+        output_key_map = {
+            "document_generator": "document_output",
+            "mindmap_generator": "mindmap_output",
+            "exercise_generator": "exercise_output",
+            "video_content": "video_output",
+        }
 
+        async def _run_one(agent):
+            try:
                 result_state = await run_agent_with_retry(
                     agent, state, context_id, manager,
                 )
-
-                output_key_map = {
-                    "document_generator": "document_output",
-                    "mindmap_generator": "mindmap_output",
-                    "exercise_generator": "exercise_output",
-                }
                 output_key = output_key_map.get(agent.name, f"{agent.name}_output")
                 if output_key in result_state.metadata:
                     state.metadata[output_key] = result_state.metadata[output_key]
-
-                if i < len(agents_to_run) - 1:
-                    next_agent = agents_to_run[i + 1]
-                    await manager.update_subtask(
-                        context_id, next_agent.name,
-                        status=TaskStatus.RUNNING, progress=10,
-                    )
-
+                    payload = state.metadata[output_key]
+                    if on_product is not None:
+                        try:
+                            await on_product(agent.name, payload)
+                        except Exception as cb_e:
+                            logger.warning(f"[dispatch] on_product callback error for {agent.name}: {cb_e}")
             except Exception as e:
                 logger.error(f"Resource task dispatch error for {agent.name}: {e}", exc_info=True)
                 await manager.update_subtask(
@@ -511,6 +520,9 @@ async def dispatch_resource_tasks(
                     status=TaskStatus.FAILED,
                     error=str(e),
                 )
+
+        # 并行跑 4 个 generator, 谁先完成谁先 emit product_ready
+        await asyncio.gather(*(_run_one(a) for a in agents_to_run))
 
         try:
             resource_push = controller._agents.get("resource_push")
@@ -525,4 +537,7 @@ async def dispatch_resource_tasks(
         except Exception as e:
             logger.warning(f"Failed to save state after resource tasks: {e}")
 
-    asyncio.create_task(run_all())
+    # 关键: 返回 task 而非 fire-and-forget
+    # 调用方 (chat_stream_v2.run_workflow) 需要 await 这个 task,
+    # 才能保证所有 generator 跑完、所有 product_ready 都入队后, 再关闭 SSE 流.
+    return asyncio.create_task(run_all())
