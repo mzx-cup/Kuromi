@@ -172,35 +172,55 @@
         stopPolling();
         if (intervalMs) _pollInterval = intervalMs;
 
-        // 立即拉取一次
-        fetchAnalysis();
+        // 立即拉取一次（页面可见时）
+        if (!document.hidden) {
+            fetchAnalysis();
+        }
 
-        // 定时拉取
-        _pollTimer = setInterval(function () {
-            if (!document.hidden) {
-                fetchAnalysis();
-            }
-        }, _pollInterval);
+        // 定时拉取（仅页面可见时启动，隐藏时暂停以避免 setInterval 调度开销）
+        function _schedulePoll() {
+            stopPollTimer();
+            if (document.hidden) return;
+            _pollTimer = setInterval(function () {
+                if (!document.hidden) fetchAnalysis();
+            }, _pollInterval);
+        }
 
-        // 实时状态检测（每秒）
-        if (!_realtimeTimer) {
+        // 实时状态检测（每秒，页面隐藏时暂停）
+        function _scheduleRealtime() {
+            stopRealtimeTimer();
+            if (document.hidden) return;
             _realtimeTimer = setInterval(_realtimeTick, 1000);
         }
 
-        // 从隐藏恢复时立即拉取
+        _schedulePoll();
+        _scheduleRealtime();
+
+        // 从隐藏恢复时立即拉取 + 重新调度计时器
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) {
                 fetchAnalysis();
                 _realtimeTick();
+                _schedulePoll();
+                _scheduleRealtime();
+            } else {
+                stopPollTimer();
+                stopRealtimeTimer();
             }
         });
     }
 
+    function stopPollTimer() {
+        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+    }
+
+    function stopRealtimeTimer() {
+        if (_realtimeTimer) { clearInterval(_realtimeTimer); _realtimeTimer = null; }
+    }
+
     function stopPolling() {
-        if (_pollTimer) {
-            clearInterval(_pollTimer);
-            _pollTimer = null;
-        }
+        stopPollTimer();
+        stopRealtimeTimer();
     }
 
     function getAnalysis() {

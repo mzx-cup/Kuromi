@@ -270,14 +270,14 @@ CREATE INDEX ix_study_sessions_user_id ON study_sessions (user_id) ENGINE=InnoDB
 
 
 CREATE TABLE learning_records (
-	id INTEGER NOT NULL AUTO_INCREMENT, 
-	user_id VARCHAR(64) NOT NULL, 
-	activity_type VARCHAR(64) NOT NULL, 
-	subject VARCHAR(64) NOT NULL, 
-	minutes INTEGER NOT NULL, 
-	metadata_json JSON NOT NULL, 
-	recorded_at DATETIME NOT NULL, 
-	PRIMARY KEY (id), 
+	id INTEGER NOT NULL AUTO_INCREMENT,
+	user_id VARCHAR(64) NOT NULL,
+	activity_type VARCHAR(64) NOT NULL,
+	subject VARCHAR(64) NOT NULL DEFAULT '',
+	minutes INTEGER NOT NULL,
+	metadata_json JSON NOT NULL,
+	recorded_at DATETIME NOT NULL,
+	PRIMARY KEY (id),
 	FOREIGN KEY(user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

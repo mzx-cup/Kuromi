@@ -31,6 +31,26 @@ os.environ.setdefault(
     "test-only-jwt-secret-do-not-use-in-production-aaaaaaaaaaaaaaaaaaaaaaaa",  # 60 字节, 满足 >= 32
 )
 
+# Split-brain 整改：测试套件钉死 sqlite 后端 + 会话级临时库/临时 JSON 存储。
+# 此前 ``STARLEARN_DB_BACKEND`` 默认 auto —— 在开发机上会探测到本机 MySQL，
+# 把测试的读写打进开发库；未显式传 db_path 的 repo 也会碰 storage/xingshi.db。
+# 需要验证 MySQL/auto 行为的测试自行 monkeypatch 覆盖这些变量。
+os.environ.setdefault("STARLEARN_DB_BACKEND", "sqlite")
+import tempfile as _tempfile
+
+_TEST_STORAGE_DIR = _tempfile.mkdtemp(prefix="xingshi-pytest-")
+os.environ.setdefault("SQLITE_PATH", os.path.join(_TEST_STORAGE_DIR, "xingshi.db"))
+os.environ.setdefault("LOCAL_STORAGE_PATH", os.path.join(_TEST_STORAGE_DIR, "local_storage.json"))
+
+# 给会话临时库建上真实 layer-1 schema，未显式传 db_path 的 stray 调用
+# 也不会因为缺表报错。
+from tests.fixtures.seed_data import init_legacy_schema as _init_legacy_schema
+
+try:
+    _init_legacy_schema(os.environ["SQLITE_PATH"])
+except Exception:
+    pass
+
 
 @pytest.fixture(autouse=True, scope="session")
 def _ensure_supervision_tables():

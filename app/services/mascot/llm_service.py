@@ -111,11 +111,11 @@ def build_mascot_messages(
 def resolve_minimax_model(requested: str | None) -> str:
     """解析最终要调用的模型名。
 
-    - 当 ``requested`` 为空、为字面 ``"default"`` 或与 ``minimax-Text-01`` 相同时，
+    - 当 ``requested`` 为空、为字面 ``"default"`` 或与历史默认 ``MiniMax-Text-01`` 相同时，
       统一回退到 ``settings.minimax_model_name``，避免请求方误传其它平台模型。
     - 其它情况信任请求方传入的字符串。
     """
-    fallback = settings.minimax_model_name or "minimax-Text-01"
+    fallback = settings.minimax_model_name or "MiniMax-Text-01"
     if not requested:
         return fallback
     normalized = requested.strip()

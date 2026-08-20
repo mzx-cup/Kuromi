@@ -52,10 +52,11 @@ class TestClassroomSession:
     def test_legacy_create_session(self, legacy_db):
         repo = DbPyClassroomRepository(legacy_db)
         session_id = repo.create_session(1, "course_1")
-        assert session_id > 0
+        # 真实 classroom_sessions.id 是 TEXT PK（生成 cs_<hex>），不再是自增 int。
+        assert isinstance(session_id, str) and session_id.startswith("cs_")
         result = repo.get_session(session_id)
         assert result["course_id"] == "course_1"
-        assert result["user_id"] == 1
+        assert result["user_id"] == "1"  # 真实 student_id 列按 TEXT 存
         assert result["status"] == "active"
 
     def test_orm_list_sessions(self, orm_session):

@@ -14,8 +14,28 @@ from typing import Any
 logger = logging.getLogger("starlearn.memory")
 
 
+def _try_v2(user_id: str, current_input: str, limit: int, min_confidence: float, with_logs: bool):
+    """v2 双路召回（向量 ∥ 倒排索引 → RRF）。MEMORY_V2=off 或异常 → None 回退旧路径。"""
+    from app.core.feature_flags import memory_v2_enabled
+    if not memory_v2_enabled():
+        return None
+    try:
+        from app.services.memory_search import get_memory_search_v2
+        return get_memory_search_v2().search(
+            user_id, current_input, limit=limit, min_confidence=min_confidence, with_logs=with_logs
+        )
+    except Exception as e:
+        logger.warning(f"[MemoryRetriever] v2 检索失败，回退旧实现: {e}")
+        return None
+
+
 def _retrieve_memories_core(user_id: str, current_input: str, limit: int, min_confidence: float) -> list[dict[str, Any]]:
     """核心检索逻辑（同步）。"""
+    v2 = _try_v2(user_id, current_input, limit, min_confidence, with_logs=False)
+    if v2 is not None:
+        logger.info(f"[MemoryRetriever/v2] 为用户 {user_id} 检索到 {len(v2)} 条相关记忆")
+        return v2
+
     from app.repositories.legacy.chat import DbPyChatRepository
 
     chat_repo = DbPyChatRepository()
@@ -80,6 +100,12 @@ def retrieve_memories_with_logs(
     检索记忆并返回检索日志（用于thinking链路展示）。
     Returns: (memories, retrieval_logs)
     """
+    v2 = _try_v2(user_id, current_input, limit, min_confidence, with_logs=True)
+    if v2 is not None:
+        memories, logs = v2
+        logger.info(f"[MemoryRetriever/v2] 为用户 {user_id} 检索到 {len(memories)} 条相关记忆")
+        return memories, logs
+
     from app.repositories.legacy.chat import DbPyChatRepository
 
     chat_repo = DbPyChatRepository()

@@ -28,7 +28,12 @@
    * 获取当前 token
    */
   function getToken() {
-    return localStorage.getItem(STORAGE_KEY);
+    try {
+      return localStorage.getItem(STORAGE_KEY);
+    } catch (_) {
+      // Tracking Prevention 或隐私模式下 storage 不可用，安全降级
+      return null;
+    }
   }
 
   /**

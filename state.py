@@ -239,6 +239,11 @@ class ChatResponseV2(BaseModel):
     emotion: EmotionState = Field(default_factory=EmotionState)
     evaluation: dict[str, Any] = Field(default_factory=dict)
     context_id: str = ""
+    # 文档生成智能体的完整输出 (Markdown), 用于前端渲染可展开的"知识文档"卡片
+    # 形状: { "text_content": str, "content_type": "document", "title"?: str, "agent": str }
+    document_output: dict[str, Any] | None = None
+    # 便捷标记: 本轮回复是否包含文档生成智能体的产物
+    is_document: bool = False
 
     @field_validator("source_links", mode="before")
     @classmethod

@@ -203,7 +203,10 @@ document.addEventListener('alpine:init', () => {
                 <span x-show="msg.typing" class="mascot-typing">
                   <span></span><span></span><span></span>
                 </span>
-                <span x-show="!msg.typing" x-html="renderMarkdown(msg.content)"></span>
+                <!-- 流式期间:纯文本渲染(避免 renderMarkdown 12次正则每 12ms 跑一次把 CPU 拉满) -->
+                <span x-show="!msg.typing && msg.streaming" x-text="msg.content"></span>
+                <!-- 流结束后:一次性走完整 markdown 渲染 -->
+                <span x-show="!msg.typing && !msg.streaming" x-html="renderMarkdown(msg.content)"></span>
                 <!-- TTS -->
                 <button x-show="!msg.typing && msg.content"
                   @click="speak(msg)" class="mascot-tts-btn"
@@ -358,6 +361,16 @@ document.addEventListener('alpine:init', () => {
     abortController: null,
     _msgIdCounter: 0,
     _autoSaveTimer: null,
+
+    // ─── 打字机效果 ───
+    // MiniMax chunk 间隔约 700–1000ms, 直接拼接会让人感觉「卡顿」。
+    // 把 chunk 推进队列, 前端按固定节奏 (12ms/2字) 吐出, 模拟连续打字。
+    _typewriterTimer: null,
+    _typewriterQueue: [],
+    _typewriterActive: false,
+    _typewriterTargetMsg: null,   // 当前打字机的目标 message 对象
+    _typewriterPendingLen: 0,     // 队列里还没吐出的字符数
+    _scrollThrottleTimer: null,   // 滚动节流,避免每帧都 scrollToBottom
 
     // ─── 统计 ───
     stats: { visible: false, todayMinutes: 0, streakDays: 0, weekProgress: 0 },
@@ -595,9 +608,14 @@ document.addEventListener('alpine:init', () => {
           const eventType = chunk.__event || chunk.event;
           if (eventType === 'text_delta' || chunk.type === 'text') {
             const content = chunk.content || (chunk.data && chunk.data.content) || '';
-            assistantMsg.content += content;
+            // 不再直接拼接:把 chunk 推进打字机队列,由 _processTypewriterQueue
+            // 按 12ms/2字 的节奏匀速吐出。这样即使 MiniMax 每个 chunk 之间
+            // 间隔 700~1000ms,用户也能看到连续的打字动画而不是「蹦字」。
+            if (content) {
+              this.startTypewriter(content, assistantMsg);
+            }
             assistantMsg.typing = false;
-            this.scrollToBottom();
+            this._scheduleScroll();
           } else if (eventType === 'command' || chunk.type === 'command') {
             const data = chunk.data || chunk;
             this.handleCommand(data.tag, data.content);
@@ -612,14 +630,21 @@ document.addEventListener('alpine:init', () => {
               assistantMsg.actions.push(data);
             }
           } else if (eventType === 'done' || chunk.type === 'done') {
-            // 流正常结束
+            // 流正常结束 — 把打字机队列里剩下的字符一次性刷出,避免末尾丢字
+            this.flushTypewriterQueue();
           } else if (eventType === 'error' || chunk.type === 'error') {
             const data = chunk.data || chunk;
+            // 错误前先把已经进队列的 chunk 吐完,再覆盖错误信息
+            this.clearTypewriterQueue();
             assistantMsg.content = '抱歉，出了点问题: ' + (data.message || data.content || '未知错误');
             assistantMsg.typing = false;
+            assistantMsg.streaming = false;
             assistantMsg.error = true;
           }
         }
+
+        // 流结束后兜底:flush 残余
+        this.flushTypewriterQueue();
 
         // 流结束后的清理
         if (assistantMsg.typing) {
@@ -631,17 +656,24 @@ document.addEventListener('alpine:init', () => {
         this.autoSave();
       } catch (err) {
         if (err.name === 'AbortError') {
+          // 取消时保留已打字的部分,只把"还在队列里"的清掉
+          this.clearTypewriterQueue();
           assistantMsg.typing = false;
+          assistantMsg.streaming = false;
           if (!assistantMsg.content) assistantMsg.content = '(已取消)';
         } else {
+          this.clearTypewriterQueue();
           assistantMsg.content = '网络连接失败，请稍后重试 😢';
           assistantMsg.typing = false;
+          assistantMsg.streaming = false;
           assistantMsg.error = true;
           this.expression = 'surprised';
         }
       } finally {
         this.isThinking = false;
         this.abortController = null;
+        // 兜底 flush,防止异常路径下队列残留
+        this.flushTypewriterQueue();
         // 同步角色: 思考结束
         window.MascotCore?.syncPanelState?.({ state: 'thinking', active: false });
       }
@@ -652,12 +684,135 @@ document.addEventListener('alpine:init', () => {
       this.sendMessage();
     },
 
+    // ═══════════════════════════════════
+    // 打字机效果 — 缓冲 MiniMax chunk 间隔,让回复看起来像连续打字
+    // ═══════════════════════════════════
+    //
+    // 用法:
+    //   - SSE 收到 text_delta 时调用 enqueueTypewriter(msg, chunk)
+    //   - 流结束/出错时调用 flushTypewriterQueue() 把剩余内容一次性输出
+    //   - 重试/取消/销毁时调用 clearTypewriterQueue()
+    startTypewriter(text, msg) {
+      if (!msg) return;
+      // 同一个消息对象多次调用时,锁定为首次的目标,避免误指向新消息
+      if (!this._typewriterTargetMsg) this._typewriterTargetMsg = msg;
+      if (this._typewriterTargetMsg !== msg) {
+        // 目标切换: 先把上一个目标队列清空,再处理新的
+        this.flushTypewriterQueue();
+        this._typewriterTargetMsg = msg;
+      }
+      if (!text) return;
+      // 关键:流式期间把 streaming 置 true,前端走纯文本渲染路径,
+      // 避免每 12ms 跑一次 12次正则的 renderMarkdown
+      if (msg.streaming !== true) msg.streaming = true;
+      this._typewriterQueue.push(text);
+      this._typewriterPendingLen += text.length;
+      if (!this._typewriterActive) {
+        this._processTypewriterQueue();
+      }
+    },
+
+    _processTypewriterQueue() {
+      // 每个 tick 吐 batchSize 个字符,间隔 speed ms。
+      // 实测 MiniMax 出字速率约 24 字/秒 ≈ 41ms/字;这里 12ms/2字 ≈
+      // 167 字/秒,略快于上游出字但不会堆积——上游一般 700~1000ms 才到
+      // 一个 chunk,前端 12ms/2字 期间有充足时间累积。
+      const speed = 12;
+      const batchSize = 2;
+
+      if (this._typewriterQueue.length === 0) {
+        this._typewriterActive = false;
+        return;
+      }
+
+      this._typewriterActive = true;
+
+      // 从队首取一段(通常就是当前 SSE chunk)
+      const text = this._typewriterQueue[0];
+      const sliceLen = Math.min(batchSize, text.length);
+
+      if (text.length <= sliceLen) {
+        // 整段消费完
+        this._typewriterTargetMsg.content += text;
+        this._typewriterQueue.shift();
+        this._typewriterPendingLen -= text.length;
+      } else {
+        // 部分消费
+        this._typewriterTargetMsg.content += text.slice(0, sliceLen);
+        this._typewriterQueue[0] = text.slice(sliceLen);
+        this._typewriterPendingLen -= sliceLen;
+      }
+
+      // 流式渲染期间持续滚动,但节流避免每帧都 layout
+      this._scheduleScroll();
+
+      this._typewriterTimer = setTimeout(() => this._processTypewriterQueue(), speed);
+    },
+
+    // 流结束时调用:把队列里剩下的字符一次性写入,避免最后几个字符被丢
+    flushTypewriterQueue() {
+      const target = this._typewriterTargetMsg;
+      if (this._typewriterQueue.length > 0) {
+        if (target) {
+          target.content += this._typewriterQueue.join('');
+        }
+        this._typewriterQueue = [];
+        this._typewriterPendingLen = 0;
+      }
+      this._typewriterActive = false;
+      if (this._typewriterTimer) {
+        clearTimeout(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
+      // 关键:流式结束 → 切回 markdown 渲染
+      // Alpine 看到 streaming 由 true 变 false 会切到 x-html 那个 span
+      // 触发一次完整的 renderMarkdown,把代码块/链接/列表全部格式化
+      if (target) target.streaming = false;
+      this._scrollToBottomNow();
+    },
+
+    // 取消/重试/销毁时清理
+    clearTypewriterQueue() {
+      this._typewriterQueue = [];
+      this._typewriterPendingLen = 0;
+      this._typewriterTargetMsg = null;
+      this._typewriterActive = false;
+      if (this._typewriterTimer) {
+        clearTimeout(this._typewriterTimer);
+        this._typewriterTimer = null;
+      }
+    },
+
+    // scroll 节流:打字机 12ms/tick 时,scrollToBottom 每帧都跑会触发 layout,
+    // 这里合并成 60ms 一次的 requestAnimationFrame。
+    _scheduleScroll() {
+      if (this._scrollThrottleTimer) return;
+      this._scrollThrottleTimer = requestAnimationFrame(() => {
+        this._scrollThrottleTimer = null;
+        this._scrollToBottomNow();
+      });
+    },
+
+    _scrollToBottomNow() {
+      this.$nextTick(() => {
+        const el = this.$refs.msgContainer;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    },
+
     async retryMessage(msg) {
       // 找到该消息之前的用户消息
       const idx = this.messages.indexOf(msg);
       if (idx < 1) return;
       const prevMsg = this.messages[idx - 1];
       if (prevMsg.role !== 'user') return;
+
+      // 重试前清理打字机状态,避免旧 timer 还在往被删除的消息里写
+      this.clearTypewriterQueue();
+      if (this.abortController) {
+        this.abortController.abort();
+        this.abortController = null;
+      }
 
       // 删除当前消息及其后的所有内容
       this.messages = this.messages.slice(0, idx);
@@ -803,6 +958,9 @@ document.addEventListener('alpine:init', () => {
       const msg = {
         id: ++this._msgIdCounter,
         role, content, typing,
+        // streaming: 流式输出期间为 true,此时用纯文本渲染;
+        // 流结束后置 false,切到完整 markdown 渲染 (避免每 12ms 重跑 markdown)
+        streaming: false,
         links: null, actions: null,
         liked: false, disliked: false, likes: 0, copied: false, error: false,
       };
@@ -1078,6 +1236,12 @@ document.addEventListener('alpine:init', () => {
       if (this.abortController) { this.abortController.abort(); this.abortController = null; }
       if (this.pomodoro.intervalId) clearInterval(this.pomodoro.intervalId);
       if (this._autoSaveTimer) clearTimeout(this._autoSaveTimer);
+      // 打字机资源也要清,否则 timer 会在已销毁的组件上继续触发
+      this.clearTypewriterQueue();
+      if (this._scrollThrottleTimer) {
+        cancelAnimationFrame(this._scrollThrottleTimer);
+        this._scrollThrottleTimer = null;
+      }
     },
   }));
 

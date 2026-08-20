@@ -56,7 +56,8 @@ class TestChatMessages:
     def test_legacy_save_message(self, legacy_db):
         repo = DbPyChatRepository(legacy_db)
         msg_id = repo.save_message(1, {"role": "user", "content": "Hi"})
-        assert msg_id > 0
+        # 真实 messages.id 是 TEXT PK（db.save_message 生成 uuid），不再是自增 int。
+        assert isinstance(msg_id, str) and msg_id
         history = repo.get_history(1)
         assert len(history) == 1
 

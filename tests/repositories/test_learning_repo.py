@@ -69,14 +69,8 @@ def legacy_db(tmp_path):
             "INSERT INTO study_sessions (user_id, subject, duration_minutes, session_date) VALUES (?, ?, ?, ?)",
             (1, "math", 30, str(today - timedelta(days=i))),
         )
-    conn.execute(
-        "INSERT INTO learning_records (user_id, activity_type, subject, minutes) VALUES (?, ?, ?, ?)",
-        (1, "practice", "math", 10),
-    )
-    conn.execute(
-        "INSERT INTO learning_records (user_id, activity_type, subject, minutes) VALUES (?, ?, ?, ?)",
-        (1, "practice", "math", 20),
-    )
+    # 真实 schema 里 learning_records 是学习画像表（interaction_count 等），
+    # mastery 现在从 study_sessions 聚合，无需再灌想象中的 activity/minutes 行。
     conn.commit()
     conn.close()
     yield db_path

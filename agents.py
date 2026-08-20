@@ -342,7 +342,8 @@ class PlannerAgent(BaseAgent):
         else:
             diff = DifficultyLevel(cognitive) if cognitive in [e.value for e in DifficultyLevel] else DifficultyLevel.BASIC
 
-        content_types = [ContentType.TEXT]
+        # 知识文档是核心交付物之一, 始终调度 document_generator (route_generators 内部会按 agent 去重)
+        content_types: list[ContentType] = [ContentType.TEXT, ContentType.DOCUMENT]
         style = state.profile.learning_style
         if isinstance(style, CognitiveStyle):
             pass
@@ -1185,6 +1186,7 @@ class MasterController:
         self,
         state: StudentState,
         on_step_complete: Callable[[AgentStepLog], Awaitable[None]] | None = None,
+        on_product: Callable[[str, dict[str, Any]], Awaitable[None]] | None = None,
     ) -> StudentState:
         last_log_idx = len(state.workflow_logs)
 
@@ -1209,16 +1211,32 @@ class MasterController:
                         pass
                 last_log_idx = len(state.workflow_logs)
 
+        # ===== 并行运行 generators (real-time push) =====
+        # 谁先完成, 谁先触发 on_product 回调 → 前端按完成顺序逐个把产物推到聊天框
         generators = self.route_generators(state)
-        for gen in generators:
-            state = await gen.run(state)
-            if on_step_complete:
-                for log in state.workflow_logs[last_log_idx:]:
-                    try:
-                        await on_step_complete(log)
-                    except Exception:
-                        pass
-                last_log_idx = len(state.workflow_logs)
+        if generators:
+            # 包装器: 每个 agent 完成后, 先 flush 日志 (用于控制塔), 再 emit 产物
+            async def _run_and_emit(gen: BaseAgent) -> None:
+                nonlocal last_log_idx
+                state_local = await gen.run(state)
+                # 注意: state 是可变对象, 各 agent 修改的 metadata key 不重叠, 无竞态
+                state.__dict__.update(state_local.__dict__)
+                if on_step_complete:
+                    for log in state.workflow_logs[last_log_idx:]:
+                        try:
+                            await on_step_complete(log)
+                        except Exception:
+                            pass
+                    last_log_idx = len(state.workflow_logs)
+                if on_product:
+                    payload = state.metadata.get(f"{gen.name}_output")
+                    if payload:
+                        try:
+                            await on_product(gen.name, payload)
+                        except Exception:
+                            pass
+
+            await asyncio.gather(*(_run_and_emit(gen) for gen in generators))
 
         if "resource_push" in self._agents:
             state = await self._agents["resource_push"].run(state)

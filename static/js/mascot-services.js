@@ -139,7 +139,7 @@ window.MascotServices = (() => {
       const data = await res.json();
       return data.success ? (data.data.models || []) : [];
     } catch {
-      // Fallback: return known model
+      // Fallback: return known model (model id 跟随后端 settings,前端不硬编码)
       return [{ id: 'MiniMax-Text-01', name: 'MiniMax-Text-01', provider: 'MiniMax', default: true, available: true }];
     }
   }
