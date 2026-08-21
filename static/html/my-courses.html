@@ -44,11 +44,15 @@
     <div class="mc-page fade-in">
         <div class="mc-tabs">
             <button class="mc-tab active" data-tab="courses">📚 课程中心</button>
+            <button class="mc-tab" data-tab="ai-courses">🎓 AI 课程</button>
             <button class="mc-tab" data-tab="progress">📊 学习进度</button>
             <button class="mc-tab" data-tab="calendar">📅 学习日历</button>
         </div>
         <div class="mc-content">
             <div class="mc-panel active app-content-card" id="panel-courses">
+                <div class="mc-loading">加载中...</div>
+            </div>
+            <div class="mc-panel app-content-card" id="panel-ai-courses">
                 <div class="mc-loading">加载中...</div>
             </div>
             <div class="mc-panel app-content-card" id="panel-progress">
@@ -102,6 +106,7 @@
         // AJAX lazy-load panel content
         var panelSources = {
             'courses': '/courses.html',
+            'ai-courses': '/generated-courses.html',
             'progress': '/progress.html',
             'calendar': '/calendar.html',
         };

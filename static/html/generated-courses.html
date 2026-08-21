@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html data-bg-unified="true" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 课程库 · 星识</title>
+    <link rel="stylesheet" href="/css/tokens.css">
+    <link rel="stylesheet" href="/css/app-base.css">
+    <link rel="stylesheet" href="/css/theme-bg.css">
+    <link rel="stylesheet" href="/css/theme-modal.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/animations.css">
+    <link rel="stylesheet" href="/css/hub.css">
+    <style>
+        .gc-page { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .gc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .gc-title { font-size: 20px; font-weight: 600; color: var(--cp-text-primary); }
+        .gc-subtitle { font-size: 13px; color: var(--cp-text-secondary); margin-top: 4px; }
+        .gc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .gc-card {
+            background: var(--cp-card-bg);
+            border: 1px solid var(--cp-card-border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .gc-card:hover {
+            border-color: var(--cp-accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .gc-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--info), var(--accent));
+        }
+        .gc-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .gc-card-icon { font-size: 28px; margin-bottom: 8px; }
+        .gc-card-title { font-size: 16px; font-weight: 600; color: var(--cp-text-primary); margin-bottom: 4px; }
+        .gc-card-meta { font-size: 12px; color: var(--cp-text-tertiary); }
+        .gc-card-desc { font-size: 13px; color: var(--cp-text-secondary); margin: 8px 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .gc-card-footer { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .gc-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: color-mix(in oklch, var(--info), transparent 88%); color: var(--info); }
+        .gc-badge-outline { background: color-mix(in oklch, var(--accent), transparent 88%); color: var(--accent); }
+        .gc-empty { text-align: center; padding: 60px 20px; color: var(--cp-text-tertiary); }
+        .gc-empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .gc-empty-text { font-size: 15px; margin-bottom: 8px; }
+        .gc-empty-hint { font-size: 13px; opacity: 0.7; }
+        .gc-loading { text-align: center; padding: 60px 20px; color: var(--cp-text-tertiary); }
+        .gc-loading::after { content: ''; display: inline-block; width: 20px; height: 20px; margin-left: 8px; border: 2px solid var(--cp-text-tertiary); border-top-color: var(--accent); border-radius: 50%; animation: gc-spin 0.8s linear infinite; vertical-align: middle; }
+        @keyframes gc-spin { to { transform: rotate(360deg); } }
+        .gc-error { text-align: center; padding: 60px 20px; color: var(--cp-danger); }
+        .gc-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .gc-action-btn:hover { background: color-mix(in oklch, var(--accent), black 10%); }
+        .gc-delete-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.1);
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: var(--cp-text-secondary);
+        }
+        .gc-card:hover .gc-delete-btn { opacity: 1; }
+        .gc-delete-btn:hover { background: rgba(239,68,68,0.2); color: var(--cp-danger); }
+        .gc-time { font-size: 11px; color: var(--cp-text-tertiary); margin-top: 8px; }
+    </style>
+    <script src="/js/auth.js"></script>
+</head>
+<body data-bg-unified="true" class="app-body hub-body">
+    <div class="gc-page fade-in">
+        <div class="gc-header">
+            <div>
+                <h1 class="gc-title">🎓 AI 课程库</h1>
+                <p class="gc-subtitle">已生成的 9 件套课程，包含大纲、PPT、习题、案例等完整内容</p>
+            </div>
+            <a href="/generation-preview.html" class="gc-action-btn">
+                <span>＋</span> 生成新课程
+            </a>
+        </div>
+
+        <div id="gc-content">
+            <div class="gc-loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        'use strict';
+
+        var API_LIST = '/api/v2/course/list/all';
+
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            try {
+                var d = new Date(isoString);
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            } catch(e) { return isoString; }
+        }
+
+        function esc(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function getComponentBadges(bundle) {
+            if (!bundle || !bundle.components) return '';
+            var names = Object.keys(bundle.components);
+            if (!names.length) return '';
+            // Show up to 4 badges
+            var shown = names.slice(0, 4);
+            var html = shown.map(function(n) {
+                var labels = {
+                    outline: '📋 大纲',
+                    plan: '📝 教案',
+                    ppt: '🎬 PPT',
+                    graph: '🕸 图谱',
+                    radar: '📊 雷达',
+                    project: '🛠 项目',
+                    case: '📖 案例',
+                    exercises: '✏️ 习题',
+                    survey: '📋 问卷',
+                    ability_graph: '🧭 能力图'
+                };
+                return '<span class="gc-badge gc-badge-outline">' + (labels[n] || n) + '</span>';
+            }).join('');
+            if (names.length > 4) html += '<span class="gc-badge">+' + (names.length - 4) + '</span>';
+            return html;
+        }
+
+        function getSceneCount(course) {
+            var outlines = course.outlines || [];
+            return outlines.length || 0;
+        }
+
+        function getSlideCount(course) {
+            var slides = course.slides_v2 || [];
+            return slides.length || 0;
+        }
+
+        function renderCourses(courses) {
+            var container = document.getElementById('gc-content');
+            if (!courses || !courses.length) {
+                container.innerHTML = ''
+                    + '<div class="gc-empty">'
+                    + '<div class="gc-empty-icon">📚</div>'
+                    + '<div class="gc-empty-text">暂无 AI 生成的课程</div>'
+                    + '<div class="gc-empty-hint">点击上方「生成新课程」开始创建你的第一门 AI 课程</div>'
+                    + '</div>';
+                return;
+            }
+
+            var html = '<div class="gc-grid">';
+            courses.forEach(function(c) {
+                var title = esc(c.title || '未命名课程');
+                var courseId = esc(c.courseId || c.id || '');
+                var requirement = esc((c.metadata && c.metadata.requirement) || '');
+                var generatedAt = formatDate(c.metadata && c.metadata.generated_at);
+                var sceneCount = getSceneCount(c);
+                var slideCount = getSlideCount(c);
+                var badges = getComponentBadges(c.bundle || c);
+
+                // Fallback for legacy format
+                if (!badges && c.outline_data) badges = '<span class="gc-badge gc-badge-outline">📋 大纲</span>';
+                if (!badges && c.ppt_data) badges += '<span class="gc-badge gc-badge-outline">🎬 PPT</span>';
+
+                var desc = requirement ? requirement.substring(0, 80) + (requirement.length > 80 ? '...' : '') : 'AI 生成的完整课程，包含 9 件套教学资源';
+
+                html += ''
+                    + '<div class="gc-card" onclick="window.open(\'/classroom.html?course_id=' + encodeURIComponent(courseId) + '\', \'_blank\')">'
+                    + '<button class="gc-delete-btn" onclick="event.stopPropagation(); event.preventDefault(); if(confirm(\'确定删除这门课程？\')) deleteCourse(\'' + courseId + '\')" title="删除课程">✕</button>'
+                    + '<div class="gc-card-icon">🎓</div>'
+                    + '<div class="gc-card-title">' + title + '</div>'
+                    + '<div class="gc-card-meta">场景 ' + sceneCount + ' 个 · PPT ' + slideCount + ' 页</div>'
+                    + '<div class="gc-card-desc">' + esc(desc) + '</div>'
+                    + '<div class="gc-card-footer">' + badges + '</div>'
+                    + (generatedAt ? '<div class="gc-time">生成于 ' + generatedAt + '</div>' : '')
+                    + '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function loadCourses() {
+            var container = document.getElementById('gc-content');
+            container.innerHTML = '<div class="gc-loading">加载中...</div>';
+
+            fetch(API_LIST, { headers: { 'Accept': 'application/json' } })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(function(res) {
+                    var courses = res.courses || [];
+                    // Sort by generated_at descending
+                    courses.sort(function(a, b) {
+                        var ta = (a.metadata && a.metadata.generated_at) || '';
+                        var tb = (b.metadata && b.metadata.generated_at) || '';
+                        return tb.localeCompare(ta);
+                    });
+                    renderCourses(courses);
+                })
+                .catch(function(err) {
+                    container.innerHTML = '<div class="gc-error">加载失败: ' + esc(err.message) + '</div>';
+                });
+        }
+
+        window.deleteCourse = function(courseId) {
+            if (!courseId) return;
+            fetch('/api/v2/course/' + encodeURIComponent(courseId), {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.success) {
+                    loadCourses();
+                } else {
+                    alert('删除失败: ' + (res.detail || '未知错误'));
+                }
+            })
+            .catch(function(err) {
+                alert('删除请求失败: ' + err.message);
+            });
+        };
+
+        // Init
+        loadCourses();
+    })();
+    </script>
+</body>
+</html>

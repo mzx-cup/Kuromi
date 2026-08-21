@@ -36,3 +36,6 @@
 {"ts": "2026-08-20T16:24:01.473993+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
 {"ts": "2026-08-20T16:25:12.592353+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "course_generate"}
 {"ts": "2026-08-20T17:02:24.988872+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-21T05:23:45.916362+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-21T05:25:43.588156+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
+{"ts": "2026-08-21T05:28:04.564514+00:00", "kind": "intent_route", "student_id": "demo_user_001", "intent": "socratic_qa"}
