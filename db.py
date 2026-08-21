@@ -20,7 +20,7 @@ MYSQL_CONFIG = {
 }
 
 # SQLite 数据库路径
-_DEFAULT_SQLITE_PATH = os.path.join(BASE_DIR, 'storage', 'xingshi.db')
+_DEFAULT_SQLITE_PATH = os.path.join(BASE_DIR, 'storage', 'xingshi_v2.db')
 SQLITE_PATH = os.environ.get('SQLITE_PATH', _DEFAULT_SQLITE_PATH)
 
 # 后端类型: 'mysql', 'sqlite', 'json'
@@ -6269,6 +6269,26 @@ def get_classroom_record(course_id: str) -> Optional[dict]:
             for r in storage.get('classroom_records', []):
                 if r.get('course_id') == course_id:
                     return r
+
+        # Final fallback: read from disk course file
+        try:
+            import os as _os
+            BASE_DIR = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+            disk_path = _os.path.join(BASE_DIR, 'storage', 'courses', course_id + '.json')
+            if _os.path.exists(disk_path):
+                with open(disk_path, 'r', encoding='utf-8') as f:
+                    course_data = json.load(f)
+                return {
+                    'course_id': course_id,
+                    'title': course_data.get('title', ''),
+                    'ppt_pages': len(course_data.get('slides_v2') or course_data.get('slides') or []),
+                    'full_data': json.dumps(course_data, ensure_ascii=False),
+                    'course_data': course_data,
+                    '_source': 'disk',
+                }
+        except Exception as e:
+            print(f"[get_classroom_record] disk fallback failed: {e}")
+
         return None
 
 

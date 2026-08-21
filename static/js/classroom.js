@@ -78,6 +78,7 @@
             this.totalTimeSpent = 0;
             this.currentAudio = null;
             this.settings = {};
+            this._isReloading = false;
 
             // Action system state
             this.actionQueue = [];
@@ -425,95 +426,75 @@
             const self = this;
             let consecutiveFails = 0;
             this.pollingInterval = setInterval(async function() {
+                // 防止 reload 期间新回调排队再次触发 reload
+                if (self._isReloading) return;
                 try {
-                    // 优先尝试轮询 pending 接口
-                    const resp = await fetch(`/api/v2/course/${self.courseId}/slides/pending`);
-                    if (resp.ok) {
-                        const data = await resp.json();
-                        consecutiveFails = 0;
-                        console.log('[classroom] Poll result:', {
-                            pendingV2: (data.pending_slides_v2 || []).length,
-                            pendingQuiz: (data.pending_quiz_data || []).length,
-                            pendingExercise: (data.pending_exercise_data || []).length,
-                            isComplete: data.is_complete,
-                            generatedCount: data.generated_count,
-                            totalOutlines: data.total_outlines
-                        });
-                        // 处理 pending slides / quiz / exercise
-                        const hasPending = (data.pending_slides_v2 && data.pending_slides_v2.length > 0) ||
-                                           (data.pending_quiz_data && data.pending_quiz_data.length > 0) ||
-                                           (data.pending_exercise_data && data.pending_exercise_data.length > 0);
-                        if (hasPending) {
-                            const addedCount = self.addNewScenes(data);
-                            // 消费成功后通知后端清空已消费的 slides，避免重复轮询
-                            if (addedCount > 0 && data.pending_slides_v2 && data.pending_slides_v2.length > 0) {
-                                try {
-                                    const consumedTitles = data.pending_slides_v2.map(function(s) { return s.title; });
-                                    await fetch(`/api/v2/course/${self.courseId}/slides/consume`, {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ consumed_slide_titles: consumedTitles })
-                                    });
-                                    console.log('[classroom] Consumed pending slides, titles:', consumedTitles);
-                                } catch (consumeErr) {
-                                    console.warn('[classroom] Failed to consume pending slides:', consumeErr);
+                    // 直接轮询 classroom 接口获取完整课程数据（slides/pending 已废弃）
+                    const clsResp = await fetch('/api/v2/classroom/' + encodeURIComponent(self.courseId));
+                    if (clsResp.ok) {
+                        const clsData = await clsResp.json();
+                        const cd = (clsData && clsData.record && clsData.record.course_data) || (clsData && clsData.course_data) || null;
+                        if (cd) {
+                            const hasOutlines = Array.isArray(cd.outlines) && cd.outlines.length > 0;
+                            const hasSlides = Array.isArray(cd.slides_v2) && cd.slides_v2.length > 0;
+                            consecutiveFails = 0;
+                            console.log('[classroom] Poll result:', {
+                                hasOutlines: hasOutlines,
+                                hasSlides: hasSlides,
+                                slidesCount: (cd.slides_v2 || []).length,
+                                outlinesCount: (cd.outlines || []).length
+                            });
+                            if (hasOutlines || hasSlides) {
+                                // 检查 sessionStorage 是否已是相同数据，避免重复 reload
+                                const existing = sessionStorage.getItem('classroomData');
+                                let sameData = false;
+                                if (existing) {
+                                    try {
+                                        const existingData = JSON.parse(existing);
+                                        // 比较关键字段是否一致
+                                        sameData = existingData.courseId === cd.courseId ||
+                                            (existingData.outlines && cd.outlines &&
+                                             existingData.outlines.length === cd.outlines.length);
+                                    } catch (e) {}
                                 }
-                            }
-                        }
-                        // 只有确认 total_outlines > 0 且 generated_count >= total_outlines 时才认为真正完成
-                        // 避免数据库无记录时错误返回 is_complete=True 导致停止轮询
-                        const trulyComplete = data.is_complete && data.total_outlines > 0 && data.generated_count >= data.total_outlines;
-                        if (trulyComplete) {
-                            console.log('[classroom] Generation truly complete (generated_count >= total_outlines), stopping poll');
-                            clearInterval(self.pollingInterval);
-                            // 生成完成后保存到本地历史，确保最近课堂能显示
-                            self._saveToRecentHistory();
-                            // 同步完整课程数据到服务器
-                            self._persistCourseData();
-                            return;
-                        }
-                    } else if (resp.status === 404) {
-                        // pending 接口不存在, 改用 classroom 接口轮询完整课程数据
-                        consecutiveFails = 0;
-                        try {
-                            const clsResp = await fetch('/api/v2/classroom/' + encodeURIComponent(self.courseId));
-                            if (clsResp.ok) {
-                                const clsData = await clsResp.json();
-                                const cd = (clsData && clsData.record && clsData.record.course_data) || (clsData && clsData.course_data) || null;
-                                if (cd) {
-                                    const hasOutlines = Array.isArray(cd.outlines) && cd.outlines.length > 0;
-                                    const hasSlides = Array.isArray(cd.slides_v2) && cd.slides_v2.length > 0;
-                                    if (hasOutlines || hasSlides) {
-                                        console.log('[classroom] Classroom API returned content, reloading');
-                                        try { sessionStorage.setItem('classroomData', JSON.stringify(cd)); } catch (e) {}
-                                        // 简单做法: 整页刷新让 classroom.js 重新走正常流程
-                                        clearInterval(self.pollingInterval);
-                                        window.location.reload();
-                                        return;
-                                    }
+                                if (sameData) {
+                                    console.log('[classroom] sessionStorage already has same data, stopping poll');
+                                    clearInterval(self.pollingInterval);
+                                    self.pollingInterval = null;
+                                    return;
                                 }
-                            } else if (clsResp.status === 404) {
-                                // classroom API 也找不到 → 课程不存在, 停止轮询
-                                console.warn('[classroom] Course not found in any table, stopping poll');
+                                console.log('[classroom] Classroom API returned new content, reloading once');
+                                try { sessionStorage.setItem('classroomData', JSON.stringify(cd)); } catch (e) {}
+                                // 停止轮询后再 reload，避免循环刷新
                                 clearInterval(self.pollingInterval);
                                 self.pollingInterval = null;
+                                self._isReloading = true;
+                                window.location.reload();
                                 return;
                             }
-                        } catch (e) {
-                            // 静默失败, 继续轮询
                         }
-                    } else {
-                        console.warn('[classroom] Poll response not OK:', resp.status);
-                        consecutiveFails++;
-                        if (consecutiveFails >= 3) {
-                            console.warn('[classroom] Poll failed', consecutiveFails, 'times, stopping');
-                            clearInterval(self.pollingInterval);
-                            self.pollingInterval = null;
-                        }
+                    } else if (clsResp.status === 404) {
+                        // classroom API 找不到 → 课程不存在, 停止轮询
+                        console.warn('[classroom] Course not found in any table, stopping poll');
+                        clearInterval(self.pollingInterval);
+                        self.pollingInterval = null;
                         return;
+                    }
+                    // 请求失败增加计数
+                    consecutiveFails++;
+                    if (consecutiveFails >= 3) {
+                        console.warn('[classroom] Poll failed', consecutiveFails, 'times, stopping');
+                        clearInterval(self.pollingInterval);
+                        self.pollingInterval = null;
                     }
                 } catch (e) {
                     console.warn('[classroom] Polling error:', e);
+                    consecutiveFails++;
+                    if (consecutiveFails >= 3) {
+                        console.warn('[classroom] Poll failed', consecutiveFails, 'times, stopping');
+                        clearInterval(self.pollingInterval);
+                        self.pollingInterval = null;
+                    }
                 }
             }, 5000);
         }
