@@ -1,1 +1,0 @@
-"""L2 memory card layer (Core Innovation 3 — Agent memory card)."""

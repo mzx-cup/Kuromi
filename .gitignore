@@ -13,18 +13,22 @@ venv/
 env/
 __pycache__/
 *.pyc
+*.pyo
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # ==========================================
 # 3. 前端依赖与构建产物 (Frontend & Build)
 # ==========================================
 node_modules/
 dist/
+.next/
+out/
 
 # ==========================================
 # 4. 数据库文件 (Databases)
 # ==========================================
-# 使用通配符，自动拦截包含 xingshi.db、starlearn_v2.db 在内的所有本地数据库及缓存
 *.db
 *.sqlite3
 *.db-shm
@@ -35,30 +39,50 @@ dist/
 # ==========================================
 storage/state_storage/
 storage/task_storage/
+storage/audit.log
+storage/courses/*.json
+storage/seed/demo/cache/
 .worktrees/
+
 # 已迁移到 xingshi_v2.db 的遗留 JSON 存储 (SLICE_STATUS 阶段 2.3)
-# 保留在磁盘作为只读归档, 不再纳入版本控制
 local_storage.json
 local_storage.json.pre-migration.bak
+
+# 媒体生成 (TTS/ASR) 临时音频
+app/audio/
 
 # 忽略临时 JSON，但强制保留项目核心的包管理配置！
 *.json
 !package.json
 !package-lock.json
 !tsconfig.json
-
+!skills-lock.json
 
 # ==========================================
-.superpowers/
-
 # 6. 编辑器与系统生成文件 (IDE & System)
 # ==========================================
 .vscode/
 .idea/
 .DS_Store
+*.swp
+*.swo
 
 # ==========================================
-# 7. 自动化测试与浏览器缓存 (Browser Profiles)
+# 7. Claude / Agents / Superpowers 沙箱与个人配置
+# ==========================================
+.claude/
+.agents/
+.superpowers/
+.clauderc
+
+# ==========================================
+# 8. 第三方 SDK 示例与 Navicat 生成的杂项
+# ==========================================
+Seedance/
+Navicat/
+
+# ==========================================
+# 9. 自动化测试与浏览器缓存 (Browser Profiles)
 # ==========================================
 .edge-*/
 chrome-profile/
@@ -81,16 +105,11 @@ artifacts/
 tests/frontend/e2e/__screenshots__/*.png
 
 # ==========================================
-# 8. 比赛/演示运行产物 (Competition Artifacts) — P0 Task 11
+# 10. 比赛/演示运行产物 (Competition Artifacts) — P0 Task 11
 # ==========================================
-# 媒体生成 (TTS/ASR/Bilibili) 临时音频
-audio/
-# 演示打包产物
-packaging/
-# superpowers 运行时数据
-.superpowers/data/
-# agent 沙箱 worktree (用户已有未提交改动)
-.claude/worktrees/
+# 演示打包产物 (含 app_payload 自拷贝 + python/ 便携运行时)
+packaging/app_payload/
+packaging/python/
+
 # codex 缓存
 .codex/
-
